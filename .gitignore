@@ -1,2 +1,5 @@
 .vscode
 debug
+*.iml
+*.ipr
+*.iws
