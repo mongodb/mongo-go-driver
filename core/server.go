@@ -14,11 +14,14 @@ type Server interface {
 	Connection() (Connection, error)
 }
 
+const UnsetRTT = -1 * time.Millisecond
+
 // ServerDesc is a description of a server.
 type ServerDesc struct {
 	endpoint Endpoint
 
 	averageRTT         time.Duration
+	averageRTTSet      bool
 	electionID         bson.ObjectId
 	lastError          error
 	lastWriteTimestamp time.Time
@@ -37,6 +40,9 @@ type ServerDesc struct {
 
 // AverageRTT is the average round trip time for the server.
 func (d *ServerDesc) AverageRTT() time.Duration {
+	if !d.averageRTTSet {
+		return UnsetRTT
+	}
 	return d.averageRTT
 }
 
@@ -66,6 +72,15 @@ func (d *ServerDesc) Tags() []bson.D {
 // Version is the version of the server.
 func (d *ServerDesc) Version() util.Version {
 	return d.version
+}
+
+func (d *ServerDesc) setAverageRTT(rtt time.Duration) {
+	d.averageRTT = rtt
+	if rtt == UnsetRTT {
+		d.averageRTTSet = false
+	} else {
+		d.averageRTTSet = true
+	}
 }
 
 // ServerType represents a type of server.

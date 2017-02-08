@@ -1,5 +1,7 @@
 package core
 
+//go:generate go run spec_rtt_internal_test_generator.go
+
 import (
 	"fmt"
 
@@ -66,6 +68,8 @@ type ServerMonitor struct {
 	desc           *ServerDesc
 	descLock       sync.Mutex
 	done           chan<- struct{}
+	averageRTT     time.Duration
+	averageRTTSet  bool
 }
 
 // Desc gets the current ServerDesc.
@@ -110,7 +114,7 @@ func (m *ServerMonitor) heartbeat() *ServerDesc {
 		delay := time.Since(now)
 
 		desc = buildServerDesc(m.connectionOpts.Endpoint, isMasterResult, buildInfoResult)
-		desc.averageRTT = delay // TODO: actually calculate this properly
+		desc.setAverageRTT(m.updateAverageRTT(delay))
 	}
 
 	if desc == nil {
@@ -121,6 +125,18 @@ func (m *ServerMonitor) heartbeat() *ServerDesc {
 	}
 
 	return desc
+}
+
+// updateAverageRTT calcuates the averageRTT of the server
+// given its most recent RTT value
+func (m *ServerMonitor) updateAverageRTT(delay time.Duration) time.Duration {
+	if !m.averageRTTSet {
+		m.averageRTT = delay
+	} else {
+		alpha := 0.2
+		m.averageRTT = time.Duration(alpha*float64(delay) + (1-alpha)*float64(m.averageRTT))
+	}
+	return m.averageRTT
 }
 
 func buildServerDesc(endpoint Endpoint, isMasterResult *isMasterResult, buildInfoResult *buildInfoResult) *ServerDesc {
