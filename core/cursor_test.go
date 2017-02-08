@@ -7,17 +7,19 @@ import (
 	"testing"
 )
 
-func TestEmpty(t *testing.T) {
+func TestCursorEmpty(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+
+	t.Parallel()
 
 	conn, err := createIntegrationTestConnection()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	collectionName := "CursorTestEmpty"
+	collectionName := "TestCursorEmpty"
 	dropCollection(conn, collectionName, t)
 
 	cursorResult := find(conn, collectionName, 0, t)
@@ -29,17 +31,19 @@ func TestEmpty(t *testing.T) {
 	}
 }
 
-func TestSingleBatch(t *testing.T) {
+func TestCursorSingleBatch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+
+	t.Parallel()
 
 	conn, err := createIntegrationTestConnection()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	collectionName := "CursorTestSingleBatch"
+	collectionName := "TestCursorSingleBatch"
 	dropCollection(conn, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}}
 	insertDocuments(conn, collectionName, documents, t)
@@ -72,17 +76,19 @@ func TestSingleBatch(t *testing.T) {
 	}
 }
 
-func TestMultipleBatches(t *testing.T) {
+func TestCursorMultipleBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+
+	t.Parallel()
 
 	conn, err := createIntegrationTestConnection()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	collectionName := "CursorTestMultipleBatches"
+	collectionName := "TestCursorMultipleBatches"
 	dropCollection(conn, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
 	insertDocuments(conn, collectionName, documents, t)
@@ -139,17 +145,19 @@ func TestMultipleBatches(t *testing.T) {
 	}
 }
 
-func TestClose(t *testing.T) {
+func TestCursorClose(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+
+	t.Parallel()
 
 	conn, err := createIntegrationTestConnection()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	collectionName := "CursorTestClose"
+	collectionName := "TestCursorClose"
 	dropCollection(conn, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
 	insertDocuments(conn, collectionName, documents, t)
@@ -168,17 +176,19 @@ func TestClose(t *testing.T) {
 	}
 }
 
-func TestError(t *testing.T) {
+func TestCursorError(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+
+	t.Parallel()
 
 	conn, err := createIntegrationTestConnection()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	collectionName := "CursorTestError"
+	collectionName := "TestCursorError"
 	dropCollection(conn, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
 	insertDocuments(conn, collectionName, documents, t)

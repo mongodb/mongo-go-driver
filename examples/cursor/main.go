@@ -50,7 +50,7 @@ func main() {
 		log.Fatalf("Failed to execute command: %v", err)
 	}
 
-	cursor := core.NewCursor(databaseName, collectionName, response.Cursor.FirstBatch, response.Cursor.ID, 0, connection)
+	cursor := core.NewCursor(&response.Cursor, 0, connection)
 	defer cursor.Close()
 
 	var next bson.D

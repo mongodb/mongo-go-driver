@@ -3,6 +3,7 @@ package core
 import (
 	"github.com/10gen/mongo-go-driver/core/msg"
 	"gopkg.in/mgo.v2/bson"
+	"fmt"
 )
 
 // Create a new cursor
@@ -44,9 +45,11 @@ type cursorImpl struct {
 func (c *cursorImpl) Next(result interface{}) bool {
 	found := c.getNextFromCurrentBatch(result)
 	if found {
+		fmt.Println("found")
 		return true
 	}
 	if c.err != nil {
+		fmt.Printf("error: %v\n", c.err)
 		return false
 	}
 
