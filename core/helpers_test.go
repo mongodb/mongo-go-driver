@@ -4,6 +4,7 @@ import (
 	"github.com/10gen/mongo-go-driver/core"
 	"github.com/10gen/mongo-go-driver/core/msg"
 	"gopkg.in/mgo.v2/bson"
+	"strings"
 	"testing"
 )
 
@@ -56,7 +57,7 @@ func find(conn core.Connection, collectionName string, batchSize int32, t *testi
 func dropCollection(conn core.Connection, collectionName string, t *testing.T) {
 	err := core.ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), databaseName, false, bson.D{{"drop", collectionName}}),
 		&bson.D{})
-	if err != nil {
+	if err != nil && !strings.HasSuffix(err.Error(), "ns not found") {
 		t.Fatal(err)
 	}
 }
