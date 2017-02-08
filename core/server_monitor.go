@@ -148,6 +148,10 @@ func buildServerDesc(endpoint Endpoint, isMasterResult *isMasterResult, buildInf
 		},
 	}
 
+	if desc.canonicalEndpoint == "" {
+		desc.canonicalEndpoint = endpoint
+	}
+
 	if !isMasterResult.OK {
 		desc.lastError = fmt.Errorf("not ok")
 	}
