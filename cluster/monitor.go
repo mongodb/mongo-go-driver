@@ -2,8 +2,8 @@ package cluster
 
 import (
 	"errors"
-	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/server"
@@ -14,12 +14,13 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 	cfg := newConfig(opts...)
 
 	m := &Monitor{
-		subscribers: make(map[int]chan *Desc),
-		changes:     make(chan *server.Desc),
-		desc:        &Desc{},
-		fsm:         &monitorFSM{},
-		servers:     make(map[conn.Endpoint]*server.Monitor),
-		serverOpts:  cfg.serverOpts,
+		subscribers:            make(map[int64]chan *Desc),
+		changes:                make(chan *server.Desc),
+		desc:                   &Desc{},
+		fsm:                    &monitorFSM{},
+		servers:                make(map[conn.Endpoint]*server.Monitor),
+		serverOpts:             cfg.serverOpts,
+		serverSelectionTimeout: cfg.serverSelectionTimeout,
 	}
 
 	if cfg.replicaSetName != "" {
@@ -78,14 +79,16 @@ type Monitor struct {
 	changes chan *server.Desc
 	fsm     *monitorFSM
 
-	subscribers         map[int]chan *Desc
+	subscribers         map[int64]chan *Desc
+	lastSubscriberId    int64
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
-	serversLock   sync.Mutex
-	serversClosed bool
-	servers       map[conn.Endpoint]*server.Monitor
-	serverOpts    []server.Option
+	serversLock            sync.Mutex
+	serversClosed          bool
+	servers                map[conn.Endpoint]*server.Monitor
+	serverOpts             []server.Option
+	serverSelectionTimeout time.Duration
 }
 
 // Stop turns the monitor off.
@@ -117,14 +120,8 @@ func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 	if m.subscriptionsClosed {
 		return nil, nil, errors.New("cannot subscribe to monitor after stopping it")
 	}
-	var id int
-	for {
-		_, found := m.subscribers[id]
-		if !found {
-			break
-		}
-		id = rand.Int()
-	}
+	m.lastSubscriberId += 1
+	id := m.lastSubscriberId
 	m.subscribers[id] = ch
 	m.subscriberLock.Unlock()
 
@@ -136,6 +133,16 @@ func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 	}
 
 	return ch, unsubscribe, nil
+}
+
+// RequestImmediateCheck will send heartbeats to all the servers in the
+// cluster right away, instead of waiting for the heartbeat timeout.
+func (m *Monitor) RequestImmediateCheck() {
+	m.serversLock.Lock()
+	for _, mon := range m.servers {
+		mon.RequestImmediateCheck()
+	}
+	m.serversLock.Unlock()
 }
 
 func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {

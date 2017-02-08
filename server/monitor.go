@@ -4,64 +4,86 @@ package server
 
 import (
 	"errors"
-	"math/rand"
+	"sync"
+	"time"
 
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/msg"
-
-	"sync"
-	"time"
 )
+
+const minHeartbeatFreqMS = 500 * time.Millisecond
 
 // StartMonitor returns a new Monitor.
 func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 	cfg := newConfig(opts...)
 
 	done := make(chan struct{}, 1)
+	checkNow := make(chan struct{}, 1)
 	m := &Monitor{
 		endpoint: endpoint,
 		desc: &Desc{
 			Endpoint: endpoint,
 		},
-		subscribers:       make(map[int]chan *Desc),
+		subscribers:       make(map[int64]chan *Desc),
 		done:              done,
+		checkNow:          checkNow,
 		connOpts:          cfg.connOpts,
 		dialer:            cfg.dialer,
 		heartbeatInterval: cfg.heartbeatInterval,
 	}
 
+	var updateServer = func(heartbeatTimer, rateLimitTimer *time.Timer) {
+		// wait if last heartbeat was less than
+		// minHeartbeatFreqMS ago
+		<-rateLimitTimer.C
+
+		// get an updated server description
+		desc := m.heartbeat()
+		m.descLock.Lock()
+		m.desc = desc
+		m.descLock.Unlock()
+
+		// send the update to all subscribers
+		m.subscriberLock.Lock()
+		for _, ch := range m.subscribers {
+			select {
+			case <-ch:
+				// drain the channel if not empty
+			default:
+				// do nothing if chan already empty
+			}
+			ch <- desc
+		}
+		m.subscriberLock.Unlock()
+
+		// restart the timers
+		if !rateLimitTimer.Stop() {
+			<-rateLimitTimer.C
+		}
+		rateLimitTimer.Reset(minHeartbeatFreqMS)
+		if !heartbeatTimer.Stop() {
+			<-heartbeatTimer.C
+		}
+		heartbeatTimer.Reset(cfg.heartbeatInterval)
+	}
+
 	go func() {
-		timer := time.NewTimer(0)
+		heartbeatTimer := time.NewTimer(0)
+		rateLimitTimer := time.NewTimer(0)
 		for {
 			select {
-			case <-timer.C:
-				// get an updated server description
-				d := m.heartbeat()
-				m.descLock.Lock()
-				m.desc = d
-				m.descLock.Unlock()
+			case <-heartbeatTimer.C:
+				updateServer(heartbeatTimer, rateLimitTimer)
 
-				// send the update to all subscribers
-				m.subscriberLock.Lock()
-				for _, ch := range m.subscribers {
-					select {
-					case <-ch:
-						// drain the channel if not empty
-					default:
-						// do nothing if chan already empty
-					}
-					ch <- d
-				}
-				m.subscriberLock.Unlock()
+			case <-checkNow:
+				updateServer(heartbeatTimer, rateLimitTimer)
 
-				// restart the heartbeat timer
-				timer.Stop()
-				timer.Reset(cfg.heartbeatInterval)
 			case <-done:
-				timer.Stop()
+				heartbeatTimer.Stop()
+				rateLimitTimer.Stop()
 				m.subscriberLock.Lock()
 				for id, ch := range m.subscribers {
 					close(ch)
@@ -79,7 +101,8 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 
 // Monitor holds a channel that delivers updates to a server.
 type Monitor struct {
-	subscribers         map[int]chan *Desc
+	subscribers         map[int64]chan *Desc
+	lastSubscriberId    int64
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
@@ -87,6 +110,7 @@ type Monitor struct {
 	connOpts          []conn.Option
 	desc              *Desc
 	descLock          sync.Mutex
+	checkNow          chan struct{}
 	dialer            conn.Dialer
 	done              chan struct{}
 	endpoint          conn.Endpoint
@@ -117,14 +141,8 @@ func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 	if m.subscriptionsClosed {
 		return nil, nil, errors.New("cannot subscribe to monitor after stopping it")
 	}
-	var id int
-	for {
-		_, found := m.subscribers[id]
-		if !found {
-			break
-		}
-		id = rand.Int()
-	}
+	m.lastSubscriberId += 1
+	id := m.lastSubscriberId
 	m.subscribers[id] = ch
 	m.subscriberLock.Unlock()
 
@@ -136,6 +154,16 @@ func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 	}
 
 	return ch, unsubscribe, nil
+}
+
+// RequestImmediateCheck will cause the Monitor to send
+// a heartbeat to the server right away, instead of waiting for
+// the heartbeat timeout.
+func (m *Monitor) RequestImmediateCheck() {
+	select {
+	case m.checkNow <- struct{}{}:
+	default:
+	}
 }
 
 func (m *Monitor) heartbeat() *Desc {

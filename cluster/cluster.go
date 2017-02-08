@@ -1,7 +1,11 @@
 package cluster
 
 import (
+	"errors"
+	"math/rand"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/10gen/mongo-go-driver/server"
 )
@@ -16,23 +20,53 @@ func New(opts ...Option) (Cluster, error) {
 		return nil, err
 	}
 
-	updates, _, _ := monitor.Subscribe()
-	return &clusterImpl{
+	cluster := &clusterImpl{
 		monitor:     monitor,
 		ownsMonitor: true,
-		updates:     updates,
-	}, nil
+		waiters:     make(map[int64]chan struct{}),
+		rand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+	cluster.subscribeToMonitor()
+	return cluster, nil
 }
 
 // NewWithMonitor creates a new Cluster from
 // an existing monitor. When the cluster is closed,
 // the monitor will not be stopped.
 func NewWithMonitor(monitor *Monitor) Cluster {
-	updates, _, _ := monitor.Subscribe()
-	return &clusterImpl{
+	cluster := &clusterImpl{
 		monitor: monitor,
-		updates: updates,
+		waiters: make(map[int64]chan struct{}),
+		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+	cluster.subscribeToMonitor()
+	return cluster
+}
+
+func (c *clusterImpl) subscribeToMonitor() {
+	updates, _, _ := c.monitor.Subscribe()
+	go func() {
+		for desc := range updates {
+			c.descLock.Lock()
+			c.desc = desc
+			c.descLock.Unlock()
+
+			c.waiterLock.Lock()
+			for _, waiter := range c.waiters {
+				select {
+				case waiter <- struct{}{}:
+				default:
+				}
+			}
+			c.waiterLock.Unlock()
+		}
+		c.waiterLock.Lock()
+		for id, ch := range c.waiters {
+			close(ch)
+			delete(c.waiters, id)
+		}
+		c.waiterLock.Unlock()
+	}()
 }
 
 // Cluster represents a connection to a cluster.
@@ -49,11 +83,14 @@ type Cluster interface {
 type ServerSelector func(*Desc, []*server.Desc) ([]*server.Desc, error)
 
 type clusterImpl struct {
-	monitor     *Monitor
-	ownsMonitor bool
-	updates     <-chan *Desc
-	desc        *Desc
-	descLock    sync.Mutex
+	monitor      *Monitor
+	ownsMonitor  bool
+	waiters      map[int64]chan struct{}
+	lastWaiterId int64
+	waiterLock   sync.Mutex
+	desc         *Desc
+	descLock     sync.Mutex
+	rand         *rand.Rand
 }
 
 func (c *clusterImpl) Close() {
@@ -65,26 +102,64 @@ func (c *clusterImpl) Close() {
 func (c *clusterImpl) Desc() *Desc {
 	var desc *Desc
 	c.descLock.Lock()
-	select {
-	case desc = <-c.updates:
-		c.desc = desc
-	default:
-		// no updates
-	}
+	desc = c.desc
 	c.descLock.Unlock()
 	return desc
 }
 
 func (c *clusterImpl) SelectServer(selector ServerSelector) (server.Server, error) {
-	desc := c.Desc()
-	selected, err := selector(desc, desc.Servers)
-	if err != nil {
-		return nil, err
-	}
+	timer := time.NewTimer(c.monitor.serverSelectionTimeout)
+	updated, id := c.awaitUpdates()
+	for {
+		clusterDesc := c.Desc()
 
-	// TODO: put this logic into the monitor...
-	c.monitor.serversLock.Lock()
-	serverMonitor := c.monitor.servers[selected[0].Endpoint]
-	c.monitor.serversLock.Unlock()
-	return server.NewWithMonitor(serverMonitor), nil
+		suitable, err := selector(clusterDesc, clusterDesc.Servers)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(suitable) > 0 {
+			timer.Stop()
+			c.removeWaiter(id)
+			selected := suitable[c.rand.Intn(len(suitable))]
+
+			// TODO: put this logic into the monitor...
+			c.monitor.serversLock.Lock()
+			serverMonitor := c.monitor.servers[selected.Endpoint]
+			c.monitor.serversLock.Unlock()
+			return server.NewWithMonitor(serverMonitor), nil
+		}
+
+		c.monitor.RequestImmediateCheck()
+
+		select {
+		case <-updated:
+			// topology has changed
+		case <-timer.C:
+			c.removeWaiter(id)
+			return nil, errors.New("Server selection timed out")
+		}
+	}
+}
+
+// awaitUpdates returns a channel which will be signaled when the
+// cluster description is updated, and an id which can later be used
+// to remove this channel from the clusterImpl.waiters map.
+func (c *clusterImpl) awaitUpdates() (<-chan struct{}, int64) {
+	id := atomic.AddInt64(&c.lastWaiterId, 1)
+	ch := make(chan struct{}, 1)
+	c.waiterLock.Lock()
+	c.waiters[id] = ch
+	c.waiterLock.Unlock()
+	return ch, id
+}
+
+func (c *clusterImpl) removeWaiter(id int64) {
+	c.waiterLock.Lock()
+	_, found := c.waiters[id]
+	if !found {
+		panic("Could not find channel with provided id to remove")
+	}
+	delete(c.waiters, id)
+	c.waiterLock.Unlock()
 }
