@@ -95,7 +95,7 @@ func (g *Generator) generate() []byte {
 	g.printlnf("package core_test")
 	g.printlnf("import \"testing\"")
 	g.printlnf("import \"time\"")
-	g.printlnf("import . \"github.com/craiggwilson/mongo-go-driver/core\"")
+	g.printlnf("import . \"github.com/10gen/mongo-go-driver/core\"")
 
 	testsDir := "../specifications/source/connection-string/tests/"
 

@@ -9,7 +9,7 @@ import (
 
 	"encoding/json"
 
-	. "github.com/craiggwilson/mongo-go-driver/core/msg"
+	. "github.com/10gen/mongo-go-driver/core/msg"
 )
 
 func TestWireProtocolDecodeReply(t *testing.T) {

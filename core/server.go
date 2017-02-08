@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	"github.com/craiggwilson/mongo-go-driver/core/util"
+	"github.com/10gen/mongo-go-driver/core/util"
 )
 
 // Server represents a server.

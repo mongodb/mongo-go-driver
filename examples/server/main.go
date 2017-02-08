@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/craiggwilson/mongo-go-driver/core"
-	"github.com/craiggwilson/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/msg"
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"time"

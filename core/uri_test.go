@@ -5,7 +5,7 @@ import (
 
 	"reflect"
 
-	. "github.com/craiggwilson/mongo-go-driver/core"
+	. "github.com/10gen/mongo-go-driver/core"
 )
 
 func TestParseURI(t *testing.T) {

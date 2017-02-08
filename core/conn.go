@@ -5,8 +5,8 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/craiggwilson/mongo-go-driver/core/msg"
-	"github.com/craiggwilson/mongo-go-driver/core/util"
+	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/core/util"
 
 	"io"
 

@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/craiggwilson/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core"
 	"github.com/kr/pretty"
 )
 

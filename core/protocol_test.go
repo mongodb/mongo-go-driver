@@ -8,8 +8,8 @@ import (
 
 	"gopkg.in/mgo.v2/bson"
 
-	. "github.com/craiggwilson/mongo-go-driver/core"
-	"github.com/craiggwilson/mongo-go-driver/core/msg"
+	. "github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/msg"
 )
 
 func validateExecuteCommandError(t *testing.T, err error, errPrefix string, writeCount int) {

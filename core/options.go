@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/craiggwilson/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/core/msg"
 )
 
 // ConnectionOptions are options for a connection.

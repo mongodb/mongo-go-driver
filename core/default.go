@@ -1,7 +1,7 @@
 package core
 
 import "time"
-import "github.com/craiggwilson/mongo-go-driver/core/msg"
+import "github.com/10gen/mongo-go-driver/core/msg"
 
 var defaultCodec = msg.NewWireProtocolCodec
 

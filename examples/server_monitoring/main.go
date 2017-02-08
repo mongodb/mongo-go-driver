@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/craiggwilson/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core"
 	"github.com/kr/pretty"
 )
 

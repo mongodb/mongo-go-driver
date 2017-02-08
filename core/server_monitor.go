@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 
-	"github.com/craiggwilson/mongo-go-driver/core/util"
+	"github.com/10gen/mongo-go-driver/core/util"
 
 	"sync"
 	"time"

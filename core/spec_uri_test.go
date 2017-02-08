@@ -4,7 +4,7 @@ package core_test
 
 import "testing"
 import "time"
-import . "github.com/craiggwilson/mongo-go-driver/core"
+import . "github.com/10gen/mongo-go-driver/core"
 
 func TestParseURI_Empty_string(t *testing.T) {
 	_, err := ParseURI("")

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/craiggwilson/mongo-go-driver/core"
-	"github.com/craiggwilson/mongo-go-driver/core/msg"
+	. "github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/msg"
 	"github.com/kr/pretty"
 )
 
