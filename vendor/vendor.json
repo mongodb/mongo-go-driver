@@ -1,0 +1,31 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "ZbvybRLthm+bve1duASQ5ghFl6Y=",
+			"path": "github.com/kr/pretty",
+			"revision": "cfb55aafdaf3ec08f0db22699ab822c50091b1c4",
+			"revisionTime": "2016-08-23T17:07:15Z"
+		},
+		{
+			"checksumSHA1": "OdjJhBQQtNpITIPc6X+C9e/6RLw=",
+			"path": "github.com/kr/text",
+			"revision": "7cafcd837844e784b526369c9bce262804aebc60",
+			"revisionTime": "2016-05-04T02:26:26Z"
+		},
+		{
+			"checksumSHA1": "Kpt9VvtG+deoQ+p34F2CeTofTik=",
+			"path": "gopkg.in/mgo.v2/bson",
+			"revision": "c283eb40dfc206fd4c5f608663f10d14e646286d",
+			"revisionTime": "2016-11-15T15:48:59Z"
+		},
+		{
+			"checksumSHA1": "9tMleZvl/yjpkj7oO3pOfZc+MJw=",
+			"path": "gopkg.in/mgo.v2/internal/json",
+			"revision": "c283eb40dfc206fd4c5f608663f10d14e646286d",
+			"revisionTime": "2016-11-15T15:48:59Z"
+		}
+	],
+	"rootPath": "github.com/craiggwilson/mongo-go-driver"
+}
