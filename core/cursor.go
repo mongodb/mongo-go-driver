@@ -6,15 +6,14 @@ import (
 )
 
 // Create a new cursor
-func NewCursor(databaseName string, collectionName string, firstBatch []bson.Raw, cursorId int64, batchSize int32, connection Connection) Cursor {
+func NewCursor(cursorResult CursorResult, batchSize int32, connection Connection) Cursor {
 	return &cursorImpl{
-		databaseName:   databaseName,
-		collectionName: collectionName,
-		batchSize:      batchSize,
-		current:        0,
-		currentBatch:   firstBatch,
-		cursorId:       cursorId,
-		connection:     connection,
+		namespace:    cursorResult.Namespace(),
+		batchSize:    batchSize,
+		current:      0,
+		currentBatch: cursorResult.InitialBatch(),
+		cursorId:     cursorResult.CursorId(),
+		connection:   connection,
 	}
 }
 
@@ -33,14 +32,13 @@ type Cursor interface {
 }
 
 type cursorImpl struct {
-	databaseName   string
-	collectionName string
-	batchSize      int32
-	current        int
-	currentBatch   []bson.Raw
-	cursorId       int64
-	err            error
-	connection     Connection // TODO: missing abstraction.  Shouldn't require a connection here, but just a way to acquire and release one
+	namespace    *Namespace
+	batchSize    int32
+	current      int
+	currentBatch []bson.Raw
+	cursorId     int64
+	err          error
+	connection   Connection // TODO: missing abstraction.  Shouldn't require a connection here, but just a way to acquire and release one
 }
 
 func (c *cursorImpl) Next(result interface{}) bool {
@@ -71,14 +69,17 @@ func (c *cursorImpl) Close() error {
 		return c.err
 	}
 
-	killCursorsCommand := killCursorsCommand{
-		Collection: c.collectionName,
+	killCursorsCommand := struct {
+		Collection string  `bson:"killCursors"`
+		Cursors    []int64 `bson:"cursors"`
+	}{
+		Collection: c.namespace.CollectionName(),
 		Cursors:    []int64{c.cursorId},
 	}
 
 	killCursorsRequest := msg.NewCommand(
 		msg.NextRequestID(),
-		c.databaseName,
+		c.namespace.DatabaseName(),
 		false,
 		killCursorsCommand,
 	)
@@ -114,21 +115,32 @@ func (c *cursorImpl) getMore() {
 		return
 	}
 
-	getMoreCommand := getMoreCommand{
+	getMoreCommand := struct {
+		CursorId   int64  `bson:"getMore"`
+		Collection string `bson:"collection"`
+		BatchSize  int32  `bson:"batchSize"`
+	}{
 		CursorId:   c.cursorId,
-		Collection: c.collectionName,
+		Collection: c.namespace.CollectionName(),
 	}
 	if c.batchSize != 0 {
 		getMoreCommand.BatchSize = c.batchSize
 	}
 	getMoreRequest := msg.NewCommand(
 		msg.NextRequestID(),
-		c.databaseName,
+		c.namespace.DatabaseName(),
 		false,
 		getMoreCommand,
 	)
 
-	var response getMoreResult
+	var response struct {
+		OK     bool `bson:"ok"`
+		Cursor struct {
+			       NextBatch []bson.Raw `bson:"nextBatch"`
+			       NS        string     `bson:"ns"`
+			       ID        int64      `bson:"id"`
+		       } `bson:"cursor"`
+	}
 
 	err := ExecuteCommand(c.connection, getMoreRequest, &response)
 	if err != nil {
@@ -138,26 +150,4 @@ func (c *cursorImpl) getMore() {
 
 	c.cursorId = response.Cursor.ID
 	c.currentBatch = response.Cursor.NextBatch
-}
-
-type getMoreCommand struct {
-	CursorId   int64  `bson:"getMore"`
-	Collection string `bson:"collection"`
-	BatchSize  int32  `bson:"batchSize"`
-}
-
-type killCursorsCommand struct {
-	Collection string  `bson:"killCursors"`
-	Cursors    []int64 `bson:"cursors"`
-}
-
-type getMoreResult struct {
-	OK     bool                `bson:"ok"`
-	Cursor getMoreCursorResult `bson:"cursor"`
-}
-
-type getMoreCursorResult struct {
-	NextBatch []bson.Raw `bson:"nextBatch"`
-	NS        string     `bson:"ns"`
-	ID        int64      `bson:"id"`
 }

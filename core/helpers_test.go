@@ -30,7 +30,7 @@ func insertDocuments(conn core.Connection, collectionName string, documents []bs
 	}
 }
 
-func find(conn core.Connection, collectionName string, batchSize int32, t *testing.T) ([]bson.Raw, int64) {
+func find(conn core.Connection, collectionName string, batchSize int32, t *testing.T) (core.CursorResult) {
 	findCommand := bson.D{
 		{"find", collectionName},
 	}
@@ -51,7 +51,7 @@ func find(conn core.Connection, collectionName string, batchSize int32, t *testi
 		t.Fatal(err)
 	}
 
-	return result.Cursor.FirstBatch, result.Cursor.ID
+	return &result.Cursor
 }
 
 func dropCollection(conn core.Connection, collectionName string, t *testing.T) {

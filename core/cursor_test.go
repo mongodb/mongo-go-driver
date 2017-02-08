@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-const collectionName = "CursorTest"
-
 func TestEmpty(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -19,7 +17,12 @@ func TestEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	subject := core.NewCursor(databaseName, collectionName, []bson.Raw{}, 0, 0, conn)
+	collectionName := "CursorTestEmpty"
+	dropCollection(conn, collectionName, t)
+
+	cursorResult := find(conn, collectionName, 0, t)
+
+	subject := core.NewCursor(cursorResult, 0, conn)
 	hasNext := subject.Next(&bson.D{})
 	if hasNext {
 		t.Fatal("Empty cursor should not have next")
@@ -36,13 +39,14 @@ func TestSingleBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	collectionName := "CursorTestSingleBatch"
 	dropCollection(conn, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}}
 	insertDocuments(conn, collectionName, documents, t)
 
-	firstBatch, cursorId := find(conn, collectionName, 0, t)
+	cursorResult := find(conn, collectionName, 0, t)
 
-	subject := core.NewCursor(databaseName, collectionName, firstBatch, cursorId, 0, conn)
+	subject := core.NewCursor(cursorResult, 0, conn)
 	var next bson.D
 	var hasNext bool
 
@@ -78,13 +82,14 @@ func TestMultipleBatches(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	collectionName := "CursorTestMultipleBatches"
 	dropCollection(conn, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
 	insertDocuments(conn, collectionName, documents, t)
 
-	firstBatch, cursorId := find(conn, collectionName, 2, t)
+	cursorResult := find(conn, collectionName, 2, t)
 
-	subject := core.NewCursor(databaseName, collectionName, firstBatch, cursorId, 2, conn)
+	subject := core.NewCursor(cursorResult, 2, conn)
 	var next bson.D
 	var hasNext bool
 
@@ -144,13 +149,14 @@ func TestClose(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	collectionName := "CursorTestClose"
 	dropCollection(conn, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
 	insertDocuments(conn, collectionName, documents, t)
 
-	firstBatch, cursorId := find(conn, collectionName, 2, t)
+	cursorResult := find(conn, collectionName, 2, t)
 
-	subject := core.NewCursor(databaseName, collectionName, firstBatch, cursorId, 2, conn)
+	subject := core.NewCursor(cursorResult, 2, conn)
 	err = subject.Close()
 	if err != nil {
 		t.Fatal("Did not expect error")
@@ -172,13 +178,14 @@ func TestError(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	collectionName := "CursorTestError"
 	dropCollection(conn, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
 	insertDocuments(conn, collectionName, documents, t)
 
-	firstBatch, cursorId := find(conn, collectionName, 2, t)
+	cursorResult := find(conn, collectionName, 2, t)
 
-	subject := core.NewCursor(databaseName, collectionName, firstBatch, cursorId, 2, conn)
+	subject := core.NewCursor(cursorResult, 2, conn)
 	var next string
 	var hasNext bool
 
