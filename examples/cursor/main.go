@@ -1,12 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"github.com/10gen/mongo-go-driver/core"
 	"github.com/10gen/mongo-go-driver/core/msg"
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"time"
-	"fmt"
 )
 
 const databaseName = "test"

@@ -13,8 +13,7 @@ type FirstBatchCursorResult struct {
 	// The first batch of the cursor
 	FirstBatch []bson.Raw `bson:"firstBatch"`
 	// The namespace to use for iterating the cursor
-	NS         string     `bson:"ns"`
+	NS string `bson:"ns"`
 	// The cursor id
-	ID         int64      `bson:"id"`
+	ID int64 `bson:"id"`
 }
-

@@ -3,8 +3,8 @@ package core_test
 import (
 	"github.com/10gen/mongo-go-driver/core"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 	"reflect"
+	"testing"
 )
 
 const collectionName = "CursorTest"

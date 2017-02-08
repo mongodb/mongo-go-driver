@@ -2,9 +2,9 @@ package core_test
 
 import (
 	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/msg"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
-	"github.com/10gen/mongo-go-driver/core/msg"
 )
 
 const databaseName = "mongo-go-driver"
@@ -33,7 +33,7 @@ func find(conn core.Connection, collectionName string, batchSize int32, t *testi
 	findCommand := bson.D{
 		{"find", collectionName},
 	}
-	if (batchSize != 0) {
+	if batchSize != 0 {
 		findCommand = append(findCommand, bson.DocElem{"batchSize", batchSize})
 	}
 	request := msg.NewCommand(
