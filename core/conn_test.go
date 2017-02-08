@@ -10,7 +10,6 @@ import (
 )
 
 func createIntegrationTestConnection() (Connection, error) {
-
 	c, err := DialConnection(ConnectionOptions{
 		AppName:        "mongo-go-driver-test",
 		Codec:          msg.NewWireProtocolCodec(),

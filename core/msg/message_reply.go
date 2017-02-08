@@ -1,5 +1,7 @@
 package msg
 
+import "fmt"
+
 // Reply is a message received from the server.
 type Reply struct {
 	ReqID          int32
@@ -70,6 +72,11 @@ func (i *ReplyIter) Next(result interface{}) bool {
 	n, err := i.partitioner(i.documentsBytes[i.pos:])
 	if err != nil {
 		i.err = err
+		return false
+	}
+
+	if len(i.documentsBytes)-i.pos < n {
+		i.err = fmt.Errorf("needed %d bytes to read document, but only had %d", n, len(i.documentsBytes)-i.pos)
 		return false
 	}
 

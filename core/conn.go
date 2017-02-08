@@ -184,13 +184,13 @@ func createClientDoc(appName string) bson.M {
 	clientDoc := bson.M{
 		"driver": bson.M{
 			"name":    "mongo-go-driver",
-			"version": nil,
+			"version": version,
 		},
 		"os": bson.M{
-			"type":         nil,
+			"type":         "unknown",
 			"name":         runtime.GOOS,
 			"architecture": runtime.GOARCH,
-			"version":      nil,
+			"version":      "unknown",
 		},
 		"platform": nil,
 	}

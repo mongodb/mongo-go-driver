@@ -44,46 +44,6 @@ func (c *wireProtocolCodec) Decode(reader io.Reader) (Message, error) {
 
 func (c *wireProtocolCodec) Encode(writer io.Writer, msgs ...Message) error {
 
-	addCString := func(b []byte, s string) []byte {
-		b = append(b, []byte(s)...)
-		return append(b, 0)
-	}
-
-	addInt32 := func(b []byte, i int32) []byte {
-		return append(b, byte(i), byte(i>>8), byte(i>>16), byte(i>>24))
-	}
-
-	// addInt64 := func(b []byte, i int64) []byte {
-	// 	return append(b, byte(i), byte(i>>8), byte(i>>16), byte(i>>24), byte(i>>32), byte(i>>40), byte(i>>48), byte(i>>56))
-	// }
-
-	addMarshalled := func(b []byte, data interface{}) ([]byte, error) {
-		if data == nil {
-			return append(b, 5, 0, 0, 0, 0), nil
-		}
-
-		dataBytes, err := bson.Marshal(data)
-		if err != nil {
-			return nil, err
-		}
-
-		return append(b, dataBytes...), nil
-	}
-
-	setInt32 := func(b []byte, pos int32, i int32) {
-		b[pos] = byte(i)
-		b[pos+1] = byte(i >> 8)
-		b[pos+2] = byte(i >> 16)
-		b[pos+3] = byte(i >> 24)
-	}
-
-	addHeader := func(b []byte, length, requestId, responseTo, opCode int32) []byte {
-		b = addInt32(b, length)
-		b = addInt32(b, requestId)
-		b = addInt32(b, responseTo)
-		return addInt32(b, opCode)
-	}
-
 	b := make([]byte, 0, 256)
 
 	var err error
@@ -91,7 +51,7 @@ func (c *wireProtocolCodec) Encode(writer io.Writer, msgs ...Message) error {
 		start := len(b)
 		switch typedM := msg.(type) {
 		case *Query:
-			b = addHeader(b, 0, typedM.RequestID(), 0, int32(queryOpcode))
+			b = addHeader(b, 0, typedM.ReqID, 0, int32(queryOpcode))
 			b = addInt32(b, int32(typedM.Flags))
 			b = addCString(b, typedM.FullCollectionName)
 			b = addInt32(b, typedM.NumberToSkip)
@@ -106,6 +66,13 @@ func (c *wireProtocolCodec) Encode(writer io.Writer, msgs ...Message) error {
 					return fmt.Errorf("unable to marshal return fields selector: %v", err)
 				}
 			}
+		case *Reply:
+			b = addHeader(b, 0, typedM.ReqID, typedM.RespTo, int32(replyOpcode))
+			b = addInt32(b, int32(typedM.ResponseFlags))
+			b = addInt64(b, typedM.CursorID)
+			b = addInt32(b, typedM.StartingFrom)
+			b = addInt32(b, typedM.NumberReturned)
+			b = append(b, typedM.DocumentsBytes...)
 		}
 
 		setInt32(b, int32(start), int32(len(b)-start))
@@ -119,18 +86,6 @@ func (c *wireProtocolCodec) Encode(writer io.Writer, msgs ...Message) error {
 }
 
 func (c *wireProtocolCodec) decode(b []byte) (Message, error) {
-
-	readInt64 := func(b []byte, pos int32) int64 {
-		return (int64(b[pos+0])) |
-			(int64(b[pos+1]) << 8) |
-			(int64(b[pos+2]) << 16) |
-			(int64(b[pos+3]) << 24) |
-			(int64(b[pos+4]) << 32) |
-			(int64(b[pos+5]) << 40) |
-			(int64(b[pos+6]) << 48) |
-			(int64(b[pos+7]) << 56)
-	}
-
 	// size := readInt32(b, 0) // no reason to do this
 	requestID := readInt32(b, 4)
 	responseTo := readInt32(b, 8)
@@ -155,6 +110,46 @@ func (c *wireProtocolCodec) decode(b []byte) (Message, error) {
 	return nil, fmt.Errorf("opcode %d not implemented", op)
 }
 
+func addCString(b []byte, s string) []byte {
+	b = append(b, []byte(s)...)
+	return append(b, 0)
+}
+
+func addInt32(b []byte, i int32) []byte {
+	return append(b, byte(i), byte(i>>8), byte(i>>16), byte(i>>24))
+}
+
+func addInt64(b []byte, i int64) []byte {
+	return append(b, byte(i), byte(i>>8), byte(i>>16), byte(i>>24), byte(i>>32), byte(i>>40), byte(i>>48), byte(i>>56))
+}
+
+func addMarshalled(b []byte, data interface{}) ([]byte, error) {
+	if data == nil {
+		return append(b, 5, 0, 0, 0, 0), nil
+	}
+
+	dataBytes, err := bson.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(b, dataBytes...), nil
+}
+
+func setInt32(b []byte, pos int32, i int32) {
+	b[pos] = byte(i)
+	b[pos+1] = byte(i >> 8)
+	b[pos+2] = byte(i >> 16)
+	b[pos+3] = byte(i >> 24)
+}
+
+func addHeader(b []byte, length, requestID, responseTo, opCode int32) []byte {
+	b = addInt32(b, length)
+	b = addInt32(b, requestID)
+	b = addInt32(b, responseTo)
+	return addInt32(b, opCode)
+}
+
 func readInt32(b []byte, pos int32) int32 {
 	return (int32(b[pos+0])) |
 		(int32(b[pos+1]) << 8) |
@@ -162,7 +157,22 @@ func readInt32(b []byte, pos int32) int32 {
 		(int32(b[pos+3]) << 24)
 }
 
+func readInt64(b []byte, pos int32) int64 {
+	return (int64(b[pos+0])) |
+		(int64(b[pos+1]) << 8) |
+		(int64(b[pos+2]) << 16) |
+		(int64(b[pos+3]) << 24) |
+		(int64(b[pos+4]) << 32) |
+		(int64(b[pos+5]) << 40) |
+		(int64(b[pos+6]) << 48) |
+		(int64(b[pos+7]) << 56)
+}
+
 func bsonDocumentPartitioner(bytes []byte) (int, error) {
+	if len(bytes) < 4 {
+		return 0, fmt.Errorf("int32 requires 4 bytes but only %d available", len(bytes))
+	}
+
 	n := readInt32(bytes, 0)
 	return int(n), nil
 }
