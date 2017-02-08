@@ -5,6 +5,8 @@ import "github.com/10gen/mongo-go-driver/core/msg"
 
 var defaultCodec = msg.NewWireProtocolCodec
 
+var defaultConnectionDialer = DialConnection
+
 var defaultEndpoint = Endpoint("localhost:27017")
 
 var defaultEndpointDialer = DialEndpoint

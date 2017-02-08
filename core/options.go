@@ -36,10 +36,14 @@ func (o *ConnectionOptions) validate() error {
 type ServerOptions struct {
 	ConnectionOptions
 
+	ConnectionDialer  ConnectionDialer
 	HeartbeatInterval time.Duration
 }
 
 func (o *ServerOptions) fillDefaults() {
+	if o.ConnectionDialer == nil {
+		o.ConnectionDialer = defaultConnectionDialer
+	}
 	if o.HeartbeatInterval == 0 {
 		o.HeartbeatInterval = defaultHeartbeatInterval
 	}
@@ -50,6 +54,9 @@ func (o *ServerOptions) validate() error {
 
 	return o.ConnectionOptions.validate()
 }
+
+// ConnectionDialer dials a connection.
+type ConnectionDialer func(ConnectionOptions) (ConnectionCloser, error)
 
 // ClusterOptions are options for connecting to a cluster.
 type ClusterOptions struct {
