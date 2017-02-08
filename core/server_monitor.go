@@ -18,8 +18,6 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 
 	opts.fillDefaults()
 
-	// TODO: should really be using a ring buffer. We want
-	// to throw away the oldest data, not the newest.
 	c := make(chan *ServerDesc, 1)
 	done := make(chan struct{}, 1)
 	m := &ServerMonitor{
@@ -33,17 +31,17 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 		for {
 			select {
 			case <-timer.C:
-				// weird syntax for a non-blocking send...
 				desc := m.heartbeat()
 				m.descLock.Lock()
 				m.desc = desc
 				m.descLock.Unlock()
 				select {
-				case c <- desc:
+				case <-c:
+					// drain the channel if full
 				default:
-					// TODO: drain the channel to make the next
-					// write visible
+					// if it's empty, do nothing
 				}
+				c <- desc
 				timer.Stop()
 				timer.Reset(opts.HeartbeatInterval)
 			case <-done:
