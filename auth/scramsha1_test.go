@@ -12,6 +12,7 @@ import (
 
 	. "github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/internal/internaltest"
 )
 
 func TestScramSHA1Authenticator_Fails(t *testing.T) {
@@ -23,7 +24,7 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := createCommandReply(bson.D{
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
@@ -31,8 +32,8 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 		{"done", true},
 	})
 
-	conn := &mockConnection{
-		responseQ: []*msg.Reply{saslStartReply},
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
 	err := authenticator.Auth(conn)
@@ -60,15 +61,15 @@ func TestScramSHA1Authenticator_Invalid_server_nonce(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvLWQybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := createCommandReply(bson.D{
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &mockConnection{
-		responseQ: []*msg.Reply{saslStartReply},
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
 	err := authenticator.Auth(conn)
@@ -96,22 +97,22 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := createCommandReply(bson.D{
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTBh")
-	saslContinueReply := createCommandReply(bson.D{
+	saslContinueReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &mockConnection{
-		responseQ: []*msg.Reply{saslStartReply, saslContinueReply},
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
 	err := authenticator.Auth(conn)
@@ -139,22 +140,22 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := createCommandReply(bson.D{
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9")
-	saslContinueReply := createCommandReply(bson.D{
+	saslContinueReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", true},
 	})
 
-	conn := &mockConnection{
-		responseQ: []*msg.Reply{saslStartReply, saslContinueReply},
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
 	err := authenticator.Auth(conn)
@@ -162,11 +163,11 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
 
-	if len(conn.sent) != 2 {
-		t.Fatalf("expected 2 messages to be sent but had %d", len(conn.sent))
+	if len(conn.Sent) != 2 {
+		t.Fatalf("expected 2 messages to be sent but had %d", len(conn.Sent))
 	}
 
-	saslStartRequest := conn.sent[0].(*msg.Query)
+	saslStartRequest := conn.Sent[0].(*msg.Query)
 	payload, _ = base64.RawStdEncoding.DecodeString("biwsbj11c2VyLHI9ZnlrbytkMmxiYkZnT05Sdjlxa3hkYXdM")
 	expectedCmd := bson.D{
 		{"saslStart", 1},
@@ -177,7 +178,7 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 		t.Fatalf("saslStart command was incorrect:\n  expected: %v\n    actual: %v", expectedCmd, saslStartRequest.Query)
 	}
 
-	saslContinueRequest := conn.sent[1].(*msg.Query)
+	saslContinueRequest := conn.Sent[1].(*msg.Query)
 	payload, _ = base64.RawStdEncoding.DecodeString("Yz1iaXdzLHI9ZnlrbytkMmxiYkZnT05Sdjlxa3hkYXdMSG8rVmdrN3F2VU9LVXd1V0xJV2c0bC85U3JhR01IRUUscD1NQzJUOEJ2Ym1XUmNrRHc4b1dsNUlWZ2h3Q1k9")
 	expectedCmd = bson.D{
 		{"saslContinue", 1},

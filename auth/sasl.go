@@ -13,6 +13,10 @@ type saslClient interface {
 }
 
 func conductSaslConversation(conn core.Connection, db string, client saslClient) error {
+	if db == "" {
+		db = defaultAuthDB
+	}
+
 	mech, payload, err := client.Start()
 	if err != nil {
 		return newError(err, mech)
