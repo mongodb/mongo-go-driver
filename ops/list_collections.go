@@ -1,8 +1,9 @@
 package ops
 
 import (
-	. "github.com/10gen/mongo-go-driver/core"
-	. "github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/msg"
+	"time"
 )
 
 // The options for listing collections
@@ -12,11 +13,11 @@ type ListCollectionsOptions struct {
 	// The batch size for fetching results.  A zero value indicate the server's default batch size.
 	BatchSize int32
 	// The maximum execution time in milliseconds.  A zero value indicates no maximum.
-	MaxTimeMS int64
+	MaxTime   time.Duration
 }
 
 // List the collections in the given database with the given options
-func ListCollections(conn Connection, databaseName string, options *ListCollectionsOptions) (Cursor, error) {
+func ListCollections(conn core.Connection, databaseName string, options *ListCollectionsOptions) (Cursor, error) {
 
 	listCollectionsCommand := struct {
 		ListCollections int32          `bson:"listCollections"`
@@ -26,13 +27,13 @@ func ListCollections(conn Connection, databaseName string, options *ListCollecti
 	}{
 		ListCollections: 1,
 		Filter:          options.Filter,
-		MaxTimeMS:       options.MaxTimeMS,
+		MaxTimeMS:       int64(options.MaxTime / time.Millisecond),
 		Cursor: &cursorRequest{
 			BatchSize: options.BatchSize,
 		},
 	}
-	request := NewCommand(
-		NextRequestID(),
+	request := msg.NewCommand(
+		msg.NextRequestID(),
 		databaseName,
 		false,
 		listCollectionsCommand,
@@ -40,7 +41,7 @@ func ListCollections(conn Connection, databaseName string, options *ListCollecti
 
 	var result cursorReturningResult
 
-	err := ExecuteCommand(conn, request, &result)
+	err := core.ExecuteCommand(conn, request, &result)
 	if err != nil {
 		return nil, err
 	}

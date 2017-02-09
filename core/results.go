@@ -90,4 +90,3 @@ type buildInfoResult struct {
 type getLastErrorResult struct {
 	ConnectionID uint32 `bson:"connectionId"`
 }
-

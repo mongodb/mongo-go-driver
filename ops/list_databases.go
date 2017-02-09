@@ -1,29 +1,30 @@
 package ops
 
 import (
-	. "github.com/10gen/mongo-go-driver/core"
-	. "github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/msg"
 	"gopkg.in/mgo.v2/bson"
+	"time"
 )
 
 // The options for listing databases
 type ListDatabasesOptions struct {
 	// The maximum execution time in milliseconds.  A zero value indicates no maximum.
-	MaxTimeMS int64
+	MaxTime time.Duration
 }
 
 // List the databases with the given options
-func ListDatabases(conn Connection, options *ListDatabasesOptions) (Cursor, error) {
+func ListDatabases(conn core.Connection, options *ListDatabasesOptions) (Cursor, error) {
 
 	listDatabasesCommand := struct {
 		ListDatabases int32 `bson:"listDatabases"`
 		MaxTimeMS     int64 `bson:"maxTimeMS,omitempty"`
 	}{
 		ListDatabases: 1,
-		MaxTimeMS:     options.MaxTimeMS,
+		MaxTimeMS:     int64(options.MaxTime / time.Millisecond),
 	}
-	request := NewCommand(
-		NextRequestID(),
+	request := msg.NewCommand(
+		msg.NextRequestID(),
 		"admin",
 		false,
 		listDatabasesCommand,
@@ -33,7 +34,7 @@ func ListDatabases(conn Connection, options *ListDatabasesOptions) (Cursor, erro
 		Databases []bson.Raw `bson:"databases"`
 	}
 
-	err := ExecuteCommand(conn, request, &result)
+	err := core.ExecuteCommand(conn, request, &result)
 	if err != nil {
 		return nil, err
 	}

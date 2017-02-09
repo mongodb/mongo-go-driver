@@ -3,7 +3,7 @@ package ops_test
 import (
 	"flag"
 	"fmt"
-	. "github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core"
 	"github.com/10gen/mongo-go-driver/core/msg"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
@@ -16,16 +16,16 @@ var host = flag.String("host", "127.0.0.1:27017", "specify the location of a run
 
 const databaseName = "mongo-go-driver"
 
-var conn Connection
+var conn core.Connection
 
-func getConnection() Connection {
+func getConnection() core.Connection {
 	if conn == nil {
 		var err error
-		conn, err = DialConnection(ConnectionOptions{
+		conn, err = core.DialConnection(core.ConnectionOptions{
 			AppName:        "mongo-go-driver-test",
 			Codec:          msg.NewWireProtocolCodec(),
-			Endpoint:       Endpoint(*host),
-			EndpointDialer: DialEndpoint,
+			Endpoint:       core.Endpoint(*host),
+			EndpointDialer: core.DialEndpoint,
 		})
 		if err != nil {
 			panic(fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err))
@@ -34,7 +34,7 @@ func getConnection() Connection {
 	return conn
 }
 
-func insertDocuments(conn Connection, collectionName string, documents []bson.D, t *testing.T) {
+func insertDocuments(conn core.Connection, collectionName string, documents []bson.D, t *testing.T) {
 	insertCommand := bson.D{
 		{"insert", collectionName},
 		{"documents", documents},
@@ -48,11 +48,11 @@ func insertDocuments(conn Connection, collectionName string, documents []bson.D,
 
 	result := &bson.D{}
 
-	err := ExecuteCommand(conn, request, result)
+	err := core.ExecuteCommand(conn, request, result)
 	require.Nil(t, err)
 }
 
-func find(conn Connection, collectionName string, batchSize int32, t *testing.T) CursorResult {
+func find(conn core.Connection, collectionName string, batchSize int32, t *testing.T) CursorResult {
 	findCommand := bson.D{
 		{"find", collectionName},
 	}
@@ -68,7 +68,7 @@ func find(conn Connection, collectionName string, batchSize int32, t *testing.T)
 
 	var result cursorReturningResult
 
-	err := ExecuteCommand(conn, request, &result)
+	err := core.ExecuteCommand(conn, request, &result)
 	require.Nil(t, err)
 
 	return &result.Cursor
@@ -84,8 +84,9 @@ type firstBatchCursorResult struct {
 	ID         int64      `bson:"id"`
 }
 
-func (cursorResult *firstBatchCursorResult) Namespace() *Namespace {
-	return NewNamespace(cursorResult.NS)
+func (cursorResult *firstBatchCursorResult) Namespace() *core.Namespace {
+	namespace, _ := core.ParseNamespace(cursorResult.NS)
+	return namespace
 }
 
 func (cursorResult *firstBatchCursorResult) InitialBatch() []bson.Raw {
@@ -96,24 +97,24 @@ func (cursorResult *firstBatchCursorResult) CursorId() int64 {
 	return cursorResult.ID
 }
 
-func dropCollection(conn Connection, collectionName string, t *testing.T) {
-	err := ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), databaseName, false, bson.D{{"drop", collectionName}}),
+func dropCollection(conn core.Connection, collectionName string, t *testing.T) {
+	err := core.ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), databaseName, false, bson.D{{"drop", collectionName}}),
 		&bson.D{})
 	if err != nil && !strings.HasSuffix(err.Error(), "ns not found") {
 		t.Fatal(err)
 	}
 }
 
-func enableMaxTimeFailPoint(conn Connection, t *testing.T) {
-	err := ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), "admin", false,
+func enableMaxTimeFailPoint(conn core.Connection, t *testing.T) {
+	err := core.ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), "admin", false,
 		bson.D{{"configureFailPoint", "maxTimeAlwaysTimeOut"},
 			{"mode", "alwaysOn"}}),
 		&bson.D{})
 	require.Nil(t, err)
 }
 
-func disableMaxTimeFailPoint(conn Connection, t *testing.T) {
-	err := ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), "admin", false,
+func disableMaxTimeFailPoint(conn core.Connection, t *testing.T) {
+	err := core.ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), "admin", false,
 		bson.D{{"configureFailPoint", "maxTimeAlwaysTimeOut"},
 			{"mode", "off"}}),
 		&bson.D{})

@@ -1,8 +1,9 @@
 package ops
 
 import (
-	. "github.com/10gen/mongo-go-driver/core"
-	. "github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/msg"
+	"time"
 )
 
 // The options for the aggregate command
@@ -11,13 +12,13 @@ type AggregationOptions struct {
 	AllowDiskUse bool
 	// The batch size for fetching results.  A zero value indicate the server's default batch size.
 	BatchSize    int32
-	// The maximum execution time in milliseconds.  A zero value indicates no maximum.
-	MaxTimeMS    int64
+	// The maximum execution time.  A zero value indicates no maximum.
+	MaxTime      time.Duration
 }
 
 // Execute the aggregate command with the given pipeline and options
 // The pipeline must encode as a BSON array of pipeline stages
-func Aggregate(conn Connection, namespace *Namespace, pipeline interface{}, options *AggregationOptions) (Cursor, error) {
+func Aggregate(conn core.Connection, namespace *core.Namespace, pipeline interface{}, options *AggregationOptions) (Cursor, error) {
 
 	aggregateCommand := struct {
 		Collection   string         `bson:"aggregate"`
@@ -26,24 +27,24 @@ func Aggregate(conn Connection, namespace *Namespace, pipeline interface{}, opti
 		Pipeline     interface{}    `bson:"pipeline"`
 		Cursor       *cursorRequest `bson:"cursor"`
 	}{
-		Collection:   namespace.CollectionName,
+		Collection:   namespace.CollectionName(),
 		AllowDiskUse: options.AllowDiskUse,
-		MaxTimeMS:    options.MaxTimeMS,
+		MaxTimeMS:    int64(options.MaxTime / time.Millisecond),
 		Pipeline:     pipeline,
 		Cursor: &cursorRequest{
 			BatchSize: options.BatchSize,
 		},
 	}
-	request := NewCommand(
-		NextRequestID(),
-		namespace.DatabaseName,
+	request := msg.NewCommand(
+		msg.NextRequestID(),
+		namespace.DatabaseName(),
 		false,
 		aggregateCommand,
 	)
 
 	var result cursorReturningResult
 
-	err := ExecuteCommand(conn, request, &result)
+	err := core.ExecuteCommand(conn, request, &result)
 	if err != nil {
 		return nil, err
 	}

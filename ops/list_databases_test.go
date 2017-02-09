@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
+	"time"
 )
 
 func TestListDatabases(t *testing.T) {
@@ -44,7 +45,7 @@ func TestListDatabasesWithMaxTimeMS(t *testing.T) {
 	defer disableMaxTimeFailPoint(conn, t)
 
 	_, err := ListDatabases(conn, &ListDatabasesOptions{
-		MaxTimeMS: 1,
+		MaxTime: time.Millisecond,
 	})
 	require.NotNil(t, err)
 	// Hacky check for the error message.  Should we be returning a more structured error?

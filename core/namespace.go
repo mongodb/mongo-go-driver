@@ -4,25 +4,36 @@ import (
 	"strings"
 )
 
-func NewNamespace(fullName string) *Namespace {
+// TODO: add error checking for missing '.', etc
+func ParseNamespace(fullName string) (*Namespace, error) {
 	indexOfFirstDot := strings.Index(fullName, ".")
 	return &Namespace{
-		DatabaseName:   fullName[:indexOfFirstDot],
-		CollectionName: fullName[indexOfFirstDot + 1:],
-		FullName:       fullName,
-	}
+		databaseName:   fullName[:indexOfFirstDot],
+		collectionName: fullName[indexOfFirstDot + 1:],
+	}, nil
 }
 
-func NewNamespaceFromDatabaseAndCollection(databaseName string, collectionName string) *Namespace {
+// TODO: add error checking for '.' in databaseName, etc
+func NewNamespace(databaseName string, collectionName string) (*Namespace, error) {
 	return &Namespace{
-		DatabaseName:   databaseName,
-		CollectionName: collectionName,
-		FullName:       strings.Join([]string{databaseName, collectionName}, "."),
-	}
+		databaseName:   databaseName,
+		collectionName: collectionName,
+	}, nil
 }
 
 type Namespace struct {
-	DatabaseName   string
-	CollectionName string
-	FullName       string
+	databaseName   string
+	collectionName string
+}
+
+func (namespace *Namespace) DatabaseName() string {
+	return namespace.databaseName
+}
+
+func (namespace *Namespace) CollectionName() string {
+	return namespace.collectionName
+}
+
+func (namespace *Namespace) FullName() string {
+	return strings.Join([]string{namespace.databaseName, namespace.collectionName}, ".")
 }

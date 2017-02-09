@@ -1,11 +1,12 @@
 package ops_test
 
 import (
-	. "github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
+	"time"
 )
 
 func TestAggregateWithMultipleBatches(t *testing.T) {
@@ -19,7 +20,8 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
 	insertDocuments(conn, collectionName, documents, t)
 
-	cursor, err := Aggregate(conn, NewNamespaceFromDatabaseAndCollection(databaseName, collectionName),
+	namespace, _ := core.NewNamespace(databaseName, collectionName)
+	cursor, err := Aggregate(conn, namespace,
 		[]bson.D{
 			{{"$match", bson.D{{"_id", bson.D{{"$gt", 2}}}}}},
 			{{"$sort", bson.D{{"_id", -1}}}}},
@@ -55,7 +57,8 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}}
 	insertDocuments(conn, collectionName, documents, t)
 
-	_, err := Aggregate(conn, NewNamespaceFromDatabaseAndCollection(databaseName, collectionName),
+	namespace, _ := core.NewNamespace(databaseName, collectionName)
+	_, err := Aggregate(conn, namespace,
 		[]bson.D{},
 		&AggregationOptions{
 			AllowDiskUse: true})
@@ -73,10 +76,11 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 	defer disableMaxTimeFailPoint(conn, t)
 
 	collectionName := "TestAggregateWithAllowDiskUse"
-	_, err := Aggregate(conn, NewNamespaceFromDatabaseAndCollection(databaseName, collectionName),
+	namespace, _ := core.NewNamespace(databaseName, collectionName)
+	_, err := Aggregate(conn, namespace,
 		[]bson.D{},
 		&AggregationOptions{
-			MaxTimeMS: 1})
+			MaxTime: time.Millisecond})
 	require.NotNil(t, err)
 
 	// Hacky check for the error message.  Should we be returning a more structured error?

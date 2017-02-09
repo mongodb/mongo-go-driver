@@ -2,9 +2,10 @@ package ops_test
 
 import (
 	. "github.com/10gen/mongo-go-driver/ops"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
-	"github.com/stretchr/testify/require"
+	"time"
 )
 
 func TestListCollections(t *testing.T) {
@@ -88,7 +89,7 @@ func TestListCollectionsWithMaxTimeMS(t *testing.T) {
 	enableMaxTimeFailPoint(conn, t)
 	defer disableMaxTimeFailPoint(conn, t)
 
-	_, err := ListCollections(conn, databaseName, &ListCollectionsOptions{MaxTimeMS: 1, })
+	_, err := ListCollections(conn, databaseName, &ListCollectionsOptions{MaxTime: time.Millisecond})
 	require.NotNil(t, err)
 
 	// Hacky check for the error message.  Should we be returning a more structured error?
