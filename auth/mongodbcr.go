@@ -66,15 +66,9 @@ func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
 
 func (a *MongoDBCRAuthenticator) createKey(nonce string) string {
 	h := md5.New()
-	io.WriteString(h, a.Username)
-	io.WriteString(h, ":mongo:")
-	io.WriteString(h, a.Password)
-	password := fmt.Sprintf("%x", h.Sum(nil))
-
-	h.Reset()
 
 	io.WriteString(h, nonce)
 	io.WriteString(h, a.Username)
-	io.WriteString(h, password)
+	io.WriteString(h, mongoPasswordDigest(a.Username, a.Password))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
