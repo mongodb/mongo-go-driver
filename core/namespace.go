@@ -18,15 +18,3 @@ type Namespace struct {
 	collectionName string
 	fullName       string
 }
-
-func (ns *Namespace) DatabaseName() string {
-	return ns.databaseName
-}
-
-func (ns *Namespace) CollectionName() string {
-	return ns.collectionName
-}
-
-func (ns *Namespace) FullName() string {
-	return ns.fullName
-}

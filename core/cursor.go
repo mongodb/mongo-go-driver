@@ -3,7 +3,6 @@ package core
 import (
 	"github.com/10gen/mongo-go-driver/core/msg"
 	"gopkg.in/mgo.v2/bson"
-	"fmt"
 )
 
 // Create a new cursor
@@ -45,11 +44,9 @@ type cursorImpl struct {
 func (c *cursorImpl) Next(result interface{}) bool {
 	found := c.getNextFromCurrentBatch(result)
 	if found {
-		fmt.Println("found")
 		return true
 	}
 	if c.err != nil {
-		fmt.Printf("error: %v\n", c.err)
 		return false
 	}
 
@@ -76,13 +73,13 @@ func (c *cursorImpl) Close() error {
 		Collection string  `bson:"killCursors"`
 		Cursors    []int64 `bson:"cursors"`
 	}{
-		Collection: c.namespace.CollectionName(),
+		Collection: c.namespace.collectionName,
 		Cursors:    []int64{c.cursorId},
 	}
 
 	killCursorsRequest := msg.NewCommand(
 		msg.NextRequestID(),
-		c.namespace.DatabaseName(),
+		c.namespace.databaseName,
 		false,
 		killCursorsCommand,
 	)
@@ -124,14 +121,14 @@ func (c *cursorImpl) getMore() {
 		BatchSize  int32  `bson:"batchSize"`
 	}{
 		CursorId:   c.cursorId,
-		Collection: c.namespace.CollectionName(),
+		Collection: c.namespace.collectionName,
 	}
 	if c.batchSize != 0 {
 		getMoreCommand.BatchSize = c.batchSize
 	}
 	getMoreRequest := msg.NewCommand(
 		msg.NextRequestID(),
-		c.namespace.DatabaseName(),
+		c.namespace.databaseName,
 		false,
 		getMoreCommand,
 	)
