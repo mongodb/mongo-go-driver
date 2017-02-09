@@ -6,6 +6,7 @@ import (
 	. "github.com/10gen/mongo-go-driver/core"
 	"github.com/10gen/mongo-go-driver/core/msg"
 	. "github.com/10gen/mongo-go-driver/ops"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
 	"strings"
 	"testing"
@@ -17,7 +18,7 @@ const databaseName = "mongo-go-driver"
 
 var conn Connection
 
-func createIntegrationTestConnection() (Connection, error) {
+func getConnection() Connection {
 	if conn == nil {
 		var err error
 		conn, err = DialConnection(ConnectionOptions{
@@ -27,10 +28,10 @@ func createIntegrationTestConnection() (Connection, error) {
 			EndpointDialer: DialEndpoint,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err)
+			panic(fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err))
 		}
 	}
-	return conn, nil
+	return conn
 }
 
 func insertDocuments(conn Connection, collectionName string, documents []bson.D, t *testing.T) {
@@ -48,9 +49,7 @@ func insertDocuments(conn Connection, collectionName string, documents []bson.D,
 	result := &bson.D{}
 
 	err := ExecuteCommand(conn, request, result)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 }
 
 func find(conn Connection, collectionName string, batchSize int32, t *testing.T) CursorResult {
@@ -70,9 +69,7 @@ func find(conn Connection, collectionName string, batchSize int32, t *testing.T)
 	var result cursorReturningResult
 
 	err := ExecuteCommand(conn, request, &result)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	return &result.Cursor
 }
@@ -112,9 +109,7 @@ func enableMaxTimeFailPoint(conn Connection, t *testing.T) {
 		bson.D{{"configureFailPoint", "maxTimeAlwaysTimeOut"},
 			{"mode", "alwaysOn"}}),
 		&bson.D{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 }
 
 func disableMaxTimeFailPoint(conn Connection, t *testing.T) {
@@ -122,7 +117,5 @@ func disableMaxTimeFailPoint(conn Connection, t *testing.T) {
 		bson.D{{"configureFailPoint", "maxTimeAlwaysTimeOut"},
 			{"mode", "off"}}),
 		&bson.D{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 }

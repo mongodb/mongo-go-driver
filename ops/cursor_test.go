@@ -1,9 +1,9 @@
 package ops_test
 
 import (
-	"gopkg.in/mgo.v2/bson"
 	. "github.com/10gen/mongo-go-driver/ops"
-	"reflect"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/mgo.v2/bson"
 	"testing"
 )
 
@@ -12,10 +12,7 @@ func TestCursorEmpty(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	collectionName := "TestCursorEmpty"
 	dropCollection(conn, collectionName, t)
@@ -24,9 +21,7 @@ func TestCursorEmpty(t *testing.T) {
 
 	subject := NewCursor(cursorResult, 0, conn)
 	hasNext := subject.Next(&bson.D{})
-	if hasNext {
-		t.Fatal("Empty cursor should not have next")
-	}
+	require.False(t, hasNext, "Empty cursor should not have next")
 }
 
 func TestCursorSingleBatch(t *testing.T) {
@@ -34,10 +29,7 @@ func TestCursorSingleBatch(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	collectionName := "TestCursorSingleBatch"
 	dropCollection(conn, collectionName, t)
@@ -51,25 +43,15 @@ func TestCursorSingleBatch(t *testing.T) {
 	var hasNext bool
 
 	hasNext = subject.Next(&next)
-	if !hasNext {
-		t.Fatal("Should have result")
-	}
-	if !(reflect.DeepEqual(next, documents[0])) {
-		t.Fatal("Documents not equal")
-	}
+	require.True(t, hasNext, "Should have result")
+	require.Equal(t, documents[0], next, "Documents should be equal")
 
 	hasNext = subject.Next(&next)
-	if !hasNext {
-		t.Fatal("Should have result")
-	}
-	if !(reflect.DeepEqual(next, documents[1])) {
-		t.Fatal("Documents not equal")
-	}
+	require.True(t, hasNext, "Should have result")
+	require.Equal(t, documents[1], next, "Documents should be equal")
 
 	hasNext = subject.Next(&next)
-	if hasNext {
-		t.Fatal("Should not have result")
-	}
+	require.False(t, hasNext, "Should be exhausted")
 }
 
 func TestCursorMultipleBatches(t *testing.T) {
@@ -77,10 +59,7 @@ func TestCursorMultipleBatches(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	collectionName := "TestCursorMultipleBatches"
 	dropCollection(conn, collectionName, t)
@@ -94,49 +73,27 @@ func TestCursorMultipleBatches(t *testing.T) {
 	var hasNext bool
 
 	hasNext = subject.Next(&next)
-	if !hasNext {
-		t.Fatal("Should have result")
-	}
-	if !(reflect.DeepEqual(next, documents[0])) {
-		t.Fatal("Documents not equal")
-	}
+	require.True(t, hasNext, "Should have result")
+	require.Equal(t, documents[0], next, "Documents should be equal")
 
 	hasNext = subject.Next(&next)
-	if !hasNext {
-		t.Fatal("Should have result")
-	}
-	if !(reflect.DeepEqual(next, documents[1])) {
-		t.Fatal("Documents not equal")
-	}
+	require.True(t, hasNext, "Should have result")
+	require.Equal(t, documents[1], next, "Documents should be equal")
 
 	hasNext = subject.Next(&next)
-	if !hasNext {
-		t.Fatal("Should have result")
-	}
-	if !(reflect.DeepEqual(next, documents[2])) {
-		t.Fatal("Documents not equal")
-	}
+	require.True(t, hasNext, "Should have result")
+	require.Equal(t, documents[2], next, "Documents should be equal")
 
 	hasNext = subject.Next(&next)
-	if !hasNext {
-		t.Fatal("Should have result")
-	}
-	if !(reflect.DeepEqual(next, documents[3])) {
-		t.Fatal("Documents not equal")
-	}
+	require.True(t, hasNext, "Should have result")
+	require.Equal(t, documents[3], next, "Documents should be equal")
 
 	hasNext = subject.Next(&next)
-	if !hasNext {
-		t.Fatal("Should have result")
-	}
-	if !(reflect.DeepEqual(next, documents[4])) {
-		t.Fatal("Documents not equal")
-	}
+	require.True(t, hasNext, "Should have result")
+	require.Equal(t, documents[4], next, "Documents should be equal")
 
 	hasNext = subject.Next(&next)
-	if hasNext {
-		t.Fatal("Should not have result")
-	}
+	require.False(t, hasNext, "Should be exhausted")
 }
 
 func TestCursorClose(t *testing.T) {
@@ -144,10 +101,7 @@ func TestCursorClose(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	collectionName := "TestCursorClose"
 	dropCollection(conn, collectionName, t)
@@ -157,15 +111,12 @@ func TestCursorClose(t *testing.T) {
 	cursorResult := find(conn, collectionName, 2, t)
 
 	subject := NewCursor(cursorResult, 2, conn)
-	err = subject.Close()
-	if err != nil {
-		t.Fatal("Did not expect error")
-	}
+	err := subject.Close()
+	require.Nil(t, err, "Unexpected error")
+
 	// call it again
 	err = subject.Close()
-	if err != nil {
-		t.Fatal("Did not expect error")
-	}
+	require.Nil(t, err, "Unexpected error")
 }
 
 func TestCursorError(t *testing.T) {
@@ -173,10 +124,7 @@ func TestCursorError(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	collectionName := "TestCursorError"
 	dropCollection(conn, collectionName, t)
@@ -190,10 +138,6 @@ func TestCursorError(t *testing.T) {
 	var hasNext bool
 
 	hasNext = subject.Next(&next)
-	if subject.Err() == nil {
-		t.Fatal("Expected error")
-	}
-	if hasNext {
-		t.Fatal("Should not have result")
-	}
+	require.NotNil(t, subject.Err(), "Unexpected error")
+	require.False(t, hasNext, "Should not have result")
 }

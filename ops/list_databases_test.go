@@ -2,9 +2,9 @@ package ops_test
 
 import (
 	. "github.com/10gen/mongo-go-driver/ops"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
-	"strings"
 )
 
 func TestListDatabases(t *testing.T) {
@@ -12,20 +12,14 @@ func TestListDatabases(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	collectionName := "TestListDatabases"
 	dropCollection(conn, collectionName, t)
 	insertDocuments(conn, collectionName, []bson.D{{{"_id", 1}}}, t)
 
 	cursor, err := ListDatabases(conn, &ListDatabasesOptions{})
-	if err != nil {
-		t.Fatalf("Error %v", err)
-	}
-
+	require.Nil(t, err)
 
 	var next bson.M
 	var found bool
@@ -34,18 +28,9 @@ func TestListDatabases(t *testing.T) {
 			found = true
 		}
 	}
-	if !found {
-		t.Fatalf("Expected to have listed at least database named %v", databaseName)
-	}
-
-	if cursor.Err() != nil {
-		t.Fatal("Unexpected error")
-	}
-
-	if cursor.Close() != nil {
-		t.Fatal("Unexpected error on close")
-
-	}
+	require.True(t, found, "Expected to have listed at least database named %v", databaseName)
+	require.Nil(t, cursor.Err())
+	require.Nil(t, cursor.Close())
 }
 
 func TestListDatabasesWithMaxTimeMS(t *testing.T) {
@@ -53,22 +38,15 @@ func TestListDatabasesWithMaxTimeMS(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	enableMaxTimeFailPoint(conn, t)
 	defer disableMaxTimeFailPoint(conn, t)
 
-	_, err = ListDatabases(conn, &ListDatabasesOptions{
+	_, err := ListDatabases(conn, &ListDatabasesOptions{
 		MaxTimeMS: 1,
 	})
-	if err == nil {
-		t.Fatal("Expected error but got nil")
-	}
+	require.NotNil(t, err)
 	// Hacky check for the error message.  Should we be returning a more structured error?
-	if !strings.Contains(err.Error(), "operation exceeded time limit") {
-		t.Fatalf("Expected execution timeout error: %v\n", err)
-	}
+	require.Contains(t, err.Error(), "operation exceeded time limit")
 }

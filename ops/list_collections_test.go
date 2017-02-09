@@ -4,7 +4,7 @@ import (
 	. "github.com/10gen/mongo-go-driver/ops"
 	"gopkg.in/mgo.v2/bson"
 	"testing"
-	"strings"
+	"github.com/stretchr/testify/require"
 )
 
 func TestListCollections(t *testing.T) {
@@ -12,10 +12,7 @@ func TestListCollections(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	collectionNameOne := "TestListCollectionsMultipleBatches1"
 	collectionNameTwo := "TestListCollectionsMultipleBatches2"
@@ -30,6 +27,7 @@ func TestListCollections(t *testing.T) {
 	insertDocuments(conn, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
 
 	cursor, err := ListCollections(conn, databaseName, &ListCollectionsOptions{})
+	require.Nil(t, err)
 
 	names := []string{}
 	var next bson.M
@@ -38,15 +36,9 @@ func TestListCollections(t *testing.T) {
 		names = append(names, next["name"].(string))
 	}
 
-	if !contains(names, collectionNameOne) {
-		t.Fatalf("Expected collection %v", collectionNameOne)
-	}
-	if !contains(names, collectionNameTwo) {
-		t.Fatalf("Expected collection %v", collectionNameTwo)
-	}
-	if !contains(names, collectionNameThree) {
-		t.Fatalf("Expected collection %v", collectionNameThree)
-	}
+	require.Contains(t, names, collectionNameOne)
+	require.Contains(t, names, collectionNameTwo)
+	require.Contains(t, names, collectionNameThree)
 }
 
 func TestListCollectionsMultipleBatches(t *testing.T) {
@@ -54,10 +46,7 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	collectionNameOne := "TestListCollectionsMultipleBatches1"
 	collectionNameTwo := "TestListCollectionsMultipleBatches2"
@@ -74,6 +63,7 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	cursor, err := ListCollections(conn, databaseName, &ListCollectionsOptions{
 		Filter:    bson.D{{"name", bson.RegEx{Pattern: "^TestListCollectionsMultipleBatches.*"}}},
 		BatchSize: 2})
+	require.Nil(t, err)
 
 	names := []string{}
 	var next bson.M
@@ -82,18 +72,10 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 		names = append(names, next["name"].(string))
 	}
 
-	if len(names) != 3 {
-		t.Fatalf("Expected 3 collections but received %d", len(names))
-	}
-	if !contains(names, collectionNameOne) {
-		t.Fatalf("Expected collection %v", collectionNameOne)
-	}
-	if !contains(names, collectionNameTwo) {
-		t.Fatalf("Expected collection %v", collectionNameTwo)
-	}
-	if !contains(names, collectionNameThree) {
-		t.Fatalf("Expected collection %v", collectionNameThree)
-	}
+	require.Equal(t, 3, len(names))
+	require.Contains(t, names, collectionNameOne)
+	require.Contains(t, names, collectionNameTwo)
+	require.Contains(t, names, collectionNameThree)
 }
 
 func TestListCollectionsWithMaxTimeMS(t *testing.T) {
@@ -101,31 +83,14 @@ func TestListCollectionsWithMaxTimeMS(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn, err := createIntegrationTestConnection()
-	if err != nil {
-		t.Fatal(err)
-	}
+	conn := getConnection()
 
 	enableMaxTimeFailPoint(conn, t)
 	defer disableMaxTimeFailPoint(conn, t)
 
-	_, err = ListCollections(conn, databaseName, &ListCollectionsOptions{
-		MaxTimeMS: 1,
-	})
-	if err == nil {
-		t.Fatal("Expected error but got nil")
-	}
-	// Hacky check for the error message.  Should we be returning a more structured error?
-	if !strings.Contains(err.Error(), "operation exceeded time limit") {
-		t.Fatalf("Expected execution timeout error: %v\n", err)
-	}
-}
+	_, err := ListCollections(conn, databaseName, &ListCollectionsOptions{MaxTimeMS: 1, })
+	require.NotNil(t, err)
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
+	// Hacky check for the error message.  Should we be returning a more structured error?
+	require.Contains(t, err.Error(), "operation exceeded time limit")
 }
