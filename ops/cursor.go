@@ -1,8 +1,9 @@
-package core
+package ops
 
 import (
 	"github.com/10gen/mongo-go-driver/core/msg"
 	"gopkg.in/mgo.v2/bson"
+	. "github.com/10gen/mongo-go-driver/core"
 )
 
 // Create a new cursor
@@ -73,13 +74,13 @@ func (c *cursorImpl) Close() error {
 		Collection string  `bson:"killCursors"`
 		Cursors    []int64 `bson:"cursors"`
 	}{
-		Collection: c.namespace.collectionName,
+		Collection: c.namespace.CollectionName,
 		Cursors:    []int64{c.cursorId},
 	}
 
 	killCursorsRequest := msg.NewCommand(
 		msg.NextRequestID(),
-		c.namespace.databaseName,
+		c.namespace.DatabaseName,
 		false,
 		killCursorsCommand,
 	)
@@ -118,17 +119,17 @@ func (c *cursorImpl) getMore() {
 	getMoreCommand := struct {
 		CursorId   int64  `bson:"getMore"`
 		Collection string `bson:"collection"`
-		BatchSize  int32  `bson:"batchSize"`
+		BatchSize  int32  `bson:"batchSize,omitempty"`
 	}{
 		CursorId:   c.cursorId,
-		Collection: c.namespace.collectionName,
+		Collection: c.namespace.CollectionName,
 	}
 	if c.batchSize != 0 {
 		getMoreCommand.BatchSize = c.batchSize
 	}
 	getMoreRequest := msg.NewCommand(
 		msg.NextRequestID(),
-		c.namespace.databaseName,
+		c.namespace.DatabaseName,
 		false,
 		getMoreCommand,
 	)

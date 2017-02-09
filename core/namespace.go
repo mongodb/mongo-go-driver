@@ -7,14 +7,22 @@ import (
 func NewNamespace(fullName string) *Namespace {
 	indexOfFirstDot := strings.Index(fullName, ".")
 	return &Namespace{
-		databaseName:   fullName[:indexOfFirstDot],
-		collectionName: fullName[indexOfFirstDot + 1:],
-		fullName:       fullName,
+		DatabaseName:   fullName[:indexOfFirstDot],
+		CollectionName: fullName[indexOfFirstDot + 1:],
+		FullName:       fullName,
+	}
+}
+
+func NewNamespaceFromDatabaseAndCollection(databaseName string, collectionName string) *Namespace {
+	return &Namespace{
+		DatabaseName:   databaseName,
+		CollectionName: collectionName,
+		FullName:       strings.Join([]string{databaseName, collectionName}, "."),
 	}
 }
 
 type Namespace struct {
-	databaseName   string
-	collectionName string
-	fullName       string
+	DatabaseName   string
+	CollectionName string
+	FullName       string
 }
