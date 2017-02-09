@@ -15,11 +15,6 @@ type PlainAuthenticator struct {
 	Password string
 }
 
-// Name returns PLAIN.
-func (a *PlainAuthenticator) Name() string {
-	return plain
-}
-
 // Auth authenticates the connection.
 func (a *PlainAuthenticator) Auth(c core.Connection) error {
 	return conductSaslConversation(c, a.DB, &plainSaslClient{
@@ -40,4 +35,8 @@ func (c *plainSaslClient) Start() (string, []byte, error) {
 
 func (c *plainSaslClient) Next(challenge []byte) ([]byte, error) {
 	return nil, fmt.Errorf("unexpected server challenge")
+}
+
+func (c *plainSaslClient) Completed() bool {
+	return true
 }

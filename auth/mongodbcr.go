@@ -11,16 +11,13 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+const mongodbCR = "MONGODB-CR"
+
 // MongoDBCRAuthenticator uses the MONGODB-CR algorithm to authenticate a connection.
 type MongoDBCRAuthenticator struct {
 	DB       string
 	Username string
 	Password string
-}
-
-// Name returns MONGODB-CR.
-func (a *MongoDBCRAuthenticator) Name() string {
-	return "MONGODB-CR"
 }
 
 // Auth authenticates the connection.
@@ -42,7 +39,7 @@ func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
 
 	err := core.ExecuteCommand(c, getNonceRequest, &getNonceResult)
 	if err != nil {
-		return newError(err, a.Name())
+		return newError(err, mongodbCR)
 	}
 
 	authRequest := msg.NewCommand(
@@ -58,7 +55,7 @@ func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
 	)
 	err = core.ExecuteCommand(c, authRequest, &bson.D{})
 	if err != nil {
-		return newError(err, a.Name())
+		return newError(err, mongodbCR)
 	}
 
 	return nil

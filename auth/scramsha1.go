@@ -32,11 +32,6 @@ type ScramSHA1Authenticator struct {
 	NonceGenerator func([]byte) error
 }
 
-// Name returns SCRAM-SHA-1.
-func (a *ScramSHA1Authenticator) Name() string {
-	return scramSHA1
-}
-
 // Auth authenticates the connection.
 func (a *ScramSHA1Authenticator) Auth(c core.Connection) error {
 	return conductSaslConversation(c, a.DB, &scramSaslClient{
@@ -79,10 +74,14 @@ func (c *scramSaslClient) Next(challenge []byte) ([]byte, error) {
 	}
 }
 
+func (c *scramSaslClient) Completed() bool {
+	return c.step >= 2
+}
+
 func (c *scramSaslClient) step1(challenge []byte) ([]byte, error) {
 	fields := bytes.Split(challenge, []byte{','})
 	if len(fields) != 3 {
-		return nil, fmt.Errorf("expected 3 fields in first server challenge")
+		return nil, fmt.Errorf("invalid server response")
 	}
 
 	if !bytes.HasPrefix(fields[0], []byte("r=")) || len(fields[0]) < 2 {
@@ -90,7 +89,7 @@ func (c *scramSaslClient) step1(challenge []byte) ([]byte, error) {
 	}
 	r := fields[0][2:]
 	if !bytes.HasPrefix(r, c.clientNonce) {
-		return nil, fmt.Errorf("invalid server nonce")
+		return nil, fmt.Errorf("invalid nonce")
 	}
 
 	if !bytes.HasPrefix(fields[1], []byte("s=")) || len(fields[1]) < 6 {
@@ -103,7 +102,7 @@ func (c *scramSaslClient) step1(challenge []byte) ([]byte, error) {
 	}
 	s = s[:n]
 
-	if !bytes.HasPrefix(fields[2], []byte("i=")) || len(fields[2]) < 6 {
+	if !bytes.HasPrefix(fields[2], []byte("i=")) || len(fields[2]) < 3 {
 		return nil, fmt.Errorf("invalid iteration count")
 	}
 	i, err := strconv.Atoi(string(fields[2][2:]))
@@ -128,20 +127,27 @@ func (c *scramSaslClient) step1(challenge []byte) ([]byte, error) {
 }
 
 func (c *scramSaslClient) step2(challenge []byte) ([]byte, error) {
-	var v, e bool
+	var hasV, hasE bool
 	fields := bytes.Split(challenge, []byte{','})
 	if len(fields) == 1 {
-		v = bytes.HasPrefix(fields[0], []byte("v="))
-		e = bytes.HasPrefix(fields[0], []byte("e="))
+		hasV = bytes.HasPrefix(fields[0], []byte("v="))
+		hasE = bytes.HasPrefix(fields[0], []byte("e="))
 	}
-	if e {
+	if hasE {
 		return nil, fmt.Errorf(string(fields[0][2:]))
 	}
-	if !v {
+	if !hasV {
 		return nil, fmt.Errorf("invalid final message")
 	}
 
-	if !bytes.Equal(c.serverSignature, fields[0][2:]) {
+	v := make([]byte, base64.StdEncoding.DecodedLen(len(fields[0][2:])))
+	n, err := base64.StdEncoding.Decode(v, fields[0][2:])
+	if err != nil {
+		return nil, fmt.Errorf("invalid server verification")
+	}
+	v = v[:n]
+
+	if !bytes.Equal(c.serverSignature, v) {
 		return nil, fmt.Errorf("invalid server signature")
 	}
 

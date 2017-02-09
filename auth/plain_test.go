@@ -47,6 +47,43 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	}
 }
 
+func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
+	t.Parallel()
+
+	authenticator := PlainAuthenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+	}
+
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", []byte{}},
+		{"done", false},
+	})
+	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", []byte{}},
+		{"done", true},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"PLAIN\": unexpected server challenge"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
 func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	t.Parallel()
 
