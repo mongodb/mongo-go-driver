@@ -15,6 +15,12 @@
 			"revisionTime": "2016-05-04T02:26:26Z"
 		},
 		{
+			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
+			"path": "golang.org/x/crypto/pbkdf2",
+			"revision": "5f31782cfb2b6373211f8f9fbf31283fa234b570",
+			"revisionTime": "2016-10-12T21:56:05Z"
+		},
+		{
 			"checksumSHA1": "Kpt9VvtG+deoQ+p34F2CeTofTik=",
 			"path": "gopkg.in/mgo.v2/bson",
 			"revision": "c283eb40dfc206fd4c5f608663f10d14e646286d",
