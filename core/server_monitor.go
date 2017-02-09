@@ -91,6 +91,11 @@ func (m *ServerMonitor) heartbeat() *ServerDesc {
 	var desc *ServerDesc
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn == nil {
+			// TODO: should this use the connection dialer from
+			// the options? If so, it means authentication happens
+			// for heartbeat connections as well, which makes
+			// sharing a monitor in a multi-tenant arrangement
+			// impossible.
 			conn, err := DialConnection(m.connectionOpts)
 			if err != nil {
 				savedErr = err
