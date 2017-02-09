@@ -49,12 +49,13 @@ func StartClusterMonitor(opts ClusterOptions) (*ClusterMonitor, error) {
 			m.descLock.Lock()
 			m.desc = desc
 			m.descLock.Unlock()
-			select { // non-blocking send
-			case c <- desc:
+			select {
+			case <-c:
+				// drain the channel if full
 			default:
-				// TODO: drain channel to make the next
-				// change visible
+				// if it's empty, do nothing
 			}
+			c <- desc
 		}
 		close(c)
 	}()
