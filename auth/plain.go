@@ -23,18 +23,18 @@ func (a *PlainAuthenticator) Name() string {
 // Auth authenticates the connection.
 func (a *PlainAuthenticator) Auth(c core.Connection) error {
 	return conductSaslConversation(c, a.DB, &plainSaslClient{
-		Username: a.Username,
-		Password: a.Password,
+		username: a.Username,
+		password: a.Password,
 	})
 }
 
 type plainSaslClient struct {
-	Username string
-	Password string
+	username string
+	password string
 }
 
 func (c *plainSaslClient) Start() (string, []byte, error) {
-	b := []byte("\x00" + c.Username + "\x00" + c.Password)
+	b := []byte("\x00" + c.username + "\x00" + c.password)
 	return plain, b, nil
 }
 

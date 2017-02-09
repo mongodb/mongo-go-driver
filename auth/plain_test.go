@@ -76,7 +76,7 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	saslStartRequest := conn.sent[0].(*msg.Query)
-	payload, _ := base64.RawStdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
+	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
 	expectedCmd := bson.D{
 		{"saslStart", 1},
 		{"mechanism", "PLAIN"},
