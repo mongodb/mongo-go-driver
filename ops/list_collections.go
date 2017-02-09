@@ -17,7 +17,7 @@ type ListCollectionsOptions struct {
 }
 
 // List the collections in the given database with the given options
-func ListCollections(conn core.Connection, databaseName string, options *ListCollectionsOptions) (Cursor, error) {
+func ListCollections(conn core.Connection, databaseName string, options ListCollectionsOptions) (Cursor, error) {
 
 	listCollectionsCommand := struct {
 		ListCollections int32          `bson:"listCollections"`

@@ -14,7 +14,7 @@ type ListDatabasesOptions struct {
 }
 
 // List the databases with the given options
-func ListDatabases(conn core.Connection, options *ListDatabasesOptions) (Cursor, error) {
+func ListDatabases(conn core.Connection, options ListDatabasesOptions) (Cursor, error) {
 
 	listDatabasesCommand := struct {
 		ListDatabases int32 `bson:"listDatabases"`

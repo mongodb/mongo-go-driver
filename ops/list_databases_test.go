@@ -19,7 +19,7 @@ func TestListDatabases(t *testing.T) {
 	dropCollection(conn, collectionName, t)
 	insertDocuments(conn, collectionName, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListDatabases(conn, &ListDatabasesOptions{})
+	cursor, err := ListDatabases(conn, ListDatabasesOptions{})
 	require.Nil(t, err)
 
 	var next bson.M
@@ -44,7 +44,7 @@ func TestListDatabasesWithMaxTimeMS(t *testing.T) {
 	enableMaxTimeFailPoint(conn, t)
 	defer disableMaxTimeFailPoint(conn, t)
 
-	_, err := ListDatabases(conn, &ListDatabasesOptions{
+	_, err := ListDatabases(conn, ListDatabasesOptions{
 		MaxTime: time.Millisecond,
 	})
 	require.NotNil(t, err)

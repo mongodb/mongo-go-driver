@@ -27,7 +27,7 @@ func TestListCollections(t *testing.T) {
 	insertDocuments(conn, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
 	insertDocuments(conn, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListCollections(conn, databaseName, &ListCollectionsOptions{})
+	cursor, err := ListCollections(conn, databaseName, ListCollectionsOptions{})
 	require.Nil(t, err)
 
 	names := []string{}
@@ -61,7 +61,7 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	insertDocuments(conn, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
 	insertDocuments(conn, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListCollections(conn, databaseName, &ListCollectionsOptions{
+	cursor, err := ListCollections(conn, databaseName, ListCollectionsOptions{
 		Filter:    bson.D{{"name", bson.RegEx{Pattern: "^TestListCollectionsMultipleBatches.*"}}},
 		BatchSize: 2})
 	require.Nil(t, err)
@@ -89,7 +89,7 @@ func TestListCollectionsWithMaxTimeMS(t *testing.T) {
 	enableMaxTimeFailPoint(conn, t)
 	defer disableMaxTimeFailPoint(conn, t)
 
-	_, err := ListCollections(conn, databaseName, &ListCollectionsOptions{MaxTime: time.Millisecond})
+	_, err := ListCollections(conn, databaseName, ListCollectionsOptions{MaxTime: time.Millisecond})
 	require.NotNil(t, err)
 
 	// Hacky check for the error message.  Should we be returning a more structured error?

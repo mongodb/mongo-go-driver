@@ -25,7 +25,7 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 		[]bson.D{
 			{{"$match", bson.D{{"_id", bson.D{{"$gt", 2}}}}}},
 			{{"$sort", bson.D{{"_id", -1}}}}},
-		&AggregationOptions{
+		AggregationOptions{
 			BatchSize: 2})
 	require.Nil(t, err)
 
@@ -60,7 +60,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	namespace, _ := core.NewNamespace(databaseName, collectionName)
 	_, err := Aggregate(conn, namespace,
 		[]bson.D{},
-		&AggregationOptions{
+		AggregationOptions{
 			AllowDiskUse: true})
 	require.Nil(t, err)
 }
@@ -79,7 +79,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 	namespace, _ := core.NewNamespace(databaseName, collectionName)
 	_, err := Aggregate(conn, namespace,
 		[]bson.D{},
-		&AggregationOptions{
+		AggregationOptions{
 			MaxTime: time.Millisecond})
 	require.NotNil(t, err)
 
