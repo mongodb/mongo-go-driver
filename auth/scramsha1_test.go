@@ -47,7 +47,79 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 	}
 }
 
-func TestScramSHA1Authenticator_Invalid_server_nonce(t *testing.T) {
+func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
+	t.Parallel()
+
+	authenticator := ScramSHA1Authenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+		NonceGenerator: func(dst []byte) error {
+			copy(dst, []byte("fyko+d2lbbFgONRv9qkxdawL"))
+			return nil
+		},
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString("cz1yUTlaWTNNbnRCZXVQM0UxVERWQzR3PT0saT0xMDAwMA===")
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server response"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
+func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
+	t.Parallel()
+
+	authenticator := ScramSHA1Authenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+		NonceGenerator: func(dst []byte) error {
+			copy(dst, []byte("fyko+d2lbbFgONRv9qkxdawL"))
+			return nil
+		},
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString("bD0yMzJnLHM9clE5WlkzTW50QmV1UDNFMVREVkM0dz09LGk9MTAwMDA=")
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
+func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
 	t.Parallel()
 
 	authenticator := ScramSHA1Authenticator{
@@ -77,7 +149,115 @@ func TestScramSHA1Authenticator_Invalid_server_nonce(t *testing.T) {
 		t.Fatalf("expected an error but got none")
 	}
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server nonce"
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
+func TestScramSHA1Authenticator_No_salt(t *testing.T) {
+	t.Parallel()
+
+	authenticator := ScramSHA1Authenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+		NonceGenerator: func(dst []byte) error {
+			copy(dst, []byte("fyko+d2lbbFgONRv9qkxdawL"))
+			return nil
+		},
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxrPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw======")
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid salt"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
+func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
+	t.Parallel()
+
+	authenticator := ScramSHA1Authenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+		NonceGenerator: func(dst []byte) error {
+			copy(dst, []byte("fyko+d2lbbFgONRv9qkxdawL"))
+			return nil
+		},
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxrPXNkZg======")
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
+func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
+	t.Parallel()
+
+	authenticator := ScramSHA1Authenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+		NonceGenerator: func(dst []byte) error {
+			copy(dst, []byte("fyko+d2lbbFgONRv9qkxdawL"))
+			return nil
+		},
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPWFiYw====")
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
 	if !strings.HasPrefix(err.Error(), errPrefix) {
 		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
 	}
@@ -121,6 +301,141 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 	}
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server signature"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
+func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
+	t.Parallel()
+
+	authenticator := ScramSHA1Authenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+		NonceGenerator: func(dst []byte) error {
+			copy(dst, []byte("fyko+d2lbbFgONRv9qkxdawL"))
+			return nil
+		},
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+	payload, _ = base64.StdEncoding.DecodeString("ZT1zZXJ2ZXIgcGFzc2VkIGVycm9y")
+	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": server passed error"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
+func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
+	t.Parallel()
+
+	authenticator := ScramSHA1Authenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+		NonceGenerator: func(dst []byte) error {
+			copy(dst, []byte("fyko+d2lbbFgONRv9qkxdawL"))
+			return nil
+		},
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+	payload, _ = base64.StdEncoding.DecodeString("Zj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTBh")
+	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid final message"
+	if !strings.HasPrefix(err.Error(), errPrefix) {
+		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
+	}
+}
+
+func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
+	t.Parallel()
+
+	authenticator := ScramSHA1Authenticator{
+		DB:       "source",
+		Username: "user",
+		Password: "pencil",
+		NonceGenerator: func(dst []byte) error {
+			copy(dst, []byte("fyko+d2lbbFgONRv9qkxdawL"))
+			return nil
+		},
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9")
+	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", payload},
+		{"done", false},
+	})
+	saslContinueReply2 := internaltest.CreateCommandReply(bson.D{
+		{"ok", 1},
+		{"conversationId", 1},
+		{"payload", []byte{}},
+		{"done", false},
+	})
+
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply, saslContinueReply2},
+	}
+
+	err := authenticator.Auth(conn)
+	if err == nil {
+		t.Fatalf("expected an error but got none")
+	}
+
+	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": unexpected server challenge"
 	if !strings.HasPrefix(err.Error(), errPrefix) {
 		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
 	}

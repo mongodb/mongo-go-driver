@@ -10,6 +10,7 @@ import (
 type saslClient interface {
 	Start() (string, []byte, error)
 	Next(challenge []byte) ([]byte, error)
+	Completed() bool
 }
 
 func conductSaslConversation(conn core.Connection, db string, client saslClient) error {
@@ -52,13 +53,18 @@ func conductSaslConversation(conn core.Connection, db string, client saslClient)
 		if saslResp.Code != 0 {
 			return newError(err, mech)
 		}
-		if saslResp.Done {
+
+		if saslResp.Done && client.Completed() {
 			return nil
 		}
 
 		payload, err = client.Next(saslResp.Payload)
 		if err != nil {
 			return newError(err, mech)
+		}
+
+		if saslResp.Done && client.Completed() {
+			return nil
 		}
 
 		saslContinueRequest := msg.NewCommand(

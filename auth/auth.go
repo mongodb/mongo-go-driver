@@ -36,8 +36,6 @@ func DialConnection(dialer core.ConnectionDialer, authenticator Authenticator, o
 type Authenticator interface {
 	// Auth authenticates the connection.
 	Auth(core.Connection) error
-	// Name returns the name of the authenticator.
-	Name() string
 }
 
 func newError(err error, mech string) error {
