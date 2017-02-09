@@ -42,7 +42,7 @@ func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
 
 	err := core.ExecuteCommand(c, getNonceRequest, &getNonceResult)
 	if err != nil {
-		return a.wrapError(err)
+		return newError(err, a.Name())
 	}
 
 	authRequest := msg.NewCommand(
@@ -58,17 +58,10 @@ func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
 	)
 	err = core.ExecuteCommand(c, authRequest, &bson.D{})
 	if err != nil {
-		return a.wrapError(err)
+		return newError(err, a.Name())
 	}
 
 	return nil
-}
-
-func (a *MongoDBCRAuthenticator) wrapError(err error) error {
-	return &Error{
-		message: fmt.Sprintf("unable to authenticate \"%s\" on database \"%s\" using \"%s\"", a.Username, a.DB, a.Name()),
-		inner:   err,
-	}
 }
 
 func (a *MongoDBCRAuthenticator) createKey(nonce string) string {

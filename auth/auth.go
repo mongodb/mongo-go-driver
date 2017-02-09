@@ -40,6 +40,13 @@ type Authenticator interface {
 	Name() string
 }
 
+func newError(err error, mech string) error {
+	return &Error{
+		message: fmt.Sprintf("unable to authenticate using mechanism \"%s\"", mech),
+		inner:   err,
+	}
+}
+
 // Error is an error that occured during authentication.
 type Error struct {
 	message string
@@ -50,10 +57,12 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.message, e.inner)
 }
 
+// Inner returns the wrapped error.
 func (e *Error) Inner() error {
 	return e.inner
 }
 
+// Message returns the message.
 func (e *Error) Message() string {
 	return e.message
 }

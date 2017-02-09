@@ -86,10 +86,10 @@ func readCommandResponse(resp msg.Response, out interface{}) error {
 
 		// TODO: can optimize this by checking a couple of things:
 		// 1: if out is bson.Raw, we don't need a second round of decoding
-		// 2: if out is bson.D or bson.M, we can't just use that
+		// 2: if out is bson.D or bson.M, we can just use that
 		// 3: if out has an OK method OK() bool we can just use that
-		// 4: (maybe) use reflect to check for an OK bool field.
-		//    need to benchmark and see about perf on this one.
+		// 4: (maybe) use reflect to check for an OK bool field
+		//    need to benchmark and see about perf on this one
 
 		// read into raw first
 		var raw bson.RawD
