@@ -128,17 +128,19 @@ func (c *clusterImpl) Desc() *ClusterDesc {
 func (c *clusterImpl) SelectServer(selector ServerSelector) Server {
 	clusterDesc := c.Desc()
 	selected := selector(clusterDesc, clusterDesc.Servers())
+	serverOpts := c.monitor.serverOptionsFactory(selected[0].endpoint)
+	serverOpts.fillDefaults()
 	return &serverImpl{
-		cluster:        c,
-		connectionOpts: c.monitor.serverOptionsFactory(selected[0].endpoint).ConnectionOptions,
+		cluster:    c,
+		serverOpts: serverOpts,
 	}
 }
 
 type serverImpl struct {
-	cluster        *clusterImpl
-	connectionOpts ConnectionOptions
+	cluster    *clusterImpl
+	serverOpts ServerOptions
 }
 
 func (s *serverImpl) Connection() (Connection, error) {
-	return DialConnection(s.connectionOpts)
+	return s.serverOpts.ConnectionDialer(s.serverOpts.ConnectionOptions)
 }
