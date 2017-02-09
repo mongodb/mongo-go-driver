@@ -3,8 +3,9 @@ package core
 //go:generate go run spec_rtt_internal_test_generator.go
 
 import (
+	"errors"
 	"fmt"
-
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -18,12 +19,9 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 
 	opts.fillDefaults()
 
-	// TODO: should really be using a ring buffer. We want
-	// to throw away the oldest data, not the newest.
-	c := make(chan *ServerDesc, 1)
 	done := make(chan struct{}, 1)
 	m := &ServerMonitor{
-		C:              c,
+		subscribers:    make(map[int]chan *ServerDesc),
 		done:           done,
 		connectionOpts: opts.ConnectionOptions,
 	}
@@ -33,22 +31,37 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 		for {
 			select {
 			case <-timer.C:
-				// weird syntax for a non-blocking send...
+				// get an updated server description
 				desc := m.heartbeat()
 				m.descLock.Lock()
 				m.desc = desc
 				m.descLock.Unlock()
-				select {
-				case c <- desc:
-				default:
-					// TODO: drain the channel to make the next
-					// write visible
+
+				// send the update to all subscribers
+				m.subscriberLock.Lock()
+				for _, ch := range m.subscribers {
+					select {
+					case <-ch:
+						// drain the channel if not empty
+					default:
+						// do nothing if chan already empty
+					}
+					ch <- desc
 				}
+				m.subscriberLock.Unlock()
+
+				// restart the heartbeat timer
 				timer.Stop()
 				timer.Reset(opts.HeartbeatInterval)
 			case <-done:
 				timer.Stop()
-				close(c)
+				m.subscriberLock.Lock()
+				for id, ch := range m.subscribers {
+					close(ch)
+					delete(m.subscribers, id)
+				}
+				m.subscriptionsClosed = true
+				m.subscriberLock.Lock()
 				return
 			}
 		}
@@ -59,28 +72,60 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 
 // ServerMonitor holds a channel that delivers updates to a server.
 type ServerMonitor struct {
-	C <-chan *ServerDesc // The channel on which the updates are delivered.
+	subscribers         map[int]chan *ServerDesc
+	subscriptionsClosed bool
+	subscriberLock      sync.Mutex
 
 	conn           ConnectionCloser
 	connectionOpts ConnectionOptions
 	desc           *ServerDesc
 	descLock       sync.Mutex
-	done           chan<- struct{}
+	done           chan struct{}
 	averageRTT     time.Duration
 	averageRTTSet  bool
-}
-
-// Desc gets the current ServerDesc.
-func (m *ServerMonitor) Desc() *ServerDesc {
-	m.descLock.Lock()
-	desc := m.desc
-	m.descLock.Unlock()
-	return desc
 }
 
 // Stop turns off the monitor.
 func (m *ServerMonitor) Stop() {
 	close(m.done)
+}
+
+// Subscribe returns a channel on which all updated ServerDescs
+// will be sent. The channel will have a buffer size of one, and
+// will be pre-populated with the current ServerDesc.
+// Subscribe also returns a function that, when called, will close
+// the subscription channel and remove it from the list of subscriptions.
+func (m *ServerMonitor) Subscribe() (<-chan *ServerDesc, func(), error) {
+	// create channel and populate with current state
+	ch := make(chan *ServerDesc, 1)
+	m.descLock.Lock()
+	ch <- m.desc
+	m.descLock.Unlock()
+
+	// add channel to subscribers
+	m.subscriberLock.Lock()
+	if m.subscriptionsClosed {
+		return nil, nil, errors.New("Cannot subscribe to monitor after stopping it")
+	}
+	var id int
+	for {
+		_, found := m.subscribers[id]
+		if !found {
+			break
+		}
+		id = rand.Int()
+	}
+	m.subscribers[id] = ch
+	m.subscriberLock.Unlock()
+
+	unsubscribe := func() {
+		m.subscriberLock.Lock()
+		close(ch)
+		delete(m.subscribers, id)
+		m.subscriberLock.Unlock()
+	}
+
+	return ch, unsubscribe, nil
 }
 
 func (m *ServerMonitor) heartbeat() *ServerDesc {

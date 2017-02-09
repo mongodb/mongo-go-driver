@@ -3,7 +3,9 @@ package core
 //go:generate go run spec_cluster_monitor_internal_test_generator.go
 
 import (
+	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 
 	"gopkg.in/mgo.v2/bson"
@@ -17,12 +19,9 @@ func StartClusterMonitor(opts ClusterOptions) (*ClusterMonitor, error) {
 
 	opts.fillDefaults()
 
-	// TODO: we should be using a ring buffer here... we want
-	// to throw away the oldest value, not the newest.
-	c := make(chan *ClusterDesc, 1)
 	m := &ClusterMonitor{
-		C:                    c,
-		changes:              make(chan *ServerDesc), // TODO: this is unbuffered... :(
+		subscribers:          make(map[int]chan *ClusterDesc),
+		changes:              make(chan *ServerDesc),
 		desc:                 &ClusterDesc{},
 		fsm:                  &clusterMonitorFSM{},
 		servers:              make(map[Endpoint]*ServerMonitor),
@@ -45,18 +44,32 @@ func StartClusterMonitor(opts ClusterOptions) (*ClusterMonitor, error) {
 
 	go func() {
 		for change := range m.changes {
+			// apply the change
 			desc := m.apply(change)
 			m.descLock.Lock()
 			m.desc = desc
 			m.descLock.Unlock()
-			select { // non-blocking send
-			case c <- desc:
-			default:
-				// TODO: drain channel to make the next
-				// change visible
+
+			// send the change to all subscribers
+			m.subscriberLock.Lock()
+			for _, ch := range m.subscribers {
+				select {
+				case <-ch:
+					// drain channel if not empty
+				default:
+					// do nothing if chan already empty
+				}
+				ch <- desc
 			}
+			m.subscriberLock.Unlock()
 		}
-		close(c)
+		m.subscriberLock.Lock()
+		for id, ch := range m.subscribers {
+			close(ch)
+			delete(m.subscribers, id)
+		}
+		m.subscriptionsClosed = true
+		m.subscriberLock.Unlock()
 	}()
 
 	return m, nil
@@ -65,26 +78,20 @@ func StartClusterMonitor(opts ClusterOptions) (*ClusterMonitor, error) {
 // ClusterMonitor continuously monitors the cluster for changes
 // and reacts accordingly, adding or removing servers as necessary.
 type ClusterMonitor struct {
-	C <-chan *ClusterDesc
-
 	descLock sync.Mutex
 	desc     *ClusterDesc
 
 	changes chan *ServerDesc
 	fsm     *clusterMonitorFSM
 
+	subscribers         map[int]chan *ClusterDesc
+	subscriptionsClosed bool
+	subscriberLock      sync.Mutex
+
 	serversLock          sync.Mutex
 	serversClosed        bool
 	servers              map[Endpoint]*ServerMonitor
 	serverOptionsFactory ServerOptionsFactory
-}
-
-// Desc returns the current ClsuterDesc.
-func (m *ClusterMonitor) Desc() *ClusterDesc {
-	m.descLock.Lock()
-	desc := m.desc
-	m.descLock.Unlock()
-	return desc
 }
 
 // Stop turns the monitor off.
@@ -99,6 +106,44 @@ func (m *ClusterMonitor) Stop() {
 	close(m.changes)
 }
 
+// Subscribe returns a channel on which all updated ClusterDescs
+// will be sent. The channel will have a buffer size of one, and
+// will be pre-populated with the current ClusterDesc.
+// Subscribe also returns a function that, when called, will close
+// the subscription channel and remove it from the list of subscriptions.
+func (m *ClusterMonitor) Subscribe() (<-chan *ClusterDesc, func(), error) {
+	// create channel and populate with current state
+	ch := make(chan *ClusterDesc, 1)
+	m.descLock.Lock()
+	ch <- m.desc
+	m.descLock.Unlock()
+
+	// add channel to subscribers
+	m.subscriberLock.Lock()
+	if m.subscriptionsClosed {
+		return nil, nil, errors.New("Cannot subscribe to monitor after stopping it")
+	}
+	var id int
+	for {
+		_, found := m.subscribers[id]
+		if !found {
+			break
+		}
+		id = rand.Int()
+	}
+	m.subscribers[id] = ch
+	m.subscriberLock.Unlock()
+
+	unsubscribe := func() {
+		m.subscriberLock.Lock()
+		close(ch)
+		delete(m.subscribers, id)
+		m.subscriberLock.Unlock()
+	}
+
+	return ch, unsubscribe, nil
+}
+
 func (m *ClusterMonitor) startMonitoringEndpoint(endpoint Endpoint) {
 	if _, ok := m.servers[endpoint]; ok {
 		// already monitoring this guy
@@ -110,8 +155,10 @@ func (m *ClusterMonitor) startMonitoringEndpoint(endpoint Endpoint) {
 
 	m.servers[endpoint] = serverM
 
+	ch, _, _ := serverM.Subscribe()
+
 	go func() {
-		for d := range serverM.C {
+		for d := range ch {
 			m.changes <- d
 		}
 	}()

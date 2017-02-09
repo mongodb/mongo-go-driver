@@ -3,12 +3,15 @@ package core
 import (
 	"sort"
 	"strings"
+	"sync"
 )
 
 // NewCluster creates a new Cluster.
 func NewCluster(monitor *ClusterMonitor) Cluster {
+	updates, _, _ := monitor.Subscribe()
 	return &clusterImpl{
 		monitor: monitor,
+		updates: updates,
 	}
 }
 
@@ -118,11 +121,23 @@ func (x serverDescSorter) Less(i, j int) bool {
 }
 
 type clusterImpl struct {
-	monitor *ClusterMonitor
+	monitor  *ClusterMonitor
+	updates  <-chan *ClusterDesc
+	desc     *ClusterDesc
+	descLock sync.Mutex
 }
 
 func (c *clusterImpl) Desc() *ClusterDesc {
-	return c.monitor.Desc()
+	var desc *ClusterDesc
+	c.descLock.Lock()
+	select {
+	case desc = <-c.updates:
+		c.desc = desc
+	default:
+		// no updates
+	}
+	c.descLock.Unlock()
+	return desc
 }
 
 func (c *clusterImpl) SelectServer(selector ServerSelector) Server {
