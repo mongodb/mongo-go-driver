@@ -1,7 +1,6 @@
 package core_test
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"testing"
@@ -10,6 +9,7 @@ import (
 
 	. "github.com/10gen/mongo-go-driver/core"
 	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/internal/internaltest"
 )
 
 func validateExecuteCommandError(t *testing.T, err error, errPrefix string, writeCount int) {
@@ -31,8 +31,8 @@ func TestExecuteCommand_Valid(t *testing.T) {
 		OK int32 `bson:"ok"`
 	}
 
-	conn := &mockConnection{}
-	conn.pushResponse(createCommandReply(bson.D{{"ok", 1}}))
+	conn := &internaltest.MockConnection{}
+	conn.ResponseQ = append(conn.ResponseQ, internaltest.CreateCommandReply(bson.D{{"ok", 1}}))
 
 	var result okResp
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -40,8 +40,8 @@ func TestExecuteCommand_Valid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected nil err but got \"%s\"", err)
 	}
-	if conn.writeCount != 1 {
-		t.Fatalf("expected 1 write, but had %d", conn.writeCount)
+	if len(conn.Sent) != 1 {
+		t.Fatalf("expected 1 write, but had %d", len(conn.Sent))
 	}
 
 	if result.OK != 1 {
@@ -52,8 +52,8 @@ func TestExecuteCommand_Valid(t *testing.T) {
 func TestExecuteCommand_Error_writing_to_connection(t *testing.T) {
 	t.Parallel()
 
-	conn := &mockConnection{}
-	conn.writeErr = fmt.Errorf("error writing")
+	conn := &internaltest.MockConnection{}
+	conn.WriteErr = fmt.Errorf("error writing")
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -64,7 +64,7 @@ func TestExecuteCommand_Error_writing_to_connection(t *testing.T) {
 func TestExecuteCommand_Error_reading_from_connection(t *testing.T) {
 	t.Parallel()
 
-	conn := &mockConnection{}
+	conn := &internaltest.MockConnection{}
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -75,10 +75,12 @@ func TestExecuteCommand_Error_reading_from_connection(t *testing.T) {
 func TestExecuteCommand_ResponseTo_does_not_equal_request_id(t *testing.T) {
 	t.Parallel()
 
-	conn := &mockConnection{}
-	reply := createCommandReply(bson.D{{"ok", 1}})
+	conn := &internaltest.MockConnection{
+		SkipResponseToFixup: true,
+	}
+	reply := internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.RespTo = 1000
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -89,10 +91,10 @@ func TestExecuteCommand_ResponseTo_does_not_equal_request_id(t *testing.T) {
 func TestExecuteCommand_NumberReturned_is_0(t *testing.T) {
 	t.Parallel()
 
-	conn := &mockConnection{}
-	reply := createCommandReply(bson.D{{"ok", 1}})
+	conn := &internaltest.MockConnection{}
+	reply := internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.NumberReturned = 0
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -103,10 +105,10 @@ func TestExecuteCommand_NumberReturned_is_0(t *testing.T) {
 func TestExecuteCommand_NumberReturned_is_greater_than_1(t *testing.T) {
 	t.Parallel()
 
-	conn := &mockConnection{}
-	reply := createCommandReply(bson.D{{"ok", 1}})
+	conn := &internaltest.MockConnection{}
+	reply := internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.NumberReturned = 10
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -117,12 +119,12 @@ func TestExecuteCommand_NumberReturned_is_greater_than_1(t *testing.T) {
 func TestExecuteCommand_QueryFailure_flag_with_no_document(t *testing.T) {
 	t.Parallel()
 
-	conn := &mockConnection{}
+	conn := &internaltest.MockConnection{}
 	reply := &msg.Reply{
 		NumberReturned: 1,
 		ResponseFlags:  msg.QueryFailure,
 	}
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -134,11 +136,11 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 	t.Parallel()
 
 	// can't read length
-	conn := &mockConnection{}
-	reply := createCommandReply(bson.D{{"ok", 1}})
+	conn := &internaltest.MockConnection{}
+	reply := internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.DocumentsBytes = []byte{0, 1, 5}
 	reply.ResponseFlags = msg.QueryFailure
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -146,22 +148,22 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command failure document", 1)
 
 	// not enough bytes for document
-	conn = &mockConnection{}
-	reply = createCommandReply(bson.D{{"ok", 1}})
+	conn = &internaltest.MockConnection{}
+	reply = internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.DocumentsBytes = []byte{0, 1, 5, 62, 23}
 	reply.ResponseFlags = msg.QueryFailure
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	err = ExecuteCommand(conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command failure document", 1)
 
 	// corrupted document
-	conn = &mockConnection{}
-	reply = createCommandReply(bson.D{{"ok", 1}})
+	conn = &internaltest.MockConnection{}
+	reply = internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.DocumentsBytes = []byte{1, 0, 0, 0, 4, 6}
 	reply.ResponseFlags = msg.QueryFailure
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	err = ExecuteCommand(conn, &msg.Query{}, &result)
 
@@ -171,11 +173,11 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 func TestExecuteCommand_No_command_response(t *testing.T) {
 	t.Parallel()
 
-	conn := &mockConnection{}
+	conn := &internaltest.MockConnection{}
 	reply := &msg.Reply{
 		NumberReturned: 1,
 	}
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -187,10 +189,10 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 	t.Parallel()
 
 	// can't read length
-	conn := &mockConnection{}
-	reply := createCommandReply(bson.D{{"ok", 1}})
+	conn := &internaltest.MockConnection{}
+	reply := internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.DocumentsBytes = []byte{0, 1, 5}
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
@@ -198,20 +200,20 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command response document:", 1)
 
 	// not enough bytes for document
-	conn = &mockConnection{}
-	reply = createCommandReply(bson.D{{"ok", 1}})
+	conn = &internaltest.MockConnection{}
+	reply = internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.DocumentsBytes = []byte{0, 1, 5, 62, 23}
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	err = ExecuteCommand(conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command response document:", 1)
 
 	// corrupted document
-	conn = &mockConnection{}
-	reply = createCommandReply(bson.D{{"ok", 1}})
+	conn = &internaltest.MockConnection{}
+	reply = internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 	reply.DocumentsBytes = []byte{1, 0, 0, 0, 4, 6}
-	conn.pushResponse(reply)
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	err = ExecuteCommand(conn, &msg.Query{}, &result)
 
@@ -221,78 +223,28 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 	t.Parallel()
 
-	conn := &mockConnection{}
-	reply := createCommandReply(bson.D{{"funny", 0}})
-	conn.pushResponse(reply)
+	conn := &internaltest.MockConnection{}
+	reply := internaltest.CreateCommandReply(bson.D{{"funny", 0}})
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommand(conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed", 1)
 
-	conn = &mockConnection{}
-	reply = createCommandReply(bson.D{{"ok", 0}})
-	conn.pushResponse(reply)
+	conn = &internaltest.MockConnection{}
+	reply = internaltest.CreateCommandReply(bson.D{{"ok", 0}})
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	err = ExecuteCommand(conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed", 1)
 
-	conn = &mockConnection{}
-	reply = createCommandReply(bson.D{{"ok", 0}, {"errmsg", "weird command was invalid"}})
-	conn.pushResponse(reply)
+	conn = &internaltest.MockConnection{}
+	reply = internaltest.CreateCommandReply(bson.D{{"ok", 0}, {"errmsg", "weird command was invalid"}})
+	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	err = ExecuteCommand(conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed: weird command was invalid", 1)
-}
-
-type mockConnection struct {
-	responseQ  []msg.Response
-	writeCount uint8
-	writeErr   error
-}
-
-func (c *mockConnection) Desc() *ConnectionDesc {
-	return &ConnectionDesc{}
-}
-
-func (c *mockConnection) Read() (msg.Response, error) {
-	if len(c.responseQ) == 0 {
-		return nil, fmt.Errorf("no response queued")
-	}
-	resp := c.responseQ[0]
-	c.responseQ = c.responseQ[1:]
-	return resp, nil
-}
-
-func (c *mockConnection) Write(...msg.Request) error {
-	c.writeCount++
-	return c.writeErr
-}
-
-func (c *mockConnection) pushResponse(resp msg.Response) {
-	c.responseQ = append(c.responseQ, resp)
-}
-
-func createCommandReply(in interface{}) *msg.Reply {
-	doc, _ := bson.Marshal(in)
-	reply := &msg.Reply{
-		NumberReturned: 1,
-		DocumentsBytes: doc,
-	}
-
-	// encode it, then decode it to handle the internal workings of msg.Reply
-	codec := msg.NewWireProtocolCodec()
-	var b bytes.Buffer
-	err := codec.Encode(&b, reply)
-	if err != nil {
-		panic(err)
-	}
-	resp, err := codec.Decode(&b)
-	if err != nil {
-		panic(err)
-	}
-
-	return resp.(*msg.Reply)
 }

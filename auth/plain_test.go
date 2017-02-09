@@ -12,6 +12,7 @@ import (
 
 	. "github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/internal/internaltest"
 )
 
 func TestPlainAuthenticator_Fails(t *testing.T) {
@@ -23,7 +24,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := createCommandReply(bson.D{
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
@@ -31,8 +32,8 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		{"done", true},
 	})
 
-	conn := &mockConnection{
-		responseQ: []*msg.Reply{saslStartReply},
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
 	err := authenticator.Auth(conn)
@@ -55,15 +56,15 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := createCommandReply(bson.D{
+	saslStartReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
 		{"done", true},
 	})
 
-	conn := &mockConnection{
-		responseQ: []*msg.Reply{saslStartReply},
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
 	err := authenticator.Auth(conn)
@@ -71,11 +72,11 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
 
-	if len(conn.sent) != 1 {
-		t.Fatalf("expected 1 messages to be sent but had %d", len(conn.sent))
+	if len(conn.Sent) != 1 {
+		t.Fatalf("expected 1 messages to be sent but had %d", len(conn.Sent))
 	}
 
-	saslStartRequest := conn.sent[0].(*msg.Query)
+	saslStartRequest := conn.Sent[0].(*msg.Query)
 	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
 	expectedCmd := bson.D{
 		{"saslStart", 1},

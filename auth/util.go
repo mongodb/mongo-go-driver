@@ -6,6 +6,8 @@ import (
 	"io"
 )
 
+const defaultAuthDB = "admin"
+
 func mongoPasswordDigest(username, password string) string {
 	h := md5.New()
 	io.WriteString(h, username)

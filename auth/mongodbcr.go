@@ -27,7 +27,7 @@ func (a *MongoDBCRAuthenticator) Name() string {
 func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
 	db := a.DB
 	if db == "" {
-		db = "admin"
+		db = defaultAuthDB
 	}
 
 	getNonceRequest := msg.NewCommand(

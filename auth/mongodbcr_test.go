@@ -11,6 +11,7 @@ import (
 
 	. "github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/internal/internaltest"
 )
 
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
@@ -22,15 +23,15 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	getNonceReply := createCommandReply(bson.D{
+	getNonceReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"nonce", "2375531c32080ae8"},
 	})
 
-	authenticateReply := createCommandReply(bson.D{{"ok", 0}})
+	authenticateReply := internaltest.CreateCommandReply(bson.D{{"ok", 0}})
 
-	conn := &mockConnection{
-		responseQ: []*msg.Reply{getNonceReply, authenticateReply},
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
 	}
 
 	err := authenticator.Auth(conn)
@@ -53,15 +54,15 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	getNonceReply := createCommandReply(bson.D{
+	getNonceReply := internaltest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"nonce", "2375531c32080ae8"},
 	})
 
-	authenticateReply := createCommandReply(bson.D{{"ok", 1}})
+	authenticateReply := internaltest.CreateCommandReply(bson.D{{"ok", 1}})
 
-	conn := &mockConnection{
-		responseQ: []*msg.Reply{getNonceReply, authenticateReply},
+	conn := &internaltest.MockConnection{
+		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
 	}
 
 	err := authenticator.Auth(conn)
@@ -69,16 +70,16 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
 
-	if len(conn.sent) != 2 {
-		t.Fatalf("expected 2 messages to be sent but had %d", len(conn.sent))
+	if len(conn.Sent) != 2 {
+		t.Fatalf("expected 2 messages to be sent but had %d", len(conn.Sent))
 	}
 
-	getNonceRequest := conn.sent[0].(*msg.Query)
+	getNonceRequest := conn.Sent[0].(*msg.Query)
 	if !reflect.DeepEqual(getNonceRequest.Query, bson.D{{"getnonce", 1}}) {
 		t.Fatalf("getnonce command was incorrect: %v", getNonceRequest.Query)
 	}
 
-	authenticateRequest := conn.sent[1].(*msg.Query)
+	authenticateRequest := conn.Sent[1].(*msg.Query)
 	expectedAuthenticateDoc := bson.D{
 		{"authenticate", 1},
 		{"user", "user"},
