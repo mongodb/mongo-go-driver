@@ -5,17 +5,17 @@ import (
 )
 
 // TODO: add error checking for missing '.', etc
-func ParseNamespace(fullName string) (*Namespace, error) {
+func ParseNamespace(fullName string) (Namespace, error) {
 	indexOfFirstDot := strings.Index(fullName, ".")
-	return &Namespace{
+	return Namespace{
 		databaseName:   fullName[:indexOfFirstDot],
 		collectionName: fullName[indexOfFirstDot + 1:],
 	}, nil
 }
 
 // TODO: add error checking for '.' in databaseName, etc
-func NewNamespace(databaseName string, collectionName string) (*Namespace, error) {
-	return &Namespace{
+func NewNamespace(databaseName string, collectionName string) (Namespace, error) {
+	return Namespace{
 		databaseName:   databaseName,
 		collectionName: collectionName,
 	}, nil

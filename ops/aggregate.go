@@ -18,7 +18,7 @@ type AggregationOptions struct {
 
 // Execute the aggregate command with the given pipeline and options
 // The pipeline must encode as a BSON array of pipeline stages
-func Aggregate(conn core.Connection, namespace *core.Namespace, pipeline interface{}, options *AggregationOptions) (Cursor, error) {
+func Aggregate(conn core.Connection, namespace core.Namespace, pipeline interface{}, options *AggregationOptions) (Cursor, error) {
 
 	aggregateCommand := struct {
 		Collection   string         `bson:"aggregate"`

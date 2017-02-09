@@ -8,7 +8,7 @@ import (
 // An interface describe the initial results of a cursor
 type CursorResult interface {
 	// The namespace the cursor is in
-	Namespace() *core.Namespace
+	Namespace() core.Namespace
 	// The initial batch of results, which may be empty
 	InitialBatch() []bson.Raw
 	// The cursor id, which may be zero if no cursor was established
@@ -35,7 +35,7 @@ type firstBatchCursorResult struct {
 	ID         int64 `bson:"id"`
 }
 
-func (cursorResult *firstBatchCursorResult) Namespace() *core.Namespace {
+func (cursorResult *firstBatchCursorResult) Namespace() core.Namespace {
 	// Assume server returns a valid namespace string
 	namespace, _ := core.ParseNamespace(cursorResult.NS)
 	return namespace

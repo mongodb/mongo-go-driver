@@ -33,7 +33,7 @@ type Cursor interface {
 }
 
 type cursorImpl struct {
-	namespace    *core.Namespace
+	namespace    core.Namespace
 	batchSize    int32
 	current      int
 	currentBatch []bson.Raw

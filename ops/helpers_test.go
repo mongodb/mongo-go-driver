@@ -84,7 +84,7 @@ type firstBatchCursorResult struct {
 	ID         int64      `bson:"id"`
 }
 
-func (cursorResult *firstBatchCursorResult) Namespace() *core.Namespace {
+func (cursorResult *firstBatchCursorResult) Namespace() core.Namespace {
 	namespace, _ := core.ParseNamespace(cursorResult.NS)
 	return namespace
 }
