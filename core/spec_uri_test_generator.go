@@ -143,7 +143,7 @@ func (g *Generator) generateFromFile(filename string) {
 
 		g.printlnf("uri, err := ParseURI(%q)", testDef.URI)
 		g.printlnf("if err != nil {")
-		g.printlnf(`t.Fatalf("error parsing \"%s\": %%s", err)`, testDef.URI)
+		g.printlnf(`t.Fatalf("error parsing \"%%s\": %%s", "%s",  err)`, testDef.URI)
 		g.printlnf("}")
 
 		// Hosts

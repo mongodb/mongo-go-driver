@@ -184,7 +184,7 @@ func TestParseURI_Host_with_unescaped_slash(t *testing.T) {
 func TestParseURI_User_info_for_single_IPv4_host_without_database(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:foo@127.0.0.1")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:foo@127.0.0.1\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:foo@127.0.0.1", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -206,7 +206,7 @@ func TestParseURI_User_info_for_single_IPv4_host_without_database(t *testing.T) 
 func TestParseURI_User_info_for_single_IPv4_host_with_database(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:foo@127.0.0.1/test")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:foo@127.0.0.1/test\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:foo@127.0.0.1/test", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -228,7 +228,7 @@ func TestParseURI_User_info_for_single_IPv4_host_with_database(t *testing.T) {
 func TestParseURI_User_info_for_single_IPv4_host_with_database__escaped_null_bytes_(t *testing.T) {
 	uri, err := ParseURI("mongodb://a%00lice:f%00oo@127.0.0.1/t%00est")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://a%00lice:f%00oo@127.0.0.1/t%00est\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://a%00lice:f%00oo@127.0.0.1/t%00est", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -250,7 +250,7 @@ func TestParseURI_User_info_for_single_IPv4_host_with_database__escaped_null_byt
 func TestParseURI_User_info_for_single_IP_literal_host_without_database(t *testing.T) {
 	uri, err := ParseURI("mongodb://bob:bar@[::1]:27018")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://bob:bar@[::1]:27018\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://bob:bar@[::1]:27018", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -272,7 +272,7 @@ func TestParseURI_User_info_for_single_IP_literal_host_without_database(t *testi
 func TestParseURI_User_info_for_single_IP_literal_host_with_database(t *testing.T) {
 	uri, err := ParseURI("mongodb://bob:bar@[::1]:27018/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://bob:bar@[::1]:27018/admin\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://bob:bar@[::1]:27018/admin", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -294,7 +294,7 @@ func TestParseURI_User_info_for_single_IP_literal_host_with_database(t *testing.
 func TestParseURI_User_info_for_single_hostname_without_database(t *testing.T) {
 	uri, err := ParseURI("mongodb://eve:baz@example.com")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://eve:baz@example.com\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://eve:baz@example.com", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -316,7 +316,7 @@ func TestParseURI_User_info_for_single_hostname_without_database(t *testing.T) {
 func TestParseURI_User_info_for_single_hostname_with_database(t *testing.T) {
 	uri, err := ParseURI("mongodb://eve:baz@example.com/db2")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://eve:baz@example.com/db2\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://eve:baz@example.com/db2", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -338,7 +338,7 @@ func TestParseURI_User_info_for_single_hostname_with_database(t *testing.T) {
 func TestParseURI_User_info_for_multiple_hosts_without_database(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:secret@127.0.0.1,example.com:27018")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:secret@127.0.0.1,example.com:27018\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:secret@127.0.0.1,example.com:27018", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -363,7 +363,7 @@ func TestParseURI_User_info_for_multiple_hosts_without_database(t *testing.T) {
 func TestParseURI_User_info_for_multiple_hosts_with_database(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:secret@example.com,[::1]:27019/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:secret@example.com,[::1]:27019/admin\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:secret@example.com,[::1]:27019/admin", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -388,7 +388,7 @@ func TestParseURI_User_info_for_multiple_hosts_with_database(t *testing.T) {
 func TestParseURI_Username_without_password(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice@127.0.0.1")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice@127.0.0.1\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice@127.0.0.1", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -410,7 +410,7 @@ func TestParseURI_Username_without_password(t *testing.T) {
 func TestParseURI_Username_with_empty_password(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:@127.0.0.1")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:@127.0.0.1\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:@127.0.0.1", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -432,7 +432,7 @@ func TestParseURI_Username_with_empty_password(t *testing.T) {
 func TestParseURI_Escaped_username_and_database_without_password(t *testing.T) {
 	uri, err := ParseURI("mongodb://%40l%3Ace@example.com/my%3Ddb")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%40l%3Ace@example.com/my%3Ddb\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%40l%3Ace@example.com/my%3Ddb", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -454,7 +454,7 @@ func TestParseURI_Escaped_username_and_database_without_password(t *testing.T) {
 func TestParseURI_Escaped_user_info_and_database__MONGODB_CR_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%24am:f%3Azzb%40zz@127.0.0.1/admin%3F?authMechanism=MONGODB-CR")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%24am:f%3Azzb%40zz@127.0.0.1/admin%3F?authMechanism=MONGODB-CR\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%24am:f%3Azzb%40zz@127.0.0.1/admin%3F?authMechanism=MONGODB-CR", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -482,7 +482,7 @@ func TestParseURI_Escaped_user_info_and_database__MONGODB_CR_(t *testing.T) {
 func TestParseURI_Escaped_username__MONGODB_X509_(t *testing.T) {
 	uri, err := ParseURI("mongodb://CN%3DmyName%2COU%3DmyOrgUnit%2CO%3DmyOrg%2CL%3DmyLocality%2CST%3DmyState%2CC%3DmyCountry@localhost/?authMechanism=MONGODB-X509")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://CN%3DmyName%2COU%3DmyOrgUnit%2CO%3DmyOrg%2CL%3DmyLocality%2CST%3DmyState%2CC%3DmyCountry@localhost/?authMechanism=MONGODB-X509\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://CN%3DmyName%2COU%3DmyOrgUnit%2CO%3DmyOrg%2CL%3DmyLocality%2CST%3DmyState%2CC%3DmyCountry@localhost/?authMechanism=MONGODB-X509", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -510,7 +510,7 @@ func TestParseURI_Escaped_username__MONGODB_X509_(t *testing.T) {
 func TestParseURI_Escaped_username__GSSAPI_(t *testing.T) {
 	uri, err := ParseURI("mongodb://user%40EXAMPLE.COM:secret@localhost/?authMechanismProperties=SERVICE_NAME:other,CANONICALIZE_HOST_NAME:true&authMechanism=GSSAPI")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://user%40EXAMPLE.COM:secret@localhost/?authMechanismProperties=SERVICE_NAME:other,CANONICALIZE_HOST_NAME:true&authMechanism=GSSAPI\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://user%40EXAMPLE.COM:secret@localhost/?authMechanismProperties=SERVICE_NAME:other,CANONICALIZE_HOST_NAME:true&authMechanism=GSSAPI", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -544,7 +544,7 @@ func TestParseURI_Escaped_username__GSSAPI_(t *testing.T) {
 func TestParseURI_At_signs_in_options_aren_t_part_of_the_userinfo(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:secret@example.com/admin?replicaset=my@replicaset")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:secret@example.com/admin?replicaset=my@replicaset\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:secret@example.com/admin?replicaset=my@replicaset", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -572,7 +572,7 @@ func TestParseURI_At_signs_in_options_aren_t_part_of_the_userinfo(t *testing.T) 
 func TestParseURI_Single_IPv4_host_without_port(t *testing.T) {
 	uri, err := ParseURI("mongodb://127.0.0.1")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://127.0.0.1\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://127.0.0.1", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -594,7 +594,7 @@ func TestParseURI_Single_IPv4_host_without_port(t *testing.T) {
 func TestParseURI_Single_IPv4_host_with_port(t *testing.T) {
 	uri, err := ParseURI("mongodb://127.0.0.1:27018")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://127.0.0.1:27018\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://127.0.0.1:27018", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -616,7 +616,7 @@ func TestParseURI_Single_IPv4_host_with_port(t *testing.T) {
 func TestParseURI_Single_IP_literal_host_without_port(t *testing.T) {
 	uri, err := ParseURI("mongodb://[::1]")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://[::1]\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://[::1]", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -638,7 +638,7 @@ func TestParseURI_Single_IP_literal_host_without_port(t *testing.T) {
 func TestParseURI_Single_IP_literal_host_with_port(t *testing.T) {
 	uri, err := ParseURI("mongodb://[::1]:27019")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://[::1]:27019\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://[::1]:27019", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -660,7 +660,7 @@ func TestParseURI_Single_IP_literal_host_with_port(t *testing.T) {
 func TestParseURI_Single_hostname_without_port(t *testing.T) {
 	uri, err := ParseURI("mongodb://example.com")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://example.com\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://example.com", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -682,7 +682,7 @@ func TestParseURI_Single_hostname_without_port(t *testing.T) {
 func TestParseURI_Single_hostname_with_port(t *testing.T) {
 	uri, err := ParseURI("mongodb://example.com:27020")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://example.com:27020\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://example.com:27020", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -704,7 +704,7 @@ func TestParseURI_Single_hostname_with_port(t *testing.T) {
 func TestParseURI_Single_hostname__resembling_IPv4__without_port(t *testing.T) {
 	uri, err := ParseURI("mongodb://256.0.0.1")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://256.0.0.1\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://256.0.0.1", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -726,7 +726,7 @@ func TestParseURI_Single_hostname__resembling_IPv4__without_port(t *testing.T) {
 func TestParseURI_Multiple_hosts__mixed_formats_(t *testing.T) {
 	uri, err := ParseURI("mongodb://127.0.0.1,[::1]:27018,example.com:27019")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://127.0.0.1,[::1]:27018,example.com:27019\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://127.0.0.1,[::1]:27018,example.com:27019", err)
 	}
 	if len(uri.Hosts) != 3 {
 		t.Fatalf("expected 3 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -754,7 +754,7 @@ func TestParseURI_Multiple_hosts__mixed_formats_(t *testing.T) {
 func TestParseURI_UTF_8_hosts(t *testing.T) {
 	uri, err := ParseURI("mongodb://bücher.example.com,umläut.example.com/")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://bücher.example.com,umläut.example.com/\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://bücher.example.com,umläut.example.com/", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -779,7 +779,7 @@ func TestParseURI_UTF_8_hosts(t *testing.T) {
 func TestParseURI_Option_names_are_normalized_to_lowercase(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:secret@example.com/admin?AUTHMechanism=MONGODB-CR")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:secret@example.com/admin?AUTHMechanism=MONGODB-CR\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:secret@example.com/admin?AUTHMechanism=MONGODB-CR", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -807,7 +807,7 @@ func TestParseURI_Option_names_are_normalized_to_lowercase(t *testing.T) {
 func TestParseURI_Option_key_and_value__escaped_null_bytes_(t *testing.T) {
 	uri, err := ParseURI("mongodb://example.com/?replicaSet=my%00rs")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://example.com/?replicaSet=my%00rs\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://example.com/?replicaSet=my%00rs", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -835,7 +835,7 @@ func TestParseURI_Option_key_and_value__escaped_null_bytes_(t *testing.T) {
 func TestParseURI_Unix_domain_socket__absolute_path_with_trailing_slash_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%2Ftmp%2Fmongodb-27017.sock/")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%2Ftmp%2Fmongodb-27017.sock/\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock/", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -857,7 +857,7 @@ func TestParseURI_Unix_domain_socket__absolute_path_with_trailing_slash_(t *test
 func TestParseURI_Unix_domain_socket__absolute_path_without_trailing_slash_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%2Ftmp%2Fmongodb-27017.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%2Ftmp%2Fmongodb-27017.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -879,7 +879,7 @@ func TestParseURI_Unix_domain_socket__absolute_path_without_trailing_slash_(t *t
 func TestParseURI_Unix_domain_socket__absolute_path_with_spaces_in_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%2Ftmp%2F %2Fmongodb-27017.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%2Ftmp%2F %2Fmongodb-27017.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2F %2Fmongodb-27017.sock", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -901,7 +901,7 @@ func TestParseURI_Unix_domain_socket__absolute_path_with_spaces_in_path_(t *test
 func TestParseURI_Multiple_Unix_domain_sockets__absolute_paths_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -926,7 +926,7 @@ func TestParseURI_Multiple_Unix_domain_sockets__absolute_paths_(t *testing.T) {
 func TestParseURI_Multiple_hosts__absolute_path_and_ipv4_(t *testing.T) {
 	uri, err := ParseURI("mongodb://127.0.0.1:27017,%2Ftmp%2Fmongodb-27017.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://127.0.0.1:27017,%2Ftmp%2Fmongodb-27017.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://127.0.0.1:27017,%2Ftmp%2Fmongodb-27017.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -951,7 +951,7 @@ func TestParseURI_Multiple_hosts__absolute_path_and_ipv4_(t *testing.T) {
 func TestParseURI_Multiple_hosts__absolute_path_and_hostname_resembling_relative_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://mongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://mongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://mongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -976,7 +976,7 @@ func TestParseURI_Multiple_hosts__absolute_path_and_hostname_resembling_relative
 func TestParseURI_Unix_domain_socket_with_auth_database__absolute_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:foo@%2Ftmp%2Fmongodb-27017.sock/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:foo@%2Ftmp%2Fmongodb-27017.sock/admin\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:foo@%2Ftmp%2Fmongodb-27017.sock/admin", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -998,7 +998,7 @@ func TestParseURI_Unix_domain_socket_with_auth_database__absolute_path_(t *testi
 func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file__absolute_path_with_trailing_slash_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock/")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock/\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock/", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1020,7 +1020,7 @@ func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file__absolute_
 func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file__absolute_path_without_trailing_slash_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1042,7 +1042,7 @@ func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file__absolute_
 func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file_and_auth__absolute_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://bob:bar@%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://bob:bar@%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock/admin\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://bob:bar@%2Ftmp%2Fpath.to.sock%2Fmongodb-27017.sock/admin", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1064,7 +1064,7 @@ func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file_and_auth__
 func TestParseURI_Multiple_Unix_domain_sockets_and_auth_DB_resembling_a_socket__absolute_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1089,7 +1089,7 @@ func TestParseURI_Multiple_Unix_domain_sockets_and_auth_DB_resembling_a_socket__
 func TestParseURI_Multiple_Unix_domain_sockets_with_auth_DB_resembling_a_path__absolute_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.shoe")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.shoe\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.shoe", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1114,7 +1114,7 @@ func TestParseURI_Multiple_Unix_domain_sockets_with_auth_DB_resembling_a_path__a
 func TestParseURI_Multiple_Unix_domain_sockets_with_auth_and_query_string__absolute_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://bob:bar@%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin?w=1")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://bob:bar@%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin?w=1\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://bob:bar@%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin?w=1", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1145,7 +1145,7 @@ func TestParseURI_Multiple_Unix_domain_sockets_with_auth_and_query_string__absol
 func TestParseURI_Unix_domain_socket__relative_path_with_trailing_slash_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2Fmongodb-27017.sock/")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2Fmongodb-27017.sock/\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock/", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1167,7 +1167,7 @@ func TestParseURI_Unix_domain_socket__relative_path_with_trailing_slash_(t *test
 func TestParseURI_Unix_domain_socket__relative_path_without_trailing_slash_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2Fmongodb-27017.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2Fmongodb-27017.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1189,7 +1189,7 @@ func TestParseURI_Unix_domain_socket__relative_path_without_trailing_slash_(t *t
 func TestParseURI_Unix_domain_socket__relative_path_with_spaces_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2F %2Fmongodb-27017.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2F %2Fmongodb-27017.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2F %2Fmongodb-27017.sock", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1211,7 +1211,7 @@ func TestParseURI_Unix_domain_socket__relative_path_with_spaces_(t *testing.T) {
 func TestParseURI_Multiple_Unix_domain_sockets__relative_paths_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1236,7 +1236,7 @@ func TestParseURI_Multiple_Unix_domain_sockets__relative_paths_(t *testing.T) {
 func TestParseURI_Multiple_Unix_domain_sockets__relative_and_absolute_paths_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1261,7 +1261,7 @@ func TestParseURI_Multiple_Unix_domain_sockets__relative_and_absolute_paths_(t *
 func TestParseURI_Multiple_hosts__relative_path_and_ipv4_(t *testing.T) {
 	uri, err := ParseURI("mongodb://127.0.0.1:27017,rel%2Fmongodb-27017.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://127.0.0.1:27017,rel%2Fmongodb-27017.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://127.0.0.1:27017,rel%2Fmongodb-27017.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1286,7 +1286,7 @@ func TestParseURI_Multiple_hosts__relative_path_and_ipv4_(t *testing.T) {
 func TestParseURI_Multiple_hosts__relative_path_and_hostname_resembling_relative_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://mongodb-27017.sock,rel%2Fmongodb-27018.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://mongodb-27017.sock,rel%2Fmongodb-27018.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://mongodb-27017.sock,rel%2Fmongodb-27018.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1311,7 +1311,7 @@ func TestParseURI_Multiple_hosts__relative_path_and_hostname_resembling_relative
 func TestParseURI_Unix_domain_socket_with_auth_database__relative_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://alice:foo@rel%2Fmongodb-27017.sock/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://alice:foo@rel%2Fmongodb-27017.sock/admin\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://alice:foo@rel%2Fmongodb-27017.sock/admin", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1333,7 +1333,7 @@ func TestParseURI_Unix_domain_socket_with_auth_database__relative_path_(t *testi
 func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file__relative_path_with_trailing_slash_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2Fpath.to.sock%2Fmongodb-27017.sock/")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2Fpath.to.sock%2Fmongodb-27017.sock/\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fpath.to.sock%2Fmongodb-27017.sock/", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1355,7 +1355,7 @@ func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file__relative_
 func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file__relative_path_without_trailing_slash_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2Fpath.to.sock%2Fmongodb-27017.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2Fpath.to.sock%2Fmongodb-27017.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fpath.to.sock%2Fmongodb-27017.sock", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1377,7 +1377,7 @@ func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file__relative_
 func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file_and_auth__relative_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://bob:bar@rel%2Fpath.to.sock%2Fmongodb-27017.sock/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://bob:bar@rel%2Fpath.to.sock%2Fmongodb-27017.sock/admin\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://bob:bar@rel%2Fpath.to.sock%2Fmongodb-27017.sock/admin", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1399,7 +1399,7 @@ func TestParseURI_Unix_domain_socket_with_path_resembling_socket_file_and_auth__
 func TestParseURI_Multiple_Unix_domain_sockets_and_auth_DB_resembling_a_socket__relative_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.sock")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.sock\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.sock", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1424,7 +1424,7 @@ func TestParseURI_Multiple_Unix_domain_sockets_and_auth_DB_resembling_a_socket__
 func TestParseURI_Multiple_Unix_domain_sockets_with_auth_DB_resembling_a_path__relative_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.shoe")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.shoe\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.shoe", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1449,7 +1449,7 @@ func TestParseURI_Multiple_Unix_domain_sockets_with_auth_DB_resembling_a_path__r
 func TestParseURI_Multiple_Unix_domain_sockets_with_auth_and_query_string__relative_path_(t *testing.T) {
 	uri, err := ParseURI("mongodb://bob:bar@rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin?w=1")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://bob:bar@rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin?w=1\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://bob:bar@rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin?w=1", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1480,7 +1480,7 @@ func TestParseURI_Multiple_Unix_domain_sockets_with_auth_and_query_string__relat
 func TestParseURI_Unrecognized_option_keys_are_ignored(t *testing.T) {
 	uri, err := ParseURI("mongodb://example.com/?foo=bar")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://example.com/?foo=bar\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://example.com/?foo=bar", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1502,7 +1502,7 @@ func TestParseURI_Unrecognized_option_keys_are_ignored(t *testing.T) {
 func TestParseURI_Unsupported_option_values_are_ignored(t *testing.T) {
 	uri, err := ParseURI("mongodb://example.com/?fsync=ifPossible")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://example.com/?fsync=ifPossible\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://example.com/?fsync=ifPossible", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1524,7 +1524,7 @@ func TestParseURI_Unsupported_option_values_are_ignored(t *testing.T) {
 func TestParseURI_Repeated_option_keys(t *testing.T) {
 	uri, err := ParseURI("mongodb://example.com/?replicaSet=test&replicaSet=test")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://example.com/?replicaSet=test&replicaSet=test\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://example.com/?replicaSet=test&replicaSet=test", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1552,7 +1552,7 @@ func TestParseURI_Repeated_option_keys(t *testing.T) {
 func TestParseURI_Deprecated__or_unknown__options_are_ignored_if_replacement_exists(t *testing.T) {
 	uri, err := ParseURI("mongodb://example.com/?wtimeout=5&wtimeoutMS=10")
 	if err != nil {
-		t.Fatalf("error parsing \"mongodb://example.com/?wtimeout=5&wtimeoutMS=10\": %s", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://example.com/?wtimeout=5&wtimeoutMS=10", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
