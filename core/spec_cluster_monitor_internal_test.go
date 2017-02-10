@@ -4,21 +4,22 @@ package core
 
 import "testing"
 import "gopkg.in/mgo.v2/bson"
+import "github.com/10gen/mongo-go-driver/core/connstring"
 
 func TestClusterMonitorFSM_Discover_arbiters(t *testing.T) {
 	t.Parallel()
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -69,15 +70,15 @@ func TestClusterMonitorFSM_Discover_passives(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -163,15 +164,15 @@ func TestClusterMonitorFSM_Replica_set_discovery_from_primary(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -221,15 +222,15 @@ func TestClusterMonitorFSM_Replica_set_discovery_from_secondary(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -279,15 +280,15 @@ func TestClusterMonitorFSM_Replica_set_discovery(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -488,15 +489,15 @@ func TestClusterMonitorFSM_New_primary_with_equal_electionId(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -559,15 +560,15 @@ func TestClusterMonitorFSM_Ghost_discovered(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -615,15 +616,15 @@ func TestClusterMonitorFSM_Host_list_differs_from_seeds(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -666,15 +667,15 @@ func TestClusterMonitorFSM_Member_removed_by_reconfig(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -751,15 +752,15 @@ func TestClusterMonitorFSM_Member_brought_up_as_standalone(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -827,15 +828,15 @@ func TestClusterMonitorFSM_New_primary(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -919,15 +920,15 @@ func TestClusterMonitorFSM_New_primary_with_greater_setVersion_and_electionId(t 
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1051,15 +1052,15 @@ func TestClusterMonitorFSM_New_primary_with_greater_setVersion(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1183,15 +1184,15 @@ func TestClusterMonitorFSM_New_primary_with_wrong_setName(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1268,15 +1269,15 @@ func TestClusterMonitorFSM_Non_replicaSet_member_responds(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1316,15 +1317,15 @@ func TestClusterMonitorFSM_Replica_set_case_normalization(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://A/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://A/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1383,15 +1384,15 @@ func TestClusterMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) 
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1577,15 +1578,15 @@ func TestClusterMonitorFSM_Primary_becomes_standalone(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1645,15 +1646,15 @@ func TestClusterMonitorFSM_Primary_changes_setName(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1716,15 +1717,15 @@ func TestClusterMonitorFSM_Disconnected_from_primary(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1790,15 +1791,15 @@ func TestClusterMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -1997,15 +1998,15 @@ func TestClusterMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2204,15 +2205,15 @@ func TestClusterMonitorFSM_Secondary_with_mismatched__me__tells_us_who_the_prima
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2284,15 +2285,15 @@ func TestClusterMonitorFSM_Primary_mismatched_me(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://localhost:27017/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://localhost:27017/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2343,15 +2344,15 @@ func TestClusterMonitorFSM_Primary_reports_a_new_member(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2517,15 +2518,15 @@ func TestClusterMonitorFSM_Primary_to_no_primary_with_mismatched_me(t *testing.T
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2611,15 +2612,15 @@ func TestClusterMonitorFSM_Primary_wrong_setName(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2653,15 +2654,15 @@ func TestClusterMonitorFSM_Response_from_removed_server(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2731,15 +2732,15 @@ func TestClusterMonitorFSM_RSOther_discovered(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2812,15 +2813,15 @@ func TestClusterMonitorFSM_Secondary_s_host_list_is_not_authoritative(t *testing
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2879,15 +2880,15 @@ func TestClusterMonitorFSM_Secondary_mismatched_me(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://localhost:27017/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://localhost:27017/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2937,15 +2938,15 @@ func TestClusterMonitorFSM_Secondary_wrong_setName(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -2979,15 +2980,15 @@ func TestClusterMonitorFSM_Secondary_wrong_setName_with_primary(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3064,15 +3065,15 @@ func TestClusterMonitorFSM_setVersion_is_ignored_if_there_is_no_electionId(t *te
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3158,15 +3159,15 @@ func TestClusterMonitorFSM_Primary_becomes_a_secondary_with_wrong_setName(t *tes
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3229,15 +3230,15 @@ func TestClusterMonitorFSM_Unexpected_mongos(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3270,15 +3271,15 @@ func TestClusterMonitorFSM_Record_max_setVersion__even_from_primary_without_elec
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3401,15 +3402,15 @@ func TestClusterMonitorFSM_Wrong_setName(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3452,15 +3453,15 @@ func TestClusterMonitorFSM_Mongos_disconnect(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3580,15 +3581,15 @@ func TestClusterMonitorFSM_Multiple_mongoses(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3645,15 +3646,15 @@ func TestClusterMonitorFSM_Non_Mongos_server_in_sharded_cluster(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3704,15 +3705,15 @@ func TestClusterMonitorFSM_Normalize_URI_case(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://A,B")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://A,B")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3750,15 +3751,15 @@ func TestClusterMonitorFSM_Direct_connection_to_RSPrimary_via_external_IP(t *tes
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3801,15 +3802,15 @@ func TestClusterMonitorFSM_Connect_to_mongos(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3851,15 +3852,15 @@ func TestClusterMonitorFSM_Connect_to_RSArbiter(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3902,15 +3903,15 @@ func TestClusterMonitorFSM_Connect_to_RSPrimary(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -3953,15 +3954,15 @@ func TestClusterMonitorFSM_Connect_to_RSSecondary(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -4004,15 +4005,15 @@ func TestClusterMonitorFSM_Direct_connection_to_slave(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -4052,15 +4053,15 @@ func TestClusterMonitorFSM_Connect_to_standalone(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -4101,15 +4102,15 @@ func TestClusterMonitorFSM_Handle_a_not_ok_ismaster_response(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -4156,15 +4157,15 @@ func TestClusterMonitorFSM_Standalone_removed_from_multi_server_topology(t *test
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a,b")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 
@@ -4205,15 +4206,15 @@ func TestClusterMonitorFSM_Unavailable_seed(t *testing.T) {
 
 	var fsm clusterMonitorFSM
 
-	uri, _ := ParseURI("mongodb://a")
-	fsm.setName = uri.ReplicaSet
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
 		fsm.clusterType = ReplicaSetNoPrimary
 	}
-	if len(uri.Hosts) == 1 && fsm.setName == "" {
+	if len(cs.Hosts) == 1 && fsm.setName == "" {
 		fsm.clusterType = Single
 	}
-	for _, host := range uri.Hosts {
+	for _, host := range cs.Hosts {
 		fsm.addServer(Endpoint(host).Canonicalize())
 	}
 

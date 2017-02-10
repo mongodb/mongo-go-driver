@@ -96,6 +96,7 @@ func (g *Generator) generate() []byte {
 	g.printlnf("package core")
 	g.printlnf("import \"testing\"")
 	g.printlnf("import \"gopkg.in/mgo.v2/bson\"")
+	g.printlnf("import \"github.com/10gen/mongo-go-driver/core/connstring\"")
 
 	testsDir := "../specifications/source/server-discovery-and-monitoring/tests/"
 
@@ -148,15 +149,15 @@ func (g *Generator) generateFromFile(filename string) error {
 	g.printlnf("")
 	g.printlnf("var fsm clusterMonitorFSM")
 
-	g.printlnf("\nuri, _ := ParseURI(\"%s\")", testDef.Uri)
-	g.printlnf("fsm.setName = uri.ReplicaSet")
+	g.printlnf("\ncs, _ := connstring.Parse(\"%s\")", testDef.Uri)
+	g.printlnf("fsm.setName = cs.ReplicaSet")
 	g.printlnf("if fsm.setName != \"\" {")
 	g.printlnf("fsm.clusterType = ReplicaSetNoPrimary ")
 	g.printlnf("}")
-	g.printlnf("if len(uri.Hosts) == 1 && fsm.setName == \"\" {")
+	g.printlnf("if len(cs.Hosts) == 1 && fsm.setName == \"\" {")
 	g.printlnf("fsm.clusterType = Single")
 	g.printlnf("}")
-	g.printlnf("for _, host := range uri.Hosts {")
+	g.printlnf("for _, host := range cs.Hosts {")
 	g.printlnf("fsm.addServer(Endpoint(host).Canonicalize())")
 	g.printlnf("}")
 

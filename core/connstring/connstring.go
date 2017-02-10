@@ -1,6 +1,6 @@
-package core
+package connstring
 
-//go:generate go run spec_uri_test_generator.go
+//go:generate go run spec_connstring_test_generator.go
 
 import (
 	"fmt"
@@ -13,18 +13,18 @@ import (
 	"github.com/10gen/mongo-go-driver/internal"
 )
 
-// ParseURI parses the provided uri and returns a URI object.
-func ParseURI(uri string) (URI, error) {
-	var p uriParser
-	err := p.parse(uri)
+// Parse parses the provided uri and returns a URI object.
+func Parse(s string) (ConnString, error) {
+	var p parser
+	err := p.parse(s)
 	if err != nil {
-		err = internal.WrapErrorf(err, "error parsing uri (%s)", uri)
+		err = internal.WrapErrorf(err, "error parsing uri (%s)", s)
 	}
-	return p.URI, err
+	return p.ConnString, err
 }
 
-// URI represents a connection string to mongodb.
-type URI struct {
+// ConnString represents a connection string to mongodb.
+type ConnString struct {
 	Original                string
 	AuthMechanism           string
 	AuthMechanismProperties map[string]string
@@ -39,17 +39,17 @@ type URI struct {
 	UnknownOptions map[string][]string
 }
 
-func (u *URI) String() string {
+func (u *ConnString) String() string {
 	return u.Original
 }
 
-type uriParser struct {
-	URI
+type parser struct {
+	ConnString
 
 	haveWTimeoutMS bool
 }
 
-func (p *uriParser) parse(original string) error {
+func (p *parser) parse(original string) error {
 	p.Original = original
 
 	uri := original
@@ -165,7 +165,7 @@ func (p *uriParser) parse(original string) error {
 	return nil
 }
 
-func (p *uriParser) addHost(host string) error {
+func (p *parser) addHost(host string) error {
 	if host == "" {
 		return nil
 	}
@@ -196,7 +196,7 @@ func (p *uriParser) addHost(host string) error {
 	return nil
 }
 
-func (p *uriParser) addOption(pair string) error {
+func (p *parser) addOption(pair string) error {
 	kv := strings.SplitN(pair, "=", 2)
 	if len(kv) != 2 || kv[0] == "" {
 		return fmt.Errorf("invalid option")

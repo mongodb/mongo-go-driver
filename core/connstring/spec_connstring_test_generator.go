@@ -90,15 +90,15 @@ func (g *Generator) replaceNullCharacter(target string) string {
 
 // EVERYTHING ABOVE IS CONSTANT BETWEEN THE GENERATORS
 
-const name = "spec_uri_test_generator"
+const name = "spec_connstring_test_generator"
 
 func (g *Generator) generate() []byte {
-	g.printlnf("package core_test")
+	g.printlnf("package connstring_test")
 	g.printlnf("import \"testing\"")
 	g.printlnf("import \"time\"")
-	g.printlnf("import . \"github.com/10gen/mongo-go-driver/core\"")
+	g.printlnf("import . \"github.com/10gen/mongo-go-driver/core/connstring\"")
 
-	testsDir := "../specifications/source/connection-string/tests/"
+	testsDir := "../../specifications/source/connection-string/tests/"
 
 	entries, err := ioutil.ReadDir(testsDir)
 	if err != nil {
@@ -130,12 +130,12 @@ func (g *Generator) generateFromFile(filename string) {
 
 	for _, testDef := range testContainer.Tests {
 		g.printf("\n\n")
-		g.printlnf("func TestParseURI_%s(t *testing.T) {", g.replaceCharacters(testDef.Description, " '-,()", "_"))
+		g.printlnf("func TestParse_%s(t *testing.T) {", g.replaceCharacters(testDef.Description, " '-,()", "_"))
 		g.printlnf("t.Parallel()")
 		g.printlnf("")
 		// Validity
 		if !testDef.Valid {
-			g.printlnf("_, err := ParseURI(%q)", testDef.URI)
+			g.printlnf("_, err := Parse(%q)", testDef.URI)
 			g.printlnf("if err == nil {")
 			g.printlnf("t.Fatal(\"expected an error but didn't get one\")")
 			g.printlnf("}")
@@ -143,7 +143,7 @@ func (g *Generator) generateFromFile(filename string) {
 			continue
 		}
 
-		g.printlnf("uri, err := ParseURI(%q)", testDef.URI)
+		g.printlnf("uri, err := Parse(%q)", testDef.URI)
 		g.printlnf("if err != nil {")
 		g.printlnf(`t.Fatalf("error parsing \"%%s\": %%s", "%s",  err)`, testDef.URI)
 		g.printlnf("}")
