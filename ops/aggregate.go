@@ -19,7 +19,10 @@ type AggregationOptions struct {
 // Aggregate executes the aggregate command with the given pipeline and options.
 //
 // The pipeline must encode as a BSON array of pipeline stages.
-func Aggregate(conn core.Connection, namespace core.Namespace, pipeline interface{}, options AggregationOptions) (Cursor, error) {
+func Aggregate(conn core.Connection, ns Namespace, pipeline interface{}, options AggregationOptions) (Cursor, error) {
+	if err := ns.validate(); err != nil {
+		return nil, err
+	}
 
 	aggregateCommand := struct {
 		Collection   string         `bson:"aggregate"`
@@ -28,7 +31,7 @@ func Aggregate(conn core.Connection, namespace core.Namespace, pipeline interfac
 		Pipeline     interface{}    `bson:"pipeline"`
 		Cursor       *cursorRequest `bson:"cursor"`
 	}{
-		Collection:   namespace.CollectionName(),
+		Collection:   ns.Collection,
 		AllowDiskUse: options.AllowDiskUse,
 		MaxTimeMS:    int64(options.MaxTime / time.Millisecond),
 		Pipeline:     pipeline,
@@ -38,7 +41,7 @@ func Aggregate(conn core.Connection, namespace core.Namespace, pipeline interfac
 	}
 	request := msg.NewCommand(
 		msg.NextRequestID(),
-		namespace.DatabaseName(),
+		ns.DB,
 		false,
 		aggregateCommand,
 	)
@@ -50,5 +53,5 @@ func Aggregate(conn core.Connection, namespace core.Namespace, pipeline interfac
 		return nil, err
 	}
 
-	return NewCursor(&result.Cursor, options.BatchSize, conn), nil
+	return NewCursor(&result.Cursor, options.BatchSize, conn)
 }

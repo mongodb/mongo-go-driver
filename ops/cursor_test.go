@@ -8,6 +8,19 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+func TestCursorWithInvalidNamespace(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	conn := getConnection()
+
+	_, err := NewCursor(&firstBatchCursorResult{
+		NS : "foo",
+	}, 0, conn)
+	require.NotNil(t, err)
+}
+
 func TestCursorEmpty(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -20,7 +33,7 @@ func TestCursorEmpty(t *testing.T) {
 
 	cursorResult := find(conn, collectionName, 0, t)
 
-	subject := NewCursor(cursorResult, 0, conn)
+	subject, _ := NewCursor(cursorResult, 0, conn)
 	hasNext := subject.Next(&bson.D{})
 	require.False(t, hasNext, "Empty cursor should not have next")
 }
@@ -39,7 +52,7 @@ func TestCursorSingleBatch(t *testing.T) {
 
 	cursorResult := find(conn, collectionName, 0, t)
 
-	subject := NewCursor(cursorResult, 0, conn)
+	subject, _ := NewCursor(cursorResult, 0, conn)
 	var next bson.D
 	var hasNext bool
 
@@ -69,7 +82,7 @@ func TestCursorMultipleBatches(t *testing.T) {
 
 	cursorResult := find(conn, collectionName, 2, t)
 
-	subject := NewCursor(cursorResult, 2, conn)
+	subject, _ := NewCursor(cursorResult, 2, conn)
 	var next bson.D
 	var hasNext bool
 
@@ -111,7 +124,7 @@ func TestCursorClose(t *testing.T) {
 
 	cursorResult := find(conn, collectionName, 2, t)
 
-	subject := NewCursor(cursorResult, 2, conn)
+	subject, _ := NewCursor(cursorResult, 2, conn)
 	err := subject.Close()
 	require.Nil(t, err, "Unexpected error")
 
@@ -134,7 +147,7 @@ func TestCursorError(t *testing.T) {
 
 	cursorResult := find(conn, collectionName, 2, t)
 
-	subject := NewCursor(cursorResult, 2, conn)
+	subject, _ := NewCursor(cursorResult, 2, conn)
 	var next string
 	var hasNext bool
 

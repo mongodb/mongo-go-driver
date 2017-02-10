@@ -9,6 +9,16 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+func TestListCollectionsWithInvalidDatabaseName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	conn := getConnection()
+	_, err := ListCollections(conn, "", ListCollectionsOptions{})
+	require.NotNil(t, err)
+}
+
 func TestListCollections(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
