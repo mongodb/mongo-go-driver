@@ -14,7 +14,6 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
@@ -52,7 +51,6 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
@@ -72,7 +70,6 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 

@@ -13,7 +13,6 @@ func TestListCollections(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
@@ -48,7 +47,6 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
@@ -86,7 +84,6 @@ func TestListCollectionsWithMaxTimeMS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 

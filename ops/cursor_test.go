@@ -12,7 +12,6 @@ func TestCursorEmpty(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
@@ -30,7 +29,6 @@ func TestCursorSingleBatch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
@@ -61,7 +59,6 @@ func TestCursorMultipleBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
@@ -104,7 +101,6 @@ func TestCursorClose(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
@@ -128,7 +124,6 @@ func TestCursorError(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
-	t.Parallel()
 
 	conn := getConnection()
 
