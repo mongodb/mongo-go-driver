@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"github.com/10gen/mongo-go-driver/core/desc"
 	"github.com/10gen/mongo-go-driver/core/msg"
 	"github.com/10gen/mongo-go-driver/internal"
 
@@ -50,7 +51,7 @@ func DialConnection(opts ConnectionOptions) (ConnectionCloser, error) {
 // Connection is responsible for reading and writing messages.
 type Connection interface {
 	// Desc gets a description of the connection.
-	Desc() *ConnectionDesc
+	Desc() *desc.Connection
 	// Read reads a message from the connection for the
 	// specified requestID.
 	Read() (msg.Response, error)
@@ -64,17 +65,6 @@ type ConnectionCloser interface {
 
 	// Closes the connection.
 	Close() error
-}
-
-// ConnectionDesc contains information about a connection.
-type ConnectionDesc struct {
-	GitVersion          string
-	Version             Version
-	MaxBSONObjectSize   uint32
-	MaxMessageSizeBytes uint32
-	MaxWriteBatchSize   uint16
-	WireVersion         Range
-	ReadOnly            bool
 }
 
 // ConnectionError represents an error that in the connection package.
@@ -105,8 +95,8 @@ type transportConnection struct {
 	// as the id the server is using.
 	id        string
 	codec     msg.Codec
-	desc      *ConnectionDesc
-	ep        Endpoint
+	desc      *desc.Connection
+	ep        desc.Endpoint
 	transport io.ReadWriteCloser
 }
 
@@ -119,7 +109,7 @@ func (c *transportConnection) Close() error {
 	return nil
 }
 
-func (c *transportConnection) Desc() *ConnectionDesc {
+func (c *transportConnection) Desc() *desc.Connection {
 	return c.desc
 }
 
@@ -168,14 +158,14 @@ func (c *transportConnection) initialize(appName string) error {
 		bson.D{{"getLastError", 1}},
 	)
 
-	c.desc = &ConnectionDesc{
+	c.desc = &desc.Connection{
 		GitVersion:          buildInfoResult.GitVersion,
-		Version:             NewVersionWithDesc(buildInfoResult.Version, buildInfoResult.VersionArray...),
+		Version:             desc.NewVersionWithDesc(buildInfoResult.Version, buildInfoResult.VersionArray...),
 		MaxBSONObjectSize:   isMasterResult.MaxBSONObjectSize,
 		MaxMessageSizeBytes: isMasterResult.MaxMessageSizeBytes,
 		MaxWriteBatchSize:   isMasterResult.MaxWriteBatchSize,
 		ReadOnly:            isMasterResult.ReadOnly,
-		WireVersion:         Range{isMasterResult.MinWireVersion, isMasterResult.MaxWireVersion},
+		WireVersion:         desc.Range{Min: isMasterResult.MinWireVersion, Max: isMasterResult.MaxWireVersion},
 	}
 
 	var getLastErrorResult getLastErrorResult

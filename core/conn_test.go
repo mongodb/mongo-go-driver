@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/desc"
 	"github.com/10gen/mongo-go-driver/core/msg"
 	"github.com/kr/pretty"
 )
@@ -13,7 +14,7 @@ func createIntegrationTestConnection() (Connection, error) {
 	c, err := DialConnection(ConnectionOptions{
 		AppName:        "mongo-go-driver-test",
 		Codec:          msg.NewWireProtocolCodec(),
-		Endpoint:       Endpoint(*host),
+		Endpoint:       desc.Endpoint(*host),
 		EndpointDialer: DialEndpoint,
 	})
 	if err != nil {

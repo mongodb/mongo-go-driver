@@ -3,13 +3,15 @@ package ops_test
 import (
 	"flag"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/desc"
 	"github.com/10gen/mongo-go-driver/core/msg"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
-	"strings"
-	"testing"
 )
 
 var host = flag.String("host", "127.0.0.1:27017", "specify the location of a running mongodb server.")
@@ -24,7 +26,7 @@ func getConnection() core.Connection {
 		conn, err = core.DialConnection(core.ConnectionOptions{
 			AppName:        "mongo-go-driver-test",
 			Codec:          msg.NewWireProtocolCodec(),
-			Endpoint:       core.Endpoint(*host),
+			Endpoint:       desc.Endpoint(*host),
 			EndpointDialer: core.DialEndpoint,
 		})
 		if err != nil {
