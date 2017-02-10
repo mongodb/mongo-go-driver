@@ -26,14 +26,14 @@ type Namespace struct {
 	collectionName string
 }
 
-func (namespace *Namespace) DatabaseName() string {
-	return namespace.databaseName
+func (ns *Namespace) DatabaseName() string {
+	return ns.databaseName
 }
 
-func (namespace *Namespace) CollectionName() string {
-	return namespace.collectionName
+func (ns *Namespace) CollectionName() string {
+	return ns.collectionName
 }
 
-func (namespace *Namespace) FullName() string {
-	return strings.Join([]string{namespace.databaseName, namespace.collectionName}, ".")
+func (ns *Namespace) FullName() string {
+	return strings.Join([]string{ns.databaseName, ns.collectionName}, ".")
 }
