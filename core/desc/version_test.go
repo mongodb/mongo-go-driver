@@ -1,9 +1,9 @@
-package core_test
+package desc_test
 
 import (
 	"testing"
 
-	. "github.com/10gen/mongo-go-driver/core"
+	. "github.com/10gen/mongo-go-driver/core/desc"
 )
 
 func TestVersion_NewVersion(t *testing.T) {
