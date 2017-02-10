@@ -72,8 +72,7 @@ type ConnectionDesc struct {
 	MaxBSONObjectSize   uint32
 	MaxMessageSizeBytes uint32
 	MaxWriteBatchSize   uint16
-	MaxWireVersion      uint8
-	MinWireVersion      uint8
+	WireVersion         Range
 	ReadOnly            bool
 }
 
@@ -151,9 +150,8 @@ func (c *transportConnection) initialize(appName string) error {
 		MaxBSONObjectSize:   isMasterResult.MaxBSONObjectSize,
 		MaxMessageSizeBytes: isMasterResult.MaxMessageSizeBytes,
 		MaxWriteBatchSize:   isMasterResult.MaxWriteBatchSize,
-		MaxWireVersion:      isMasterResult.MaxWireVersion,
-		MinWireVersion:      isMasterResult.MinWireVersion,
 		ReadOnly:            isMasterResult.ReadOnly,
+		WireVersion:         Range{isMasterResult.MinWireVersion, isMasterResult.MaxWireVersion},
 	}
 
 	var getLastErrorResult getLastErrorResult
