@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path"
+	"sort"
 
 	"strings"
 
@@ -143,7 +144,8 @@ func (g *Generator) generateFromFile(filename string) error {
 	}
 
 	g.printlnf("\nfunc TestClusterMonitorFSM_%s(t *testing.T) {", g.replaceCharacters(testDef.Description, " '-,", "_"))
-
+	g.printlnf("t.Parallel()")
+	g.printlnf("")
 	g.printlnf("var fsm clusterMonitorFSM")
 
 	g.printlnf("\nuri, _ := ParseURI(\"%s\")", testDef.Uri)
@@ -228,7 +230,7 @@ func (g *Generator) generateFromFile(filename string) error {
 		}
 		g.printIfNotEqual("fsm.clusterType", topType)
 		g.printIfNotEqual("len(fsm.servers)", fmt.Sprintf("%d", len(phase.Outcome.Servers)))
-		for key, s := range phase.Outcome.Servers {
+		for _, s := range phase.Outcome.sortedServers() {
 			if !printedOutcomeVariables {
 				g.printlnf("\nvar ok bool")
 				if !printedResponseVariables {
@@ -236,9 +238,9 @@ func (g *Generator) generateFromFile(filename string) error {
 				}
 				printedOutcomeVariables = true
 			}
-			g.printlnf("serverDesc, ok = fsm.Server(Endpoint(\"%s\"))", key)
+			g.printlnf("serverDesc, ok = fsm.Server(Endpoint(\"%s\"))", s.name)
 			g.printlnf("if !ok {")
-			g.printlnf("t.Fatalf(\"server %s was not found\")", key)
+			g.printlnf("t.Fatalf(\"server %s was not found\")", s.name)
 			g.printlnf("}")
 			sType := s.Type
 			switch sType {
@@ -277,9 +279,37 @@ type outcome struct {
 	TopologyType string                   `yaml:"topologyType"`
 }
 
+func (o *outcome) sortedServers() []outcomeServer {
+	var outcomeServers sortableOutcomeServers
+	for key, s := range o.Servers {
+		outcomeServers = append(outcomeServers, outcomeServer{
+			name:    key,
+			SetName: s.SetName,
+			Type:    s.Type,
+		})
+	}
+
+	sort.Sort(outcomeServers)
+	return outcomeServers
+}
+
 type outcomeServer struct {
 	SetName string `yaml:"setName"`
 	Type    string `yaml:"type"`
+
+	name string
+}
+
+type sortableOutcomeServers []outcomeServer
+
+func (s sortableOutcomeServers) Len() int {
+	return len(s)
+}
+func (s sortableOutcomeServers) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s sortableOutcomeServers) Less(i, j int) bool {
+	return s[i].name < s[j].name
 }
 
 type phase struct {

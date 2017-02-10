@@ -1,16 +1,18 @@
 package ops_test
 
 import (
+	"testing"
+
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
 )
 
 func TestCursorEmpty(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
@@ -28,6 +30,7 @@ func TestCursorSingleBatch(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
@@ -58,6 +61,7 @@ func TestCursorMultipleBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
@@ -100,6 +104,7 @@ func TestCursorClose(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
@@ -123,6 +128,7 @@ func TestCursorError(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 

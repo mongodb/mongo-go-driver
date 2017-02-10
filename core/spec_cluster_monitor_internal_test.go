@@ -6,6 +6,8 @@ import "testing"
 import "gopkg.in/mgo.v2/bson"
 
 func TestClusterMonitorFSM_Discover_arbiters(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -63,6 +65,8 @@ func TestClusterMonitorFSM_Discover_arbiters(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Discover_passives(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -155,6 +159,8 @@ func TestClusterMonitorFSM_Discover_passives(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Replica_set_discovery_from_primary(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -211,6 +217,8 @@ func TestClusterMonitorFSM_Replica_set_discovery_from_primary(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Replica_set_discovery_from_secondary(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://b/?replicaSet=rs")
@@ -250,13 +258,6 @@ func TestClusterMonitorFSM_Replica_set_discovery_from_secondary(t *testing.T) {
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
-	if !ok {
-		t.Fatalf("server b:27017 was not found")
-	}
-	if serverDesc.serverType != RSSecondary {
-		t.Fatalf("expected serverDesc.serverType to be RSSecondary, but got \"%v\"", serverDesc.serverType)
-	}
 	serverDesc, ok = fsm.Server(Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
@@ -264,9 +265,18 @@ func TestClusterMonitorFSM_Replica_set_discovery_from_secondary(t *testing.T) {
 	if serverDesc.serverType != UnknownServerType {
 		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
 	}
+	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if serverDesc.serverType != RSSecondary {
+		t.Fatalf("expected serverDesc.serverType to be RSSecondary, but got \"%v\"", serverDesc.serverType)
+	}
 }
 
 func TestClusterMonitorFSM_Replica_set_discovery(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -395,6 +405,13 @@ func TestClusterMonitorFSM_Replica_set_discovery(t *testing.T) {
 	if len(fsm.servers) != 4 {
 		t.Fatalf("expected len(fsm.servers) to be 4, but got \"%v\"", len(fsm.servers))
 	}
+	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if serverDesc.serverType != RSSecondary {
+		t.Fatalf("expected serverDesc.serverType to be RSSecondary, but got \"%v\"", serverDesc.serverType)
+	}
 	serverDesc, ok = fsm.Server(Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
@@ -415,13 +432,6 @@ func TestClusterMonitorFSM_Replica_set_discovery(t *testing.T) {
 	}
 	if serverDesc.serverType != UnknownServerType {
 		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
-	}
-	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
-	if !ok {
-		t.Fatalf("server b:27017 was not found")
-	}
-	if serverDesc.serverType != RSSecondary {
-		t.Fatalf("expected serverDesc.serverType to be RSSecondary, but got \"%v\"", serverDesc.serverType)
 	}
 
 	// phase 4 - response 1
@@ -474,6 +484,8 @@ func TestClusterMonitorFSM_Replica_set_discovery(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_New_primary_with_equal_electionId(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -543,6 +555,8 @@ func TestClusterMonitorFSM_New_primary_with_equal_electionId(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Ghost_discovered(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
@@ -597,6 +611,8 @@ func TestClusterMonitorFSM_Ghost_discovered(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Host_list_differs_from_seeds(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -646,6 +662,8 @@ func TestClusterMonitorFSM_Host_list_differs_from_seeds(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Member_removed_by_reconfig(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
@@ -729,6 +747,8 @@ func TestClusterMonitorFSM_Member_removed_by_reconfig(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Member_brought_up_as_standalone(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b")
@@ -803,6 +823,8 @@ func TestClusterMonitorFSM_Member_brought_up_as_standalone(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_New_primary(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
@@ -893,6 +915,8 @@ func TestClusterMonitorFSM_New_primary(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_New_primary_with_greater_setVersion_and_electionId(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -1023,6 +1047,8 @@ func TestClusterMonitorFSM_New_primary_with_greater_setVersion_and_electionId(t 
 }
 
 func TestClusterMonitorFSM_New_primary_with_greater_setVersion(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -1153,6 +1179,8 @@ func TestClusterMonitorFSM_New_primary_with_greater_setVersion(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_New_primary_with_wrong_setName(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -1236,6 +1264,8 @@ func TestClusterMonitorFSM_New_primary_with_wrong_setName(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Non_replicaSet_member_responds(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
@@ -1282,6 +1312,8 @@ func TestClusterMonitorFSM_Non_replicaSet_member_responds(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Replica_set_case_normalization(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://A/?replicaSet=rs")
@@ -1347,6 +1379,8 @@ func TestClusterMonitorFSM_Replica_set_case_normalization(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -1515,6 +1549,13 @@ func TestClusterMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) 
 	if len(fsm.servers) != 3 {
 		t.Fatalf("expected len(fsm.servers) to be 3, but got \"%v\"", len(fsm.servers))
 	}
+	serverDesc, ok = fsm.Server(Endpoint("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if serverDesc.serverType != RSPrimary {
+		t.Fatalf("expected serverDesc.serverType to be RSPrimary, but got \"%v\"", serverDesc.serverType)
+	}
 	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
@@ -1529,16 +1570,11 @@ func TestClusterMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) 
 	if serverDesc.serverType != UnknownServerType {
 		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
 	}
-	serverDesc, ok = fsm.Server(Endpoint("a:27017"))
-	if !ok {
-		t.Fatalf("server a:27017 was not found")
-	}
-	if serverDesc.serverType != RSPrimary {
-		t.Fatalf("expected serverDesc.serverType to be RSPrimary, but got \"%v\"", serverDesc.serverType)
-	}
 }
 
 func TestClusterMonitorFSM_Primary_becomes_standalone(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -1605,6 +1641,8 @@ func TestClusterMonitorFSM_Primary_becomes_standalone(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Primary_changes_setName(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -1674,6 +1712,8 @@ func TestClusterMonitorFSM_Primary_changes_setName(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Disconnected_from_primary(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -1746,6 +1786,8 @@ func TestClusterMonitorFSM_Disconnected_from_primary(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_electionId(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -1951,6 +1993,8 @@ func TestClusterMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_
 }
 
 func TestClusterMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_setVersion(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -2105,19 +2149,19 @@ func TestClusterMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_
 	if len(fsm.servers) != 2 {
 		t.Fatalf("expected len(fsm.servers) to be 2, but got \"%v\"", len(fsm.servers))
 	}
-	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
-	if !ok {
-		t.Fatalf("server b:27017 was not found")
-	}
-	if serverDesc.serverType != UnknownServerType {
-		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
-	}
 	serverDesc, ok = fsm.Server(Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
 	if serverDesc.serverType != RSPrimary {
 		t.Fatalf("expected serverDesc.serverType to be RSPrimary, but got \"%v\"", serverDesc.serverType)
+	}
+	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if serverDesc.serverType != UnknownServerType {
+		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
 	}
 
 	// phase 5 - response 1
@@ -2156,6 +2200,8 @@ func TestClusterMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_
 }
 
 func TestClusterMonitorFSM_Secondary_with_mismatched__me__tells_us_who_the_primary_is(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -2234,6 +2280,8 @@ func TestClusterMonitorFSM_Secondary_with_mismatched__me__tells_us_who_the_prima
 }
 
 func TestClusterMonitorFSM_Primary_mismatched_me(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://localhost:27017/?replicaSet=rs")
@@ -2291,6 +2339,8 @@ func TestClusterMonitorFSM_Primary_mismatched_me(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Primary_reports_a_new_member(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -2463,6 +2513,8 @@ func TestClusterMonitorFSM_Primary_reports_a_new_member(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Primary_to_no_primary_with_mismatched_me(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -2555,6 +2607,8 @@ func TestClusterMonitorFSM_Primary_to_no_primary_with_mismatched_me(t *testing.T
 }
 
 func TestClusterMonitorFSM_Primary_wrong_setName(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -2595,6 +2649,8 @@ func TestClusterMonitorFSM_Primary_wrong_setName(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Response_from_removed_server(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
@@ -2671,6 +2727,8 @@ func TestClusterMonitorFSM_Response_from_removed_server(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_RSOther_discovered(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
@@ -2719,20 +2777,6 @@ func TestClusterMonitorFSM_RSOther_discovered(t *testing.T) {
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(Endpoint("c:27017"))
-	if !ok {
-		t.Fatalf("server c:27017 was not found")
-	}
-	if serverDesc.serverType != UnknownServerType {
-		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
-	}
-	serverDesc, ok = fsm.Server(Endpoint("d:27017"))
-	if !ok {
-		t.Fatalf("server d:27017 was not found")
-	}
-	if serverDesc.serverType != UnknownServerType {
-		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
-	}
 	serverDesc, ok = fsm.Server(Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
@@ -2747,9 +2791,25 @@ func TestClusterMonitorFSM_RSOther_discovered(t *testing.T) {
 	if serverDesc.serverType != RSMember {
 		t.Fatalf("expected serverDesc.serverType to be RSMember, but got \"%v\"", serverDesc.serverType)
 	}
+	serverDesc, ok = fsm.Server(Endpoint("c:27017"))
+	if !ok {
+		t.Fatalf("server c:27017 was not found")
+	}
+	if serverDesc.serverType != UnknownServerType {
+		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
+	}
+	serverDesc, ok = fsm.Server(Endpoint("d:27017"))
+	if !ok {
+		t.Fatalf("server d:27017 was not found")
+	}
+	if serverDesc.serverType != UnknownServerType {
+		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
+	}
 }
 
 func TestClusterMonitorFSM_Secondary_s_host_list_is_not_authoritative(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -2815,6 +2875,8 @@ func TestClusterMonitorFSM_Secondary_s_host_list_is_not_authoritative(t *testing
 }
 
 func TestClusterMonitorFSM_Secondary_mismatched_me(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://localhost:27017/?replicaSet=rs")
@@ -2871,6 +2933,8 @@ func TestClusterMonitorFSM_Secondary_mismatched_me(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Secondary_wrong_setName(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -2911,6 +2975,8 @@ func TestClusterMonitorFSM_Secondary_wrong_setName(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Secondary_wrong_setName_with_primary(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
@@ -2994,6 +3060,8 @@ func TestClusterMonitorFSM_Secondary_wrong_setName_with_primary(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_setVersion_is_ignored_if_there_is_no_electionId(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -3086,6 +3154,8 @@ func TestClusterMonitorFSM_setVersion_is_ignored_if_there_is_no_electionId(t *te
 }
 
 func TestClusterMonitorFSM_Primary_becomes_a_secondary_with_wrong_setName(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -3155,6 +3225,8 @@ func TestClusterMonitorFSM_Primary_becomes_a_secondary_with_wrong_setName(t *tes
 }
 
 func TestClusterMonitorFSM_Unexpected_mongos(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://b/?replicaSet=rs")
@@ -3194,6 +3266,8 @@ func TestClusterMonitorFSM_Unexpected_mongos(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Record_max_setVersion__even_from_primary_without_electionId(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a/?replicaSet=rs")
@@ -3270,19 +3344,19 @@ func TestClusterMonitorFSM_Record_max_setVersion__even_from_primary_without_elec
 	if len(fsm.servers) != 2 {
 		t.Fatalf("expected len(fsm.servers) to be 2, but got \"%v\"", len(fsm.servers))
 	}
-	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
-	if !ok {
-		t.Fatalf("server b:27017 was not found")
-	}
-	if serverDesc.serverType != RSPrimary {
-		t.Fatalf("expected serverDesc.serverType to be RSPrimary, but got \"%v\"", serverDesc.serverType)
-	}
 	serverDesc, ok = fsm.Server(Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
 	if serverDesc.serverType != UnknownServerType {
 		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
+	}
+	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if serverDesc.serverType != RSPrimary {
+		t.Fatalf("expected serverDesc.serverType to be RSPrimary, but got \"%v\"", serverDesc.serverType)
 	}
 
 	// phase 3 - response 1
@@ -3323,6 +3397,8 @@ func TestClusterMonitorFSM_Record_max_setVersion__even_from_primary_without_elec
 }
 
 func TestClusterMonitorFSM_Wrong_setName(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b/?replicaSet=rs")
@@ -3372,6 +3448,8 @@ func TestClusterMonitorFSM_Wrong_setName(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Mongos_disconnect(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b")
@@ -3448,19 +3526,19 @@ func TestClusterMonitorFSM_Mongos_disconnect(t *testing.T) {
 	if len(fsm.servers) != 2 {
 		t.Fatalf("expected len(fsm.servers) to be 2, but got \"%v\"", len(fsm.servers))
 	}
-	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
-	if !ok {
-		t.Fatalf("server b:27017 was not found")
-	}
-	if serverDesc.serverType != Mongos {
-		t.Fatalf("expected serverDesc.serverType to be Mongos, but got \"%v\"", serverDesc.serverType)
-	}
 	serverDesc, ok = fsm.Server(Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
 	if serverDesc.serverType != UnknownServerType {
 		t.Fatalf("expected serverDesc.serverType to be UnknownServerType, but got \"%v\"", serverDesc.serverType)
+	}
+	serverDesc, ok = fsm.Server(Endpoint("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if serverDesc.serverType != Mongos {
+		t.Fatalf("expected serverDesc.serverType to be Mongos, but got \"%v\"", serverDesc.serverType)
 	}
 
 	// phase 3 - response 1
@@ -3498,6 +3576,8 @@ func TestClusterMonitorFSM_Mongos_disconnect(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Multiple_mongoses(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b")
@@ -3561,6 +3641,8 @@ func TestClusterMonitorFSM_Multiple_mongoses(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Non_Mongos_server_in_sharded_cluster(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b")
@@ -3618,6 +3700,8 @@ func TestClusterMonitorFSM_Non_Mongos_server_in_sharded_cluster(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Normalize_URI_case(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://A,B")
@@ -3662,6 +3746,8 @@ func TestClusterMonitorFSM_Normalize_URI_case(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Direct_connection_to_RSPrimary_via_external_IP(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")
@@ -3711,6 +3797,8 @@ func TestClusterMonitorFSM_Direct_connection_to_RSPrimary_via_external_IP(t *tes
 }
 
 func TestClusterMonitorFSM_Connect_to_mongos(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")
@@ -3759,6 +3847,8 @@ func TestClusterMonitorFSM_Connect_to_mongos(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Connect_to_RSArbiter(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")
@@ -3808,6 +3898,8 @@ func TestClusterMonitorFSM_Connect_to_RSArbiter(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Connect_to_RSPrimary(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")
@@ -3857,6 +3949,8 @@ func TestClusterMonitorFSM_Connect_to_RSPrimary(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Connect_to_RSSecondary(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")
@@ -3906,6 +4000,8 @@ func TestClusterMonitorFSM_Connect_to_RSSecondary(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Direct_connection_to_slave(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")
@@ -3952,6 +4048,8 @@ func TestClusterMonitorFSM_Direct_connection_to_slave(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Connect_to_standalone(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")
@@ -3999,6 +4097,8 @@ func TestClusterMonitorFSM_Connect_to_standalone(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Handle_a_not_ok_ismaster_response(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")
@@ -4052,6 +4152,8 @@ func TestClusterMonitorFSM_Handle_a_not_ok_ismaster_response(t *testing.T) {
 }
 
 func TestClusterMonitorFSM_Standalone_removed_from_multi_server_topology(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a,b")
@@ -4099,6 +4201,8 @@ func TestClusterMonitorFSM_Standalone_removed_from_multi_server_topology(t *test
 }
 
 func TestClusterMonitorFSM_Unavailable_seed(t *testing.T) {
+	t.Parallel()
+
 	var fsm clusterMonitorFSM
 
 	uri, _ := ParseURI("mongodb://a")

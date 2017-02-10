@@ -1,17 +1,19 @@
 package ops_test
 
 import (
+	"testing"
+	"time"
+
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
-	"time"
 )
 
 func TestListCollections(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
@@ -46,6 +48,7 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
@@ -83,6 +86,7 @@ func TestListCollectionsWithMaxTimeMS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 

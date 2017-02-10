@@ -7,6 +7,8 @@ import (
 )
 
 func TestVersion_NewVersion(t *testing.T) {
+	t.Parallel()
+
 	subject := NewVersion(3, 4, 1)
 
 	if subject.String() != "3.4.1" {
@@ -15,6 +17,8 @@ func TestVersion_NewVersion(t *testing.T) {
 }
 
 func TestVersion_AtLeast(t *testing.T) {
+	t.Parallel()
+
 	subject := NewVersion(3, 4, 1)
 
 	tests := []struct {

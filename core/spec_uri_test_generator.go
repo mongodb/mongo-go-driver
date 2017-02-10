@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path"
+	"sort"
 
 	"strings"
 
@@ -130,7 +131,8 @@ func (g *Generator) generateFromFile(filename string) {
 	for _, testDef := range testContainer.Tests {
 		g.printf("\n\n")
 		g.printlnf("func TestParseURI_%s(t *testing.T) {", g.replaceCharacters(testDef.Description, " '-,()", "_"))
-
+		g.printlnf("t.Parallel()")
+		g.printlnf("")
 		// Validity
 		if !testDef.Valid {
 			g.printlnf("_, err := ParseURI(%q)", testDef.URI)
@@ -177,8 +179,8 @@ func (g *Generator) generateFromFile(filename string) {
 			}
 			if _, ok := testDef.Options["authmechanismproperties"]; ok {
 				m := testDef.Options["authmechanismproperties"].(map[interface{}]interface{})
-				for key, value := range m {
-					g.printStringIfNotEqual(fmt.Sprintf("uri.AuthMechanismProperties[\"%v\"]", key), g.replaceNullCharacter(fmt.Sprintf("%v", value)))
+				for _, kvp := range sortMap(m) {
+					g.printStringIfNotEqual(fmt.Sprintf("uri.AuthMechanismProperties[\"%s\"]", kvp.key), g.replaceNullCharacter(fmt.Sprintf("%v", kvp.value)))
 				}
 			}
 			if value, ok := testDef.Options["replicaset"]; ok {
@@ -207,6 +209,33 @@ type testDef struct {
 	URI         string                 `yaml:"uri"`
 	Valid       bool                   `yaml:"valid"`
 	Warning     bool                   `yaml:"warning"`
+}
+
+func sortMap(m map[interface{}]interface{}) []kvp {
+	var list sortedKVPs
+	for key, value := range m {
+		list = append(list, kvp{fmt.Sprintf("%v", key), value})
+	}
+
+	sort.Sort(list)
+	return list
+}
+
+type kvp struct {
+	key   string
+	value interface{}
+}
+
+type sortedKVPs []kvp
+
+func (s sortedKVPs) Len() int {
+	return len(s)
+}
+func (s sortedKVPs) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s sortedKVPs) Less(i, j int) bool {
+	return s[i].key < s[j].key
 }
 
 type host struct {

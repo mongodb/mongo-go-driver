@@ -7,6 +7,8 @@ import (
 )
 
 func TestRange_Includes(t *testing.T) {
+	t.Parallel()
+
 	subject := Range{1, 3}
 
 	tests := []struct {

@@ -1,18 +1,20 @@
 package ops_test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/10gen/mongo-go-driver/core"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
-	"testing"
-	"time"
 )
 
 func TestAggregateWithMultipleBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
@@ -50,6 +52,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
@@ -69,6 +72,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	t.Parallel()
 
 	conn := getConnection()
 
