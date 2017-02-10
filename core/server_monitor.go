@@ -5,8 +5,6 @@ package core
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/core/util"
-
 	"sync"
 	"time"
 )
@@ -159,14 +157,11 @@ func buildServerDesc(endpoint Endpoint, isMasterResult *isMasterResult, buildInf
 		setName:            isMasterResult.SetName,
 		setVersion:         isMasterResult.SetVersion,
 		tags:               isMasterResult.Tags,
-		wireVersion: util.Range{
+		wireVersion: Range{
 			Min: isMasterResult.MinWireVersion,
 			Max: isMasterResult.MaxWireVersion,
 		},
-		version: util.Version{
-			Desc:  buildInfoResult.Version,
-			Parts: buildInfoResult.VersionArray,
-		},
+		version: NewVersionWithDesc(buildInfoResult.Version, buildInfoResult.VersionArray...),
 	}
 
 	if desc.canonicalEndpoint == "" {

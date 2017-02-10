@@ -4,8 +4,6 @@ import (
 	"time"
 
 	"gopkg.in/mgo.v2/bson"
-
-	"github.com/10gen/mongo-go-driver/core/util"
 )
 
 // Server represents a server.
@@ -34,8 +32,8 @@ type ServerDesc struct {
 	setName            string
 	setVersion         uint32
 	tags               []bson.D
-	wireVersion        util.Range
-	version            util.Version
+	wireVersion        Range
+	version            Version
 }
 
 // AverageRTT is the average round trip time for the server.
@@ -70,7 +68,7 @@ func (d *ServerDesc) Tags() []bson.D {
 }
 
 // Version is the version of the server.
-func (d *ServerDesc) Version() util.Version {
+func (d *ServerDesc) Version() Version {
 	return d.version
 }
 

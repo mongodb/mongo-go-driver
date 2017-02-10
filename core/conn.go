@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 
 	"github.com/10gen/mongo-go-driver/core/msg"
-	"github.com/10gen/mongo-go-driver/core/util"
 
 	"io"
 
@@ -69,7 +68,7 @@ type ConnectionCloser interface {
 // ConnectionDesc contains information about a connection.
 type ConnectionDesc struct {
 	GitVersion          string
-	Version             util.Version
+	Version             Version
 	MaxBSONObjectSize   uint32
 	MaxMessageSizeBytes uint32
 	MaxWriteBatchSize   uint16
@@ -147,11 +146,8 @@ func (c *transportConnection) initialize(appName string) error {
 	)
 
 	c.desc = &ConnectionDesc{
-		GitVersion: buildInfoResult.GitVersion,
-		Version: util.Version{
-			Desc:  buildInfoResult.Version,
-			Parts: buildInfoResult.VersionArray,
-		},
+		GitVersion:          buildInfoResult.GitVersion,
+		Version:             NewVersionWithDesc(buildInfoResult.Version, buildInfoResult.VersionArray...),
 		MaxBSONObjectSize:   isMasterResult.MaxBSONObjectSize,
 		MaxMessageSizeBytes: isMasterResult.MaxMessageSizeBytes,
 		MaxWriteBatchSize:   isMasterResult.MaxWriteBatchSize,
