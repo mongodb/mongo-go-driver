@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// The options for listing collections
+// ListCollectionsOptions are the options for listing collections
 type ListCollectionsOptions struct {
 	// A query filter for the collections
 	Filter    interface{}
@@ -16,7 +16,7 @@ type ListCollectionsOptions struct {
 	MaxTime   time.Duration
 }
 
-// List the collections in the given database with the given options
+// ListCollections lists the collections in the given database with the given options.
 func ListCollections(conn core.Connection, databaseName string, options ListCollectionsOptions) (Cursor, error) {
 
 	listCollectionsCommand := struct {

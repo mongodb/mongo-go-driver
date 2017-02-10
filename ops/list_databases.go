@@ -7,13 +7,13 @@ import (
 	"time"
 )
 
-// The options for listing databases
+// ListDatabasesOptions are the options for listing databases.
 type ListDatabasesOptions struct {
 	// The maximum execution time in milliseconds.  A zero value indicates no maximum.
 	MaxTime time.Duration
 }
 
-// List the databases with the given options
+// ListDatabases lists the databases with the given options
 func ListDatabases(conn core.Connection, options ListDatabasesOptions) (Cursor, error) {
 
 	listDatabasesCommand := struct {

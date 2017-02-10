@@ -6,7 +6,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// Create a new cursor
+// NewCursor creates a new cursor from the given cursor result.
 func NewCursor(cursorResult CursorResult, batchSize int32, connection core.Connection) Cursor {
 	return &cursorImpl{
 		namespace:    cursorResult.Namespace(),
@@ -18,7 +18,14 @@ func NewCursor(cursorResult CursorResult, batchSize int32, connection core.Conne
 	}
 }
 
-// A Cursor for iterating results
+// Cursor instances iterate a stream of documents. Each document is decoded into the result according to the rules of
+// the bson package.  A typical usage of the Cursor interface would be:
+//
+//      cursor := ...    // get a cursor from some operation
+//      var doc bson.D
+//      for cursor.Next(&doc) {
+//              fmt.Println(doc)
+//      err := cursor.Close()
 type Cursor interface {
 	// Get the next result from the cursor.
 	// Returns true if there were no errors and there is a next result.

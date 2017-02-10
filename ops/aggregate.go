@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// The options for the aggregate command
+// AggregationOptions are the options for the aggregate command.
 type AggregationOptions struct {
 	// Whether the server can use stable storage for sorting results.
 	AllowDiskUse bool
@@ -16,8 +16,9 @@ type AggregationOptions struct {
 	MaxTime      time.Duration
 }
 
-// Execute the aggregate command with the given pipeline and options
-// The pipeline must encode as a BSON array of pipeline stages
+// Aggregate executes the aggregate command with the given pipeline and options.
+//
+// The pipeline must encode as a BSON array of pipeline stages.
 func Aggregate(conn core.Connection, namespace core.Namespace, pipeline interface{}, options AggregationOptions) (Cursor, error) {
 
 	aggregateCommand := struct {

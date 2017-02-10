@@ -5,7 +5,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// An interface describe the initial results of a cursor
+// CursorResult describes the initial results for any operation that can establish a cursor.
 type CursorResult interface {
 	// The namespace the cursor is in
 	Namespace() core.Namespace
