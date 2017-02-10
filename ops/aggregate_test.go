@@ -22,7 +22,7 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 	insertDocuments(conn, collectionName, documents, t)
 
 	namespace, _ := core.NewNamespace(databaseName, collectionName)
-	cursor, err := Aggregate(conn, namespace,
+	cursor, err := Aggregate(conn, *namespace,
 		[]bson.D{
 			{{"$match", bson.D{{"_id", bson.D{{"$gt", 2}}}}}},
 			{{"$sort", bson.D{{"_id", -1}}}}},
@@ -59,7 +59,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	insertDocuments(conn, collectionName, documents, t)
 
 	namespace, _ := core.NewNamespace(databaseName, collectionName)
-	_, err := Aggregate(conn, namespace,
+	_, err := Aggregate(conn, *namespace,
 		[]bson.D{},
 		AggregationOptions{
 			AllowDiskUse: true})
@@ -78,7 +78,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 
 	collectionName := "TestAggregateWithAllowDiskUse"
 	namespace, _ := core.NewNamespace(databaseName, collectionName)
-	_, err := Aggregate(conn, namespace,
+	_, err := Aggregate(conn, *namespace,
 		[]bson.D{},
 		AggregationOptions{
 			MaxTime: time.Millisecond})

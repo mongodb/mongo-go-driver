@@ -38,7 +38,7 @@ type firstBatchCursorResult struct {
 func (cursorResult *firstBatchCursorResult) Namespace() core.Namespace {
 	// Assume server returns a valid namespace string
 	namespace, _ := core.ParseNamespace(cursorResult.NS)
-	return namespace
+	return *namespace
 }
 
 func (cursorResult *firstBatchCursorResult) InitialBatch() []bson.Raw {

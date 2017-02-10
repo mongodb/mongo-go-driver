@@ -86,7 +86,7 @@ type firstBatchCursorResult struct {
 
 func (cursorResult *firstBatchCursorResult) Namespace() core.Namespace {
 	namespace, _ := core.ParseNamespace(cursorResult.NS)
-	return namespace
+	return *namespace
 }
 
 func (cursorResult *firstBatchCursorResult) InitialBatch() []bson.Raw {
