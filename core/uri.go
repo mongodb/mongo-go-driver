@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/10gen/mongo-go-driver/internal"
 )
 
 // ParseURI parses the provided uri and returns a URI object.
@@ -16,7 +18,7 @@ func ParseURI(uri string) (URI, error) {
 	var p uriParser
 	err := p.parse(uri)
 	if err != nil {
-		err = wrapErrorf(err, "error parsing uri (%s)", uri)
+		err = internal.WrapErrorf(err, "error parsing uri (%s)", uri)
 	}
 	return p.URI, err
 }
@@ -74,7 +76,7 @@ func (p *uriParser) parse(original string) error {
 
 		p.Username, err = url.QueryUnescape(username)
 		if err != nil {
-			return wrapErrorf(err, "invalid username")
+			return internal.WrapErrorf(err, "invalid username")
 		}
 		if len(password) > 1 {
 			if strings.Contains(password, ":") {
@@ -82,7 +84,7 @@ func (p *uriParser) parse(original string) error {
 			}
 			p.Password, err = url.QueryUnescape(password)
 			if err != nil {
-				return wrapErrorf(err, "invalid password")
+				return internal.WrapErrorf(err, "invalid password")
 			}
 			p.PasswordSet = true
 		}
@@ -105,7 +107,7 @@ func (p *uriParser) parse(original string) error {
 	for _, host := range strings.Split(hosts, ",") {
 		err = p.addHost(host)
 		if err != nil {
-			return wrapErrorf(err, "invalid host \"%s\"", host)
+			return internal.WrapErrorf(err, "invalid host \"%s\"", host)
 		}
 	}
 
@@ -135,7 +137,7 @@ func (p *uriParser) parse(original string) error {
 
 	p.Database, err = url.QueryUnescape(database)
 	if err != nil {
-		return wrapErrorf(err, "invalid database \"%s\"", database)
+		return internal.WrapErrorf(err, "invalid database \"%s\"", database)
 	}
 
 	uri = uri[len(database):]
@@ -169,7 +171,7 @@ func (p *uriParser) addHost(host string) error {
 	}
 	host, err := url.QueryUnescape(host)
 	if err != nil {
-		return wrapErrorf(err, "invalid host \"%s\"", host)
+		return internal.WrapErrorf(err, "invalid host \"%s\"", host)
 	}
 
 	_, port, err := net.SplitHostPort(host)
@@ -184,7 +186,7 @@ func (p *uriParser) addHost(host string) error {
 	if port != "" {
 		d, err := strconv.Atoi(port)
 		if err != nil {
-			return wrapErrorf(err, "port must be an integer")
+			return internal.WrapErrorf(err, "port must be an integer")
 		}
 		if d <= 0 || d >= 65536 {
 			return fmt.Errorf("port must be in the range [1, 65535]")
@@ -202,12 +204,12 @@ func (p *uriParser) addOption(pair string) error {
 
 	key, err := url.QueryUnescape(kv[0])
 	if err != nil {
-		return wrapErrorf(err, "invalid option key \"%s\"", kv[0])
+		return internal.WrapErrorf(err, "invalid option key \"%s\"", kv[0])
 	}
 
 	value, err := url.QueryUnescape(kv[1])
 	if err != nil {
-		return wrapErrorf(err, "invalid option value \"%s\"", kv[1])
+		return internal.WrapErrorf(err, "invalid option value \"%s\"", kv[1])
 	}
 
 	lowerKey := strings.ToLower(key)

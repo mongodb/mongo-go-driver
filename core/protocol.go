@@ -4,9 +4,25 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/internal"
 
 	"gopkg.in/mgo.v2/bson"
 )
+
+// QueryFailureError is an error with a failure response as a document.
+type QueryFailureError struct {
+	Msg      string
+	Response bson.D
+}
+
+func (e *QueryFailureError) Error() string {
+	return fmt.Sprintf("%s: %v", e.Msg, e.Response)
+}
+
+// Message retrieves the message of the error.
+func (e *QueryFailureError) Message() string {
+	return e.Msg
+}
 
 // ExecuteCommand executes the message on the channel.
 func ExecuteCommand(c Connection, request msg.Request, out interface{}) error {
@@ -21,14 +37,14 @@ func ExecuteCommands(c Connection, requests []msg.Request, out []interface{}) er
 
 	err := c.Write(requests...)
 	if err != nil {
-		return wrapErrorf(err, "failed sending commands(%d)", len(requests))
+		return internal.WrapErrorf(err, "failed sending commands(%d)", len(requests))
 	}
 
 	var errors []error
 	for i, req := range requests {
 		resp, err := c.Read()
 		if err != nil {
-			return wrapErrorf(err, "failed receiving command response for %d", req.RequestID())
+			return internal.WrapErrorf(err, "failed receiving command response for %d", req.RequestID())
 		}
 
 		if resp.ResponseTo() != req.RequestID() {
@@ -38,7 +54,7 @@ func ExecuteCommands(c Connection, requests []msg.Request, out []interface{}) er
 
 		err = readCommandResponse(resp, out[i])
 		if err != nil {
-			errors = append(errors, wrapErrorf(err, "failed reading command response for %d", req.RequestID()))
+			errors = append(errors, internal.WrapErrorf(err, "failed reading command response for %d", req.RequestID()))
 			continue
 		}
 	}
@@ -72,7 +88,7 @@ func readCommandResponse(resp msg.Response, out interface{}) error {
 			var doc bson.D
 			ok, err := typedResp.Iter().One(&doc)
 			if err != nil {
-				return wrapError(err, "failed to read command failure document")
+				return internal.WrapError(err, "failed to read command failure document")
 			}
 			if !ok {
 				return fmt.Errorf("unknown command failure")

@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/internal"
 
 	"io"
 
@@ -74,6 +75,29 @@ type ConnectionDesc struct {
 	MaxWriteBatchSize   uint16
 	WireVersion         Range
 	ReadOnly            bool
+}
+
+// ConnectionError represents an error that in the connection package.
+type ConnectionError struct {
+	ConnectionID string
+
+	message string
+	inner   error
+}
+
+// Message gets the basic error message.
+func (e *ConnectionError) Message() string {
+	return e.message
+}
+
+// Error gets a rolled-up error message.
+func (e *ConnectionError) Error() string {
+	return internal.RolledUpErrorMessage(e)
+}
+
+// Inner gets the inner error if one exists.
+func (e *ConnectionError) Inner() error {
+	return e.inner
 }
 
 type transportConnection struct {
@@ -167,11 +191,11 @@ func (c *transportConnection) initialize(appName string) error {
 }
 
 func (c *transportConnection) wrapError(inner error, message string) error {
-	return newConnectionError(
+	return &ConnectionError{
 		c.id,
+		fmt.Sprintf("connection(%s) error: %s", c.id, message),
 		inner,
-		message,
-	)
+	}
 }
 
 func createClientDoc(appName string) bson.M {
