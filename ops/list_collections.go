@@ -17,7 +17,10 @@ type ListCollectionsOptions struct {
 }
 
 // ListCollections lists the collections in the given database with the given options.
-func ListCollections(conn core.Connection, databaseName string, options ListCollectionsOptions) (Cursor, error) {
+func ListCollections(conn core.Connection, db string, options ListCollectionsOptions) (Cursor, error) {
+	if err := validateDB(db); err != nil {
+		return nil, err
+	}
 
 	listCollectionsCommand := struct {
 		ListCollections int32          `bson:"listCollections"`
@@ -34,7 +37,7 @@ func ListCollections(conn core.Connection, databaseName string, options ListColl
 	}
 	request := msg.NewCommand(
 		msg.NextRequestID(),
-		databaseName,
+		db,
 		false,
 		listCollectionsCommand,
 	)
@@ -45,5 +48,5 @@ func ListCollections(conn core.Connection, databaseName string, options ListColl
 	if err != nil {
 		return nil, err
 	}
-	return NewCursor(&result.Cursor, options.BatchSize, conn), nil
+	return NewCursor(&result.Cursor, options.BatchSize, conn)
 }

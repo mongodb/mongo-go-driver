@@ -4,11 +4,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/core"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
 )
+
+func TestAggregateWithInvalidNamespace(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	conn := getConnection()
+
+	namespace := Namespace{}
+	_, err := Aggregate(conn, namespace,
+		[]bson.D{},
+		AggregationOptions{})
+	require.NotNil(t, err)
+}
 
 func TestAggregateWithMultipleBatches(t *testing.T) {
 	if testing.Short() {
@@ -21,7 +34,7 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
 	insertDocuments(conn, collectionName, documents, t)
 
-	namespace, _ := core.NewNamespace(databaseName, collectionName)
+	namespace := Namespace{databaseName, collectionName}
 	cursor, err := Aggregate(conn, namespace,
 		[]bson.D{
 			{{"$match", bson.D{{"_id", bson.D{{"$gt", 2}}}}}},
@@ -58,7 +71,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}}
 	insertDocuments(conn, collectionName, documents, t)
 
-	namespace, _ := core.NewNamespace(databaseName, collectionName)
+	namespace := Namespace{databaseName, collectionName}
 	_, err := Aggregate(conn, namespace,
 		[]bson.D{},
 		AggregationOptions{
@@ -77,7 +90,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 	defer disableMaxTimeFailPoint(conn, t)
 
 	collectionName := "TestAggregateWithAllowDiskUse"
-	namespace, _ := core.NewNamespace(databaseName, collectionName)
+	namespace := Namespace{databaseName, collectionName}
 	_, err := Aggregate(conn, namespace,
 		[]bson.D{},
 		AggregationOptions{

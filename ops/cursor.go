@@ -7,7 +7,12 @@ import (
 )
 
 // NewCursor creates a new cursor from the given cursor result.
-func NewCursor(cursorResult CursorResult, batchSize int32, connection core.Connection) Cursor {
+func NewCursor(cursorResult CursorResult, batchSize int32, connection core.Connection) (Cursor, error) {
+	namespace := cursorResult.Namespace()
+	if err := namespace.validate(); err != nil {
+		return nil, err
+	}
+
 	return &cursorImpl{
 		namespace:    cursorResult.Namespace(),
 		batchSize:    batchSize,
@@ -15,7 +20,7 @@ func NewCursor(cursorResult CursorResult, batchSize int32, connection core.Conne
 		currentBatch: cursorResult.InitialBatch(),
 		cursorId:     cursorResult.CursorId(),
 		connection:   connection,
-	}
+	}, nil
 }
 
 // Cursor instances iterate a stream of documents. Each document is decoded into the result according to the rules of
@@ -40,7 +45,7 @@ type Cursor interface {
 }
 
 type cursorImpl struct {
-	namespace    core.Namespace
+	namespace    Namespace
 	batchSize    int32
 	current      int
 	currentBatch []bson.Raw
@@ -81,13 +86,13 @@ func (c *cursorImpl) Close() error {
 		Collection string  `bson:"killCursors"`
 		Cursors    []int64 `bson:"cursors"`
 	}{
-		Collection: c.namespace.CollectionName(),
+		Collection: c.namespace.Collection,
 		Cursors:    []int64{c.cursorId},
 	}
 
 	killCursorsRequest := msg.NewCommand(
 		msg.NextRequestID(),
-		c.namespace.DatabaseName(),
+		c.namespace.DB,
 		false,
 		killCursorsCommand,
 	)
@@ -129,14 +134,14 @@ func (c *cursorImpl) getMore() {
 		BatchSize  int32  `bson:"batchSize,omitempty"`
 	}{
 		CursorId:   c.cursorId,
-		Collection: c.namespace.CollectionName(),
+		Collection: c.namespace.Collection,
 	}
 	if c.batchSize != 0 {
 		getMoreCommand.BatchSize = c.batchSize
 	}
 	getMoreRequest := msg.NewCommand(
 		msg.NextRequestID(),
-		c.namespace.DatabaseName(),
+		c.namespace.DB,
 		false,
 		getMoreCommand,
 	)
