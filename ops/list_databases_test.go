@@ -42,7 +42,9 @@ func TestListDatabasesWithMaxTimeMS(t *testing.T) {
 
 	conn := getConnection()
 
-	enableMaxTimeFailPoint(conn, t)
+	if enableMaxTimeFailPoint(conn) != nil {
+		t.Skip("skipping maxTimeMS test when max time failpoint is disabled")
+	}
 	defer disableMaxTimeFailPoint(conn, t)
 
 	_, err := ListDatabases(conn, ListDatabasesOptions{

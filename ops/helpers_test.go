@@ -105,12 +105,11 @@ func dropCollection(conn core.Connection, collectionName string, t *testing.T) {
 	}
 }
 
-func enableMaxTimeFailPoint(conn core.Connection, t *testing.T) {
-	err := core.ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), "admin", false,
+func enableMaxTimeFailPoint(conn core.Connection) error {
+	return core.ExecuteCommand(conn, msg.NewCommand(msg.NextRequestID(), "admin", false,
 		bson.D{{"configureFailPoint", "maxTimeAlwaysTimeOut"},
 			{"mode", "alwaysOn"}}),
 		&bson.D{})
-	require.Nil(t, err)
 }
 
 func disableMaxTimeFailPoint(conn core.Connection, t *testing.T) {
