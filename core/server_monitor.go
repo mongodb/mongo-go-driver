@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+
+	"github.com/10gen/mongo-go-driver/core/desc"
+
 	"sync"
 	"time"
 )
@@ -21,7 +24,7 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 
 	done := make(chan struct{}, 1)
 	m := &ServerMonitor{
-		subscribers:    make(map[int]chan *ServerDesc),
+		subscribers:    make(map[int]chan *desc.Server),
 		done:           done,
 		connectionOpts: opts.ConnectionOptions,
 	}
@@ -32,9 +35,9 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 			select {
 			case <-timer.C:
 				// get an updated server description
-				desc := m.heartbeat()
+				d := m.heartbeat()
 				m.descLock.Lock()
-				m.desc = desc
+				m.desc = d
 				m.descLock.Unlock()
 
 				// send the update to all subscribers
@@ -46,7 +49,7 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 					default:
 						// do nothing if chan already empty
 					}
-					ch <- desc
+					ch <- d
 				}
 				m.subscriberLock.Unlock()
 
@@ -72,13 +75,13 @@ func StartServerMonitor(opts ServerOptions) (*ServerMonitor, error) {
 
 // ServerMonitor holds a channel that delivers updates to a server.
 type ServerMonitor struct {
-	subscribers         map[int]chan *ServerDesc
+	subscribers         map[int]chan *desc.Server
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
 	conn           ConnectionCloser
 	connectionOpts ConnectionOptions
-	desc           *ServerDesc
+	desc           *desc.Server
 	descLock       sync.Mutex
 	done           chan struct{}
 	averageRTT     time.Duration
@@ -90,14 +93,14 @@ func (m *ServerMonitor) Stop() {
 	close(m.done)
 }
 
-// Subscribe returns a channel on which all updated ServerDescs
+// Subscribe returns a channel on which all updated server descriptions
 // will be sent. The channel will have a buffer size of one, and
 // will be pre-populated with the current ServerDesc.
 // Subscribe also returns a function that, when called, will close
 // the subscription channel and remove it from the list of subscriptions.
-func (m *ServerMonitor) Subscribe() (<-chan *ServerDesc, func(), error) {
+func (m *ServerMonitor) Subscribe() (<-chan *desc.Server, func(), error) {
 	// create channel and populate with current state
-	ch := make(chan *ServerDesc, 1)
+	ch := make(chan *desc.Server, 1)
 	m.descLock.Lock()
 	ch <- m.desc
 	m.descLock.Unlock()
@@ -127,11 +130,10 @@ func (m *ServerMonitor) Subscribe() (<-chan *ServerDesc, func(), error) {
 
 	return ch, unsubscribe, nil
 }
-
-func (m *ServerMonitor) heartbeat() *ServerDesc {
+func (m *ServerMonitor) heartbeat() *desc.Server {
 	const maxRetryCount = 2
 	var savedErr error
-	var desc *ServerDesc
+	var d *desc.Server
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn == nil {
 			// TODO: should this use the connection dialer from
@@ -161,18 +163,18 @@ func (m *ServerMonitor) heartbeat() *ServerDesc {
 		}
 		delay := time.Since(now)
 
-		desc = buildServerDesc(m.connectionOpts.Endpoint, isMasterResult, buildInfoResult)
-		desc.setAverageRTT(m.updateAverageRTT(delay))
+		d = buildServerDesc(m.connectionOpts.Endpoint, isMasterResult, buildInfoResult)
+		d.SetAverageRTT(m.updateAverageRTT(delay))
 	}
 
-	if desc == nil {
-		desc = &ServerDesc{
-			endpoint:  m.connectionOpts.Endpoint,
-			lastError: savedErr,
+	if d == nil {
+		d = &desc.Server{
+			Endpoint:  m.connectionOpts.Endpoint,
+			LastError: savedErr,
 		}
 	}
 
-	return desc
+	return d
 }
 
 // updateAverageRTT calcuates the averageRTT of the server
@@ -187,34 +189,34 @@ func (m *ServerMonitor) updateAverageRTT(delay time.Duration) time.Duration {
 	return m.averageRTT
 }
 
-func buildServerDesc(endpoint Endpoint, isMasterResult *isMasterResult, buildInfoResult *buildInfoResult) *ServerDesc {
-	desc := &ServerDesc{
-		endpoint: endpoint,
+func buildServerDesc(endpoint desc.Endpoint, isMasterResult *isMasterResult, buildInfoResult *buildInfoResult) *desc.Server {
+	desc := &desc.Server{
+		Endpoint: endpoint,
 
-		canonicalEndpoint:  Endpoint(isMasterResult.Me),
-		electionID:         isMasterResult.ElectionID,
-		lastWriteTimestamp: isMasterResult.LastWriteTimestamp,
-		maxBatchCount:      isMasterResult.MaxWriteBatchSize,
-		maxDocumentSize:    isMasterResult.MaxBSONObjectSize,
-		maxMessageSize:     isMasterResult.MaxMessageSizeBytes,
-		members:            isMasterResult.Members(),
-		serverType:         isMasterResult.ServerType(),
-		setName:            isMasterResult.SetName,
-		setVersion:         isMasterResult.SetVersion,
-		tags:               isMasterResult.Tags,
-		wireVersion: Range{
+		CanonicalEndpoint:  desc.Endpoint(isMasterResult.Me),
+		ElectionID:         isMasterResult.ElectionID,
+		LastWriteTimestamp: isMasterResult.LastWriteTimestamp,
+		MaxBatchCount:      isMasterResult.MaxWriteBatchSize,
+		MaxDocumentSize:    isMasterResult.MaxBSONObjectSize,
+		MaxMessageSize:     isMasterResult.MaxMessageSizeBytes,
+		Members:            isMasterResult.Members(),
+		ServerType:         isMasterResult.ServerType(),
+		SetName:            isMasterResult.SetName,
+		SetVersion:         isMasterResult.SetVersion,
+		Tags:               nil, // TODO: get tags
+		WireVersion: desc.Range{
 			Min: isMasterResult.MinWireVersion,
 			Max: isMasterResult.MaxWireVersion,
 		},
-		version: NewVersionWithDesc(buildInfoResult.Version, buildInfoResult.VersionArray...),
+		Version: desc.NewVersionWithDesc(buildInfoResult.Version, buildInfoResult.VersionArray...),
 	}
 
-	if desc.canonicalEndpoint == "" {
-		desc.canonicalEndpoint = endpoint
+	if desc.CanonicalEndpoint == "" {
+		desc.CanonicalEndpoint = endpoint
 	}
 
 	if !isMasterResult.OK {
-		desc.lastError = fmt.Errorf("not ok")
+		desc.LastError = fmt.Errorf("not ok")
 	}
 
 	return desc

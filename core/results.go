@@ -3,6 +3,8 @@ package core
 import (
 	"time"
 
+	"github.com/10gen/mongo-go-driver/core/desc"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -31,54 +33,54 @@ type isMasterResult struct {
 	Tags                []bson.D      `bson:"tags"`
 }
 
-func (r *isMasterResult) Members() []Endpoint {
-	var members []Endpoint
+func (r *isMasterResult) Members() []desc.Endpoint {
+	var members []desc.Endpoint
 	for _, host := range r.Hosts {
-		members = append(members, Endpoint(host).Canonicalize())
+		members = append(members, desc.Endpoint(host).Canonicalize())
 	}
 
 	for _, passive := range r.Passives {
-		members = append(members, Endpoint(passive).Canonicalize())
+		members = append(members, desc.Endpoint(passive).Canonicalize())
 	}
 
 	for _, arbiter := range r.Arbiters {
-		members = append(members, Endpoint(arbiter).Canonicalize())
+		members = append(members, desc.Endpoint(arbiter).Canonicalize())
 	}
 
 	return members
 }
 
-func (r *isMasterResult) ServerType() ServerType {
+func (r *isMasterResult) ServerType() desc.ServerType {
 	if !r.OK {
-		return UnknownServerType
+		return desc.UnknownServerType
 	}
 
 	if r.IsReplicaSet {
-		return RSGhost
+		return desc.RSGhost
 	}
 
 	if r.SetName != "" {
 		if r.IsMaster {
-			return RSPrimary
+			return desc.RSPrimary
 		}
 		if r.Hidden {
-			return RSMember
+			return desc.RSMember
 		}
 		if r.Secondary {
-			return RSSecondary
+			return desc.RSSecondary
 		}
 		if r.ArbiterOnly {
-			return RSArbiter
+			return desc.RSArbiter
 		}
 
-		return RSMember
+		return desc.RSMember
 	}
 
 	if r.Msg == "isdbgrid" {
-		return Mongos
+		return desc.Mongos
 	}
 
-	return Standalone
+	return desc.Standalone
 }
 
 type buildInfoResult struct {

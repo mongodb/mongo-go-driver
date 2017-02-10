@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/core/desc"
 	"github.com/10gen/mongo-go-driver/core/msg"
 )
 
@@ -11,7 +12,7 @@ import (
 type ConnectionOptions struct {
 	AppName        string
 	Codec          msg.Codec
-	Endpoint       Endpoint
+	Endpoint       desc.Endpoint
 	EndpointDialer EndpointDialer
 }
 
@@ -62,7 +63,7 @@ type ConnectionDialer func(ConnectionOptions) (ConnectionCloser, error)
 type ClusterOptions struct {
 	ConnectionMode       ClusterConnectionMode
 	ReplicaSetName       string
-	Servers              []Endpoint
+	Servers              []desc.Endpoint
 	ServerOptionsFactory ServerOptionsFactory
 }
 
@@ -90,4 +91,4 @@ const (
 )
 
 // ServerOptionsFactory returns ServerOptions given an Endpoint.
-type ServerOptionsFactory func(Endpoint) ServerOptions
+type ServerOptionsFactory func(desc.Endpoint) ServerOptions

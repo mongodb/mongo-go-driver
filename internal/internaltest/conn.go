@@ -3,7 +3,7 @@ package internaltest
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/core/desc"
 	"github.com/10gen/mongo-go-driver/core/msg"
 )
 
@@ -15,8 +15,8 @@ type MockConnection struct {
 	SkipResponseToFixup bool
 }
 
-func (c *MockConnection) Desc() *core.ConnectionDesc {
-	return &core.ConnectionDesc{}
+func (c *MockConnection) Desc() *desc.Connection {
+	return &desc.Connection{}
 }
 
 func (c *MockConnection) Read() (msg.Response, error) {
