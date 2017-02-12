@@ -3,19 +3,20 @@ package auth
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/desc"
 )
 
-// NewConnectionDialer returns a connection dialer that will authenticate the connection.
-func NewConnectionDialer(dialer core.ConnectionDialer, authenticator Authenticator) core.ConnectionDialer {
-	return func(opts core.ConnectionOptions) (core.ConnectionCloser, error) {
-		return DialConnection(dialer, authenticator, opts)
+// NewDialer returns a connection dialer that will open and authenticate the connection.
+func NewDialer(dialer conn.Dialer, authenticator Authenticator) conn.Dialer {
+	return func(endpoint desc.Endpoint, opts ...conn.Option) (conn.ConnectionCloser, error) {
+		return Dial(dialer, authenticator, endpoint, opts...)
 	}
 }
 
-// DialConnection opens a connection that will authenticate the connection.
-func DialConnection(dialer core.ConnectionDialer, authenticator Authenticator, opts core.ConnectionOptions) (core.ConnectionCloser, error) {
-	conn, err := dialer(opts)
+// Dial opens a connection and authenticates it.
+func Dial(dialer conn.Dialer, authenticator Authenticator, endpoint desc.Endpoint, opts ...conn.Option) (conn.ConnectionCloser, error) {
+	conn, err := dialer(endpoint, opts...)
 	if err != nil {
 		if conn != nil {
 			conn.Close()
@@ -35,7 +36,7 @@ func DialConnection(dialer core.ConnectionDialer, authenticator Authenticator, o
 // Authenticator handles authenticating a connection.
 type Authenticator interface {
 	// Auth authenticates the connection.
-	Auth(core.Connection) error
+	Auth(conn.Connection) error
 }
 
 func newError(err error, mech string) error {

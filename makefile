@@ -1,19 +1,27 @@
-PKGS = ./auth ./core ./core/connstring ./core/desc ./core/msg ./ops
+PKGS = ./auth ./cluster ./conn ./connstring ./desc ./msg ./ops ./server
 LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
 
-default: test-cover lint vet
+default: generate test-cover lint vet build-examples
 
 doc:
     godoc -http=:6060 -index
 
+build-examples:
+    go build ./examples/...
+
+generate:
+    go generate $(PKGS)
+
 lint:
     golint $(LINTARGS) ./auth
-    golint $(LINTARGS) ./core
-    golint $(LINTARGS) ./core/connstring
-    golint $(LINTARGS) ./core/desc
-    golint $(LINTARGS) ./core/msg
+    golint $(LINTARGS) ./cluster
+    golint $(LINTARGS) ./conn
+    golint $(LINTARGS) ./connstring
+    golint $(LINTARGS) ./desc
+    golint $(LINTARGS) ./msg
     golint $(LINTARGS) ./ops
+    golint $(LINTARGS) ./server
 
 test:
     go test -timeout $(TEST_TIMEOUT)s $(PKGS)

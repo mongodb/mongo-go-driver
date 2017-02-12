@@ -11,8 +11,9 @@ import (
 	"encoding/base64"
 
 	. "github.com/10gen/mongo-go-driver/auth"
-	"github.com/10gen/mongo-go-driver/core/msg"
-	"github.com/10gen/mongo-go-driver/internal/internaltest"
+	"github.com/10gen/mongo-go-driver/internal/conntest"
+	"github.com/10gen/mongo-go-driver/internal/msgtest"
+	"github.com/10gen/mongo-go-driver/msg"
 )
 
 func TestPlainAuthenticator_Fails(t *testing.T) {
@@ -24,7 +25,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
@@ -32,7 +33,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		{"done", true},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
@@ -56,20 +57,20 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
 		{"done", false},
 	})
-	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+	saslContinueReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
 		{"done", true},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
@@ -93,14 +94,14 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
 		{"done", true},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 

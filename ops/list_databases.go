@@ -1,10 +1,11 @@
 package ops
 
 import (
-	"github.com/10gen/mongo-go-driver/core"
-	"github.com/10gen/mongo-go-driver/core/msg"
-	"gopkg.in/mgo.v2/bson"
 	"time"
+
+	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/msg"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // ListDatabasesOptions are the options for listing databases.
@@ -14,7 +15,7 @@ type ListDatabasesOptions struct {
 }
 
 // ListDatabases lists the databases with the given options
-func ListDatabases(conn core.Connection, options ListDatabasesOptions) (Cursor, error) {
+func ListDatabases(c conn.Connection, options ListDatabasesOptions) (Cursor, error) {
 
 	listDatabasesCommand := struct {
 		ListDatabases int32 `bson:"listDatabases"`
@@ -34,7 +35,7 @@ func ListDatabases(conn core.Connection, options ListDatabasesOptions) (Cursor, 
 		Databases []bson.Raw `bson:"databases"`
 	}
 
-	err := core.ExecuteCommand(conn, request, &result)
+	err := conn.ExecuteCommand(c, request, &result)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ func ParseNamespace(fullName string) Namespace {
 	}
 	return Namespace{
 		DB:         fullName[:indexOfFirstDot],
-		Collection: fullName[indexOfFirstDot + 1:],
+		Collection: fullName[indexOfFirstDot+1:],
 	}
 }
 
@@ -44,13 +44,13 @@ func (ns *Namespace) validate() error {
 // The database name can not be the empty string, and may not contain a "." or " " character.
 func validateDB(DB string) error {
 	if DB == "" {
-		return errors.New("Database name can not be empty")
+		return errors.New("database name can not be empty")
 	}
 	if strings.Contains(DB, " ") {
-		return errors.New("Database name can not contain ' '")
+		return errors.New("database name can not contain ' '")
 	}
 	if strings.Contains(DB, ".") {
-		return errors.New("Database name can not contain '.'")
+		return errors.New("database name can not contain '.'")
 	}
 
 	return nil
@@ -59,7 +59,7 @@ func validateDB(DB string) error {
 // The collection name can not be the empty string.
 func validateCollection(collection string) error {
 	if collection == "" {
-		return errors.New("Database name can not be empty")
+		return errors.New("database name can not be empty")
 	}
 
 	return nil

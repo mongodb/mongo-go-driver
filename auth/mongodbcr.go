@@ -6,8 +6,8 @@ import (
 
 	"io"
 
-	"github.com/10gen/mongo-go-driver/core"
-	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/msg"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -21,7 +21,7 @@ type MongoDBCRAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
+func (a *MongoDBCRAuthenticator) Auth(c conn.Connection) error {
 	db := a.DB
 	if db == "" {
 		db = defaultAuthDB
@@ -37,7 +37,7 @@ func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
 		Nonce string `bson:"nonce"`
 	}
 
-	err := core.ExecuteCommand(c, getNonceRequest, &getNonceResult)
+	err := conn.ExecuteCommand(c, getNonceRequest, &getNonceResult)
 	if err != nil {
 		return newError(err, mongodbCR)
 	}
@@ -53,7 +53,7 @@ func (a *MongoDBCRAuthenticator) Auth(c core.Connection) error {
 			{"key", a.createKey(getNonceResult.Nonce)},
 		},
 	)
-	err = core.ExecuteCommand(c, authRequest, &bson.D{})
+	err = conn.ExecuteCommand(c, authRequest, &bson.D{})
 	if err != nil {
 		return newError(err, mongodbCR)
 	}

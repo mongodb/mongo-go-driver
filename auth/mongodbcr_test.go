@@ -10,8 +10,9 @@ import (
 	"strings"
 
 	. "github.com/10gen/mongo-go-driver/auth"
-	"github.com/10gen/mongo-go-driver/core/msg"
-	"github.com/10gen/mongo-go-driver/internal/internaltest"
+	"github.com/10gen/mongo-go-driver/internal/conntest"
+	"github.com/10gen/mongo-go-driver/internal/msgtest"
+	"github.com/10gen/mongo-go-driver/msg"
 )
 
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
@@ -23,14 +24,14 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	getNonceReply := internaltest.CreateCommandReply(bson.D{
+	getNonceReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"nonce", "2375531c32080ae8"},
 	})
 
-	authenticateReply := internaltest.CreateCommandReply(bson.D{{"ok", 0}})
+	authenticateReply := msgtest.CreateCommandReply(bson.D{{"ok", 0}})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
 	}
 
@@ -54,14 +55,14 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	getNonceReply := internaltest.CreateCommandReply(bson.D{
+	getNonceReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"nonce", "2375531c32080ae8"},
 	})
 
-	authenticateReply := internaltest.CreateCommandReply(bson.D{{"ok", 1}})
+	authenticateReply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
 	}
 

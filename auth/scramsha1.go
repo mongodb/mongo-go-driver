@@ -15,7 +15,7 @@ import (
 
 	"encoding/base64"
 
-	"github.com/10gen/mongo-go-driver/core"
+	"github.com/10gen/mongo-go-driver/conn"
 )
 
 const scramSHA1 = "SCRAM-SHA-1"
@@ -33,7 +33,7 @@ type ScramSHA1Authenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *ScramSHA1Authenticator) Auth(c core.Connection) error {
+func (a *ScramSHA1Authenticator) Auth(c conn.Connection) error {
 	return conductSaslConversation(c, a.DB, &scramSaslClient{
 		username:       a.Username,
 		password:       a.Password,

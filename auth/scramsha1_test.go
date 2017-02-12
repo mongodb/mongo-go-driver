@@ -11,8 +11,9 @@ import (
 	"encoding/base64"
 
 	. "github.com/10gen/mongo-go-driver/auth"
-	"github.com/10gen/mongo-go-driver/core/msg"
-	"github.com/10gen/mongo-go-driver/internal/internaltest"
+	"github.com/10gen/mongo-go-driver/internal/conntest"
+	"github.com/10gen/mongo-go-driver/internal/msgtest"
+	"github.com/10gen/mongo-go-driver/msg"
 )
 
 func TestScramSHA1Authenticator_Fails(t *testing.T) {
@@ -24,7 +25,7 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
@@ -32,7 +33,7 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 		{"done", true},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
@@ -61,14 +62,14 @@ func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cz1yUTlaWTNNbnRCZXVQM0UxVERWQzR3PT0saT0xMDAwMA===")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
@@ -97,14 +98,14 @@ func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("bD0yMzJnLHM9clE5WlkzTW50QmV1UDNFMVREVkM0dz09LGk9MTAwMDA=")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
@@ -133,14 +134,14 @@ func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvLWQybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
@@ -169,14 +170,14 @@ func TestScramSHA1Authenticator_No_salt(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxrPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw======")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
@@ -205,14 +206,14 @@ func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxrPXNkZg======")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
@@ -241,14 +242,14 @@ func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPWFiYw====")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
@@ -277,21 +278,21 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTBh")
-	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+	saslContinueReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
@@ -320,21 +321,21 @@ func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 	payload, _ = base64.StdEncoding.DecodeString("ZT1zZXJ2ZXIgcGFzc2VkIGVycm9y")
-	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+	saslContinueReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
@@ -363,21 +364,21 @@ func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 	payload, _ = base64.StdEncoding.DecodeString("Zj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTBh")
-	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+	saslContinueReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
@@ -406,27 +407,27 @@ func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9")
-	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+	saslContinueReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
-	saslContinueReply2 := internaltest.CreateCommandReply(bson.D{
+	saslContinueReply2 := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", []byte{}},
 		{"done", false},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply, saslContinueReply2},
 	}
 
@@ -455,21 +456,21 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	saslStartReply := internaltest.CreateCommandReply(bson.D{
+	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", false},
 	})
 	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9")
-	saslContinueReply := internaltest.CreateCommandReply(bson.D{
+	saslContinueReply := msgtest.CreateCommandReply(bson.D{
 		{"ok", 1},
 		{"conversationId", 1},
 		{"payload", payload},
 		{"done", true},
 	})
 
-	conn := &internaltest.MockConnection{
+	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 

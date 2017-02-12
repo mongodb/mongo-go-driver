@@ -1,13 +1,13 @@
 package ops
 
 import (
-	"github.com/10gen/mongo-go-driver/core"
-	"github.com/10gen/mongo-go-driver/core/msg"
+	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/msg"
 	"gopkg.in/mgo.v2/bson"
 )
 
 // NewCursor creates a new cursor from the given cursor result.
-func NewCursor(cursorResult CursorResult, batchSize int32, connection core.Connection) (Cursor, error) {
+func NewCursor(cursorResult CursorResult, batchSize int32, connection conn.Connection) (Cursor, error) {
 	namespace := cursorResult.Namespace()
 	if err := namespace.validate(); err != nil {
 		return nil, err
@@ -18,7 +18,7 @@ func NewCursor(cursorResult CursorResult, batchSize int32, connection core.Conne
 		batchSize:    batchSize,
 		current:      0,
 		currentBatch: cursorResult.InitialBatch(),
-		cursorId:     cursorResult.CursorId(),
+		cursorID:     cursorResult.CursorID(),
 		connection:   connection,
 	}, nil
 }
@@ -49,9 +49,9 @@ type cursorImpl struct {
 	batchSize    int32
 	current      int
 	currentBatch []bson.Raw
-	cursorId     int64
+	cursorID     int64
 	err          error
-	connection   core.Connection // TODO: missing abstraction.  Shouldn't require a connection here, but just a way to acquire and release one
+	connection   conn.Connection // TODO: missing abstraction.  Shouldn't require a connection here, but just a way to acquire and release one
 }
 
 func (c *cursorImpl) Next(result interface{}) bool {
@@ -78,7 +78,7 @@ func (c *cursorImpl) Err() error {
 func (c *cursorImpl) Close() error {
 	c.currentBatch = nil
 
-	if c.cursorId == 0 {
+	if c.cursorID == 0 {
 		return c.err
 	}
 
@@ -87,7 +87,7 @@ func (c *cursorImpl) Close() error {
 		Cursors    []int64 `bson:"cursors"`
 	}{
 		Collection: c.namespace.Collection,
-		Cursors:    []int64{c.cursorId},
+		Cursors:    []int64{c.cursorID},
 	}
 
 	killCursorsRequest := msg.NewCommand(
@@ -97,9 +97,9 @@ func (c *cursorImpl) Close() error {
 		killCursorsCommand,
 	)
 
-	err := core.ExecuteCommand(c.connection, killCursorsRequest, &bson.D{})
+	err := conn.ExecuteCommand(c.connection, killCursorsRequest, &bson.D{})
 	if err == nil {
-		c.cursorId = 0
+		c.cursorID = 0
 	} else if c.err == nil {
 		c.err = err
 	}
@@ -124,16 +124,16 @@ func (c *cursorImpl) getMore() {
 	c.currentBatch = nil
 	c.current = 0
 
-	if c.cursorId == 0 {
+	if c.cursorID == 0 {
 		return
 	}
 
 	getMoreCommand := struct {
-		CursorId   int64  `bson:"getMore"`
+		CursorID   int64  `bson:"getMore"`
 		Collection string `bson:"collection"`
 		BatchSize  int32  `bson:"batchSize,omitempty"`
 	}{
-		CursorId:   c.cursorId,
+		CursorID:   c.cursorID,
 		Collection: c.namespace.Collection,
 	}
 	if c.batchSize != 0 {
@@ -149,18 +149,18 @@ func (c *cursorImpl) getMore() {
 	var response struct {
 		OK     bool `bson:"ok"`
 		Cursor struct {
-			       NextBatch []bson.Raw `bson:"nextBatch"`
-			       NS        string     `bson:"ns"`
-			       ID        int64      `bson:"id"`
-		       } `bson:"cursor"`
+			NextBatch []bson.Raw `bson:"nextBatch"`
+			NS        string     `bson:"ns"`
+			ID        int64      `bson:"id"`
+		} `bson:"cursor"`
 	}
 
-	err := core.ExecuteCommand(c.connection, getMoreRequest, &response)
+	err := conn.ExecuteCommand(c.connection, getMoreRequest, &response)
 	if err != nil {
 		c.err = err
 		return
 	}
 
-	c.cursorId = response.Cursor.ID
+	c.cursorID = response.Cursor.ID
 	c.currentBatch = response.Cursor.NextBatch
 }
