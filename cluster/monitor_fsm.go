@@ -23,15 +23,15 @@ func (fsm *monitorFSM) apply(d *desc.Server) {
 	copy(newServers, fsm.Servers)
 
 	fsm.Cluster = desc.Cluster{
-		ClusterType: fsm.ClusterType,
-		Servers:     newServers,
+		Type:    fsm.Type,
+		Servers: newServers,
 	}
 
 	if _, ok := fsm.findServer(d.Endpoint); !ok {
 		return
 	}
 
-	switch fsm.ClusterType {
+	switch fsm.Type {
 	case desc.UnknownClusterType:
 		fsm.applyToUnknownClusterType(d)
 	case desc.Sharded:
@@ -46,7 +46,7 @@ func (fsm *monitorFSM) apply(d *desc.Server) {
 }
 
 func (fsm *monitorFSM) applyToReplicaSetNoPrimary(d *desc.Server) {
-	switch d.ServerType {
+	switch d.Type {
 	case desc.Standalone, desc.Mongos:
 		fsm.removeServerByEndpoint(d.Endpoint)
 	case desc.RSPrimary:
@@ -59,7 +59,7 @@ func (fsm *monitorFSM) applyToReplicaSetNoPrimary(d *desc.Server) {
 }
 
 func (fsm *monitorFSM) applyToReplicaSetWithPrimary(d *desc.Server) {
-	switch d.ServerType {
+	switch d.Type {
 	case desc.Standalone, desc.Mongos:
 		fsm.removeServerByEndpoint(d.Endpoint)
 		fsm.checkIfHasPrimary()
@@ -74,7 +74,7 @@ func (fsm *monitorFSM) applyToReplicaSetWithPrimary(d *desc.Server) {
 }
 
 func (fsm *monitorFSM) applyToShardedClusterType(d *desc.Server) {
-	switch d.ServerType {
+	switch d.Type {
 	case desc.Mongos, desc.UnknownServerType:
 		fsm.replaceServer(d)
 	case desc.Standalone, desc.RSPrimary, desc.RSSecondary, desc.RSArbiter, desc.RSMember, desc.RSGhost:
@@ -83,7 +83,7 @@ func (fsm *monitorFSM) applyToShardedClusterType(d *desc.Server) {
 }
 
 func (fsm *monitorFSM) applyToSingle(d *desc.Server) {
-	switch d.ServerType {
+	switch d.Type {
 	case desc.UnknownServerType:
 		fsm.replaceServer(d)
 	case desc.Standalone, desc.Mongos:
@@ -104,7 +104,7 @@ func (fsm *monitorFSM) applyToSingle(d *desc.Server) {
 }
 
 func (fsm *monitorFSM) applyToUnknownClusterType(d *desc.Server) {
-	switch d.ServerType {
+	switch d.Type {
 	case desc.Mongos:
 		fsm.setType(desc.Sharded)
 		fsm.replaceServer(d)
@@ -246,7 +246,7 @@ func (fsm *monitorFSM) addServer(endpoint desc.Endpoint) {
 
 func (fsm *monitorFSM) findPrimary() (int, bool) {
 	for i, s := range fsm.Servers {
-		if s.ServerType == desc.RSPrimary {
+		if s.Type == desc.RSPrimary {
 			return i, true
 		}
 	}
@@ -287,5 +287,5 @@ func (fsm *monitorFSM) setServer(i int, d *desc.Server) {
 }
 
 func (fsm *monitorFSM) setType(clusterType desc.ClusterType) {
-	fsm.ClusterType = clusterType
+	fsm.Type = clusterType
 }

@@ -24,11 +24,12 @@ func StartMonitor(endpoint desc.Endpoint, opts ...Option) (*Monitor, error) {
 
 	done := make(chan struct{}, 1)
 	m := &Monitor{
-		endpoint:    endpoint,
-		subscribers: make(map[int]chan *desc.Server),
-		done:        done,
-		connOpts:    cfg.connOpts,
-		dialer:      cfg.dialer,
+		endpoint:          endpoint,
+		subscribers:       make(map[int]chan *desc.Server),
+		done:              done,
+		connOpts:          cfg.connOpts,
+		dialer:            cfg.dialer,
+		heartbeatInterval: cfg.heartbeatInterval,
 	}
 
 	go func() {
@@ -81,15 +82,16 @@ type Monitor struct {
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
-	conn          conn.ConnectionCloser
-	connOpts      []conn.Option
-	desc          *desc.Server
-	descLock      sync.Mutex
-	dialer        conn.Dialer
-	done          chan struct{}
-	endpoint      desc.Endpoint
-	averageRTT    time.Duration
-	averageRTTSet bool
+	conn              conn.ConnectionCloser
+	connOpts          []conn.Option
+	desc              *desc.Server
+	descLock          sync.Mutex
+	dialer            conn.Dialer
+	done              chan struct{}
+	endpoint          desc.Endpoint
+	heartbeatInterval time.Duration
+	averageRTT        time.Duration
+	averageRTTSet     bool
 }
 
 // Stop turns off the monitor.
@@ -170,6 +172,7 @@ func (m *Monitor) heartbeat() *desc.Server {
 
 		d = descutil.BuildServerDesc(m.endpoint, isMasterResult, buildInfoResult)
 		d.SetAverageRTT(m.updateAverageRTT(delay))
+		d.HeartbeatInterval = m.heartbeatInterval
 	}
 
 	if d == nil {

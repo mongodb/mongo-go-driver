@@ -155,10 +155,10 @@ func (g *Generator) generateFromFile(filename string) error {
 	g.printlnf("\ncs, _ := connstring.Parse(\"%s\")", testDef.Uri)
 	g.printlnf("fsm.setName = cs.ReplicaSet")
 	g.printlnf("if fsm.setName != \"\" {")
-	g.printlnf("fsm.ClusterType = desc.ReplicaSetNoPrimary ")
+	g.printlnf("fsm.Type = desc.ReplicaSetNoPrimary ")
 	g.printlnf("}")
 	g.printlnf("if len(cs.Hosts) == 1 && fsm.setName == \"\" {")
-	g.printlnf("fsm.ClusterType = desc.Single")
+	g.printlnf("fsm.Type = desc.Single")
 	g.printlnf("}")
 	g.printlnf("for _, host := range cs.Hosts {")
 	g.printlnf("fsm.addServer(desc.Endpoint(host).Canonicalize())")
@@ -234,7 +234,7 @@ func (g *Generator) generateFromFile(filename string) error {
 		} else {
 			topType = "desc." + topType
 		}
-		g.printIfNotEqual("fsm.ClusterType", topType)
+		g.printIfNotEqual("fsm.Type", topType)
 		g.printIfNotEqual("len(fsm.Servers)", fmt.Sprintf("%d", len(phase.Outcome.Servers)))
 		for _, s := range phase.Outcome.sortedServers() {
 			if !printedOutcomeVariables {
@@ -259,7 +259,7 @@ func (g *Generator) generateFromFile(filename string) error {
 			default:
 				sType = "desc." + sType
 			}
-			g.printIfNotEqual("serverDesc.ServerType", sType)
+			g.printIfNotEqual("serverDesc.Type", sType)
 		}
 	}
 
