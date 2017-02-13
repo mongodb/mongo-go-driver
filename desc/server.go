@@ -13,20 +13,22 @@ const UnsetRTT = -1 * time.Millisecond
 type Server struct {
 	Endpoint Endpoint
 
-	CanonicalEndpoint  Endpoint
-	ElectionID         bson.ObjectId
-	LastError          error
-	LastWriteTimestamp time.Time
-	MaxBatchCount      uint16
-	MaxDocumentSize    uint32
-	MaxMessageSize     uint32
-	Members            []Endpoint
-	ServerType         ServerType
-	SetName            string
-	SetVersion         uint32
-	Tags               []TagSet
-	WireVersion        Range
-	Version            Version
+	CanonicalEndpoint Endpoint
+	ElectionID        bson.ObjectId
+	HeartbeatInterval time.Duration
+	LastError         error
+	LastUpdateTime    time.Time
+	LastWriteTime     time.Time
+	MaxBatchCount     uint16
+	MaxDocumentSize   uint32
+	MaxMessageSize    uint32
+	Members           []Endpoint
+	SetName           string
+	SetVersion        uint32
+	Tags              TagSet
+	Type              ServerType
+	WireVersion       Range
+	Version           Version
 
 	averageRTT    time.Duration
 	averageRTTSet bool

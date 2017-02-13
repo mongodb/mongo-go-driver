@@ -24,10 +24,10 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 
 	if cfg.replicaSetName != "" {
 		m.fsm.setName = cfg.replicaSetName
-		m.fsm.ClusterType = desc.ReplicaSetNoPrimary
+		m.fsm.Type = desc.ReplicaSetNoPrimary
 	}
 	if cfg.connectionMode == SingleMode {
-		m.fsm.ClusterType = desc.Single
+		m.fsm.Type = desc.Single
 	}
 
 	for _, ep := range cfg.seedList {

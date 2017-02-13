@@ -2,8 +2,8 @@ package desc
 
 // Cluster is a description of a cluster.
 type Cluster struct {
-	ClusterType ClusterType
-	Servers     []*Server
+	Servers []*Server
+	Type    ClusterType
 }
 
 // Server returns the ServerDesc with the specified endpoint.
