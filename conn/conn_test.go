@@ -5,13 +5,12 @@ import (
 	"testing"
 
 	. "github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/desc"
 	"github.com/kr/pretty"
 )
 
 func createIntegrationTestConnection() (Connection, error) {
-	c, err := Dial(desc.Endpoint(*host),
-		AppName("mongo-go-driver-test"),
+	c, err := Dial(Endpoint(*host),
+		WithAppName("mongo-go-driver-test"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err)

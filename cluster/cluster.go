@@ -3,7 +3,6 @@ package cluster
 import (
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/desc"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
@@ -41,19 +40,19 @@ type Cluster interface {
 	// Close closes the cluster.
 	Close()
 	// Desc gets a description of the cluster.
-	Desc() *desc.Cluster
+	Desc() *Desc
 	// SelectServer selects a server given a selector.
-	SelectServer(ServerSelector) server.Server
+	SelectServer(ServerSelector) (server.Server, error)
 }
 
 // ServerSelector is a function that selects a server.
-type ServerSelector func(*desc.Cluster, []*desc.Server) []*desc.Server
+type ServerSelector func(*Desc, []*server.Desc) ([]*server.Desc, error)
 
 type clusterImpl struct {
 	monitor     *Monitor
 	ownsMonitor bool
-	updates     <-chan *desc.Cluster
-	desc        *desc.Cluster
+	updates     <-chan *Desc
+	desc        *Desc
 	descLock    sync.Mutex
 }
 
@@ -63,8 +62,8 @@ func (c *clusterImpl) Close() {
 	}
 }
 
-func (c *clusterImpl) Desc() *desc.Cluster {
-	var desc *desc.Cluster
+func (c *clusterImpl) Desc() *Desc {
+	var desc *Desc
 	c.descLock.Lock()
 	select {
 	case desc = <-c.updates:
@@ -76,13 +75,16 @@ func (c *clusterImpl) Desc() *desc.Cluster {
 	return desc
 }
 
-func (c *clusterImpl) SelectServer(selector ServerSelector) server.Server {
-	clusterDesc := c.Desc()
-	selected := selector(clusterDesc, clusterDesc.Servers)[0]
+func (c *clusterImpl) SelectServer(selector ServerSelector) (server.Server, error) {
+	desc := c.Desc()
+	selected, err := selector(desc, desc.Servers)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO: put this logic into the monitor...
 	c.monitor.serversLock.Lock()
-	serverMonitor := c.monitor.servers[selected.Endpoint]
+	serverMonitor := c.monitor.servers[selected[0].Endpoint]
 	c.monitor.serversLock.Unlock()
-	return server.NewWithMonitor(serverMonitor)
+	return server.NewWithMonitor(serverMonitor), nil
 }

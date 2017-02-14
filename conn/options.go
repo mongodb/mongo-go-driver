@@ -1,6 +1,10 @@
 package conn
 
-import "github.com/10gen/mongo-go-driver/msg"
+import (
+	"net"
+
+	"github.com/10gen/mongo-go-driver/msg"
+)
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
@@ -21,28 +25,27 @@ type Option func(*config)
 type config struct {
 	appName string
 	codec   msg.Codec
-	dialer  EndpointDialer
+	dialer  func(Endpoint) (net.Conn, error)
 }
 
-// AppName sets the application name which gets
+// WithAppName sets the application name which gets
 // sent to MongoDB on first connection.
-func AppName(name string) Option {
+func WithAppName(name string) Option {
 	return func(c *config) {
 		c.appName = name
 	}
 }
 
-// Codec sets the codec to use to encode and
+// WithCodec sets the codec to use to encode and
 // decode messages.
-func Codec(codec msg.Codec) Option {
+func WithCodec(codec msg.Codec) Option {
 	return func(c *config) {
 		c.codec = codec
 	}
 }
 
-// EndpointDialerOpt defines the dialer for endpoints. Use this
-// configuration option to enable things like TLS.
-func EndpointDialerOpt(dialer EndpointDialer) Option {
+// WithEndpointDialer defines the dialer for endpoints.
+func WithEndpointDialer(dialer EndpointDialer) Option {
 	return func(c *config) {
 		c.dialer = dialer
 	}

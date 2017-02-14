@@ -5,168 +5,169 @@ package cluster
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/desc"
+	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/server"
 	"gopkg.in/mgo.v2/bson"
 )
 
 type monitorFSM struct {
-	desc.Cluster
+	Desc
 
 	maxElectionID bson.ObjectId
 	maxSetVersion uint32
 	setName       string
 }
 
-func (fsm *monitorFSM) apply(d *desc.Server) {
+func (fsm *monitorFSM) apply(s *server.Desc) {
 
-	newServers := make([]*desc.Server, len(fsm.Servers))
+	newServers := make([]*server.Desc, len(fsm.Servers))
 	copy(newServers, fsm.Servers)
 
-	fsm.Cluster = desc.Cluster{
-		ClusterType: fsm.ClusterType,
-		Servers:     newServers,
+	fsm.Desc = Desc{
+		Type:    fsm.Type,
+		Servers: newServers,
 	}
 
-	if _, ok := fsm.findServer(d.Endpoint); !ok {
+	if _, ok := fsm.findServer(s.Endpoint); !ok {
 		return
 	}
 
-	switch fsm.ClusterType {
-	case desc.UnknownClusterType:
-		fsm.applyToUnknownClusterType(d)
-	case desc.Sharded:
-		fsm.applyToShardedClusterType(d)
-	case desc.ReplicaSetNoPrimary:
-		fsm.applyToReplicaSetNoPrimary(d)
-	case desc.ReplicaSetWithPrimary:
-		fsm.applyToReplicaSetWithPrimary(d)
-	case desc.Single:
-		fsm.applyToSingle(d)
+	switch fsm.Type {
+	case Unknown:
+		fsm.applyToUnknown(s)
+	case Sharded:
+		fsm.applyToSharded(s)
+	case ReplicaSetNoPrimary:
+		fsm.applyToReplicaSetNoPrimary(s)
+	case ReplicaSetWithPrimary:
+		fsm.applyToReplicaSetWithPrimary(s)
+	case Single:
+		fsm.applyToSingle(s)
 	}
 }
 
-func (fsm *monitorFSM) applyToReplicaSetNoPrimary(d *desc.Server) {
-	switch d.ServerType {
-	case desc.Standalone, desc.Mongos:
-		fsm.removeServerByEndpoint(d.Endpoint)
-	case desc.RSPrimary:
-		fsm.updateRSFromPrimary(d)
-	case desc.RSSecondary, desc.RSArbiter, desc.RSMember:
-		fsm.updateRSWithoutPrimary(d)
-	case desc.UnknownServerType, desc.RSGhost:
-		fsm.replaceServer(d)
+func (fsm *monitorFSM) applyToReplicaSetNoPrimary(s *server.Desc) {
+	switch s.Type {
+	case server.Standalone, server.Mongos:
+		fsm.removeServerByEndpoint(s.Endpoint)
+	case server.RSPrimary:
+		fsm.updateRSFromPrimary(s)
+	case server.RSSecondary, server.RSArbiter, server.RSMember:
+		fsm.updateRSWithoutPrimary(s)
+	case server.Unknown, server.RSGhost:
+		fsm.replaceServer(s)
 	}
 }
 
-func (fsm *monitorFSM) applyToReplicaSetWithPrimary(d *desc.Server) {
-	switch d.ServerType {
-	case desc.Standalone, desc.Mongos:
-		fsm.removeServerByEndpoint(d.Endpoint)
+func (fsm *monitorFSM) applyToReplicaSetWithPrimary(s *server.Desc) {
+	switch s.Type {
+	case server.Standalone, server.Mongos:
+		fsm.removeServerByEndpoint(s.Endpoint)
 		fsm.checkIfHasPrimary()
-	case desc.RSPrimary:
-		fsm.updateRSFromPrimary(d)
-	case desc.RSSecondary, desc.RSArbiter, desc.RSMember:
-		fsm.updateRSWithPrimaryFromMember(d)
-	case desc.UnknownServerType, desc.RSGhost:
-		fsm.replaceServer(d)
+	case server.RSPrimary:
+		fsm.updateRSFromPrimary(s)
+	case server.RSSecondary, server.RSArbiter, server.RSMember:
+		fsm.updateRSWithPrimaryFromMember(s)
+	case server.Unknown, server.RSGhost:
+		fsm.replaceServer(s)
 		fsm.checkIfHasPrimary()
 	}
 }
 
-func (fsm *monitorFSM) applyToShardedClusterType(d *desc.Server) {
-	switch d.ServerType {
-	case desc.Mongos, desc.UnknownServerType:
-		fsm.replaceServer(d)
-	case desc.Standalone, desc.RSPrimary, desc.RSSecondary, desc.RSArbiter, desc.RSMember, desc.RSGhost:
-		fsm.removeServerByEndpoint(d.Endpoint)
+func (fsm *monitorFSM) applyToSharded(s *server.Desc) {
+	switch s.Type {
+	case server.Mongos, server.Unknown:
+		fsm.replaceServer(s)
+	case server.Standalone, server.RSPrimary, server.RSSecondary, server.RSArbiter, server.RSMember, server.RSGhost:
+		fsm.removeServerByEndpoint(s.Endpoint)
 	}
 }
 
-func (fsm *monitorFSM) applyToSingle(d *desc.Server) {
-	switch d.ServerType {
-	case desc.UnknownServerType:
-		fsm.replaceServer(d)
-	case desc.Standalone, desc.Mongos:
+func (fsm *monitorFSM) applyToSingle(s *server.Desc) {
+	switch s.Type {
+	case server.Unknown:
+		fsm.replaceServer(s)
+	case server.Standalone, server.Mongos:
 		if fsm.setName != "" {
-			fsm.removeServerByEndpoint(d.Endpoint)
+			fsm.removeServerByEndpoint(s.Endpoint)
 			return
 		}
 
-		fsm.replaceServer(d)
-	case desc.RSPrimary, desc.RSSecondary, desc.RSArbiter, desc.RSMember, desc.RSGhost:
-		if fsm.setName != "" && fsm.setName != d.SetName {
-			fsm.removeServerByEndpoint(d.Endpoint)
+		fsm.replaceServer(s)
+	case server.RSPrimary, server.RSSecondary, server.RSArbiter, server.RSMember, server.RSGhost:
+		if fsm.setName != "" && fsm.setName != s.SetName {
+			fsm.removeServerByEndpoint(s.Endpoint)
 			return
 		}
 
-		fsm.replaceServer(d)
+		fsm.replaceServer(s)
 	}
 }
 
-func (fsm *monitorFSM) applyToUnknownClusterType(d *desc.Server) {
-	switch d.ServerType {
-	case desc.Mongos:
-		fsm.setType(desc.Sharded)
-		fsm.replaceServer(d)
-	case desc.RSPrimary:
-		fsm.updateRSFromPrimary(d)
-	case desc.RSSecondary, desc.RSArbiter, desc.RSMember:
-		fsm.setType(desc.ReplicaSetNoPrimary)
-		fsm.updateRSWithoutPrimary(d)
-	case desc.Standalone:
-		fsm.updateUnknownWithStandalone(d)
-	case desc.UnknownServerType, desc.RSGhost:
-		fsm.replaceServer(d)
+func (fsm *monitorFSM) applyToUnknown(s *server.Desc) {
+	switch s.Type {
+	case server.Mongos:
+		fsm.setType(Sharded)
+		fsm.replaceServer(s)
+	case server.RSPrimary:
+		fsm.updateRSFromPrimary(s)
+	case server.RSSecondary, server.RSArbiter, server.RSMember:
+		fsm.setType(ReplicaSetNoPrimary)
+		fsm.updateRSWithoutPrimary(s)
+	case server.Standalone:
+		fsm.updateUnknownWithStandalone(s)
+	case server.Unknown, server.RSGhost:
+		fsm.replaceServer(s)
 	}
 }
 
 func (fsm *monitorFSM) checkIfHasPrimary() {
 	if _, ok := fsm.findPrimary(); ok {
-		fsm.setType(desc.ReplicaSetWithPrimary)
+		fsm.setType(ReplicaSetWithPrimary)
 	} else {
-		fsm.setType(desc.ReplicaSetNoPrimary)
+		fsm.setType(ReplicaSetNoPrimary)
 	}
 }
 
-func (fsm *monitorFSM) updateRSFromPrimary(d *desc.Server) {
+func (fsm *monitorFSM) updateRSFromPrimary(s *server.Desc) {
 	if fsm.setName == "" {
-		fsm.setName = d.SetName
-	} else if fsm.setName != d.SetName {
-		fsm.removeServerByEndpoint(d.Endpoint)
+		fsm.setName = s.SetName
+	} else if fsm.setName != s.SetName {
+		fsm.removeServerByEndpoint(s.Endpoint)
 		fsm.checkIfHasPrimary()
 		return
 	}
 
-	if d.SetVersion != 0 && d.ElectionID != "" {
-		if fsm.maxSetVersion > d.SetVersion || fsm.maxElectionID > d.ElectionID {
-			fsm.replaceServer(&desc.Server{
-				Endpoint:  d.Endpoint,
+	if s.SetVersion != 0 && s.ElectionID != "" {
+		if fsm.maxSetVersion > s.SetVersion || fsm.maxElectionID > s.ElectionID {
+			fsm.replaceServer(&server.Desc{
+				Endpoint:  s.Endpoint,
 				LastError: fmt.Errorf("was a primary, but its set version or election id is stale"),
 			})
 			fsm.checkIfHasPrimary()
 			return
 		}
 
-		fsm.maxElectionID = d.ElectionID
+		fsm.maxElectionID = s.ElectionID
 	}
 
-	if d.SetVersion > fsm.maxSetVersion {
-		fsm.maxSetVersion = d.SetVersion
+	if s.SetVersion > fsm.maxSetVersion {
+		fsm.maxSetVersion = s.SetVersion
 	}
 
 	if j, ok := fsm.findPrimary(); ok {
-		fsm.setServer(j, &desc.Server{
+		fsm.setServer(j, &server.Desc{
 			Endpoint:  fsm.Servers[j].Endpoint,
 			LastError: fmt.Errorf("was a primary, but a new primary was discovered"),
 		})
 	}
 
-	fsm.replaceServer(d)
+	fsm.replaceServer(s)
 
 	for j := len(fsm.Servers) - 1; j >= 0; j-- {
 		server := fsm.Servers[j]
 		found := false
-		for _, member := range d.Members {
+		for _, member := range s.Members {
 			if member == server.Endpoint {
 				found = true
 				break
@@ -177,7 +178,7 @@ func (fsm *monitorFSM) updateRSFromPrimary(d *desc.Server) {
 		}
 	}
 
-	for _, member := range d.Members {
+	for _, member := range s.Members {
 		if _, ok := fsm.findServer(member); !ok {
 			fsm.addServer(member)
 		}
@@ -186,67 +187,67 @@ func (fsm *monitorFSM) updateRSFromPrimary(d *desc.Server) {
 	fsm.checkIfHasPrimary()
 }
 
-func (fsm *monitorFSM) updateRSWithPrimaryFromMember(d *desc.Server) {
-	if fsm.setName != d.SetName {
-		fsm.removeServerByEndpoint(d.Endpoint)
+func (fsm *monitorFSM) updateRSWithPrimaryFromMember(s *server.Desc) {
+	if fsm.setName != s.SetName {
+		fsm.removeServerByEndpoint(s.Endpoint)
 		fsm.checkIfHasPrimary()
 		return
 	}
 
-	if d.Endpoint != d.CanonicalEndpoint {
-		fsm.removeServerByEndpoint(d.Endpoint)
+	if s.Endpoint != s.CanonicalEndpoint {
+		fsm.removeServerByEndpoint(s.Endpoint)
 		fsm.checkIfHasPrimary()
 		return
 	}
 
-	fsm.replaceServer(d)
+	fsm.replaceServer(s)
 
 	if _, ok := fsm.findPrimary(); !ok {
-		fsm.setType(desc.ReplicaSetNoPrimary)
+		fsm.setType(ReplicaSetNoPrimary)
 	}
 }
 
-func (fsm *monitorFSM) updateRSWithoutPrimary(d *desc.Server) {
+func (fsm *monitorFSM) updateRSWithoutPrimary(s *server.Desc) {
 	if fsm.setName == "" {
-		fsm.setName = d.SetName
-	} else if fsm.setName != d.SetName {
-		fsm.removeServerByEndpoint(d.Endpoint)
+		fsm.setName = s.SetName
+	} else if fsm.setName != s.SetName {
+		fsm.removeServerByEndpoint(s.Endpoint)
 		return
 	}
 
-	for _, member := range d.Members {
+	for _, member := range s.Members {
 		if _, ok := fsm.findServer(member); !ok {
 			fsm.addServer(member)
 		}
 	}
 
-	if d.Endpoint != d.CanonicalEndpoint {
-		fsm.removeServerByEndpoint(d.Endpoint)
+	if s.Endpoint != s.CanonicalEndpoint {
+		fsm.removeServerByEndpoint(s.Endpoint)
 		return
 	}
 
-	fsm.replaceServer(d)
+	fsm.replaceServer(s)
 }
 
-func (fsm *monitorFSM) updateUnknownWithStandalone(d *desc.Server) {
+func (fsm *monitorFSM) updateUnknownWithStandalone(s *server.Desc) {
 	if len(fsm.Servers) > 1 {
-		fsm.removeServerByEndpoint(d.Endpoint)
+		fsm.removeServerByEndpoint(s.Endpoint)
 		return
 	}
 
-	fsm.setType(desc.Single)
-	fsm.replaceServer(d)
+	fsm.setType(Single)
+	fsm.replaceServer(s)
 }
 
-func (fsm *monitorFSM) addServer(endpoint desc.Endpoint) {
-	fsm.Servers = append(fsm.Servers, &desc.Server{
+func (fsm *monitorFSM) addServer(endpoint conn.Endpoint) {
+	fsm.Servers = append(fsm.Servers, &server.Desc{
 		Endpoint: endpoint,
 	})
 }
 
 func (fsm *monitorFSM) findPrimary() (int, bool) {
 	for i, s := range fsm.Servers {
-		if s.ServerType == desc.RSPrimary {
+		if s.Type == server.RSPrimary {
 			return i, true
 		}
 	}
@@ -254,7 +255,7 @@ func (fsm *monitorFSM) findPrimary() (int, bool) {
 	return 0, false
 }
 
-func (fsm *monitorFSM) findServer(endpoint desc.Endpoint) (int, bool) {
+func (fsm *monitorFSM) findServer(endpoint conn.Endpoint) (int, bool) {
 	for i, s := range fsm.Servers {
 		if endpoint == s.Endpoint {
 			return i, true
@@ -268,24 +269,24 @@ func (fsm *monitorFSM) removeServer(i int) {
 	fsm.Servers = append(fsm.Servers[:i], fsm.Servers[i+1:]...)
 }
 
-func (fsm *monitorFSM) removeServerByEndpoint(endpoint desc.Endpoint) {
+func (fsm *monitorFSM) removeServerByEndpoint(endpoint conn.Endpoint) {
 	if i, ok := fsm.findServer(endpoint); ok {
 		fsm.removeServer(i)
 	}
 }
 
-func (fsm *monitorFSM) replaceServer(d *desc.Server) bool {
-	if i, ok := fsm.findServer(d.Endpoint); ok {
-		fsm.setServer(i, d)
+func (fsm *monitorFSM) replaceServer(s *server.Desc) bool {
+	if i, ok := fsm.findServer(s.Endpoint); ok {
+		fsm.setServer(i, s)
 		return true
 	}
 	return false
 }
 
-func (fsm *monitorFSM) setServer(i int, d *desc.Server) {
-	fsm.Servers[i] = d
+func (fsm *monitorFSM) setServer(i int, s *server.Desc) {
+	fsm.Servers[i] = s
 }
 
-func (fsm *monitorFSM) setType(clusterType desc.ClusterType) {
-	fsm.ClusterType = clusterType
+func (fsm *monitorFSM) setType(clusterType Type) {
+	fsm.Type = clusterType
 }

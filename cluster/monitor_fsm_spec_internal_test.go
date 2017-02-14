@@ -5,9 +5,9 @@ package cluster
 import "testing"
 import "gopkg.in/mgo.v2/bson"
 import "github.com/10gen/mongo-go-driver/internal"
+import "github.com/10gen/mongo-go-driver/conn"
 import "github.com/10gen/mongo-go-driver/connstring"
-import "github.com/10gen/mongo-go-driver/desc"
-import "github.com/10gen/mongo-go-driver/internal/descutil"
+import "github.com/10gen/mongo-go-driver/server"
 
 func TestMonitorFSM_Discover_arbiters(t *testing.T) {
 	t.Parallel()
@@ -17,16 +17,16 @@ func TestMonitorFSM_Discover_arbiters(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -37,34 +37,34 @@ func TestMonitorFSM_Discover_arbiters(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -76,16 +76,16 @@ func TestMonitorFSM_Discover_passives(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -96,34 +96,34 @@ func TestMonitorFSM_Discover_passives(t *testing.T) {
 	imr.IsMaster = true
 	imr.Passives = []string{"b:27017"}
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -133,32 +133,32 @@ func TestMonitorFSM_Discover_passives(t *testing.T) {
 	imr.Passives = []string{"b:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -170,16 +170,16 @@ func TestMonitorFSM_Replica_set_discovery_from_primary(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -189,34 +189,34 @@ func TestMonitorFSM_Replica_set_discovery_from_primary(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -228,16 +228,16 @@ func TestMonitorFSM_Replica_set_discovery_from_secondary(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -247,34 +247,34 @@ func TestMonitorFSM_Replica_set_discovery_from_secondary(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -286,16 +286,16 @@ func TestMonitorFSM_Replica_set_discovery(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -305,41 +305,41 @@ func TestMonitorFSM_Replica_set_discovery(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017", "c:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 3 {
 		t.Fatalf("expected len(fsm.Servers) to be 3, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -348,46 +348,46 @@ func TestMonitorFSM_Replica_set_discovery(t *testing.T) {
 	imr.Hosts = []string{"b:27017", "c:27017", "d:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 4 {
 		t.Fatalf("expected len(fsm.Servers) to be 4, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("d:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("d:27017"))
 	if !ok {
 		t.Fatalf("server d:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -396,46 +396,46 @@ func TestMonitorFSM_Replica_set_discovery(t *testing.T) {
 	imr.Hosts = []string{"b:27017", "c:27017", "d:27017", "e:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("d:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("d:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 4 {
 		t.Fatalf("expected len(fsm.Servers) to be 4, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("d:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("d:27017"))
 	if !ok {
 		t.Fatalf("server d:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("e:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("e:27017"))
 	if !ok {
 		t.Fatalf("server e:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 4 - response 1
@@ -444,46 +444,46 @@ func TestMonitorFSM_Replica_set_discovery(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017", "c:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("c:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("c:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 4 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 4 {
 		t.Fatalf("expected len(fsm.Servers) to be 4, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("d:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("d:27017"))
 	if !ok {
 		t.Fatalf("server d:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("e:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("e:27017"))
 	if !ok {
 		t.Fatalf("server e:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -495,16 +495,16 @@ func TestMonitorFSM_New_primary_with_equal_electionId(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -516,7 +516,7 @@ func TestMonitorFSM_New_primary_with_equal_electionId(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
@@ -527,34 +527,34 @@ func TestMonitorFSM_New_primary_with_equal_electionId(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -566,16 +566,16 @@ func TestMonitorFSM_Ghost_discovered(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -583,34 +583,34 @@ func TestMonitorFSM_Ghost_discovered(t *testing.T) {
 	imr = &internal.IsMasterResult{}
 	imr.OK = true
 	imr.IsReplicaSet = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSGhost {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSGhost, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSGhost {
+		t.Fatalf("expected serverDesc.Type to be server.RSGhost, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -622,16 +622,16 @@ func TestMonitorFSM_Host_list_differs_from_seeds(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -641,27 +641,27 @@ func TestMonitorFSM_Host_list_differs_from_seeds(t *testing.T) {
 	imr.Hosts = []string{"b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -673,16 +673,16 @@ func TestMonitorFSM_Member_removed_by_reconfig(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -692,34 +692,34 @@ func TestMonitorFSM_Member_removed_by_reconfig(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -728,25 +728,25 @@ func TestMonitorFSM_Member_removed_by_reconfig(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -758,16 +758,16 @@ func TestMonitorFSM_Member_brought_up_as_standalone(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -775,27 +775,27 @@ func TestMonitorFSM_Member_brought_up_as_standalone(t *testing.T) {
 	imr = &internal.IsMasterResult{}
 	imr.OK = true
 	imr.IsMaster = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.UnknownClusterType {
-		t.Fatalf("expected fsm.ClusterType to be desc.UnknownClusterType, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Unknown {
+		t.Fatalf("expected fsm.Type to be Unknown, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -804,25 +804,25 @@ func TestMonitorFSM_Member_brought_up_as_standalone(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -834,16 +834,16 @@ func TestMonitorFSM_New_primary(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -853,34 +853,34 @@ func TestMonitorFSM_New_primary(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -889,32 +889,32 @@ func TestMonitorFSM_New_primary(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -926,16 +926,16 @@ func TestMonitorFSM_New_primary_with_greater_setVersion_and_electionId(t *testin
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -947,34 +947,34 @@ func TestMonitorFSM_New_primary_with_greater_setVersion_and_electionId(t *testin
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -985,32 +985,32 @@ func TestMonitorFSM_New_primary_with_greater_setVersion_and_electionId(t *testin
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -1021,32 +1021,32 @@ func TestMonitorFSM_New_primary_with_greater_setVersion_and_electionId(t *testin
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -1058,16 +1058,16 @@ func TestMonitorFSM_New_primary_with_greater_setVersion(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -1079,34 +1079,34 @@ func TestMonitorFSM_New_primary_with_greater_setVersion(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -1117,32 +1117,32 @@ func TestMonitorFSM_New_primary_with_greater_setVersion(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 2
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -1153,32 +1153,32 @@ func TestMonitorFSM_New_primary_with_greater_setVersion(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -1190,16 +1190,16 @@ func TestMonitorFSM_New_primary_with_wrong_setName(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -1209,34 +1209,34 @@ func TestMonitorFSM_New_primary_with_wrong_setName(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -1245,25 +1245,25 @@ func TestMonitorFSM_New_primary_with_wrong_setName(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "wrong"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -1275,43 +1275,43 @@ func TestMonitorFSM_Non_replicaSet_member_responds(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
 	// phase 1 - response 1
 	imr = &internal.IsMasterResult{}
 	imr.OK = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -1323,16 +1323,16 @@ func TestMonitorFSM_Replica_set_case_normalization(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://A/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -1344,41 +1344,41 @@ func TestMonitorFSM_Replica_set_case_normalization(t *testing.T) {
 	imr.IsMaster = true
 	imr.Passives = []string{"B:27017"}
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 3 {
 		t.Fatalf("expected len(fsm.Servers) to be 3, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -1390,16 +1390,16 @@ func TestMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -1410,41 +1410,41 @@ func TestMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 3 {
 		t.Fatalf("expected len(fsm.Servers) to be 3, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -1455,39 +1455,39 @@ func TestMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 3 {
 		t.Fatalf("expected len(fsm.Servers) to be 3, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -1497,39 +1497,39 @@ func TestMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 3 {
 		t.Fatalf("expected len(fsm.Servers) to be 3, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 4 - response 1
@@ -1540,39 +1540,39 @@ func TestMonitorFSM_Primaries_with_and_without_electionIds(t *testing.T) {
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("c:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("c:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 4 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 3 {
 		t.Fatalf("expected len(fsm.Servers) to be 3, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -1584,16 +1584,16 @@ func TestMonitorFSM_Primary_becomes_standalone(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -1603,41 +1603,41 @@ func TestMonitorFSM_Primary_becomes_standalone(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
 	imr = &internal.IsMasterResult{}
 	imr.OK = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 0 {
 		t.Fatalf("expected len(fsm.Servers) to be 0, but got \"%v\"", len(fsm.Servers))
@@ -1652,16 +1652,16 @@ func TestMonitorFSM_Primary_changes_setName(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -1671,27 +1671,27 @@ func TestMonitorFSM_Primary_changes_setName(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -1700,15 +1700,15 @@ func TestMonitorFSM_Primary_changes_setName(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "wrong"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 0 {
 		t.Fatalf("expected len(fsm.Servers) to be 0, but got \"%v\"", len(fsm.Servers))
@@ -1723,16 +1723,16 @@ func TestMonitorFSM_Disconnected_from_primary(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -1742,50 +1742,50 @@ func TestMonitorFSM_Disconnected_from_primary(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
 	imr = &internal.IsMasterResult{}
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -1797,16 +1797,16 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_electio
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -1818,7 +1818,7 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_electio
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
@@ -1829,64 +1829,64 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_electio
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
 	imr = &internal.IsMasterResult{}
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -1897,32 +1897,32 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_electio
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 4 - response 1
@@ -1933,32 +1933,32 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_electio
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 4 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 5 - response 1
@@ -1967,32 +1967,32 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_electio
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 5 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2004,16 +2004,16 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_setVers
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2025,7 +2025,7 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_setVers
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
@@ -2036,64 +2036,64 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_setVers
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 2
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
 	imr = &internal.IsMasterResult{}
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -2104,32 +2104,32 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_setVers
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 4 - response 1
@@ -2140,32 +2140,32 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_setVers
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 2
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 4 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 5 - response 1
@@ -2174,32 +2174,32 @@ func TestMonitorFSM_Disconnected_from_primary__reject_primary_with_stale_setVers
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 5 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2211,16 +2211,16 @@ func TestMonitorFSM_Secondary_with_mismatched__me__tells_us_who_the_primary_is(t
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2231,27 +2231,27 @@ func TestMonitorFSM_Secondary_with_mismatched__me__tells_us_who_the_primary_is(t
 	imr.Me = "c:27017"
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -2261,25 +2261,25 @@ func TestMonitorFSM_Secondary_with_mismatched__me__tells_us_who_the_primary_is(t
 	imr.IsMaster = true
 	imr.Me = "b:27017"
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2291,16 +2291,16 @@ func TestMonitorFSM_Primary_mismatched_me(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://localhost:27017/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2311,34 +2311,34 @@ func TestMonitorFSM_Primary_mismatched_me(t *testing.T) {
 	imr.IsMaster = true
 	imr.Me = "a:27017"
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("localhost:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("localhost:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2350,16 +2350,16 @@ func TestMonitorFSM_Primary_reports_a_new_member(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2369,34 +2369,34 @@ func TestMonitorFSM_Primary_reports_a_new_member(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -2405,32 +2405,32 @@ func TestMonitorFSM_Primary_reports_a_new_member(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -2439,39 +2439,39 @@ func TestMonitorFSM_Primary_reports_a_new_member(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017", "c:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 3 {
 		t.Fatalf("expected len(fsm.Servers) to be 3, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 4 - response 1
@@ -2480,39 +2480,39 @@ func TestMonitorFSM_Primary_reports_a_new_member(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017", "c:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("c:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("c:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 4 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 3 {
 		t.Fatalf("expected len(fsm.Servers) to be 3, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2524,16 +2524,16 @@ func TestMonitorFSM_Primary_to_no_primary_with_mismatched_me(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2544,34 +2544,34 @@ func TestMonitorFSM_Primary_to_no_primary_with_mismatched_me(t *testing.T) {
 	imr.IsMaster = true
 	imr.Me = "a:27017"
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -2581,32 +2581,32 @@ func TestMonitorFSM_Primary_to_no_primary_with_mismatched_me(t *testing.T) {
 	imr.IsMaster = true
 	imr.Me = "c:27017"
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("d:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("d:27017"))
 	if !ok {
 		t.Fatalf("server d:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2618,16 +2618,16 @@ func TestMonitorFSM_Primary_wrong_setName(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2637,15 +2637,15 @@ func TestMonitorFSM_Primary_wrong_setName(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "wrong"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 0 {
 		t.Fatalf("expected len(fsm.Servers) to be 0, but got \"%v\"", len(fsm.Servers))
@@ -2660,16 +2660,16 @@ func TestMonitorFSM_Response_from_removed_server(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2679,27 +2679,27 @@ func TestMonitorFSM_Response_from_removed_server(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -2708,25 +2708,25 @@ func TestMonitorFSM_Response_from_removed_server(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2738,16 +2738,16 @@ func TestMonitorFSM_RSOther_discovered(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2758,7 +2758,7 @@ func TestMonitorFSM_RSOther_discovered(t *testing.T) {
 	imr.Hosts = []string{"c:27017", "d:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
@@ -2766,48 +2766,48 @@ func TestMonitorFSM_RSOther_discovered(t *testing.T) {
 	imr.OK = true
 	imr.Hosts = []string{"c:27017", "d:27017"}
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 4 {
 		t.Fatalf("expected len(fsm.Servers) to be 4, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSMember {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSMember, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSMember {
+		t.Fatalf("expected serverDesc.Type to be server.RSMember, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSMember {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSMember, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSMember {
+		t.Fatalf("expected serverDesc.Type to be server.RSMember, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("c:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("c:27017"))
 	if !ok {
 		t.Fatalf("server c:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("d:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("d:27017"))
 	if !ok {
 		t.Fatalf("server d:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2819,16 +2819,16 @@ func TestMonitorFSM_Secondary_s_host_list_is_not_authoritative(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2838,7 +2838,7 @@ func TestMonitorFSM_Secondary_s_host_list_is_not_authoritative(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
@@ -2847,34 +2847,34 @@ func TestMonitorFSM_Secondary_s_host_list_is_not_authoritative(t *testing.T) {
 	imr.Hosts = []string{"b:27017", "c:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2886,16 +2886,16 @@ func TestMonitorFSM_Secondary_mismatched_me(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://localhost:27017/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2905,34 +2905,34 @@ func TestMonitorFSM_Secondary_mismatched_me(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.Me = "a:27017"
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("localhost:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("localhost:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -2944,16 +2944,16 @@ func TestMonitorFSM_Secondary_wrong_setName(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -2963,15 +2963,15 @@ func TestMonitorFSM_Secondary_wrong_setName(t *testing.T) {
 	imr.Hosts = []string{"a:27017"}
 	imr.Secondary = true
 	imr.SetName = "wrong"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 0 {
 		t.Fatalf("expected len(fsm.Servers) to be 0, but got \"%v\"", len(fsm.Servers))
@@ -2986,16 +2986,16 @@ func TestMonitorFSM_Secondary_wrong_setName_with_primary(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3005,34 +3005,34 @@ func TestMonitorFSM_Secondary_wrong_setName_with_primary(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -3041,25 +3041,25 @@ func TestMonitorFSM_Secondary_wrong_setName_with_primary(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.Secondary = true
 	imr.SetName = "wrong"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3071,16 +3071,16 @@ func TestMonitorFSM_setVersion_is_ignored_if_there_is_no_electionId(t *testing.T
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3091,34 +3091,34 @@ func TestMonitorFSM_setVersion_is_ignored_if_there_is_no_electionId(t *testing.T
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 2
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -3128,32 +3128,32 @@ func TestMonitorFSM_setVersion_is_ignored_if_there_is_no_electionId(t *testing.T
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3165,16 +3165,16 @@ func TestMonitorFSM_Primary_becomes_a_secondary_with_wrong_setName(t *testing.T)
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3184,27 +3184,27 @@ func TestMonitorFSM_Primary_becomes_a_secondary_with_wrong_setName(t *testing.T)
 	imr.Hosts = []string{"a:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -3213,15 +3213,15 @@ func TestMonitorFSM_Primary_becomes_a_secondary_with_wrong_setName(t *testing.T)
 	imr.Hosts = []string{"a:27017"}
 	imr.Secondary = true
 	imr.SetName = "wrong"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 0 {
 		t.Fatalf("expected len(fsm.Servers) to be 0, but got \"%v\"", len(fsm.Servers))
@@ -3236,16 +3236,16 @@ func TestMonitorFSM_Unexpected_mongos(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3254,15 +3254,15 @@ func TestMonitorFSM_Unexpected_mongos(t *testing.T) {
 	imr.OK = true
 	imr.IsMaster = true
 	imr.Msg = "isdbgrid"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 0 {
 		t.Fatalf("expected len(fsm.Servers) to be 0, but got \"%v\"", len(fsm.Servers))
@@ -3277,16 +3277,16 @@ func TestMonitorFSM_Record_max_setVersion__even_from_primary_without_electionId(
 	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3298,34 +3298,34 @@ func TestMonitorFSM_Record_max_setVersion__even_from_primary_without_electionId(
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
@@ -3335,32 +3335,32 @@ func TestMonitorFSM_Record_max_setVersion__even_from_primary_without_electionId(
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 2
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -3371,32 +3371,32 @@ func TestMonitorFSM_Record_max_setVersion__even_from_primary_without_electionId(
 	imr.IsMaster = true
 	imr.SetName = "rs"
 	imr.SetVersion = 1
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetWithPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetWithPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3408,16 +3408,16 @@ func TestMonitorFSM_Wrong_setName(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3427,27 +3427,27 @@ func TestMonitorFSM_Wrong_setName(t *testing.T) {
 	imr.Hosts = []string{"b:27017", "c:27017"}
 	imr.Secondary = true
 	imr.SetName = "wrong"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "rs" {
 		t.Fatalf("expected fsm.setName to be \"rs\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.ReplicaSetNoPrimary {
-		t.Fatalf("expected fsm.ClusterType to be desc.ReplicaSetNoPrimary, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != ReplicaSetNoPrimary {
+		t.Fatalf("expected fsm.Type to be ReplicaSetNoPrimary, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3459,16 +3459,16 @@ func TestMonitorFSM_Mongos_disconnect(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3477,7 +3477,7 @@ func TestMonitorFSM_Mongos_disconnect(t *testing.T) {
 	imr.OK = true
 	imr.IsMaster = true
 	imr.Msg = "isdbgrid"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
@@ -3485,64 +3485,64 @@ func TestMonitorFSM_Mongos_disconnect(t *testing.T) {
 	imr.OK = true
 	imr.IsMaster = true
 	imr.Msg = "isdbgrid"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Sharded {
-		t.Fatalf("expected fsm.ClusterType to be desc.Sharded, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Sharded {
+		t.Fatalf("expected fsm.Type to be Sharded, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 2 - response 1
 	imr = &internal.IsMasterResult{}
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 2 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Sharded {
-		t.Fatalf("expected fsm.ClusterType to be desc.Sharded, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Sharded {
+		t.Fatalf("expected fsm.Type to be Sharded, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
 
 	// phase 3 - response 1
@@ -3550,32 +3550,32 @@ func TestMonitorFSM_Mongos_disconnect(t *testing.T) {
 	imr.OK = true
 	imr.IsMaster = true
 	imr.Msg = "isdbgrid"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 3 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Sharded {
-		t.Fatalf("expected fsm.ClusterType to be desc.Sharded, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Sharded {
+		t.Fatalf("expected fsm.Type to be Sharded, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3587,16 +3587,16 @@ func TestMonitorFSM_Multiple_mongoses(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3605,7 +3605,7 @@ func TestMonitorFSM_Multiple_mongoses(t *testing.T) {
 	imr.OK = true
 	imr.IsMaster = true
 	imr.Msg = "isdbgrid"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
@@ -3613,34 +3613,34 @@ func TestMonitorFSM_Multiple_mongoses(t *testing.T) {
 	imr.OK = true
 	imr.IsMaster = true
 	imr.Msg = "isdbgrid"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Sharded {
-		t.Fatalf("expected fsm.ClusterType to be desc.Sharded, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Sharded {
+		t.Fatalf("expected fsm.Type to be Sharded, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3652,16 +3652,16 @@ func TestMonitorFSM_Non_Mongos_server_in_sharded_cluster(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a,b")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3670,7 +3670,7 @@ func TestMonitorFSM_Non_Mongos_server_in_sharded_cluster(t *testing.T) {
 	imr.OK = true
 	imr.IsMaster = true
 	imr.Msg = "isdbgrid"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
@@ -3679,27 +3679,27 @@ func TestMonitorFSM_Non_Mongos_server_in_sharded_cluster(t *testing.T) {
 	imr.Hosts = []string{"b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("b:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("b:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Sharded {
-		t.Fatalf("expected fsm.ClusterType to be desc.Sharded, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Sharded {
+		t.Fatalf("expected fsm.Type to be Sharded, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3711,41 +3711,41 @@ func TestMonitorFSM_Normalize_URI_case(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://A,B")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.UnknownClusterType {
-		t.Fatalf("expected fsm.ClusterType to be desc.UnknownClusterType, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Unknown {
+		t.Fatalf("expected fsm.Type to be Unknown, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 2 {
 		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	var serverDesc *desc.Server
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	var serverDesc *server.Desc
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3757,16 +3757,16 @@ func TestMonitorFSM_Direct_connection_to_RSPrimary_via_external_IP(t *testing.T)
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3776,27 +3776,27 @@ func TestMonitorFSM_Direct_connection_to_RSPrimary_via_external_IP(t *testing.T)
 	imr.Hosts = []string{"b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3808,16 +3808,16 @@ func TestMonitorFSM_Connect_to_mongos(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3826,27 +3826,27 @@ func TestMonitorFSM_Connect_to_mongos(t *testing.T) {
 	imr.OK = true
 	imr.IsMaster = true
 	imr.Msg = "isdbgrid"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Mongos {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Mongos, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Mongos {
+		t.Fatalf("expected serverDesc.Type to be server.Mongos, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3858,16 +3858,16 @@ func TestMonitorFSM_Connect_to_RSArbiter(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3877,27 +3877,27 @@ func TestMonitorFSM_Connect_to_RSArbiter(t *testing.T) {
 	imr.ArbiterOnly = true
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSArbiter {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSArbiter, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSArbiter {
+		t.Fatalf("expected serverDesc.Type to be server.RSArbiter, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3909,16 +3909,16 @@ func TestMonitorFSM_Connect_to_RSPrimary(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3928,27 +3928,27 @@ func TestMonitorFSM_Connect_to_RSPrimary(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.IsMaster = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSPrimary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSPrimary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSPrimary {
+		t.Fatalf("expected serverDesc.Type to be server.RSPrimary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -3960,16 +3960,16 @@ func TestMonitorFSM_Connect_to_RSSecondary(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -3979,27 +3979,27 @@ func TestMonitorFSM_Connect_to_RSSecondary(t *testing.T) {
 	imr.Hosts = []string{"a:27017", "b:27017"}
 	imr.Secondary = true
 	imr.SetName = "rs"
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.RSSecondary {
-		t.Fatalf("expected serverDesc.ServerType to be desc.RSSecondary, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.RSSecondary {
+		t.Fatalf("expected serverDesc.Type to be server.RSSecondary, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -4011,43 +4011,43 @@ func TestMonitorFSM_Direct_connection_to_slave(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
 	// phase 1 - response 1
 	imr = &internal.IsMasterResult{}
 	imr.OK = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Standalone {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Standalone, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Standalone {
+		t.Fatalf("expected serverDesc.Type to be server.Standalone, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -4059,16 +4059,16 @@ func TestMonitorFSM_Connect_to_standalone(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -4076,27 +4076,27 @@ func TestMonitorFSM_Connect_to_standalone(t *testing.T) {
 	imr = &internal.IsMasterResult{}
 	imr.OK = true
 	imr.IsMaster = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.Standalone {
-		t.Fatalf("expected serverDesc.ServerType to be desc.Standalone, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Standalone {
+		t.Fatalf("expected serverDesc.Type to be server.Standalone, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -4108,16 +4108,16 @@ func TestMonitorFSM_Handle_a_not_ok_ismaster_response(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -4125,33 +4125,33 @@ func TestMonitorFSM_Handle_a_not_ok_ismaster_response(t *testing.T) {
 	imr = &internal.IsMasterResult{}
 	imr.OK = true
 	imr.IsMaster = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 - response 2
 	imr = &internal.IsMasterResult{}
 	imr.IsMaster = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -4163,16 +4163,16 @@ func TestMonitorFSM_Standalone_removed_from_multi_server_topology(t *testing.T) 
 	cs, _ := connstring.Parse("mongodb://a,b")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
@@ -4180,27 +4180,27 @@ func TestMonitorFSM_Standalone_removed_from_multi_server_topology(t *testing.T) 
 	imr = &internal.IsMasterResult{}
 	imr.OK = true
 	imr.IsMaster = true
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.UnknownClusterType {
-		t.Fatalf("expected fsm.ClusterType to be desc.UnknownClusterType, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Unknown {
+		t.Fatalf("expected fsm.Type to be Unknown, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("b:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("b:27017"))
 	if !ok {
 		t.Fatalf("server b:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }
 
@@ -4212,41 +4212,41 @@ func TestMonitorFSM_Unavailable_seed(t *testing.T) {
 	cs, _ := connstring.Parse("mongodb://a")
 	fsm.setName = cs.ReplicaSet
 	if fsm.setName != "" {
-		fsm.ClusterType = desc.ReplicaSetNoPrimary
+		fsm.Type = ReplicaSetNoPrimary
 	}
 	if len(cs.Hosts) == 1 && fsm.setName == "" {
-		fsm.ClusterType = desc.Single
+		fsm.Type = Single
 	}
 	for _, host := range cs.Hosts {
-		fsm.addServer(desc.Endpoint(host).Canonicalize())
+		fsm.addServer(conn.Endpoint(host).Canonicalize())
 	}
 
-	var serverDesc *desc.Server
+	var serverDesc *server.Desc
 	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
 	var imr *internal.IsMasterResult
 
 	// phase 1 - response 1
 	imr = &internal.IsMasterResult{}
-	serverDesc = descutil.BuildServerDesc(desc.Endpoint("a:27017"), imr, bir)
+	serverDesc = server.BuildDesc(conn.Endpoint("a:27017"), imr, bir)
 	fsm.apply(serverDesc)
 
 	// phase 1 outcome
 	if fsm.setName != "" {
 		t.Fatalf("expected fsm.setName to be \"\", but got \"%v\"", fsm.setName)
 	}
-	if fsm.ClusterType != desc.Single {
-		t.Fatalf("expected fsm.ClusterType to be desc.Single, but got \"%v\"", fsm.ClusterType)
+	if fsm.Type != Single {
+		t.Fatalf("expected fsm.Type to be Single, but got \"%v\"", fsm.Type)
 	}
 	if len(fsm.Servers) != 1 {
 		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
 	}
 
 	var ok bool
-	serverDesc, ok = fsm.Server(desc.Endpoint("a:27017"))
+	serverDesc, ok = fsm.Server(conn.Endpoint("a:27017"))
 	if !ok {
 		t.Fatalf("server a:27017 was not found")
 	}
-	if serverDesc.ServerType != desc.UnknownServerType {
-		t.Fatalf("expected serverDesc.ServerType to be desc.UnknownServerType, but got \"%v\"", serverDesc.ServerType)
+	if serverDesc.Type != server.Unknown {
+		t.Fatalf("expected serverDesc.Type to be server.Unknown, but got \"%v\"", serverDesc.Type)
 	}
 }

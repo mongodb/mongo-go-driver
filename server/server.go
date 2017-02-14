@@ -2,14 +2,13 @@ package server
 
 import (
 	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/desc"
 )
 
 // New creates a new server. Internally, it
 // creates a new Monitor with which to monitor the
 // state of the server. When the Server is closed,
 // the monitor will be stopped.
-func New(endpoint desc.Endpoint, opts ...Option) (Server, error) {
+func New(endpoint conn.Endpoint, opts ...Option) (Server, error) {
 	monitor, err := StartMonitor(endpoint, opts...)
 	if err != nil {
 		return nil, err

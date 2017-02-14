@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/desc"
+	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
@@ -14,20 +14,20 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 	cfg := newConfig(opts...)
 
 	m := &Monitor{
-		subscribers: make(map[int]chan *desc.Cluster),
-		changes:     make(chan *desc.Server),
-		desc:        &desc.Cluster{},
+		subscribers: make(map[int]chan *Desc),
+		changes:     make(chan *server.Desc),
+		desc:        &Desc{},
 		fsm:         &monitorFSM{},
-		servers:     make(map[desc.Endpoint]*server.Monitor),
+		servers:     make(map[conn.Endpoint]*server.Monitor),
 		serverOpts:  cfg.serverOpts,
 	}
 
 	if cfg.replicaSetName != "" {
 		m.fsm.setName = cfg.replicaSetName
-		m.fsm.ClusterType = desc.ReplicaSetNoPrimary
+		m.fsm.Type = ReplicaSetNoPrimary
 	}
 	if cfg.connectionMode == SingleMode {
-		m.fsm.ClusterType = desc.Single
+		m.fsm.Type = Single
 	}
 
 	for _, ep := range cfg.seedList {
@@ -73,18 +73,18 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 // and reacts accordingly, adding or removing servers as necessary.
 type Monitor struct {
 	descLock sync.Mutex
-	desc     *desc.Cluster
+	desc     *Desc
 
-	changes chan *desc.Server
+	changes chan *server.Desc
 	fsm     *monitorFSM
 
-	subscribers         map[int]chan *desc.Cluster
+	subscribers         map[int]chan *Desc
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
 	serversLock   sync.Mutex
 	serversClosed bool
-	servers       map[desc.Endpoint]*server.Monitor
+	servers       map[conn.Endpoint]*server.Monitor
 	serverOpts    []server.Option
 }
 
@@ -105,9 +105,9 @@ func (m *Monitor) Stop() {
 // will be pre-populated with the current ClusterDesc.
 // Subscribe also returns a function that, when called, will close
 // the subscription channel and remove it from the list of subscriptions.
-func (m *Monitor) Subscribe() (<-chan *desc.Cluster, func(), error) {
+func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 	// create channel and populate with current state
-	ch := make(chan *desc.Cluster, 1)
+	ch := make(chan *Desc, 1)
 	m.descLock.Lock()
 	ch <- m.desc
 	m.descLock.Unlock()
@@ -138,7 +138,7 @@ func (m *Monitor) Subscribe() (<-chan *desc.Cluster, func(), error) {
 	return ch, unsubscribe, nil
 }
 
-func (m *Monitor) startMonitoringEndpoint(endpoint desc.Endpoint) {
+func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {
 	if _, ok := m.servers[endpoint]; ok {
 		// already monitoring this guy
 		return
@@ -157,17 +157,17 @@ func (m *Monitor) startMonitoringEndpoint(endpoint desc.Endpoint) {
 	}()
 }
 
-func (m *Monitor) stopMonitoringEndpoint(endpoint desc.Endpoint, server *server.Monitor) {
+func (m *Monitor) stopMonitoringEndpoint(endpoint conn.Endpoint, server *server.Monitor) {
 	server.Stop()
 	delete(m.servers, endpoint)
 }
 
-func (m *Monitor) apply(d *desc.Server) *desc.Cluster {
-	old := m.fsm.Cluster
+func (m *Monitor) apply(d *server.Desc) *Desc {
+	old := m.fsm.Desc
 	m.fsm.apply(d)
-	new := m.fsm.Cluster
+	new := m.fsm.Desc
 
-	diff := desc.DiffCluster(&old, &new)
+	diff := Diff(&old, &new)
 	m.serversLock.Lock()
 	if m.serversClosed {
 		// maybe return an empty desc?

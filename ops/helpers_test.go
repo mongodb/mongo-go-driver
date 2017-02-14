@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/desc"
 	"github.com/10gen/mongo-go-driver/msg"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
@@ -24,8 +23,8 @@ func getConnection() conn.Connection {
 	if testConn == nil {
 		var err error
 		testConn, err = conn.Dial(
-			desc.Endpoint(*host),
-			conn.AppName("mongo-go-driver-test"),
+			conn.Endpoint(*host),
+			conn.WithAppName("mongo-go-driver-test"),
 		)
 		if err != nil {
 			panic(fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err))

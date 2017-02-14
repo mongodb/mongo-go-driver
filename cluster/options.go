@@ -1,13 +1,13 @@
 package cluster
 
 import (
-	"github.com/10gen/mongo-go-driver/desc"
+	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		seedList: []desc.Endpoint{desc.Endpoint("localhost:27017")},
+		seedList: []conn.Endpoint{conn.Endpoint("localhost:27017")},
 	}
 
 	for _, opt := range opts {
@@ -23,34 +23,34 @@ type Option func(*config)
 type config struct {
 	connectionMode ConnectionMode
 	replicaSetName string
-	seedList       []desc.Endpoint
+	seedList       []conn.Endpoint
 	serverOpts     []server.Option
 }
 
-// ConnectionModeOpt configures the cluster's connection mode.
-func ConnectionModeOpt(mode ConnectionMode) Option {
+// WithConnectionMode configures the cluster's connection mode.
+func WithConnectionMode(mode ConnectionMode) Option {
 	return func(c *config) {
 		c.connectionMode = mode
 	}
 }
 
-// ReplicaSetName configures the cluster's default replica set name.
-func ReplicaSetName(name string) Option {
+// WithReplicaSetName configures the cluster's default replica set name.
+func WithReplicaSetName(name string) Option {
 	return func(c *config) {
 		c.replicaSetName = name
 	}
 }
 
-// SeedList configures a cluster's seed list.
-func SeedList(endpoints ...desc.Endpoint) Option {
+// WithSeedList configures a cluster's seed list.
+func WithSeedList(endpoints ...conn.Endpoint) Option {
 	return func(c *config) {
 		c.seedList = endpoints
 	}
 }
 
-// ServerOptions configures a cluster's server options for
+// WithServerOptions configures a cluster's server options for
 // when a new server needs to get created.
-func ServerOptions(opts ...server.Option) Option {
+func WithServerOptions(opts ...server.Option) Option {
 	return func(c *config) {
 		c.serverOpts = opts
 	}

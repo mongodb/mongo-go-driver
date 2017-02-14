@@ -5,17 +5,16 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/desc"
 	"github.com/10gen/mongo-go-driver/server"
 	"github.com/kr/pretty"
 )
 
 func main() {
 	monitor, err := server.StartMonitor(
-		desc.Endpoint("localhost:27017"),
-		server.HeartbeatInterval(time.Duration(2)*time.Second),
-		server.ConnectionOptions(
-			conn.AppName("server_monitor test"),
+		conn.Endpoint("localhost:27017"),
+		server.WithHeartbeatInterval(time.Duration(2)*time.Second),
+		server.WithConnectionOptions(
+			conn.WithAppName("server_monitor test"),
 		),
 	)
 	if err != nil {
@@ -27,5 +26,4 @@ func main() {
 	for desc := range updates {
 		log.Printf("%# v", pretty.Formatter(desc))
 	}
-
 }

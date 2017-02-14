@@ -3,7 +3,7 @@ package conntest
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/desc"
+	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
@@ -15,8 +15,8 @@ type MockConnection struct {
 	SkipResponseToFixup bool
 }
 
-func (c *MockConnection) Desc() *desc.Connection {
-	return &desc.Connection{}
+func (c *MockConnection) Desc() *conn.Desc {
+	return &conn.Desc{}
 }
 
 func (c *MockConnection) Read() (msg.Response, error) {

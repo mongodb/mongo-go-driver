@@ -28,22 +28,22 @@ type config struct {
 	heartbeatInterval time.Duration
 }
 
-// ConnectionOptions configures server's connections.
-func ConnectionOptions(opts ...conn.Option) Option {
+// WithConnectionOptions configures server's connections.
+func WithConnectionOptions(opts ...conn.Option) Option {
 	return func(c *config) {
 		c.connOpts = opts
 	}
 }
 
-// HeartbeatInterval configures a server's heartbeat interval.
-func HeartbeatInterval(interval time.Duration) Option {
+// WithHeartbeatInterval configures a server's heartbeat interval.
+func WithHeartbeatInterval(interval time.Duration) Option {
 	return func(c *config) {
 		c.heartbeatInterval = interval
 	}
 }
 
-// ConnectionDialerOpt configures a server's connection dialer.
-func ConnectionDialerOpt(dialer conn.Dialer) Option {
+// WithConnectionDialer configures a server's connection dialer.
+func WithConnectionDialer(dialer conn.Dialer) Option {
 	return func(c *config) {
 		c.dialer = dialer
 	}

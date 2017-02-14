@@ -9,9 +9,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/desc"
 	"github.com/10gen/mongo-go-driver/internal"
-	"github.com/10gen/mongo-go-driver/internal/descutil"
 	"github.com/10gen/mongo-go-driver/msg"
 
 	"sync"
@@ -19,16 +17,17 @@ import (
 )
 
 // StartMonitor returns a new Monitor.
-func StartMonitor(endpoint desc.Endpoint, opts ...Option) (*Monitor, error) {
+func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 	cfg := newConfig(opts...)
 
 	done := make(chan struct{}, 1)
 	m := &Monitor{
-		endpoint:    endpoint,
-		subscribers: make(map[int]chan *desc.Server),
-		done:        done,
-		connOpts:    cfg.connOpts,
-		dialer:      cfg.dialer,
+		endpoint:          endpoint,
+		subscribers:       make(map[int]chan *Desc),
+		done:              done,
+		connOpts:          cfg.connOpts,
+		dialer:            cfg.dialer,
+		heartbeatInterval: cfg.heartbeatInterval,
 	}
 
 	go func() {
@@ -77,19 +76,20 @@ func StartMonitor(endpoint desc.Endpoint, opts ...Option) (*Monitor, error) {
 
 // Monitor holds a channel that delivers updates to a server.
 type Monitor struct {
-	subscribers         map[int]chan *desc.Server
+	subscribers         map[int]chan *Desc
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
-	conn          conn.ConnectionCloser
-	connOpts      []conn.Option
-	desc          *desc.Server
-	descLock      sync.Mutex
-	dialer        conn.Dialer
-	done          chan struct{}
-	endpoint      desc.Endpoint
-	averageRTT    time.Duration
-	averageRTTSet bool
+	conn              conn.ConnectionCloser
+	connOpts          []conn.Option
+	desc              *Desc
+	descLock          sync.Mutex
+	dialer            conn.Dialer
+	done              chan struct{}
+	endpoint          conn.Endpoint
+	heartbeatInterval time.Duration
+	averageRTT        time.Duration
+	averageRTTSet     bool
 }
 
 // Stop turns off the monitor.
@@ -99,12 +99,12 @@ func (m *Monitor) Stop() {
 
 // Subscribe returns a channel on which all updated server descriptions
 // will be sent. The channel will have a buffer size of one, and
-// will be pre-populated with the current ServerDesc.
+// will be pre-populated with the current description.
 // Subscribe also returns a function that, when called, will close
 // the subscription channel and remove it from the list of subscriptions.
-func (m *Monitor) Subscribe() (<-chan *desc.Server, func(), error) {
+func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 	// create channel and populate with current state
-	ch := make(chan *desc.Server, 1)
+	ch := make(chan *Desc, 1)
 	m.descLock.Lock()
 	ch <- m.desc
 	m.descLock.Unlock()
@@ -135,10 +135,10 @@ func (m *Monitor) Subscribe() (<-chan *desc.Server, func(), error) {
 	return ch, unsubscribe, nil
 }
 
-func (m *Monitor) heartbeat() *desc.Server {
+func (m *Monitor) heartbeat() *Desc {
 	const maxRetryCount = 2
 	var savedErr error
-	var d *desc.Server
+	var d *Desc
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn == nil {
 			// TODO: should this use the connection dialer from
@@ -168,12 +168,13 @@ func (m *Monitor) heartbeat() *desc.Server {
 		}
 		delay := time.Since(now)
 
-		d = descutil.BuildServerDesc(m.endpoint, isMasterResult, buildInfoResult)
+		d = BuildDesc(m.endpoint, isMasterResult, buildInfoResult)
 		d.SetAverageRTT(m.updateAverageRTT(delay))
+		d.HeartbeatInterval = m.heartbeatInterval
 	}
 
 	if d == nil {
-		d = &desc.Server{
+		d = &Desc{
 			Endpoint:  m.endpoint,
 			LastError: savedErr,
 		}

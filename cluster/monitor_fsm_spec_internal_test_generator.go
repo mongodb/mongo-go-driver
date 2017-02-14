@@ -97,9 +97,9 @@ func (g *Generator) generate() []byte {
 	g.printlnf("import \"testing\"")
 	g.printlnf("import \"gopkg.in/mgo.v2/bson\"")
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/internal\"")
+	g.printlnf("import \"github.com/10gen/mongo-go-driver/conn\"")
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/connstring\"")
-	g.printlnf("import \"github.com/10gen/mongo-go-driver/desc\"")
-	g.printlnf("import \"github.com/10gen/mongo-go-driver/internal/descutil\"")
+	g.printlnf("import \"github.com/10gen/mongo-go-driver/server\"")
 
 	testsDir := "../specifications/source/server-discovery-and-monitoring/tests/"
 
@@ -155,13 +155,13 @@ func (g *Generator) generateFromFile(filename string) error {
 	g.printlnf("\ncs, _ := connstring.Parse(\"%s\")", testDef.Uri)
 	g.printlnf("fsm.setName = cs.ReplicaSet")
 	g.printlnf("if fsm.setName != \"\" {")
-	g.printlnf("fsm.ClusterType = desc.ReplicaSetNoPrimary ")
+	g.printlnf("fsm.Type = ReplicaSetNoPrimary ")
 	g.printlnf("}")
 	g.printlnf("if len(cs.Hosts) == 1 && fsm.setName == \"\" {")
-	g.printlnf("fsm.ClusterType = desc.Single")
+	g.printlnf("fsm.Type = Single")
 	g.printlnf("}")
 	g.printlnf("for _, host := range cs.Hosts {")
-	g.printlnf("fsm.addServer(desc.Endpoint(host).Canonicalize())")
+	g.printlnf("fsm.addServer(conn.Endpoint(host).Canonicalize())")
 	g.printlnf("}")
 
 	// build isMaster results from phases
@@ -170,7 +170,7 @@ func (g *Generator) generateFromFile(filename string) error {
 	for i, phase := range testDef.Phases {
 		for j, resp := range phase.Responses {
 			if !printedResponseVariables {
-				g.printlnf("\nvar serverDesc *desc.Server")
+				g.printlnf("\nvar serverDesc *server.Desc")
 				g.printlnf("bir := &internal.BuildInfoResult{Version: \"3.4.0\", VersionArray: []uint8{3, 4, 0}}")
 				g.printlnf("var imr *internal.IsMasterResult")
 				printedResponseVariables = true
@@ -220,7 +220,7 @@ func (g *Generator) generateFromFile(filename string) error {
 				g.printlnf("imr.SetVersion = %d", resp.IsMasterResult.SetVersion)
 			}
 
-			g.printlnf("serverDesc = descutil.BuildServerDesc(desc.Endpoint(\"%s\"), imr, bir)", resp.Host)
+			g.printlnf("serverDesc = server.BuildDesc(conn.Endpoint(\"%s\"), imr, bir)", resp.Host)
 			g.printlnf("fsm.apply(serverDesc)")
 		}
 
@@ -228,38 +228,32 @@ func (g *Generator) generateFromFile(filename string) error {
 
 		g.printlnf("// phase %d outcome", i+1)
 		g.printStringIfNotEqual("fsm.setName", phase.Outcome.SetName)
-		topType := phase.Outcome.TopologyType
-		if topType == "Unknown" {
-			topType = "desc.UnknownClusterType"
-		} else {
-			topType = "desc." + topType
-		}
-		g.printIfNotEqual("fsm.ClusterType", topType)
+		g.printIfNotEqual("fsm.Type", phase.Outcome.TopologyType)
 		g.printIfNotEqual("len(fsm.Servers)", fmt.Sprintf("%d", len(phase.Outcome.Servers)))
 		for _, s := range phase.Outcome.sortedServers() {
 			if !printedOutcomeVariables {
 				g.printlnf("\nvar ok bool")
 				if !printedResponseVariables {
-					g.printlnf("var serverDesc *desc.Server")
+					g.printlnf("var serverDesc *server.Desc")
 				}
 				printedOutcomeVariables = true
 			}
-			g.printlnf("serverDesc, ok = fsm.Server(desc.Endpoint(\"%s\"))", s.name)
+			g.printlnf("serverDesc, ok = fsm.Server(conn.Endpoint(\"%s\"))", s.name)
 			g.printlnf("if !ok {")
 			g.printlnf("t.Fatalf(\"server %s was not found\")", s.name)
 			g.printlnf("}")
 			sType := s.Type
 			switch sType {
-			case "Unknown", "PossiblePrimary":
-				sType = "desc.UnknownServerType"
+			case "PossiblePrimary":
+				sType = "server.Unknown"
 			case "RSOther":
-				sType = "desc.RSMember"
+				sType = "server.RSMember"
 			case "":
-				sType = "desc.RSPrimary"
+				sType = "server.RSPrimary"
 			default:
-				sType = "desc." + sType
+				sType = "server." + sType
 			}
-			g.printIfNotEqual("serverDesc.ServerType", sType)
+			g.printIfNotEqual("serverDesc.Type", sType)
 		}
 	}
 

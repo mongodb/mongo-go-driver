@@ -1,7 +1,7 @@
-package desc
+package conn
 
-// Connection contains information about a connection.
-type Connection struct {
+// Desc contains a description of a connection.
+type Desc struct {
 	GitVersion          string
 	Version             Version
 	MaxBSONObjectSize   uint32

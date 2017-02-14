@@ -5,7 +5,6 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/10gen/mongo-go-driver/desc"
 	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/msg"
 
@@ -21,10 +20,10 @@ func nextClientConnectionID() int32 {
 }
 
 // Dialer dials a connection.
-type Dialer func(desc.Endpoint, ...Option) (ConnectionCloser, error)
+type Dialer func(Endpoint, ...Option) (ConnectionCloser, error)
 
 // Dial opens a connection to a server.
-func Dial(endpoint desc.Endpoint, opts ...Option) (ConnectionCloser, error) {
+func Dial(endpoint Endpoint, opts ...Option) (ConnectionCloser, error) {
 
 	cfg := newConfig(opts...)
 
@@ -33,7 +32,7 @@ func Dial(endpoint desc.Endpoint, opts ...Option) (ConnectionCloser, error) {
 		return nil, err
 	}
 
-	c := &transportConnection{
+	c := &connectionImpl{
 		id:        fmt.Sprintf("%s[-%d]", endpoint, nextClientConnectionID()),
 		codec:     cfg.codec,
 		ep:        endpoint,
@@ -51,7 +50,7 @@ func Dial(endpoint desc.Endpoint, opts ...Option) (ConnectionCloser, error) {
 // Connection is responsible for reading and writing messages.
 type Connection interface {
 	// Desc gets a description of the connection.
-	Desc() *desc.Connection
+	Desc() *Desc
 	// Read reads a message from the connection for the
 	// specified requestID.
 	Read() (msg.Response, error)
@@ -90,17 +89,17 @@ func (e *ConnectionError) Inner() error {
 	return e.inner
 }
 
-type transportConnection struct {
+type connectionImpl struct {
 	// if id is negative, it's the client identifier; otherwise it's the same
 	// as the id the server is using.
 	id        string
 	codec     msg.Codec
-	desc      *desc.Connection
-	ep        desc.Endpoint
+	desc      *Desc
+	ep        Endpoint
 	transport io.ReadWriteCloser
 }
 
-func (c *transportConnection) Close() error {
+func (c *connectionImpl) Close() error {
 	err := c.transport.Close()
 	if err != nil {
 		return c.wrapError(err, "failed closing")
@@ -109,11 +108,11 @@ func (c *transportConnection) Close() error {
 	return nil
 }
 
-func (c *transportConnection) Desc() *desc.Connection {
+func (c *connectionImpl) Desc() *Desc {
 	return c.desc
 }
 
-func (c *transportConnection) Read() (msg.Response, error) {
+func (c *connectionImpl) Read() (msg.Response, error) {
 	message, err := c.codec.Decode(c.transport)
 	if err != nil {
 		return nil, c.wrapError(err, "failed reading")
@@ -127,11 +126,11 @@ func (c *transportConnection) Read() (msg.Response, error) {
 	return resp, nil
 }
 
-func (c *transportConnection) String() string {
+func (c *connectionImpl) String() string {
 	return c.id
 }
 
-func (c *transportConnection) Write(requests ...msg.Request) error {
+func (c *connectionImpl) Write(requests ...msg.Request) error {
 	var messages []msg.Message
 	for _, message := range requests {
 		messages = append(messages, message)
@@ -144,7 +143,7 @@ func (c *transportConnection) Write(requests ...msg.Request) error {
 	return nil
 }
 
-func (c *transportConnection) initialize(appName string) error {
+func (c *connectionImpl) initialize(appName string) error {
 
 	isMasterResult, buildInfoResult, err := describeServer(c, createClientDoc(appName))
 	if err != nil {
@@ -155,17 +154,23 @@ func (c *transportConnection) initialize(appName string) error {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{{"getLastError", 1}},
+		bson.D{{Name: "getLastError", Value: 1}},
 	)
 
-	c.desc = &desc.Connection{
-		GitVersion:          buildInfoResult.GitVersion,
-		Version:             desc.NewVersionWithDesc(buildInfoResult.Version, buildInfoResult.VersionArray...),
+	c.desc = &Desc{
+		GitVersion: buildInfoResult.GitVersion,
+		Version: Version{
+			Desc:  buildInfoResult.Version,
+			Parts: buildInfoResult.VersionArray,
+		},
 		MaxBSONObjectSize:   isMasterResult.MaxBSONObjectSize,
 		MaxMessageSizeBytes: isMasterResult.MaxMessageSizeBytes,
 		MaxWriteBatchSize:   isMasterResult.MaxWriteBatchSize,
 		ReadOnly:            isMasterResult.ReadOnly,
-		WireVersion:         desc.Range{Min: isMasterResult.MinWireVersion, Max: isMasterResult.MaxWireVersion},
+		WireVersion: Range{
+			Min: isMasterResult.MinWireVersion,
+			Max: isMasterResult.MaxWireVersion,
+		},
 	}
 
 	var getLastErrorResult internal.GetLastErrorResult
@@ -180,7 +185,7 @@ func (c *transportConnection) initialize(appName string) error {
 	return nil
 }
 
-func (c *transportConnection) wrapError(inner error, message string) error {
+func (c *connectionImpl) wrapError(inner error, message string) error {
 	return &ConnectionError{
 		c.id,
 		fmt.Sprintf("connection(%s) error: %s", c.id, message),

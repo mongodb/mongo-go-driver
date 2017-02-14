@@ -1,13 +1,15 @@
-package desc
+package cluster
 
 import (
 	"sort"
 	"strings"
+
+	"github.com/10gen/mongo-go-driver/server"
 )
 
-// DiffCluster returns the difference of two clusters.
-func DiffCluster(old, new *Cluster) *ClusterDiff {
-	var diff ClusterDiff
+// Diff returns the difference of two clusters.
+func Diff(old, new *Desc) *DescDiff {
+	var diff DescDiff
 
 	// TODO: do this without sorting...
 	oldServers := serverDescSorter(old.Servers)
@@ -48,13 +50,13 @@ func DiffCluster(old, new *Cluster) *ClusterDiff {
 	return &diff
 }
 
-// ClusterDiff is the difference between two clusters.
-type ClusterDiff struct {
-	AddedServers   []*Server
-	RemovedServers []*Server
+// DescDiff is the difference between two clusters.
+type DescDiff struct {
+	AddedServers   []*server.Desc
+	RemovedServers []*server.Desc
 }
 
-type serverDescSorter []*Server
+type serverDescSorter []*server.Desc
 
 func (x serverDescSorter) Len() int      { return len(x) }
 func (x serverDescSorter) Swap(i, j int) { x[i], x[j] = x[j], x[i] }

@@ -4,18 +4,17 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/desc"
 )
 
 // NewDialer returns a connection dialer that will open and authenticate the connection.
 func NewDialer(dialer conn.Dialer, authenticator Authenticator) conn.Dialer {
-	return func(endpoint desc.Endpoint, opts ...conn.Option) (conn.ConnectionCloser, error) {
+	return func(endpoint conn.Endpoint, opts ...conn.Option) (conn.ConnectionCloser, error) {
 		return Dial(dialer, authenticator, endpoint, opts...)
 	}
 }
 
 // Dial opens a connection and authenticates it.
-func Dial(dialer conn.Dialer, authenticator Authenticator, endpoint desc.Endpoint, opts ...conn.Option) (conn.ConnectionCloser, error) {
+func Dial(dialer conn.Dialer, authenticator Authenticator, endpoint conn.Endpoint, opts ...conn.Option) (conn.ConnectionCloser, error) {
 	conn, err := dialer(endpoint, opts...)
 	if err != nil {
 		if conn != nil {
