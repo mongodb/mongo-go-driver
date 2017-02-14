@@ -1,0 +1,33 @@
+package readpref
+
+import (
+	"time"
+
+	"github.com/10gen/mongo-go-driver/server"
+)
+
+// Option configures a read preference
+type Option func(*ReadPref)
+
+// WithMaxStaleness sets the maximum staleness a
+// server is allowed.
+func WithMaxStaleness(ms time.Duration) Option {
+	return func(rp *ReadPref) {
+		rp.maxStaleness = ms
+		rp.maxStalenessSet = true
+	}
+}
+
+// WithTags sets a single tag set used to match
+// a server.
+func WithTags(tags ...string) Option {
+	return WithTagSets(server.NewTagSet(tags...))
+}
+
+// WithTagSets sets the tag sets used to match
+// a server.
+func WithTagSets(tagSets ...server.TagSet) Option {
+	return func(rp *ReadPref) {
+		rp.tagSets = tagSets
+	}
+}
