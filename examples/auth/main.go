@@ -43,7 +43,7 @@ func main() {
 	connection, err := selectedServer.Connection()
 
 	var result bson.D
-	conn.ExecuteCommand(connection, msg.NewCommand(msg.NextRequestID(), "test", false, bson.D{{"count", "test"}}), result)
+	conn.ExecuteCommand(connection, msg.NewCommand(msg.NextRequestID(), "test", false, bson.D{{"count", "test"}}), &result)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
