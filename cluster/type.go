@@ -5,7 +5,7 @@ type Type uint32
 
 // Type constants.
 const (
-	Unknown               Type = 0
+	Unknown               Type = iota
 	Single                Type = 1
 	ReplicaSet            Type = 2
 	ReplicaSetNoPrimary   Type = 4 + ReplicaSet

@@ -19,13 +19,15 @@ func WithMaxStaleness(ms time.Duration) Option {
 }
 
 // WithTags sets a single tag set used to match
-// a server.
+// a server. The last call to WithTags or WithTagSets
+// overrides all previous calls to either method.
 func WithTags(tags ...string) Option {
 	return WithTagSets(server.NewTagSet(tags...))
 }
 
 // WithTagSets sets the tag sets used to match
-// a server.
+// a server. The last call to WithTags or WithTagSets
+// overrides all previous calls to either method.
 func WithTagSets(tagSets ...server.TagSet) Option {
 	return func(rp *ReadPref) {
 		rp.tagSets = tagSets

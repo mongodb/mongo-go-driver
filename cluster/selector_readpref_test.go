@@ -406,7 +406,7 @@ func TestReadPrefSelector_Nearest(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.NearestMode)
+	subject := readpref.Nearest()
 
 	result, err := ReadPrefSelector(subject)(readPrefTestCluster, readPrefTestCluster.Servers)
 

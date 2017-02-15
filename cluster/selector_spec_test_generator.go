@@ -9,8 +9,11 @@ import (
 	"html/template"
 	"io/ioutil"
 	"log"
-	"path"
+	"strconv"
 	"strings"
+	"time"
+
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -64,53 +67,19 @@ const name = "selector_spec_test_generator"
 
 func (g *Generator) generate() []byte {
 
-	testsDir := "../specifications/source/server-selection/tests/server_selection/"
-
-	var tests []*testDef
-
-	entries, err := ioutil.ReadDir(testsDir)
+	serverSelectionFiles, err := filepath.Glob("../specifications/source/server-selection/tests/server_selection/*/*/*.yml")
 	if err != nil {
-		log.Fatalf("error reading directory %q: %s", testsDir, err)
+		log.Fatalf("error reading server-selection files: %s", err)
 	}
+	serverSelectionTests := g.loadTests("ServerSelection", "../specifications/source/server-selection/tests/server_selection", serverSelectionFiles)
 
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-
-		subDir := path.Join(testsDir, entry.Name())
-
-		subentries, err := ioutil.ReadDir(subDir)
-		if err != nil {
-			log.Fatalf("error reading directory %q: %s", subDir, err)
-		}
-
-		for _, subentry := range subentries {
-			if !subentry.IsDir() || subentry.Name() == "write" {
-				continue
-			}
-
-			subentryDir := path.Join(subDir, subentry.Name())
-
-			testEntries, err := ioutil.ReadDir(subentryDir)
-			if err != nil {
-				log.Fatalf("error reading directory %q: %s", subentryDir, err)
-			}
-
-			for _, testentry := range testEntries {
-				if path.Ext(testentry.Name()) != ".yml" || strings.HasPrefix(testentry.Name(), "PossiblePrimary") {
-					continue
-				}
-				testFile := path.Join(subentryDir, testentry.Name())
-				test, err := g.loadTest(testFile)
-				if err != nil {
-					log.Fatalf("error loading test from file %q: %s", testFile, err)
-				}
-				test.Name = fmt.Sprintf("%s_%s_%s", entry.Name(), subentry.Name(), testentry.Name()[:len(testentry.Name())-4])
-				tests = append(tests, test)
-			}
-		}
+	maxStalenessFiles, err := filepath.Glob("../specifications/source/max-staleness/tests/**/*.yml")
+	if err != nil {
+		log.Fatalf("error reading max-staleness files: %s", err)
 	}
+	maxStalenessTests := g.loadTests("MaxStaleness", "../specifications/source/max-staleness/tests", maxStalenessFiles)
+
+	tests := append(serverSelectionTests, maxStalenessTests...)
 
 	tmpl, err := g.getTemplate()
 	if err != nil {
@@ -120,6 +89,34 @@ func (g *Generator) generate() []byte {
 	tmpl.Execute(&g.buf, tests)
 
 	return g.format()
+}
+
+func (g *Generator) loadTests(prefix, base string, filenames []string) []*testDef {
+	var tests []*testDef
+
+	for _, filename := range filenames {
+		if strings.Contains(filename, "PossiblePrimary") {
+			continue
+		}
+
+		test, err := g.loadTest(filename)
+		if err != nil {
+			log.Fatalf("error loading test from file %q: %s", filename, err)
+		}
+		if test == nil {
+			continue
+		}
+
+		rel, err := filepath.Rel(base, filename)
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+
+		test.Name = prefix + "_" + strings.Replace(rel[:len(rel)-4], string(filepath.Separator), "_", -1)
+		tests = append(tests, test)
+	}
+
+	return tests
 }
 
 func (g *Generator) loadTest(filename string) (*testDef, error) {
@@ -132,6 +129,34 @@ func (g *Generator) loadTest(filename string) (*testDef, error) {
 	err = yaml.Unmarshal(content, &testDef)
 	if err != nil {
 		return nil, err
+	}
+
+	if testDef.ReadPreference.Mode == "" {
+		testDef.ReadPreference.Mode = "Primary"
+	}
+
+	if len(testDef.ReadPreference.TagSets) == 1 && len(testDef.ReadPreference.TagSets[0]) == 0 {
+		testDef.ReadPreference.TagSets = nil
+	}
+
+	for _, s := range testDef.TopologyDescription.Servers {
+		s.Name = strings.Replace(s.Address, ":", "_", -1)
+		s.HeartbeatIntervalMS = testDef.HeartbeatFrequencyMS
+	}
+	for _, s := range testDef.SuitableServers {
+		s.Name = strings.Replace(s.Address, ":", "_", -1)
+		s.HeartbeatIntervalMS = testDef.HeartbeatFrequencyMS
+	}
+	for _, s := range testDef.InLatencyWindow {
+		s.Name = strings.Replace(s.Address, ":", "_", -1)
+		s.HeartbeatIntervalMS = testDef.HeartbeatFrequencyMS
+	}
+
+	if testDef.ReadPreference.Mode == "Primary" {
+		if testDef.ReadPreference.MaxStalenessSeconds != nil || len(testDef.ReadPreference.TagSets) > 0 {
+			// this is prevented by the compiler, so no need to "verify" it
+			return nil, nil
+		}
 	}
 
 	return &testDef, nil
@@ -156,66 +181,60 @@ func TestReadPref_{{.Name}}(t *testing.T) {
 	t.Parallel()
 	
 	require := require.New(t)
-    subject := readpref.New(readpref.{{.ReadPreference.Mode}}Mode,
-        readpref.WithTagSets({{range .ReadPreference.TagSets}}
-			server.NewTagSet({{range $key, $value := .}}
-				"{{$key}}", "{{$value}}",
-			{{end}}),
-        {{end}}),
-	)
-
 	{{with .TopologyDescription}}
+	{{range .Servers}}
+	{{.Name}} := &server.Desc{
+		AverageRTT: time.Duration({{.AverageRTTMS}})*time.Millisecond,
+		AverageRTTSet: true,
+		Endpoint: conn.Endpoint("{{.Address}}"),
+		HeartbeatInterval: time.Duration({{.HeartbeatIntervalMS}})*time.Millisecond,
+		LastUpdateTime: time.Unix({{.LastUpdateTime.Unix}}, {{.LastUpdateTime.Nanosecond}}),
+		LastWriteTime: time.Unix({{.LastWriteTime.Unix}}, {{.LastWriteTime.Nanosecond}}),
+		Type: server.{{.Type}},
+		{{if .Tags}}Tags: server.NewTagSet({{range $key, $value := .Tags}}
+			"{{$key}}", "{{$value}}",
+		{{end}}),{{end}}
+		Version: {{if eq .MaxWireVersion 5}}conn.Version{Parts: []uint8{3, 4, 0}}{{else}}conn.Version{Parts: []uint8{3, 2, 0}}{{end}},
+	}
+	{{end}}
     c := &Desc{
         Type: {{.Type}},
         Servers: []*server.Desc{
-        {{range .Servers}}  &server.Desc{
-				AverageRTT: time.Duration({{.AverageRTTMS}})*time.Millisecond,
-				AverageRTTSet: true,
-                Endpoint: conn.Endpoint("{{.Address}}"),
-                Type: server.{{.Type}},
-                Tags: server.NewTagSet({{range $key, $value := .Tags}}
-                    "{{$key}}", "{{$value}}",
-                {{end}}),
-            },
+        {{range .Servers}}{{.Name}},
             {{end}}
         },
     }
 	{{end}}
 
-	readPrefSelector := ReadPrefSelector(subject)
-    result, err := readPrefSelector(c, c.Servers)
+	{{if eq .Operation "write" }}
+	selector := WriteSelector()
+	{{else}}{{with .ReadPreference}}
+	rp := readpref.{{if .Mode}}{{.Mode}}{{else}}Primary{{end}}(
+		{{if .MaxStalenessSeconds}}readpref.WithMaxStaleness(time.Duration({{.MaxStalenessSeconds}})*time.Second),{{end}}
+        {{if .TagSets}}readpref.WithTagSets({{range .TagSets}}
+			server.NewTagSet({{range $key, $value := .}}
+				"{{$key}}", "{{$value}}",
+			{{end -}}),
+        {{end}}),{{end}}
+	){{end}}
+	selector := ReadPrefSelector(rp)
+	{{end}}
+	{{if .Error}}
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+	{{else}}
+	result, err := selector(c, c.Servers)
     require.NoError(err)
     require.Len(result, {{ len .SuitableServers }})
-	{{ range .SuitableServers }}require.Contains(
-		result,
-		&server.Desc{
-			Endpoint: conn.Endpoint("{{.Address}}"),
-			AverageRTT: time.Duration({{.AverageRTTMS}})*time.Millisecond,
-			AverageRTTSet: true,
-			Type: server.{{.Type}},
-			Tags: server.NewTagSet({{range $key, $value := .Tags}}
-				"{{$key}}", "{{$value}}",
-			{{end}}),
-		},
-	)
+	{{ range .SuitableServers }}require.Contains(result,{{.Name}})
 	{{end}}
 
 	latencySelector := LatencySelector(time.Duration(15)*time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
     require.NoError(err)
     require.Len(result, {{ len .InLatencyWindow }})
-	{{ range .InLatencyWindow }}require.Contains(
-		result,
-		&server.Desc{
-			Endpoint: conn.Endpoint("{{.Address}}"),
-			AverageRTT: time.Duration({{.AverageRTTMS}})*time.Millisecond,
-			AverageRTTSet: true,
-			Type: server.{{.Type}},
-			Tags: server.NewTagSet({{range $key, $value := .Tags}}
-				"{{$key}}", "{{$value}}",
-			{{end}}),
-		},
-	)
+	{{ range .InLatencyWindow }}require.Contains(result, {{.Name}})
+	{{end}}
 	{{end}}}
 {{end}}
 `
@@ -229,26 +248,52 @@ func TestReadPref_{{.Name}}(t *testing.T) {
 type testDef struct {
 	Name string
 
-	TopologyDescription topDesc      `yaml:"topology_description"`
-	Operation           string       `yaml:"operation"`
-	ReadPreference      readPref     `yaml:"read_preference"`
-	SuitableServers     []serverDesc `yaml:"suitable_servers"`
-	InLatencyWindow     []serverDesc `yaml:"in_latency_window"`
+	Error                bool          `yaml:"error"`
+	HeartbeatFrequencyMS int           `yaml:"heartbeatFrequencyMS"`
+	TopologyDescription  topDesc       `yaml:"topology_description"`
+	Operation            string        `yaml:"operation"`
+	ReadPreference       readPref      `yaml:"read_preference"`
+	SuitableServers      []*serverDesc `yaml:"suitable_servers"`
+	InLatencyWindow      []*serverDesc `yaml:"in_latency_window"`
 }
 
 type topDesc struct {
-	Type    string       `yaml:"type"`
-	Servers []serverDesc `yaml:"servers"`
+	Type    string        `yaml:"type"`
+	Servers []*serverDesc `yaml:"servers"`
 }
 
 type serverDesc struct {
-	Address      string            `yaml:"address"`
-	AverageRTTMS int               `yaml:"avg_rtt_ms"`
-	Type         string            `yaml:"type"`
-	Tags         map[string]string `yaml:"tags"`
+	Name                string
+	HeartbeatIntervalMS int
+
+	Address          string            `yaml:"address"`
+	AverageRTTMS     int               `yaml:"avg_rtt_ms"`
+	LastUpdateTimeMS int               `yaml:"lastUpdateTime"`
+	LastWrite        lastWrite         `yaml:"lastWrite"`
+	MaxWireVersion   int               `yaml:"maxWireVersion"`
+	Type             string            `yaml:"type"`
+	Tags             map[string]string `yaml:"tags"`
+}
+
+func (s *serverDesc) LastUpdateTime() time.Time {
+	return time.Unix(0, 0).Add(time.Duration(s.LastUpdateTimeMS) * time.Millisecond)
+}
+
+func (s *serverDesc) LastWriteTime() time.Time {
+	if s.LastWrite.LastWriteDate != nil {
+		m := s.LastWrite.LastWriteDate["$numberLong"]
+		i, _ := strconv.Atoi(m)
+		return time.Unix(0, 0).Add(time.Duration(i) * time.Millisecond)
+	}
+	return time.Now().UTC()
+}
+
+type lastWrite struct {
+	LastWriteDate map[string]string `yaml:"lastWriteDate"`
 }
 
 type readPref struct {
-	Mode    string              `yaml:"mode"`
-	TagSets []map[string]string `yaml:"tag_sets"`
+	MaxStalenessSeconds *int                `yaml:"maxStalenessSeconds"`
+	Mode                string              `yaml:"mode"`
+	TagSets             []map[string]string `yaml:"tag_sets"`
 }

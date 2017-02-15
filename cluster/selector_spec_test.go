@@ -14,622 +14,613 @@ import (
 	"github.com/10gen/mongo-go-driver/server"
 )
 
-func TestReadPref_ReplicaSetNoPrimary_read_Nearest(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.NearestMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429366400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429366400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(100) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+
 }
 
-func TestReadPref_ReplicaSetNoPrimary_read_Nearest_multiple(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_multiple(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.NearestMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(10) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429366400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(20) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429366400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_non_matching(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429366400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429866600),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetNoPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(10) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(20) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(10) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(20) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	rp := readpref.Nearest(
 
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(10) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(20) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-}
-
-func TestReadPref_ReplicaSetNoPrimary_read_Nearest_non_matching(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.NearestMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
+
 }
 
-func TestReadPref_ReplicaSetNoPrimary_read_Primary(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Primary(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.PrimaryMode,
-		readpref.WithTagSets(
-			server.NewTagSet(),
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429866600),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
 		),
-	)
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429866600),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetNoPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	rp := readpref.Primary()
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
+
 }
 
-func TestReadPref_ReplicaSetNoPrimary_read_PrimaryPreferred(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.PrimaryPreferredMode,
-		readpref.WithTagSets(
-			server.NewTagSet(),
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429866600),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
 		),
-	)
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429866600),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetNoPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	rp := readpref.PrimaryPreferred()
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(100) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+
 }
 
-func TestReadPref_ReplicaSetNoPrimary_read_PrimaryPreferred_non_matching(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred_non_matching(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.PrimaryPreferredMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429866600),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 429866600),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.PrimaryPreferred(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
+
 }
 
-func TestReadPref_ReplicaSetNoPrimary_read_Secondary(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430366000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430366000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Secondary(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430366000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430366000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetNoPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(100) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	rp := readpref.SecondaryPreferred(
 
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-}
-
-func TestReadPref_ReplicaSetNoPrimary_read_SecondaryPreferred(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryPreferredMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred_non_matching(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430366000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430366000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetNoPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(100) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	rp := readpref.SecondaryPreferred(
 
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-}
-
-func TestReadPref_ReplicaSetNoPrimary_read_SecondaryPreferred_non_matching(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryPreferredMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
+
 }
 
-func TestReadPref_ReplicaSetNoPrimary_read_Secondary_multi_tags(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430366000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+
+			"rack", "one",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430866100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "sf",
+
+			"rack", "two",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Secondary(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
@@ -642,79 +633,68 @@ func TestReadPref_ReplicaSetNoPrimary_read_Secondary_multi_tags(t *testing.T) {
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags2(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430866100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+
+			"rack", "one",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430866100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+
+			"rack", "two",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetNoPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-
-					"rack", "one",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "sf",
-
-					"rack", "two",
-				),
-			},
+			b_27017,
+			c_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
+	rp := readpref.Secondary(
 
-				"rack", "one",
-			),
-		},
-	)
-
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-
-				"rack", "one",
-			),
-		},
-	)
-}
-
-func TestReadPref_ReplicaSetNoPrimary_read_Secondary_multi_tags2(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
@@ -727,1193 +707,3398 @@ func TestReadPref_ReplicaSetNoPrimary_read_Secondary_multi_tags2(t *testing.T) {
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_non_matching(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430866100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430866100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetNoPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-
-					"rack", "one",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-
-					"rack", "two",
-				),
-			},
+			b_27017,
+			c_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
+	rp := readpref.Secondary(
 
-				"rack", "one",
-			),
-		},
-	)
-
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-
-				"rack", "one",
-			),
-		},
-	)
-}
-
-func TestReadPref_ReplicaSetNoPrimary_read_Secondary_non_matching(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 0)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 0)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetNoPrimary_write_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430866100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 430866100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetNoPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	selector := WriteSelector()
+
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
+
 }
 
-func TestReadPref_ReplicaSetWithPrimary_read_Nearest(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.NearestMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431366300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431366300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431366300),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+			a_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 3)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(100) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+	require.Contains(result, a_27017)
+	require.Contains(result, c_27017)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+
 }
 
-func TestReadPref_ReplicaSetWithPrimary_read_Nearest_multiple(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_multiple(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.NearestMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(10) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431366300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431366300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(20) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431366300),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+			a_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(10) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(20) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 3)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(10) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(20) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(100) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+	require.Contains(result, a_27017)
+	require.Contains(result, c_27017)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(10) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(20) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+	require.Contains(result, a_27017)
+
 }
 
-func TestReadPref_ReplicaSetWithPrimary_read_Nearest_non_matching(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_non_matching(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.NearestMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431366300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431866400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431866400),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+			a_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
+
 }
 
-func TestReadPref_ReplicaSetWithPrimary_read_Primary(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Primary(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.PrimaryMode,
-		readpref.WithTagSets(
-			server.NewTagSet(),
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431866400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
 		),
-	)
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431866400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431866400),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetWithPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
+			a_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	rp := readpref.Primary()
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, a_27017)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, a_27017)
+
 }
 
-func TestReadPref_ReplicaSetWithPrimary_read_PrimaryPreferred(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.PrimaryPreferredMode,
-		readpref.WithTagSets(
-			server.NewTagSet(),
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431866400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
 		),
-	)
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431866400),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 431866400),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetWithPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
+			a_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	rp := readpref.PrimaryPreferred()
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, a_27017)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, a_27017)
+
 }
 
-func TestReadPref_ReplicaSetWithPrimary_read_PrimaryPreferred_non_matching(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred_non_matching(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.PrimaryPreferredMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432366200),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432366200),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432366200),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+			a_27017,
+		},
+	}
+
+	rp := readpref.PrimaryPreferred(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432366200),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432366200),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432366200),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetWithPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			b_27017,
+			c_27017,
+			a_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	rp := readpref.Secondary(
 
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-}
-
-func TestReadPref_ReplicaSetWithPrimary_read_Secondary(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(100) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+
 }
 
-func TestReadPref_ReplicaSetWithPrimary_read_SecondaryPreferred(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryPreferredMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432366200),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432366200),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432866300),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+			a_27017,
+		},
+	}
+
+	rp := readpref.SecondaryPreferred(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("c:27017"),
-			AverageRTT:    time.Duration(100) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("b:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSSecondary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	require.Contains(result, b_27017)
+
 }
 
-func TestReadPref_ReplicaSetWithPrimary_read_SecondaryPreferred_non_matching(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_non_matching(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryPreferredMode,
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432866300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432866300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432866300),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+			a_27017,
+		},
+	}
+
+	rp := readpref.SecondaryPreferred(
+
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_tags(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432866300),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432866300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "sf",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetWithPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
+			a_27017,
+			b_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	rp := readpref.SecondaryPreferred(
 
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(26) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-}
-
-func TestReadPref_ReplicaSetWithPrimary_read_SecondaryPreferred_tags(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryPreferredMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary_non_matching(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 432866300),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433366100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433366100),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: ReplicaSetWithPrimary,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "sf",
-				),
-			},
+			b_27017,
+			c_27017,
+			a_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
+	rp := readpref.Secondary(
 
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.RSPrimary,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-}
-
-func TestReadPref_ReplicaSetWithPrimary_read_Secondary_non_matching(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("b:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(100) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("c:27017"),
-				Type:          server.RSSecondary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(26) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.RSPrimary,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-		},
-	}
-
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
+
 }
 
-func TestReadPref_Sharded_read_SecondaryPreferred(t *testing.T) {
+func TestReadPref_ServerSelection_ReplicaSetWithPrimary_write_SecondaryPreferred(t *testing.T) {
 	t.Parallel()
 
 	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryPreferredMode,
-		readpref.WithTagSets(
-			server.NewTagSet(
-				"data_center", "nyc",
-			),
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433366100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
 		),
-	)
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(100) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433366100),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(26) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433366100),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			b_27017,
+			c_27017,
+			a_27017,
+		},
+	}
+
+	selector := WriteSelector()
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_ServerSelection_Sharded_read_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	g_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("g:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433366100),
+		Type:              server.Mongos,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	h_27017 := &server.Desc{
+		AverageRTT:        time.Duration(35) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("h:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433366100),
+		Type:              server.Mongos,
+		Tags: server.NewTagSet(
+			"data_center", "dc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: Sharded,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("g:27017"),
-				Type:          server.Mongos,
-				Tags: server.NewTagSet(
-					"data_center", "nyc",
-				),
-			},
-			&server.Desc{
-				AverageRTT:    time.Duration(35) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("h:27017"),
-				Type:          server.Mongos,
-				Tags: server.NewTagSet(
-					"data_center", "dc",
-				),
-			},
+			g_27017,
+			h_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("g:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.Mongos,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("h:27017"),
-			AverageRTT:    time.Duration(35) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.Mongos,
-			Tags: server.NewTagSet(
-				"data_center", "dc",
-			),
-		},
-	)
+	rp := readpref.SecondaryPreferred(
 
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("g:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.Mongos,
-			Tags: server.NewTagSet(
-				"data_center", "nyc",
-			),
-		},
-	)
-}
-
-func TestReadPref_Single_read_SecondaryPreferred(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryPreferredMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, g_27017)
+	require.Contains(result, h_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, g_27017)
+
+}
+
+func TestReadPref_ServerSelection_Sharded_write_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	g_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("g:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433366100),
+		Type:              server.Mongos,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	h_27017 := &server.Desc{
+		AverageRTT:        time.Duration(35) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("h:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433866200),
+		Type:              server.Mongos,
+		Tags: server.NewTagSet(
+			"data_center", "dc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: Sharded,
+		Servers: []*server.Desc{
+			g_27017,
+			h_27017,
+		},
+	}
+
+	selector := WriteSelector()
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, g_27017)
+	require.Contains(result, h_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, g_27017)
+
+}
+
+func TestReadPref_ServerSelection_Single_read_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433866200),
+		Type:              server.Standalone,
+		Tags: server.NewTagSet(
+			"data_center", "dc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
 
 	c := &Desc{
 		Type: Single,
 		Servers: []*server.Desc{
-			&server.Desc{
-				AverageRTT:    time.Duration(5) * time.Millisecond,
-				AverageRTTSet: true,
-				Endpoint:      conn.Endpoint("a:27017"),
-				Type:          server.Standalone,
-				Tags: server.NewTagSet(
-					"data_center", "dc",
-				),
-			},
+			a_27017,
 		},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.Standalone,
-			Tags: server.NewTagSet(
-				"data_center", "dc",
-			),
-		},
-	)
+	rp := readpref.SecondaryPreferred(
 
-	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Contains(
-		result,
-		&server.Desc{
-			Endpoint:      conn.Endpoint("a:27017"),
-			AverageRTT:    time.Duration(5) * time.Millisecond,
-			AverageRTTSet: true,
-			Type:          server.Standalone,
-			Tags: server.NewTagSet(
-				"data_center", "dc",
-			),
-		},
-	)
-}
-
-func TestReadPref_Unknown_read_SecondaryPreferred(t *testing.T) {
-	t.Parallel()
-
-	require := require.New(t)
-	subject := readpref.New(readpref.SecondaryPreferredMode,
 		readpref.WithTagSets(
 			server.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_ServerSelection_Single_write_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 433866200),
+		Type:              server.Standalone,
+		Tags: server.NewTagSet(
+			"data_center", "dc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: Single,
+		Servers: []*server.Desc{
+			a_27017,
+		},
+	}
+
+	selector := WriteSelector()
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_ServerSelection_Unknown_read_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
 
 	c := &Desc{
 		Type:    Unknown,
 		Servers: []*server.Desc{},
 	}
 
-	readPrefSelector := ReadPrefSelector(subject)
-	result, err := readPrefSelector(c, c.Servers)
+	rp := readpref.SecondaryPreferred(
+
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
 
 	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
-	result, err = CompositeSelector([]ServerSelector{readPrefSelector, latencySelector})(c, c.Servers)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
 	require.NoError(err)
 	require.Len(result, 0)
+
+}
+
+func TestReadPref_ServerSelection_Unknown_write_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	c := &Desc{
+		Type:    Unknown,
+		Servers: []*server.Desc{},
+	}
+
+	selector := WriteSelector()
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 0)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 0)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_DefaultNoMaxStaleness(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1000, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest()
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Incompatible(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_LastUpdateTime(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 1000000),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(25, 2000000),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(25, 1000000),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Nearest(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Nearest2(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_NoKnownServers(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(0) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 434866100),
+		Type:              server.Unknown,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(0) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 434866100),
+		Type:              server.Unknown,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(1) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_PrimaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1000, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.PrimaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_PrimaryPreferred_tags(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.PrimaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+
+			server.NewTagSet(
+				"data_center", "tokyo",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Secondary(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	d_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("d:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+			d_27017,
+		},
+	}
+
+	rp := readpref.Secondary(
+		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1000, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.SecondaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_SecondaryPreferred_tags(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	d_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("d:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+			d_27017,
+		},
+	}
+
+	rp := readpref.SecondaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_ZeroMaxStaleness(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetNoPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(0) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_DefaultNoMaxStaleness(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1000, 1000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest()
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Incompatible(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LastUpdateTime(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 1000000),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(125, 1000000),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(125, 1000000),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LongHeartbeat(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(120000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(120000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(130) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LongHeartbeat2(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(120000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(120000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(129) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_MaxStalenessTooSmall(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(500) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(500) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(89) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest2(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest_tags(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSPrimary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+
+			server.NewTagSet(
+				"data_center", "tokyo",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_PrimaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.PrimaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_PrimaryPreferred_incompatible(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.PrimaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1000, 1000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.SecondaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred_tags(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 1000000),
+		LastWriteTime:     time.Unix(1000, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	d_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("d:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	e_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("e:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+			d_27017,
+			e_27017,
+		},
+	}
+
+	rp := readpref.SecondaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred_tags2(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.SecondaryPreferred(
+		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+
+			server.NewTagSet(
+				"data_center", "tokyo",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Secondary_tags(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 1000000),
+		LastWriteTime:     time.Unix(1000, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	d_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("d:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	e_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("e:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+			d_27017,
+			e_27017,
+		},
+	}
+
+	rp := readpref.Secondary(
+		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, b_27017)
+	require.Contains(result, c_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Secondary_tags2(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(125, 2000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "tokyo",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("c:27017"),
+		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+		Tags: server.NewTagSet(
+			"data_center", "nyc",
+		),
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+			c_27017,
+		},
+	}
+
+	rp := readpref.Secondary(
+		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
+		readpref.WithTagSets(
+			server.NewTagSet(
+				"data_center", "nyc",
+			),
+
+			server.NewTagSet(
+				"data_center", "tokyo",
+			),
+		),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, b_27017)
+
+}
+
+func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_ZeroMaxStaleness(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 2000000),
+		Type:              server.RSPrimary,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.RSSecondary,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: ReplicaSetWithPrimary,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(0) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_Sharded_Incompatible(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.Mongos,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.Mongos,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: Sharded,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_Sharded_SmallMaxStaleness(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.Mongos,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	b_27017 := &server.Desc{
+		AverageRTT:        time.Duration(50) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("b:27017"),
+		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.Mongos,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: Sharded,
+		Servers: []*server.Desc{
+			a_27017,
+			b_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(1) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 2)
+	require.Contains(result, a_27017)
+	require.Contains(result, b_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_Single_Incompatible(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(0) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.Standalone,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: Single,
+		Servers: []*server.Desc{
+			a_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	_, err := selector(c, c.Servers)
+	require.Error(err)
+}
+
+func TestReadPref_MaxStaleness_Single_SmallMaxStaleness(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(5) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(0, 1000000),
+		Type:              server.Standalone,
+
+		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+	}
+
+	c := &Desc{
+		Type: Single,
+		Servers: []*server.Desc{
+			a_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(1) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 1)
+	require.Contains(result, a_27017)
+
+}
+
+func TestReadPref_MaxStaleness_Unknown_SmallMaxStaleness(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	a_27017 := &server.Desc{
+		AverageRTT:        time.Duration(0) * time.Millisecond,
+		AverageRTTSet:     true,
+		Endpoint:          conn.Endpoint("a:27017"),
+		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
+		LastUpdateTime:    time.Unix(0, 0),
+		LastWriteTime:     time.Unix(1487124244, 438866100),
+		Type:              server.Unknown,
+
+		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+	}
+
+	c := &Desc{
+		Type: Unknown,
+		Servers: []*server.Desc{
+			a_27017,
+		},
+	}
+
+	rp := readpref.Nearest(
+		readpref.WithMaxStaleness(time.Duration(1) * time.Second),
+	)
+	selector := ReadPrefSelector(rp)
+
+	result, err := selector(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 0)
+
+	latencySelector := LatencySelector(time.Duration(15) * time.Millisecond)
+	result, err = CompositeSelector([]ServerSelector{selector, latencySelector})(c, c.Servers)
+	require.NoError(err)
+	require.Len(result, 0)
+
 }

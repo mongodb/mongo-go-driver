@@ -6,8 +6,32 @@ import (
 	"github.com/10gen/mongo-go-driver/server"
 )
 
-// New constructs a read preference from the mode and options.
-func New(mode Mode, opts ...Option) *ReadPref {
+// Primary constructs a read preference with a PrimaryMode.
+func Primary() *ReadPref {
+	return new(PrimaryMode)
+}
+
+// PrimaryPreferred constructs a read preference with a PrimaryPreferredMode.
+func PrimaryPreferred(opts ...Option) *ReadPref {
+	return new(PrimaryPreferredMode, opts...)
+}
+
+// SecondaryPreferred constructs a read preference with a SecondaryPreferredMode.
+func SecondaryPreferred(opts ...Option) *ReadPref {
+	return new(SecondaryPreferredMode, opts...)
+}
+
+// Secondary constructs a read preference with a SecondaryMode.
+func Secondary(opts ...Option) *ReadPref {
+	return new(SecondaryMode, opts...)
+}
+
+// Nearest constructs a read preference with a NearestMode.
+func Nearest(opts ...Option) *ReadPref {
+	return new(NearestMode, opts...)
+}
+
+func new(mode Mode, opts ...Option) *ReadPref {
 	rp := &ReadPref{
 		mode: mode,
 	}
@@ -17,31 +41,6 @@ func New(mode Mode, opts ...Option) *ReadPref {
 	}
 
 	return rp
-}
-
-// Primary constructs a read preference with a PrimaryMode.
-func Primary() *ReadPref {
-	return New(PrimaryMode)
-}
-
-// PrimaryPreferred constructs a read preference with a PrimaryPreferredMode.
-func PrimaryPreferred(opts ...Option) *ReadPref {
-	return New(PrimaryPreferredMode, opts...)
-}
-
-// SecondaryPreferred constructs a read preference with a SecondaryPreferredMode.
-func SecondaryPreferred(opts ...Option) *ReadPref {
-	return New(SecondaryPreferredMode, opts...)
-}
-
-// Secondary constructs a read preference with a SecondaryMode.
-func Secondary(opts ...Option) *ReadPref {
-	return New(SecondaryMode, opts...)
-}
-
-// Nearest constructs a read preference with a NearestMode.
-func Nearest(opts ...Option) *ReadPref {
-	return New(NearestMode, opts...)
 }
 
 // ReadPref determines which servers are considered suitable for read operations.

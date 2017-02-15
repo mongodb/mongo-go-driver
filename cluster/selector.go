@@ -157,7 +157,7 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []*server.Desc) []*serv
 			var selected []*server.Desc
 			for _, secondary := range secondaries {
 				estimatedStaleness := baseTime.Sub(secondary.LastWriteTime) + secondary.HeartbeatInterval
-				if estimatedStaleness < maxStaleness {
+				if estimatedStaleness <= maxStaleness {
 					selected = append(selected, secondary)
 				}
 			}
@@ -169,7 +169,7 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []*server.Desc) []*serv
 		var selected []*server.Desc
 		for _, secondary := range secondaries {
 			estimatedStaleness := secondary.LastUpdateTime.Sub(secondary.LastWriteTime) - primary.LastUpdateTime.Sub(primary.LastWriteTime) + secondary.HeartbeatInterval
-			if estimatedStaleness < maxStaleness {
+			if estimatedStaleness <= maxStaleness {
 				selected = append(selected, secondary)
 			}
 		}
@@ -237,4 +237,23 @@ func verifyMaxStaleness(rp *readpref.ReadPref, c *Desc) error {
 	}
 
 	return nil
+}
+
+// WriteSelector selects all the writable servers.
+func WriteSelector() ServerSelector {
+	return func(c *Desc, candidates []*server.Desc) ([]*server.Desc, error) {
+		switch c.Type {
+		case Single:
+			return candidates, nil
+		default:
+			var result []*server.Desc
+			for _, candidate := range candidates {
+				switch candidate.Type {
+				case server.Mongos, server.RSPrimary, server.Standalone:
+					result = append(result, candidate)
+				}
+			}
+			return result, nil
+		}
+	}
 }
