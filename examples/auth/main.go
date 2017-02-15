@@ -8,7 +8,6 @@ import (
 	"github.com/10gen/mongo-go-driver/msg"
 	"github.com/10gen/mongo-go-driver/server"
 	"gopkg.in/mgo.v2/bson"
-	"net"
 	"os"
 	"time"
 )
@@ -22,11 +21,7 @@ func main() {
 
 	myCluster, err := cluster.New(cluster.WithSeedList("localhost:27017"),
 		cluster.WithConnectionMode(cluster.SingleMode),
-		cluster.WithServerOptions(
-			server.WithConnectionDialer(dialer),
-			server.WithConnectionOptions(conn.WithEndpointDialer(func(endpoint conn.Endpoint) (net.Conn, error) {
-				return conn.DialEndpoint(endpoint)
-			}))))
+		cluster.WithServerOptions(server.WithConnectionDialer(dialer)))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
