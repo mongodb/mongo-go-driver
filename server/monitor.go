@@ -22,7 +22,10 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 
 	done := make(chan struct{}, 1)
 	m := &Monitor{
-		endpoint:          endpoint,
+		endpoint: endpoint,
+		desc: &Desc{
+			Endpoint: endpoint,
+		},
 		subscribers:       make(map[int]chan *Desc),
 		done:              done,
 		connOpts:          cfg.connOpts,
