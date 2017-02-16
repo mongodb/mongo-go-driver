@@ -60,13 +60,9 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 		m.subscriberLock.Unlock()
 
 		// restart the timers
-		if !rateLimitTimer.Stop() {
-			<-rateLimitTimer.C
-		}
+		rateLimitTimer.Stop()
 		rateLimitTimer.Reset(minHeartbeatFreqMS)
-		if !heartbeatTimer.Stop() {
-			<-heartbeatTimer.C
-		}
+		heartbeatTimer.Stop()
 		heartbeatTimer.Reset(cfg.heartbeatInterval)
 	}
 
