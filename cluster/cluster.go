@@ -110,6 +110,7 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			c.removeWaiter(id)
 			return nil, internal.WrapError(ctx.Err(), "server selection failed")
 		case <-updated:
