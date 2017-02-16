@@ -1,6 +1,7 @@
 package conntest
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/conn"
@@ -15,11 +16,15 @@ type MockConnection struct {
 	SkipResponseToFixup bool
 }
 
+func (c *MockConnection) Close() error {
+	return nil
+}
+
 func (c *MockConnection) Desc() *conn.Desc {
 	return &conn.Desc{}
 }
 
-func (c *MockConnection) Read() (msg.Response, error) {
+func (c *MockConnection) Read(ctx context.Context) (msg.Response, error) {
 	if len(c.ResponseQ) == 0 {
 		return nil, fmt.Errorf("no response queued")
 	}
@@ -28,7 +33,7 @@ func (c *MockConnection) Read() (msg.Response, error) {
 	return resp, nil
 }
 
-func (c *MockConnection) Write(reqs ...msg.Request) error {
+func (c *MockConnection) Write(ctx context.Context, reqs ...msg.Request) error {
 	if c.WriteErr != nil {
 		err := c.WriteErr
 		c.WriteErr = nil

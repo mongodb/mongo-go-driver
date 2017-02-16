@@ -1,6 +1,7 @@
 package ops_test
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"strings"
@@ -23,6 +24,7 @@ func getConnection() conn.Connection {
 	if testConn == nil {
 		var err error
 		testConn, err = conn.Dial(
+			context.Background(),
 			conn.Endpoint(*host),
 			conn.WithAppName("mongo-go-driver-test"),
 		)
@@ -45,9 +47,7 @@ func insertDocuments(c conn.Connection, collectionName string, documents []bson.
 		insertCommand,
 	)
 
-	result := &bson.D{}
-
-	err := conn.ExecuteCommand(c, request, result)
+	err := conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
 	require.Nil(t, err)
 }
 
@@ -67,7 +67,7 @@ func find(c conn.Connection, collectionName string, batchSize int32, t *testing.
 
 	var result cursorReturningResult
 
-	err := conn.ExecuteCommand(c, request, &result)
+	err := conn.ExecuteCommand(context.Background(), c, request, &result)
 	require.Nil(t, err)
 
 	return &result.Cursor
@@ -97,24 +97,52 @@ func (cursorResult *firstBatchCursorResult) CursorID() int64 {
 }
 
 func dropCollection(c conn.Connection, collectionName string, t *testing.T) {
-	err := conn.ExecuteCommand(c, msg.NewCommand(msg.NextRequestID(), databaseName, false, bson.D{{"drop", collectionName}}),
-		&bson.D{})
+	err := conn.ExecuteCommand(
+		context.Background(),
+		c,
+		msg.NewCommand(
+			msg.NextRequestID(),
+			databaseName,
+			false,
+			bson.D{{"drop", collectionName}},
+		),
+		&bson.D{},
+	)
 	if err != nil && !strings.HasSuffix(err.Error(), "ns not found") {
 		t.Fatal(err)
 	}
 }
 
 func enableMaxTimeFailPoint(c conn.Connection) error {
-	return conn.ExecuteCommand(c, msg.NewCommand(msg.NextRequestID(), "admin", false,
-		bson.D{{"configureFailPoint", "maxTimeAlwaysTimeOut"},
-			{"mode", "alwaysOn"}}),
-		&bson.D{})
+	return conn.ExecuteCommand(
+		context.Background(),
+		c,
+		msg.NewCommand(
+			msg.NextRequestID(),
+			"admin",
+			false,
+			bson.D{
+				{"configureFailPoint", "maxTimeAlwaysTimeOut"},
+				{"mode", "alwaysOn"},
+			},
+		),
+		&bson.D{},
+	)
 }
 
 func disableMaxTimeFailPoint(c conn.Connection, t *testing.T) {
-	err := conn.ExecuteCommand(c, msg.NewCommand(msg.NextRequestID(), "admin", false,
-		bson.D{{"configureFailPoint", "maxTimeAlwaysTimeOut"},
-			{"mode", "off"}}),
-		&bson.D{})
+	err := conn.ExecuteCommand(
+		context.Background(),
+		c,
+		msg.NewCommand(msg.NextRequestID(),
+			"admin",
+			false,
+			bson.D{
+				{"configureFailPoint", "maxTimeAlwaysTimeOut"},
+				{"mode", "off"},
+			},
+		),
+		&bson.D{},
+	)
 	require.Nil(t, err)
 }

@@ -13,7 +13,7 @@ build-examples:
 generate:
     go generate $(PKGS)
 
-lint: generate
+lint: 
     golint $(LINTARGS) ./auth
     golint $(LINTARGS) ./cluster
     golint $(LINTARGS) ./conn
@@ -24,7 +24,7 @@ lint: generate
     golint $(LINTARGS) ./readpref
     golint $(LINTARGS) ./server
 
-test: generate
+test: 
     go test -timeout $(TEST_TIMEOUT)s $(PKGS)
 
 test-cover:
@@ -36,5 +36,5 @@ test-race:
 test-short:
     go test -short -timeout $(TEST_TIMEOUT)s $(PKGS)
 
-vet: generate
+vet: 
     go tool vet -composites=false $(PKGS)

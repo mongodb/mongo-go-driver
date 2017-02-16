@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/conn"
@@ -16,8 +17,8 @@ type PlainAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *PlainAuthenticator) Auth(c conn.Connection) error {
-	return conductSaslConversation(c, a.DB, &plainSaslClient{
+func (a *PlainAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
+	return conductSaslConversation(ctx, c, a.DB, &plainSaslClient{
 		username: a.Username,
 		password: a.Password,
 	})

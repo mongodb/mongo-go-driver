@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"testing"
 
 	"gopkg.in/mgo.v2/bson"
@@ -35,7 +36,7 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -66,7 +67,7 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}

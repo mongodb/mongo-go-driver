@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha1"
 	"fmt"
@@ -33,8 +34,8 @@ type ScramSHA1Authenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *ScramSHA1Authenticator) Auth(c conn.Connection) error {
-	return conductSaslConversation(c, a.DB, &scramSaslClient{
+func (a *ScramSHA1Authenticator) Auth(ctx context.Context, c conn.Connection) error {
+	return conductSaslConversation(ctx, c, a.DB, &scramSaslClient{
 		username:       a.Username,
 		password:       a.Password,
 		nonceGenerator: a.NonceGenerator,

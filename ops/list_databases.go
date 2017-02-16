@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"context"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
@@ -15,7 +16,7 @@ type ListDatabasesOptions struct {
 }
 
 // ListDatabases lists the databases with the given options
-func ListDatabases(c conn.Connection, options ListDatabasesOptions) (Cursor, error) {
+func ListDatabases(ctx context.Context, c conn.Connection, options ListDatabasesOptions) (Cursor, error) {
 
 	listDatabasesCommand := struct {
 		ListDatabases int32 `bson:"listDatabases"`
@@ -35,7 +36,7 @@ func ListDatabases(c conn.Connection, options ListDatabasesOptions) (Cursor, err
 		Databases []bson.Raw `bson:"databases"`
 	}
 
-	err := conn.ExecuteCommand(c, request, &result)
+	err := conn.ExecuteCommand(ctx, c, request, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ type listDatabasesCursor struct {
 	current   int
 }
 
-func (cursor *listDatabasesCursor) Next(result interface{}) bool {
+func (cursor *listDatabasesCursor) Next(_ context.Context, result interface{}) bool {
 	if cursor.current < len(cursor.databases) {
 		bson.Unmarshal(cursor.databases[cursor.current].Data, result)
 		cursor.current++
@@ -67,6 +68,6 @@ func (cursor *listDatabasesCursor) Err() error {
 
 // Close the cursor.  Ordinarily this is a no-op as the server closes the cursor when it is exhausted.
 // Returns the error status of this cursor so that clients do not have to call Err() separately
-func (cursor *listDatabasesCursor) Close() error {
+func (cursor *listDatabasesCursor) Close(_ context.Context) error {
 	return nil
 }

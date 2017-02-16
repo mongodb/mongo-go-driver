@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+
 	"github.com/10gen/mongo-go-driver/conn"
 )
 
@@ -34,7 +36,7 @@ type Server interface {
 	// Closes closes the server.
 	Close()
 	// Connection gets a connection to the server.
-	Connection() (conn.ConnectionCloser, error)
+	Connection(context.Context) (conn.Connection, error)
 }
 
 type serverImpl struct {
@@ -48,6 +50,6 @@ func (s *serverImpl) Close() {
 	}
 }
 
-func (s *serverImpl) Connection() (conn.ConnectionCloser, error) {
-	return s.monitor.dialer(s.monitor.endpoint, s.monitor.connOpts...)
+func (s *serverImpl) Connection(ctx context.Context) (conn.Connection, error) {
+	return s.monitor.connDialer(ctx, s.monitor.endpoint, s.monitor.connOpts...)
 }

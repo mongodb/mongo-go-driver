@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -74,7 +75,7 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -105,7 +106,7 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}

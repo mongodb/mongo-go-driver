@@ -3,6 +3,7 @@ package server
 //go:generate go run monitor_rtt_spec_internal_test_generator.go
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -31,7 +32,8 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 		done:              done,
 		checkNow:          checkNow,
 		connOpts:          cfg.connOpts,
-		dialer:            cfg.dialer,
+		connDialer:        cfg.connDialer,
+		heartbeatDialer:   cfg.heartbeatDialer,
 		heartbeatInterval: cfg.heartbeatInterval,
 	}
 
@@ -102,14 +104,15 @@ type Monitor struct {
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
-	conn              conn.ConnectionCloser
+	conn              conn.Connection
+	connDialer        conn.Dialer
 	connOpts          []conn.Option
 	desc              *Desc
 	descLock          sync.Mutex
 	checkNow          chan struct{}
-	dialer            conn.Dialer
 	done              chan struct{}
 	endpoint          conn.Endpoint
+	heartbeatDialer   conn.Dialer
 	heartbeatInterval time.Duration
 	averageRTT        time.Duration
 	averageRTTSet     bool
@@ -162,10 +165,35 @@ func (m *Monitor) RequestImmediateCheck() {
 	}
 }
 
+func (m *Monitor) describeServer(ctx context.Context) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
+	isMasterReq := msg.NewCommand(
+		msg.NextRequestID(),
+		"admin",
+		true,
+		bson.D{{Name: "ismaster", Value: 1}},
+	)
+	buildInfoReq := msg.NewCommand(
+		msg.NextRequestID(),
+		"admin",
+		true,
+		bson.D{{Name: "buildInfo", Value: 1}},
+	)
+
+	var isMasterResult internal.IsMasterResult
+	var buildInfoResult internal.BuildInfoResult
+	err := conn.ExecuteCommands(ctx, m.conn, []msg.Request{isMasterReq, buildInfoReq}, []interface{}{&isMasterResult, &buildInfoResult})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &isMasterResult, &buildInfoResult, nil
+}
+
 func (m *Monitor) heartbeat() *Desc {
 	const maxRetryCount = 2
 	var savedErr error
 	var d *Desc
+	ctx := context.Background()
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn == nil {
 			// TODO: should this use the connection dialer from
@@ -173,7 +201,7 @@ func (m *Monitor) heartbeat() *Desc {
 			// for heartbeat connections as well, which makes
 			// sharing a monitor in a multi-tenant arrangement
 			// impossible.
-			conn, err := conn.Dial(m.endpoint, m.connOpts...)
+			conn, err := m.heartbeatDialer(ctx, m.endpoint, m.connOpts...)
 			if err != nil {
 				savedErr = err
 				if conn != nil {
@@ -186,7 +214,7 @@ func (m *Monitor) heartbeat() *Desc {
 		}
 
 		now := time.Now()
-		isMasterResult, buildInfoResult, err := describeServer(m.conn)
+		isMasterResult, buildInfoResult, err := m.describeServer(ctx)
 		if err != nil {
 			savedErr = err
 			m.conn.Close()
@@ -220,28 +248,4 @@ func (m *Monitor) updateAverageRTT(delay time.Duration) time.Duration {
 		m.averageRTT = time.Duration(alpha*float64(delay) + (1-alpha)*float64(m.averageRTT))
 	}
 	return m.averageRTT
-}
-
-func describeServer(c conn.Connection) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
-	isMasterReq := msg.NewCommand(
-		msg.NextRequestID(),
-		"admin",
-		true,
-		bson.D{{Name: "ismaster", Value: 1}},
-	)
-	buildInfoReq := msg.NewCommand(
-		msg.NextRequestID(),
-		"admin",
-		true,
-		bson.D{{Name: "buildInfo", Value: 1}},
-	)
-
-	var isMasterResult internal.IsMasterResult
-	var buildInfoResult internal.BuildInfoResult
-	err := conn.ExecuteCommands(c, []msg.Request{isMasterReq, buildInfoReq}, []interface{}{&isMasterResult, &buildInfoResult})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &isMasterResult, &buildInfoResult, nil
 }

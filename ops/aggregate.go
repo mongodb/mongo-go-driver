@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"context"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
@@ -20,7 +21,7 @@ type AggregationOptions struct {
 // Aggregate executes the aggregate command with the given pipeline and options.
 //
 // The pipeline must encode as a BSON array of pipeline stages.
-func Aggregate(c conn.Connection, ns Namespace, pipeline interface{}, options AggregationOptions) (Cursor, error) {
+func Aggregate(ctx context.Context, c conn.Connection, ns Namespace, pipeline interface{}, options AggregationOptions) (Cursor, error) {
 	if err := ns.validate(); err != nil {
 		return nil, err
 	}
@@ -49,7 +50,7 @@ func Aggregate(c conn.Connection, ns Namespace, pipeline interface{}, options Ag
 
 	var result cursorReturningResult
 
-	err := conn.ExecuteCommand(c, request, &result)
+	err := conn.ExecuteCommand(ctx, c, request, &result)
 	if err != nil {
 		return nil, err
 	}

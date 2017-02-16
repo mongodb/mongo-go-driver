@@ -1,10 +1,6 @@
 package conn
 
-import (
-	"net"
-
-	"github.com/10gen/mongo-go-driver/msg"
-)
+import "github.com/10gen/mongo-go-driver/msg"
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
@@ -25,7 +21,7 @@ type Option func(*config)
 type config struct {
 	appName string
 	codec   msg.Codec
-	dialer  func(Endpoint) (net.Conn, error)
+	dialer  EndpointDialer
 }
 
 // WithAppName sets the application name which gets

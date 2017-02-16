@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 
@@ -21,7 +22,7 @@ type MongoDBCRAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *MongoDBCRAuthenticator) Auth(c conn.Connection) error {
+func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
 	db := a.DB
 	if db == "" {
 		db = defaultAuthDB
@@ -37,7 +38,7 @@ func (a *MongoDBCRAuthenticator) Auth(c conn.Connection) error {
 		Nonce string `bson:"nonce"`
 	}
 
-	err := conn.ExecuteCommand(c, getNonceRequest, &getNonceResult)
+	err := conn.ExecuteCommand(ctx, c, getNonceRequest, &getNonceResult)
 	if err != nil {
 		return newError(err, mongodbCR)
 	}
@@ -53,7 +54,7 @@ func (a *MongoDBCRAuthenticator) Auth(c conn.Connection) error {
 			{"key", a.createKey(getNonceResult.Nonce)},
 		},
 	)
-	err = conn.ExecuteCommand(c, authRequest, &bson.D{})
+	err = conn.ExecuteCommand(ctx, c, authRequest, &bson.D{})
 	if err != nil {
 		return newError(err, mongodbCR)
 	}

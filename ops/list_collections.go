@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"context"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
@@ -18,7 +19,7 @@ type ListCollectionsOptions struct {
 }
 
 // ListCollections lists the collections in the given database with the given options.
-func ListCollections(c conn.Connection, db string, options ListCollectionsOptions) (Cursor, error) {
+func ListCollections(ctx context.Context, c conn.Connection, db string, options ListCollectionsOptions) (Cursor, error) {
 	if err := validateDB(db); err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func ListCollections(c conn.Connection, db string, options ListCollectionsOption
 
 	var result cursorReturningResult
 
-	err := conn.ExecuteCommand(c, request, &result)
+	err := conn.ExecuteCommand(ctx, c, request, &result)
 	if err != nil {
 		return nil, err
 	}

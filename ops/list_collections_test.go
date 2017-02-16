@@ -1,6 +1,7 @@
 package ops_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -15,7 +16,7 @@ func TestListCollectionsWithInvalidDatabaseName(t *testing.T) {
 	}
 
 	conn := getConnection()
-	_, err := ListCollections(conn, "", ListCollectionsOptions{})
+	_, err := ListCollections(context.Background(), conn, "", ListCollectionsOptions{})
 	require.NotNil(t, err)
 }
 
@@ -38,13 +39,13 @@ func TestListCollections(t *testing.T) {
 	insertDocuments(conn, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
 	insertDocuments(conn, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListCollections(conn, databaseName, ListCollectionsOptions{})
+	cursor, err := ListCollections(context.Background(), conn, databaseName, ListCollectionsOptions{})
 	require.Nil(t, err)
 
 	names := []string{}
 	var next bson.M
 
-	for cursor.Next(&next) {
+	for cursor.Next(context.Background(), &next) {
 		names = append(names, next["name"].(string))
 	}
 
@@ -72,7 +73,7 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	insertDocuments(conn, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
 	insertDocuments(conn, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListCollections(conn, databaseName, ListCollectionsOptions{
+	cursor, err := ListCollections(context.Background(), conn, databaseName, ListCollectionsOptions{
 		Filter:    bson.D{{"name", bson.RegEx{Pattern: "^TestListCollectionsMultipleBatches.*"}}},
 		BatchSize: 2})
 	require.Nil(t, err)
@@ -80,7 +81,7 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	names := []string{}
 	var next bson.M
 
-	for cursor.Next(&next) {
+	for cursor.Next(context.Background(), &next) {
 		names = append(names, next["name"].(string))
 	}
 
@@ -102,7 +103,7 @@ func TestListCollectionsWithMaxTimeMS(t *testing.T) {
 	}
 	defer disableMaxTimeFailPoint(conn, t)
 
-	_, err := ListCollections(conn, databaseName, ListCollectionsOptions{MaxTime: time.Millisecond})
+	_, err := ListCollections(context.Background(), conn, databaseName, ListCollectionsOptions{MaxTime: time.Millisecond})
 	require.NotNil(t, err)
 
 	// Hacky check for the error message.  Should we be returning a more structured error?

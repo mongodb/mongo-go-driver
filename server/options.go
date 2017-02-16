@@ -8,12 +8,16 @@ import (
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		dialer:            conn.Dial,
+		connDialer:        conn.Dial,
 		heartbeatInterval: time.Duration(10) * time.Second,
 	}
 
 	for _, opt := range opts {
 		opt(cfg)
+	}
+
+	if cfg.heartbeatDialer == nil {
+		cfg.heartbeatDialer = cfg.connDialer
 	}
 
 	return cfg
@@ -24,8 +28,17 @@ type Option func(*config)
 
 type config struct {
 	connOpts          []conn.Option
-	dialer            conn.Dialer
+	connDialer        conn.Dialer
+	heartbeatDialer   conn.Dialer
 	heartbeatInterval time.Duration
+}
+
+// WithConnectionDialer configures the dialer to use
+// to create a new connection.
+func WithConnectionDialer(dialer conn.Dialer) Option {
+	return func(c *config) {
+		c.connDialer = dialer
+	}
 }
 
 // WithConnectionOptions configures server's connections.
@@ -35,16 +48,18 @@ func WithConnectionOptions(opts ...conn.Option) Option {
 	}
 }
 
+// WithHearbeatDialer configures the dialer to be used
+// for hearbeat connections. By default, it will use the
+// configured ConnectionDialer.
+func WithHearbeatDialer(dialer conn.Dialer) Option {
+	return func(c *config) {
+		c.heartbeatDialer = dialer
+	}
+}
+
 // WithHeartbeatInterval configures a server's heartbeat interval.
 func WithHeartbeatInterval(interval time.Duration) Option {
 	return func(c *config) {
 		c.heartbeatInterval = interval
-	}
-}
-
-// WithConnectionDialer configures a server's connection dialer.
-func WithConnectionDialer(dialer conn.Dialer) Option {
-	return func(c *config) {
-		c.dialer = dialer
 	}
 }

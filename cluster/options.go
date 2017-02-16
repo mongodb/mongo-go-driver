@@ -51,8 +51,8 @@ func WithSeedList(endpoints ...conn.Endpoint) Option {
 	}
 }
 
-// ServerSelectionTimeout configures a cluster's server selection timeout
-func ServerSelectionTimeout(timeout time.Duration) Option {
+// WithServerSelectionTimeout configures a cluster's server selection timeout.
+func WithServerSelectionTimeout(timeout time.Duration) Option {
 	return func(c *config) {
 		c.serverSelectionTimeout = timeout
 	}

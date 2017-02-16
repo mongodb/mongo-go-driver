@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/internal"
@@ -9,40 +10,40 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// QueryFailureError is an error with a failure response as a document.
-type QueryFailureError struct {
+// CommandFailureError is an error with a failure response as a document.
+type CommandFailureError struct {
 	Msg      string
 	Response bson.D
 }
 
-func (e *QueryFailureError) Error() string {
+func (e *CommandFailureError) Error() string {
 	return fmt.Sprintf("%s: %v", e.Msg, e.Response)
 }
 
 // Message retrieves the message of the error.
-func (e *QueryFailureError) Message() string {
+func (e *CommandFailureError) Message() string {
 	return e.Msg
 }
 
 // ExecuteCommand executes the message on the channel.
-func ExecuteCommand(c Connection, request msg.Request, out interface{}) error {
-	return ExecuteCommands(c, []msg.Request{request}, []interface{}{out})
+func ExecuteCommand(ctx context.Context, c Connection, request msg.Request, out interface{}) error {
+	return ExecuteCommands(ctx, c, []msg.Request{request}, []interface{}{out})
 }
 
 // ExecuteCommands executes the messages on the connection.
-func ExecuteCommands(c Connection, requests []msg.Request, out []interface{}) error {
+func ExecuteCommands(ctx context.Context, c Connection, requests []msg.Request, out []interface{}) error {
 	if len(requests) != len(out) {
 		panic("invalid arguments. 'out' length must equal 'msgs' length")
 	}
 
-	err := c.Write(requests...)
+	err := c.Write(ctx, requests...)
 	if err != nil {
 		return internal.WrapErrorf(err, "failed sending commands(%d)", len(requests))
 	}
 
 	var errors []error
 	for i, req := range requests {
-		resp, err := c.Read()
+		resp, err := c.Read(ctx)
 		if err != nil {
 			return internal.WrapErrorf(err, "failed receiving command response for %d", req.RequestID())
 		}
@@ -94,7 +95,7 @@ func readCommandResponse(resp msg.Response, out interface{}) error {
 				return fmt.Errorf("unknown command failure")
 			}
 
-			return &QueryFailureError{
+			return &CommandFailureError{
 				Msg:      "command failure",
 				Response: doc,
 			}

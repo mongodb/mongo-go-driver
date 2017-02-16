@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"context"
+
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/10gen/mongo-go-driver/conn"
@@ -13,7 +15,7 @@ type saslClient interface {
 	Completed() bool
 }
 
-func conductSaslConversation(c conn.Connection, db string, client saslClient) error {
+func conductSaslConversation(ctx context.Context, c conn.Connection, db string, client saslClient) error {
 	if db == "" {
 		db = defaultAuthDB
 	}
@@ -42,7 +44,7 @@ func conductSaslConversation(c conn.Connection, db string, client saslClient) er
 	}
 
 	var saslResp saslResponse
-	err = conn.ExecuteCommand(c, saslStartRequest, &saslResp)
+	err = conn.ExecuteCommand(ctx, c, saslStartRequest, &saslResp)
 	if err != nil {
 		return newError(err, mech)
 	}
@@ -78,7 +80,7 @@ func conductSaslConversation(c conn.Connection, db string, client saslClient) er
 			},
 		)
 
-		err = conn.ExecuteCommand(c, saslContinueRequest, &saslResp)
+		err = conn.ExecuteCommand(ctx, c, saslContinueRequest, &saslResp)
 		if err != nil {
 			return newError(err, mech)
 		}

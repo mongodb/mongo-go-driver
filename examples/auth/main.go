@@ -1,49 +1,50 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"log"
+	"time"
+
 	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/cluster"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
 	"github.com/10gen/mongo-go-driver/server"
 	"gopkg.in/mgo.v2/bson"
-	"os"
-	"time"
 )
 
 func main() {
-	dialer := auth.NewDialer(conn.Dial, &auth.ScramSHA1Authenticator{
+	dialer := auth.Dialer(conn.Dial, &auth.ScramSHA1Authenticator{
 		DB:       "admin",
 		Username: "root",
 		Password: "root",
 	})
 
+	ctx := context.Background()
 	myCluster, err := cluster.New(cluster.WithSeedList("localhost:27017"),
 		cluster.WithConnectionMode(cluster.SingleMode),
 		cluster.WithServerOptions(server.WithConnectionDialer(dialer)))
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatalf("could not start a cluster: %v", err)
 	}
 
-	time.Sleep(time.Second)  // TODO: remove once server selection is fully implemented
+	time.Sleep(time.Second) // TODO: remove once server selection is fully implemented
 
-	selectedServer, err := myCluster.SelectServer(cluster.WriteSelector())
+	selectedServer, err := myCluster.SelectServer(ctx, cluster.WriteSelector())
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatalf("could not select a server: %v", err)
 	}
 
-	connection, err := selectedServer.Connection()
+	connection, err := selectedServer.Connection(ctx)
+	if err != nil {
+		log.Fatalf("could not get a connection: %s", err)
+	}
 
 	var result bson.D
-	conn.ExecuteCommand(connection, msg.NewCommand(msg.NextRequestID(), "test", false, bson.D{{"count", "test"}}), &result)
+	conn.ExecuteCommand(ctx, connection, msg.NewCommand(msg.NextRequestID(), "test", false, bson.D{{"count", "test"}}), &result)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatalf("failed executing count command: %v", err)
 	}
 
-	fmt.Println(result)
-
+	log.Println(result)
 }

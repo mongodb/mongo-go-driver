@@ -1,6 +1,7 @@
 package ops_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -17,7 +18,7 @@ func TestAggregateWithInvalidNamespace(t *testing.T) {
 	conn := getConnection()
 
 	namespace := Namespace{}
-	_, err := Aggregate(conn, namespace,
+	_, err := Aggregate(context.Background(), conn, namespace,
 		[]bson.D{},
 		AggregationOptions{})
 	require.NotNil(t, err)
@@ -35,7 +36,7 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 	insertDocuments(conn, collectionName, documents, t)
 
 	namespace := Namespace{databaseName, collectionName}
-	cursor, err := Aggregate(conn, namespace,
+	cursor, err := Aggregate(context.Background(), conn, namespace,
 		[]bson.D{
 			{{"$match", bson.D{{"_id", bson.D{{"$gt", 2}}}}}},
 			{{"$sort", bson.D{{"_id", -1}}}}},
@@ -45,16 +46,16 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 
 	var next bson.D
 
-	cursor.Next(&next)
+	cursor.Next(context.Background(), &next)
 	require.Equal(t, documents[4], next)
 
-	cursor.Next(&next)
+	cursor.Next(context.Background(), &next)
 	require.Equal(t, documents[3], next)
 
-	cursor.Next(&next)
+	cursor.Next(context.Background(), &next)
 	require.Equal(t, documents[2], next)
 
-	hasNext := cursor.Next(&next)
+	hasNext := cursor.Next(context.Background(), &next)
 	require.False(t, hasNext)
 }
 
@@ -72,7 +73,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	insertDocuments(conn, collectionName, documents, t)
 
 	namespace := Namespace{databaseName, collectionName}
-	_, err := Aggregate(conn, namespace,
+	_, err := Aggregate(context.Background(), conn, namespace,
 		[]bson.D{},
 		AggregationOptions{
 			AllowDiskUse: true})
@@ -93,7 +94,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 
 	collectionName := "TestAggregateWithAllowDiskUse"
 	namespace := Namespace{databaseName, collectionName}
-	_, err := Aggregate(conn, namespace,
+	_, err := Aggregate(context.Background(), conn, namespace,
 		[]bson.D{},
 		AggregationOptions{
 			MaxTime: time.Millisecond})

@@ -285,7 +285,9 @@ func (s *serverDesc) LastWriteTime() time.Time {
 		i, _ := strconv.Atoi(m)
 		return time.Unix(0, 0).Add(time.Duration(i) * time.Millisecond)
 	}
-	return time.Now().UTC()
+
+	// use a constant so the file doesn't change everytime we generate.
+	return time.Date(2014, 1, 1, 0, 0, 0, 0, time.UTC)
 }
 
 type lastWrite struct {

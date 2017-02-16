@@ -1,14 +1,15 @@
 package conn
 
 import (
+	"context"
 	"fmt"
+	"net"
 	"runtime"
 	"sync/atomic"
+	"time"
 
 	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/msg"
-
-	"io"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -20,26 +21,27 @@ func nextClientConnectionID() int32 {
 }
 
 // Dialer dials a connection.
-type Dialer func(Endpoint, ...Option) (ConnectionCloser, error)
+type Dialer func(context.Context, Endpoint, ...Option) (Connection, error)
 
 // Dial opens a connection to a server.
-func Dial(endpoint Endpoint, opts ...Option) (ConnectionCloser, error) {
+func Dial(ctx context.Context, endpoint Endpoint, opts ...Option) (Connection, error) {
 
 	cfg := newConfig(opts...)
 
-	transport, err := cfg.dialer(endpoint)
+	netConn, err := cfg.dialer(ctx, endpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	c := &connectionImpl{
-		id:        fmt.Sprintf("%s[-%d]", endpoint, nextClientConnectionID()),
-		codec:     cfg.codec,
-		ep:        endpoint,
-		transport: transport,
+	c := &connImpl{
+		id:    fmt.Sprintf("%s[-%d]", endpoint, nextClientConnectionID()),
+		codec: cfg.codec,
+		desc:  &Desc{},
+		ep:    endpoint,
+		rw:    netConn,
 	}
 
-	err = c.initialize(cfg.appName)
+	err = c.initialize(ctx, cfg.appName)
 	if err != nil {
 		return nil, err
 	}
@@ -49,25 +51,18 @@ func Dial(endpoint Endpoint, opts ...Option) (ConnectionCloser, error) {
 
 // Connection is responsible for reading and writing messages.
 type Connection interface {
+	// Close closes the connection.
+	Close() error
 	// Desc gets a description of the connection.
 	Desc() *Desc
-	// Read reads a message from the connection for the
-	// specified requestID.
-	Read() (msg.Response, error)
+	// Read reads a message from the connection.
+	Read(context.Context) (msg.Response, error)
 	// Write writes a number of messages to the connection.
-	Write(...msg.Request) error
+	Write(context.Context, ...msg.Request) error
 }
 
-// ConnectionCloser is a Connection that can be closed.
-type ConnectionCloser interface {
-	Connection
-
-	// Closes the connection.
-	Close() error
-}
-
-// ConnectionError represents an error that in the connection package.
-type ConnectionError struct {
+// Error represents an error that in the connection package.
+type Error struct {
 	ConnectionID string
 
 	message string
@@ -75,32 +70,34 @@ type ConnectionError struct {
 }
 
 // Message gets the basic error message.
-func (e *ConnectionError) Message() string {
+func (e *Error) Message() string {
 	return e.message
 }
 
 // Error gets a rolled-up error message.
-func (e *ConnectionError) Error() string {
+func (e *Error) Error() string {
 	return internal.RolledUpErrorMessage(e)
 }
 
 // Inner gets the inner error if one exists.
-func (e *ConnectionError) Inner() error {
+func (e *Error) Inner() error {
 	return e.inner
 }
 
-type connectionImpl struct {
+type connImpl struct {
 	// if id is negative, it's the client identifier; otherwise it's the same
 	// as the id the server is using.
-	id        string
-	codec     msg.Codec
-	desc      *Desc
-	ep        Endpoint
-	transport io.ReadWriteCloser
+	id    string
+	codec msg.Codec
+	desc  *Desc
+	ep    Endpoint
+	rw    net.Conn
+	dead  bool
 }
 
-func (c *connectionImpl) Close() error {
-	err := c.transport.Close()
+func (c *connImpl) Close() error {
+	c.dead = true
+	err := c.rw.Close()
 	if err != nil {
 		return c.wrapError(err, "failed closing")
 	}
@@ -108,13 +105,41 @@ func (c *connectionImpl) Close() error {
 	return nil
 }
 
-func (c *connectionImpl) Desc() *Desc {
+func (c *connImpl) Desc() *Desc {
 	return c.desc
 }
 
-func (c *connectionImpl) Read() (msg.Response, error) {
-	message, err := c.codec.Decode(c.transport)
+func (c *connImpl) Read(ctx context.Context) (msg.Response, error) {
+	if c.dead {
+		return nil, &Error{
+			ConnectionID: c.id,
+			message:      "connection is dead",
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		// we need to close here because we don't
+		// know if there is a message sitting on the wire
+		// unread.
+		c.Close()
+		c.dead = true
+		return nil, c.wrapError(ctx.Err(), "failed to read")
+	default:
+	}
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		deadline = time.Time{}
+	}
+	if err := c.rw.SetReadDeadline(deadline); err != nil {
+		return nil, c.wrapError(err, "failed to set read deadline")
+	}
+
+	message, err := c.codec.Decode(c.rw)
 	if err != nil {
+		c.Close()
+		c.dead = true
 		return nil, c.wrapError(err, "failed reading")
 	}
 
@@ -126,26 +151,81 @@ func (c *connectionImpl) Read() (msg.Response, error) {
 	return resp, nil
 }
 
-func (c *connectionImpl) String() string {
+func (c *connImpl) String() string {
 	return c.id
 }
 
-func (c *connectionImpl) Write(requests ...msg.Request) error {
+func (c *connImpl) Write(ctx context.Context, requests ...msg.Request) error {
+	if c.dead {
+		return &Error{
+			ConnectionID: c.id,
+			message:      "connection is dead",
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		return c.wrapError(ctx.Err(), "failed to write")
+	default:
+	}
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		deadline = time.Time{}
+	}
+	if err := c.rw.SetWriteDeadline(deadline); err != nil {
+		return c.wrapError(err, "failed to set write deadline")
+	}
+
 	var messages []msg.Message
 	for _, message := range requests {
 		messages = append(messages, message)
 	}
 
-	err := c.codec.Encode(c.transport, messages...)
+	err := c.codec.Encode(c.rw, messages...)
 	if err != nil {
+		c.Close()
+		c.dead = true
 		return c.wrapError(err, "failed writing")
 	}
 	return nil
 }
 
-func (c *connectionImpl) initialize(appName string) error {
+func (c *connImpl) describeServer(ctx context.Context, clientDoc bson.M) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
+	isMasterCmd := bson.D{{Name: "ismaster", Value: 1}}
+	if clientDoc != nil {
+		isMasterCmd = append(isMasterCmd, bson.DocElem{
+			Name:  "client",
+			Value: clientDoc,
+		})
+	}
 
-	isMasterResult, buildInfoResult, err := describeServer(c, createClientDoc(appName))
+	isMasterReq := msg.NewCommand(
+		msg.NextRequestID(),
+		"admin",
+		true,
+		isMasterCmd,
+	)
+	buildInfoReq := msg.NewCommand(
+		msg.NextRequestID(),
+		"admin",
+		true,
+		bson.D{{Name: "buildInfo", Value: 1}},
+	)
+
+	var isMasterResult internal.IsMasterResult
+	var buildInfoResult internal.BuildInfoResult
+	err := ExecuteCommands(ctx, c, []msg.Request{isMasterReq, buildInfoReq}, []interface{}{&isMasterResult, &buildInfoResult})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &isMasterResult, &buildInfoResult, nil
+}
+
+func (c *connImpl) initialize(ctx context.Context, appName string) error {
+
+	isMasterResult, buildInfoResult, err := c.describeServer(ctx, createClientDoc(appName))
 	if err != nil {
 		return err
 	}
@@ -174,7 +254,7 @@ func (c *connectionImpl) initialize(appName string) error {
 	}
 
 	var getLastErrorResult internal.GetLastErrorResult
-	err = ExecuteCommand(c, getLastErrorReq, &getLastErrorResult)
+	err = ExecuteCommand(ctx, c, getLastErrorReq, &getLastErrorResult)
 	// NOTE: we don't care about this result. If it fails, it doesn't
 	// harm us in any way other than not being able to correlate
 	// our logs with the server's logs.
@@ -185,8 +265,8 @@ func (c *connectionImpl) initialize(appName string) error {
 	return nil
 }
 
-func (c *connectionImpl) wrapError(inner error, message string) error {
-	return &ConnectionError{
+func (c *connImpl) wrapError(inner error, message string) error {
+	return &Error{
 		c.id,
 		fmt.Sprintf("connection(%s) error: %s", c.id, message),
 		inner,
@@ -212,36 +292,4 @@ func createClientDoc(appName string) bson.M {
 	}
 
 	return clientDoc
-}
-
-func describeServer(c Connection, clientDoc bson.M) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
-	isMasterCmd := bson.D{{Name: "ismaster", Value: 1}}
-	if clientDoc != nil {
-		isMasterCmd = append(isMasterCmd, bson.DocElem{
-			Name:  "client",
-			Value: clientDoc,
-		})
-	}
-
-	isMasterReq := msg.NewCommand(
-		msg.NextRequestID(),
-		"admin",
-		true,
-		isMasterCmd,
-	)
-	buildInfoReq := msg.NewCommand(
-		msg.NextRequestID(),
-		"admin",
-		true,
-		bson.D{{Name: "buildInfo", Value: 1}},
-	)
-
-	var isMasterResult internal.IsMasterResult
-	var buildInfoResult internal.BuildInfoResult
-	err := ExecuteCommands(c, []msg.Request{isMasterReq, buildInfoReq}, []interface{}{&isMasterResult, &buildInfoResult})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &isMasterResult, &buildInfoResult, nil
 }

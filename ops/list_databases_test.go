@@ -1,6 +1,7 @@
 package ops_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -20,19 +21,19 @@ func TestListDatabases(t *testing.T) {
 	dropCollection(conn, collectionName, t)
 	insertDocuments(conn, collectionName, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListDatabases(conn, ListDatabasesOptions{})
+	cursor, err := ListDatabases(context.Background(), conn, ListDatabasesOptions{})
 	require.Nil(t, err)
 
 	var next bson.M
 	var found bool
-	for cursor.Next(&next) {
+	for cursor.Next(context.Background(), &next) {
 		if next["name"] == databaseName {
 			found = true
 		}
 	}
 	require.True(t, found, "Expected to have listed at least database named %v", databaseName)
 	require.Nil(t, cursor.Err())
-	require.Nil(t, cursor.Close())
+	require.Nil(t, cursor.Close(context.Background()))
 }
 
 func TestListDatabasesWithMaxTimeMS(t *testing.T) {
@@ -47,7 +48,7 @@ func TestListDatabasesWithMaxTimeMS(t *testing.T) {
 	}
 	defer disableMaxTimeFailPoint(conn, t)
 
-	_, err := ListDatabases(conn, ListDatabasesOptions{
+	_, err := ListDatabases(context.Background(), conn, ListDatabasesOptions{
 		MaxTime: time.Millisecond,
 	})
 	require.NotNil(t, err)

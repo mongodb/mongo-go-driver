@@ -1,6 +1,7 @@
 package auth_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -73,7 +74,7 @@ func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -109,7 +110,7 @@ func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -145,7 +146,7 @@ func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -181,7 +182,7 @@ func TestScramSHA1Authenticator_No_salt(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -217,7 +218,7 @@ func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -253,7 +254,7 @@ func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -296,7 +297,7 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -339,7 +340,7 @@ func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -382,7 +383,7 @@ func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -431,7 +432,7 @@ func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply, saslContinueReply2},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -474,7 +475,7 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
 	}
 
-	err := authenticator.Auth(conn)
+	err := authenticator.Auth(context.Background(), conn)
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}

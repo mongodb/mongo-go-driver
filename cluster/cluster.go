@@ -1,12 +1,14 @@
 package cluster
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
@@ -76,7 +78,7 @@ type Cluster interface {
 	// Desc gets a description of the cluster.
 	Desc() *Desc
 	// SelectServer selects a server given a selector.
-	SelectServer(ServerSelector) (server.Server, error)
+	SelectServer(context.Context, ServerSelector) (server.Server, error)
 }
 
 // ServerSelector is a function that selects a server.
@@ -107,7 +109,7 @@ func (c *clusterImpl) Desc() *Desc {
 	return desc
 }
 
-func (c *clusterImpl) SelectServer(selector ServerSelector) (server.Server, error) {
+func (c *clusterImpl) SelectServer(ctx context.Context, selector ServerSelector) (server.Server, error) {
 	timer := time.NewTimer(c.monitor.serverSelectionTimeout)
 	updated, id := c.awaitUpdates()
 	for {
@@ -133,6 +135,9 @@ func (c *clusterImpl) SelectServer(selector ServerSelector) (server.Server, erro
 		c.monitor.RequestImmediateCheck()
 
 		select {
+		case <-ctx.Done():
+			c.removeWaiter(id)
+			return nil, internal.WrapError(ctx.Err(), "server selection failed")
 		case <-updated:
 			// topology has changed
 		case <-timer.C:

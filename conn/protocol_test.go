@@ -1,6 +1,7 @@
 package conn_test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -36,7 +37,7 @@ func TestExecuteCommand_Valid(t *testing.T) {
 	conn.ResponseQ = append(conn.ResponseQ, msgtest.CreateCommandReply(bson.D{{"ok", 1}}))
 
 	var result okResp
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	if err != nil {
 		t.Fatalf("expected nil err but got \"%s\"", err)
@@ -57,7 +58,7 @@ func TestExecuteCommand_Error_writing_to_connection(t *testing.T) {
 	conn.WriteErr = fmt.Errorf("error writing")
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed sending commands", 1)
 }
@@ -68,9 +69,28 @@ func TestExecuteCommand_Error_reading_from_connection(t *testing.T) {
 	conn := &conntest.MockConnection{}
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed receiving command response", 1)
+}
+
+func TestExecuteCommand_Error_from_multiple_requests(t *testing.T) {
+	t.Parallel()
+
+	conn := &conntest.MockConnection{
+		SkipResponseToFixup: true,
+	}
+	reply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply.RespTo = 1000
+	conn.ResponseQ = append(conn.ResponseQ, reply)
+	reply = msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply.RespTo = 1001
+	conn.ResponseQ = append(conn.ResponseQ, reply)
+
+	var result bson.D
+	err := ExecuteCommands(context.Background(), conn, []msg.Request{&msg.Query{}, &msg.Query{}}, []interface{}{&result, &result})
+
+	validateExecuteCommandError(t, err, "multiple errors occured", 1)
 }
 
 func TestExecuteCommand_ResponseTo_does_not_equal_request_id(t *testing.T) {
@@ -84,7 +104,7 @@ func TestExecuteCommand_ResponseTo_does_not_equal_request_id(t *testing.T) {
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "received out of order response", 1)
 }
@@ -98,7 +118,7 @@ func TestExecuteCommand_NumberReturned_is_0(t *testing.T) {
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: command returned no documents", 1)
 }
@@ -112,7 +132,7 @@ func TestExecuteCommand_NumberReturned_is_greater_than_1(t *testing.T) {
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: command returned multiple documents", 1)
 }
@@ -128,7 +148,7 @@ func TestExecuteCommand_QueryFailure_flag_with_no_document(t *testing.T) {
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: unknown command failure", 1)
 }
@@ -144,7 +164,7 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command failure document", 1)
 
@@ -155,7 +175,7 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 	reply.ResponseFlags = msg.QueryFailure
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
-	err = ExecuteCommand(conn, &msg.Query{}, &result)
+	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command failure document", 1)
 
@@ -166,9 +186,23 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 	reply.ResponseFlags = msg.QueryFailure
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
-	err = ExecuteCommand(conn, &msg.Query{}, &result)
+	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command failure document", 1)
+}
+
+func TestExecuteCommand_QueryFailure_flag_with_document(t *testing.T) {
+	t.Parallel()
+
+	conn := &conntest.MockConnection{}
+	reply := msgtest.CreateCommandReply(bson.D{{"error", true}})
+	reply.ResponseFlags = msg.QueryFailure
+	conn.ResponseQ = append(conn.ResponseQ, reply)
+
+	var result bson.D
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
+
+	validateExecuteCommandError(t, err, "failed reading command response for 0: command failure: [{error true}]", 1)
 }
 
 func TestExecuteCommand_No_command_response(t *testing.T) {
@@ -181,7 +215,7 @@ func TestExecuteCommand_No_command_response(t *testing.T) {
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: no command response document", 1)
 }
@@ -196,7 +230,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command response document:", 1)
 
@@ -206,7 +240,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 	reply.DocumentsBytes = []byte{0, 1, 5, 62, 23}
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
-	err = ExecuteCommand(conn, &msg.Query{}, &result)
+	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command response document:", 1)
 
@@ -216,7 +250,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 	reply.DocumentsBytes = []byte{1, 0, 0, 0, 4, 6}
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
-	err = ExecuteCommand(conn, &msg.Query{}, &result)
+	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command response document:", 1)
 }
@@ -229,7 +263,7 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
-	err := ExecuteCommand(conn, &msg.Query{}, &result)
+	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed", 1)
 
@@ -237,7 +271,7 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 	reply = msgtest.CreateCommandReply(bson.D{{"ok", 0}})
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
-	err = ExecuteCommand(conn, &msg.Query{}, &result)
+	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed", 1)
 
@@ -245,7 +279,7 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 	reply = msgtest.CreateCommandReply(bson.D{{"ok", 0}, {"errmsg", "weird command was invalid"}})
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
-	err = ExecuteCommand(conn, &msg.Query{}, &result)
+	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
 	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed: weird command was invalid", 1)
 }
