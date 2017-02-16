@@ -11,12 +11,16 @@ import (
 // state of the server. When the Server is closed,
 // the monitor will be stopped.
 func New(endpoint conn.Endpoint, opts ...Option) (*Server, error) {
-	monitor, err := StartMonitor(endpoint, opts...)
+	cfg := newConfig(opts...)
+
+	monitor, err := StartMonitor(endpoint, cfg.monitorOpts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Server{
+		connOpts:    cfg.connOpts,
+		dialer:      cfg.dialer,
 		monitor:     monitor,
 		ownsMonitor: true,
 	}, nil
@@ -25,14 +29,20 @@ func New(endpoint conn.Endpoint, opts ...Option) (*Server, error) {
 // NewWithMonitor creates a new Server from
 // an existing monitor. When the server is closed,
 // the monitor will not be stopped.
-func NewWithMonitor(monitor *Monitor) *Server {
+func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
+	cfg := newConfig(opts...)
+
 	return &Server{
-		monitor: monitor,
+		connOpts: cfg.connOpts,
+		dialer:   cfg.dialer,
+		monitor:  monitor,
 	}
 }
 
 // Server is a logical connection to a server.
 type Server struct {
+	connOpts    []conn.Option
+	dialer      conn.Dialer
 	monitor     *Monitor
 	ownsMonitor bool
 }
@@ -46,7 +56,7 @@ func (s *Server) Close() {
 
 // Connection gets a connection to the server.
 func (s *Server) Connection(ctx context.Context) (conn.Connection, error) {
-	conn, err := s.monitor.connDialer(ctx, s.monitor.endpoint, s.monitor.connOpts...)
+	conn, err := s.dialer(ctx, s.monitor.endpoint, s.connOpts...)
 	if err != nil {
 		return nil, err
 	}

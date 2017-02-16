@@ -18,8 +18,8 @@ import (
 const minHeartbeatFreqMS = 500 * time.Millisecond
 
 // StartMonitor returns a new Monitor.
-func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
-	cfg := newConfig(opts...)
+func StartMonitor(endpoint conn.Endpoint, opts ...MonitorOption) (*Monitor, error) {
+	cfg := newMonitorConfig(opts...)
 
 	done := make(chan struct{}, 1)
 	checkNow := make(chan struct{}, 1)
@@ -32,8 +32,7 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 		done:              done,
 		checkNow:          checkNow,
 		connOpts:          cfg.connOpts,
-		connDialer:        cfg.connDialer,
-		heartbeatDialer:   cfg.heartbeatDialer,
+		dialer:            cfg.dialer,
 		heartbeatInterval: cfg.heartbeatInterval,
 	}
 
@@ -105,10 +104,10 @@ type Monitor struct {
 	subscriberLock      sync.Mutex
 
 	conn              conn.Connection
-	connDialer        conn.Dialer
 	connOpts          []conn.Option
 	desc              *Desc
 	descLock          sync.Mutex
+	dialer            conn.Dialer
 	checkNow          chan struct{}
 	done              chan struct{}
 	endpoint          conn.Endpoint
@@ -201,7 +200,7 @@ func (m *Monitor) heartbeat() *Desc {
 			// for heartbeat connections as well, which makes
 			// sharing a monitor in a multi-tenant arrangement
 			// impossible.
-			conn, err := m.heartbeatDialer(ctx, m.endpoint, m.connOpts...)
+			conn, err := m.dialer(ctx, m.endpoint, m.connOpts...)
 			if err != nil {
 				savedErr = err
 				if conn != nil {
