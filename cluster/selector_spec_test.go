@@ -25,7 +25,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest(t *testing.T)
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429366400),
+		LastWriteTime:     time.Unix(1487259440, 752130000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -39,7 +39,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest(t *testing.T)
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429366400),
+		LastWriteTime:     time.Unix(1487259440, 752130000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -90,7 +90,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_multiple(t *t
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429366400),
+		LastWriteTime:     time.Unix(1487259440, 752130000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -104,7 +104,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_multiple(t *t
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429366400),
+		LastWriteTime:     time.Unix(1487259440, 752130000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -156,7 +156,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_non_matching(
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429366400),
+		LastWriteTime:     time.Unix(1487259440, 752630200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -170,7 +170,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_non_matching(
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429866600),
+		LastWriteTime:     time.Unix(1487259440, 752630200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -218,7 +218,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Primary(t *testing.T)
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429866600),
+		LastWriteTime:     time.Unix(1487259440, 752630200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -232,7 +232,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Primary(t *testing.T)
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429866600),
+		LastWriteTime:     time.Unix(1487259440, 752630200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -273,7 +273,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred(t *t
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429866600),
+		LastWriteTime:     time.Unix(1487259440, 752630200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -287,7 +287,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred(t *t
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429866600),
+		LastWriteTime:     time.Unix(1487259440, 752630200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -331,7 +331,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred_non_
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429866600),
+		LastWriteTime:     time.Unix(1487259440, 752630200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -345,7 +345,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred_non_
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 429866600),
+		LastWriteTime:     time.Unix(1487259440, 753129100),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -393,7 +393,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary(t *testing.
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430366000),
+		LastWriteTime:     time.Unix(1487259440, 753129100),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -407,7 +407,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary(t *testing.
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430366000),
+		LastWriteTime:     time.Unix(1487259440, 753129100),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -458,7 +458,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred(t 
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430366000),
+		LastWriteTime:     time.Unix(1487259440, 753129100),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -472,7 +472,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred(t 
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430366000),
+		LastWriteTime:     time.Unix(1487259440, 753129100),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -523,7 +523,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred_no
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430366000),
+		LastWriteTime:     time.Unix(1487259440, 753129100),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -537,7 +537,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred_no
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430366000),
+		LastWriteTime:     time.Unix(1487259440, 753129100),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -585,7 +585,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags(
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430366000),
+		LastWriteTime:     time.Unix(1487259440, 753629300),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -601,7 +601,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags(
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430866100),
+		LastWriteTime:     time.Unix(1487259440, 753629300),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "sf",
@@ -659,7 +659,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags2
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430866100),
+		LastWriteTime:     time.Unix(1487259440, 753629300),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -675,7 +675,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags2
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430866100),
+		LastWriteTime:     time.Unix(1487259440, 753629300),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -733,7 +733,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_non_matchin
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430866100),
+		LastWriteTime:     time.Unix(1487259440, 753629300),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -747,7 +747,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_non_matchin
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430866100),
+		LastWriteTime:     time.Unix(1487259440, 753629300),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -795,7 +795,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_write_SecondaryPreferred(t
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430866100),
+		LastWriteTime:     time.Unix(1487259440, 754129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -809,7 +809,7 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_write_SecondaryPreferred(t
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 430866100),
+		LastWriteTime:     time.Unix(1487259440, 754129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -849,7 +849,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest(t *testing.
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431366300),
+		LastWriteTime:     time.Unix(1487259440, 754129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -863,7 +863,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest(t *testing.
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431366300),
+		LastWriteTime:     time.Unix(1487259440, 754129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -877,7 +877,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest(t *testing.
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431366300),
+		LastWriteTime:     time.Unix(1487259440, 754129000),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -930,7 +930,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_multiple(t 
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431366300),
+		LastWriteTime:     time.Unix(1487259440, 754129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -944,7 +944,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_multiple(t 
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431366300),
+		LastWriteTime:     time.Unix(1487259440, 754129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -958,7 +958,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_multiple(t 
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431366300),
+		LastWriteTime:     time.Unix(1487259440, 754129000),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1012,7 +1012,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_non_matchin
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431366300),
+		LastWriteTime:     time.Unix(1487259440, 754628800),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1026,7 +1026,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_non_matchin
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431866400),
+		LastWriteTime:     time.Unix(1487259440, 754628800),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1040,7 +1040,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_non_matchin
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431866400),
+		LastWriteTime:     time.Unix(1487259440, 754628800),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1089,7 +1089,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Primary(t *testing.
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431866400),
+		LastWriteTime:     time.Unix(1487259440, 754628800),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1103,7 +1103,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Primary(t *testing.
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431866400),
+		LastWriteTime:     time.Unix(1487259440, 754628800),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1117,7 +1117,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Primary(t *testing.
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431866400),
+		LastWriteTime:     time.Unix(1487259440, 754628800),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1161,7 +1161,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred(t 
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431866400),
+		LastWriteTime:     time.Unix(1487259440, 754628800),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1175,7 +1175,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred(t 
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431866400),
+		LastWriteTime:     time.Unix(1487259440, 755129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1189,7 +1189,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred(t 
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 431866400),
+		LastWriteTime:     time.Unix(1487259440, 755129000),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1233,7 +1233,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred_no
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432366200),
+		LastWriteTime:     time.Unix(1487259440, 755129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1247,7 +1247,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred_no
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432366200),
+		LastWriteTime:     time.Unix(1487259440, 755129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1261,7 +1261,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred_no
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432366200),
+		LastWriteTime:     time.Unix(1487259440, 755129000),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1312,7 +1312,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary(t *testin
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432366200),
+		LastWriteTime:     time.Unix(1487259440, 755129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1326,7 +1326,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary(t *testin
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432366200),
+		LastWriteTime:     time.Unix(1487259440, 755129000),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1340,7 +1340,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary(t *testin
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432366200),
+		LastWriteTime:     time.Unix(1487259440, 755629900),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1392,7 +1392,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred(
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432366200),
+		LastWriteTime:     time.Unix(1487259440, 755629900),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1406,7 +1406,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred(
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432366200),
+		LastWriteTime:     time.Unix(1487259440, 755629900),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1420,7 +1420,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred(
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432866300),
+		LastWriteTime:     time.Unix(1487259440, 755629900),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1472,7 +1472,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432866300),
+		LastWriteTime:     time.Unix(1487259440, 755629900),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1486,7 +1486,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432866300),
+		LastWriteTime:     time.Unix(1487259440, 755629900),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1500,7 +1500,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432866300),
+		LastWriteTime:     time.Unix(1487259440, 755629900),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1551,7 +1551,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432866300),
+		LastWriteTime:     time.Unix(1487259440, 756129200),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1565,7 +1565,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432866300),
+		LastWriteTime:     time.Unix(1487259440, 756129200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "sf",
@@ -1615,7 +1615,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary_non_match
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 432866300),
+		LastWriteTime:     time.Unix(1487259440, 756129200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1629,7 +1629,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary_non_match
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433366100),
+		LastWriteTime:     time.Unix(1487259440, 756129200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1643,7 +1643,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary_non_match
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433366100),
+		LastWriteTime:     time.Unix(1487259440, 756129200),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1692,7 +1692,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_write_SecondaryPreferred
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433366100),
+		LastWriteTime:     time.Unix(1487259440, 756129200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1706,7 +1706,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_write_SecondaryPreferred
 		Endpoint:          conn.Endpoint("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433366100),
+		LastWriteTime:     time.Unix(1487259440, 756129200),
 		Type:              server.RSSecondary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1720,7 +1720,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_write_SecondaryPreferred
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433366100),
+		LastWriteTime:     time.Unix(1487259440, 756629800),
 		Type:              server.RSPrimary,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1763,7 +1763,7 @@ func TestReadPref_ServerSelection_Sharded_read_SecondaryPreferred(t *testing.T) 
 		Endpoint:          conn.Endpoint("g:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433366100),
+		LastWriteTime:     time.Unix(1487259440, 756629800),
 		Type:              server.Mongos,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1777,7 +1777,7 @@ func TestReadPref_ServerSelection_Sharded_read_SecondaryPreferred(t *testing.T) 
 		Endpoint:          conn.Endpoint("h:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433366100),
+		LastWriteTime:     time.Unix(1487259440, 756629800),
 		Type:              server.Mongos,
 		Tags: server.NewTagSet(
 			"data_center", "dc",
@@ -1828,7 +1828,7 @@ func TestReadPref_ServerSelection_Sharded_write_SecondaryPreferred(t *testing.T)
 		Endpoint:          conn.Endpoint("g:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433366100),
+		LastWriteTime:     time.Unix(1487259440, 756629800),
 		Type:              server.Mongos,
 		Tags: server.NewTagSet(
 			"data_center", "nyc",
@@ -1842,7 +1842,7 @@ func TestReadPref_ServerSelection_Sharded_write_SecondaryPreferred(t *testing.T)
 		Endpoint:          conn.Endpoint("h:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433866200),
+		LastWriteTime:     time.Unix(1487259440, 756629800),
 		Type:              server.Mongos,
 		Tags: server.NewTagSet(
 			"data_center", "dc",
@@ -1885,7 +1885,7 @@ func TestReadPref_ServerSelection_Single_read_SecondaryPreferred(t *testing.T) {
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433866200),
+		LastWriteTime:     time.Unix(1487259440, 756629800),
 		Type:              server.Standalone,
 		Tags: server.NewTagSet(
 			"data_center", "dc",
@@ -1934,7 +1934,7 @@ func TestReadPref_ServerSelection_Single_write_SecondaryPreferred(t *testing.T) 
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 433866200),
+		LastWriteTime:     time.Unix(1487259440, 756629800),
 		Type:              server.Standalone,
 		Tags: server.NewTagSet(
 			"data_center", "dc",
@@ -2336,7 +2336,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_NoKnownServers(t *testing.T) 
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 434866100),
+		LastWriteTime:     time.Unix(1487259440, 757629300),
 		Type:              server.Unknown,
 
 		Version: conn.Version{Parts: []uint8{3, 2, 0}},
@@ -2348,7 +2348,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_NoKnownServers(t *testing.T) 
 		Endpoint:          conn.Endpoint("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 434866100),
+		LastWriteTime:     time.Unix(1487259440, 757629300),
 		Type:              server.Unknown,
 
 		Version: conn.Version{Parts: []uint8{3, 2, 0}},
@@ -4074,7 +4074,7 @@ func TestReadPref_MaxStaleness_Unknown_SmallMaxStaleness(t *testing.T) {
 		Endpoint:          conn.Endpoint("a:27017"),
 		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
-		LastWriteTime:     time.Unix(1487124244, 438866100),
+		LastWriteTime:     time.Unix(1487259440, 762146000),
 		Type:              server.Unknown,
 
 		Version: conn.Version{Parts: []uint8{3, 2, 0}},

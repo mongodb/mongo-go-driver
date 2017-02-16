@@ -102,7 +102,7 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 // Monitor holds a channel that delivers updates to a server.
 type Monitor struct {
 	subscribers         map[int64]chan *Desc
-	lastSubscriberId    int64
+	lastSubscriberID    int64
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
@@ -141,8 +141,8 @@ func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 	if m.subscriptionsClosed {
 		return nil, nil, errors.New("cannot subscribe to monitor after stopping it")
 	}
-	m.lastSubscriberId += 1
-	id := m.lastSubscriberId
+	m.lastSubscriberID++
+	id := m.lastSubscriberID
 	m.subscribers[id] = ch
 	m.subscriberLock.Unlock()
 

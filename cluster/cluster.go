@@ -86,7 +86,7 @@ type clusterImpl struct {
 	monitor      *Monitor
 	ownsMonitor  bool
 	waiters      map[int64]chan struct{}
-	lastWaiterId int64
+	lastWaiterID int64
 	waiterLock   sync.Mutex
 	desc         *Desc
 	descLock     sync.Mutex
@@ -137,7 +137,7 @@ func (c *clusterImpl) SelectServer(selector ServerSelector) (server.Server, erro
 			// topology has changed
 		case <-timer.C:
 			c.removeWaiter(id)
-			return nil, errors.New("Server selection timed out")
+			return nil, errors.New("server selection timed out")
 		}
 	}
 }
@@ -146,7 +146,7 @@ func (c *clusterImpl) SelectServer(selector ServerSelector) (server.Server, erro
 // cluster description is updated, and an id which can later be used
 // to remove this channel from the clusterImpl.waiters map.
 func (c *clusterImpl) awaitUpdates() (<-chan struct{}, int64) {
-	id := atomic.AddInt64(&c.lastWaiterId, 1)
+	id := atomic.AddInt64(&c.lastWaiterID, 1)
 	ch := make(chan struct{}, 1)
 	c.waiterLock.Lock()
 	c.waiters[id] = ch
