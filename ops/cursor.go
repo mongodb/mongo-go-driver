@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/msg"
 	"gopkg.in/mgo.v2/bson"
 )
 
 // NewCursor creates a new cursor from the given cursor result.
-func NewCursor(cursorResult CursorResult, batchSize int32, conn conn.Connection) (Cursor, error) {
+func NewCursor(cursorResult CursorResult, batchSize int32, server Server) (Cursor, error) {
 	namespace := cursorResult.Namespace()
 	if err := namespace.validate(); err != nil {
 		return nil, err
@@ -21,7 +22,7 @@ func NewCursor(cursorResult CursorResult, batchSize int32, conn conn.Connection)
 		current:      0,
 		currentBatch: cursorResult.InitialBatch(),
 		cursorID:     cursorResult.CursorID(),
-		conn:         conn,
+		server:       server,
 	}, nil
 }
 
@@ -53,7 +54,7 @@ type cursorImpl struct {
 	currentBatch []bson.Raw
 	cursorID     int64
 	err          error
-	conn         conn.Connection // TODO: missing abstraction.  Shouldn't require a connection here, but just a way to acquire and release one
+	server       Server
 }
 
 func (c *cursorImpl) Next(ctx context.Context, result interface{}) bool {
@@ -99,13 +100,26 @@ func (c *cursorImpl) Close(ctx context.Context) error {
 		killCursorsCommand,
 	)
 
-	err := conn.ExecuteCommand(ctx, c.conn, killCursorsRequest, &bson.D{})
-	if err == nil {
-		c.cursorID = 0
-	} else if c.err == nil {
-		c.err = err
+	connection, err := c.server.Connection(ctx)
+	if err != nil {
+		c.err = internal.MultiError(
+			c.err,
+			internal.WrapErrorf(err, "unable to get a connection to kill cursor %d", c.cursorID),
+		)
+		return c.err
+	}
+	defer connection.Close()
+
+	err = conn.ExecuteCommand(ctx, connection, killCursorsRequest, &bson.D{})
+	if err != nil {
+		c.err = internal.MultiError(
+			c.err,
+			internal.WrapErrorf(err, "unable to kill cursor %d", c.cursorID),
+		)
+		return c.err
 	}
 
+	c.cursorID = 0
 	return c.err
 }
 
@@ -157,9 +171,16 @@ func (c *cursorImpl) getMore(ctx context.Context) {
 		} `bson:"cursor"`
 	}
 
-	err := conn.ExecuteCommand(ctx, c.conn, getMoreRequest, &response)
+	connection, err := c.server.Connection(ctx)
 	if err != nil {
-		c.err = err
+		c.err = internal.WrapErrorf(err, "unable to get a connection to get the next batch for cursor %d", c.cursorID)
+		return
+	}
+	defer connection.Close()
+
+	err = conn.ExecuteCommand(ctx, connection, getMoreRequest, &response)
+	if err != nil {
+		c.err = internal.WrapErrorf(err, "unable get the next batch for cursor %d", c.cursorID)
 		return
 	}
 

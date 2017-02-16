@@ -90,7 +90,7 @@ func TestExecuteCommand_Error_from_multiple_requests(t *testing.T) {
 	var result bson.D
 	err := ExecuteCommands(context.Background(), conn, []msg.Request{&msg.Query{}, &msg.Query{}}, []interface{}{&result, &result})
 
-	validateExecuteCommandError(t, err, "multiple errors occured", 1)
+	validateExecuteCommandError(t, err, "multiple errors encountered", 1)
 }
 
 func TestExecuteCommand_ResponseTo_does_not_equal_request_id(t *testing.T) {

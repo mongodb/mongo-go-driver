@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
@@ -19,7 +20,7 @@ type ListCollectionsOptions struct {
 }
 
 // ListCollections lists the collections in the given database with the given options.
-func ListCollections(ctx context.Context, c conn.Connection, db string, options ListCollectionsOptions) (Cursor, error) {
+func ListCollections(ctx context.Context, s *SelectedServer, db string, options ListCollectionsOptions) (Cursor, error) {
 	if err := validateDB(db); err != nil {
 		return nil, err
 	}
@@ -44,11 +45,17 @@ func ListCollections(ctx context.Context, c conn.Connection, db string, options 
 		listCollectionsCommand,
 	)
 
-	var result cursorReturningResult
+	c, err := s.Connection(ctx)
+	if err != nil {
+		return nil, internal.WrapError(err, "unable to get a connection to execute listCollections")
+	}
+	defer c.Close()
 
-	err := conn.ExecuteCommand(ctx, c, request, &result)
+	var result cursorReturningResult
+	err = conn.ExecuteCommand(ctx, c, request, &result)
 	if err != nil {
 		return nil, err
 	}
-	return NewCursor(&result.Cursor, options.BatchSize, c)
+
+	return NewCursor(&result.Cursor, options.BatchSize, s)
 }

@@ -5,11 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
 	. "github.com/10gen/mongo-go-driver/ops"
+	"github.com/10gen/mongo-go-driver/server"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -18,24 +20,27 @@ var host = flag.String("host", "127.0.0.1:27017", "specify the location of a run
 
 const databaseName = "mongo-go-driver"
 
-var testConn conn.Connection
+var testServerOnce sync.Once
+var testServer Server
 
-func getConnection() conn.Connection {
-	if testConn == nil {
+func getServer() *SelectedServer {
+	testServerOnce.Do(func() {
 		var err error
-		testConn, err = conn.Dial(
-			context.Background(),
+		testServer, err = server.New(
 			conn.Endpoint(*host),
-			conn.WithAppName("mongo-go-driver-test"),
+			server.WithConnectionOptions(
+				conn.WithAppName("mongo-go-driver-test:ops"),
+			),
 		)
 		if err != nil {
 			panic(fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err))
 		}
-	}
-	return testConn
+	})
+
+	return &SelectedServer{testServer, nil}
 }
 
-func insertDocuments(c conn.Connection, collectionName string, documents []bson.D, t *testing.T) {
+func insertDocuments(s Server, collectionName string, documents []bson.D, t *testing.T) {
 	insertCommand := bson.D{
 		{"insert", collectionName},
 		{"documents", documents},
@@ -47,11 +52,15 @@ func insertDocuments(c conn.Connection, collectionName string, documents []bson.
 		insertCommand,
 	)
 
-	err := conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
+	c, err := s.Connection(context.Background())
+	require.Nil(t, err)
+	defer c.Close()
+
+	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
 	require.Nil(t, err)
 }
 
-func find(c conn.Connection, collectionName string, batchSize int32, t *testing.T) CursorResult {
+func find(s Server, collectionName string, batchSize int32, t *testing.T) CursorResult {
 	findCommand := bson.D{
 		{"find", collectionName},
 	}
@@ -65,9 +74,13 @@ func find(c conn.Connection, collectionName string, batchSize int32, t *testing.
 		findCommand,
 	)
 
+	c, err := s.Connection(context.Background())
+	require.Nil(t, err)
+	defer c.Close()
+
 	var result cursorReturningResult
 
-	err := conn.ExecuteCommand(context.Background(), c, request, &result)
+	err = conn.ExecuteCommand(context.Background(), c, request, &result)
 	require.Nil(t, err)
 
 	return &result.Cursor
@@ -96,8 +109,12 @@ func (cursorResult *firstBatchCursorResult) CursorID() int64 {
 	return cursorResult.ID
 }
 
-func dropCollection(c conn.Connection, collectionName string, t *testing.T) {
-	err := conn.ExecuteCommand(
+func dropCollection(s Server, collectionName string, t *testing.T) {
+	c, err := s.Connection(context.Background())
+	require.Nil(t, err)
+	defer c.Close()
+
+	err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(
@@ -113,7 +130,11 @@ func dropCollection(c conn.Connection, collectionName string, t *testing.T) {
 	}
 }
 
-func enableMaxTimeFailPoint(c conn.Connection) error {
+func enableMaxTimeFailPoint(s Server, t *testing.T) error {
+	c, err := s.Connection(context.Background())
+	require.Nil(t, err)
+	defer c.Close()
+
 	return conn.ExecuteCommand(
 		context.Background(),
 		c,
@@ -130,8 +151,12 @@ func enableMaxTimeFailPoint(c conn.Connection) error {
 	)
 }
 
-func disableMaxTimeFailPoint(c conn.Connection, t *testing.T) {
-	err := conn.ExecuteCommand(
+func disableMaxTimeFailPoint(s Server, t *testing.T) {
+	c, err := s.Connection(context.Background())
+	require.Nil(t, err)
+	defer c.Close()
+
+	err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(msg.NextRequestID(),

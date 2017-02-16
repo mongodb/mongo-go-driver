@@ -15,10 +15,12 @@ func TestAggregateWithInvalidNamespace(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
 
-	namespace := Namespace{}
-	_, err := Aggregate(context.Background(), conn, namespace,
+	_, err := Aggregate(
+		context.Background(),
+		getServer(),
+		Namespace{},
 		[]bson.D{},
 		AggregationOptions{})
 	require.NotNil(t, err)
@@ -29,14 +31,16 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	server := getServer()
 
 	collectionName := "TestAggregateWithMultipleBatches"
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
-	insertDocuments(conn, collectionName, documents, t)
+	insertDocuments(server, collectionName, documents, t)
 
 	namespace := Namespace{databaseName, collectionName}
-	cursor, err := Aggregate(context.Background(), conn, namespace,
+	cursor, err := Aggregate(context.Background(), server, namespace,
 		[]bson.D{
 			{{"$match", bson.D{{"_id", bson.D{{"$gt", 2}}}}}},
 			{{"$sort", bson.D{{"_id", -1}}}}},
@@ -66,14 +70,16 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	server := getServer()
 
 	collectionName := "TestAggregateWithAllowDiskUse"
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}}
-	insertDocuments(conn, collectionName, documents, t)
+	insertDocuments(server, collectionName, documents, t)
 
 	namespace := Namespace{databaseName, collectionName}
-	_, err := Aggregate(context.Background(), conn, namespace,
+	_, err := Aggregate(context.Background(), server, namespace,
 		[]bson.D{},
 		AggregationOptions{
 			AllowDiskUse: true})
@@ -85,16 +91,18 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
 
-	if enableMaxTimeFailPoint(conn) != nil {
+	server := getServer()
+
+	if enableMaxTimeFailPoint(server, t) != nil {
 		t.Skip("skipping maxTimeMS test when max time failpoint is disabled")
 	}
-	defer disableMaxTimeFailPoint(conn, t)
+	defer disableMaxTimeFailPoint(server, t)
 
 	collectionName := "TestAggregateWithAllowDiskUse"
 	namespace := Namespace{databaseName, collectionName}
-	_, err := Aggregate(context.Background(), conn, namespace,
+	_, err := Aggregate(context.Background(), server, namespace,
 		[]bson.D{},
 		AggregationOptions{
 			MaxTime: time.Millisecond})

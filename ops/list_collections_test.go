@@ -15,8 +15,10 @@ func TestListCollectionsWithInvalidDatabaseName(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
-	_, err := ListCollections(context.Background(), conn, "", ListCollectionsOptions{})
+	t.Parallel()
+
+	s := getServer()
+	_, err := ListCollections(context.Background(), s, "", ListCollectionsOptions{})
 	require.NotNil(t, err)
 }
 
@@ -25,21 +27,23 @@ func TestListCollections(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	collectionNameOne := "TestListCollectionsMultipleBatches1"
 	collectionNameTwo := "TestListCollectionsMultipleBatches2"
 	collectionNameThree := "TestListCollectionsMultipleBatches3"
 
-	dropCollection(conn, collectionNameOne, t)
-	dropCollection(conn, collectionNameTwo, t)
-	dropCollection(conn, collectionNameThree, t)
+	dropCollection(s, collectionNameOne, t)
+	dropCollection(s, collectionNameTwo, t)
+	dropCollection(s, collectionNameThree, t)
 
-	insertDocuments(conn, collectionNameOne, []bson.D{{{"_id", 1}}}, t)
-	insertDocuments(conn, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
-	insertDocuments(conn, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
+	insertDocuments(s, collectionNameOne, []bson.D{{{"_id", 1}}}, t)
+	insertDocuments(s, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
+	insertDocuments(s, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListCollections(context.Background(), conn, databaseName, ListCollectionsOptions{})
+	cursor, err := ListCollections(context.Background(), s, databaseName, ListCollectionsOptions{})
 	require.Nil(t, err)
 
 	names := []string{}
@@ -59,21 +63,23 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	collectionNameOne := "TestListCollectionsMultipleBatches1"
 	collectionNameTwo := "TestListCollectionsMultipleBatches2"
 	collectionNameThree := "TestListCollectionsMultipleBatches3"
 
-	dropCollection(conn, collectionNameOne, t)
-	dropCollection(conn, collectionNameTwo, t)
-	dropCollection(conn, collectionNameThree, t)
+	dropCollection(s, collectionNameOne, t)
+	dropCollection(s, collectionNameTwo, t)
+	dropCollection(s, collectionNameThree, t)
 
-	insertDocuments(conn, collectionNameOne, []bson.D{{{"_id", 1}}}, t)
-	insertDocuments(conn, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
-	insertDocuments(conn, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
+	insertDocuments(s, collectionNameOne, []bson.D{{{"_id", 1}}}, t)
+	insertDocuments(s, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
+	insertDocuments(s, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListCollections(context.Background(), conn, databaseName, ListCollectionsOptions{
+	cursor, err := ListCollections(context.Background(), s, databaseName, ListCollectionsOptions{
 		Filter:    bson.D{{"name", bson.RegEx{Pattern: "^TestListCollectionsMultipleBatches.*"}}},
 		BatchSize: 2})
 	require.Nil(t, err)
@@ -96,14 +102,16 @@ func TestListCollectionsWithMaxTimeMS(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
 
-	if enableMaxTimeFailPoint(conn) != nil {
+	s := getServer()
+
+	if enableMaxTimeFailPoint(s, t) != nil {
 		t.Skip("skipping maxTimeMS test when max time failpoint is disabled")
 	}
-	defer disableMaxTimeFailPoint(conn, t)
+	defer disableMaxTimeFailPoint(s, t)
 
-	_, err := ListCollections(context.Background(), conn, databaseName, ListCollectionsOptions{MaxTime: time.Millisecond})
+	_, err := ListCollections(context.Background(), s, databaseName, ListCollectionsOptions{MaxTime: time.Millisecond})
 	require.NotNil(t, err)
 
 	// Hacky check for the error message.  Should we be returning a more structured error?

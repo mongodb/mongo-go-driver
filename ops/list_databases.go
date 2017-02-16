@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/msg"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -16,7 +17,7 @@ type ListDatabasesOptions struct {
 }
 
 // ListDatabases lists the databases with the given options
-func ListDatabases(ctx context.Context, c conn.Connection, options ListDatabasesOptions) (Cursor, error) {
+func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabasesOptions) (Cursor, error) {
 
 	listDatabasesCommand := struct {
 		ListDatabases int32 `bson:"listDatabases"`
@@ -32,11 +33,16 @@ func ListDatabases(ctx context.Context, c conn.Connection, options ListDatabases
 		listDatabasesCommand,
 	)
 
+	c, err := s.Connection(ctx)
+	if err != nil {
+		return nil, internal.WrapError(err, "unable to get a connection to execute listCollections")
+	}
+	defer c.Close()
+
 	var result struct {
 		Databases []bson.Raw `bson:"databases"`
 	}
-
-	err := conn.ExecuteCommand(ctx, c, request, &result)
+	err = conn.ExecuteCommand(ctx, c, request, &result)
 	if err != nil {
 		return nil, err
 	}

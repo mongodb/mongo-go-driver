@@ -34,6 +34,52 @@ func WrapErrorf(inner error, format string, args ...interface{}) error {
 	return &wrappedError{fmt.Sprintf(format, args...), inner}
 }
 
+// MultiError combines multiple errors into a single error. If there are no errors,
+// nil is returned. If there is 1 error, it is returned. Otherwise, they are combined.
+func MultiError(errors ...error) error {
+
+	// remove nils from the error list
+	var nonNils []error
+	for _, e := range errors {
+		if e != nil {
+			nonNils = append(nonNils, e)
+		}
+	}
+
+	switch len(nonNils) {
+	case 0:
+		return nil
+	case 1:
+		return nonNils[0]
+	default:
+		return &multiError{
+			message: "multiple errors encountered",
+			errors:  nonNils,
+		}
+	}
+}
+
+type multiError struct {
+	message string
+	errors  []error
+}
+
+func (e *multiError) Message() string {
+	return e.message
+}
+
+func (e *multiError) Error() string {
+	result := e.message
+	for _, e := range e.errors {
+		result += fmt.Sprintf("\n  %s", e)
+	}
+	return result
+}
+
+func (e *multiError) Errors() []error {
+	return e.errors
+}
+
 type wrappedError struct {
 	message string
 	inner   error

@@ -15,13 +15,15 @@ func TestListDatabases(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	collectionName := "TestListDatabases"
-	dropCollection(conn, collectionName, t)
-	insertDocuments(conn, collectionName, []bson.D{{{"_id", 1}}}, t)
+	dropCollection(s, collectionName, t)
+	insertDocuments(s, collectionName, []bson.D{{{"_id", 1}}}, t)
 
-	cursor, err := ListDatabases(context.Background(), conn, ListDatabasesOptions{})
+	cursor, err := ListDatabases(context.Background(), s, ListDatabasesOptions{})
 	require.Nil(t, err)
 
 	var next bson.M
@@ -41,14 +43,16 @@ func TestListDatabasesWithMaxTimeMS(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
 
-	if enableMaxTimeFailPoint(conn) != nil {
+	s := getServer()
+
+	if enableMaxTimeFailPoint(s, t) != nil {
 		t.Skip("skipping maxTimeMS test when max time failpoint is disabled")
 	}
-	defer disableMaxTimeFailPoint(conn, t)
+	defer disableMaxTimeFailPoint(s, t)
 
-	_, err := ListDatabases(context.Background(), conn, ListDatabasesOptions{
+	_, err := ListDatabases(context.Background(), s, ListDatabasesOptions{
 		MaxTime: time.Millisecond,
 	})
 	require.NotNil(t, err)

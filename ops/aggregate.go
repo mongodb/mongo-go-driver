@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
@@ -21,7 +22,7 @@ type AggregationOptions struct {
 // Aggregate executes the aggregate command with the given pipeline and options.
 //
 // The pipeline must encode as a BSON array of pipeline stages.
-func Aggregate(ctx context.Context, c conn.Connection, ns Namespace, pipeline interface{}, options AggregationOptions) (Cursor, error) {
+func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline interface{}, options AggregationOptions) (Cursor, error) {
 	if err := ns.validate(); err != nil {
 		return nil, err
 	}
@@ -50,10 +51,16 @@ func Aggregate(ctx context.Context, c conn.Connection, ns Namespace, pipeline in
 
 	var result cursorReturningResult
 
-	err := conn.ExecuteCommand(ctx, c, request, &result)
+	c, err := s.Connection(ctx)
 	if err != nil {
-		return nil, err
+		return nil, internal.WrapError(err, "unable to get a connection to execute aggregate")
+	}
+	defer c.Close()
+
+	err = conn.ExecuteCommand(ctx, c, request, &result)
+	if err != nil {
+		return nil, internal.WrapError(err, "failed to execute aggregate")
 	}
 
-	return NewCursor(&result.Cursor, options.BatchSize, c)
+	return NewCursor(&result.Cursor, options.BatchSize, s)
 }

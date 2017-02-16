@@ -14,11 +14,13 @@ func TestCursorWithInvalidNamespace(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	_, err := NewCursor(&firstBatchCursorResult{
 		NS: "foo",
-	}, 0, conn)
+	}, 0, s)
 	require.NotNil(t, err)
 }
 
@@ -27,14 +29,16 @@ func TestCursorEmpty(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	collectionName := "TestCursorEmpty"
-	dropCollection(conn, collectionName, t)
+	dropCollection(s, collectionName, t)
 
-	cursorResult := find(conn, collectionName, 0, t)
+	cursorResult := find(s, collectionName, 0, t)
 
-	subject, _ := NewCursor(cursorResult, 0, conn)
+	subject, _ := NewCursor(cursorResult, 0, s)
 	hasNext := subject.Next(context.Background(), &bson.D{})
 	require.False(t, hasNext, "Empty cursor should not have next")
 }
@@ -44,16 +48,18 @@ func TestCursorSingleBatch(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	collectionName := "TestCursorSingleBatch"
-	dropCollection(conn, collectionName, t)
+	dropCollection(s, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}}
-	insertDocuments(conn, collectionName, documents, t)
+	insertDocuments(s, collectionName, documents, t)
 
-	cursorResult := find(conn, collectionName, 0, t)
+	cursorResult := find(s, collectionName, 0, t)
 
-	subject, _ := NewCursor(cursorResult, 0, conn)
+	subject, _ := NewCursor(cursorResult, 0, s)
 	var next bson.D
 	var hasNext bool
 
@@ -74,16 +80,18 @@ func TestCursorMultipleBatches(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	collectionName := "TestCursorMultipleBatches"
-	dropCollection(conn, collectionName, t)
+	dropCollection(s, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
-	insertDocuments(conn, collectionName, documents, t)
+	insertDocuments(s, collectionName, documents, t)
 
-	cursorResult := find(conn, collectionName, 2, t)
+	cursorResult := find(s, collectionName, 2, t)
 
-	subject, _ := NewCursor(cursorResult, 2, conn)
+	subject, _ := NewCursor(cursorResult, 2, s)
 	var next bson.D
 	var hasNext bool
 
@@ -116,16 +124,18 @@ func TestCursorClose(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	collectionName := "TestCursorClose"
-	dropCollection(conn, collectionName, t)
+	dropCollection(s, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
-	insertDocuments(conn, collectionName, documents, t)
+	insertDocuments(s, collectionName, documents, t)
 
-	cursorResult := find(conn, collectionName, 2, t)
+	cursorResult := find(s, collectionName, 2, t)
 
-	subject, _ := NewCursor(cursorResult, 2, conn)
+	subject, _ := NewCursor(cursorResult, 2, s)
 	err := subject.Close(context.Background())
 	require.Nil(t, err, "Unexpected error")
 
@@ -139,16 +149,18 @@ func TestCursorError(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	conn := getConnection()
+	t.Parallel()
+
+	s := getServer()
 
 	collectionName := "TestCursorError"
-	dropCollection(conn, collectionName, t)
+	dropCollection(s, collectionName, t)
 	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
-	insertDocuments(conn, collectionName, documents, t)
+	insertDocuments(s, collectionName, documents, t)
 
-	cursorResult := find(conn, collectionName, 2, t)
+	cursorResult := find(s, collectionName, 2, t)
 
-	subject, _ := NewCursor(cursorResult, 2, conn)
+	subject, _ := NewCursor(cursorResult, 2, s)
 	var next string
 	var hasNext bool
 

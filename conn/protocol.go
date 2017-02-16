@@ -60,18 +60,7 @@ func ExecuteCommands(ctx context.Context, c Connection, requests []msg.Request, 
 		}
 	}
 
-	switch len(errors) {
-	case 0:
-	case 1:
-		return errors[0]
-	default:
-		return &multiError{
-			message: "multiple errors occured",
-			errors:  errors,
-		}
-	}
-
-	return nil
+	return internal.MultiError(errors...)
 }
 
 func readCommandResponse(resp msg.Response, out interface{}) error {

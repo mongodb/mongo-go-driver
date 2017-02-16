@@ -12,25 +12,10 @@ type serverConn struct {
 	conn.Connection
 }
 
-// Alive indicates if the connection is still alive.
-func (c *serverConn) Alive() bool {
-	return c.Connection.Alive()
-}
-
 // Close closes the connection.
 func (c *serverConn) Close() error {
 	c.server.connClosed(c)
 	return nil
-}
-
-// Desc gets a description of the connection.
-func (c *serverConn) Desc() *conn.Desc {
-	return c.Connection.Desc()
-}
-
-// Expired indicates if the connection has expired.
-func (c *serverConn) Expired() bool {
-	return c.Connection.Expired()
 }
 
 // Read reads a message from the connection.

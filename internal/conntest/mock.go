@@ -9,6 +9,7 @@ import (
 )
 
 type MockConnection struct {
+	Dead      bool
 	Sent      []msg.Request
 	ResponseQ []*msg.Reply
 	WriteErr  error
@@ -17,10 +18,11 @@ type MockConnection struct {
 }
 
 func (c *MockConnection) Alive() bool {
-	return true
+	return !c.Dead
 }
 
 func (c *MockConnection) Close() error {
+	c.Dead = true
 	return nil
 }
 
