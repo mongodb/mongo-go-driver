@@ -33,13 +33,22 @@ func Dial(ctx context.Context, endpoint Endpoint, opts ...Option) (Connection, e
 		return nil, err
 	}
 
-	c := &connImpl{
-		id:    fmt.Sprintf("%s[-%d]", endpoint, nextClientConnectionID()),
-		codec: cfg.codec,
-		desc:  &Desc{},
-		ep:    endpoint,
-		rw:    netConn,
+	var lifetimeDeadline time.Time
+	if cfg.lifeTimeout > 0 {
+		lifetimeDeadline = time.Now().Add(cfg.lifeTimeout)
 	}
+
+	c := &connImpl{
+		id:               fmt.Sprintf("%s[-%d]", endpoint, nextClientConnectionID()),
+		codec:            cfg.codec,
+		desc:             &Desc{},
+		ep:               endpoint,
+		rw:               netConn,
+		lifetimeDeadline: lifetimeDeadline,
+		idleTimeout:      cfg.idleTimeout,
+	}
+
+	c.bumpIdleDeadline()
 
 	err = c.initialize(ctx, cfg.appName)
 	if err != nil {
@@ -51,10 +60,14 @@ func Dial(ctx context.Context, endpoint Endpoint, opts ...Option) (Connection, e
 
 // Connection is responsible for reading and writing messages.
 type Connection interface {
+	// Alive indicates if the connection is still alive.
+	Alive() bool
 	// Close closes the connection.
 	Close() error
 	// Desc gets a description of the connection.
 	Desc() *Desc
+	// Expired indicates if the connection has expired.
+	Expired() bool
 	// Read reads a message from the connection.
 	Read(context.Context) (msg.Response, error)
 	// Write writes a number of messages to the connection.
@@ -87,12 +100,19 @@ func (e *Error) Inner() error {
 type connImpl struct {
 	// if id is negative, it's the client identifier; otherwise it's the same
 	// as the id the server is using.
-	id    string
-	codec msg.Codec
-	desc  *Desc
-	ep    Endpoint
-	rw    net.Conn
-	dead  bool
+	id               string
+	codec            msg.Codec
+	desc             *Desc
+	ep               Endpoint
+	rw               net.Conn
+	dead             bool
+	idleTimeout      time.Duration
+	idleDeadline     time.Time
+	lifetimeDeadline time.Time
+}
+
+func (c *connImpl) Alive() bool {
+	return !c.dead
 }
 
 func (c *connImpl) Close() error {
@@ -107,6 +127,18 @@ func (c *connImpl) Close() error {
 
 func (c *connImpl) Desc() *Desc {
 	return c.desc
+}
+
+func (c *connImpl) Expired() bool {
+	now := time.Now()
+	if !c.idleDeadline.IsZero() && now.After(c.idleDeadline) {
+		return true
+	}
+	if !c.lifetimeDeadline.IsZero() && now.After(c.lifetimeDeadline) {
+		return true
+	}
+
+	return false
 }
 
 func (c *connImpl) Read(ctx context.Context) (msg.Response, error) {
@@ -148,6 +180,7 @@ func (c *connImpl) Read(ctx context.Context) (msg.Response, error) {
 		return nil, c.wrapError(err, "failed reading: invalid message type received")
 	}
 
+	c.bumpIdleDeadline()
 	return resp, nil
 }
 
@@ -188,7 +221,15 @@ func (c *connImpl) Write(ctx context.Context, requests ...msg.Request) error {
 		c.dead = true
 		return c.wrapError(err, "failed writing")
 	}
+
+	c.bumpIdleDeadline()
 	return nil
+}
+
+func (c *connImpl) bumpIdleDeadline() {
+	if c.idleTimeout > 0 {
+		c.idleDeadline = time.Now().Add(c.idleTimeout)
+	}
 }
 
 func (c *connImpl) describeServer(ctx context.Context, clientDoc bson.M) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {

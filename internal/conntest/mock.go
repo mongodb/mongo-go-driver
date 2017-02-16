@@ -16,12 +16,20 @@ type MockConnection struct {
 	SkipResponseToFixup bool
 }
 
+func (c *MockConnection) Alive() bool {
+	return true
+}
+
 func (c *MockConnection) Close() error {
 	return nil
 }
 
 func (c *MockConnection) Desc() *conn.Desc {
 	return &conn.Desc{}
+}
+
+func (c *MockConnection) Expired() bool {
+	return false
 }
 
 func (c *MockConnection) Read(ctx context.Context) (msg.Response, error) {

@@ -1,11 +1,17 @@
 package conn
 
-import "github.com/10gen/mongo-go-driver/msg"
+import (
+	"time"
+
+	"github.com/10gen/mongo-go-driver/msg"
+)
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		codec:  msg.NewWireProtocolCodec(),
-		dialer: DialEndpoint,
+		codec:       msg.NewWireProtocolCodec(),
+		dialer:      DialEndpoint,
+		idleTimeout: 10 * time.Minute,
+		lifeTimeout: 30 * time.Minute,
 	}
 
 	for _, opt := range opts {
@@ -19,9 +25,11 @@ func newConfig(opts ...Option) *config {
 type Option func(*config)
 
 type config struct {
-	appName string
-	codec   msg.Codec
-	dialer  EndpointDialer
+	appName     string
+	codec       msg.Codec
+	dialer      EndpointDialer
+	idleTimeout time.Duration
+	lifeTimeout time.Duration
 }
 
 // WithAppName sets the application name which gets
@@ -44,5 +52,21 @@ func WithCodec(codec msg.Codec) Option {
 func WithEndpointDialer(dialer EndpointDialer) Option {
 	return func(c *config) {
 		c.dialer = dialer
+	}
+}
+
+// WithIdleTimeout configures the maximum idle time
+// to allow for a connection.
+func WithIdleTimeout(timeout time.Duration) Option {
+	return func(c *config) {
+		c.idleTimeout = timeout
+	}
+}
+
+// WithLifeTimeout configures the maximum life of a
+// connection.
+func WithLifeTimeout(timeout time.Duration) Option {
+	return func(c *config) {
+		c.lifeTimeout = timeout
 	}
 }

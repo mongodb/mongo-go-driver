@@ -18,7 +18,7 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 		changes:                make(chan *server.Desc),
 		desc:                   &Desc{},
 		fsm:                    &monitorFSM{},
-		servers:                make(map[conn.Endpoint]*server.Monitor),
+		servers:                make(map[conn.Endpoint]*server.Server),
 		serverOpts:             cfg.serverOpts,
 		serverSelectionTimeout: cfg.serverSelectionTimeout,
 	}
@@ -86,7 +86,7 @@ type Monitor struct {
 
 	serversLock            sync.Mutex
 	serversClosed          bool
-	servers                map[conn.Endpoint]*server.Monitor
+	servers                map[conn.Endpoint]*server.Server
 	serverOpts             []server.Option
 	serverSelectionTimeout time.Duration
 }
@@ -139,8 +139,8 @@ func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 // cluster right away, instead of waiting for the heartbeat timeout.
 func (m *Monitor) RequestImmediateCheck() {
 	m.serversLock.Lock()
-	for _, mon := range m.servers {
-		mon.RequestImmediateCheck()
+	for _, server := range m.servers {
+		server.RequestImmediateCheck()
 	}
 	m.serversLock.Unlock()
 }
@@ -151,7 +151,7 @@ func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {
 		return
 	}
 
-	serverM, _ := server.StartMonitor(endpoint, m.serverOpts...)
+	serverM, _ := server.New(endpoint, m.serverOpts...)
 
 	m.servers[endpoint] = serverM
 
@@ -164,8 +164,8 @@ func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {
 	}()
 }
 
-func (m *Monitor) stopMonitoringEndpoint(endpoint conn.Endpoint, server *server.Monitor) {
-	server.Stop()
+func (m *Monitor) stopMonitoringEndpoint(endpoint conn.Endpoint, server *server.Server) {
+	server.Close()
 	delete(m.servers, endpoint)
 }
 
