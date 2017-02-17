@@ -23,6 +23,7 @@ func New(opts ...Option) (*Cluster, error) {
 	}
 
 	cluster := &Cluster{
+		cfg:         monitor.cfg,
 		monitor:     monitor,
 		ownsMonitor: true,
 		waiters:     make(map[int64]chan struct{}),
@@ -34,9 +35,12 @@ func New(opts ...Option) (*Cluster, error) {
 
 // NewWithMonitor creates a new Cluster from
 // an existing monitor. When the cluster is closed,
-// the monitor will not be stopped.
-func NewWithMonitor(monitor *Monitor) *Cluster {
+// the monitor will not be stopped. Any unspecified
+// options will have their default value pulled from the monitor.
+// Any monitor specific options will be ignored.
+func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 	cluster := &Cluster{
+		cfg:     monitor.cfg.reconfig(opts...),
 		monitor: monitor,
 		waiters: make(map[int64]chan struct{}),
 		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -50,6 +54,8 @@ type ServerSelector func(*Desc, []*server.Desc) ([]*server.Desc, error)
 
 // Cluster represents a logical connection to a cluster.
 type Cluster struct {
+	cfg *config
+
 	monitor      *Monitor
 	ownsMonitor  bool
 	waiters      map[int64]chan struct{}
@@ -76,15 +82,9 @@ func (c *Cluster) Desc() *Desc {
 	return desc
 }
 
-// RequestImmediateCheck will send heartbeats to all the servers in the
-// cluster right away, instead of waiting for the heartbeat timeout.
-func (c *Cluster) RequestImmediateCheck() {
-	c.monitor.RequestImmediateCheck()
-}
-
 // SelectServer selects a server given a selector.
 func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Server, error) {
-	timer := time.NewTimer(c.monitor.serverSelectionTimeout)
+	timer := time.NewTimer(c.cfg.serverSelectionTimeout)
 	updated, id := c.awaitUpdates()
 	for {
 		clusterDesc := c.Desc()
@@ -99,11 +99,8 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 			c.removeWaiter(id)
 			selected := suitable[c.rand.Intn(len(suitable))]
 
-			// TODO: put this logic into the monitor...
-			c.monitor.serversLock.Lock()
-			server := c.monitor.servers[selected.Endpoint]
-			c.monitor.serversLock.Unlock()
-			return server, nil
+			serverMon := c.monitor.ServerMonitor(selected.Endpoint)
+			return server.NewWithMonitor(serverMon, c.cfg.serverOpts...), nil
 		}
 
 		c.monitor.RequestImmediateCheck()

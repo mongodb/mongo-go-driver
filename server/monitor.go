@@ -18,22 +18,20 @@ import (
 const minHeartbeatFreqMS = 500 * time.Millisecond
 
 // StartMonitor returns a new Monitor.
-func StartMonitor(endpoint conn.Endpoint, opts ...MonitorOption) (*Monitor, error) {
-	cfg := newMonitorConfig(opts...)
+func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
+	cfg := newConfig(opts...)
 
 	done := make(chan struct{}, 1)
 	checkNow := make(chan struct{}, 1)
 	m := &Monitor{
+		cfg:      cfg,
 		endpoint: endpoint,
 		desc: &Desc{
 			Endpoint: endpoint,
 		},
-		subscribers:       make(map[int64]chan *Desc),
-		done:              done,
-		checkNow:          checkNow,
-		connOpts:          cfg.connOpts,
-		dialer:            cfg.dialer,
-		heartbeatInterval: cfg.heartbeatInterval,
+		subscribers: make(map[int64]chan *Desc),
+		done:        done,
+		checkNow:    checkNow,
 	}
 
 	var updateServer = func(heartbeatTimer, rateLimitTimer *time.Timer) {
@@ -98,23 +96,26 @@ func StartMonitor(endpoint conn.Endpoint, opts ...MonitorOption) (*Monitor, erro
 
 // Monitor holds a channel that delivers updates to a server.
 type Monitor struct {
+	cfg *config
+
 	subscribers         map[int64]chan *Desc
 	lastSubscriberID    int64
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
-	conn              conn.Connection
-	connOpts          []conn.Option
-	desc              *Desc
-	descLock          sync.Mutex
-	dialer            conn.Dialer
-	checkNow          chan struct{}
-	done              chan struct{}
-	endpoint          conn.Endpoint
-	heartbeatDialer   conn.Dialer
-	heartbeatInterval time.Duration
-	averageRTT        time.Duration
-	averageRTTSet     bool
+	conn          conn.Connection
+	desc          *Desc
+	descLock      sync.Mutex
+	checkNow      chan struct{}
+	done          chan struct{}
+	endpoint      conn.Endpoint
+	averageRTT    time.Duration
+	averageRTTSet bool
+}
+
+// Endpoint returns the endpoint this monitor is monitoring.
+func (m *Monitor) Endpoint() conn.Endpoint {
+	return m.endpoint
 }
 
 // Stop turns off the monitor.
@@ -200,7 +201,7 @@ func (m *Monitor) heartbeat() *Desc {
 			// for heartbeat connections as well, which makes
 			// sharing a monitor in a multi-tenant arrangement
 			// impossible.
-			conn, err := m.dialer(ctx, m.endpoint, m.connOpts...)
+			conn, err := m.cfg.dialer(ctx, m.endpoint, m.cfg.connOpts...)
 			if err != nil {
 				savedErr = err
 				if conn != nil {
@@ -224,7 +225,7 @@ func (m *Monitor) heartbeat() *Desc {
 
 		d = BuildDesc(m.endpoint, isMasterResult, buildInfoResult)
 		d.SetAverageRTT(m.updateAverageRTT(delay))
-		d.HeartbeatInterval = m.heartbeatInterval
+		d.HeartbeatInterval = m.cfg.heartbeatInterval
 	}
 
 	if d == nil {

@@ -21,9 +21,12 @@ func main() {
 	})
 
 	ctx := context.Background()
-	myCluster, err := cluster.New(cluster.WithSeedList("localhost:27017"),
-		cluster.WithConnectionMode(cluster.SingleMode),
-		cluster.WithServerOptions(server.WithConnectionDialer(dialer)))
+	myCluster, err := cluster.New(
+		cluster.WithMode(cluster.SingleMode),
+		cluster.WithServerOptions(
+			server.WithConnectionDialer(dialer),
+		),
+	)
 	if err != nil {
 		log.Fatalf("could not start a cluster: %v", err)
 	}

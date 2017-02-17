@@ -12,10 +12,10 @@ import (
 func main() {
 	monitor, err := server.StartMonitor(
 		conn.Endpoint("localhost:27017"),
-		server.WithHeartbeatConnectionOptions(
+		server.WithHeartbeatInterval(2*time.Second),
+		server.WithConnectionOptions(
 			conn.WithAppName("server_monitor test"),
 		),
-		server.WithHeartbeatInterval(2*time.Second),
 	)
 	if err != nil {
 		log.Fatalf("could not start server monitor: %v", err)

@@ -3,7 +3,6 @@ package cluster
 import (
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/server"
@@ -14,20 +13,19 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 	cfg := newConfig(opts...)
 
 	m := &Monitor{
-		subscribers:            make(map[int64]chan *Desc),
-		changes:                make(chan *server.Desc),
-		desc:                   &Desc{},
-		fsm:                    &monitorFSM{},
-		servers:                make(map[conn.Endpoint]*server.Server),
-		serverOpts:             cfg.serverOpts,
-		serverSelectionTimeout: cfg.serverSelectionTimeout,
+		cfg:         cfg,
+		subscribers: make(map[int64]chan *Desc),
+		changes:     make(chan *server.Desc),
+		desc:        &Desc{},
+		fsm:         &monitorFSM{},
+		servers:     make(map[conn.Endpoint]*server.Monitor),
 	}
 
 	if cfg.replicaSetName != "" {
 		m.fsm.setName = cfg.replicaSetName
 		m.fsm.Type = ReplicaSetNoPrimary
 	}
-	if cfg.connectionMode == SingleMode {
+	if cfg.mode == SingleMode {
 		m.fsm.Type = Single
 	}
 
@@ -70,9 +68,19 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 	return m, nil
 }
 
+// MonitorMode indicates the mode with which to run the monitor.
+type MonitorMode uint8
+
+// MonitorMode constants.
+const (
+	AutomaticMode MonitorMode = iota
+	SingleMode
+)
+
 // Monitor continuously monitors the cluster for changes
 // and reacts accordingly, adding or removing servers as necessary.
 type Monitor struct {
+	cfg      *config
 	descLock sync.Mutex
 	desc     *Desc
 
@@ -84,11 +92,18 @@ type Monitor struct {
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
-	serversLock            sync.Mutex
-	serversClosed          bool
-	servers                map[conn.Endpoint]*server.Server
-	serverOpts             []server.Option
-	serverSelectionTimeout time.Duration
+	serversLock   sync.Mutex
+	serversClosed bool
+	servers       map[conn.Endpoint]*server.Monitor
+}
+
+// ServerMonitor gets the server monitor for the specified endpoint. It
+// is imperative that this monitor not be stopped.
+func (m *Monitor) ServerMonitor(endpoint conn.Endpoint) *server.Monitor {
+	m.serversLock.Lock()
+	server := m.servers[endpoint]
+	m.serversLock.Unlock()
+	return server
 }
 
 // Stop turns the monitor off.
@@ -151,7 +166,7 @@ func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {
 		return
 	}
 
-	serverM, _ := server.New(endpoint, m.serverOpts...)
+	serverM, _ := server.StartMonitor(endpoint, m.cfg.serverOpts...)
 
 	m.servers[endpoint] = serverM
 
@@ -164,8 +179,8 @@ func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {
 	}()
 }
 
-func (m *Monitor) stopMonitoringEndpoint(endpoint conn.Endpoint, server *server.Server) {
-	server.Close()
+func (m *Monitor) stopMonitoringEndpoint(endpoint conn.Endpoint, server *server.Monitor) {
+	server.Stop()
 	delete(m.servers, endpoint)
 }
 

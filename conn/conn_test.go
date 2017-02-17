@@ -80,7 +80,7 @@ func TestConn_Expired_due_to_idle_time(t *testing.T) {
 		t.Error(err)
 	}
 	require.False(t, subject.Expired())
-	time.Sleep(2 * time.Second)
+	time.Sleep(4 * time.Second)
 	require.True(t, subject.Expired())
 }
 
@@ -96,7 +96,7 @@ func TestConn_Expired_due_to_life_time(t *testing.T) {
 		t.Error(err)
 	}
 	require.False(t, subject.Expired())
-	time.Sleep(2 * time.Second)
+	time.Sleep(4 * time.Second)
 	require.True(t, subject.Expired())
 }
 

@@ -12,9 +12,7 @@ func newConfig(opts ...Option) *config {
 		seedList: []conn.Endpoint{conn.Endpoint("localhost:27017")},
 	}
 
-	for _, opt := range opts {
-		opt(cfg)
-	}
+	cfg.apply(opts...)
 
 	return cfg
 }
@@ -23,21 +21,44 @@ func newConfig(opts ...Option) *config {
 type Option func(*config)
 
 type config struct {
-	connectionMode         ConnectionMode
+	mode                   MonitorMode
 	replicaSetName         string
 	seedList               []conn.Endpoint
 	serverOpts             []server.Option
 	serverSelectionTimeout time.Duration
 }
 
-// WithConnectionMode configures the cluster's connection mode.
-func WithConnectionMode(mode ConnectionMode) Option {
+func (c *config) reconfig(opts ...Option) *config {
+	cfg := &config{
+		mode:                   c.mode,
+		replicaSetName:         c.replicaSetName,
+		seedList:               c.seedList,
+		serverOpts:             c.serverOpts,
+		serverSelectionTimeout: c.serverSelectionTimeout,
+	}
+
+	cfg.apply(opts...)
+	return cfg
+}
+
+func (c *config) apply(opts ...Option) {
+	for _, opt := range opts {
+		opt(c)
+	}
+}
+
+// WithMode configures the cluster's monitor mode.
+// This option will be ignored when the cluster is created with a
+// pre-existing monitor.
+func WithMode(mode MonitorMode) Option {
 	return func(c *config) {
-		c.connectionMode = mode
+		c.mode = mode
 	}
 }
 
 // WithReplicaSetName configures the cluster's default replica set name.
+// This option will be ignored when the cluster is created with a
+// pre-existing monitor.
 func WithReplicaSetName(name string) Option {
 	return func(c *config) {
 		c.replicaSetName = name
@@ -45,6 +66,8 @@ func WithReplicaSetName(name string) Option {
 }
 
 // WithSeedList configures a cluster's seed list.
+// This option will be ignored when the cluster is created with a
+// pre-existing monitor.
 func WithSeedList(endpoints ...conn.Endpoint) Option {
 	return func(c *config) {
 		c.seedList = endpoints

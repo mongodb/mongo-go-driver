@@ -11,16 +11,13 @@ import (
 // state of the server. When the Server is closed,
 // the monitor will be stopped.
 func New(endpoint conn.Endpoint, opts ...Option) (*Server, error) {
-	cfg := newConfig(opts...)
-
-	monitor, err := StartMonitor(endpoint, cfg.monitorOpts...)
+	monitor, err := StartMonitor(endpoint, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Server{
-		connOpts:    cfg.connOpts,
-		dialer:      cfg.dialer,
+		cfg:         monitor.cfg,
 		monitor:     monitor,
 		ownsMonitor: true,
 	}, nil
@@ -28,21 +25,19 @@ func New(endpoint conn.Endpoint, opts ...Option) (*Server, error) {
 
 // NewWithMonitor creates a new Server from
 // an existing monitor. When the server is closed,
-// the monitor will not be stopped.
+// the monitor will not be stopped. Any unspecified
+// options will have their default value pulled from the monitor.
+// Any monitor specific options will be ignored.
 func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
-	cfg := newConfig(opts...)
-
 	return &Server{
-		connOpts: cfg.connOpts,
-		dialer:   cfg.dialer,
-		monitor:  monitor,
+		cfg:     monitor.cfg.reconfig(opts...),
+		monitor: monitor,
 	}
 }
 
 // Server is a logical connection to a server.
 type Server struct {
-	connOpts    []conn.Option
-	dialer      conn.Dialer
+	cfg         *config
 	monitor     *Monitor
 	ownsMonitor bool
 }
@@ -56,7 +51,7 @@ func (s *Server) Close() {
 
 // Connection gets a connection to the server.
 func (s *Server) Connection(ctx context.Context) (conn.Connection, error) {
-	conn, err := s.dialer(ctx, s.monitor.endpoint, s.connOpts...)
+	conn, err := s.cfg.dialer(ctx, s.monitor.Endpoint(), s.cfg.connOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,22 +68,6 @@ func (s *Server) Desc() *Desc {
 	desc := s.monitor.desc
 	s.monitor.descLock.Unlock()
 	return desc
-}
-
-// RequestImmediateCheck will cause the Monitor to send
-// a heartbeat to the server right away, instead of waiting for
-// the heartbeat timeout.
-func (s *Server) RequestImmediateCheck() {
-	s.monitor.RequestImmediateCheck()
-}
-
-// Subscribe returns a channel on which all updated server descriptions
-// will be sent. The channel will have a buffer size of one, and
-// will be pre-populated with the current description.
-// Subscribe also returns a function that, when called, will close
-// the subscription channel and remove it from the list of subscriptions.
-func (s *Server) Subscribe() (<-chan *Desc, func(), error) {
-	return s.monitor.Subscribe()
 }
 
 func (s *Server) connClosed(conn *serverConn) {

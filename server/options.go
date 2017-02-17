@@ -11,16 +11,7 @@ func newConfig(opts ...Option) *config {
 		dialer: conn.Dial,
 	}
 
-	for _, opt := range opts {
-		opt(cfg)
-	}
-
-	defaultMonitorOpts := []MonitorOption{
-		WithHeartbeatConnectionOptions(cfg.connOpts...),
-		WithHearbeatDialer(cfg.dialer),
-	}
-
-	cfg.monitorOpts = append(defaultMonitorOpts, cfg.monitorOpts...)
+	cfg.apply(opts...)
 
 	return cfg
 }
@@ -29,9 +20,26 @@ func newConfig(opts ...Option) *config {
 type Option func(*config)
 
 type config struct {
-	connOpts    []conn.Option
-	dialer      conn.Dialer
-	monitorOpts []MonitorOption
+	connOpts          []conn.Option
+	dialer            conn.Dialer
+	heartbeatInterval time.Duration
+}
+
+func (c *config) reconfig(opts ...Option) *config {
+	cfg := &config{
+		connOpts:          c.connOpts,
+		dialer:            c.dialer,
+		heartbeatInterval: c.heartbeatInterval,
+	}
+
+	cfg.apply(opts...)
+	return cfg
+}
+
+func (c *config) apply(opts ...Option) {
+	for _, opt := range opts {
+		opt(c)
+	}
 }
 
 // WithConnectionDialer configures the dialer to use
@@ -49,57 +57,11 @@ func WithConnectionOptions(opts ...conn.Option) Option {
 	}
 }
 
-// WithMonitorOptions configures the monitor. This option
-// will be ignored on a server that does not create it's own
-// monitor.
-func WithMonitorOptions(opts ...MonitorOption) Option {
-	return func(c *config) {
-		c.monitorOpts = opts
-	}
-}
-
-func newMonitorConfig(opts ...MonitorOption) *monitorConfig {
-	cfg := &monitorConfig{
-		dialer:            conn.Dial,
-		heartbeatInterval: time.Duration(10) * time.Second,
-	}
-
-	for _, opt := range opts {
-		opt(cfg)
-	}
-
-	return cfg
-}
-
-// MonitorOption configures a Monitor.
-type MonitorOption func(c *monitorConfig)
-
-type monitorConfig struct {
-	connOpts          []conn.Option
-	dialer            conn.Dialer
-	heartbeatInterval time.Duration
-}
-
-// WithHeartbeatConnectionOptions configures server's connections. By
-// default, it will use the configured ConnectionOptions.
-func WithHeartbeatConnectionOptions(opts ...conn.Option) MonitorOption {
-	return func(c *monitorConfig) {
-		c.connOpts = opts
-	}
-}
-
-// WithHearbeatDialer configures the dialer to be used
-// for hearbeat connections. By default, it will use the
-// configured ConnectionDialer.
-func WithHearbeatDialer(dialer conn.Dialer) MonitorOption {
-	return func(c *monitorConfig) {
-		c.dialer = dialer
-	}
-}
-
 // WithHeartbeatInterval configures a server's heartbeat interval.
-func WithHeartbeatInterval(interval time.Duration) MonitorOption {
-	return func(c *monitorConfig) {
+// This option will be ignored when creating a Server with a
+// pre-existing monitor.
+func WithHeartbeatInterval(interval time.Duration) Option {
+	return func(c *config) {
 		c.heartbeatInterval = interval
 	}
 }
