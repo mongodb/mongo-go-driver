@@ -24,11 +24,12 @@ func New(opts ...Option) (*Cluster, error) {
 	}
 
 	cluster := &Cluster{
-		cfg:         monitor.cfg,
-		monitor:     monitor,
-		ownsMonitor: true,
-		waiters:     make(map[int64]chan struct{}),
-		rand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		cfg:          monitor.cfg,
+		monitor:      monitor,
+		ownsMonitor:  true,
+		waiters:      make(map[int64]chan struct{}),
+		stateServers: make(map[conn.Endpoint]*server.Server),
+		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	cluster.subscribeToMonitor()
 	return cluster, nil
@@ -41,10 +42,11 @@ func New(opts ...Option) (*Cluster, error) {
 // Any monitor specific options will be ignored.
 func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 	cluster := &Cluster{
-		cfg:     monitor.cfg.reconfig(opts...),
-		monitor: monitor,
-		waiters: make(map[int64]chan struct{}),
-		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		cfg:          monitor.cfg.reconfig(opts...),
+		monitor:      monitor,
+		waiters:      make(map[int64]chan struct{}),
+		stateServers: make(map[conn.Endpoint]*server.Server),
+		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	cluster.subscribeToMonitor()
 	return cluster
@@ -133,7 +135,11 @@ func (c *Cluster) applyUpdate(desc *Desc) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 
-	diff := Diff(c.stateDesc, desc)
+	currentDesc := c.stateDesc
+	if currentDesc == nil {
+		currentDesc = new(Desc)
+	}
+	diff := Diff(currentDesc, desc)
 	c.stateDesc = desc
 
 	for _, added := range diff.AddedServers {
