@@ -99,11 +99,11 @@ type Monitor struct {
 
 // ServerMonitor gets the server monitor for the specified endpoint. It
 // is imperative that this monitor not be stopped.
-func (m *Monitor) ServerMonitor(endpoint conn.Endpoint) *server.Monitor {
+func (m *Monitor) ServerMonitor(endpoint conn.Endpoint) (*server.Monitor, bool) {
 	m.serversLock.Lock()
-	server := m.servers[endpoint]
+	server, ok := m.servers[endpoint]
 	m.serversLock.Unlock()
-	return server
+	return server, ok
 }
 
 // Stop turns the monitor off.

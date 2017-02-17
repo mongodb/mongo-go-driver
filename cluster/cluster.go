@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/server"
 )
@@ -61,8 +62,9 @@ type Cluster struct {
 	waiters      map[int64]chan struct{}
 	lastWaiterID int64
 	waiterLock   sync.Mutex
-	desc         *Desc
-	descLock     sync.Mutex
+	stateDesc    *Desc
+	stateLock    sync.Mutex
+	stateServers map[conn.Endpoint]*server.Server
 	rand         *rand.Rand
 }
 
@@ -75,10 +77,9 @@ func (c *Cluster) Close() {
 
 // Desc gets a description of the cluster.
 func (c *Cluster) Desc() *Desc {
-	var desc *Desc
-	c.descLock.Lock()
-	desc = c.desc
-	c.descLock.Unlock()
+	c.stateLock.Lock()
+	desc := c.stateDesc
+	c.stateLock.Unlock()
 	return desc
 }
 
@@ -95,12 +96,18 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 		}
 
 		if len(suitable) > 0 {
-			timer.Stop()
-			c.removeWaiter(id)
 			selected := suitable[c.rand.Intn(len(suitable))]
 
-			serverMon := c.monitor.ServerMonitor(selected.Endpoint)
-			return server.NewWithMonitor(serverMon, c.cfg.serverOpts...), nil
+			if server, ok := c.stateServers[selected.Endpoint]; ok {
+				timer.Stop()
+				c.removeWaiter(id)
+				return server, nil
+			}
+
+			// this is unfortunate. We have ended up here because we successfully
+			// found a server that has since been removed. We need to start this process
+			// over.
+			continue
 		}
 
 		c.monitor.RequestImmediateCheck()
@@ -116,6 +123,27 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 			c.removeWaiter(id)
 			return nil, errors.New("server selection timed out")
 		}
+	}
+}
+
+// applyUpdate handles updating the current description as well
+// as ensure that the servers are still accurate. This method
+// *must* be called under the descLock.
+func (c *Cluster) applyUpdate(desc *Desc) {
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+
+	diff := Diff(c.stateDesc, desc)
+	c.stateDesc = desc
+
+	for _, added := range diff.AddedServers {
+		if mon, ok := c.monitor.ServerMonitor(added.Endpoint); ok {
+			c.stateServers[added.Endpoint] = server.NewWithMonitor(mon, c.cfg.serverOpts...)
+		}
+	}
+
+	for _, removed := range diff.RemovedServers {
+		delete(c.stateServers, removed.Endpoint)
 	}
 }
 
@@ -145,9 +173,7 @@ func (c *Cluster) subscribeToMonitor() {
 	updates, _, _ := c.monitor.Subscribe()
 	go func() {
 		for desc := range updates {
-			c.descLock.Lock()
-			c.desc = desc
-			c.descLock.Unlock()
+			c.applyUpdate(desc)
 
 			c.waiterLock.Lock()
 			for _, waiter := range c.waiters {
