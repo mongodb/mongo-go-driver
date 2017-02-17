@@ -8,7 +8,8 @@ import (
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		dialer: conn.Dial,
+		dialer:            conn.Dial,
+		heartbeatInterval: 10 * time.Second,
 	}
 
 	cfg.apply(opts...)
