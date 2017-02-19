@@ -24,11 +24,13 @@ func New(opts ...Option) (*Cluster, error) {
 	}
 
 	cluster := &Cluster{
-		cfg:         monitor.cfg,
-		monitor:     monitor,
-		ownsMonitor: true,
-		waiters:     make(map[int64]chan struct{}),
-		rand:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		cfg:          monitor.cfg,
+		stateDesc:    &Desc{},
+		stateServers: make(map[conn.Endpoint]*server.Server),
+		monitor:      monitor,
+		ownsMonitor:  true,
+		waiters:      make(map[int64]chan struct{}),
+		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	cluster.subscribeToMonitor()
 	return cluster, nil
@@ -41,10 +43,12 @@ func New(opts ...Option) (*Cluster, error) {
 // Any monitor specific options will be ignored.
 func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 	cluster := &Cluster{
-		cfg:     monitor.cfg.reconfig(opts...),
-		monitor: monitor,
-		waiters: make(map[int64]chan struct{}),
-		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		cfg:          monitor.cfg.reconfig(opts...),
+		stateDesc:    &Desc{},
+		stateServers: make(map[conn.Endpoint]*server.Server),
+		monitor:      monitor,
+		waiters:      make(map[int64]chan struct{}),
+		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	cluster.subscribeToMonitor()
 	return cluster
