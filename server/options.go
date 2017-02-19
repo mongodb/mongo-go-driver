@@ -10,6 +10,8 @@ func newConfig(opts ...Option) *config {
 	cfg := &config{
 		dialer:            conn.Dial,
 		heartbeatInterval: 10 * time.Second,
+		maxConns:          100,
+		maxIdleConns:      100,
 	}
 
 	cfg.apply(opts...)
@@ -24,6 +26,8 @@ type config struct {
 	connOpts          []conn.Option
 	dialer            conn.Dialer
 	heartbeatInterval time.Duration
+	maxConns          uint16
+	maxIdleConns      uint16
 }
 
 func (c *config) reconfig(opts ...Option) *config {
@@ -31,6 +35,8 @@ func (c *config) reconfig(opts ...Option) *config {
 		connOpts:          c.connOpts,
 		dialer:            c.dialer,
 		heartbeatInterval: c.heartbeatInterval,
+		maxConns:          c.maxConns,
+		maxIdleConns:      c.maxIdleConns,
 	}
 
 	cfg.apply(opts...)
@@ -64,5 +70,22 @@ func WithConnectionOptions(opts ...conn.Option) Option {
 func WithHeartbeatInterval(interval time.Duration) Option {
 	return func(c *config) {
 		c.heartbeatInterval = interval
+	}
+}
+
+// WithMaxConnections configures maximum number of connections to
+// allow for a given server. If max is 0, then there is no upper
+// limit on the number of connections.
+func WithMaxConnections(max uint16) Option {
+	return func(c *config) {
+		c.maxConns = max
+	}
+}
+
+// WithMaxIdleConnections configures the maximum number of idle connections
+// allowed for the server.
+func WithMaxIdleConnections(size uint16) Option {
+	return func(c *config) {
+		c.maxIdleConns = size
 	}
 }

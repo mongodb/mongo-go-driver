@@ -6,7 +6,7 @@ var globalRequestID int32
 
 // CurrentRequestID gets the current request id.
 func CurrentRequestID() int32 {
-	return atomic.AddInt32(&globalRequestID, 0)
+	return atomic.LoadInt32(&globalRequestID)
 }
 
 // NextRequestID gets the next request id.

@@ -23,16 +23,8 @@ func New(opts ...Option) (*Cluster, error) {
 		return nil, err
 	}
 
-	cluster := &Cluster{
-		cfg:          monitor.cfg,
-		stateDesc:    &Desc{},
-		stateServers: make(map[conn.Endpoint]*server.Server),
-		monitor:      monitor,
-		ownsMonitor:  true,
-		waiters:      make(map[int64]chan struct{}),
-		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
-	}
-	cluster.subscribeToMonitor()
+	cluster := NewWithMonitor(monitor, opts...)
+	cluster.ownsMonitor = true
 	return cluster, nil
 }
 
@@ -50,7 +42,29 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 		waiters:      make(map[int64]chan struct{}),
 		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	cluster.subscribeToMonitor()
+
+	updates, _, _ := monitor.Subscribe()
+	go func() {
+		for desc := range updates {
+			cluster.applyUpdate(desc)
+
+			cluster.waiterLock.Lock()
+			for _, waiter := range cluster.waiters {
+				select {
+				case waiter <- struct{}{}:
+				default:
+				}
+			}
+			cluster.waiterLock.Unlock()
+		}
+		cluster.waiterLock.Lock()
+		for id, ch := range cluster.waiters {
+			close(ch)
+			delete(cluster.waiters, id)
+		}
+		cluster.waiterLock.Unlock()
+	}()
+
 	return cluster
 }
 
@@ -147,6 +161,10 @@ func (c *Cluster) applyUpdate(desc *Desc) {
 	}
 
 	for _, removed := range diff.RemovedServers {
+		if server, ok := c.stateServers[removed.Endpoint]; ok {
+			server.Close()
+		}
+
 		delete(c.stateServers, removed.Endpoint)
 	}
 }
@@ -171,28 +189,4 @@ func (c *Cluster) removeWaiter(id int64) {
 	}
 	delete(c.waiters, id)
 	c.waiterLock.Unlock()
-}
-
-func (c *Cluster) subscribeToMonitor() {
-	updates, _, _ := c.monitor.Subscribe()
-	go func() {
-		for desc := range updates {
-			c.applyUpdate(desc)
-
-			c.waiterLock.Lock()
-			for _, waiter := range c.waiters {
-				select {
-				case waiter <- struct{}{}:
-				default:
-				}
-			}
-			c.waiterLock.Unlock()
-		}
-		c.waiterLock.Lock()
-		for id, ch := range c.waiters {
-			close(ch)
-			delete(c.waiters, id)
-		}
-		c.waiterLock.Unlock()
-	}()
 }

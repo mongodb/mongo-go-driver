@@ -85,7 +85,7 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 					delete(m.subscribers, id)
 				}
 				m.subscriptionsClosed = true
-				m.subscriberLock.Lock()
+				m.subscriberLock.Unlock()
 				return
 			}
 		}
@@ -196,11 +196,6 @@ func (m *Monitor) heartbeat() *Desc {
 	ctx := context.Background()
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn == nil {
-			// TODO: should this use the connection dialer from
-			// the options? If so, it means authentication happens
-			// for heartbeat connections as well, which makes
-			// sharing a monitor in a multi-tenant arrangement
-			// impossible.
 			conn, err := m.cfg.dialer(ctx, m.endpoint, m.cfg.connOpts...)
 			if err != nil {
 				savedErr = err

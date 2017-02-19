@@ -31,7 +31,7 @@ func (c *MockConnection) Desc() *conn.Desc {
 }
 
 func (c *MockConnection) Expired() bool {
-	return false
+	return c.Dead
 }
 
 func (c *MockConnection) Read(ctx context.Context) (msg.Response, error) {

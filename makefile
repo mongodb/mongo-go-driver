@@ -1,4 +1,4 @@
-PKGS = ./auth ./cluster ./conn ./connstring ./internal/feature ./msg ./ops ./readpref ./server
+PKGS = ./auth ./cluster ./conn ./connstring ./internal ./internal/feature ./msg ./ops ./readpref ./server
 LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
 
@@ -18,6 +18,7 @@ lint:
     golint $(LINTARGS) ./cluster
     golint $(LINTARGS) ./conn
     golint $(LINTARGS) ./connstring
+    golint $(LINTARGS) ./internal
     golint $(LINTARGS) ./internal/feature
     golint $(LINTARGS) ./msg
     golint $(LINTARGS) ./ops

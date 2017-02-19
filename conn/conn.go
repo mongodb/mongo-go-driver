@@ -138,7 +138,7 @@ func (c *connImpl) Expired() bool {
 		return true
 	}
 
-	return false
+	return c.dead
 }
 
 func (c *connImpl) Read(ctx context.Context) (msg.Response, error) {
