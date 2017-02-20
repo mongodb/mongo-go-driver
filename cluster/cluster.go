@@ -13,6 +13,10 @@ import (
 	"github.com/10gen/mongo-go-driver/server"
 )
 
+// ErrClusterClosed occurs on an attempt to use a closed
+// cluster.
+var ErrClusterClosed = errors.New("cluster is closed")
+
 // New creates a new cluster. Internally, it
 // creates a new Monitor with which to monitor the
 // state of the cluster. When the Cluster is closed,
@@ -91,6 +95,19 @@ func (c *Cluster) Close() {
 	if c.ownsMonitor {
 		c.monitor.Stop()
 	}
+
+	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
+
+	if c.stateServers == nil {
+		return
+	}
+
+	for _, server := range c.stateServers {
+		server.Close()
+	}
+	c.stateServers = nil
+	c.stateDesc = &Desc{}
 }
 
 // Desc gets a description of the cluster.
@@ -116,11 +133,18 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 		if len(suitable) > 0 {
 			selected := suitable[c.rand.Intn(len(suitable))]
 
+			c.stateLock.Lock()
+			if c.stateServers == nil {
+				c.stateLock.Unlock()
+				return nil, ErrClusterClosed
+			}
 			if server, ok := c.stateServers[selected.Endpoint]; ok {
+				c.stateLock.Unlock()
 				timer.Stop()
 				c.removeWaiter(id)
 				return server, nil
 			}
+			c.stateLock.Unlock()
 
 			// this is unfortunate. We have ended up here because we successfully
 			// found a server that has since been removed. We need to start this process
@@ -150,6 +174,10 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 func (c *Cluster) applyUpdate(desc *Desc) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
+
+	if c.stateServers == nil {
+		return
+	}
 
 	diff := Diff(c.stateDesc, desc)
 	c.stateDesc = desc
