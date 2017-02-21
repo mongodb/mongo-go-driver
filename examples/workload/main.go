@@ -5,6 +5,8 @@ import (
 	"flag"
 	"log"
 	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"time"
@@ -21,19 +23,33 @@ import (
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")
 var ns = flag.String("namespace", "test.foo", "the namespace to use for test data")
 
-var n = rand.New(rand.NewSource(time.Now().Unix()))
-
 func main() {
 
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt)
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
-	c, err := cluster.New()
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt)
+
+	c, err := cluster.New(
+		cluster.WithSeedList(
+			conn.Endpoint("localhost:27017"),
+			conn.Endpoint("localhost:27018"),
+		),
+	)
+
 	if err != nil {
 		log.Fatalf("unable to create cluster: %s", err)
 	}
 
+	done := make(chan struct{})
 	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-sig
+		close(done)
+		cancel()
+	}()
 
 	log.Println("prepping")
 	err = prep(ctx, c)
@@ -49,7 +65,6 @@ func main() {
 
 	<-done
 	log.Println("interupt received: shutting down")
-	cancel()
 	c.Close()
 	log.Println("finished")
 }
@@ -103,6 +118,7 @@ func prep(ctx context.Context, c *cluster.Cluster) error {
 }
 
 func work(ctx context.Context, idx int, c *cluster.Cluster) {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
 	ns := ops.ParseNamespace(*ns)
 	rp := readpref.Nearest()
 	for {
@@ -110,7 +126,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 		case <-ctx.Done():
 		default:
 
-			limit := n.Intn(999) + 1
+			limit := r.Intn(999) + 1
 
 			s, err := c.SelectServer(ctx, cluster.ReadPrefSelector(rp))
 			if err != nil {

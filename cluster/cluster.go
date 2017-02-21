@@ -44,7 +44,6 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 		stateServers: make(map[conn.Endpoint]*server.Server),
 		monitor:      monitor,
 		waiters:      make(map[int64]chan struct{}),
-		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 
 	updates, _, _ := monitor.Subscribe()
@@ -87,7 +86,6 @@ type Cluster struct {
 	stateDesc    *Desc
 	stateLock    sync.Mutex
 	stateServers map[conn.Endpoint]*server.Server
-	rand         *rand.Rand
 }
 
 // Close closes the cluster.
@@ -138,7 +136,8 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 		}
 
 		if len(suitable) > 0 {
-			selected := suitable[c.rand.Intn(len(suitable))]
+			r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			selected := suitable[r.Intn(len(suitable))]
 
 			c.stateLock.Lock()
 			if c.stateServers == nil {

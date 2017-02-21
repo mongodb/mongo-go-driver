@@ -165,7 +165,6 @@ func (m *Monitor) RequestImmediateCheck() {
 
 func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {
 	if _, ok := m.servers[endpoint]; ok {
-		// already monitoring this guy
 		return
 	}
 
@@ -177,13 +176,7 @@ func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {
 
 	go func() {
 		for d := range ch {
-			m.serversLock.Lock()
-			if !m.serversClosed {
-				// changes might get closed before ch... I believe this is just
-				// a timing issue.
-				m.changes <- d
-			}
-			m.serversLock.Unlock()
+			m.changes <- d
 		}
 	}()
 }
@@ -201,8 +194,8 @@ func (m *Monitor) apply(d *server.Desc) *Desc {
 	diff := Diff(&old, &new)
 	m.serversLock.Lock()
 	if m.serversClosed {
-		// maybe return an empty desc?
-		return nil
+		m.serversLock.Unlock()
+		return &Desc{}
 	}
 	for _, oldServer := range diff.RemovedServers {
 		if sm, ok := m.servers[oldServer.Endpoint]; ok {

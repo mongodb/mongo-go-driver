@@ -40,7 +40,7 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
 	}
 
 	// copy these locally to keep server.monitor/cfg out of the closure
-	endpoint := server.monitor.Endpoint()
+	endpoint := monitor.endpoint
 	dialer := cfg.dialer
 	connOpts := cfg.connOpts
 	connFactory := func(ctx context.Context) (conn.Connection, error) {
