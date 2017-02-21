@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/internal/clustertest"
 	"github.com/10gen/mongo-go-driver/server"
 	"github.com/stretchr/testify/require"
 )
@@ -28,15 +29,40 @@ func selectError(_ *Desc, _ []*server.Desc) ([]*server.Desc, error) {
 	return nil, errors.New("encountered an error in the selector")
 }
 
-func newTestCluster() *Cluster {
+func newTestCluster(endpoints ...string) *Cluster {
+	stateServers := make(map[conn.Endpoint]Server)
+	servers := make([]*server.Desc, len(endpoints))
+	for i, end := range endpoints {
+		endpoint := conn.Endpoint(end)
+		server := &server.Desc{
+			Endpoint: endpoint,
+		}
+		servers[i] = server
+		stateServers[endpoint] = clustertest.NewFakeServer(endpoint)
+	}
+	clusterDesc := &Desc{
+		Servers: servers,
+	}
+
 	return &Cluster{
 		cfg:          newConfig(WithServerSelectionTimeout(3 * time.Second)),
-		stateDesc:    &Desc{},
-		stateServers: make(map[conn.Endpoint]*server.Server),
+		stateDesc:    clusterDesc,
+		stateServers: stateServers,
 		waiters:      make(map[int64]chan struct{}),
 		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 		monitor:      &Monitor{},
 	}
+}
+
+func endpointName(srv Server) string {
+	return string(srv.Desc().Endpoint)
+}
+
+func TestSelectServer_Success(t *testing.T) {
+	c := newTestCluster("one", "two", "three")
+	srv, err := c.SelectServer(context.Background(), selectFirst)
+	require.Nil(t, err)
+	require.Equal(t, "one", endpointName(srv))
 }
 
 func TestSelectServer_Timeout(t *testing.T) {
