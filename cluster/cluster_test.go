@@ -22,6 +22,9 @@ func selectNone(_ *Desc, _ []*server.Desc) ([]*server.Desc, error) {
 }
 
 func selectFirst(_ *Desc, servers []*server.Desc) ([]*server.Desc, error) {
+	if len(servers) == 0 {
+		return []*server.Desc{}, nil
+	}
 	return servers[0:1], nil
 }
 
@@ -30,12 +33,24 @@ func selectError(_ *Desc, _ []*server.Desc) ([]*server.Desc, error) {
 }
 
 func newTestCluster(endpoints ...string) *Cluster {
+	cluster := &Cluster{
+		cfg:     newConfig(WithServerSelectionTimeout(3 * time.Second)),
+		waiters: make(map[int64]chan struct{}),
+		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		monitor: &Monitor{},
+	}
+	cluster.setClusterEndpoints(endpoints...)
+	return cluster
+}
+
+func (c *Cluster) setClusterEndpoints(endpoints ...string) {
 	stateServers := make(map[conn.Endpoint]Server)
 	servers := make([]*server.Desc, len(endpoints))
 	for i, end := range endpoints {
 		endpoint := conn.Endpoint(end)
 		server := &server.Desc{
 			Endpoint: endpoint,
+			Type:     server.Standalone,
 		}
 		servers[i] = server
 		stateServers[endpoint] = clustertest.NewFakeServer(endpoint)
@@ -43,15 +58,8 @@ func newTestCluster(endpoints ...string) *Cluster {
 	clusterDesc := &Desc{
 		Servers: servers,
 	}
-
-	return &Cluster{
-		cfg:          newConfig(WithServerSelectionTimeout(3 * time.Second)),
-		stateDesc:    clusterDesc,
-		stateServers: stateServers,
-		waiters:      make(map[int64]chan struct{}),
-		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
-		monitor:      &Monitor{},
-	}
+	c.stateServers = stateServers
+	c.stateDesc = clusterDesc
 }
 
 func endpointName(srv Server) string {
@@ -63,6 +71,48 @@ func TestSelectServer_Success(t *testing.T) {
 	srv, err := c.SelectServer(context.Background(), selectFirst)
 	require.Nil(t, err)
 	require.Equal(t, "one", endpointName(srv))
+}
+
+// this test should only fail every (10*iters) runs.
+// mostly just a sanity check that we don't return the
+// same endpoint every time from the suitable choices
+func TestSelectServer_Random(t *testing.T) {
+	c := newTestCluster(
+		"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+	)
+	iters := 100
+	success := false
+	lastValue := ""
+	for i := 0; i < iters; i++ {
+		srv, err := c.SelectServer(context.Background(), selectAll)
+		require.Nil(t, err)
+		endpointName := endpointName(srv)
+		if endpointName != lastValue {
+			success = true
+			break
+		}
+	}
+	require.True(t, success)
+}
+
+func TestSelectServer_Updated(t *testing.T) {
+	c := newTestCluster()
+	errCh := make(chan error)
+	srvCh := make(chan Server)
+	go func() {
+		srv, err := c.SelectServer(context.Background(), selectFirst)
+		errCh <- err
+		srvCh <- srv
+	}()
+	time.Sleep(1 * time.Second)
+	c.setClusterEndpoints("one", "two")
+	c.waiterLock.Lock()
+	for _, ch := range c.waiters {
+		ch <- struct{}{}
+	}
+	c.waiterLock.Unlock()
+	require.Nil(t, <-errCh)
+	require.Equal(t, "one", endpointName(<-srvCh))
 }
 
 func TestSelectServer_Timeout(t *testing.T) {

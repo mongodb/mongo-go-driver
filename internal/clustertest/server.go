@@ -26,5 +26,5 @@ func (f *FakeServer) Desc() *server.Desc {
 }
 
 func (f *FakeServer) Close() {
-	panic("not implemented")
+	// no-op
 }
