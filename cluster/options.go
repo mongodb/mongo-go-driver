@@ -9,7 +9,8 @@ import (
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		seedList: []conn.Endpoint{conn.Endpoint("localhost:27017")},
+		seedList:               []conn.Endpoint{conn.Endpoint("localhost:27017")},
+		serverSelectionTimeout: 30 * time.Second,
 	}
 
 	cfg.apply(opts...)

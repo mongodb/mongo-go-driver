@@ -125,7 +125,14 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 	for {
 		clusterDesc := c.Desc()
 
-		suitable, err := selector(clusterDesc, clusterDesc.Servers)
+		var allowedServers []*server.Desc
+		for _, s := range clusterDesc.Servers {
+			if s.Type != server.Unknown {
+				allowedServers = append(allowedServers, s)
+			}
+		}
+
+		suitable, err := selector(clusterDesc, allowedServers)
 		if err != nil {
 			return nil, err
 		}

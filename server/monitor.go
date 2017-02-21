@@ -138,6 +138,7 @@ func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 	// add channel to subscribers
 	m.subscriberLock.Lock()
 	if m.subscriptionsClosed {
+		close(ch)
 		return nil, nil, errors.New("cannot subscribe to monitor after stopping it")
 	}
 	m.lastSubscriberID++
@@ -147,8 +148,10 @@ func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
 
 	unsubscribe := func() {
 		m.subscriberLock.Lock()
-		close(ch)
-		delete(m.subscribers, id)
+		if !m.subscriptionsClosed {
+			close(ch)
+			delete(m.subscribers, id)
+		}
 		m.subscriberLock.Unlock()
 	}
 

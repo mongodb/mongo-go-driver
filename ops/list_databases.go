@@ -29,7 +29,7 @@ func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabases
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		"admin",
-		false,
+		slaveOk(s.ReadPref),
 		listDatabasesCommand,
 	)
 

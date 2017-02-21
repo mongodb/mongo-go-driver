@@ -41,7 +41,7 @@ func ListCollections(ctx context.Context, s *SelectedServer, db string, options 
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		db,
-		false,
+		slaveOk(s.ReadPref),
 		listCollectionsCommand,
 	)
 

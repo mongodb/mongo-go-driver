@@ -45,7 +45,7 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline in
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		ns.DB,
-		false,
+		slaveOk(s.ReadPref),
 		aggregateCommand,
 	)
 
