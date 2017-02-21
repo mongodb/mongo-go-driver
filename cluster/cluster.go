@@ -5,8 +5,6 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
@@ -43,29 +41,13 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 		stateDesc:    &Desc{},
 		stateServers: make(map[conn.Endpoint]*server.Server),
 		monitor:      monitor,
-		waiters:      make(map[int64]chan struct{}),
 	}
 
 	updates, _, _ := monitor.Subscribe()
 	go func() {
 		for desc := range updates {
 			cluster.applyUpdate(desc)
-
-			cluster.waiterLock.Lock()
-			for _, waiter := range cluster.waiters {
-				select {
-				case waiter <- struct{}{}:
-				default:
-				}
-			}
-			cluster.waiterLock.Unlock()
 		}
-		cluster.waiterLock.Lock()
-		for id, ch := range cluster.waiters {
-			close(ch)
-			delete(cluster.waiters, id)
-		}
-		cluster.waiterLock.Unlock()
 	}()
 
 	return cluster
@@ -80,9 +62,6 @@ type Cluster struct {
 
 	monitor      *Monitor
 	ownsMonitor  bool
-	waiters      map[int64]chan struct{}
-	lastWaiterID int64
-	waiterLock   sync.Mutex
 	stateDesc    *Desc
 	stateLock    sync.Mutex
 	stateServers map[conn.Endpoint]*server.Server
@@ -117,11 +96,55 @@ func (c *Cluster) Desc() *Desc {
 }
 
 // SelectServer selects a server given a selector.
+// SelectServer complies with the server selection spec, and will time
+// out after serverSelectionTimeout or when the parent context is done.
 func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Server, error) {
-	timer := time.NewTimer(c.cfg.serverSelectionTimeout)
-	updated, id := c.awaitUpdates()
+	timeout, _ := context.WithTimeout(ctx, c.cfg.serverSelectionTimeout)
 	for {
-		clusterDesc := c.Desc()
+		suitable, err := SelectServers(timeout, c.monitor, selector)
+		if err != nil {
+			return nil, err
+		}
+
+		selected := suitable[rand.Intn(len(suitable))]
+
+		c.stateLock.Lock()
+		if c.stateServers == nil {
+			c.stateLock.Unlock()
+			return nil, ErrClusterClosed
+		}
+		if server, ok := c.stateServers[selected.Endpoint]; ok {
+			c.stateLock.Unlock()
+			return server, nil
+		}
+		c.stateLock.Unlock()
+
+		// this is unfortunate. We have ended up here because we successfully
+		// found a server that has since been removed. We need to start this process
+		// over.
+		continue
+	}
+}
+
+// SelectServer returns a list of server descriptions matching
+// a given selector. SelectServers will only time out when its
+// parent context is done.
+func SelectServers(ctx context.Context, m *Monitor, selector ServerSelector) ([]*server.Desc, error) {
+	return selectServers(ctx, m, selector)
+}
+
+func selectServers(ctx context.Context, m monitor, selector ServerSelector) ([]*server.Desc, error) {
+	updates, unsubscribe, _ := m.Subscribe()
+	defer unsubscribe()
+
+	var clusterDesc *Desc
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, internal.WrapError(ctx.Err(), "server selection failed")
+		case clusterDesc = <-updates:
+			// topology has changed
+		}
 
 		var allowedServers []*server.Desc
 		for _, s := range clusterDesc.Servers {
@@ -136,41 +159,10 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 		}
 
 		if len(suitable) > 0 {
-			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			selected := suitable[r.Intn(len(suitable))]
-
-			c.stateLock.Lock()
-			if c.stateServers == nil {
-				c.stateLock.Unlock()
-				return nil, ErrClusterClosed
-			}
-			if server, ok := c.stateServers[selected.Endpoint]; ok {
-				c.stateLock.Unlock()
-				timer.Stop()
-				c.removeWaiter(id)
-				return server, nil
-			}
-			c.stateLock.Unlock()
-
-			// this is unfortunate. We have ended up here because we successfully
-			// found a server that has since been removed. We need to start this process
-			// over.
-			continue
+			return suitable, nil
 		}
 
-		c.monitor.RequestImmediateCheck()
-
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			c.removeWaiter(id)
-			return nil, internal.WrapError(ctx.Err(), "server selection failed")
-		case <-updated:
-			// topology has changed
-		case <-timer.C:
-			c.removeWaiter(id)
-			return nil, errors.New("server selection timed out")
-		}
+		m.RequestImmediateCheck()
 	}
 }
 
@@ -201,26 +193,4 @@ func (c *Cluster) applyUpdate(desc *Desc) {
 
 		delete(c.stateServers, removed.Endpoint)
 	}
-}
-
-// awaitUpdates returns a channel which will be signaled when the
-// cluster description is updated, and an id which can later be used
-// to remove this channel from the clusterImpl.waiters map.
-func (c *Cluster) awaitUpdates() (<-chan struct{}, int64) {
-	id := atomic.AddInt64(&c.lastWaiterID, 1)
-	ch := make(chan struct{}, 1)
-	c.waiterLock.Lock()
-	c.waiters[id] = ch
-	c.waiterLock.Unlock()
-	return ch, id
-}
-
-func (c *Cluster) removeWaiter(id int64) {
-	c.waiterLock.Lock()
-	_, found := c.waiters[id]
-	if !found {
-		panic("Could not find channel with provided id to remove")
-	}
-	delete(c.waiters, id)
-	c.waiterLock.Unlock()
 }
