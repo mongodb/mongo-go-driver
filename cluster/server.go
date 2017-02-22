@@ -13,6 +13,15 @@ type Server interface {
 	Connection(context.Context) (conn.Connection, error)
 	// Desc gets a description of the server.
 	Desc() *server.Desc
+}
+
+// serverCloser represents a logical connection to a server
+// that can be closed.
+type serverCloser interface {
+	// Connection gets a connection to the server.
+	Connection(context.Context) (conn.Connection, error)
+	// Desc gets a description of the server.
+	Desc() *server.Desc
 	// Close closes the server
 	Close()
 }

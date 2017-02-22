@@ -44,7 +44,7 @@ func newTestCluster(endpoints ...string) *Cluster {
 }
 
 func (c *Cluster) setClusterEndpoints(endpoints ...string) {
-	stateServers := make(map[conn.Endpoint]Server)
+	stateServers := make(map[conn.Endpoint]serverCloser)
 	servers := make([]*server.Desc, len(endpoints))
 	for i, end := range endpoints {
 		endpoint := conn.Endpoint(end)
