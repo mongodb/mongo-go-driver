@@ -8,6 +8,11 @@ import (
 	"github.com/10gen/mongo-go-driver/server"
 )
 
+type monitor interface {
+	Subscribe() (<-chan *Desc, func(), error)
+	RequestImmediateCheck()
+}
+
 // StartMonitor begins monitoring a cluster.
 func StartMonitor(opts ...Option) (*Monitor, error) {
 	cfg := newConfig(opts...)
