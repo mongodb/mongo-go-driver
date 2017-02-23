@@ -3,23 +3,13 @@ package cluster
 import (
 	"context"
 	"errors"
-	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/internal/clustertest"
 	"github.com/10gen/mongo-go-driver/server"
 	"github.com/stretchr/testify/require"
 )
-
-func selectAll(_ *Desc, servers []*server.Desc) ([]*server.Desc, error) {
-	return servers, nil
-}
-
-func selectNone(_ *Desc, _ []*server.Desc) ([]*server.Desc, error) {
-	return []*server.Desc{}, nil
-}
 
 func selectFirst(_ *Desc, servers []*server.Desc) ([]*server.Desc, error) {
 	if len(servers) == 0 {
@@ -28,23 +18,36 @@ func selectFirst(_ *Desc, servers []*server.Desc) ([]*server.Desc, error) {
 	return servers[0:1], nil
 }
 
+func selectNone(_ *Desc, _ []*server.Desc) ([]*server.Desc, error) {
+	return []*server.Desc{}, nil
+}
+
 func selectError(_ *Desc, _ []*server.Desc) ([]*server.Desc, error) {
 	return nil, errors.New("encountered an error in the selector")
 }
 
-func newTestCluster(endpoints ...string) *Cluster {
-	cluster := &Cluster{
-		cfg:     newConfig(WithServerSelectionTimeout(3 * time.Second)),
-		waiters: make(map[int64]chan struct{}),
-		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
-		monitor: &Monitor{},
-	}
-	cluster.setClusterEndpoints(endpoints...)
-	return cluster
+type fakeMonitor struct {
+	updates chan *Desc
 }
 
-func (c *Cluster) setClusterEndpoints(endpoints ...string) {
-	stateServers := make(map[conn.Endpoint]serverCloser)
+func newFakeMonitor(endpoints ...string) *fakeMonitor {
+	updates := make(chan *Desc, 1)
+	monitor := &fakeMonitor{
+		updates: updates,
+	}
+	monitor.updateEndpoints(endpoints...)
+	return monitor
+}
+
+func (f *fakeMonitor) Subscribe() (<-chan *Desc, func(), error) {
+	return f.updates, func() {}, nil
+}
+
+func (f *fakeMonitor) RequestImmediateCheck() {
+	// no-op
+}
+
+func (f *fakeMonitor) updateEndpoints(endpoints ...string) {
 	servers := make([]*server.Desc, len(endpoints))
 	for i, end := range endpoints {
 		endpoint := conn.Endpoint(end)
@@ -53,131 +56,116 @@ func (c *Cluster) setClusterEndpoints(endpoints ...string) {
 			Type:     server.Standalone,
 		}
 		servers[i] = server
-		stateServers[endpoint] = clustertest.NewFakeServer(endpoint)
 	}
 	clusterDesc := &Desc{
 		Servers: servers,
 	}
-	c.stateServers = stateServers
-	c.stateDesc = clusterDesc
-}
 
-func endpointName(srv Server) string {
-	return string(srv.Desc().Endpoint)
+	select {
+	case <-f.updates:
+	default:
+	}
+	f.updates <- clusterDesc
 }
 
 func TestSelectServer_Success(t *testing.T) {
-	c := newTestCluster("one", "two", "three")
-	srv, err := c.SelectServer(context.Background(), selectFirst)
-	require.Nil(t, err)
-	require.Equal(t, "one", endpointName(srv))
-}
-
-// this test should only fail every (10*iters) runs.
-// mostly just a sanity check that we don't return the
-// same endpoint every time from the suitable choices
-func TestSelectServer_Random(t *testing.T) {
-	c := newTestCluster(
-		"one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
-	)
-	iters := 100
-	success := false
-	lastValue := ""
-	for i := 0; i < iters; i++ {
-		srv, err := c.SelectServer(context.Background(), selectAll)
-		require.Nil(t, err)
-		endpointName := endpointName(srv)
-		if endpointName != lastValue {
-			success = true
-			break
-		}
-	}
-	require.True(t, success)
+	m := newFakeMonitor("one", "two", "three")
+	srvs, err := selectServers(context.Background(), m, selectFirst)
+	require.NoError(t, err)
+	require.Len(t, srvs, 1)
+	require.Equal(t, "one", string(srvs[0].Endpoint))
 }
 
 func TestSelectServer_Updated(t *testing.T) {
-	c := newTestCluster()
+	m := newFakeMonitor()
 	errCh := make(chan error)
-	srvCh := make(chan Server)
+	srvCh := make(chan []*server.Desc)
+
 	go func() {
-		srv, err := c.SelectServer(context.Background(), selectFirst)
+		srvs, err := selectServers(context.Background(), m, selectFirst)
 		errCh <- err
-		srvCh <- srv
+		srvCh <- srvs
 	}()
+
 	time.Sleep(1 * time.Second)
-	c.setClusterEndpoints("one", "two")
-	c.waiterLock.Lock()
-	for _, ch := range c.waiters {
-		ch <- struct{}{}
-	}
-	c.waiterLock.Unlock()
-	require.Nil(t, <-errCh)
-	require.Equal(t, "one", endpointName(<-srvCh))
-}
+	m.updateEndpoints("four", "five")
+	err := <-errCh
+	srvs := <-srvCh
 
-func TestSelectServer_Timeout(t *testing.T) {
-	c := newTestCluster()
-	done := make(chan error)
-	go func() {
-		_, err := c.SelectServer(context.Background(), selectNone)
-		done <- err
-	}()
-
-	select {
-	case <-time.After(2 * time.Second):
-		// this is what we expect
-	case <-done:
-		t.Fatal("SelectServer returned before ServerSelectionTimeout")
-	}
-
-	select {
-	case <-time.After(2 * time.Second):
-		t.Fatal("ServerSelectionTimeout exceeded, but SelectServer has not returned")
-	case err := <-done:
-		// this is what we expect
-		require.Equal(t, "server selection timed out", err.Error())
-	}
+	require.NoError(t, err)
+	require.Len(t, srvs, 1)
+	require.Equal(t, "four", string(srvs[0].Endpoint))
 }
 
 func TestSelectServer_Cancel(t *testing.T) {
-	c := newTestCluster()
+	m := newFakeMonitor("one", "two", "three")
 	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan error)
+	errCh := make(chan error)
+
 	go func() {
-		_, err := c.SelectServer(ctx, selectNone)
-		done <- err
+		_, err := selectServers(ctx, m, selectNone)
+		errCh <- err
 	}()
 
+	time.Sleep(1 * time.Second)
 	select {
-	case <-time.After(2 * time.Second):
+	case <-errCh:
+		t.Fatal("selectServers returned before it was cancelled")
+	default:
 		// this is what we expect
-	case <-done:
-		t.Fatal("SelectServer returned before ServerSelectionTimeout")
 	}
 
 	cancel()
 
 	select {
-	case <-time.After(2 * time.Second):
-		t.Fatal("ServerSelectionTimeout exceeded, but SelectServer has not returned")
-	case err := <-done:
+	case <-time.After(1 * time.Second):
+		t.Fatal("selectServers failed to return when cancelled")
+	case err := <-errCh:
 		// this is what we expect
 		require.Equal(t, "server selection failed: context canceled", err.Error())
 	}
 }
 
-func TestSelectServer_Error(t *testing.T) {
-	c := newTestCluster()
-	done := make(chan error)
+func TestSelectServer_Timeout(t *testing.T) {
+	m := newFakeMonitor("one", "two", "three")
+	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+	errCh := make(chan error)
+
 	go func() {
-		_, err := c.SelectServer(context.Background(), selectError)
-		done <- err
+		_, err := selectServers(ctx, m, selectNone)
+		errCh <- err
 	}()
+
+	time.Sleep(1 * time.Second)
+	select {
+	case <-errCh:
+		t.Fatal("selectServers returned before it was cancelled")
+	default:
+		// this is what we expect
+	}
 
 	select {
 	case <-time.After(2 * time.Second):
-		t.Fatal("ServerSelectionTimeout exceeded, but SelectServer has not returned")
-	case err := <-done:
+		t.Fatal("selectServers failed to return when cancelled")
+	case err := <-errCh:
+		// this is what we expect
+		require.Equal(t, "server selection failed: context deadline exceeded", err.Error())
+	}
+}
+
+func TestSelectServer_Error(t *testing.T) {
+	m := newFakeMonitor("one", "two", "three")
+	errCh := make(chan error)
+
+	go func() {
+		_, err := selectServers(context.Background(), m, selectError)
+		errCh <- err
+	}()
+
+	select {
+	case <-time.After(1 * time.Second):
+		t.Fatal("selectServers failed to return when selector returned error")
+	case err := <-errCh:
 		// this is what we expect
 		require.Equal(t, "encountered an error in the selector", err.Error())
 	}
