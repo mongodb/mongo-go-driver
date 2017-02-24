@@ -128,7 +128,8 @@ func TestSelectServer_Cancel(t *testing.T) {
 
 func TestSelectServer_Timeout(t *testing.T) {
 	m := newFakeMonitor("one", "two", "three")
-	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	errCh := make(chan error)
 
 	go func() {

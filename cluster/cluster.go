@@ -99,10 +99,11 @@ func (c *Cluster) Desc() *Desc {
 // SelectServer complies with the server selection spec, and will time
 // out after serverSelectionTimeout or when the parent context is done.
 func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Server, error) {
-	timeout, _ := context.WithTimeout(ctx, c.cfg.serverSelectionTimeout)
+	timeout, cancel := context.WithTimeout(ctx, c.cfg.serverSelectionTimeout)
 	for {
 		suitable, err := SelectServers(timeout, c.monitor, selector)
 		if err != nil {
+			cancel()
 			return nil, err
 		}
 
@@ -111,10 +112,12 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 		c.stateLock.Lock()
 		if c.stateServers == nil {
 			c.stateLock.Unlock()
+			cancel()
 			return nil, ErrClusterClosed
 		}
 		if server, ok := c.stateServers[selected.Endpoint]; ok {
 			c.stateLock.Unlock()
+			cancel()
 			return server, nil
 		}
 		c.stateLock.Unlock()
@@ -126,7 +129,7 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 	}
 }
 
-// SelectServer returns a list of server descriptions matching
+// SelectServers returns a list of server descriptions matching
 // a given selector. SelectServers will only time out when its
 // parent context is done.
 func SelectServers(ctx context.Context, m *Monitor, selector ServerSelector) ([]*server.Desc, error) {
