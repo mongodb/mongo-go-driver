@@ -47,8 +47,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		<-sig
-		close(done)
 		cancel()
+		close(done)
 	}()
 
 	log.Println("prepping")
@@ -145,18 +145,18 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue
 			}
-			defer cursor.Close(ctx)
 
 			count := 0
 			var result bson.D
 			for cursor.Next(ctx, &result) {
 				count++
-				// just iterate this guy...
 			}
 			if cursor.Err() != nil {
-				log.Printf("%d-failed iterating aggregate results: %s", idx, err)
-				continue
+				cursor.Close(ctx)
+				log.Printf("%d-failed iterating aggregate results: %s", idx, cursor.Err())
+				return
 			}
+			cursor.Close(ctx)
 
 			log.Printf("%d-iterated %d docs", idx, count)
 		}
