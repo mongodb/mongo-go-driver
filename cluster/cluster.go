@@ -40,7 +40,7 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 	cluster := &Cluster{
 		cfg:          monitor.cfg.reconfig(opts...),
 		stateDesc:    &Desc{},
-		stateServers: make(map[conn.Endpoint]serverCloser),
+		stateServers: make(map[conn.Endpoint]*server.Server),
 		monitor:      monitor,
 	}
 
@@ -65,7 +65,7 @@ type Cluster struct {
 	ownsMonitor  bool
 	stateDesc    *Desc
 	stateLock    sync.Mutex
-	stateServers map[conn.Endpoint]serverCloser
+	stateServers map[conn.Endpoint]*server.Server
 	rand         *rand.Rand
 }
 
