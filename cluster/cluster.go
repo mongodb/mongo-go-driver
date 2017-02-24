@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
@@ -66,7 +65,6 @@ type Cluster struct {
 	stateDesc    *Desc
 	stateLock    sync.Mutex
 	stateServers map[conn.Endpoint]*server.Server
-	rand         *rand.Rand
 }
 
 // Close closes the cluster.
@@ -108,8 +106,7 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 			return nil, err
 		}
 
-		r := rand.New(rand.NewSource(time.Now().UnixNano()))
-		selected := suitable[r.Intn(len(suitable))]
+		selected := suitable[rand.Intn(len(suitable))]
 
 		c.stateLock.Lock()
 		if c.stateServers == nil {
