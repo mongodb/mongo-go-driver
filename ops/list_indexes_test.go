@@ -52,9 +52,11 @@ func TestListIndexes(t *testing.T) {
 		names = append(names, next["name"].(string))
 	}
 
+	require.Equal(t, 4, len(names))
 	require.Contains(t, names, indexNames[0])
 	require.Contains(t, names, indexNames[1])
 	require.Contains(t, names, indexNames[2])
+	require.Contains(t, names, indexNames[3])
 }
 
 func TestListIndexesMultipleBatches(t *testing.T) {
