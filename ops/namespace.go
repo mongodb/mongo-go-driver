@@ -5,6 +5,15 @@ import (
 	"strings"
 )
 
+// NewNamespace returns a new Namespace for the
+// given database and collection.
+func NewNamespace(db, collection string) Namespace {
+	return Namespace{
+		DB:         db,
+		Collection: collection,
+	}
+}
+
 // ParseNamespace parses a namespace string into a Namespace.
 //
 // The namespace string must contain at least one ".", the first of which is the separator
