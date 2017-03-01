@@ -120,7 +120,7 @@ func TestExecuteCommand_NumberReturned_is_0(t *testing.T) {
 	var result bson.D
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: command returned no documents", 1)
+	validateExecuteCommandError(t, err, "command returned no documents", 1)
 }
 
 func TestExecuteCommand_NumberReturned_is_greater_than_1(t *testing.T) {
@@ -134,7 +134,7 @@ func TestExecuteCommand_NumberReturned_is_greater_than_1(t *testing.T) {
 	var result bson.D
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: command returned multiple documents", 1)
+	validateExecuteCommandError(t, err, "command returned multiple documents", 1)
 }
 
 func TestExecuteCommand_QueryFailure_flag_with_no_document(t *testing.T) {
@@ -150,7 +150,7 @@ func TestExecuteCommand_QueryFailure_flag_with_no_document(t *testing.T) {
 	var result bson.D
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: unknown command failure", 1)
+	validateExecuteCommandError(t, err, "unknown command failure", 1)
 }
 
 func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) {
@@ -166,7 +166,7 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 	var result bson.D
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command failure document", 1)
+	validateExecuteCommandError(t, err, "failed to read command failure document", 1)
 
 	// not enough bytes for document
 	conn = &conntest.MockConnection{}
@@ -177,7 +177,7 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 
 	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command failure document", 1)
+	validateExecuteCommandError(t, err, "failed to read command failure document", 1)
 
 	// corrupted document
 	conn = &conntest.MockConnection{}
@@ -188,7 +188,7 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 
 	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command failure document", 1)
+	validateExecuteCommandError(t, err, "failed to read command failure document", 1)
 }
 
 func TestExecuteCommand_QueryFailure_flag_with_document(t *testing.T) {
@@ -202,7 +202,7 @@ func TestExecuteCommand_QueryFailure_flag_with_document(t *testing.T) {
 	var result bson.D
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: command failure: [{error true}]", 1)
+	validateExecuteCommandError(t, err, "command failure: [{error true}]", 1)
 }
 
 func TestExecuteCommand_No_command_response(t *testing.T) {
@@ -217,7 +217,7 @@ func TestExecuteCommand_No_command_response(t *testing.T) {
 	var result bson.D
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: no command response document", 1)
+	validateExecuteCommandError(t, err, "no command response document", 1)
 }
 
 func TestExecuteCommand_Error_decoding_response(t *testing.T) {
@@ -232,7 +232,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 	var result bson.D
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command response document:", 1)
+	validateExecuteCommandError(t, err, "failed to read command response document", 1)
 
 	// not enough bytes for document
 	conn = &conntest.MockConnection{}
@@ -242,7 +242,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 
 	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command response document:", 1)
+	validateExecuteCommandError(t, err, "failed to read command response document", 1)
 
 	// corrupted document
 	conn = &conntest.MockConnection{}
@@ -252,7 +252,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 
 	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: failed to read command response document:", 1)
+	validateExecuteCommandError(t, err, "failed to read command response document", 1)
 }
 
 func TestExecuteCommand_OK_field_is_false(t *testing.T) {
@@ -265,7 +265,7 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 	var result bson.D
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed", 1)
+	validateExecuteCommandError(t, err, "command failed", 1)
 
 	conn = &conntest.MockConnection{}
 	reply = msgtest.CreateCommandReply(bson.D{{"ok", 0}})
@@ -273,7 +273,7 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 
 	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed", 1)
+	validateExecuteCommandError(t, err, "command failed", 1)
 
 	conn = &conntest.MockConnection{}
 	reply = msgtest.CreateCommandReply(bson.D{{"ok", 0}, {"errmsg", "weird command was invalid"}})
@@ -281,5 +281,5 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 
 	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
 
-	validateExecuteCommandError(t, err, "failed reading command response for 0: command failed: weird command was invalid", 1)
+	validateExecuteCommandError(t, err, "weird command was invalid", 1)
 }

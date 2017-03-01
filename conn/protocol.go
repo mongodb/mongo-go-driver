@@ -10,21 +10,6 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// CommandFailureError is an error with a failure response as a document.
-type CommandFailureError struct {
-	Msg      string
-	Response bson.D
-}
-
-func (e *CommandFailureError) Error() string {
-	return fmt.Sprintf("%s: %v", e.Msg, e.Response)
-}
-
-// Message retrieves the message of the error.
-func (e *CommandFailureError) Message() string {
-	return e.Msg
-}
-
 // ExecuteCommand executes the message on the channel.
 func ExecuteCommand(ctx context.Context, c Connection, request msg.Request, out interface{}) error {
 	return ExecuteCommands(ctx, c, []msg.Request{request}, []interface{}{out})
@@ -55,7 +40,7 @@ func ExecuteCommands(ctx context.Context, c Connection, requests []msg.Request, 
 
 		err = readCommandResponse(resp, out[i])
 		if err != nil {
-			errors = append(errors, internal.WrapErrorf(err, "failed reading command response for %d", req.RequestID()))
+			errors = append(errors, err)
 			continue
 		}
 	}
@@ -67,10 +52,10 @@ func readCommandResponse(resp msg.Response, out interface{}) error {
 	switch typedResp := resp.(type) {
 	case *msg.Reply:
 		if typedResp.NumberReturned == 0 {
-			return fmt.Errorf("command returned no documents")
+			return ErrNoDocCommandResponse
 		}
 		if typedResp.NumberReturned > 1 {
-			return fmt.Errorf("command returned multiple documents")
+			return ErrMultiDocCommandResponse
 		}
 
 		if typedResp.ResponseFlags&msg.QueryFailure != 0 {
@@ -78,12 +63,12 @@ func readCommandResponse(resp msg.Response, out interface{}) error {
 			var doc bson.D
 			ok, err := typedResp.Iter().One(&doc)
 			if err != nil {
-				return internal.WrapError(err, "failed to read command failure document")
+				msg := fmt.Sprintf("failed to read command failure document: %v", err)
+				return NewCommandResponseError(msg)
 			}
 			if !ok {
-				return fmt.Errorf("unknown command failure")
+				return ErrUnknownCommandFailure
 			}
-
 			return &CommandFailureError{
 				Msg:      "command failure",
 				Response: doc,
@@ -94,45 +79,54 @@ func readCommandResponse(resp msg.Response, out interface{}) error {
 		var raw bson.RawD
 		ok, err := typedResp.Iter().One(&raw)
 		if err != nil {
-			return fmt.Errorf("failed to read command response document: %v", err)
+			msg := fmt.Sprintf("failed to read command response document: %v", err)
+			return NewCommandResponseError(msg)
 		}
 		if !ok {
-			return fmt.Errorf("no command response document")
+			return ErrNoCommandResponse
 		}
 
 		// check the raw command response for ok field.
 		ok = false
+		var errmsg, codeName string
+		var code int32
 		for _, rawElem := range raw {
-			if rawElem.Name == "ok" {
+			switch rawElem.Name {
+			case "ok":
 				var v int32
 				err := rawElem.Value.Unmarshal(&v)
 				if err == nil && v == 1 {
 					ok = true
 					break
 				}
+			case "errmsg":
+				rawElem.Value.Unmarshal(&errmsg)
+			case "codeName":
+				rawElem.Value.Unmarshal(&codeName)
+			case "code":
+				rawElem.Value.Unmarshal(&code)
 			}
 		}
+
 		if !ok {
-			var errmsg string
-			for _, rawElem := range raw {
-				if rawElem.Name == "errmsg" {
-					rawElem.Value.Unmarshal(&errmsg)
-					break
-				}
-			}
 			if errmsg == "" {
-				return fmt.Errorf("command failed")
+				errmsg = "command failed"
 			}
-			return fmt.Errorf("command failed: %s", errmsg)
+			return &CommandError{
+				Code:    code,
+				Message: errmsg,
+				Name:    codeName,
+			}
 		}
 
 		// re-decode the response into the user provided structure...
 		ok, err = typedResp.Iter().One(out)
 		if err != nil {
-			return fmt.Errorf("failed to read command response document: %v", err)
+			msg := fmt.Sprintf("failed to read command response document: %v", err)
+			return NewCommandResponseError(msg)
 		}
 		if !ok {
-			return fmt.Errorf("no command response document")
+			return ErrNoCommandResponse
 		}
 	default:
 		return fmt.Errorf("unsupported response message type: %T", typedResp)

@@ -1,6 +1,8 @@
 package internal
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // WrappedError represents an error that contains another error.
 type WrappedError interface {

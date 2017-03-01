@@ -13,7 +13,7 @@ import (
 type ListCollectionsOptions struct {
 	// A query filter for the collections
 	Filter interface{}
-	// The batch size for fetching results. A zero value indicate the server's default batch size.
+	// The batch size for fetching results. A zero value indicates the server's default batch size.
 	BatchSize int32
 	// The maximum execution time in milliseconds. A zero value indicates no maximum.
 	MaxTime time.Duration

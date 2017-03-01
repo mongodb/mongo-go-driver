@@ -18,8 +18,39 @@ func TestListIndexesWithInvalidDatabaseName(t *testing.T) {
 
 	s := getServer()
 	ns := Namespace{"space", "ex"}
-	_, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
-	require.NotNil(t, err)
+	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
+	require.Nil(t, err)
+
+	indexes := []string{}
+	var next bson.M
+
+	for cursor.Next(context.Background(), &next) {
+		indexes = append(indexes, next["name"].(string))
+	}
+
+	require.Equal(t, 0, len(indexes))
+}
+
+func TestListIndexesWithInvalidCollectionName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	s := getServer()
+	ns := Namespace{databaseName, "ex"}
+	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
+	require.Nil(t, err)
+
+	indexes := []string{}
+	var next bson.M
+
+	for cursor.Next(context.Background(), &next) {
+		indexes = append(indexes, next["name"].(string))
+	}
+
+	require.Equal(t, 0, len(indexes))
 }
 
 func TestListIndexes(t *testing.T) {
@@ -34,29 +65,31 @@ func TestListIndexes(t *testing.T) {
 	collectionName := "TestListIndexes"
 	ns := NewNamespace(databaseName, collectionName)
 
-	indexNames := []string{"_id_", "a", "b", "c"}
+	indexNames := []string{"_id_", "a", "b", "c", "d_e"}
 
 	dropCollection(s, collectionName, t)
 
 	createIndex(s, collectionName, []string{"a"}, t)
 	createIndex(s, collectionName, []string{"b"}, t)
 	createIndex(s, collectionName, []string{"c"}, t)
+	createIndex(s, collectionName, []string{"d", "e"}, t)
 
 	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
 	require.Nil(t, err)
 
-	names := []string{}
+	indexes := []string{}
 	var next bson.M
 
 	for cursor.Next(context.Background(), &next) {
-		names = append(names, next["name"].(string))
+		indexes = append(indexes, next["name"].(string))
 	}
 
-	require.Equal(t, 4, len(names))
-	require.Contains(t, names, indexNames[0])
-	require.Contains(t, names, indexNames[1])
-	require.Contains(t, names, indexNames[2])
-	require.Contains(t, names, indexNames[3])
+	require.Equal(t, 5, len(indexes))
+	require.Contains(t, indexes, indexNames[0])
+	require.Contains(t, indexes, indexNames[1])
+	require.Contains(t, indexes, indexNames[2])
+	require.Contains(t, indexes, indexNames[3])
+	require.Contains(t, indexes, indexNames[4])
 }
 
 func TestListIndexesMultipleBatches(t *testing.T) {
@@ -68,7 +101,7 @@ func TestListIndexesMultipleBatches(t *testing.T) {
 
 	s := getServer()
 
-	collectionName := "TestListIndexes"
+	collectionName := "TestListIndexesMultipleBatches"
 
 	indexNames := []string{"_id_", "a", "b", "c"}
 
@@ -84,16 +117,16 @@ func TestListIndexesMultipleBatches(t *testing.T) {
 	cursor, err := ListIndexes(context.Background(), s, ns, options)
 	require.Nil(t, err)
 
-	names := []string{}
+	indexes := []string{}
 	var next bson.M
 
 	for cursor.Next(context.Background(), &next) {
-		names = append(names, next["name"].(string))
+		indexes = append(indexes, next["name"].(string))
 	}
 
-	require.Equal(t, 4, len(names))
-	require.Contains(t, names, indexNames[0])
-	require.Contains(t, names, indexNames[1])
-	require.Contains(t, names, indexNames[2])
-	require.Contains(t, names, indexNames[3])
+	require.Equal(t, 4, len(indexes))
+	require.Contains(t, indexes, indexNames[0])
+	require.Contains(t, indexes, indexNames[1])
+	require.Contains(t, indexes, indexNames[2])
+	require.Contains(t, indexes, indexNames[3])
 }

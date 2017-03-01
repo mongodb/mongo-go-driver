@@ -10,7 +10,7 @@ import (
 
 // ListIndexesOptions are the options for listing indexes.
 type ListIndexesOptions struct {
-	// The batch size for fetching results. A zero value indicate the server's default batch size.
+	// The batch size for fetching results. A zero value indicates the server's default batch size.
 	BatchSize int32
 }
 
@@ -38,9 +38,15 @@ func ListIndexes(ctx context.Context, s *SelectedServer, ns Namespace, options L
 
 	var result cursorReturningResult
 	err = conn.ExecuteCommand(ctx, c, request, &result)
-	if err != nil {
+
+	switch err {
+	case nil:
+		return NewCursor(&result.Cursor, options.BatchSize, s)
+	default:
+		if conn.IsNsNotFound(err) {
+			return NewExhaustedCursor()
+		}
 		return nil, err
 	}
 
-	return NewCursor(&result.Cursor, options.BatchSize, s)
 }

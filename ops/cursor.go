@@ -9,6 +9,25 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// NewExhaustedCursor creates a new exhausted cursor.
+func NewExhaustedCursor() (Cursor, error) {
+	return &exhaustedCursorImpl{}, nil
+}
+
+type exhaustedCursorImpl struct{}
+
+func (e *exhaustedCursorImpl) Next(_ context.Context, _ interface{}) bool {
+	return false
+}
+
+func (e *exhaustedCursorImpl) Err() error {
+	return nil
+}
+
+func (e *exhaustedCursorImpl) Close(_ context.Context) error {
+	return nil
+}
+
 // NewCursor creates a new cursor from the given cursor result.
 func NewCursor(cursorResult CursorResult, batchSize int32, server Server) (Cursor, error) {
 	namespace := cursorResult.Namespace()

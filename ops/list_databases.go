@@ -72,8 +72,9 @@ func (cursor *listDatabasesCursor) Err() error {
 	return nil
 }
 
-// Close the cursor.  Ordinarily this is a no-op as the server closes the cursor when it is exhausted.
-// Returns the error status of this cursor so that clients do not have to call Err() separately.
+// Close closes the cursor. Ordinarily this is a no-op as the server
+// closes the cursor when it is exhausted. Returns the error status
+// of this cursor so that clients do not have to call Err() separately.
 func (cursor *listDatabasesCursor) Close(_ context.Context) error {
 	return nil
 }
