@@ -40,11 +40,40 @@ func getServer() *SelectedServer {
 	return &SelectedServer{testServer, nil}
 }
 
+func createIndex(s Server, collectionName string, keys []string, t *testing.T) {
+	indexes := bson.M{}
+	for _, k := range keys {
+		indexes[k] = 1
+	}
+	name := strings.Join(keys, "_")
+	indexes = bson.M{"key": indexes, "name": name}
+
+	createIndexCommand := bson.D{
+		{"createIndexes", collectionName},
+		{"indexes", []bson.M{indexes}},
+	}
+
+	request := msg.NewCommand(
+		msg.NextRequestID(),
+		databaseName,
+		false,
+		createIndexCommand,
+	)
+
+	c, err := s.Connection(context.Background())
+	require.Nil(t, err)
+	defer c.Close()
+
+	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
+	require.Nil(t, err)
+}
+
 func insertDocuments(s Server, collectionName string, documents []bson.D, t *testing.T) {
 	insertCommand := bson.D{
 		{"insert", collectionName},
 		{"documents", documents},
 	}
+
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		databaseName,

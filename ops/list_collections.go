@@ -9,13 +9,13 @@ import (
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
-// ListCollectionsOptions are the options for listing collections
+// ListCollectionsOptions are the options for listing collections.
 type ListCollectionsOptions struct {
 	// A query filter for the collections
 	Filter interface{}
-	// The batch size for fetching results.  A zero value indicate the server's default batch size.
+	// The batch size for fetching results. A zero value indicates the server's default batch size.
 	BatchSize int32
-	// The maximum execution time in milliseconds.  A zero value indicates no maximum.
+	// The maximum execution time in milliseconds. A zero value indicates no maximum.
 	MaxTime time.Duration
 }
 
