@@ -31,6 +31,7 @@ type Desc struct {
 	Members           []conn.Endpoint
 	SetName           string
 	SetVersion        uint32
+	GitVersion        string
 	Tags              TagSet
 	Type              Type
 	WireVersion       conn.Range
@@ -54,6 +55,7 @@ func BuildDesc(endpoint conn.Endpoint, isMasterResult *internal.IsMasterResult, 
 
 		CanonicalEndpoint: conn.Endpoint(isMasterResult.Me),
 		ElectionID:        isMasterResult.ElectionID,
+		GitVersion:        buildInfoResult.GitVersion,
 		LastUpdateTime:    time.Now().UTC(),
 		LastWriteTime:     isMasterResult.LastWriteTimestamp,
 		MaxBatchCount:     isMasterResult.MaxWriteBatchSize,
@@ -62,13 +64,13 @@ func BuildDesc(endpoint conn.Endpoint, isMasterResult *internal.IsMasterResult, 
 		SetName:           isMasterResult.SetName,
 		SetVersion:        isMasterResult.SetVersion,
 		Tags:              nil, // TODO: get tags
-		WireVersion: conn.Range{
-			Min: isMasterResult.MinWireVersion,
-			Max: isMasterResult.MaxWireVersion,
-		},
 		Version: conn.Version{
 			Desc:  buildInfoResult.Version,
 			Parts: buildInfoResult.VersionArray,
+		},
+		WireVersion: conn.Range{
+			Min: isMasterResult.MinWireVersion,
+			Max: isMasterResult.MaxWireVersion,
 		},
 	}
 
