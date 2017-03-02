@@ -3,7 +3,9 @@ package cluster
 import (
 	"time"
 
+	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/connstring"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
@@ -48,6 +50,87 @@ func (c *config) apply(opts ...Option) {
 	}
 }
 
+// WithConnString configures the cluster using the connection
+// string.
+func WithConnString(cs connstring.ConnString) Option {
+	return func(c *config) {
+
+		var connOpts []conn.Option
+
+		if cs.AppName != "" {
+			connOpts = append(connOpts, conn.WithAppName(cs.AppName))
+		}
+
+		switch cs.Connect {
+		case connstring.SingleConnect:
+			c.mode = SingleMode
+		}
+
+		c.seedList = []conn.Endpoint{}
+		for _, host := range cs.Hosts {
+			c.seedList = append(c.seedList, conn.Endpoint(host))
+		}
+
+		if cs.HeartbeatInterval > 0 {
+			c.serverOpts = append(c.serverOpts, server.WithHeartbeatInterval(cs.HeartbeatInterval))
+		}
+
+		if cs.MaxConnIdleTime > 0 {
+			connOpts = append(connOpts, conn.WithIdleTimeout(cs.MaxConnIdleTime))
+		}
+
+		if cs.MaxConnLifeTime > 0 {
+			connOpts = append(connOpts, conn.WithIdleTimeout(cs.MaxConnLifeTime))
+		}
+
+		if cs.MaxConnsPerHostSet {
+			c.serverOpts = append(c.serverOpts, server.WithMaxConnections(cs.MaxConnsPerHost))
+		}
+
+		if cs.MaxIdleConnsPerHostSet {
+			c.serverOpts = append(c.serverOpts, server.WithMaxIdleConnections(cs.MaxIdleConnsPerHost))
+		}
+
+		if cs.ReplicaSet != "" {
+			c.replicaSetName = cs.ReplicaSet
+		}
+
+		if cs.ServerSelectionTimeout > 0 {
+			c.serverSelectionTimeout = cs.ServerSelectionTimeout
+		}
+
+		if cs.Username != "" {
+			var source string
+			if cs.AuthSource != "" {
+				source = cs.AuthSource
+			} else if cs.Database != "" {
+				source = cs.Database
+			} else {
+				source = "admin"
+			}
+
+			if authenticator, err := auth.CreateAuthenticator(
+				cs.AuthMechanism,
+				source,
+				cs.Username,
+				cs.Password,
+				cs.AuthMechanismProperties); err != nil {
+
+				c.serverOpts = append(
+					c.serverOpts,
+					server.WithWrappedConnectionDialer(func(current conn.Dialer) conn.Dialer {
+						return auth.Dialer(current, authenticator)
+					}),
+				)
+			}
+		}
+
+		if len(connOpts) > 0 {
+			c.serverOpts = append(c.serverOpts, server.WithMoreConnectionOptions(connOpts...))
+		}
+	}
+}
+
 // WithMode configures the cluster's monitor mode.
 // This option will be ignored when the cluster is created with a
 // pre-existing monitor.
@@ -83,9 +166,20 @@ func WithServerSelectionTimeout(timeout time.Duration) Option {
 }
 
 // WithServerOptions configures a cluster's server options for
-// when a new server needs to get created.
+// when a new server needs to get created. The options provided
+// overwrite all previously configured options.
 func WithServerOptions(opts ...server.Option) Option {
 	return func(c *config) {
 		c.serverOpts = opts
+	}
+}
+
+// WithMoreServerOptions configures a cluster's server options for
+// when a new server needs to get created. The options provided are
+// appended to any current options and may override previously
+// configured options.
+func WithMoreServerOptions(opts ...server.Option) Option {
+	return func(c *config) {
+		c.serverOpts = append(c.serverOpts, opts...)
 	}
 }

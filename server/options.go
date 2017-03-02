@@ -57,10 +57,28 @@ func WithConnectionDialer(dialer conn.Dialer) Option {
 	}
 }
 
-// WithConnectionOptions configures server's connections.
+// WithWrappedConnectionDialer configures a new dialer to be used
+// which wraps the current dialer.
+func WithWrappedConnectionDialer(wrapper func(conn.Dialer) conn.Dialer) Option {
+	return func(c *config) {
+		c.dialer = wrapper(c.dialer)
+	}
+}
+
+// WithConnectionOptions configures server's connections. The options provided
+// overwrite all previously configured options.
 func WithConnectionOptions(opts ...conn.Option) Option {
 	return func(c *config) {
 		c.connOpts = opts
+	}
+}
+
+// WithMoreConnectionOptions configures server's connections with
+// additional options. The options provided are appended to any
+// current options and may override previously configured options.
+func WithMoreConnectionOptions(opts ...conn.Option) Option {
+	return func(c *config) {
+		c.connOpts = append(c.connOpts, opts...)
 	}
 }
 
