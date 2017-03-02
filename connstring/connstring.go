@@ -26,13 +26,24 @@ func Parse(s string) (ConnString, error) {
 // ConnString represents a connection string to mongodb.
 type ConnString struct {
 	Original                string
+	AppName                 string
 	AuthMechanism           string
 	AuthMechanismProperties map[string]string
+	AuthSource              string
+	Connect                 ConnectMode
 	Database                string
+	HeartbeatInterval       time.Duration
 	Hosts                   []string
+	MaxConnIdleTime         time.Duration
+	MaxConnLifeTime         time.Duration
+	MaxConnsPerHost         uint16
+	MaxConnsPerHostSet      bool
+	MaxIdleConnsPerHost     uint16
+	MaxIdleConnsPerHostSet  bool
 	Password                string
 	PasswordSet             bool
 	ReplicaSet              string
+	ServerSelectionTimeout  time.Duration
 	Username                string
 	WTimeout                time.Duration
 
@@ -42,6 +53,16 @@ type ConnString struct {
 func (u *ConnString) String() string {
 	return u.Original
 }
+
+// ConnectMode informs the driver on how to connect
+// to the server.
+type ConnectMode uint8
+
+// ConnectMode constants.
+const (
+	AutoConnect ConnectMode = iota
+	SingleConnect
+)
 
 type parser struct {
 	ConnString
@@ -214,6 +235,8 @@ func (p *parser) addOption(pair string) error {
 
 	lowerKey := strings.ToLower(key)
 	switch lowerKey {
+	case "appname":
+		p.AppName = value
 	case "authmechanism":
 		p.AuthMechanism = value
 	case "authmechanismproperties":
@@ -226,12 +249,69 @@ func (p *parser) addOption(pair string) error {
 			}
 			p.AuthMechanismProperties[kv[0]] = kv[1]
 		}
+	case "authsource":
+		p.AuthSource = value
+	case "connect":
+		switch strings.ToLower(value) {
+		case "auto", "automatic":
+		case "direct", "single":
+			p.Connect = SingleConnect
+		default:
+			return fmt.Errorf("invalid 'connect' value: %s", value)
+		}
+	case "heartbeatintervalms", "heartbeatfrequencyms":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.HeartbeatInterval = time.Duration(n) * time.Millisecond
+	case "maxconnsperhost":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.MaxConnsPerHost = uint16(n)
+		p.MaxConnsPerHostSet = true
+	case "maxidleconnsperhost":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.MaxIdleConnsPerHost = uint16(n)
+		p.MaxIdleConnsPerHostSet = true
+	case "maxidletimems":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.MaxConnIdleTime = time.Duration(n) * time.Millisecond
+	case "maxlifetimems":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.MaxConnLifeTime = time.Duration(n) * time.Millisecond
+	case "maxpoolsize":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.MaxConnsPerHost = uint16(n)
+		p.MaxConnsPerHostSet = true
+		p.MaxIdleConnsPerHost = uint16(n)
+		p.MaxIdleConnsPerHostSet = true
 	case "replicaset":
 		p.ReplicaSet = value
+	case "serverselectiontimeoutms":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.ServerSelectionTimeout = time.Duration(n) * time.Millisecond
 	case "wtimeoutms":
 		n, err := strconv.Atoi(value)
-		if err != nil {
-			return fmt.Errorf("invalid value for wtimeoutMS: %v", value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.WTimeout = time.Duration(n) * time.Millisecond
 		p.haveWTimeoutMS = true
@@ -241,8 +321,8 @@ func (p *parser) addOption(pair string) error {
 			break
 		}
 		n, err := strconv.Atoi(value)
-		if err != nil {
-			return fmt.Errorf("invalid value for wtimeoutMS: %v", value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.WTimeout = time.Duration(n) * time.Millisecond
 	default:
