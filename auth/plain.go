@@ -9,6 +9,14 @@ import (
 
 const plain = "PLAIN"
 
+func newPlainAuthenticator(db, username, password string, props map[string]string) (Authenticator, error) {
+	return &PlainAuthenticator{
+		DB:       db,
+		Username: username,
+		Password: password,
+	}, nil
+}
+
 // PlainAuthenticator uses the PLAIN algorithm over SASL to authenticate a connection.
 type PlainAuthenticator struct {
 	DB       string

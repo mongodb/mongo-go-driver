@@ -24,6 +24,14 @@ const scramSHA1NonceLen = 24
 
 var usernameSanitizer = strings.NewReplacer("=", "=3D", ",", "=2D")
 
+func newScramSHA1Authenticator(db, username, password string, props map[string]string) (Authenticator, error) {
+	return &ScramSHA1Authenticator{
+		DB:       db,
+		Username: username,
+		Password: password,
+	}, nil
+}
+
 // ScramSHA1Authenticator uses the SCRAM-SHA-1 algorithm over SASL to authenticate a connection.
 type ScramSHA1Authenticator struct {
 	DB       string

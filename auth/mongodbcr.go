@@ -14,6 +14,14 @@ import (
 
 const mongodbCR = "MONGODB-CR"
 
+func newMongoDBCRAuthenticator(db, username, password string, props map[string]string) (Authenticator, error) {
+	return &MongoDBCRAuthenticator{
+		DB:       db,
+		Username: username,
+		Password: password,
+	}, nil
+}
+
 // MongoDBCRAuthenticator uses the MONGODB-CR algorithm to authenticate a connection.
 type MongoDBCRAuthenticator struct {
 	DB       string
