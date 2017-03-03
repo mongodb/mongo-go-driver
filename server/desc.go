@@ -21,6 +21,7 @@ type Desc struct {
 	AverageRTTSet     bool
 	CanonicalEndpoint conn.Endpoint
 	ElectionID        bson.ObjectId
+	GitVersion        string
 	HeartbeatInterval time.Duration
 	LastError         error
 	LastUpdateTime    time.Time
@@ -31,7 +32,6 @@ type Desc struct {
 	Members           []conn.Endpoint
 	SetName           string
 	SetVersion        uint32
-	GitVersion        string
 	Tags              TagSet
 	Type              Type
 	WireVersion       conn.Range
