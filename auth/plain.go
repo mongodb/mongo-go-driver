@@ -7,26 +7,29 @@ import (
 	"github.com/10gen/mongo-go-driver/conn"
 )
 
-const plain = "PLAIN"
+// PLAIN is the mechanism name for PLAIN.
+const PLAIN = "PLAIN"
 
-func newPlainAuthenticator(db, username, password string, props map[string]string) (Authenticator, error) {
+func newPlainAuthenticator(cred *Cred) (Authenticator, error) {
+	if cred.Source != "" && cred.Source != "$external" {
+		return nil, fmt.Errorf("PLAIN source must be empty or $external")
+	}
+
 	return &PlainAuthenticator{
-		DB:       db,
-		Username: username,
-		Password: password,
+		Username: cred.Username,
+		Password: cred.Password,
 	}, nil
 }
 
 // PlainAuthenticator uses the PLAIN algorithm over SASL to authenticate a connection.
 type PlainAuthenticator struct {
-	DB       string
 	Username string
 	Password string
 }
 
 // Auth authenticates the connection.
 func (a *PlainAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
-	return conductSaslConversation(ctx, c, a.DB, &plainSaslClient{
+	return conductSaslConversation(ctx, c, "$external", &plainSaslClient{
 		username: a.Username,
 		password: a.Password,
 	})
@@ -39,7 +42,7 @@ type plainSaslClient struct {
 
 func (c *plainSaslClient) Start() (string, []byte, error) {
 	b := []byte("\x00" + c.username + "\x00" + c.password)
-	return plain, b, nil
+	return PLAIN, b, nil
 }
 
 func (c *plainSaslClient) Next(challenge []byte) ([]byte, error) {

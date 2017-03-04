@@ -21,7 +21,6 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	t.Parallel()
 
 	authenticator := PlainAuthenticator{
-		DB:       "source",
 		Username: "user",
 		Password: "pencil",
 	}
@@ -53,7 +52,6 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	t.Parallel()
 
 	authenticator := PlainAuthenticator{
-		DB:       "source",
 		Username: "user",
 		Password: "pencil",
 	}
@@ -90,7 +88,6 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	t.Parallel()
 
 	authenticator := PlainAuthenticator{
-		DB:       "source",
 		Username: "user",
 		Password: "pencil",
 	}

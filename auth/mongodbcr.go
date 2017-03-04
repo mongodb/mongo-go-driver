@@ -12,13 +12,14 @@ import (
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
-const mongodbCR = "MONGODB-CR"
+// MONGODBCR is the mechanism name for MONGODB-CR.
+const MONGODBCR = "MONGODB-CR"
 
-func newMongoDBCRAuthenticator(db, username, password string, props map[string]string) (Authenticator, error) {
+func newMongoDBCRAuthenticator(cred *Cred) (Authenticator, error) {
 	return &MongoDBCRAuthenticator{
-		DB:       db,
-		Username: username,
-		Password: password,
+		DB:       cred.Source,
+		Username: cred.Username,
+		Password: cred.Password,
 	}, nil
 }
 
@@ -48,7 +49,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 
 	err := conn.ExecuteCommand(ctx, c, getNonceRequest, &getNonceResult)
 	if err != nil {
-		return newError(err, mongodbCR)
+		return newError(err, MONGODBCR)
 	}
 
 	authRequest := msg.NewCommand(
@@ -64,7 +65,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 	)
 	err = conn.ExecuteCommand(ctx, c, authRequest, &bson.D{})
 	if err != nil {
-		return newError(err, mongodbCR)
+		return newError(err, MONGODBCR)
 	}
 
 	return nil

@@ -8,21 +8,22 @@ import (
 )
 
 // AuthenticatorFactory constructs an authenticator.
-type AuthenticatorFactory func(db, username, password string, props map[string]string) (Authenticator, error)
+type AuthenticatorFactory func(cred *Cred) (Authenticator, error)
 
 var authFactories = make(map[string]AuthenticatorFactory)
 
 func init() {
 	RegisterAuthenticatorFactory("", newDefaultAuthenticator)
-	RegisterAuthenticatorFactory(scramSHA1, newScramSHA1Authenticator)
-	RegisterAuthenticatorFactory(mongodbCR, newMongoDBCRAuthenticator)
-	RegisterAuthenticatorFactory(plain, newPlainAuthenticator)
+	RegisterAuthenticatorFactory(SCRAMSHA1, newScramSHA1Authenticator)
+	RegisterAuthenticatorFactory(MONGODBCR, newMongoDBCRAuthenticator)
+	RegisterAuthenticatorFactory(PLAIN, newPlainAuthenticator)
+	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
 }
 
 // CreateAuthenticator creates an authenticator.
-func CreateAuthenticator(name, db, username, password string, props map[string]string) (Authenticator, error) {
+func CreateAuthenticator(name string, cred *Cred) (Authenticator, error) {
 	if f, ok := authFactories[name]; ok {
-		return f(db, username, password, props)
+		return f(cred)
 	}
 
 	return nil, fmt.Errorf("unknown authenticator: %s", name)
@@ -36,12 +37,12 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 // Dialer returns a connection dialer that will open and authenticate the connection.
 func Dialer(dialer conn.Dialer, authenticator Authenticator) conn.Dialer {
 	return func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
-		return Dial(dialer, authenticator, ctx, endpoint, opts...)
+		return Dial(ctx, authenticator, dialer, endpoint, opts...)
 	}
 }
 
 // Dial opens a connection and authenticates it.
-func Dial(dialer conn.Dialer, authenticator Authenticator, ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
+func Dial(ctx context.Context, authenticator Authenticator, dialer conn.Dialer, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
 	conn, err := dialer(ctx, endpoint, opts...)
 	if err != nil {
 		if conn != nil {

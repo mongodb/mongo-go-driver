@@ -11,6 +11,7 @@ func TestCreateAuthenticator(t *testing.T) {
 
 	tests := []struct {
 		name   string
+		source string
 		auther Authenticator
 	}{
 		{name: "", auther: &DefaultAuthenticator{}},
@@ -21,7 +22,13 @@ func TestCreateAuthenticator(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			a, err := CreateAuthenticator(test.name, "blah", "user", "pencil", nil)
+			cred := &Cred{
+				Username:    "user",
+				Password:    "pencil",
+				PasswordSet: true,
+			}
+
+			a, err := CreateAuthenticator(test.name, cred)
 			require.NoError(t, err)
 			require.IsType(t, test.auther, a)
 		})
