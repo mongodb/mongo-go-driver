@@ -39,9 +39,11 @@ func Dial(ctx context.Context, endpoint Endpoint, opts ...Option) (Connection, e
 	}
 
 	c := &connImpl{
-		id:               fmt.Sprintf("%s[-%d]", endpoint, nextClientConnectionID()),
-		codec:            cfg.codec,
-		desc:             &Desc{},
+		id:    fmt.Sprintf("%s[-%d]", endpoint, nextClientConnectionID()),
+		codec: cfg.codec,
+		desc: &Desc{
+			Endpoint: endpoint,
+		},
 		ep:               endpoint,
 		rw:               netConn,
 		lifetimeDeadline: lifetimeDeadline,
@@ -286,6 +288,7 @@ func (c *connImpl) initialize(ctx context.Context, appName string) error {
 	)
 
 	c.desc = &Desc{
+		Endpoint:   c.ep,
 		GitVersion: buildInfoResult.GitVersion,
 		Version: Version{
 			Desc:  buildInfoResult.Version,

@@ -19,16 +19,17 @@ import (
 	"github.com/10gen/mongo-go-driver/conn"
 )
 
-const scramSHA1 = "SCRAM-SHA-1"
+// SCRAMSHA1 is the mechanism name for SCRAM-SHA-1.
+const SCRAMSHA1 = "SCRAM-SHA-1"
 const scramSHA1NonceLen = 24
 
 var usernameSanitizer = strings.NewReplacer("=", "=3D", ",", "=2D")
 
-func newScramSHA1Authenticator(db, username, password string, props map[string]string) (Authenticator, error) {
+func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
 	return &ScramSHA1Authenticator{
-		DB:       db,
-		Username: username,
-		Password: password,
+		DB:       cred.Source,
+		Username: cred.Username,
+		Password: cred.Password,
 	}, nil
 }
 
@@ -63,12 +64,12 @@ type scramSaslClient struct {
 
 func (c *scramSaslClient) Start() (string, []byte, error) {
 	if err := c.generateClientNonce(scramSHA1NonceLen); err != nil {
-		return scramSHA1, nil, err
+		return SCRAMSHA1, nil, err
 	}
 
 	c.clientFirstMessageBare = "n=" + usernameSanitizer.Replace(c.username) + ",r=" + string(c.clientNonce)
 
-	return scramSHA1, []byte("n,," + c.clientFirstMessageBare), nil
+	return SCRAMSHA1, []byte("n,," + c.clientFirstMessageBare), nil
 }
 
 func (c *scramSaslClient) Next(challenge []byte) ([]byte, error) {

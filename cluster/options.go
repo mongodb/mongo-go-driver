@@ -99,23 +99,27 @@ func WithConnString(cs connstring.ConnString) Option {
 			c.serverSelectionTimeout = cs.ServerSelectionTimeout
 		}
 
-		if cs.Username != "" {
-			var source string
-			if cs.AuthSource != "" {
-				source = cs.AuthSource
-			} else if cs.Database != "" {
-				source = cs.Database
-			} else {
-				source = "admin"
+		if cs.Username != "" || cs.AuthMechanism == auth.GSSAPI {
+			cred := &auth.Cred{
+				Source:      "admin",
+				Username:    cs.Username,
+				Password:    cs.Password,
+				PasswordSet: cs.PasswordSet,
+				Props:       cs.AuthMechanismProperties,
 			}
 
-			if authenticator, err := auth.CreateAuthenticator(
-				cs.AuthMechanism,
-				source,
-				cs.Username,
-				cs.Password,
-				cs.AuthMechanismProperties); err != nil {
+			if cs.AuthSource != "" {
+				cred.Source = cs.AuthSource
+			} else if cs.Database != "" {
+				switch cs.AuthMechanism {
+				case auth.GSSAPI, auth.PLAIN:
+					cred.Source = "$external"
+				default:
+					cred.Source = cs.Database
+				}
+			}
 
+			if authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred); err != nil {
 				c.serverOpts = append(
 					c.serverOpts,
 					server.WithWrappedConnectionDialer(func(current conn.Dialer) conn.Dialer {

@@ -15,9 +15,17 @@ type saslClient interface {
 	Completed() bool
 }
 
+type saslClientCloser interface {
+	Close()
+}
+
 func conductSaslConversation(ctx context.Context, c conn.Connection, db string, client saslClient) error {
 	if db == "" {
 		db = defaultAuthDB
+	}
+
+	if closer, ok := client.(saslClientCloser); ok {
+		defer closer.Close()
 	}
 
 	mech, payload, err := client.Start()
