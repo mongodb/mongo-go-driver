@@ -61,7 +61,7 @@ func TestConn_ReadWrite(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	err = subject.Write(ctx, isMasterRequest)
 	require.NoError(t, err)
-	_, err = subject.Read(ctx)
+	_, err = subject.Read(ctx, isMasterRequest.RequestID())
 	require.NoError(t, err)
 	cancel()
 
@@ -192,7 +192,7 @@ func TestConnection_Read_cancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err = subject.Read(ctx)
+	_, err = subject.Read(ctx, 0)
 	require.Error(t, err)
 
 	require.False(t, subject.Alive())
@@ -210,7 +210,7 @@ func TestConnection_Read_timeout(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = subject.Read(&timeoutContext{})
+	_, err = subject.Read(&timeoutContext{}, 0)
 	require.Error(t, err)
 
 	require.False(t, subject.Alive())
@@ -228,10 +228,10 @@ func TestConnection_Read_after_connection_is_dead(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = subject.Read(&timeoutContext{})
+	_, err = subject.Read(&timeoutContext{}, 0)
 	require.Error(t, err)
 	require.False(t, subject.Alive())
-	_, err = subject.Read(context.Background())
+	_, err = subject.Read(context.Background(), 0)
 	require.Error(t, err)
 }
 

@@ -69,7 +69,7 @@ type Connection interface {
 	// Expired indicates if the connection has expired.
 	Expired() bool
 	// Read reads a message from the connection.
-	Read(context.Context) (msg.Response, error)
+	Read(context.Context, int32) (msg.Response, error)
 	// Write writes a number of messages to the connection.
 	Write(context.Context, ...msg.Request) error
 }
@@ -141,7 +141,7 @@ func (c *connImpl) Expired() bool {
 	return c.dead
 }
 
-func (c *connImpl) Read(ctx context.Context) (msg.Response, error) {
+func (c *connImpl) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
 	if c.dead {
 		return nil, &Error{
 			ConnectionID: c.id,
@@ -178,6 +178,13 @@ func (c *connImpl) Read(ctx context.Context) (msg.Response, error) {
 	resp, ok := message.(msg.Response)
 	if !ok {
 		return nil, c.wrapError(err, "failed reading: invalid message type received")
+	}
+
+	if resp.ResponseTo() != responseTo {
+		return nil, &Error{
+			ConnectionID: c.id,
+			message:      fmt.Sprintf("received out of order response: expected %d, but got %d", responseTo, resp.ResponseTo()),
+		}
 	}
 
 	c.bumpIdleDeadline()

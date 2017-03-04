@@ -81,32 +81,16 @@ func TestExecuteCommand_Error_from_multiple_requests(t *testing.T) {
 		SkipResponseToFixup: true,
 	}
 	reply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
-	reply.RespTo = 1000
+	reply.NumberReturned = 0
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 	reply = msgtest.CreateCommandReply(bson.D{{"ok", 1}})
-	reply.RespTo = 1001
+	reply.NumberReturned = 0
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
 	err := ExecuteCommands(context.Background(), conn, []msg.Request{&msg.Query{}, &msg.Query{}}, []interface{}{&result, &result})
 
 	validateExecuteCommandError(t, err, "multiple errors encountered", 1)
-}
-
-func TestExecuteCommand_ResponseTo_does_not_equal_request_id(t *testing.T) {
-	t.Parallel()
-
-	conn := &conntest.MockConnection{
-		SkipResponseToFixup: true,
-	}
-	reply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
-	reply.RespTo = 1000
-	conn.ResponseQ = append(conn.ResponseQ, reply)
-
-	var result bson.D
-	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
-
-	validateExecuteCommandError(t, err, "received out of order response", 1)
 }
 
 func TestExecuteCommand_NumberReturned_is_0(t *testing.T) {

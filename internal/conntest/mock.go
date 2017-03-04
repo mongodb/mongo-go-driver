@@ -34,7 +34,7 @@ func (c *MockConnection) Expired() bool {
 	return c.Dead
 }
 
-func (c *MockConnection) Read(ctx context.Context) (msg.Response, error) {
+func (c *MockConnection) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
 	if len(c.ResponseQ) == 0 {
 		return nil, fmt.Errorf("no response queued")
 	}

@@ -52,8 +52,8 @@ func (tc *TrackedConnection) Inc() {
 }
 
 // Read reads a message from the connection.
-func (tc *TrackedConnection) Read(ctx context.Context) (msg.Response, error) {
-	return tc.c.Read(ctx)
+func (tc *TrackedConnection) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
+	return tc.c.Read(ctx, responseTo)
 }
 
 // Write writes a number of messages to the connection.

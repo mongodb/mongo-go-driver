@@ -142,8 +142,8 @@ type serverConn struct {
 }
 
 // Read reads a message from the connection.
-func (c *serverConn) Read(ctx context.Context) (msg.Response, error) {
-	resp, err := c.Connection.Read(ctx)
+func (c *serverConn) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
+	resp, err := c.Connection.Read(ctx, responseTo)
 	if err != nil {
 		c.server.monitor.RequestImmediateCheck()
 	}

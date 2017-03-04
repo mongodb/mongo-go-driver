@@ -28,14 +28,9 @@ func ExecuteCommands(ctx context.Context, c Connection, requests []msg.Request, 
 
 	var errors []error
 	for i, req := range requests {
-		resp, err := c.Read(ctx)
+		resp, err := c.Read(ctx, req.RequestID())
 		if err != nil {
 			return internal.WrapErrorf(err, "failed receiving command response for %d", req.RequestID())
-		}
-
-		if resp.ResponseTo() != req.RequestID() {
-			errors = append(errors, fmt.Errorf("received out of order response: expected %d but got %d", req.RequestID(), resp.ResponseTo()))
-			continue
 		}
 
 		err = readCommandResponse(resp, out[i])

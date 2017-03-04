@@ -79,7 +79,7 @@ func (c *fakeMonitorConn) Expired() bool {
 	return c.Dead
 }
 
-func (c *fakeMonitorConn) Read(_ context.Context) (msg.Response, error) {
+func (c *fakeMonitorConn) Read(_ context.Context, _ int32) (msg.Response, error) {
 	if c.Dead {
 		return nil, fmt.Errorf("conn is closed")
 	}

@@ -172,7 +172,7 @@ func TestServer_Connection_Read_failure_should_cause_immediate_monitor_check(t *
 
 	fake.SetServerType(Unknown)
 	c1.Write(context.Background(), &msg.Query{})
-	c1.Read(context.Background())
+	c1.Read(context.Background(), 0)
 
 	c1.Close()
 	c2.Close()
