@@ -12,8 +12,13 @@ import (
 var ErrPoolClosed = errors.New("pool is closed")
 
 // NewPool creates a new connection pool.
-func NewPool(maxSize uint16, factory func(context.Context) (Connection, error)) *Pool {
-	return &Pool{
+func NewPool(maxSize uint64, factory Factory) Pool {
+
+	if maxSize == 0 {
+		return &nonPool{factory}
+	}
+
+	return &idlePool{
 		factory: factory,
 		conns:   make(chan *poolConn, maxSize),
 	}
@@ -21,24 +26,41 @@ func NewPool(maxSize uint16, factory func(context.Context) (Connection, error)) 
 
 // Pool holds connections such that they can be checked out
 // and reused.
-type Pool struct {
-	factory func(context.Context) (Connection, error)
+type Pool interface {
+	// Clear drains the pool.
+	Clear()
+	// Close closes the pool, making it unusable.
+	Close()
+	// Get gets a connection from the pool. To return the connection
+	// to the pool, close it.
+	Get(context.Context) (Connection, error)
+}
+
+type nonPool struct {
+	factory Factory
+}
+
+func (p *nonPool) Clear() {}
+
+func (p *nonPool) Close() {}
+
+func (p *nonPool) Get(ctx context.Context) (Connection, error) {
+	return p.factory(ctx)
+}
+
+type idlePool struct {
+	factory Factory
 
 	connsLock sync.Mutex
 	conns     chan *poolConn
 	gen       uint32
 }
 
-// Clear clears the pool. This does not happen immediately,
-// but rather occurs as connections are checked out and
-// checked in.
-func (p *Pool) Clear() {
+func (p *idlePool) Clear() {
 	atomic.AddUint32(&p.gen, 1)
 }
 
-// Close closes the pool, making it unusable. It closes
-// all connections in the pool.
-func (p *Pool) Close() {
+func (p *idlePool) Close() {
 	p.connsLock.Lock()
 	conns := p.conns
 	p.conns = nil
@@ -54,9 +76,7 @@ func (p *Pool) Close() {
 	}
 }
 
-// Get gets a connection from the pool. To return the connection
-// to the pool, close it.
-func (p *Pool) Get(ctx context.Context) (Connection, error) {
+func (p *idlePool) Get(ctx context.Context) (Connection, error) {
 	p.connsLock.Lock()
 	conns := p.conns
 	p.connsLock.Unlock()
@@ -68,12 +88,12 @@ func (p *Pool) Get(ctx context.Context) (Connection, error) {
 	return p.getConn(ctx, conns)
 }
 
-func (p *Pool) connExpired(gen uint32) bool {
+func (p *idlePool) connExpired(gen uint32) bool {
 	val := atomic.LoadUint32(&p.gen)
 	return gen < val
 }
 
-func (p *Pool) getConn(ctx context.Context, conns chan *poolConn) (Connection, error) {
+func (p *idlePool) getConn(ctx context.Context, conns chan *poolConn) (Connection, error) {
 	gen := atomic.LoadUint32(&p.gen)
 	select {
 	case c := <-conns:
@@ -99,7 +119,7 @@ func (p *Pool) getConn(ctx context.Context, conns chan *poolConn) (Connection, e
 	}
 }
 
-func (p *Pool) returnConn(c *poolConn) error {
+func (p *idlePool) returnConn(c *poolConn) error {
 	if c.Expired() {
 		return c.Connection.Close()
 	}
@@ -122,7 +142,7 @@ func (p *Pool) returnConn(c *poolConn) error {
 
 type poolConn struct {
 	Connection
-	p   *Pool
+	p   *idlePool
 	gen uint32
 }
 

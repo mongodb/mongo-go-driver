@@ -8,6 +8,7 @@ import (
 )
 
 func TestTagSets_Contains(t *testing.T) {
+	t.Parallel()
 
 	ts := NewTagSet("a", "1")
 
@@ -18,6 +19,7 @@ func TestTagSets_Contains(t *testing.T) {
 }
 
 func TestTagSets_ContainsAll(t *testing.T) {
+	t.Parallel()
 
 	ts := NewTagSet("a", "1", "b", "2")
 

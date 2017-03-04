@@ -39,22 +39,12 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
 		monitor: monitor,
 	}
 
-	// copy these locally to keep server.monitor/cfg out of the closure
-	endpoint := monitor.endpoint
-	dialer := cfg.dialer
-	connOpts := cfg.connOpts
-	connFactory := func(ctx context.Context) (conn.Connection, error) {
-		return dialer(ctx, endpoint, connOpts...)
+	connFactory := conn.DialerFactory(cfg.dialer, monitor.endpoint, cfg.connOpts...)
+	if cfg.maxConns != 0 {
+		connFactory = conn.LimitedFactory(uint64(cfg.maxConns), connFactory)
 	}
 
-	if cfg.maxIdleConns > 0 {
-		server.conns = conn.NewPool(cfg.maxIdleConns, connFactory)
-	} else {
-		server.conns = &nonPool{connFactory}
-	}
-	if cfg.maxConns != 0 {
-		server.conns = newLimitedPool(cfg.maxConns, server.conns)
-	}
+	server.conns = conn.NewPool(uint64(cfg.maxIdleConns), connFactory)
 
 	updates, cancel, _ := monitor.Subscribe()
 	server.cancelSubscription = cancel
@@ -72,7 +62,7 @@ type Server struct {
 	lock sync.Mutex // protects monitor and conns
 
 	monitor *Monitor
-	conns   pool
+	conns   conn.Pool
 
 	cancelSubscription func()
 	ownsMonitor        bool

@@ -11,6 +11,8 @@ import (
 )
 
 func TestMonitor_Close_should_close_all_update_channels(t *testing.T) {
+	t.Parallel()
+
 	fm := servertest.NewFakeMonitor(Standalone, conn.Endpoint("localhost:27017"))
 
 	updates1, _, _ := fm.Subscribe()
@@ -37,6 +39,8 @@ func TestMonitor_Close_should_close_all_update_channels(t *testing.T) {
 }
 
 func TestMonitor_Subscribe_after_close_should_return_an_error(t *testing.T) {
+	t.Parallel()
+
 	fm := servertest.NewFakeMonitor(Standalone, conn.Endpoint("localhost:27017"))
 
 	fm.Stop()

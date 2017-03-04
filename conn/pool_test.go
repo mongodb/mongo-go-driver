@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"testing"
 
+	"time"
+
 	. "github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal/conntest"
 	"github.com/stretchr/testify/require"
 )
 
-func TestPool_Get(t *testing.T) {
+func TestPool_caches_connections(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -61,6 +65,8 @@ func TestPool_Get(t *testing.T) {
 }
 
 func TestPool_Get_a_connection_which_expired_in_the_pool(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -81,8 +87,14 @@ func TestPool_Get_a_connection_which_expired_in_the_pool(t *testing.T) {
 }
 
 func TestPool_Get_when_context_is_done(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
-	factory := func(_ context.Context) (Connection, error) {
+	factory := func(ctx context.Context) (Connection, error) {
+		if len(created) == 2 {
+			<-ctx.Done()
+			return nil, ctx.Err()
+		}
 		created = append(created, &conntest.MockConnection{})
 		return created[len(created)-1], nil
 	}
@@ -97,15 +109,18 @@ func TestPool_Get_when_context_is_done(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		_, err = p.Get(ctx)
-		require.Error(t, err)
-		require.Len(t, created, 2)
+		time.Sleep(1 * time.Second)
+		cancel()
 	}()
 
-	cancel()
+	_, err = p.Get(ctx)
+	require.Error(t, err)
+	require.Len(t, created, 2)
 }
 
 func TestPool_Get_returns_an_error_when_unable_to_create_a_connection(t *testing.T) {
+	t.Parallel()
+
 	factory := func(_ context.Context) (Connection, error) {
 		return nil, fmt.Errorf("AGAHAA")
 	}
@@ -117,6 +132,8 @@ func TestPool_Get_returns_an_error_when_unable_to_create_a_connection(t *testing
 }
 
 func TestPool_Get_returns_an_error_after_pool_is_closed(t *testing.T) {
+	t.Parallel()
+
 	factory := func(_ context.Context) (Connection, error) {
 		return &conntest.MockConnection{}, nil
 	}
@@ -130,6 +147,8 @@ func TestPool_Get_returns_an_error_after_pool_is_closed(t *testing.T) {
 }
 
 func TestPool_Connection_Close_does_not_error_after_pool_is_closed(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -149,6 +168,8 @@ func TestPool_Connection_Close_does_not_error_after_pool_is_closed(t *testing.T)
 }
 
 func TestPool_Connection_Close_does_not_close_underlying_connection_when_it_is_not_expired(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -169,6 +190,8 @@ func TestPool_Connection_Close_does_not_close_underlying_connection_when_it_is_n
 }
 
 func TestPool_Connection_Close_closes_underlying_connection_when_it_is_expired(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -190,6 +213,8 @@ func TestPool_Connection_Close_closes_underlying_connection_when_it_is_expired(t
 }
 
 func TestPool_Connection_Close_closes_underlying_connection_when_pool_is_full(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -217,6 +242,8 @@ func TestPool_Connection_Close_closes_underlying_connection_when_pool_is_full(t 
 }
 
 func TestPool_Clear_expires_existing_checked_out_connections(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -236,6 +263,8 @@ func TestPool_Clear_expires_existing_checked_out_connections(t *testing.T) {
 }
 
 func TestPool_Clear_expires_idle_connections(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -267,6 +296,8 @@ func TestPool_Clear_expires_idle_connections(t *testing.T) {
 }
 
 func TestPool_Close_can_be_called_multiple_times(t *testing.T) {
+	t.Parallel()
+
 	factory := func(_ context.Context) (Connection, error) {
 		return nil, nil
 	}
@@ -278,6 +309,8 @@ func TestPool_Close_can_be_called_multiple_times(t *testing.T) {
 }
 
 func TestPool_Close_closes_all_connections_in_the_pool(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	factory := func(_ context.Context) (Connection, error) {
 		created = append(created, &conntest.MockConnection{})

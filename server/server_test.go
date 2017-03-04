@@ -15,6 +15,8 @@ import (
 )
 
 func TestServer_Close_should_not_return_new_connections(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -36,6 +38,8 @@ func TestServer_Close_should_not_return_new_connections(t *testing.T) {
 }
 
 func TestServer_Connection_should_provide_up_to_maxConn_connections(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -68,6 +72,8 @@ func TestServer_Connection_should_provide_up_to_maxConn_connections(t *testing.T
 }
 
 func TestServer_Connection_should_pool_connections(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -102,6 +108,8 @@ func TestServer_Connection_should_pool_connections(t *testing.T) {
 }
 
 func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -139,6 +147,8 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 }
 
 func TestServer_Connection_Read_failure_should_cause_immediate_monitor_check(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})
@@ -179,6 +189,8 @@ func TestServer_Connection_Read_failure_should_cause_immediate_monitor_check(t *
 }
 
 func TestServer_Connection_Write_failure_should_cause_immediate_monitor_check(t *testing.T) {
+	t.Parallel()
+
 	var created []*conntest.MockConnection
 	dialer := func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
 		created = append(created, &conntest.MockConnection{})

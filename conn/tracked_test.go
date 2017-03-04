@@ -9,6 +9,8 @@ import (
 )
 
 func TestTracked_Inc(t *testing.T) {
+	t.Parallel()
+
 	c := &conntest.MockConnection{}
 	require.True(t, c.Alive())
 
