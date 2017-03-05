@@ -39,12 +39,15 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
 		monitor: monitor,
 	}
 
-	connFactory := conn.DialerFactory(cfg.dialer, monitor.endpoint, cfg.connOpts...)
-	if cfg.maxConns != 0 {
-		connFactory = conn.LimitedFactory(uint64(cfg.maxConns), connFactory)
-	}
+	server.conns = conn.NewPool(
+		uint64(cfg.maxIdleConns),
+		conn.DialerFactory(cfg.dialer, monitor.endpoint, cfg.connOpts...),
+	)
+	server.connFactory = conn.PoolFactory(server.conns)
 
-	server.conns = conn.NewPool(uint64(cfg.maxIdleConns), connFactory)
+	if cfg.maxConns != 0 {
+		server.connFactory = conn.LimitedFactory(uint64(cfg.maxConns), server.connFactory)
+	}
 
 	updates, cancel, _ := monitor.Subscribe()
 	server.cancelSubscription = cancel
@@ -61,8 +64,9 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
 type Server struct {
 	lock sync.Mutex // protects monitor and conns
 
-	monitor *Monitor
-	conns   conn.Pool
+	monitor     *Monitor
+	conns       conn.Pool
+	connFactory conn.Factory
 
 	cancelSubscription func()
 	ownsMonitor        bool
@@ -88,19 +92,20 @@ func (s *Server) Close() {
 
 	s.conns = nil
 	s.monitor = nil
+	s.connFactory = nil
 }
 
 // Connection gets a connection to the server.
 func (s *Server) Connection(ctx context.Context) (conn.Connection, error) {
 	s.lock.Lock()
-	conns := s.conns
+	f := s.connFactory
 	s.lock.Unlock()
 
-	if conns == nil {
+	if f == nil {
 		return nil, ErrServerClosed
 	}
 
-	c, err := conns.Get(ctx)
+	c, err := f(ctx)
 	if err != nil {
 		return nil, err
 	}

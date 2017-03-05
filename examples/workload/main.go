@@ -32,12 +32,7 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 
-	c, err := cluster.New(
-		cluster.WithSeedList(
-			conn.Endpoint("localhost:27017"),
-			conn.Endpoint("localhost:27018"),
-		),
-	)
+	c, err := cluster.New()
 
 	if err != nil {
 		log.Fatalf("unable to create cluster: %s", err)

@@ -45,3 +45,10 @@ func (c *limitedFactoryConn) Close() error {
 	c.permits.Release()
 	return c.Connection.Close()
 }
+
+// PoolFactory creates a Factory from a pool.
+func PoolFactory(p Pool) Factory {
+	return func(ctx context.Context) (Connection, error) {
+		return p.Get(ctx)
+	}
+}
