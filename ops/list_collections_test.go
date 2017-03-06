@@ -31,9 +31,9 @@ func TestListCollections(t *testing.T) {
 
 	s := getServer()
 
-	collectionNameOne := "TestListCollectionsMultipleBatches1"
-	collectionNameTwo := "TestListCollectionsMultipleBatches2"
-	collectionNameThree := "TestListCollectionsMultipleBatches3"
+	collectionNameOne := "TestListCollections1"
+	collectionNameTwo := "TestListCollections2"
+	collectionNameThree := "TestListCollections3"
 
 	dropCollection(s, collectionNameOne, t)
 	dropCollection(s, collectionNameTwo, t)
