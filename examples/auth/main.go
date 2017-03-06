@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/auth"
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/cluster"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
 	"github.com/10gen/mongo-go-driver/server"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func main() {

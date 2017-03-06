@@ -11,7 +11,7 @@ import (
 	"os/signal"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/mongo-go-driver/cluster"
 	"github.com/10gen/mongo-go-driver/conn"

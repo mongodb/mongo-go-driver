@@ -3,8 +3,8 @@ package msgtest
 import (
 	"bytes"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/msg"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func CreateCommandReply(cmd interface{}) *msg.Reply {

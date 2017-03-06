@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func TestCursorWithInvalidNamespace(t *testing.T) {

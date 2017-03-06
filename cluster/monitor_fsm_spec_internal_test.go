@@ -3,7 +3,7 @@
 package cluster
 
 import "testing"
-import "gopkg.in/mgo.v2/bson"
+import "github.com/10gen/mongo-go-driver/bson"
 import "github.com/10gen/mongo-go-driver/internal"
 import "github.com/10gen/mongo-go-driver/conn"
 import "github.com/10gen/mongo-go-driver/connstring"

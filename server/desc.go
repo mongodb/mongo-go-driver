@@ -7,7 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // UnsetRTT is the unset value for a round trip time.

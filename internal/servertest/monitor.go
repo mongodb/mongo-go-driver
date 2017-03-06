@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/internal/msgtest"
 	"github.com/10gen/mongo-go-driver/msg"
 	"github.com/10gen/mongo-go-driver/server"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // NewFakeMonitor creates a fake monitor.

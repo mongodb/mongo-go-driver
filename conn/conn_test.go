@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 
 	. "github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"

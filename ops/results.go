@@ -1,7 +1,7 @@
 package ops
 
 import (
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // CursorResult describes the initial results for any operation that can establish a cursor.

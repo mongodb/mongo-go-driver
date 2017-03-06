@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"gopkg.in/mgo.v2/internal/json"
+	"github.com/10gen/mongo-go-driver/internal/json"
 	"strconv"
 	"time"
 )
@@ -317,7 +317,7 @@ func jencNumberLong(v interface{}) ([]byte, error) {
 func jencInt(v interface{}) ([]byte, error) {
 	n := v.(int)
 	f := `{"$numberLong":"%d"}`
-	if int64(n) <= 1<<53 {
+	if n <= 1<<53 {
 		f = `%d`
 	}
 	return fbytes(f, n), nil

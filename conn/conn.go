@@ -11,7 +11,7 @@ import (
 	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/msg"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 var globalClientConnectionID int32

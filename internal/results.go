@@ -3,7 +3,7 @@ package internal
 import (
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // IsMasterResult is the result of executing this

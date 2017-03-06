@@ -8,12 +8,12 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/10gen/mongo-go-driver/server"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/mgo.v2/bson"
 )
 
 var host = flag.String("host", "127.0.0.1:27017", "specify the location of a running mongodb server.")
