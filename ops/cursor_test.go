@@ -161,10 +161,11 @@ func TestCursorError(t *testing.T) {
 	cursorResult := find(s, collectionName, 2, t)
 
 	subject, _ := NewCursor(cursorResult, 2, s)
-	var next string
+	var next bson.D
 	var hasNext bool
 
-	hasNext = subject.Next(context.Background(), &next)
+	// unmarshalling into a non-pointer struct should fail
+	hasNext = subject.Next(context.Background(), next)
 	require.NotNil(t, subject.Err(), "Unexpected error")
 	require.False(t, hasNext, "Should not have result")
 }

@@ -45,14 +45,18 @@ func NewCursor(cursorResult CursorResult, batchSize int32, server Server) (Curso
 	}, nil
 }
 
-// Cursor instances iterate a stream of documents. Each document is decoded into the result according to the rules of
-// the bson package.  A typical usage of the Cursor interface would be:
+// Cursor instances iterate a stream of documents. Each document is
+// decoded into the result according to the rules of the bson package.
 //
-//      cursor := ...    // get a cursor from some operation
-//      var doc bson.D
-//      for cursor.Next(&doc) {
-//              fmt.Println(doc)
-//      err := cursor.Close()
+// A typical usage of the Cursor interface would be:
+//
+//		cursor := ...    // get a cursor from some operation
+//		ctx := ...       // create a context for the operation
+//		var doc bson.D
+//		for cursor.Next(ctx, &doc) {
+//			...
+//		}
+//		err := cursor.Close()
 type Cursor interface {
 	// Get the next result from the cursor.
 	// Returns true if there were no errors and there is a next result.
@@ -142,9 +146,9 @@ func (c *cursorImpl) Close(ctx context.Context) error {
 	return c.err
 }
 
-func (c *cursorImpl) getNextFromCurrentBatch(result interface{}) bool {
+func (c *cursorImpl) getNextFromCurrentBatch(out interface{}) bool {
 	if c.current < len(c.currentBatch) {
-		err := bson.Unmarshal(c.currentBatch[c.current].Data, result)
+		err := c.currentBatch[c.current].Unmarshal(out)
 		if err != nil {
 			c.err = err
 			return false
