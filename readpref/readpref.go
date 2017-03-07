@@ -1,6 +1,8 @@
 package readpref
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/server"
@@ -49,6 +51,24 @@ type ReadPref struct {
 	maxStalenessSet bool
 	mode            Mode
 	tagSets         []server.TagSet
+}
+
+// ModeFromString returns a mode corresponding to
+// mode.
+func ModeFromString(mode string) (Mode, error) {
+	switch strings.ToLower(mode) {
+	case "primary":
+		return PrimaryMode, nil
+	case "primarypreferred":
+		return PrimaryPreferredMode, nil
+	case "secondary":
+		return SecondaryMode, nil
+	case "secondarypreferred":
+		return SecondaryPreferredMode, nil
+	case "nearest":
+		return NearestMode, nil
+	}
+	return Mode(uint8(0)), fmt.Errorf("unknown read preference %v", mode)
 }
 
 // MaxStaleness is the maximum amount of time to allow
