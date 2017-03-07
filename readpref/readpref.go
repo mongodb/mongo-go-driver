@@ -71,6 +71,11 @@ func ModeFromString(mode string) (Mode, error) {
 	return Mode(uint8(0)), fmt.Errorf("unknown read preference %v", mode)
 }
 
+// WithMode takes a and creates a read preference using that mode.
+func WithMode(m Mode) *ReadPref {
+	return new(m)
+}
+
 // MaxStaleness is the maximum amount of time to allow
 // a server to be considered eligible for selection. The
 // second return value indicates if this value has been set.
