@@ -43,6 +43,30 @@ var readPrefTestCluster = &Desc{
 	Servers: []*server.Desc{readPrefTestPrimary, readPrefTestSecondary1, readPrefTestSecondary2},
 }
 
+func TestModeFromString(t *testing.T) {
+	t.Parallel()
+
+	require := require.New(t)
+
+	mode, err := readpref.ModeFromString("primary")
+	require.NoError(err)
+	require.Equal(mode, readpref.PrimaryMode)
+	mode, err = readpref.ModeFromString("primaryPreferred")
+	require.NoError(err)
+	require.Equal(mode, readpref.PrimaryPreferredMode)
+	mode, err = readpref.ModeFromString("secondary")
+	require.NoError(err)
+	require.Equal(mode, readpref.SecondaryMode)
+	mode, err = readpref.ModeFromString("secondaryPreferred")
+	require.NoError(err)
+	require.Equal(mode, readpref.SecondaryPreferredMode)
+	mode, err = readpref.ModeFromString("nearest")
+	require.NoError(err)
+	require.Equal(mode, readpref.NearestMode)
+	_, err = readpref.ModeFromString("invalid")
+	require.Error(err)
+}
+
 func TestReadPrefSelector_Sharded(t *testing.T) {
 	t.Parallel()
 
