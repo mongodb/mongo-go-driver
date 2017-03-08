@@ -131,7 +131,9 @@ func (g *Generator) loadTest(filename string) (*testDef, error) {
 	}
 
 	for i := len(testDef.DecodeErrors) - 1; i >= 0; i-- {
-		if strings.Contains(testDef.DecodeErrors[i].Description, "UTF-8") {
+		if strings.HasPrefix(testDef.Description, "Top-level document validity") ||
+			strings.Contains(testDef.DecodeErrors[i].Description, "UTF-8") {
+
 			testDef.DecodeErrors = append(testDef.DecodeErrors[:i], testDef.DecodeErrors[i+1:]...)
 			continue
 		}

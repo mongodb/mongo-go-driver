@@ -40,16 +40,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/stretchr/testify/require"
-	. "gopkg.in/check.v1"
 )
-
-func TestAll(t *testing.T) {
-	TestingT(t)
-}
-
-type S struct{}
-
-var _ = Suite(&S{})
 
 // Wrap up the document elements contained in data, prepending the int32
 // length of the data, and appending the '\x00' value closing the document.
@@ -343,7 +334,7 @@ type specSample1 struct {
 }
 
 type specSample2 struct {
-	BSON []interface{} "BSON"
+	BSON []interface{} `bson:"BSON"`
 }
 
 var structSampleItems = []testItemType{
@@ -404,7 +395,7 @@ var structItems = []testItemType{
 	{&struct{ Byte byte }{0},
 		"\x10byte\x00\x00\x00\x00\x00"},
 	{&struct {
-		V byte "Tag"
+		V byte `bson:"Tag"`
 	}{8},
 		"\x10Tag\x00\x08\x00\x00\x00"},
 	{&struct {
@@ -597,7 +588,7 @@ func TestUnmarshalNilInStruct(t *testing.T) {
 
 type structWithDupKeys struct {
 	Name  byte
-	Other byte "name" // Tag should precede.
+	Other byte `bson:"name"` // Tag should precede.
 }
 
 var marshalErrorItems = []testItemType{
@@ -793,11 +784,11 @@ func (o *setterType) SetBSON(raw bson.Raw) error {
 }
 
 type ptrSetterDoc struct {
-	Field *setterType "_"
+	Field *setterType `bson:"_"`
 }
 
 type valSetterDoc struct {
-	Field setterType "_"
+	Field setterType `bson:"_"`
 }
 
 func TestUnmarshalAllItemsWithPtrSetter(t *testing.T) {
@@ -964,7 +955,7 @@ func (t intGetter) GetBSON() (interface{}, error) {
 }
 
 type typeWithIntGetter struct {
-	V intGetter ",minsize"
+	V intGetter `bson:",minsize"`
 }
 
 func TestMarshalShortWithGetter(t *testing.T) {
@@ -996,96 +987,96 @@ type crossTypeItem struct {
 }
 
 type condStr struct {
-	V string ",omitempty"
+	V string `bson:",omitempty"`
 }
 type condStrNS struct {
 	V string `a:"A" bson:",omitempty" b:"B"`
 }
 type condBool struct {
-	V bool ",omitempty"
+	V bool `bson:",omitempty"`
 }
 type condInt struct {
-	V int ",omitempty"
+	V int `bson:",omitempty"`
 }
 type condUInt struct {
-	V uint ",omitempty"
+	V uint `bson:",omitempty"`
 }
 type condFloat struct {
-	V float64 ",omitempty"
+	V float64 `bson:",omitempty"`
 }
 type condIface struct {
-	V interface{} ",omitempty"
+	V interface{} `bson:",omitempty"`
 }
 type condPtr struct {
-	V *bool ",omitempty"
+	V *bool `bson:",omitempty"`
 }
 type condSlice struct {
-	V []string ",omitempty"
+	V []string `bson:",omitempty"`
 }
 type condMap struct {
-	V map[string]int ",omitempty"
+	V map[string]int `bson:",omitempty"`
 }
 type namedCondStr struct {
-	V string "myv,omitempty"
+	V string `bson:"myv,omitempty"`
 }
 type condTime struct {
-	V time.Time ",omitempty"
+	V time.Time `bson:",omitempty"`
 }
 type condStruct struct {
-	V struct{ A []int } ",omitempty"
+	V struct{ A []int } `bson:",omitempty"`
 }
 type condRaw struct {
-	V bson.Raw ",omitempty"
+	V bson.Raw `bson:",omitempty"`
 }
 
 type shortInt struct {
-	V int64 ",minsize"
+	V int64 `bson:",minsize"`
 }
 type shortUint struct {
-	V uint64 ",minsize"
+	V uint64 `bson:",minsize"`
 }
 type shortIface struct {
-	V interface{} ",minsize"
+	V interface{} `bson:",minsize"`
 }
 type shortPtr struct {
-	V *int64 ",minsize"
+	V *int64 `bson:",minsize"`
 }
 type shortNonEmptyInt struct {
-	V int64 ",minsize,omitempty"
+	V int64 `bson:",minsize,omitempty"`
 }
 
 type inlineInt struct {
-	V struct{ A, B int } ",inline"
+	V struct{ A, B int } `bson:",inline"`
 }
 type inlineCantPtr struct {
-	V *struct{ A, B int } ",inline"
+	V *struct{ A, B int } `bson:",inline"`
 }
 type inlineDupName struct {
 	A int
-	V struct{ A, B int } ",inline"
+	V struct{ A, B int } `bson:",inline"`
 }
 type inlineMap struct {
 	A int
-	M map[string]interface{} ",inline"
+	M map[string]interface{} `bson:",inline"`
 }
 type inlineMapInt struct {
 	A int
-	M map[string]int ",inline"
+	M map[string]int `bson:",inline"`
 }
 type inlineMapMyM struct {
 	A int
-	M MyM ",inline"
+	M MyM `bson:",inline"`
 }
 type inlineDupMap struct {
-	M1 map[string]interface{} ",inline"
-	M2 map[string]interface{} ",inline"
+	M1 map[string]interface{} `bson:",inline"`
+	M2 map[string]interface{} `bson:",inline"`
 }
 type inlineBadKeyMap struct {
-	M map[int]int ",inline"
+	M map[int]int `bson:",inline"`
 }
 type inlineUnexported struct {
-	M          map[string]interface{} ",inline"
-	unexported ",inline"
+	M          map[string]interface{} `bson:",inline"`
+	unexported `bson:",inline"`
 }
 type unexported struct {
 	A int
@@ -1394,7 +1385,7 @@ var oneWayCrossItems = []crossTypeItem{
 
 	// Ensure omitempty on struct with private fields works properly.
 	{&struct {
-		V struct{ v time.Time } ",omitempty"
+		V struct{ v time.Time } `bson:",omitempty"`
 	}{}, map[string]interface{}{}},
 
 	// Attempt to marshal slice into RawD (issue #120).

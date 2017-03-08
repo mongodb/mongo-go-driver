@@ -56,7 +56,7 @@ import (
 // --------------------------------------------------------------------------
 // The public API.
 
-// A value implementing the bson.Getter interface will have its GetBSON
+// Getter implemented by a value will have its GetBSON
 // method called when the given value has to be marshalled, and the result
 // of this method will be marshaled in place of the actual object.
 //
@@ -66,7 +66,7 @@ type Getter interface {
 	GetBSON() (interface{}, error)
 }
 
-// A value implementing the bson.Setter interface will receive the BSON
+// Setter implemented by a value will receive the BSON
 // value via the SetBSON method during unmarshaling, and the object
 // itself will not be changed as usual.
 //
@@ -156,7 +156,7 @@ type Raw struct {
 // documents in general.
 type RawD []RawDocElem
 
-// See the RawD type.
+// RawDocElem is documented by Raw.
 type RawDocElem struct {
 	Name  string
 	Value Raw
@@ -190,11 +190,11 @@ func IsObjectIdHex(s string) bool {
 	return err == nil
 }
 
-// objectIdCounter is atomically incremented when generating a new ObjectId
+// objectIDCounter is atomically incremented when generating a new ObjectId
 // using NewObjectId() function. It's used as a counter part of an id.
-var objectIdCounter uint32 = readRandomUint32()
+var objectIDCounter = readRandomUint32()
 
-// readRandomUint32 returns a random objectIdCounter.
+// readRandomUint32 returns a random objectIDCounter.
 func readRandomUint32() uint32 {
 	var b [4]byte
 	_, err := io.ReadFull(rand.Reader, b[:])
@@ -204,14 +204,14 @@ func readRandomUint32() uint32 {
 	return uint32((uint32(b[0]) << 0) | (uint32(b[1]) << 8) | (uint32(b[2]) << 16) | (uint32(b[3]) << 24))
 }
 
-// machineId stores machine id generated once and used in subsequent calls
+// machineID stores machine id generated once and used in subsequent calls
 // to NewObjectId function.
-var machineId = readMachineId()
-var processId = os.Getpid()
+var machineID = readMachineID()
+var processID = os.Getpid()
 
 // readMachineId generates and returns a machine id.
 // If this function fails to get the hostname it will cause a runtime error.
-func readMachineId() []byte {
+func readMachineID() []byte {
 	var sum [3]byte
 	id := sum[:]
 	hostname, err1 := os.Hostname()
@@ -234,14 +234,14 @@ func NewObjectId() ObjectId {
 	// Timestamp, 4 bytes, big endian
 	binary.BigEndian.PutUint32(b[:], uint32(time.Now().Unix()))
 	// Machine, first 3 bytes of md5(hostname)
-	b[4] = machineId[0]
-	b[5] = machineId[1]
-	b[6] = machineId[2]
+	b[4] = machineID[0]
+	b[5] = machineID[1]
+	b[6] = machineID[2]
 	// Pid, 2 bytes, specs don't specify endianness, but we use big endian.
-	b[7] = byte(processId >> 8)
-	b[8] = byte(processId)
+	b[7] = byte(processID >> 8)
+	b[8] = byte(processID)
 	// Increment, 3 bytes, big endian
-	i := atomic.AddUint32(&objectIdCounter, 1)
+	i := atomic.AddUint32(&objectIDCounter, 1)
 	b[9] = byte(i >> 16)
 	b[10] = byte(i >> 8)
 	b[11] = byte(i)
@@ -281,17 +281,17 @@ var nullBytes = []byte("null")
 func (id *ObjectId) UnmarshalJSON(data []byte) error {
 	if len(data) > 0 && (data[0] == '{' || data[0] == 'O') {
 		var v struct {
-			Id   json.RawMessage `json:"$oid"`
+			ID   json.RawMessage `json:"$oid"`
 			Func struct {
-				Id json.RawMessage
+				ID json.RawMessage
 			} `json:"$oidFunc"`
 		}
 		err := jdec(data, &v)
 		if err == nil {
-			if len(v.Id) > 0 {
-				data = []byte(v.Id)
+			if len(v.ID) > 0 {
+				data = []byte(v.ID)
 			} else {
-				data = []byte(v.Func.Id)
+				data = []byte(v.Func.ID)
 			}
 		}
 	}
@@ -300,12 +300,12 @@ func (id *ObjectId) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	if len(data) != 26 || data[0] != '"' || data[25] != '"' {
-		return errors.New(fmt.Sprintf("invalid ObjectId in JSON: %s", string(data)))
+		return fmt.Errorf("invalid ObjectId in JSON: %s", string(data))
 	}
 	var buf [12]byte
 	_, err := hex.Decode(buf[:], data[1:25])
 	if err != nil {
-		return errors.New(fmt.Sprintf("invalid ObjectId in JSON: %s (%s)", string(data), err))
+		return fmt.Errorf("invalid ObjectId in JSON: %s (%s)", string(data), err)
 	}
 	*id = ObjectId(string(buf[:]))
 	return nil
@@ -600,6 +600,7 @@ func (raw Raw) Unmarshal(out interface{}) (err error) {
 	return nil
 }
 
+// TypeError occurs when a struct tag isn't compatible with the type it's unmarshalling into.
 type TypeError struct {
 	Type reflect.Type
 	Kind byte

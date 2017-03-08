@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"github.com/10gen/mongo-go-driver/internal/json"
 	"strconv"
 	"time"
+
+	"github.com/10gen/mongo-go-driver/internal/json"
 )
 
 // UnmarshalJSON unmarshals a JSON value that may hold non-standard
@@ -244,19 +245,19 @@ func jencRegEx(v interface{}) ([]byte, error) {
 
 func jdecObjectId(data []byte) (interface{}, error) {
 	var v struct {
-		Id   string `json:"$oid"`
+		ID   string `json:"$oid"`
 		Func struct {
-			Id string
+			ID string
 		} `json:"$oidFunc"`
 	}
 	err := jdec(data, &v)
 	if err != nil {
 		return nil, err
 	}
-	if v.Id == "" {
-		v.Id = v.Func.Id
+	if v.ID == "" {
+		v.ID = v.Func.ID
 	}
-	return ObjectIdHex(v.Id), nil
+	return ObjectIdHex(v.ID), nil
 }
 
 func jencObjectId(v interface{}) ([]byte, error) {

@@ -9,10 +9,14 @@ import (
 )
 
 var (
-	ErrUnknownCommandFailure   = errors.New("unknown command failure")
-	ErrNoCommandResponse       = errors.New("no command response document")
+	// ErrUnknownCommandFailure occurs when a command fails for an unknown reason.
+	ErrUnknownCommandFailure = errors.New("unknown command failure")
+	// ErrNoCommandResponse occurs when the server sent no response document to a command.
+	ErrNoCommandResponse = errors.New("no command response document")
+	// ErrMultiDocCommandResponse occurs when the server sent multiple documents in response to a command.
 	ErrMultiDocCommandResponse = errors.New("command returned multiple documents")
-	ErrNoDocCommandResponse    = errors.New("command returned no documents")
+	// ErrNoDocCommandResponse occurs when the server indicated a response existed, but none was found.
+	ErrNoDocCommandResponse = errors.New("command returned no documents")
 )
 
 // CommandFailureError is an error with a failure response as a document.
@@ -35,6 +39,7 @@ type CommandResponseError struct {
 	Message string
 }
 
+// NewCommandResponseError creates a new CommandResponseError.
 func NewCommandResponseError(msg string) *CommandResponseError {
 	return &CommandResponseError{msg}
 }
@@ -57,11 +62,13 @@ func (e *CommandError) Error() string {
 	return e.Message
 }
 
+// IsNsNotFound indicates if the error is about a namespace not being found.
 func IsNsNotFound(err error) bool {
 	e, ok := err.(*CommandError)
 	return ok && (e.Code == 26)
 }
 
+// IsCommandNotFound indicates if the error is about a command not being found.
 func IsCommandNotFound(err error) bool {
 	e, ok := err.(*CommandError)
 	return ok && (e.Code == 59 || e.Code == 13390 || strings.HasPrefix(e.Message, "no such cmd:"))

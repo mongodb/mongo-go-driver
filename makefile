@@ -16,11 +16,11 @@ generate:
 
 lint:
 	golint $(LINTARGS) ./auth
-	golint $(LINTARGS) ./bson
+	golint -min_confidence="1.0" ./bson
 	golint $(LINTARGS) ./cluster
 	golint $(LINTARGS) ./conn
 	golint $(LINTARGS) ./connstring
-	golint $(LINTARGS) ./internal
+	golint $(LINTARGS) ./internal/auth
 	golint $(LINTARGS) ./internal/feature
 	golint $(LINTARGS) ./msg
 	golint $(LINTARGS) ./ops
@@ -40,4 +40,4 @@ test-short:
 	go test $(BUILD_TAGS) -short -timeout $(TEST_TIMEOUT)s $(PKGS)
 
 vet:
-	go tool vet -composites=false $(PKGS)
+	go tool vet -composites=false -structtags=false -unusedstringmethods="Error" $(PKGS)

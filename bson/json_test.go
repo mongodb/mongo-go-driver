@@ -1,13 +1,14 @@
 package bson_test
 
 import (
+	"testing"
+
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/stretchr/testify/require"
 
 	"reflect"
 	"strings"
 	"time"
-
-	. "gopkg.in/check.v1"
 )
 
 type jsonTest struct {
@@ -139,47 +140,38 @@ var jsonTests = []jsonTest{
 	},
 }
 
-func (s *S) TestJSON(c *C) {
-	for i, item := range jsonTests {
-		c.Logf("------------ (#%d)", i)
-		c.Logf("A: %#v", item.a)
-		c.Logf("B: %#v", item.b)
+func TestJSON(t *testing.T) {
+	for _, item := range jsonTests {
+		t.Run(item.b, func(t *testing.T) {
+			if item.c == nil {
+				item.c = item.a
+			}
 
-		if item.c == nil {
-			item.c = item.a
-		} else {
-			c.Logf("C: %#v", item.c)
-		}
-		if item.e != "" {
-			c.Logf("E: %s", item.e)
-		}
+			if item.a != nil {
+				data, err := bson.MarshalJSON(item.a)
+				require.NoError(t, err)
+				require.Equal(t, strings.TrimSuffix(string(data), "\n"), item.b)
+			}
 
-		if item.a != nil {
-			data, err := bson.MarshalJSON(item.a)
-			c.Assert(err, IsNil)
-			c.Logf("Dumped: %#v", string(data))
-			c.Assert(strings.TrimSuffix(string(data), "\n"), Equals, item.b)
-		}
-
-		var zero interface{}
-		if item.c == nil {
-			zero = &struct{}{}
-		} else {
-			zero = reflect.New(reflect.TypeOf(item.c)).Interface()
-		}
-		err := bson.UnmarshalJSON([]byte(item.b), zero)
-		if item.e != "" {
-			c.Assert(err, NotNil)
-			c.Assert(err.Error(), Equals, item.e)
-			continue
-		}
-		c.Assert(err, IsNil)
-		zerov := reflect.ValueOf(zero)
-		value := zerov.Interface()
-		if zerov.Kind() == reflect.Ptr {
-			value = zerov.Elem().Interface()
-		}
-		c.Logf("Loaded: %#v", value)
-		c.Assert(value, DeepEquals, item.c)
+			var zero interface{}
+			if item.c == nil {
+				zero = &struct{}{}
+			} else {
+				zero = reflect.New(reflect.TypeOf(item.c)).Interface()
+			}
+			err := bson.UnmarshalJSON([]byte(item.b), zero)
+			if item.e != "" {
+				require.Error(t, err)
+				require.EqualError(t, err, item.e)
+			} else {
+				require.NoError(t, err)
+				zerov := reflect.ValueOf(zero)
+				value := zerov.Interface()
+				if zerov.Kind() == reflect.Ptr {
+					value = zerov.Elem().Interface()
+				}
+				require.Equal(t, value, item.c)
+			}
+		})
 	}
 }

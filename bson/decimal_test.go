@@ -36,8 +36,6 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/stretchr/testify/require"
-
-	. "gopkg.in/check.v1"
 )
 
 // --------------------------------------------------------------------------
@@ -155,21 +153,21 @@ func TestDecimalTests(t *testing.T) {
 
 const decBenchNum = "9.999999999999999999999999999999999E+6144"
 
-func (s *S) BenchmarkDecimal128String(c *C) {
+func BenchmarkDecimal128String(b *testing.B) {
 	d, err := bson.ParseDecimal128(decBenchNum)
-	c.Assert(err, IsNil)
-	c.Assert(d.String(), Equals, decBenchNum)
+	require.NoError(b, err)
+	require.Equal(b, d.String(), decBenchNum)
 
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		d.String()
 	}
 }
 
-func (s *S) BenchmarkDecimal128Parse(c *C) {
+func BenchmarkDecimal128Parse(b *testing.B) {
 	var err error
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		_, err = bson.ParseDecimal128(decBenchNum)
 	}
 	if err != nil {
