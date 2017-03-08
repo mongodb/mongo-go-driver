@@ -162,7 +162,7 @@ import (
 	"time"
 
 	. "gopkg.in/check.v1"
-    "gopkg.in/mgo.v2-unstable/bson"
+    "github.com/10gen/mongo-go-driver/bson"
 )
 
 func testValid(c *C, in []byte, expected []byte, result interface{}) {

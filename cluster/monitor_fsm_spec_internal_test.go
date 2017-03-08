@@ -4,9 +4,9 @@ package cluster
 
 import "testing"
 import "github.com/10gen/mongo-go-driver/bson"
-import "github.com/10gen/mongo-go-driver/internal"
 import "github.com/10gen/mongo-go-driver/conn"
 import "github.com/10gen/mongo-go-driver/connstring"
+import "github.com/10gen/mongo-go-driver/internal"
 import "github.com/10gen/mongo-go-driver/server"
 
 func TestMonitorFSM_Discover_arbiters(t *testing.T) {

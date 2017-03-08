@@ -37,8 +37,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	. "gopkg.in/check.v1"
-	"gopkg.in/mgo.v2-unstable/bson"
 )
 
 func TestAll(t *testing.T) {

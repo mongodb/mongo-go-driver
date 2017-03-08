@@ -33,7 +33,7 @@ import (
 	"regexp"
 	"strings"
 
-	"gopkg.in/mgo.v2-unstable/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 
 	. "gopkg.in/check.v1"
 )

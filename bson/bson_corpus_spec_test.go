@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	. "gopkg.in/check.v1"
-	"gopkg.in/mgo.v2-unstable/bson"
 )
 
 func testValid(c *C, in []byte, expected []byte, result interface{}) {

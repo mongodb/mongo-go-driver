@@ -95,10 +95,10 @@ const name = "monitor_fsm_spec_internal_test_generator"
 func (g *Generator) generate() []byte {
 	g.printlnf("package cluster")
 	g.printlnf("import \"testing\"")
-	g.printlnf("import \"gopkg.in/mgo.v2/bson\"")
-	g.printlnf("import \"github.com/10gen/mongo-go-driver/internal\"")
+	g.printlnf("import \"github.com/10gen/mongo-go-driver/bson\"")
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/conn\"")
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/connstring\"")
+	g.printlnf("import \"github.com/10gen/mongo-go-driver/internal\"")
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/server\"")
 
 	testsDir := "../specifications/source/server-discovery-and-monitoring/tests/"
