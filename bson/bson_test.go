@@ -32,12 +32,14 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"net/url"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/stretchr/testify/require"
 	. "gopkg.in/check.v1"
 )
 
@@ -76,11 +78,11 @@ func makeZeroDoc(value interface{}) (zero interface{}) {
 	return zero
 }
 
-func testUnmarshal(c *C, data string, obj interface{}) {
+func testUnmarshal(t *testing.T, data string, obj interface{}) {
 	zero := makeZeroDoc(obj)
 	err := bson.Unmarshal([]byte(data), zero)
-	c.Assert(err, IsNil)
-	c.Assert(zero, DeepEquals, obj)
+	require.NoError(t, err)
+	require.Equal(t, zero, obj)
 }
 
 type testItemType struct {
@@ -99,20 +101,24 @@ var sampleItems = []testItemType{
 			"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00"},
 }
 
-func (s *S) TestMarshalSampleItems(c *C) {
-	for i, item := range sampleItems {
-		data, err := bson.Marshal(item.obj)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, item.data, Commentf("Failed on item %d", i))
+func TestMarshalSampleItems(t *testing.T) {
+	for _, item := range sampleItems {
+		t.Run(item.data, func(t *testing.T) {
+			data, err := bson.Marshal(item.obj)
+			require.NoError(t, err)
+			require.Equal(t, string(data), item.data)
+		})
 	}
 }
 
-func (s *S) TestUnmarshalSampleItems(c *C) {
-	for i, item := range sampleItems {
-		value := bson.M{}
-		err := bson.Unmarshal([]byte(item.data), value)
-		c.Assert(err, IsNil)
-		c.Assert(value, DeepEquals, item.obj, Commentf("Failed on item %d", i))
+func TestUnmarshalSampleItems(t *testing.T) {
+	for _, item := range sampleItems {
+		t.Run(item.data, func(t *testing.T) {
+			value := bson.M{}
+			err := bson.Unmarshal([]byte(item.data), value)
+			require.NoError(t, err)
+			require.Equal(t, value, item.obj)
+		})
 	}
 }
 
@@ -173,25 +179,29 @@ var allItems = []testItemType{
 		"\xFF_\x00"},
 }
 
-func (s *S) TestMarshalAllItems(c *C) {
-	for i, item := range allItems {
-		data, err := bson.Marshal(item.obj)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, wrapInDoc(item.data), Commentf("Failed on item %d: %#v", i, item))
+func TestMarshalAllItems(t *testing.T) {
+	for _, item := range allItems {
+		t.Run(item.data, func(t *testing.T) {
+			data, err := bson.Marshal(item.obj)
+			require.NoError(t, err)
+			require.Equal(t, string(data), wrapInDoc(item.data))
+		})
 	}
 }
 
-func (s *S) TestUnmarshalAllItems(c *C) {
-	for i, item := range allItems {
-		value := bson.M{}
-		err := bson.Unmarshal([]byte(wrapInDoc(item.data)), value)
-		c.Assert(err, IsNil)
-		c.Assert(value, DeepEquals, item.obj, Commentf("Failed on item %d: %#v", i, item))
+func TestUnmarshalAllItems(t *testing.T) {
+	for _, item := range allItems {
+		t.Run(item.data, func(t *testing.T) {
+			value := bson.M{}
+			err := bson.Unmarshal([]byte(wrapInDoc(item.data)), value)
+			require.NoError(t, err)
+			require.Equal(t, value, item.obj)
+		})
 	}
 }
 
-func (s *S) TestUnmarshalRawAllItems(c *C) {
-	for i, item := range allItems {
+func TestUnmarshalRawAllItems(t *testing.T) {
+	for _, item := range allItems {
 		if len(item.data) == 0 {
 			continue
 		}
@@ -199,51 +209,52 @@ func (s *S) TestUnmarshalRawAllItems(c *C) {
 		if value == nil {
 			continue
 		}
-		pv := reflect.New(reflect.ValueOf(value).Type())
-		raw := bson.Raw{item.data[0], []byte(item.data[3:])}
-		c.Logf("Unmarshal raw: %#v, %#v", raw, pv.Interface())
-		err := raw.Unmarshal(pv.Interface())
-		c.Assert(err, IsNil)
-		c.Assert(pv.Elem().Interface(), DeepEquals, value, Commentf("Failed on item %d: %#v", i, item))
+		t.Run(item.data, func(t *testing.T) {
+			pv := reflect.New(reflect.ValueOf(value).Type())
+			raw := bson.Raw{item.data[0], []byte(item.data[3:])}
+			err := raw.Unmarshal(pv.Interface())
+			require.NoError(t, err)
+			require.Equal(t, pv.Elem().Interface(), value)
+		})
 	}
 }
 
-func (s *S) TestUnmarshalRawIncompatible(c *C) {
+func TestUnmarshalRawIncompatible(t *testing.T) {
 	raw := bson.Raw{0x08, []byte{0x01}} // true
 	err := raw.Unmarshal(&struct{}{})
-	c.Assert(err, ErrorMatches, "BSON kind 0x08 isn't compatible with type struct \\{\\}")
+	require.Error(t, err)
 }
 
-func (s *S) TestUnmarshalZeroesStruct(c *C) {
+func TestUnmarshalZeroesStruct(t *testing.T) {
 	data, err := bson.Marshal(bson.M{"b": 2})
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	type T struct{ A, B int }
 	v := T{A: 1}
 	err = bson.Unmarshal(data, &v)
-	c.Assert(err, IsNil)
-	c.Assert(v.A, Equals, 0)
-	c.Assert(v.B, Equals, 2)
+	require.NoError(t, err)
+	require.Equal(t, v.A, 0)
+	require.Equal(t, v.B, 2)
 }
 
-func (s *S) TestUnmarshalZeroesMap(c *C) {
+func TestUnmarshalZeroesMap(t *testing.T) {
 	data, err := bson.Marshal(bson.M{"b": 2})
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	m := bson.M{"a": 1}
 	err = bson.Unmarshal(data, &m)
-	c.Assert(err, IsNil)
-	c.Assert(m, DeepEquals, bson.M{"b": 2})
+	require.NoError(t, err)
+	require.Equal(t, m, bson.M{"b": 2})
 }
 
-func (s *S) TestUnmarshalNonNilInterface(c *C) {
+func TestUnmarshalNonNilInterface(t *testing.T) {
 	data, err := bson.Marshal(bson.M{"b": 2})
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	m := bson.M{"a": 1}
 	var i interface{}
 	i = m
 	err = bson.Unmarshal(data, &i)
-	c.Assert(err, IsNil)
-	c.Assert(i, DeepEquals, bson.M{"b": 2})
-	c.Assert(m, DeepEquals, bson.M{"a": 1})
+	require.NoError(t, err)
+	require.Equal(t, i, bson.M{"b": 2})
+	require.Equal(t, m, bson.M{"a": 1})
 }
 
 // --------------------------------------------------------------------------
@@ -313,12 +324,13 @@ var oneWayMarshalItems = []testItemType{
 		"\x12\x00\xFF\xFF\xFF\xFF\x00\x00\x00\x00"},
 }
 
-func (s *S) TestOneWayMarshalItems(c *C) {
-	for i, item := range oneWayMarshalItems {
-		data, err := bson.Marshal(item.obj)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, wrapInDoc(item.data),
-			Commentf("Failed on item %d", i))
+func TestOneWayMarshalItems(t *testing.T) {
+	for _, item := range oneWayMarshalItems {
+		t.Run(item.data, func(t *testing.T) {
+			data, err := bson.Marshal(item.obj)
+			require.NoError(t, err)
+			require.Equal(t, string(data), wrapInDoc(item.data))
+		})
 	}
 }
 
@@ -342,32 +354,35 @@ var structSampleItems = []testItemType{
 			"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00"},
 }
 
-func (s *S) TestMarshalStructSampleItems(c *C) {
-	for i, item := range structSampleItems {
-		data, err := bson.Marshal(item.obj)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, item.data,
-			Commentf("Failed on item %d", i))
-	}
-}
-
-func (s *S) TestUnmarshalStructSampleItems(c *C) {
+func TestMarshalStructSampleItems(t *testing.T) {
 	for _, item := range structSampleItems {
-		testUnmarshal(c, item.data, item.obj)
+		t.Run(item.data, func(t *testing.T) {
+			data, err := bson.Marshal(item.obj)
+			require.NoError(t, err)
+			require.Equal(t, string(data), item.data)
+		})
 	}
 }
 
-func (s *S) Test64bitInt(c *C) {
+func TestUnmarshalStructSampleItems(t *testing.T) {
+	for _, item := range structSampleItems {
+		t.Run(item.data, func(t *testing.T) {
+			testUnmarshal(t, item.data, item.obj)
+		})
+	}
+}
+
+func Test64bitInt(t *testing.T) {
 	var i int64 = (1 << 31)
 	if int(i) > 0 {
 		data, err := bson.Marshal(bson.M{"i": int(i)})
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, wrapInDoc("\x12i\x00\x00\x00\x00\x80\x00\x00\x00\x00"))
+		require.NoError(t, err)
+		require.Equal(t, string(data), wrapInDoc("\x12i\x00\x00\x00\x00\x80\x00\x00\x00\x00"))
 
 		var result struct{ I int }
 		err = bson.Unmarshal(data, &result)
-		c.Assert(err, IsNil)
-		c.Assert(int64(result.I), Equals, i)
+		require.NoError(t, err)
+		require.Equal(t, int64(result.I), i)
 	}
 }
 
@@ -414,37 +429,42 @@ var structItems = []testItemType{
 		"\x05v\x00\x02\x00\x00\x00\x00yo"},
 }
 
-func (s *S) TestMarshalStructItems(c *C) {
-	for i, item := range structItems {
-		data, err := bson.Marshal(item.obj)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, wrapInDoc(item.data),
-			Commentf("Failed on item %d", i))
-	}
-}
-
-func (s *S) TestUnmarshalStructItems(c *C) {
+func TestMarshalStructItems(t *testing.T) {
 	for _, item := range structItems {
-		testUnmarshal(c, wrapInDoc(item.data), item.obj)
+		t.Run(item.data, func(t *testing.T) {
+			data, err := bson.Marshal(item.obj)
+			require.NoError(t, err)
+			require.Equal(t, string(data), wrapInDoc(item.data))
+		})
 	}
 }
 
-func (s *S) TestUnmarshalRawStructItems(c *C) {
-	for i, item := range structItems {
-		raw := bson.Raw{0x03, []byte(wrapInDoc(item.data))}
-		zero := makeZeroDoc(item.obj)
-		err := raw.Unmarshal(zero)
-		c.Assert(err, IsNil)
-		c.Assert(zero, DeepEquals, item.obj, Commentf("Failed on item %d: %#v", i, item))
+func TestUnmarshalStructItems(t *testing.T) {
+	for _, item := range structItems {
+		t.Run(item.data, func(t *testing.T) {
+			testUnmarshal(t, wrapInDoc(item.data), item.obj)
+		})
 	}
 }
 
-func (s *S) TestUnmarshalRawNil(c *C) {
+func TestUnmarshalRawStructItems(t *testing.T) {
+	for _, item := range structItems {
+		t.Run(item.data, func(t *testing.T) {
+			raw := bson.Raw{0x03, []byte(wrapInDoc(item.data))}
+			zero := makeZeroDoc(item.obj)
+			err := raw.Unmarshal(zero)
+			require.NoError(t, err)
+			require.Equal(t, zero, item.obj)
+		})
+	}
+}
+
+func TestUnmarshalRawNil(t *testing.T) {
 	// Regression test: shouldn't try to nil out the pointer itself,
 	// as it's not settable.
 	raw := bson.Raw{0x0A, []byte{}}
 	err := raw.Unmarshal(&struct{}{})
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 }
 
 // --------------------------------------------------------------------------
@@ -486,11 +506,13 @@ var marshalItems = []testItemType{
 		"anything"},
 }
 
-func (s *S) TestMarshalOneWayItems(c *C) {
+func TestMarshalOneWayItems(t *testing.T) {
 	for _, item := range marshalItems {
-		data, err := bson.Marshal(item.obj)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, wrapInDoc(item.data))
+		t.Run(item.data, func(t *testing.T) {
+			data, err := bson.Marshal(item.obj)
+			require.NoError(t, err)
+			require.Equal(t, string(data), wrapInDoc(item.data))
+		})
 	}
 }
 
@@ -553,19 +575,21 @@ var unmarshalItems = []testItemType{
 		"\x03\x66\x6f\x6f\x00\x05\x00\x00\x00\x00"},
 }
 
-func (s *S) TestUnmarshalOneWayItems(c *C) {
+func TestUnmarshalOneWayItems(t *testing.T) {
 	for _, item := range unmarshalItems {
-		testUnmarshal(c, wrapInDoc(item.data), item.obj)
+		t.Run(item.data, func(t *testing.T) {
+			testUnmarshal(t, wrapInDoc(item.data), item.obj)
+		})
 	}
 }
 
-func (s *S) TestUnmarshalNilInStruct(c *C) {
+func TestUnmarshalNilInStruct(t *testing.T) {
 	// Nil is the default value, so we need to ensure it's indeed being set.
 	b := byte(1)
 	v := &struct{ Ptr *byte }{&b}
 	err := bson.Unmarshal([]byte(wrapInDoc("\x0Aptr\x00")), v)
-	c.Assert(err, IsNil)
-	c.Assert(v, DeepEquals, &struct{ Ptr *byte }{nil})
+	require.NoError(t, err)
+	require.Equal(t, v, &struct{ Ptr *byte }{nil})
 }
 
 // --------------------------------------------------------------------------
@@ -580,7 +604,7 @@ var marshalErrorItems = []testItemType{
 	{bson.M{"": uint64(1 << 63)},
 		"BSON has no uint64 type, and value is too large to fit correctly in an int64"},
 	{bson.M{"": bson.ObjectId("tooshort")},
-		"ObjectIDs must be exactly 12 bytes long \\(got 8\\)"},
+		"ObjectIDs must be exactly 12 bytes long (got 8)"},
 	{int64(123),
 		"Can't marshal int64 as a BSON document"},
 	{bson.M{"": 1i},
@@ -605,11 +629,14 @@ var marshalErrorItems = []testItemType{
 		`Can't have key "a" in inlined map; conflicts with struct field`},
 }
 
-func (s *S) TestMarshalErrorItems(c *C) {
+func TestMarshalErrorItems(t *testing.T) {
 	for _, item := range marshalErrorItems {
-		data, err := bson.Marshal(item.obj)
-		c.Assert(err, ErrorMatches, item.data)
-		c.Assert(data, IsNil)
+		t.Run(item.data, func(t *testing.T) {
+			data, err := bson.Marshal(item.obj)
+			require.EqualError(t, err, item.data)
+			require.Nil(t, data)
+		})
+
 	}
 }
 
@@ -631,11 +658,11 @@ var unmarshalErrorItems = []unmarshalErrorType{
 	// Non-string map key.
 	{map[int]interface{}{},
 		"\x10name\x00\x08\x00\x00\x00",
-		"BSON map must have string keys. Got: map\\[int\\]interface \\{\\}"},
+		"BSON map must have string keys. Got: map[int]interface {}"},
 
 	{nil,
 		"\xEEname\x00",
-		"Unknown element kind \\(0xEE\\)"},
+		"Unknown element kind (0xEE)"},
 
 	{struct{ Name bool }{},
 		"\x10name\x00\x08\x00\x00\x00",
@@ -650,20 +677,22 @@ var unmarshalErrorItems = []unmarshalErrorType{
 		"encoded boolean must be 1 or 0, found 2"},
 }
 
-func (s *S) TestUnmarshalErrorItems(c *C) {
+func TestUnmarshalErrorItems(t *testing.T) {
 	for _, item := range unmarshalErrorItems {
-		data := []byte(wrapInDoc(item.data))
-		var value interface{}
-		switch reflect.ValueOf(item.obj).Kind() {
-		case reflect.Map, reflect.Ptr:
-			value = makeZeroDoc(item.obj)
-		case reflect.Invalid:
-			value = bson.M{}
-		default:
-			value = item.obj
-		}
-		err := bson.Unmarshal(data, value)
-		c.Assert(err, ErrorMatches, item.error)
+		t.Run(item.error, func(t *testing.T) {
+			data := []byte(wrapInDoc(item.data))
+			var value interface{}
+			switch reflect.ValueOf(item.obj).Kind() {
+			case reflect.Map, reflect.Ptr:
+				value = makeZeroDoc(item.obj)
+			case reflect.Invalid:
+				value = bson.M{}
+			default:
+				value = item.obj
+			}
+			err := bson.Unmarshal(data, value)
+			require.EqualError(t, err, item.error)
+		})
 	}
 }
 
@@ -681,7 +710,7 @@ var unmarshalRawErrorItems = []unmarshalRawErrorType{
 
 	{&struct{}{},
 		bson.Raw{0xEE, []byte{}},
-		"Unknown element kind \\(0xEE\\)"},
+		"Unknown element kind (0xEE)"},
 
 	{struct{ Name bool }{},
 		bson.Raw{0x10, []byte("\x08\x00\x00\x00")},
@@ -692,10 +721,12 @@ var unmarshalRawErrorItems = []unmarshalRawErrorType{
 		"Raw Unmarshal needs a map or a valid pointer."},
 }
 
-func (s *S) TestUnmarshalRawErrorItems(c *C) {
-	for i, item := range unmarshalRawErrorItems {
-		err := item.raw.Unmarshal(item.obj)
-		c.Assert(err, ErrorMatches, item.error, Commentf("Failed on item %d: %#v\n", i, item))
+func TestUnmarshalRawErrorItems(t *testing.T) {
+	for _, item := range unmarshalRawErrorItems {
+		t.Run(item.error, func(t *testing.T) {
+			err := item.raw.Unmarshal(item.obj)
+			require.EqualError(t, err, item.error)
+		})
 	}
 }
 
@@ -728,13 +759,14 @@ var corruptedData = []string{
 	"\r\x00\x00\x00\x05x\x00\xff\xff\xff\xff\x00\x00",
 }
 
-func (s *S) TestUnmarshalMapDocumentTooShort(c *C) {
+func TestUnmarshalMapDocumentTooShort(t *testing.T) {
 	for _, data := range corruptedData {
-		err := bson.Unmarshal([]byte(data), bson.M{})
-		c.Assert(err, ErrorMatches, "Document is corrupted")
-
-		err = bson.Unmarshal([]byte(data), &struct{}{})
-		c.Assert(err, ErrorMatches, "Document is corrupted")
+		t.Run(data, func(t *testing.T) {
+			err := bson.Unmarshal([]byte(data), bson.M{})
+			require.EqualError(t, err, "Document is corrupted")
+			err = bson.Unmarshal([]byte(data), &struct{}{})
+			require.EqualError(t, err, "Document is corrupted")
+		})
 	}
 }
 
@@ -768,45 +800,45 @@ type valSetterDoc struct {
 	Field setterType "_"
 }
 
-func (s *S) TestUnmarshalAllItemsWithPtrSetter(c *C) {
+func TestUnmarshalAllItemsWithPtrSetter(t *testing.T) {
 	for _, item := range allItems {
 		for i := 0; i != 2; i++ {
 			var field *setterType
 			if i == 0 {
 				obj := &ptrSetterDoc{}
 				err := bson.Unmarshal([]byte(wrapInDoc(item.data)), obj)
-				c.Assert(err, IsNil)
+				require.NoError(t, err)
 				field = obj.Field
 			} else {
 				obj := &valSetterDoc{}
 				err := bson.Unmarshal([]byte(wrapInDoc(item.data)), obj)
-				c.Assert(err, IsNil)
+				require.NoError(t, err)
 				field = &obj.Field
 			}
 			if item.data == "" {
 				// Nothing to unmarshal. Should be untouched.
 				if i == 0 {
-					c.Assert(field, IsNil)
+					require.Nil(t, field)
 				} else {
-					c.Assert(field.received, IsNil)
+					require.Nil(t, field.received)
 				}
 			} else {
 				expected := item.obj.(bson.M)["_"]
-				c.Assert(field, NotNil, Commentf("Pointer not initialized (%#v)", expected))
-				c.Assert(field.received, DeepEquals, expected)
+				require.NotNil(t, field)
+				require.Equal(t, field.received, expected)
 			}
 		}
 	}
 }
 
-func (s *S) TestUnmarshalWholeDocumentWithSetter(c *C) {
+func TestUnmarshalWholeDocumentWithSetter(t *testing.T) {
 	obj := &setterType{}
 	err := bson.Unmarshal([]byte(sampleItems[0].data), obj)
-	c.Assert(err, IsNil)
-	c.Assert(obj.received, DeepEquals, bson.M{"hello": "world"})
+	require.NoError(t, err)
+	require.Equal(t, obj.received, bson.M{"hello": "world"})
 }
 
-func (s *S) TestUnmarshalSetterOmits(c *C) {
+func TestUnmarshalSetterOmits(t *testing.T) {
 	setterResult["2"] = &bson.TypeError{}
 	setterResult["4"] = &bson.TypeError{}
 	defer func() {
@@ -820,17 +852,17 @@ func (s *S) TestUnmarshalSetterOmits(c *C) {
 		"\x02ghi\x00\x02\x00\x00\x003\x00" +
 		"\x02jkl\x00\x02\x00\x00\x004\x00")
 	err := bson.Unmarshal([]byte(data), m)
-	c.Assert(err, IsNil)
-	c.Assert(m["abc"], NotNil)
-	c.Assert(m["def"], IsNil)
-	c.Assert(m["ghi"], NotNil)
-	c.Assert(m["jkl"], IsNil)
+	require.NoError(t, err)
+	require.NotNil(t, m["abc"])
+	require.Nil(t, m["def"])
+	require.NotNil(t, m["ghi"])
+	require.Nil(t, m["jkl"])
 
-	c.Assert(m["abc"].received, Equals, "1")
-	c.Assert(m["ghi"].received, Equals, "3")
+	require.Equal(t, m["abc"].received, "1")
+	require.Equal(t, m["ghi"].received, "3")
 }
 
-func (s *S) TestUnmarshalSetterErrors(c *C) {
+func TestUnmarshalSetterErrors(t *testing.T) {
 	boom := errors.New("BOOM")
 	setterResult["2"] = boom
 	defer delete(setterResult, "2")
@@ -840,33 +872,33 @@ func (s *S) TestUnmarshalSetterErrors(c *C) {
 		"\x02def\x00\x02\x00\x00\x002\x00" +
 		"\x02ghi\x00\x02\x00\x00\x003\x00")
 	err := bson.Unmarshal([]byte(data), m)
-	c.Assert(err, Equals, boom)
-	c.Assert(m["abc"], NotNil)
-	c.Assert(m["def"], IsNil)
-	c.Assert(m["ghi"], IsNil)
+	require.EqualError(t, err, "BOOM")
+	require.NotNil(t, m["abc"])
+	require.Nil(t, m["def"])
+	require.Nil(t, m["ghi"])
 
-	c.Assert(m["abc"].received, Equals, "1")
+	require.Equal(t, m["abc"].received, "1")
 }
 
-func (s *S) TestDMap(c *C) {
+func TestDMap(t *testing.T) {
 	d := bson.D{{"a", 1}, {"b", 2}}
-	c.Assert(d.Map(), DeepEquals, bson.M{"a": 1, "b": 2})
+	require.Equal(t, d.Map(), bson.M{"a": 1, "b": 2})
 }
 
-func (s *S) TestUnmarshalSetterSetZero(c *C) {
+func TestUnmarshalSetterSetZero(t *testing.T) {
 	setterResult["foo"] = bson.SetZero
 	defer delete(setterResult, "field")
 
 	data, err := bson.Marshal(bson.M{"field": "foo"})
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	m := map[string]*setterType{}
 	err = bson.Unmarshal([]byte(data), m)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	value, ok := m["field"]
-	c.Assert(ok, Equals, true)
-	c.Assert(value, IsNil)
+	require.Equal(t, ok, true)
+	require.Nil(t, value)
 }
 
 // --------------------------------------------------------------------------
@@ -885,43 +917,44 @@ func (t *typeWithGetter) GetBSON() (interface{}, error) {
 }
 
 type docWithGetterField struct {
-	Field *typeWithGetter "_"
+	Field *typeWithGetter `bson:"_"`
 }
 
-func (s *S) TestMarshalAllItemsWithGetter(c *C) {
-	for i, item := range allItems {
+func TestMarshalAllItemsWithGetter(t *testing.T) {
+	for _, item := range allItems {
 		if item.data == "" {
 			continue
 		}
-		obj := &docWithGetterField{}
-		obj.Field = &typeWithGetter{result: item.obj.(bson.M)["_"]}
-		data, err := bson.Marshal(obj)
-		c.Assert(err, IsNil)
-		c.Assert(string(data), Equals, wrapInDoc(item.data),
-			Commentf("Failed on item #%d", i))
+		t.Run(item.data, func(t *testing.T) {
+			obj := &docWithGetterField{}
+			obj.Field = &typeWithGetter{result: item.obj.(bson.M)["_"]}
+			data, err := bson.Marshal(obj)
+			require.NoError(t, err)
+			require.Equal(t, string(data), wrapInDoc(item.data))
+		})
 	}
 }
 
-func (s *S) TestMarshalWholeDocumentWithGetter(c *C) {
+func TestMarshalWholeDocumentWithGetter(t *testing.T) {
 	obj := &typeWithGetter{result: sampleItems[0].obj}
 	data, err := bson.Marshal(obj)
-	c.Assert(err, IsNil)
-	c.Assert(string(data), Equals, sampleItems[0].data)
+	require.NoError(t, err)
+	require.Equal(t, string(data), sampleItems[0].data)
 }
 
-func (s *S) TestGetterErrors(c *C) {
+func TestGetterErrors(t *testing.T) {
 	e := errors.New("oops")
 
 	obj1 := &docWithGetterField{}
 	obj1.Field = &typeWithGetter{sampleItems[0].obj, e}
 	data, err := bson.Marshal(obj1)
-	c.Assert(err, ErrorMatches, "oops")
-	c.Assert(data, IsNil)
+	require.EqualError(t, err, "oops")
+	require.Nil(t, data)
 
 	obj2 := &typeWithGetter{sampleItems[0].obj, e}
 	data, err = bson.Marshal(obj2)
-	c.Assert(err, ErrorMatches, "oops")
-	c.Assert(data, IsNil)
+	require.EqualError(t, err, "oops")
+	require.Nil(t, data)
 }
 
 type intGetter int64
@@ -934,24 +967,24 @@ type typeWithIntGetter struct {
 	V intGetter ",minsize"
 }
 
-func (s *S) TestMarshalShortWithGetter(c *C) {
+func TestMarshalShortWithGetter(t *testing.T) {
 	obj := typeWithIntGetter{42}
 	data, err := bson.Marshal(obj)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	m := bson.M{}
 	err = bson.Unmarshal(data, m)
-	c.Assert(err, IsNil)
-	c.Assert(m["v"], Equals, 42)
+	require.NoError(t, err)
+	require.Equal(t, m["v"], 42)
 }
 
-func (s *S) TestMarshalWithGetterNil(c *C) {
+func TestMarshalWithGetterNil(t *testing.T) {
 	obj := docWithGetterField{}
 	data, err := bson.Marshal(obj)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	m := bson.M{}
 	err = bson.Unmarshal(data, m)
-	c.Assert(err, IsNil)
-	c.Assert(m, DeepEquals, bson.M{"_": "<value is nil>"})
+	require.NoError(t, err)
+	require.Equal(t, m, bson.M{"_": "<value is nil>"})
 }
 
 // --------------------------------------------------------------------------
@@ -1368,43 +1401,43 @@ var oneWayCrossItems = []crossTypeItem{
 	{bson.M{"x": []int{1, 2, 3}}, &struct{ X bson.RawD }{}},
 }
 
-func testCrossPair(c *C, dump interface{}, load interface{}) {
-	c.Logf("Dump: %#v", dump)
-	c.Logf("Load: %#v", load)
+func testCrossPair(t *testing.T, dump interface{}, load interface{}) {
 	zero := makeZeroDoc(load)
 	data, err := bson.Marshal(dump)
-	c.Assert(err, IsNil)
-	c.Logf("Dumped: %#v", string(data))
+	require.NoError(t, err)
 	err = bson.Unmarshal(data, zero)
-	c.Assert(err, IsNil)
-	c.Logf("Loaded: %#v", zero)
-	c.Assert(zero, DeepEquals, load)
+	require.NoError(t, err)
+	require.Equal(t, zero, load)
 }
 
-func (s *S) TestTwoWayCrossPairs(c *C) {
-	for _, item := range twoWayCrossItems {
-		testCrossPair(c, item.obj1, item.obj2)
-		testCrossPair(c, item.obj2, item.obj1)
+func TestTwoWayCrossPairs(t *testing.T) {
+	for i, item := range twoWayCrossItems {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			testCrossPair(t, item.obj1, item.obj2)
+			testCrossPair(t, item.obj2, item.obj1)
+		})
 	}
 }
 
-func (s *S) TestOneWayCrossPairs(c *C) {
-	for _, item := range oneWayCrossItems {
-		testCrossPair(c, item.obj1, item.obj2)
+func TestOneWayCrossPairs(t *testing.T) {
+	for i, item := range oneWayCrossItems {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			testCrossPair(t, item.obj1, item.obj2)
+		})
 	}
 }
 
 // --------------------------------------------------------------------------
 // ObjectId hex representation test.
 
-func (s *S) TestObjectIdHex(c *C) {
+func TestObjectIdHex(t *testing.T) {
 	id := bson.ObjectIdHex("4d88e15b60f486e428412dc9")
-	c.Assert(id.String(), Equals, `ObjectIdHex("4d88e15b60f486e428412dc9")`)
-	c.Assert(id.Hex(), Equals, "4d88e15b60f486e428412dc9")
+	require.Equal(t, id.String(), `ObjectIdHex("4d88e15b60f486e428412dc9")`)
+	require.Equal(t, id.Hex(), "4d88e15b60f486e428412dc9")
 }
 
-func (s *S) TestIsObjectIdHex(c *C) {
-	test := []struct {
+func TestIsObjectIdHex(t *testing.T) {
+	tests := []struct {
 		id    string
 		valid bool
 	}{
@@ -1413,8 +1446,10 @@ func (s *S) TestIsObjectIdHex(c *C) {
 		{"4d88e15b60f486e428412dc9e", false},
 		{"4d88e15b60f486e428412dcx", false},
 	}
-	for _, t := range test {
-		c.Assert(bson.IsObjectIdHex(t.id), Equals, t.valid)
+	for _, test := range tests {
+		t.Run(test.id, func(t *testing.T) {
+			require.Equal(t, bson.IsObjectIdHex(test.id), test.valid)
+		})
 	}
 }
 
@@ -1453,63 +1488,67 @@ var objectIds = []objectIdParts{
 	},
 }
 
-func (s *S) TestObjectIdPartsExtraction(c *C) {
-	for i, v := range objectIds {
-		t := time.Unix(v.timestamp, 0)
-		c.Assert(v.id.Time(), Equals, t, Commentf("#%d Wrong timestamp value", i))
-		c.Assert(v.id.Machine(), DeepEquals, v.machine, Commentf("#%d Wrong machine id value", i))
-		c.Assert(v.id.Pid(), Equals, v.pid, Commentf("#%d Wrong pid value", i))
-		c.Assert(v.id.Counter(), Equals, v.counter, Commentf("#%d Wrong counter value", i))
+func TestObjectIdPartsExtraction(t *testing.T) {
+	for _, v := range objectIds {
+		t.Run(v.id.String(), func(t *testing.T) {
+			ti := time.Unix(v.timestamp, 0)
+			require.Equal(t, v.id.Time(), ti)
+			require.Equal(t, v.id.Machine(), v.machine)
+			require.Equal(t, v.id.Pid(), v.pid)
+			require.Equal(t, v.id.Counter(), v.counter)
+		})
 	}
 }
 
-func (s *S) TestNow(c *C) {
+func TestNow(t *testing.T) {
 	before := time.Now()
 	time.Sleep(1e6)
 	now := bson.Now()
 	time.Sleep(1e6)
 	after := time.Now()
-	c.Assert(now.After(before) && now.Before(after), Equals, true, Commentf("now=%s, before=%s, after=%s", now, before, after))
+	require.True(t, now.After(before) && now.Before(after))
 }
 
 // --------------------------------------------------------------------------
 // ObjectId generation tests.
 
-func (s *S) TestNewObjectId(c *C) {
+func TestNewObjectId(t *testing.T) {
 	// Generate 10 ids
 	ids := make([]bson.ObjectId, 10)
 	for i := 0; i < 10; i++ {
 		ids[i] = bson.NewObjectId()
 	}
 	for i := 1; i < 10; i++ {
-		prevId := ids[i-1]
-		id := ids[i]
-		// Test for uniqueness among all other 9 generated ids
-		for j, tid := range ids {
-			if j != i {
-				c.Assert(id, Not(Equals), tid, Commentf("Generated ObjectId is not unique"))
+		t.Run(ids[i].String(), func(t *testing.T) {
+			prevId := ids[i-1]
+			id := ids[i]
+			// Test for uniqueness among all other 9 generated ids
+			for j, tid := range ids {
+				if j != i {
+					require.NotEqual(t, id, tid)
+				}
 			}
-		}
-		// Check that timestamp was incremented and is within 30 seconds of the previous one
-		secs := id.Time().Sub(prevId.Time()).Seconds()
-		c.Assert((secs >= 0 && secs <= 30), Equals, true, Commentf("Wrong timestamp in generated ObjectId"))
-		// Check that machine ids are the same
-		c.Assert(id.Machine(), DeepEquals, prevId.Machine())
-		// Check that pids are the same
-		c.Assert(id.Pid(), Equals, prevId.Pid())
-		// Test for proper increment
-		delta := int(id.Counter() - prevId.Counter())
-		c.Assert(delta, Equals, 1, Commentf("Wrong increment in generated ObjectId"))
+			// Check that timestamp was incremented and is within 30 seconds of the previous one
+			secs := id.Time().Sub(prevId.Time()).Seconds()
+			require.True(t, secs >= 0 && secs <= 30)
+			// Check that machine ids are the same
+			require.Equal(t, id.Machine(), prevId.Machine())
+			// Check that pids are the same
+			require.Equal(t, id.Pid(), prevId.Pid())
+			// Test for proper increment
+			delta := int(id.Counter() - prevId.Counter())
+			require.Equal(t, delta, 1)
+		})
 	}
 }
 
-func (s *S) TestNewObjectIdWithTime(c *C) {
-	t := time.Unix(12345678, 0)
-	id := bson.NewObjectIdWithTime(t)
-	c.Assert(id.Time(), Equals, t)
-	c.Assert(id.Machine(), DeepEquals, []byte{0x00, 0x00, 0x00})
-	c.Assert(int(id.Pid()), Equals, 0)
-	c.Assert(int(id.Counter()), Equals, 0)
+func TestNewObjectIdWithTime(t *testing.T) {
+	ti := time.Unix(12345678, 0)
+	id := bson.NewObjectIdWithTime(ti)
+	require.Equal(t, id.Time(), ti)
+	require.Equal(t, id.Machine(), []byte{0x00, 0x00, 0x00})
+	require.Equal(t, int(id.Pid()), 0)
+	require.Equal(t, int(id.Counter()), 0)
 }
 
 // --------------------------------------------------------------------------
@@ -1547,32 +1586,36 @@ var jsonIdTests = []struct {
 	unmarshal: true,
 }, {
 	json:      `{"Id":"4d88e15b60f486e428412dcZ"}`,
-	error:     `invalid ObjectId in JSON: "4d88e15b60f486e428412dcZ" .*`,
+	error:     `invalid ObjectId in JSON: "4d88e15b60f486e428412dcZ" (encoding/hex: invalid byte: U+005A 'Z')`,
 	marshal:   false,
 	unmarshal: true,
 }}
 
-func (s *S) TestObjectIdJSONMarshaling(c *C) {
+func TestObjectIdJSONMarshaling(t *testing.T) {
 	for _, test := range jsonIdTests {
 		if test.marshal {
-			data, err := json.Marshal(&test.value)
-			if test.error == "" {
-				c.Assert(err, IsNil)
-				c.Assert(string(data), Equals, test.json)
-			} else {
-				c.Assert(err, ErrorMatches, test.error)
-			}
+			t.Run("Marshal-"+test.json, func(t *testing.T) {
+				data, err := json.Marshal(&test.value)
+				if test.error == "" {
+					require.NoError(t, err)
+					require.Equal(t, string(data), test.json)
+				} else {
+					require.EqualError(t, err, test.error)
+				}
+			})
 		}
 
 		if test.unmarshal {
-			var value jsonType
-			err := json.Unmarshal([]byte(test.json), &value)
-			if test.error == "" {
-				c.Assert(err, IsNil)
-				c.Assert(value, DeepEquals, test.value)
-			} else {
-				c.Assert(err, ErrorMatches, test.error)
-			}
+			t.Run("Unmarshal-"+test.json, func(t *testing.T) {
+				var value jsonType
+				err := json.Unmarshal([]byte(test.json), &value)
+				if test.error == "" {
+					require.NoError(t, err)
+					require.Equal(t, value, test.value)
+				} else {
+					require.EqualError(t, err, test.error)
+				}
+			})
 		}
 	}
 }
@@ -1604,32 +1647,36 @@ var textIdTests = []struct {
 	text:      "4d88e15b60f486e428412dcZ",
 	marshal:   false,
 	unmarshal: true,
-	error:     `invalid ObjectId: 4d88e15b60f486e428412dcZ .*`,
+	error:     `invalid ObjectId: 4d88e15b60f486e428412dcZ (encoding/hex: invalid byte: U+005A 'Z')`,
 }}
 
-func (s *S) TestObjectIdTextMarshaling(c *C) {
+func TestObjectIdTextMarshaling(t *testing.T) {
 	for _, test := range textIdTests {
 		if test.marshal {
-			data, err := test.value.MarshalText()
-			if test.error == "" {
-				c.Assert(err, IsNil)
-				c.Assert(string(data), Equals, test.text)
-			} else {
-				c.Assert(err, ErrorMatches, test.error)
-			}
+			t.Run("Marshal-"+test.text, func(t *testing.T) {
+				data, err := test.value.MarshalText()
+				if test.error == "" {
+					require.NoError(t, err)
+					require.Equal(t, string(data), test.text)
+				} else {
+					require.EqualError(t, err, test.error)
+				}
+			})
 		}
 
 		if test.unmarshal {
-			err := test.value.UnmarshalText([]byte(test.text))
-			if test.error == "" {
-				c.Assert(err, IsNil)
-				if test.value != "" {
-					value := bson.ObjectIdHex(test.text)
-					c.Assert(value, DeepEquals, test.value)
+			t.Run("Unmarshal-"+test.text, func(t *testing.T) {
+				err := test.value.UnmarshalText([]byte(test.text))
+				if test.error == "" {
+					require.NoError(t, err)
+					if test.value != "" {
+						value := bson.ObjectIdHex(test.text)
+						require.Equal(t, value, test.value)
+					}
+				} else {
+					require.EqualError(t, err, test.error)
 				}
-			} else {
-				c.Assert(err, ErrorMatches, test.error)
-			}
+			})
 		}
 	}
 }
@@ -1666,30 +1713,34 @@ var xmlIdTests = []struct {
 	xml:       "<xmlType><Id>4d88e15b60f486e428412dcZ</Id></xmlType>",
 	marshal:   false,
 	unmarshal: true,
-	error:     `invalid ObjectId: 4d88e15b60f486e428412dcZ .*`,
+	error:     `invalid ObjectId: 4d88e15b60f486e428412dcZ (encoding/hex: invalid byte: U+005A 'Z')`,
 }}
 
-func (s *S) TestObjectIdXMLMarshaling(c *C) {
+func TestObjectIdXMLMarshaling(t *testing.T) {
 	for _, test := range xmlIdTests {
 		if test.marshal {
-			data, err := xml.Marshal(&test.value)
-			if test.error == "" {
-				c.Assert(err, IsNil)
-				c.Assert(string(data), Equals, test.xml)
-			} else {
-				c.Assert(err, ErrorMatches, test.error)
-			}
+			t.Run("Marshal-"+test.xml, func(t *testing.T) {
+				data, err := xml.Marshal(&test.value)
+				if test.error == "" {
+					require.NoError(t, err)
+					require.Equal(t, string(data), test.xml)
+				} else {
+					require.EqualError(t, err, test.error)
+				}
+			})
 		}
 
 		if test.unmarshal {
-			var value xmlType
-			err := xml.Unmarshal([]byte(test.xml), &value)
-			if test.error == "" {
-				c.Assert(err, IsNil)
-				c.Assert(value, DeepEquals, test.value)
-			} else {
-				c.Assert(err, ErrorMatches, test.error)
-			}
+			t.Run("Unarshal-"+test.xml, func(t *testing.T) {
+				var value xmlType
+				err := xml.Unmarshal([]byte(test.xml), &value)
+				if test.error == "" {
+					require.NoError(t, err)
+					require.Equal(t, value, test.value)
+				} else {
+					require.EqualError(t, err, test.error)
+				}
+			})
 		}
 	}
 }
@@ -1708,14 +1759,14 @@ type BenchRawT struct {
 	D []float64
 }
 
-func (s *S) BenchmarkUnmarhsalStruct(c *C) {
+func BenchmarkUnmarhsalStruct(b *testing.B) {
 	v := BenchT{A: "A", D: "D", E: "E"}
 	data, err := bson.Marshal(&v)
 	if err != nil {
 		panic(err)
 	}
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		err = bson.Unmarshal(data, &v)
 	}
 	if err != nil {
@@ -1723,14 +1774,14 @@ func (s *S) BenchmarkUnmarhsalStruct(c *C) {
 	}
 }
 
-func (s *S) BenchmarkUnmarhsalMap(c *C) {
+func BenchmarkUnmarhsalMap(b *testing.B) {
 	m := bson.M{"a": "a", "d": "d", "e": "e"}
 	data, err := bson.Marshal(&m)
 	if err != nil {
 		panic(err)
 	}
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		err = bson.Unmarshal(data, &m)
 	}
 	if err != nil {
@@ -1738,7 +1789,7 @@ func (s *S) BenchmarkUnmarhsalMap(c *C) {
 	}
 }
 
-func (s *S) BenchmarkUnmarshalRaw(c *C) {
+func BenchmarkUnmarshalRaw(b *testing.B) {
 	var err error
 	m := BenchRawT{
 		A: "test_string",
@@ -1754,8 +1805,8 @@ func (s *S) BenchmarkUnmarshalRaw(c *C) {
 		panic(err)
 	}
 	raw := bson.Raw{}
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		err = bson.Unmarshal(data, &raw)
 	}
 	if err != nil {
@@ -1763,8 +1814,8 @@ func (s *S) BenchmarkUnmarshalRaw(c *C) {
 	}
 }
 
-func (s *S) BenchmarkNewObjectId(c *C) {
-	for i := 0; i < c.N; i++ {
+func BenchmarkNewObjectId(b *testing.B) {
+	for i := 0; i < b.N; i++ {
 		bson.NewObjectId()
 	}
 }

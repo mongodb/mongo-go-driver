@@ -32,8 +32,10 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/stretchr/testify/require"
 
 	. "gopkg.in/check.v1"
 )
@@ -70,7 +72,7 @@ func extJSONRepr(s string) string {
 	return value.D.Repr
 }
 
-func (s *S) TestDecimalTests(c *C) {
+func TestDecimalTests(t *testing.T) {
 	// These also conform to the spec and are used by Go elsewhere.
 	// (e.g. math/big won't parse "Infinity").
 	goStr := func(s string) string {
@@ -84,24 +86,20 @@ func (s *S) TestDecimalTests(c *C) {
 	}
 
 	for _, testEntry := range decimalTestsJSON {
-		testFile := testEntry.file
-
 		var tests decimalTests
 		err := json.Unmarshal([]byte(testEntry.json), &tests)
-		c.Assert(err, IsNil)
+		require.NoError(t, err)
 
 		for _, test := range tests.Valid {
-			c.Logf("Running %s test: %s", testFile, test.Description)
-
 			test.BSON = strings.ToLower(test.BSON)
 
 			// Unmarshal value from BSON data.
 			bsonData, err := hex.DecodeString(test.BSON)
 			var bsonValue struct{ D interface{} }
 			err = bson.Unmarshal(bsonData, &bsonValue)
-			c.Assert(err, IsNil)
+			require.NoError(t, err)
 			dec128, ok := bsonValue.D.(bson.Decimal128)
-			c.Assert(ok, Equals, true)
+			require.True(t, ok)
 
 			// Extract ExtJSON representations (canonical and not).
 			extjRepr := extJSONRepr(test.ExtJSON)
@@ -113,27 +111,27 @@ func (s *S) TestDecimalTests(c *C) {
 			wantRepr := goStr(cextjRepr)
 
 			// Generate canonical representation.
-			c.Assert(dec128.String(), Equals, wantRepr)
+			require.Equal(t, dec128.String(), wantRepr)
 
 			// Parse original canonical representation.
 			parsed, err := bson.ParseDecimal128(cextjRepr)
-			c.Assert(err, IsNil)
-			c.Assert(parsed.String(), Equals, wantRepr)
+			require.NoError(t, err)
+			require.Equal(t, parsed.String(), wantRepr)
 
 			// Parse non-canonical representation.
 			parsed, err = bson.ParseDecimal128(extjRepr)
-			c.Assert(err, IsNil)
-			c.Assert(parsed.String(), Equals, wantRepr)
+			require.NoError(t, err)
+			require.Equal(t, parsed.String(), wantRepr)
 
 			// Parse Go canonical representation (Inf vs. Infinity).
 			parsed, err = bson.ParseDecimal128(wantRepr)
-			c.Assert(err, IsNil)
-			c.Assert(parsed.String(), Equals, wantRepr)
+			require.NoError(t, err)
+			require.Equal(t, parsed.String(), wantRepr)
 
 			// Marshal original value back into BSON data.
 			data, err := bson.Marshal(bsonValue)
-			c.Assert(err, IsNil)
-			c.Assert(hex.EncodeToString(data), Equals, test.BSON)
+			require.NoError(t, err)
+			require.Equal(t, hex.EncodeToString(data), test.BSON)
 
 			if test.Lossy {
 				continue
@@ -143,16 +141,14 @@ func (s *S) TestDecimalTests(c *C) {
 			var parsedValue struct{ D interface{} }
 			parsedValue.D = parsed
 			data, err = bson.Marshal(parsedValue)
-			c.Assert(err, IsNil)
-			c.Assert(hex.EncodeToString(data), Equals, test.BSON)
+			require.NoError(t, err)
+			require.Equal(t, hex.EncodeToString(data), test.BSON)
 		}
 
 		for _, test := range tests.ParseErrors {
-			c.Logf("Running %s parse error test: %s (string %q)", testFile, test.Description, test.String)
-
 			_, err := bson.ParseDecimal128(test.String)
 			quoted := regexp.QuoteMeta(fmt.Sprintf("%q", test.String))
-			c.Assert(err, ErrorMatches, `cannot parse `+quoted+` as a decimal128`)
+			require.Error(t, err, `cannot parse `+quoted+` as a decimal128`)
 		}
 	}
 }

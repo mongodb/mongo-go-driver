@@ -56,7 +56,7 @@ const name = "bson_corpus_spec_test_generator"
 
 func (g *Generator) generate() []byte {
 
-	testFiles, err := filepath.Glob("./specdata/specifications/source/bson-corpus/tests/*.json")
+	testFiles, err := filepath.Glob("../specifications/source/bson-corpus/tests/*.json")
 	if err != nil {
 		log.Fatalf("error reading bson-corpus files: %s", err)
 	}
@@ -159,63 +159,64 @@ func (g *Generator) getTemplate() (*template.Template, error) {
 
 import (
     "encoding/hex"
+	"testing"
 	"time"
 
-	. "gopkg.in/check.v1"
+	"github.com/stretchr/testify/require"
     "github.com/10gen/mongo-go-driver/bson"
 )
 
-func testValid(c *C, in []byte, expected []byte, result interface{}) {
+func testValid(t *testing.T, in []byte, expected []byte, result interface{}) {
 	err := bson.Unmarshal(in, result)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	out, err := bson.Marshal(result)
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
-	c.Assert(string(expected), Equals, string(out), Commentf("roundtrip failed for %T, expected '%x' but got '%x'", result, expected, out))
+	require.Equal(t, string(expected), string(out))
 }
 
-func testDecodeSkip(c *C, in []byte) {
+func testDecodeSkip(t *testing.T, in []byte) {
 	err := bson.Unmarshal(in, &struct{}{})
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 }
 
-func testDecodeError(c *C, in []byte, result interface{}) {
+func testDecodeError(t *testing.T, in []byte, result interface{}) {
 	err := bson.Unmarshal(in, result)
-	c.Assert(err, Not(IsNil))
+	require.Error(t, err)
 }
 
 {{range .}}
 {{range .Valid}}
-func (s *S) Test{{.Name}}(c *C) {
+func Test{{.Name}}(t *testing.T) {
     b, err := hex.DecodeString("{{.Bson}}")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
     {{if .CanonicalBson}}
     cb, err := hex.DecodeString("{{.CanonicalBson}}")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 	{{else}}
     cb := b
     {{end}}
 
     var resultD bson.D
-	testValid(c, b, cb, &resultD)
+	testValid(t, b, cb, &resultD)
 	{{if .StructTest}}var resultS struct {
 		Element {{.TestDef.GoType}} ` + "`bson:\"{{.TestDef.TestKey}}\"`" + `
 	}
-	testValid(c, b, cb, &resultS){{end}}
+	testValid(t, b, cb, &resultS){{end}}
 
-	testDecodeSkip(c, b)
+	testDecodeSkip(t, b)
 }
 {{end}}
 
 {{range .DecodeErrors}}
-func (s *S) Test{{.Name}}(c *C) {
+func Test{{.Name}}(t *testing.T) {
 	b, err := hex.DecodeString("{{.Bson}}")
-	c.Assert(err, IsNil)
+	require.NoError(t, err)
 
 	var resultD bson.D
-	testDecodeError(c, b, &resultD)
+	testDecodeError(t, b, &resultD)
 }
 {{end}}
 {{end}}

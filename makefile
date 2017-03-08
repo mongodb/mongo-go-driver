@@ -1,4 +1,4 @@
-PKGS = ./auth ./cluster ./conn ./connstring ./internal ./internal/feature ./msg ./ops ./readpref ./server
+PKGS = ./auth ./bson ./cluster ./conn ./connstring ./internal ./internal/feature ./msg ./ops ./readpref ./server
 LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
 BUILD_TAGS = -tags gssapi
@@ -16,6 +16,7 @@ generate:
 
 lint:
 	golint $(LINTARGS) ./auth
+	golint $(LINTARGS) ./bson
 	golint $(LINTARGS) ./cluster
 	golint $(LINTARGS) ./conn
 	golint $(LINTARGS) ./connstring
