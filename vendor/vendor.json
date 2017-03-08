@@ -21,12 +21,6 @@
 			"revisionTime": "2016-05-04T02:26:26Z"
 		},
 		{
-			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
-			"path": "golang.org/x/crypto/pbkdf2",
-			"revision": "5f31782cfb2b6373211f8f9fbf31283fa234b570",
-			"revisionTime": "2016-10-12T21:56:05Z"
-		},
-		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
@@ -47,10 +41,16 @@
 			"versionExact": "v1.1.4"
 		},
 		{
-			"checksumSHA1": "9tMleZvl/yjpkj7oO3pOfZc+MJw=",
-			"path": "gopkg.in/mgo.v2/internal/json",
-			"revision": "c283eb40dfc206fd4c5f608663f10d14e646286d",
-			"revisionTime": "2016-11-15T15:48:59Z"
+			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",
+			"path": "golang.org/x/crypto/pbkdf2",
+			"revision": "5f31782cfb2b6373211f8f9fbf31283fa234b570",
+			"revisionTime": "2016-10-12T21:56:05Z"
+		},
+		{
+			"checksumSHA1": "21kDrz4DnDppRHgK7vVmOFwgcSQ=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
+			"revisionTime": "2016-09-28T15:37:09Z"
 		}
 	],
 	"rootPath": "github.com/10gen/mongo-go-driver"

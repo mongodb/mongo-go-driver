@@ -5,6 +5,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -193,6 +194,7 @@ func (m *Monitor) describeServer(ctx context.Context) (*internal.IsMasterResult,
 }
 
 func (m *Monitor) heartbeat() *Desc {
+
 	const maxRetryCount = 2
 	var savedErr error
 	var d *Desc
@@ -227,6 +229,7 @@ func (m *Monitor) heartbeat() *Desc {
 		delay := time.Since(now)
 
 		d = BuildDesc(m.endpoint, isMasterResult, buildInfoResult)
+		fmt.Println(d.Type)
 		d.SetAverageRTT(m.updateAverageRTT(delay))
 		d.HeartbeatInterval = m.cfg.heartbeatInterval
 	}

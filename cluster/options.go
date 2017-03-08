@@ -119,7 +119,7 @@ func WithConnString(cs connstring.ConnString) Option {
 				}
 			}
 
-			if authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred); err != nil {
+			if authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred); err == nil {
 				c.serverOpts = append(
 					c.serverOpts,
 					server.WithWrappedConnectionDialer(func(current conn.Dialer) conn.Dialer {

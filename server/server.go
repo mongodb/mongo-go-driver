@@ -71,6 +71,7 @@ type Server struct {
 	cancelSubscription func()
 	ownsMonitor        bool
 
+	seenDesc bool
 	desc     *Desc
 	descLock sync.Mutex
 }
@@ -125,9 +126,17 @@ func (s *Server) Desc() *Desc {
 }
 
 func (s *Server) applyUpdate(desc *Desc) {
+	var seenDesc bool
 	s.descLock.Lock()
 	s.desc = desc
+	seenDesc = s.seenDesc
+	s.seenDesc = true
 	s.descLock.Unlock()
+
+	if !seenDesc {
+		// don't clear the pool for the first update.
+		return
+	}
 
 	switch desc.Type {
 	case Unknown:

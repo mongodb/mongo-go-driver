@@ -5,18 +5,16 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/internal/testconfig"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListIndexesWithInvalidDatabaseName(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	t.Parallel()
+	testconfig.Integration(t)
 
-	s := getServer()
+	s := getServer(t)
 	ns := Namespace{"space", "ex"}
 	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
 	require.Nil(t, err)
@@ -32,14 +30,11 @@ func TestListIndexesWithInvalidDatabaseName(t *testing.T) {
 }
 
 func TestListIndexesWithInvalidCollectionName(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	t.Parallel()
+	testconfig.Integration(t)
 
-	s := getServer()
-	ns := Namespace{databaseName, "ex"}
+	s := getServer(t)
+	ns := Namespace{testconfig.DBName(t), "ex"}
 	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
 	require.Nil(t, err)
 
@@ -54,26 +49,17 @@ func TestListIndexesWithInvalidCollectionName(t *testing.T) {
 }
 
 func TestListIndexes(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	t.Parallel()
+	testconfig.Integration(t)
+	testconfig.AutoDropCollection(t)
+	testconfig.AutoCreateIndex(t, []string{"a"})
+	testconfig.AutoCreateIndex(t, []string{"b"})
+	testconfig.AutoCreateIndex(t, []string{"c"})
+	testconfig.AutoCreateIndex(t, []string{"d", "e"})
 
-	s := getServer()
+	ns := NewNamespace(testconfig.DBName(t), testconfig.ColName(t))
 
-	collectionName := "TestListIndexes"
-	ns := NewNamespace(databaseName, collectionName)
-
-	indexNames := []string{"_id_", "a", "b", "c", "d_e"}
-
-	dropCollection(s, collectionName, t)
-
-	createIndex(s, collectionName, []string{"a"}, t)
-	createIndex(s, collectionName, []string{"b"}, t)
-	createIndex(s, collectionName, []string{"c"}, t)
-	createIndex(s, collectionName, []string{"d", "e"}, t)
-
+	s := getServer(t)
 	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
 	require.Nil(t, err)
 
@@ -84,35 +70,25 @@ func TestListIndexes(t *testing.T) {
 		indexes = append(indexes, next["name"].(string))
 	}
 
+	expected := []string{"_id_", "a", "b", "c", "d_e"}
 	require.Equal(t, 5, len(indexes))
-	require.Contains(t, indexes, indexNames[0])
-	require.Contains(t, indexes, indexNames[1])
-	require.Contains(t, indexes, indexNames[2])
-	require.Contains(t, indexes, indexNames[3])
-	require.Contains(t, indexes, indexNames[4])
+	require.Contains(t, indexes, expected[0])
+	require.Contains(t, indexes, expected[1])
+	require.Contains(t, indexes, expected[2])
+	require.Contains(t, indexes, expected[3])
+	require.Contains(t, indexes, expected[4])
 }
 
 func TestListIndexesMultipleBatches(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	t.Parallel()
+	testconfig.Integration(t)
+	testconfig.AutoDropCollection(t)
+	testconfig.AutoCreateIndex(t, []string{"a"})
+	testconfig.AutoCreateIndex(t, []string{"b"})
+	testconfig.AutoCreateIndex(t, []string{"c"})
 
-	s := getServer()
-
-	collectionName := "TestListIndexesMultipleBatches"
-
-	indexNames := []string{"_id_", "a", "b", "c"}
-
-	ns := NewNamespace(databaseName, collectionName)
-
-	dropCollection(s, collectionName, t)
-
-	createIndex(s, collectionName, []string{"a"}, t)
-	createIndex(s, collectionName, []string{"b"}, t)
-	createIndex(s, collectionName, []string{"c"}, t)
-
+	s := getServer(t)
+	ns := NewNamespace(testconfig.DBName(t), testconfig.ColName(t))
 	options := ListIndexesOptions{BatchSize: 1}
 	cursor, err := ListIndexes(context.Background(), s, ns, options)
 	require.Nil(t, err)
@@ -124,9 +100,10 @@ func TestListIndexesMultipleBatches(t *testing.T) {
 		indexes = append(indexes, next["name"].(string))
 	}
 
+	expected := []string{"_id_", "a", "b", "c"}
 	require.Equal(t, 4, len(indexes))
-	require.Contains(t, indexes, indexNames[0])
-	require.Contains(t, indexes, indexNames[1])
-	require.Contains(t, indexes, indexNames[2])
-	require.Contains(t, indexes, indexNames[3])
+	require.Contains(t, indexes, expected[0])
+	require.Contains(t, indexes, expected[1])
+	require.Contains(t, indexes, expected[2])
+	require.Contains(t, indexes, expected[3])
 }

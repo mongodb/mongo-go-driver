@@ -2,95 +2,66 @@ package main
 
 import (
 	"context"
-	"flag"
-	"fmt"
 	"log"
-	"strings"
+	"os"
 
-	"github.com/10gen/mongo-go-driver/auth"
+	"flag"
+
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/msg"
+	"github.com/10gen/mongo-go-driver/cluster"
+	"github.com/10gen/mongo-go-driver/connstring"
+	"github.com/10gen/mongo-go-driver/ops"
+	"github.com/10gen/mongo-go-driver/readpref"
 )
 
-var host = flag.String("host", "localhost:27017", "the host to authenticate against")
-var source = flag.String("source", "admin", "where the user exists")
-var mech = flag.String("mech", "SCRAM-SHA-1", "the mechanism to use")
-var props = flag.String("props", "", "mechanism properties")
-
-var db = flag.String("db", "test", "where to issue a count command")
-var col = flag.String("col", "test", "where to issue a count command")
+var col = flag.String("c", "test", "the collection name to use")
 
 func main() {
+
 	flag.Parse()
-	args := flag.Args()
 
-	props, err := parseProps()
+	mongodbURI := os.Getenv("MONGODB_URI")
+	if mongodbURI == "" {
+		log.Fatalf("MONGODB_URI was not set")
+	}
+
+	cs, err := connstring.Parse(mongodbURI)
 	if err != nil {
-		log.Fatalf("failed to parse props flag: %v", err)
+		log.Fatal(err)
 	}
 
-	cred := &auth.Cred{
-		Source: *source,
-		Props:  props,
-	}
-
-	if len(args) == 0 {
-		if *mech != "GSSAPI" {
-			cred.Username = "root"
-			cred.Password = "root"
-			cred.PasswordSet = true
-		}
-	} else {
-		cred.Username = args[0]
-		if len(args) > 1 {
-			cred.Password = args[1]
-			cred.PasswordSet = true
-		}
-	}
-
-	authenticator, err := auth.CreateAuthenticator(*mech, cred)
+	c, err := cluster.New(
+		cluster.WithConnString(cs),
+	)
 	if err != nil {
-		log.Fatalf("unable to create authenticator: %v", err)
+		log.Fatal(err)
 	}
 
 	ctx := context.Background()
 
-	connection, err := auth.Dial(ctx, authenticator, conn.Dial, conn.Endpoint(*host))
+	s, err := c.SelectServer(ctx, cluster.WriteSelector())
 	if err != nil {
-		log.Fatalf("failed connecting: %v", err)
+		log.Fatal(err)
 	}
 
-	cmd := msg.NewCommand(
-		msg.NextRequestID(),
-		*db,
-		false,
-		bson.D{{"count", *col}},
-	)
+	dbname := cs.Database
+	if dbname == "" {
+		dbname = "test"
+	}
 
 	var result bson.D
-	conn.ExecuteCommand(ctx, connection, cmd, &result)
+	err = ops.Run(
+		ctx,
+		&ops.SelectedServer{
+			Server:   s,
+			ReadPref: readpref.Primary(),
+		},
+		dbname,
+		bson.D{{"count", *col}},
+		&result)
 	if err != nil {
-		log.Fatalf("failed executing count command: %v", err)
+		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}
 
 	log.Println(result)
-}
-
-func parseProps() (map[string]string, error) {
-	if props == nil || *props == "" {
-		return nil, nil
-	}
-
-	result := make(map[string]string)
-	pairs := strings.Split(*props, ",")
-	for _, pair := range pairs {
-		kv := strings.SplitN(pair, ":", 2)
-		if len(kv) != 2 || kv[0] == "" {
-			return nil, fmt.Errorf("invalid authMechanism property")
-		}
-		result[kv[0]] = kv[1]
-	}
-
-	return result, nil
 }

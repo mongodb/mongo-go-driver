@@ -2,53 +2,44 @@ package ops_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/internal/testconfig"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListCollectionsWithInvalidDatabaseName(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	t.Parallel()
+	testconfig.Integration(t)
 
-	s := getServer()
+	s := getServer(t)
 	_, err := ListCollections(context.Background(), s, "", ListCollectionsOptions{})
-	require.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func TestListCollections(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	t.Parallel()
+	testconfig.Integration(t)
+	dbname := testconfig.DBName(t)
+	collectionNameOne := testconfig.ColName(t)
+	collectionNameTwo := collectionNameOne + "2"
+	collectionNameThree := collectionNameOne + "3"
+	testconfig.DropCollection(t, dbname, collectionNameOne)
+	testconfig.DropCollection(t, dbname, collectionNameTwo)
+	testconfig.DropCollection(t, dbname, collectionNameThree)
+	testconfig.InsertDocs(t, dbname, collectionNameOne, bson.D{{"_id", 1}})
+	testconfig.InsertDocs(t, dbname, collectionNameTwo, bson.D{{"_id", 1}})
+	testconfig.InsertDocs(t, dbname, collectionNameThree, bson.D{{"_id", 1}})
 
-	s := getServer()
-
-	collectionNameOne := "TestListCollections1"
-	collectionNameTwo := "TestListCollections2"
-	collectionNameThree := "TestListCollections3"
-
-	dropCollection(s, collectionNameOne, t)
-	dropCollection(s, collectionNameTwo, t)
-	dropCollection(s, collectionNameThree, t)
-
-	insertDocuments(s, collectionNameOne, []bson.D{{{"_id", 1}}}, t)
-	insertDocuments(s, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
-	insertDocuments(s, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
-
-	cursor, err := ListCollections(context.Background(), s, databaseName, ListCollectionsOptions{})
-	require.Nil(t, err)
-
+	s := getServer(t)
+	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{})
+	require.NoError(t, err)
 	names := []string{}
 	var next bson.M
-
 	for cursor.Next(context.Background(), &next) {
 		names = append(names, next["name"].(string))
 	}
@@ -59,30 +50,24 @@ func TestListCollections(t *testing.T) {
 }
 
 func TestListCollectionsMultipleBatches(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	t.Parallel()
+	testconfig.Integration(t)
+	dbname := testconfig.DBName(t)
+	collectionNameOne := testconfig.ColName(t)
+	collectionNameTwo := collectionNameOne + "2"
+	collectionNameThree := collectionNameOne + "3"
+	testconfig.DropCollection(t, dbname, collectionNameOne)
+	testconfig.DropCollection(t, dbname, collectionNameTwo)
+	testconfig.DropCollection(t, dbname, collectionNameThree)
+	testconfig.InsertDocs(t, dbname, collectionNameOne, bson.D{{"_id", 1}})
+	testconfig.InsertDocs(t, dbname, collectionNameTwo, bson.D{{"_id", 1}})
+	testconfig.InsertDocs(t, dbname, collectionNameThree, bson.D{{"_id", 1}})
 
-	s := getServer()
-
-	collectionNameOne := "TestListCollectionsMultipleBatches1"
-	collectionNameTwo := "TestListCollectionsMultipleBatches2"
-	collectionNameThree := "TestListCollectionsMultipleBatches3"
-
-	dropCollection(s, collectionNameOne, t)
-	dropCollection(s, collectionNameTwo, t)
-	dropCollection(s, collectionNameThree, t)
-
-	insertDocuments(s, collectionNameOne, []bson.D{{{"_id", 1}}}, t)
-	insertDocuments(s, collectionNameTwo, []bson.D{{{"_id", 1}}}, t)
-	insertDocuments(s, collectionNameThree, []bson.D{{{"_id", 1}}}, t)
-
-	cursor, err := ListCollections(context.Background(), s, databaseName, ListCollectionsOptions{
-		Filter:    bson.D{{"name", bson.RegEx{Pattern: "^TestListCollectionsMultipleBatches.*"}}},
+	s := getServer(t)
+	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{
+		Filter:    bson.D{{"name", bson.RegEx{Pattern: fmt.Sprintf("^%s.*", collectionNameOne)}}},
 		BatchSize: 2})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	names := []string{}
 	var next bson.M
@@ -98,21 +83,18 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 }
 
 func TestListCollectionsWithMaxTimeMS(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	t.Parallel()
+	testconfig.Integration(t)
 
-	s := getServer()
+	s := getServer(t)
 
-	if enableMaxTimeFailPoint(s, t) != nil {
+	if testconfig.EnableMaxTimeFailPoint(t, s) != nil {
 		t.Skip("skipping maxTimeMS test when max time failpoint is disabled")
 	}
-	defer disableMaxTimeFailPoint(s, t)
+	defer testconfig.DisableMaxTimeFailPoint(t, s)
 
-	_, err := ListCollections(context.Background(), s, databaseName, ListCollectionsOptions{MaxTime: time.Millisecond})
-	require.NotNil(t, err)
+	_, err := ListCollections(context.Background(), s, testconfig.DBName(t), ListCollectionsOptions{MaxTime: time.Millisecond})
+	require.Error(t, err)
 
 	// Hacky check for the error message.  Should we be returning a more structured error?
 	require.Contains(t, err.Error(), "operation exceeded time limit")

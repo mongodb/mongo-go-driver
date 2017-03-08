@@ -5,14 +5,16 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/internal/testconfig"
 	. "github.com/10gen/mongo-go-driver/ops"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRun(t *testing.T) {
 	t.Parallel()
+	testconfig.Integration(t)
 
-	server := getServer()
+	server := getServer(t)
 
 	ctx := context.Background()
 	result := bson.M{}

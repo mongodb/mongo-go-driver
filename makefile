@@ -1,7 +1,7 @@
 PKGS = ./auth ./bson ./cluster ./conn ./connstring ./internal ./internal/feature ./msg ./ops ./readpref ./server
+VETPKGS = ./auth ./bson ./cluster ./conn ./connstring ./msg ./ops ./readpref ./server
 LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
-BUILD_TAGS = -tags gssapi
 
 default: generate test-cover lint vet build-examples
 
@@ -31,13 +31,21 @@ test:
 	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $(PKGS)
 
 test-cover:
-	go test $(BUILD_TAGS) -cover -timeout $(TEST_TIMEOUT)s $(PKGS)
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $(PKGS)
 
 test-race:
-	go test $(BUILD_TAGS) -race -timeout $(TEST_TIMEOUT)s $(PKGS)
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $(PKGS)
 
 test-short:
-	go test $(BUILD_TAGS) -short -timeout $(TEST_TIMEOUT)s $(PKGS)
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(PKGS)
 
 vet:
-	go tool vet -composites=false -structtags=false -unusedstringmethods="Error" $(PKGS)
+	go tool vet -composites=false -structtags=false -unusedstringmethods="Error" $(VETPKGS)
+
+
+# Evergreen specific targets
+evg-test:
+	go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $(PKGS) > test.suite
+
+evg-test-auth:
+	go run -tags gssapi ./examples/auth/main.go
