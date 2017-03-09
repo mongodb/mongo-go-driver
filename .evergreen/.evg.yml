@@ -1,0 +1,29 @@
+stepback: true
+command_type: system
+exec_timeout_secs: 3600 # 12 minutes is the longest we'll ever run
+timeout:
+  - command: shell.exec
+    params:
+      script: |
+        ls -la
+functions:
+  build-all:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: mongo-csharp-driver
+        script: |
+          make test-short
+          
+tasks:
+  - name: build
+    commands:
+      - func: build-all
+
+buildvariants:
+- name: windows-64-compile
+  display_name: "Windows 64-bit compile"
+  run_on:
+    - windows-64-vs2015-small
+  tasks:
+    - name: build
