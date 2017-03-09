@@ -20,10 +20,11 @@ func TestRun(t *testing.T) {
 	err := Run(
 		ctx,
 		server,
+		"admin",
 		bson.D{{"getnonce", 1}},
 		result,
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, float64(1), result["ok"])
 	require.NotEqual(t, "", result["nonce"], "MongoDB returned empty nonce")
 
@@ -31,11 +32,12 @@ func TestRun(t *testing.T) {
 	err = Run(
 		ctx,
 		server,
+		"admin",
 		bson.D{{"ping", 1}},
 		result,
 	)
 
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.Equal(t, float64(1), result["ok"], "Unable to ping MongoDB")
 
 }
