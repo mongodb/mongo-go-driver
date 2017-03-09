@@ -9,10 +9,10 @@ import (
 )
 
 // Run executes an arbitrary command against the admin database.
-func Run(ctx context.Context, s *SelectedServer, command interface{}, result interface{}) error {
+func Run(ctx context.Context, s *SelectedServer, db string, command interface{}, result interface{}) error {
 	request := msg.NewCommand(
 		msg.NextRequestID(),
-		"admin",
+		db,
 		slaveOk(s.ReadPref),
 		command,
 	)
