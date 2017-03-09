@@ -8,7 +8,7 @@ import (
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
-// Run executes an arbitrary command against the admin database.
+// Run executes an arbitrary command against the given database.
 func Run(ctx context.Context, s *SelectedServer, db string, command interface{}, result interface{}) error {
 	request := msg.NewCommand(
 		msg.NextRequestID(),
