@@ -71,7 +71,7 @@ func ModeFromString(mode string) (Mode, error) {
 	return Mode(uint8(0)), fmt.Errorf("unknown read preference %v", mode)
 }
 
-// WithMode takes a and creates a read preference using that mode.
+// WithMode takes a mode and creates a read preference using that mode.
 func WithMode(m Mode) *ReadPref {
 	return new(m)
 }

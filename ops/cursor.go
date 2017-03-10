@@ -56,7 +56,7 @@ func NewCursor(cursorResult CursorResult, batchSize int32, server Server) (Curso
 //		for cursor.Next(ctx, &doc) {
 //			...
 //		}
-//		err := cursor.Close()
+//		err := cursor.Close(ctx)
 type Cursor interface {
 	// Get the next result from the cursor.
 	// Returns true if there were no errors and there is a next result.
