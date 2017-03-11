@@ -75,6 +75,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 }
 
 func TestAggregateWithMaxTimeMS(t *testing.T) {
+	t.Skip("max time is flaky on the server")
 	t.Parallel()
 	testconfig.Integration(t)
 

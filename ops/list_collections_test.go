@@ -83,6 +83,7 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 }
 
 func TestListCollectionsWithMaxTimeMS(t *testing.T) {
+	t.Skip("max time is flaky on the server")
 	t.Parallel()
 	testconfig.Integration(t)
 
