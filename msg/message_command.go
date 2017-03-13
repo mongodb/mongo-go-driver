@@ -6,6 +6,7 @@ func NewCommand(requestID int32, dbName string, slaveOK bool, cmd interface{}) R
 	if slaveOK {
 		flags |= SlaveOK
 	}
+
 	return &Query{
 		ReqID:              requestID,
 		Flags:              flags,

@@ -42,12 +42,19 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline in
 			BatchSize: options.BatchSize,
 		},
 	}
+
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		ns.DB,
 		slaveOk(s.ReadPref),
 		aggregateCommand,
 	)
+
+	if rpMeta := readPrefMeta(s.ReadPref, s.Desc().Type); rpMeta != nil {
+		msg.AddMeta(request, map[string]interface{}{
+			"$readPreference": rpMeta,
+		})
+	}
 
 	var result cursorReturningResult
 
