@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
@@ -26,8 +26,8 @@ func (c *MockConnection) Close() error {
 	return nil
 }
 
-func (c *MockConnection) Desc() *conn.Desc {
-	return &conn.Desc{}
+func (c *MockConnection) Model() *model.Conn {
+	return &model.Conn{}
 }
 
 func (c *MockConnection) Expired() bool {

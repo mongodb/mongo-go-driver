@@ -9,27 +9,27 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
 const minHeartbeatFreqMS = 500 * time.Millisecond
 
 // StartMonitor returns a new Monitor.
-func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
+func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
 	cfg := newConfig(opts...)
 
 	done := make(chan struct{}, 1)
 	checkNow := make(chan struct{}, 1)
 	m := &Monitor{
-		cfg:      cfg,
-		endpoint: endpoint,
-		desc: &Desc{
-			Endpoint: endpoint,
+		cfg:  cfg,
+		addr: addr,
+		current: &model.Server{
+			Addr: addr,
 		},
-		subscribers: make(map[int64]chan *Desc),
+		subscribers: make(map[int64]chan *model.Server),
 		done:        done,
 		checkNow:    checkNow,
 	}
@@ -40,10 +40,10 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 		<-rateLimitTimer.C
 
 		// get an updated server description
-		desc := m.heartbeat()
-		m.descLock.Lock()
-		m.desc = desc
-		m.descLock.Unlock()
+		model := m.heartbeat()
+		m.currentLock.Lock()
+		m.current = model
+		m.currentLock.Unlock()
 
 		// send the update to all subscribers
 		m.subscriberLock.Lock()
@@ -54,7 +54,7 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 			default:
 				// do nothing if chan already empty
 			}
-			ch <- desc
+			ch <- model
 		}
 		m.subscriberLock.Unlock()
 
@@ -98,24 +98,24 @@ func StartMonitor(endpoint conn.Endpoint, opts ...Option) (*Monitor, error) {
 type Monitor struct {
 	cfg *config
 
-	subscribers         map[int64]chan *Desc
+	subscribers         map[int64]chan *model.Server
 	lastSubscriberID    int64
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
 	conn          conn.Connection
-	desc          *Desc
-	descLock      sync.Mutex
+	current       *model.Server
+	currentLock   sync.Mutex
 	checkNow      chan struct{}
 	done          chan struct{}
-	endpoint      conn.Endpoint
+	addr          model.Addr
 	averageRTT    time.Duration
 	averageRTTSet bool
 }
 
-// Endpoint returns the endpoint this monitor is monitoring.
-func (m *Monitor) Endpoint() conn.Endpoint {
-	return m.endpoint
+// Addr returns the address this monitor is monitoring.
+func (m *Monitor) Addr() model.Addr {
+	return m.addr
 }
 
 // Stop turns off the monitor.
@@ -128,12 +128,12 @@ func (m *Monitor) Stop() {
 // will be pre-populated with the current description.
 // Subscribe also returns a function that, when called, will close
 // the subscription channel and remove it from the list of subscriptions.
-func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
+func (m *Monitor) Subscribe() (<-chan *model.Server, func(), error) {
 	// create channel and populate with current state
-	ch := make(chan *Desc, 1)
-	m.descLock.Lock()
-	ch <- m.desc
-	m.descLock.Unlock()
+	ch := make(chan *model.Server, 1)
+	m.currentLock.Lock()
+	ch <- m.current
+	m.currentLock.Unlock()
 
 	// add channel to subscribers
 	m.subscriberLock.Lock()
@@ -192,11 +192,11 @@ func (m *Monitor) describeServer(ctx context.Context) (*internal.IsMasterResult,
 	return &isMasterResult, &buildInfoResult, nil
 }
 
-func (m *Monitor) heartbeat() *Desc {
+func (m *Monitor) heartbeat() *model.Server {
 
 	const maxRetryCount = 2
 	var savedErr error
-	var d *Desc
+	var d *model.Server
 	ctx := context.Background()
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn != nil && m.conn.Expired() {
@@ -205,7 +205,7 @@ func (m *Monitor) heartbeat() *Desc {
 		}
 
 		if m.conn == nil {
-			conn, err := m.cfg.dialer(ctx, m.endpoint, m.cfg.connOpts...)
+			conn, err := m.cfg.dialer(ctx, m.addr, m.cfg.connOpts...)
 			if err != nil {
 				savedErr = err
 				if conn != nil {
@@ -227,14 +227,14 @@ func (m *Monitor) heartbeat() *Desc {
 		}
 		delay := time.Since(now)
 
-		d = BuildDesc(m.endpoint, isMasterResult, buildInfoResult)
+		d = model.BuildServer(m.addr, isMasterResult, buildInfoResult)
 		d.SetAverageRTT(m.updateAverageRTT(delay))
 		d.HeartbeatInterval = m.cfg.heartbeatInterval
 	}
 
 	if d == nil {
-		d = &Desc{
-			Endpoint:  m.endpoint,
+		d = &model.Server{
+			Addr:      m.addr,
 			LastError: savedErr,
 		}
 	}

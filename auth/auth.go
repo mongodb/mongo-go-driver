@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 )
 
 // AuthenticatorFactory constructs an authenticator.
@@ -36,14 +37,14 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 
 // Dialer returns a connection dialer that will open and authenticate the connection.
 func Dialer(dialer conn.Dialer, authenticator Authenticator) conn.Dialer {
-	return func(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
-		return Dial(ctx, authenticator, dialer, endpoint, opts...)
+	return func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+		return Dial(ctx, authenticator, dialer, addr, opts...)
 	}
 }
 
 // Dial opens a connection and authenticates it.
-func Dial(ctx context.Context, authenticator Authenticator, dialer conn.Dialer, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
-	conn, err := dialer(ctx, endpoint, opts...)
+func Dial(ctx context.Context, authenticator Authenticator, dialer conn.Dialer, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+	conn, err := dialer(ctx, addr, opts...)
 	if err != nil {
 		if conn != nil {
 			conn.Close()

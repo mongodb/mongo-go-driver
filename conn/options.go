@@ -9,7 +9,7 @@ import (
 func newConfig(opts ...Option) *config {
 	cfg := &config{
 		codec:       msg.NewWireProtocolCodec(),
-		dialer:      DialEndpoint,
+		dialer:      dialNet,
 		idleTimeout: 10 * time.Minute,
 		lifeTimeout: 30 * time.Minute,
 	}
@@ -27,7 +27,7 @@ type Option func(*config)
 type config struct {
 	appName     string
 	codec       msg.Codec
-	dialer      EndpointDialer
+	dialer      NetDialer
 	idleTimeout time.Duration
 	lifeTimeout time.Duration
 }
@@ -48,10 +48,17 @@ func WithCodec(codec msg.Codec) Option {
 	}
 }
 
-// WithEndpointDialer defines the dialer for endpoints.
-func WithEndpointDialer(dialer EndpointDialer) Option {
+// WithDialer defines the dialer for endpoints.
+func WithDialer(dialer NetDialer) Option {
 	return func(c *config) {
 		c.dialer = dialer
+	}
+}
+
+// WithWrappedDialer wraps the current dialer.
+func WithWrappedDialer(wrapper func(dialer NetDialer) NetDialer) Option {
+	return func(c *config) {
+		c.dialer = wrapper(c.dialer)
 	}
 }
 

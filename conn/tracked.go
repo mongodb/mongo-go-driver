@@ -3,6 +3,7 @@ package conn
 import (
 	"context"
 
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
@@ -36,9 +37,9 @@ func (tc *TrackedConnection) Close() error {
 	return nil
 }
 
-// Desc gets a description of the connection.
-func (tc *TrackedConnection) Desc() *Desc {
-	return tc.c.Desc()
+// Model gets a description of the connection.
+func (tc *TrackedConnection) Model() *model.Conn {
+	return tc.c.Model()
 }
 
 // Expired indicates if the connection has expired.

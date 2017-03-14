@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/server"
+	"github.com/10gen/mongo-go-driver/model"
 )
 
 var (
@@ -44,6 +44,7 @@ func Nearest(opts ...Option) *ReadPref {
 	return rp
 }
 
+// New creates a new ReadPref.
 func New(mode Mode, opts ...Option) (*ReadPref, error) {
 	rp := &ReadPref{
 		mode: mode,
@@ -65,7 +66,7 @@ type ReadPref struct {
 	maxStaleness    time.Duration
 	maxStalenessSet bool
 	mode            Mode
-	tagSets         []server.TagSet
+	tagSets         []model.TagSet
 }
 
 // MaxStaleness is the maximum amount of time to allow
@@ -82,6 +83,6 @@ func (r *ReadPref) Mode() Mode {
 
 // TagSets are multiple tag sets indicating
 // which servers should be considered.
-func (r *ReadPref) TagSets() []server.TagSet {
+func (r *ReadPref) TagSets() []model.TagSet {
 	return r.tagSets
 }

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
@@ -17,8 +18,8 @@ var ErrServerClosed = errors.New("server is closed")
 // creates a new Monitor with which to monitor the
 // state of the server. When the Server is closed,
 // the monitor will be stopped.
-func New(endpoint conn.Endpoint, opts ...Option) (*Server, error) {
-	monitor, err := StartMonitor(endpoint, opts...)
+func New(addr model.Addr, opts ...Option) (*Server, error) {
+	monitor, err := StartMonitor(addr, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
 
 	server.conns = conn.NewPool(
 		uint64(cfg.maxIdleConns),
-		conn.DialerFactory(cfg.dialer, monitor.endpoint, cfg.connOpts...),
+		conn.DialerFactory(cfg.dialer, monitor.addr, cfg.connOpts...),
 	)
 	server.connFactory = conn.PoolFactory(server.conns)
 
@@ -71,9 +72,9 @@ type Server struct {
 	cancelSubscription func()
 	ownsMonitor        bool
 
-	seenDesc bool
-	desc     *Desc
-	descLock sync.Mutex
+	hasCurrent  bool
+	current     *model.Server
+	currentLock sync.Mutex
 }
 
 // Close closes the server.
@@ -117,29 +118,29 @@ func (s *Server) Connection(ctx context.Context) (conn.Connection, error) {
 	}, nil
 }
 
-// Desc gets a description of the server as of the last heartbeat.
-func (s *Server) Desc() *Desc {
-	s.descLock.Lock()
-	desc := s.desc
-	s.descLock.Unlock()
-	return desc
+// Model gets a description of the server as of the last heartbeat.
+func (s *Server) Model() *model.Server {
+	s.currentLock.Lock()
+	current := s.current
+	s.currentLock.Unlock()
+	return current
 }
 
-func (s *Server) applyUpdate(desc *Desc) {
-	var seenDesc bool
-	s.descLock.Lock()
-	s.desc = desc
-	seenDesc = s.seenDesc
-	s.seenDesc = true
-	s.descLock.Unlock()
+func (s *Server) applyUpdate(m *model.Server) {
+	var first bool
+	s.currentLock.Lock()
+	s.current = m
+	first = !s.hasCurrent
+	s.hasCurrent = true
+	s.currentLock.Unlock()
 
-	if !seenDesc {
+	if first {
 		// don't clear the pool for the first update.
 		return
 	}
 
-	switch desc.Type {
-	case Unknown:
+	switch m.Kind {
+	case model.Unknown:
 		s.lock.Lock()
 		conns := s.conns
 		s.lock.Unlock()

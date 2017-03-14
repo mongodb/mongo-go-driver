@@ -4,16 +4,16 @@ import (
 	"context"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/readpref"
-	"github.com/10gen/mongo-go-driver/server"
 )
 
 // Server represents a server.
 type Server interface {
 	// Connection gets a connection to use.
 	Connection(context.Context) (conn.Connection, error)
-	// Desc gets the description of the server.
-	Desc() *server.Desc
+	// Model gets the description of the server.
+	Model() *model.Server
 }
 
 // SelectedServer represents a binding to a server. It contains a

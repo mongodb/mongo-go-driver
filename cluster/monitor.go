@@ -4,12 +4,12 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
 type monitor interface {
-	Subscribe() (<-chan *Desc, func(), error)
+	Subscribe() (<-chan *model.Cluster, func(), error)
 	RequestImmediateCheck()
 }
 
@@ -19,34 +19,34 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 
 	m := &Monitor{
 		cfg:         cfg,
-		subscribers: make(map[int64]chan *Desc),
-		changes:     make(chan *server.Desc),
-		desc:        &Desc{},
-		fsm:         &monitorFSM{},
-		servers:     make(map[conn.Endpoint]*server.Monitor),
+		subscribers: make(map[int64]chan *model.Cluster),
+		changes:     make(chan *model.Server),
+		current:     &model.Cluster{},
+		fsm:         model.NewFSM(),
+		servers:     make(map[model.Addr]*server.Monitor),
 	}
 
 	if cfg.replicaSetName != "" {
-		m.fsm.setName = cfg.replicaSetName
-		m.fsm.Type = ReplicaSetNoPrimary
+		m.fsm.SetName = cfg.replicaSetName
+		m.fsm.Kind = model.ReplicaSetNoPrimary
 	}
 	if cfg.mode == SingleMode {
-		m.fsm.Type = Single
+		m.fsm.Kind = model.Single
 	}
 
-	for _, ep := range cfg.seedList {
-		canonicalized := ep.Canonicalize()
-		m.fsm.addServer(canonicalized)
-		m.startMonitoringEndpoint(canonicalized)
+	for _, address := range cfg.seedList {
+		addr := model.Addr(address).Canonicalize()
+		m.fsm.Servers = append(m.fsm.Servers, &model.Server{Addr: addr})
+		m.startMonitoringServer(addr)
 	}
 
 	go func() {
 		for change := range m.changes {
 			// apply the change
-			d := m.apply(change)
-			m.descLock.Lock()
-			m.desc = d
-			m.descLock.Unlock()
+			current := m.apply(change)
+			m.currentLock.Lock()
+			m.current = current
+			m.currentLock.Unlock()
 
 			// send the change to all subscribers
 			m.subscriberLock.Lock()
@@ -57,7 +57,7 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 				default:
 					// do nothing if chan already empty
 				}
-				ch <- d
+				ch <- current
 			}
 			m.subscriberLock.Unlock()
 		}
@@ -85,28 +85,29 @@ const (
 // Monitor continuously monitors the cluster for changes
 // and reacts accordingly, adding or removing servers as necessary.
 type Monitor struct {
-	cfg      *config
-	descLock sync.Mutex
-	desc     *Desc
+	cfg *config
 
-	changes chan *server.Desc
-	fsm     *monitorFSM
+	current     *model.Cluster
+	currentLock sync.Mutex
 
-	subscribers         map[int64]chan *Desc
+	changes chan *model.Server
+	fsm     *model.FSM
+
+	subscribers         map[int64]chan *model.Cluster
 	lastSubscriberID    int64
 	subscriptionsClosed bool
 	subscriberLock      sync.Mutex
 
 	serversLock   sync.Mutex
 	serversClosed bool
-	servers       map[conn.Endpoint]*server.Monitor
+	servers       map[model.Addr]*server.Monitor
 }
 
 // ServerMonitor gets the server monitor for the specified endpoint. It
 // is imperative that this monitor not be stopped.
-func (m *Monitor) ServerMonitor(endpoint conn.Endpoint) (*server.Monitor, bool) {
+func (m *Monitor) ServerMonitor(addr model.Addr) (*server.Monitor, bool) {
 	m.serversLock.Lock()
-	server, ok := m.servers[endpoint]
+	server, ok := m.servers[addr]
 	m.serversLock.Unlock()
 	return server, ok
 }
@@ -115,8 +116,8 @@ func (m *Monitor) ServerMonitor(endpoint conn.Endpoint) (*server.Monitor, bool) 
 func (m *Monitor) Stop() {
 	m.serversLock.Lock()
 	m.serversClosed = true
-	for endpoint, server := range m.servers {
-		m.stopMonitoringEndpoint(endpoint, server)
+	for addr, server := range m.servers {
+		m.stopMonitoringServer(addr, server)
 	}
 	m.serversLock.Unlock()
 
@@ -128,12 +129,12 @@ func (m *Monitor) Stop() {
 // will be pre-populated with the current ClusterDesc.
 // Subscribe also returns a function that, when called, will close
 // the subscription channel and remove it from the list of subscriptions.
-func (m *Monitor) Subscribe() (<-chan *Desc, func(), error) {
+func (m *Monitor) Subscribe() (<-chan *model.Cluster, func(), error) {
 	// create channel and populate with current state
-	ch := make(chan *Desc, 1)
-	m.descLock.Lock()
-	ch <- m.desc
-	m.descLock.Unlock()
+	ch := make(chan *model.Cluster, 1)
+	m.currentLock.Lock()
+	ch <- m.current
+	m.currentLock.Unlock()
 
 	// add channel to subscribers
 	m.subscriberLock.Lock()
@@ -168,48 +169,48 @@ func (m *Monitor) RequestImmediateCheck() {
 	m.serversLock.Unlock()
 }
 
-func (m *Monitor) startMonitoringEndpoint(endpoint conn.Endpoint) {
-	if _, ok := m.servers[endpoint]; ok {
+func (m *Monitor) startMonitoringServer(addr model.Addr) {
+	if _, ok := m.servers[addr]; ok {
 		return
 	}
 
-	serverM, _ := server.StartMonitor(endpoint, m.cfg.serverOpts...)
+	monitor, _ := server.StartMonitor(addr, m.cfg.serverOpts...)
 
-	m.servers[endpoint] = serverM
+	m.servers[addr] = monitor
 
-	ch, _, _ := serverM.Subscribe()
+	ch, _, _ := monitor.Subscribe()
 
 	go func() {
-		for d := range ch {
-			m.changes <- d
+		for c := range ch {
+			m.changes <- c
 		}
 	}()
 }
 
-func (m *Monitor) stopMonitoringEndpoint(endpoint conn.Endpoint, server *server.Monitor) {
+func (m *Monitor) stopMonitoringServer(addr model.Addr, server *server.Monitor) {
 	server.Stop()
-	delete(m.servers, endpoint)
+	delete(m.servers, addr)
 }
 
-func (m *Monitor) apply(d *server.Desc) *Desc {
-	old := m.fsm.Desc
-	m.fsm.apply(d)
-	new := m.fsm.Desc
+func (m *Monitor) apply(s *model.Server) *model.Cluster {
+	old := m.fsm.Cluster
+	m.fsm.Apply(s)
+	new := m.fsm.Cluster
 
-	diff := Diff(&old, &new)
+	diff := model.DiffCluster(&old, &new)
 	m.serversLock.Lock()
 	if m.serversClosed {
 		m.serversLock.Unlock()
-		return &Desc{}
+		return &model.Cluster{}
 	}
 	for _, oldServer := range diff.RemovedServers {
-		if sm, ok := m.servers[oldServer.Endpoint]; ok {
-			m.stopMonitoringEndpoint(oldServer.Endpoint, sm)
+		if sm, ok := m.servers[oldServer.Addr]; ok {
+			m.stopMonitoringServer(oldServer.Addr, sm)
 		}
 	}
 	for _, newServer := range diff.AddedServers {
-		if _, ok := m.servers[newServer.Endpoint]; !ok {
-			m.startMonitoringEndpoint(newServer.Endpoint)
+		if _, ok := m.servers[newServer.Addr]; !ok {
+			m.startMonitoringServer(newServer.Addr)
 		}
 	}
 	m.serversLock.Unlock()

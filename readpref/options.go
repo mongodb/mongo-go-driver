@@ -3,7 +3,7 @@ package readpref
 import (
 	"time"
 
-	"github.com/10gen/mongo-go-driver/server"
+	"github.com/10gen/mongo-go-driver/model"
 )
 
 // Option configures a read preference
@@ -22,13 +22,13 @@ func WithMaxStaleness(ms time.Duration) Option {
 // a server. The last call to WithTags or WithTagSets
 // overrides all previous calls to either method.
 func WithTags(tags ...string) Option {
-	return WithTagSets(server.NewTagSet(tags...))
+	return WithTagSets(model.NewTagSet(tags...))
 }
 
 // WithTagSets sets the tag sets used to match
 // a server. The last call to WithTags or WithTagSets
 // overrides all previous calls to either method.
-func WithTagSets(tagSets ...server.TagSet) Option {
+func WithTagSets(tagSets ...model.TagSet) Option {
 	return func(rp *ReadPref) {
 		rp.tagSets = tagSets
 	}

@@ -9,9 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/readpref"
-	"github.com/10gen/mongo-go-driver/server"
 )
 
 func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest(t *testing.T) {
@@ -19,37 +18,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest(t *testing.T)
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -58,12 +57,12 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest(t *testing.T)
 	rp := readpref.Nearest(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -84,37 +83,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_multiple(t *t
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(10) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(20) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -123,12 +122,12 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_multiple(t *t
 	rp := readpref.Nearest(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -150,37 +149,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_non_matching(
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -189,12 +188,12 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Nearest_non_matching(
 	rp := readpref.Nearest(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -212,44 +211,44 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Primary(t *testing.T)
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
 	}
 
 	rp := readpref.Primary()
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -267,44 +266,44 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred(t *t
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
 	}
 
 	rp := readpref.PrimaryPreferred()
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -325,37 +324,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred_non_
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -364,12 +363,12 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_PrimaryPreferred_non_
 	rp := readpref.PrimaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -387,37 +386,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary(t *testing.
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -426,12 +425,12 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary(t *testing.
 	rp := readpref.Secondary(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -452,37 +451,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred(t 
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -491,12 +490,12 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred(t 
 	rp := readpref.SecondaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -517,37 +516,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred_no
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -556,12 +555,12 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_SecondaryPreferred_no
 	rp := readpref.SecondaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -579,41 +578,41 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags(
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 
 			"rack", "one",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "sf",
 
 			"rack", "two",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -622,18 +621,18 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags(
 	rp := readpref.Secondary(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 
 				"rack", "one",
 			),
 
-			server.NewTagSet(
+			model.NewTagSet(
 				"other_tag", "doesntexist",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -653,41 +652,41 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags2
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 
 			"rack", "one",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 
 			"rack", "two",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -696,18 +695,18 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_multi_tags2
 	rp := readpref.Secondary(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 
 				"rack", "one",
 			),
 
-			server.NewTagSet(
+			model.NewTagSet(
 				"other_tag", "doesntexist",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -727,37 +726,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_non_matchin
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -766,12 +765,12 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_read_Secondary_non_matchin
 	rp := readpref.Secondary(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -789,37 +788,37 @@ func TestReadPref_ServerSelection_ReplicaSetNoPrimary_write_SecondaryPreferred(t
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 		},
@@ -843,51 +842,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest(t *testing.
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -897,12 +896,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest(t *testing.
 	rp := readpref.Nearest(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -924,51 +923,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_multiple(t 
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(10) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(20) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -978,12 +977,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_multiple(t 
 	rp := readpref.Nearest(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1006,51 +1005,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_non_matchin
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1060,12 +1059,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Nearest_non_matchin
 	rp := readpref.Nearest(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1083,51 +1082,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Primary(t *testing.
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1135,7 +1134,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Primary(t *testing.
 	}
 
 	rp := readpref.Primary()
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1155,51 +1154,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred(t 
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1207,7 +1206,7 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred(t 
 	}
 
 	rp := readpref.PrimaryPreferred()
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1227,51 +1226,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred_no
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1281,12 +1280,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_PrimaryPreferred_no
 	rp := readpref.PrimaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1306,51 +1305,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary(t *testin
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1360,12 +1359,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary(t *testin
 	rp := readpref.Secondary(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1386,51 +1385,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred(
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1440,12 +1439,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred(
 	rp := readpref.SecondaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1466,51 +1465,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1520,12 +1519,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 	rp := readpref.SecondaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1545,37 +1544,37 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "sf",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -1584,12 +1583,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_SecondaryPreferred_
 	rp := readpref.SecondaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1609,51 +1608,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary_non_match
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1663,12 +1662,12 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_read_Secondary_non_match
 	rp := readpref.Secondary(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "sf",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1686,51 +1685,51 @@ func TestReadPref_ServerSelection_ReplicaSetWithPrimary_write_SecondaryPreferred
 
 	require := require.New(t)
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(100) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(26) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			b_27017,
 			c_27017,
 			a_27017,
@@ -1757,37 +1756,37 @@ func TestReadPref_ServerSelection_Sharded_read_SecondaryPreferred(t *testing.T) 
 
 	require := require.New(t)
 
-	g_27017 := &server.Desc{
+	g_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("g:27017"),
+		Addr:              model.Addr("g:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Mongos,
-		Tags: server.NewTagSet(
+		Kind:              model.Mongos,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	h_27017 := &server.Desc{
+	h_27017 := &model.Server{
 		AverageRTT:        time.Duration(35) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("h:27017"),
+		Addr:              model.Addr("h:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Mongos,
-		Tags: server.NewTagSet(
+		Kind:              model.Mongos,
+		Tags: model.NewTagSet(
 			"data_center", "dc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: Sharded,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Sharded,
+		Servers: []*model.Server{
 			g_27017,
 			h_27017,
 		},
@@ -1796,12 +1795,12 @@ func TestReadPref_ServerSelection_Sharded_read_SecondaryPreferred(t *testing.T) 
 	rp := readpref.SecondaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1822,37 +1821,37 @@ func TestReadPref_ServerSelection_Sharded_write_SecondaryPreferred(t *testing.T)
 
 	require := require.New(t)
 
-	g_27017 := &server.Desc{
+	g_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("g:27017"),
+		Addr:              model.Addr("g:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Mongos,
-		Tags: server.NewTagSet(
+		Kind:              model.Mongos,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	h_27017 := &server.Desc{
+	h_27017 := &model.Server{
 		AverageRTT:        time.Duration(35) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("h:27017"),
+		Addr:              model.Addr("h:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Mongos,
-		Tags: server.NewTagSet(
+		Kind:              model.Mongos,
+		Tags: model.NewTagSet(
 			"data_center", "dc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: Sharded,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Sharded,
+		Servers: []*model.Server{
 			g_27017,
 			h_27017,
 		},
@@ -1879,23 +1878,23 @@ func TestReadPref_ServerSelection_Single_read_SecondaryPreferred(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Standalone,
-		Tags: server.NewTagSet(
+		Kind:              model.Standalone,
+		Tags: model.NewTagSet(
 			"data_center", "dc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: Single,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Single,
+		Servers: []*model.Server{
 			a_27017,
 		},
 	}
@@ -1903,12 +1902,12 @@ func TestReadPref_ServerSelection_Single_read_SecondaryPreferred(t *testing.T) {
 	rp := readpref.SecondaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -1928,23 +1927,23 @@ func TestReadPref_ServerSelection_Single_write_SecondaryPreferred(t *testing.T) 
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Standalone,
-		Tags: server.NewTagSet(
+		Kind:              model.Standalone,
+		Tags: model.NewTagSet(
 			"data_center", "dc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: Single,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Single,
+		Servers: []*model.Server{
 			a_27017,
 		},
 	}
@@ -1969,20 +1968,20 @@ func TestReadPref_ServerSelection_Unknown_read_SecondaryPreferred(t *testing.T) 
 
 	require := require.New(t)
 
-	c := &Desc{
-		Type:    Unknown,
-		Servers: []*server.Desc{},
+	c := &model.Cluster{
+		Kind:    model.Unknown,
+		Servers: []*model.Server{},
 	}
 
 	rp := readpref.SecondaryPreferred(
 
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2000,9 +1999,9 @@ func TestReadPref_ServerSelection_Unknown_write_SecondaryPreferred(t *testing.T)
 
 	require := require.New(t)
 
-	c := &Desc{
-		Type:    Unknown,
-		Servers: []*server.Desc{},
+	c := &model.Cluster{
+		Kind:    model.Unknown,
+		Servers: []*model.Server{},
 	}
 
 	selector := WriteSelector()
@@ -2023,40 +2022,40 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_DefaultNoMaxStaleness(t *test
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1000, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
 	}
 
 	rp := readpref.Nearest()
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2077,33 +2076,33 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Incompatible(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -2112,7 +2111,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Incompatible(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -2123,45 +2122,45 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_LastUpdateTime(t *testing.T) 
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 1000000),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(25, 2000000),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(25, 1000000),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -2171,7 +2170,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_LastUpdateTime(t *testing.T) 
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2192,45 +2191,45 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Nearest(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -2240,7 +2239,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Nearest(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2261,45 +2260,45 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Nearest2(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -2309,7 +2308,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Nearest2(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2330,33 +2329,33 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_NoKnownServers(t *testing.T) 
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(0) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Unknown,
+		Kind:              model.Unknown,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(0) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Unknown,
+		Kind:              model.Unknown,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -2365,7 +2364,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_NoKnownServers(t *testing.T) 
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(1) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -2376,33 +2375,33 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_PrimaryPreferred(t *testing.T
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1000, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -2411,7 +2410,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_PrimaryPreferred(t *testing.T
 	rp := readpref.PrimaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2431,37 +2430,37 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_PrimaryPreferred_tags(t *test
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -2470,16 +2469,16 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_PrimaryPreferred_tags(t *test
 	rp := readpref.PrimaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "tokyo",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2499,65 +2498,65 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Secondary(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	d_27017 := &server.Desc{
+	d_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("d:27017"),
+		Addr:              model.Addr("d:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -2568,12 +2567,12 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_Secondary(t *testing.T) {
 	rp := readpref.Secondary(
 		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2593,33 +2592,33 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_SecondaryPreferred(t *testing
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1000, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -2628,7 +2627,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_SecondaryPreferred(t *testing
 	rp := readpref.SecondaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2648,65 +2647,65 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_SecondaryPreferred_tags(t *te
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	d_27017 := &server.Desc{
+	d_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("d:27017"),
+		Addr:              model.Addr("d:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -2717,12 +2716,12 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_SecondaryPreferred_tags(t *te
 	rp := readpref.SecondaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2742,33 +2741,33 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_ZeroMaxStaleness(t *testing.T
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -2777,7 +2776,7 @@ func TestReadPref_MaxStaleness_ReplicaSetNoPrimary_ZeroMaxStaleness(t *testing.T
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(0) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -2788,40 +2787,40 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_DefaultNoMaxStaleness(t *te
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1000, 1000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
 	}
 
 	rp := readpref.Nearest()
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2842,33 +2841,33 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Incompatible(t *testing.T) 
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -2877,7 +2876,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Incompatible(t *testing.T) 
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -2888,45 +2887,45 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LastUpdateTime(t *testing.T
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 1000000),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(125, 1000000),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(125, 1000000),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -2936,7 +2935,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LastUpdateTime(t *testing.T
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -2957,33 +2956,33 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LongHeartbeat(t *testing.T)
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(120000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(120000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -2992,7 +2991,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LongHeartbeat(t *testing.T)
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(130) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3013,33 +3012,33 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LongHeartbeat2(t *testing.T
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(120000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(120000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3048,7 +3047,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_LongHeartbeat2(t *testing.T
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(129) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -3059,33 +3058,33 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_MaxStalenessTooSmall(t *tes
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(500) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(500) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3094,7 +3093,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_MaxStalenessTooSmall(t *tes
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(89) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -3105,45 +3104,45 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -3153,7 +3152,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3174,45 +3173,45 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest2(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -3222,7 +3221,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest2(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3243,37 +3242,37 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest_tags(t *testing.T) 
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSPrimary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSPrimary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3282,16 +3281,16 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Nearest_tags(t *testing.T) 
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "tokyo",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3311,33 +3310,33 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_PrimaryPreferred(t *testing
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3346,7 +3345,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_PrimaryPreferred(t *testing
 	rp := readpref.PrimaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3366,33 +3365,33 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_PrimaryPreferred_incompatib
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3401,7 +3400,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_PrimaryPreferred_incompatib
 	rp := readpref.PrimaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(150) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -3412,33 +3411,33 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred(t *testi
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1000, 1000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3447,7 +3446,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred(t *testi
 	rp := readpref.SecondaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3467,77 +3466,77 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred_tags(t *
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 1000000),
 		LastWriteTime:     time.Unix(1000, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	d_27017 := &server.Desc{
+	d_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("d:27017"),
+		Addr:              model.Addr("d:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	e_27017 := &server.Desc{
+	e_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("e:27017"),
+		Addr:              model.Addr("e:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -3549,12 +3548,12 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred_tags(t *
 	rp := readpref.SecondaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3575,49 +3574,49 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred_tags2(t 
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -3627,16 +3626,16 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_SecondaryPreferred_tags2(t 
 	rp := readpref.SecondaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "tokyo",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3656,77 +3655,77 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Secondary_tags(t *testing.T
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 1000000),
 		LastWriteTime:     time.Unix(1000, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	d_27017 := &server.Desc{
+	d_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("d:27017"),
+		Addr:              model.Addr("d:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	e_27017 := &server.Desc{
+	e_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("e:27017"),
+		Addr:              model.Addr("e:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -3738,12 +3737,12 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Secondary_tags(t *testing.T
 	rp := readpref.Secondary(
 		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3764,49 +3763,49 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Secondary_tags2(t *testing.
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(125, 2000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "tokyo",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c_27017 := &server.Desc{
+	c_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("c:27017"),
+		Addr:              model.Addr("c:27017"),
 		HeartbeatInterval: time.Duration(25000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
-		Tags: server.NewTagSet(
+		Kind:              model.RSSecondary,
+		Tags: model.NewTagSet(
 			"data_center", "nyc",
 		),
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 			c_27017,
@@ -3816,16 +3815,16 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_Secondary_tags2(t *testing.
 	rp := readpref.Secondary(
 		readpref.WithMaxStaleness(time.Duration(150)*time.Second),
 		readpref.WithTagSets(
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "nyc",
 			),
 
-			server.NewTagSet(
+			model.NewTagSet(
 				"data_center", "tokyo",
 			),
 		),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3845,33 +3844,33 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_ZeroMaxStaleness(t *testing
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 2000000),
-		Type:              server.RSPrimary,
+		Kind:              model.RSPrimary,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.RSSecondary,
+		Kind:              model.RSSecondary,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3880,7 +3879,7 @@ func TestReadPref_MaxStaleness_ReplicaSetWithPrimary_ZeroMaxStaleness(t *testing
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(0) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -3891,33 +3890,33 @@ func TestReadPref_MaxStaleness_Sharded_Incompatible(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.Mongos,
+		Kind:              model.Mongos,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.Mongos,
+		Kind:              model.Mongos,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: Sharded,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Sharded,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3926,7 +3925,7 @@ func TestReadPref_MaxStaleness_Sharded_Incompatible(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -3937,33 +3936,33 @@ func TestReadPref_MaxStaleness_Sharded_SmallMaxStaleness(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.Mongos,
+		Kind:              model.Mongos,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	b_27017 := &server.Desc{
+	b_27017 := &model.Server{
 		AverageRTT:        time.Duration(50) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("b:27017"),
+		Addr:              model.Addr("b:27017"),
 		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.Mongos,
+		Kind:              model.Mongos,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: Sharded,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Sharded,
+		Servers: []*model.Server{
 			a_27017,
 			b_27017,
 		},
@@ -3972,7 +3971,7 @@ func TestReadPref_MaxStaleness_Sharded_SmallMaxStaleness(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(1) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -3993,21 +3992,21 @@ func TestReadPref_MaxStaleness_Single_Incompatible(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(0) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.Standalone,
+		Kind:              model.Standalone,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: Single,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Single,
+		Servers: []*model.Server{
 			a_27017,
 		},
 	}
@@ -4015,7 +4014,7 @@ func TestReadPref_MaxStaleness_Single_Incompatible(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(120) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	_, err := selector(c, c.Servers)
 	require.Error(err)
@@ -4026,21 +4025,21 @@ func TestReadPref_MaxStaleness_Single_SmallMaxStaleness(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(5) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(0, 1000000),
-		Type:              server.Standalone,
+		Kind:              model.Standalone,
 
-		Version: conn.Version{Parts: []uint8{3, 4, 0}},
+		Version: model.Version{Parts: []uint8{3, 4, 0}},
 	}
 
-	c := &Desc{
-		Type: Single,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Single,
+		Servers: []*model.Server{
 			a_27017,
 		},
 	}
@@ -4048,7 +4047,7 @@ func TestReadPref_MaxStaleness_Single_SmallMaxStaleness(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(1) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)
@@ -4068,21 +4067,21 @@ func TestReadPref_MaxStaleness_Unknown_SmallMaxStaleness(t *testing.T) {
 
 	require := require.New(t)
 
-	a_27017 := &server.Desc{
+	a_27017 := &model.Server{
 		AverageRTT:        time.Duration(0) * time.Millisecond,
 		AverageRTTSet:     true,
-		Endpoint:          conn.Endpoint("a:27017"),
+		Addr:              model.Addr("a:27017"),
 		HeartbeatInterval: time.Duration(10000) * time.Millisecond,
 		LastUpdateTime:    time.Unix(0, 0),
 		LastWriteTime:     time.Unix(1388534400, 0),
-		Type:              server.Unknown,
+		Kind:              model.Unknown,
 
-		Version: conn.Version{Parts: []uint8{3, 2, 0}},
+		Version: model.Version{Parts: []uint8{3, 2, 0}},
 	}
 
-	c := &Desc{
-		Type: Unknown,
-		Servers: []*server.Desc{
+	c := &model.Cluster{
+		Kind: model.Unknown,
+		Servers: []*model.Server{
 			a_27017,
 		},
 	}
@@ -4090,7 +4089,7 @@ func TestReadPref_MaxStaleness_Unknown_SmallMaxStaleness(t *testing.T) {
 	rp := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(1) * time.Second),
 	)
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 
 	result, err := selector(c, c.Servers)
 	require.NoError(err)

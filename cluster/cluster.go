@@ -6,8 +6,8 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
@@ -38,8 +38,8 @@ func New(opts ...Option) (*Cluster, error) {
 func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 	cluster := &Cluster{
 		cfg:          monitor.cfg.reconfig(opts...),
-		stateDesc:    &Desc{},
-		stateServers: make(map[conn.Endpoint]*server.Server),
+		stateModel:   &model.Cluster{},
+		stateServers: make(map[model.Addr]*server.Server),
 		monitor:      monitor,
 	}
 
@@ -54,7 +54,7 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 }
 
 // ServerSelector is a function that selects a server.
-type ServerSelector func(*Desc, []*server.Desc) ([]*server.Desc, error)
+type ServerSelector func(*model.Cluster, []*model.Server) ([]*model.Server, error)
 
 // Cluster represents a logical connection to a cluster.
 type Cluster struct {
@@ -62,9 +62,9 @@ type Cluster struct {
 
 	monitor      *Monitor
 	ownsMonitor  bool
-	stateDesc    *Desc
+	stateModel   *model.Cluster
 	stateLock    sync.Mutex
-	stateServers map[conn.Endpoint]*server.Server
+	stateServers map[model.Addr]*server.Server
 }
 
 // Close closes the cluster.
@@ -84,15 +84,15 @@ func (c *Cluster) Close() {
 		server.Close()
 	}
 	c.stateServers = nil
-	c.stateDesc = &Desc{}
+	c.stateModel = &model.Cluster{}
 }
 
-// Desc gets a description of the cluster.
-func (c *Cluster) Desc() *Desc {
+// Model gets a description of the cluster.
+func (c *Cluster) Model() *model.Cluster {
 	c.stateLock.Lock()
-	desc := c.stateDesc
+	m := c.stateModel
 	c.stateLock.Unlock()
-	return desc
+	return m
 }
 
 // SelectServer selects a server given a selector.
@@ -115,7 +115,7 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 			cancel()
 			return nil, ErrClusterClosed
 		}
-		if server, ok := c.stateServers[selected.Endpoint]; ok {
+		if server, ok := c.stateServers[selected.Addr]; ok {
 			c.stateLock.Unlock()
 			cancel()
 			return server, nil
@@ -132,31 +132,31 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 // SelectServers returns a list of server descriptions matching
 // a given selector. SelectServers will only time out when its
 // parent context is done.
-func SelectServers(ctx context.Context, m *Monitor, selector ServerSelector) ([]*server.Desc, error) {
+func SelectServers(ctx context.Context, m *Monitor, selector ServerSelector) ([]*model.Server, error) {
 	return selectServers(ctx, m, selector)
 }
 
-func selectServers(ctx context.Context, m monitor, selector ServerSelector) ([]*server.Desc, error) {
+func selectServers(ctx context.Context, m monitor, selector ServerSelector) ([]*model.Server, error) {
 	updates, unsubscribe, _ := m.Subscribe()
 	defer unsubscribe()
 
-	var clusterDesc *Desc
+	var current *model.Cluster
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, internal.WrapError(ctx.Err(), "server selection failed")
-		case clusterDesc = <-updates:
+		case current = <-updates:
 			// topology has changed
 		}
 
-		var allowedServers []*server.Desc
-		for _, s := range clusterDesc.Servers {
-			if s.Type != server.Unknown {
+		var allowedServers []*model.Server
+		for _, s := range current.Servers {
+			if s.Kind != model.Unknown {
 				allowedServers = append(allowedServers, s)
 			}
 		}
 
-		suitable, err := selector(clusterDesc, allowedServers)
+		suitable, err := selector(current, allowedServers)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +172,7 @@ func selectServers(ctx context.Context, m monitor, selector ServerSelector) ([]*
 // applyUpdate handles updating the current description as well
 // as ensure that the servers are still accurate. This method
 // *must* be called under the descLock.
-func (c *Cluster) applyUpdate(desc *Desc) {
+func (c *Cluster) applyUpdate(cm *model.Cluster) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
 
@@ -180,20 +180,20 @@ func (c *Cluster) applyUpdate(desc *Desc) {
 		return
 	}
 
-	diff := Diff(c.stateDesc, desc)
-	c.stateDesc = desc
+	diff := model.DiffCluster(c.stateModel, cm)
+	c.stateModel = cm
 
 	for _, added := range diff.AddedServers {
-		if mon, ok := c.monitor.ServerMonitor(added.Endpoint); ok {
-			c.stateServers[added.Endpoint] = server.NewWithMonitor(mon, c.cfg.serverOpts...)
+		if mon, ok := c.monitor.ServerMonitor(added.Addr); ok {
+			c.stateServers[added.Addr] = server.NewWithMonitor(mon, c.cfg.serverOpts...)
 		}
 	}
 
 	for _, removed := range diff.RemovedServers {
-		if server, ok := c.stateServers[removed.Endpoint]; ok {
+		if server, ok := c.stateServers[removed.Addr]; ok {
 			server.Close()
 		}
 
-		delete(c.stateServers, removed.Endpoint)
+		delete(c.stateServers, removed.Addr)
 	}
 }

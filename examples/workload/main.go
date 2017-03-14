@@ -123,7 +123,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 
 			limit := r.Intn(999) + 1
 
-			s, err := c.SelectServer(ctx, cluster.ReadPrefSelector(rp))
+			s, err := c.SelectServer(ctx, readpref.Selector(rp))
 			if err != nil {
 				log.Printf("%d-failed selecting a server: %s", idx, err)
 				continue

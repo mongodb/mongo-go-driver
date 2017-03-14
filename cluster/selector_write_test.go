@@ -4,8 +4,7 @@ import (
 	"testing"
 
 	. "github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/server"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,20 +13,20 @@ func TestWriteSelector_ReplicaSetWithPrimary(t *testing.T) {
 
 	require := require.New(t)
 
-	var c = &Desc{
-		Type: ReplicaSetWithPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				Endpoint: conn.Endpoint("localhost:27017"),
-				Type:     server.RSPrimary,
+	c := &model.Cluster{
+		Kind: model.ReplicaSetWithPrimary,
+		Servers: []*model.Server{
+			&model.Server{
+				Addr: model.Addr("localhost:27017"),
+				Kind: model.RSPrimary,
 			},
-			&server.Desc{
-				Endpoint: conn.Endpoint("localhost:27018"),
-				Type:     server.RSSecondary,
+			&model.Server{
+				Addr: model.Addr("localhost:27018"),
+				Kind: model.RSSecondary,
 			},
-			&server.Desc{
-				Endpoint: conn.Endpoint("localhost:27018"),
-				Type:     server.RSSecondary,
+			&model.Server{
+				Addr: model.Addr("localhost:27018"),
+				Kind: model.RSSecondary,
 			},
 		},
 	}
@@ -36,7 +35,7 @@ func TestWriteSelector_ReplicaSetWithPrimary(t *testing.T) {
 
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Equal([]*server.Desc{c.Servers[0]}, result)
+	require.Equal([]*model.Server{c.Servers[0]}, result)
 }
 
 func TestWriteSelector_ReplicaSetNoPrimary(t *testing.T) {
@@ -44,16 +43,16 @@ func TestWriteSelector_ReplicaSetNoPrimary(t *testing.T) {
 
 	require := require.New(t)
 
-	var c = &Desc{
-		Type: ReplicaSetNoPrimary,
-		Servers: []*server.Desc{
-			&server.Desc{
-				Endpoint: conn.Endpoint("localhost:27018"),
-				Type:     server.RSSecondary,
+	c := &model.Cluster{
+		Kind: model.ReplicaSetNoPrimary,
+		Servers: []*model.Server{
+			&model.Server{
+				Addr: model.Addr("localhost:27018"),
+				Kind: model.RSSecondary,
 			},
-			&server.Desc{
-				Endpoint: conn.Endpoint("localhost:27018"),
-				Type:     server.RSSecondary,
+			&model.Server{
+				Addr: model.Addr("localhost:27018"),
+				Kind: model.RSSecondary,
 			},
 		},
 	}
@@ -70,16 +69,16 @@ func TestWriteSelector_Sharded(t *testing.T) {
 
 	require := require.New(t)
 
-	var c = &Desc{
-		Type: Sharded,
-		Servers: []*server.Desc{
-			&server.Desc{
-				Endpoint: conn.Endpoint("localhost:27018"),
-				Type:     server.Mongos,
+	c := &model.Cluster{
+		Kind: model.Sharded,
+		Servers: []*model.Server{
+			&model.Server{
+				Addr: model.Addr("localhost:27018"),
+				Kind: model.Mongos,
 			},
-			&server.Desc{
-				Endpoint: conn.Endpoint("localhost:27018"),
-				Type:     server.Mongos,
+			&model.Server{
+				Addr: model.Addr("localhost:27018"),
+				Kind: model.Mongos,
 			},
 		},
 	}
@@ -88,7 +87,7 @@ func TestWriteSelector_Sharded(t *testing.T) {
 
 	require.NoError(err)
 	require.Len(result, 2)
-	require.Equal([]*server.Desc{c.Servers[0], c.Servers[1]}, result)
+	require.Equal([]*model.Server{c.Servers[0], c.Servers[1]}, result)
 }
 
 func TestWriteSelector_Single(t *testing.T) {
@@ -96,12 +95,12 @@ func TestWriteSelector_Single(t *testing.T) {
 
 	require := require.New(t)
 
-	var c = &Desc{
-		Type: Single,
-		Servers: []*server.Desc{
-			&server.Desc{
-				Endpoint: conn.Endpoint("localhost:27018"),
-				Type:     server.Standalone,
+	c := &model.Cluster{
+		Kind: model.Single,
+		Servers: []*model.Server{
+			&model.Server{
+				Addr: model.Addr("localhost:27018"),
+				Kind: model.Standalone,
 			},
 		},
 	}
@@ -110,5 +109,5 @@ func TestWriteSelector_Single(t *testing.T) {
 
 	require.NoError(err)
 	require.Len(result, 1)
-	require.Equal([]*server.Desc{c.Servers[0]}, result)
+	require.Equal([]*model.Server{c.Servers[0]}, result)
 }

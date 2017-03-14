@@ -1,9 +1,9 @@
-package conn_test
+package model_test
 
 import (
 	"testing"
 
-	. "github.com/10gen/mongo-go-driver/conn"
+	. "github.com/10gen/mongo-go-driver/model"
 )
 
 func TestRange_Includes(t *testing.T) {

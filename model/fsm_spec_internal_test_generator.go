@@ -90,16 +90,15 @@ func (g *Generator) replaceNullCharacter(target string) string {
 
 // EVERYTHING ABOVE IS CONSTANT BETWEEN THE GENERATORS
 
-const name = "monitor_fsm_spec_internal_test_generator"
+const name = "fsm_spec_internal_test_generator"
 
 func (g *Generator) generate() []byte {
-	g.printlnf("package cluster")
+	g.printlnf("package model_test")
 	g.printlnf("import \"testing\"")
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/bson\"")
-	g.printlnf("import \"github.com/10gen/mongo-go-driver/conn\"")
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/connstring\"")
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/internal\"")
-	g.printlnf("import \"github.com/10gen/mongo-go-driver/server\"")
+	g.printlnf("import . \"github.com/10gen/mongo-go-driver/model\"")
 
 	testsDir := "../specifications/source/server-discovery-and-monitoring/tests/"
 
@@ -147,21 +146,21 @@ func (g *Generator) generateFromFile(filename string) error {
 		return err
 	}
 
-	g.printlnf("\nfunc TestMonitorFSM_%s(t *testing.T) {", g.replaceCharacters(testDef.Description, " '-,", "_"))
+	g.printlnf("\nfunc TestFSM_%s(t *testing.T) {", g.replaceCharacters(testDef.Description, " '-,", "_"))
 	g.printlnf("t.Parallel()")
 	g.printlnf("")
-	g.printlnf("var fsm monitorFSM")
+	g.printlnf("fsm := NewFSM()")
 
 	g.printlnf("\ncs, _ := connstring.Parse(\"%s\")", testDef.Uri)
-	g.printlnf("fsm.setName = cs.ReplicaSet")
-	g.printlnf("if fsm.setName != \"\" {")
-	g.printlnf("fsm.Type = ReplicaSetNoPrimary ")
+	g.printlnf("fsm.SetName = cs.ReplicaSet")
+	g.printlnf("if fsm.SetName != \"\" {")
+	g.printlnf("fsm.Kind = ReplicaSetNoPrimary ")
 	g.printlnf("}")
-	g.printlnf("if len(cs.Hosts) == 1 && fsm.setName == \"\" {")
-	g.printlnf("fsm.Type = Single")
+	g.printlnf("if len(cs.Hosts) == 1 && fsm.SetName == \"\" {")
+	g.printlnf("fsm.Kind = Single")
 	g.printlnf("}")
 	g.printlnf("for _, host := range cs.Hosts {")
-	g.printlnf("fsm.addServer(conn.Endpoint(host).Canonicalize())")
+	g.printlnf("fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})")
 	g.printlnf("}")
 
 	// build isMaster results from phases
@@ -170,7 +169,7 @@ func (g *Generator) generateFromFile(filename string) error {
 	for i, phase := range testDef.Phases {
 		for j, resp := range phase.Responses {
 			if !printedResponseVariables {
-				g.printlnf("\nvar serverDesc *server.Desc")
+				g.printlnf("\nvar s *Server")
 				g.printlnf("bir := &internal.BuildInfoResult{Version: \"3.4.0\", VersionArray: []uint8{3, 4, 0}}")
 				g.printlnf("var imr *internal.IsMasterResult")
 				printedResponseVariables = true
@@ -220,40 +219,38 @@ func (g *Generator) generateFromFile(filename string) error {
 				g.printlnf("imr.SetVersion = %d", resp.IsMasterResult.SetVersion)
 			}
 
-			g.printlnf("serverDesc = server.BuildDesc(conn.Endpoint(\"%s\"), imr, bir)", resp.Host)
-			g.printlnf("fsm.apply(serverDesc)")
+			g.printlnf("s = BuildServer(Addr(\"%s\"), imr, bir)", resp.Host)
+			g.printlnf("fsm.Apply(s)")
 		}
 
 		g.printf("\n\n\n")
 
 		g.printlnf("// phase %d outcome", i+1)
-		g.printStringIfNotEqual("fsm.setName", phase.Outcome.SetName)
-		g.printIfNotEqual("fsm.Type", phase.Outcome.TopologyType)
+		g.printStringIfNotEqual("fsm.SetName", phase.Outcome.SetName)
+		g.printIfNotEqual("fsm.Kind", phase.Outcome.TopologyType)
 		g.printIfNotEqual("len(fsm.Servers)", fmt.Sprintf("%d", len(phase.Outcome.Servers)))
 		for _, s := range phase.Outcome.sortedServers() {
 			if !printedOutcomeVariables {
 				g.printlnf("\nvar ok bool")
 				if !printedResponseVariables {
-					g.printlnf("var serverDesc *server.Desc")
+					g.printlnf("var s *Server")
 				}
 				printedOutcomeVariables = true
 			}
-			g.printlnf("serverDesc, ok = fsm.Server(conn.Endpoint(\"%s\"))", s.name)
+			g.printlnf("s, ok = fsm.Server(Addr(\"%s\"))", s.name)
 			g.printlnf("if !ok {")
 			g.printlnf("t.Fatalf(\"server %s was not found\")", s.name)
 			g.printlnf("}")
 			sType := s.Type
 			switch sType {
 			case "PossiblePrimary":
-				sType = "server.Unknown"
+				sType = "Unknown"
 			case "RSOther":
-				sType = "server.RSMember"
+				sType = "RSMember"
 			case "":
-				sType = "server.RSPrimary"
-			default:
-				sType = "server." + sType
+				sType = "RSPrimary"
 			}
-			g.printIfNotEqual("serverDesc.Type", sType)
+			g.printIfNotEqual("s.Kind", sType)
 		}
 	}
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/model"
 
 	. "github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
@@ -15,7 +16,7 @@ import (
 
 func createIntegrationTestConn(opts ...Option) (Connection, error) {
 	opts = append(opts, WithAppName("mongo-go-driver-test"))
-	c, err := Dial(context.Background(), Endpoint(*host), opts...)
+	c, err := Dial(context.Background(), model.Addr(*host), opts...)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err)
@@ -65,7 +66,7 @@ func TestConn_ReadWrite(t *testing.T) {
 	require.NoError(t, err)
 	cancel()
 
-	require.NotEmpty(t, subject.Desc())
+	require.NotEmpty(t, subject.Model())
 }
 
 func TestConn_Expired_due_to_idle_time(t *testing.T) {

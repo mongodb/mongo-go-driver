@@ -37,7 +37,7 @@ type GSSAPIAuthenticator struct {
 
 // Auth authenticates the connection.
 func (a *GSSAPIAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
-	client, err := sspi.New(c.Desc().Endpoint, a.Username, a.Password, a.PasswordSet, a.Props)
+	client, err := sspi.New(c.Model().Addr.String(), a.Username, a.Password, a.PasswordSet, a.Props)
 
 	if err != nil {
 		return err

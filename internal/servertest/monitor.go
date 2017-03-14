@@ -9,17 +9,18 @@ import (
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/internal/msgtest"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
 // NewFakeMonitor creates a fake monitor.
-func NewFakeMonitor(serverType server.Type, endpoint conn.Endpoint, opts ...server.Option) *FakeMonitor {
+func NewFakeMonitor(kind model.ServerKind, addr model.Addr, opts ...server.Option) *FakeMonitor {
 	fm := &FakeMonitor{
-		serverType: serverType,
+		kind: kind,
 	}
 	opts = append(opts, server.WithConnectionDialer(fm.dial))
-	m, _ := server.StartMonitor(endpoint, opts...)
+	m, _ := server.StartMonitor(addr, opts...)
 	fm.Monitor = m
 	return fm
 }
@@ -28,16 +29,15 @@ func NewFakeMonitor(serverType server.Type, endpoint conn.Endpoint, opts ...serv
 type FakeMonitor struct {
 	*server.Monitor
 
-	connLock   sync.Mutex
-	conn       *fakeMonitorConn
-	serverType server.Type
+	connLock sync.Mutex
+	conn     *fakeMonitorConn
+	kind     model.ServerKind
 }
 
-// SetServerType sets the server type for the monitor and sets
-// the connection to respond with the correct server type.
-func (m *FakeMonitor) SetServerType(serverType server.Type) {
-	if m.serverType != serverType {
-		m.serverType = serverType
+// SetKind sets the server kind for the monitor.
+func (m *FakeMonitor) SetKind(kind model.ServerKind) {
+	if m.kind != kind {
+		m.kind = kind
 		m.connLock.Lock()
 		if m.conn != nil {
 			m.conn.Close()
@@ -46,8 +46,8 @@ func (m *FakeMonitor) SetServerType(serverType server.Type) {
 	}
 }
 
-func (m *FakeMonitor) dial(ctx context.Context, endpoint conn.Endpoint, opts ...conn.Option) (conn.Connection, error) {
-	if m.serverType == server.Unknown {
+func (m *FakeMonitor) dial(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+	if m.kind == model.Unknown {
 		return nil, fmt.Errorf("server type is unknown")
 	}
 
@@ -71,8 +71,8 @@ func (c *fakeMonitorConn) Close() error {
 	return nil
 }
 
-func (c *fakeMonitorConn) Desc() *conn.Desc {
-	return &conn.Desc{}
+func (c *fakeMonitorConn) Model() *model.Conn {
+	return &model.Conn{}
 }
 
 func (c *fakeMonitorConn) Expired() bool {

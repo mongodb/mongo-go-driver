@@ -11,7 +11,7 @@ import (
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		seedList:               []conn.Endpoint{conn.Endpoint("localhost:27017")},
+		seedList:               []string{"localhost:27017"},
 		serverSelectionTimeout: 30 * time.Second,
 	}
 
@@ -26,7 +26,7 @@ type Option func(*config)
 type config struct {
 	mode                   MonitorMode
 	replicaSetName         string
-	seedList               []conn.Endpoint
+	seedList               []string
 	serverOpts             []server.Option
 	serverSelectionTimeout time.Duration
 }
@@ -66,10 +66,7 @@ func WithConnString(cs connstring.ConnString) Option {
 			c.mode = SingleMode
 		}
 
-		c.seedList = []conn.Endpoint{}
-		for _, host := range cs.Hosts {
-			c.seedList = append(c.seedList, conn.Endpoint(host))
-		}
+		c.seedList = cs.Hosts
 
 		if cs.HeartbeatInterval > 0 {
 			c.serverOpts = append(c.serverOpts, server.WithHeartbeatInterval(cs.HeartbeatInterval))
@@ -156,9 +153,9 @@ func WithReplicaSetName(name string) Option {
 // WithSeedList configures a cluster's seed list.
 // This option will be ignored when the cluster is created with a
 // pre-existing monitor.
-func WithSeedList(endpoints ...conn.Endpoint) Option {
+func WithSeedList(seedList ...string) Option {
 	return func(c *config) {
-		c.seedList = endpoints
+		c.seedList = seedList
 	}
 }
 

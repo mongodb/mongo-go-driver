@@ -9,6 +9,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
@@ -32,6 +33,12 @@ type MongoDBCRAuthenticator struct {
 
 // Auth authenticates the connection.
 func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
+
+	// Arbiters cannot be authenticated
+	if c.Model().Kind == model.RSArbiter {
+		return nil
+	}
+
 	db := a.DB
 	if db == "" {
 		db = defaultAuthDB

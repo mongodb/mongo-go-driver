@@ -1,5 +1,5 @@
-PKGS = ./auth ./bson ./cluster ./conn ./connstring ./internal ./internal/feature ./msg ./ops ./readpref ./server
-VETPKGS = ./auth ./bson ./cluster ./conn ./connstring ./msg ./ops ./readpref ./server
+PKGS = ./auth ./bson ./cluster ./conn ./connstring ./internal ./internal/feature ./model ./msg ./ops ./readpref ./server
+VETPKGS = ./auth ./bson ./cluster ./conn ./connstring ./model ./msg ./ops ./readpref ./server
 LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
 
@@ -22,6 +22,7 @@ lint:
 	golint $(LINTARGS) ./connstring
 	golint $(LINTARGS) ./internal/auth
 	golint $(LINTARGS) ./internal/feature
+	golint $(LINTARGS) ./model
 	golint $(LINTARGS) ./msg
 	golint $(LINTARGS) ./ops
 	golint $(LINTARGS) ./readpref

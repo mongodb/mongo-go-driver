@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/internal"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -21,14 +22,14 @@ func nextClientConnectionID() int32 {
 }
 
 // Dialer dials a connection.
-type Dialer func(context.Context, Endpoint, ...Option) (Connection, error)
+type Dialer func(context.Context, model.Addr, ...Option) (Connection, error)
 
 // Dial opens a connection to a server.
-func Dial(ctx context.Context, endpoint Endpoint, opts ...Option) (Connection, error) {
+func Dial(ctx context.Context, addr model.Addr, opts ...Option) (Connection, error) {
 
 	cfg := newConfig(opts...)
 
-	netConn, err := cfg.dialer(ctx, endpoint)
+	netConn, err := cfg.dialer(ctx, addr.Network(), addr.String())
 	if err != nil {
 		return nil, err
 	}
@@ -38,13 +39,18 @@ func Dial(ctx context.Context, endpoint Endpoint, opts ...Option) (Connection, e
 		lifetimeDeadline = time.Now().Add(cfg.lifeTimeout)
 	}
 
+	id := fmt.Sprintf("%s[-%d]", addr, nextClientConnectionID())
+
 	c := &connImpl{
-		id:    fmt.Sprintf("%s[-%d]", endpoint, nextClientConnectionID()),
+		id:    id,
 		codec: cfg.codec,
-		desc: &Desc{
-			Endpoint: endpoint,
+		model: &model.Conn{
+			ID: id,
+			Server: model.Server{
+				Addr: addr,
+			},
 		},
-		ep:               endpoint,
+		addr:             addr,
 		rw:               netConn,
 		lifetimeDeadline: lifetimeDeadline,
 		idleTimeout:      cfg.idleTimeout,
@@ -66,8 +72,8 @@ type Connection interface {
 	Alive() bool
 	// Close closes the connection.
 	Close() error
-	// Desc gets a description of the connection.
-	Desc() *Desc
+	// Model gets a description of the connection.
+	Model() *model.Conn
 	// Expired indicates if the connection has expired.
 	Expired() bool
 	// Read reads a message from the connection.
@@ -104,8 +110,8 @@ type connImpl struct {
 	// as the id the server is using.
 	id               string
 	codec            msg.Codec
-	desc             *Desc
-	ep               Endpoint
+	model            *model.Conn
+	addr             model.Addr
 	rw               net.Conn
 	dead             bool
 	idleTimeout      time.Duration
@@ -127,8 +133,8 @@ func (c *connImpl) Close() error {
 	return nil
 }
 
-func (c *connImpl) Desc() *Desc {
-	return c.desc
+func (c *connImpl) Model() *model.Conn {
+	return c.model
 }
 
 func (c *connImpl) Expired() bool {
@@ -287,21 +293,9 @@ func (c *connImpl) initialize(ctx context.Context, appName string) error {
 		bson.D{{Name: "getLastError", Value: 1}},
 	)
 
-	c.desc = &Desc{
-		Endpoint:   c.ep,
-		GitVersion: buildInfoResult.GitVersion,
-		Version: Version{
-			Desc:  buildInfoResult.Version,
-			Parts: buildInfoResult.VersionArray,
-		},
-		MaxBSONObjectSize:   isMasterResult.MaxBSONObjectSize,
-		MaxMessageSizeBytes: isMasterResult.MaxMessageSizeBytes,
-		MaxWriteBatchSize:   isMasterResult.MaxWriteBatchSize,
-		ReadOnly:            isMasterResult.ReadOnly,
-		WireVersion: Range{
-			Min: isMasterResult.MinWireVersion,
-			Max: isMasterResult.MaxWireVersion,
-		},
+	c.model = &model.Conn{
+		ID:     c.id,
+		Server: *model.BuildServer(c.addr, isMasterResult, buildInfoResult),
 	}
 
 	var getLastErrorResult internal.GetLastErrorResult
@@ -310,7 +304,8 @@ func (c *connImpl) initialize(ctx context.Context, appName string) error {
 	// harm us in any way other than not being able to correlate
 	// our logs with the server's logs.
 	if err == nil {
-		c.id = fmt.Sprintf("%s[%d]", c.ep, getLastErrorResult.ConnectionID)
+		c.id = fmt.Sprintf("%s[%d]", c.addr, getLastErrorResult.ConnectionID)
+		c.model.ID = c.id
 	}
 
 	return nil

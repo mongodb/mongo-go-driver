@@ -4,15 +4,16 @@ import (
 	"context"
 
 	"github.com/10gen/mongo-go-driver/internal"
+	"github.com/10gen/mongo-go-driver/model"
 )
 
 // Factory creates a connection.
 type Factory func(context.Context) (Connection, error)
 
 // DialerFactory returns a Factory that uses a dialer.
-func DialerFactory(dialer Dialer, endpoint Endpoint, opts ...Option) Factory {
+func DialerFactory(dialer Dialer, addr model.Addr, opts ...Option) Factory {
 	return func(ctx context.Context) (Connection, error) {
-		return dialer(ctx, endpoint, opts...)
+		return dialer(ctx, addr, opts...)
 	}
 }
 

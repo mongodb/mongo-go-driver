@@ -172,9 +172,8 @@ import (
    	"github.com/stretchr/testify/require"
 
     . "github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
     "github.com/10gen/mongo-go-driver/readpref"
-    "github.com/10gen/mongo-go-driver/server"
 )
 {{range .}}
 func TestReadPref_{{.Name}}(t *testing.T) {
@@ -183,23 +182,23 @@ func TestReadPref_{{.Name}}(t *testing.T) {
 	require := require.New(t)
 	{{with .TopologyDescription}}
 	{{range .Servers}}
-	{{.Name}} := &server.Desc{
+	{{.Name}} := &model.Server{
 		AverageRTT: time.Duration({{.AverageRTTMS}})*time.Millisecond,
 		AverageRTTSet: true,
-		Endpoint: conn.Endpoint("{{.Address}}"),
+		Addr: model.Addr("{{.Address}}"),
 		HeartbeatInterval: time.Duration({{.HeartbeatIntervalMS}})*time.Millisecond,
 		LastUpdateTime: time.Unix({{.LastUpdateTime.Unix}}, {{.LastUpdateTime.Nanosecond}}),
 		LastWriteTime: time.Unix({{.LastWriteTime.Unix}}, {{.LastWriteTime.Nanosecond}}),
-		Type: server.{{.Type}},
-		{{if .Tags}}Tags: server.NewTagSet({{range $key, $value := .Tags}}
+		Kind: model.{{.Type}},
+		{{if .Tags}}Tags: model.NewTagSet({{range $key, $value := .Tags}}
 			"{{$key}}", "{{$value}}",
 		{{end}}),{{end}}
-		Version: {{if eq .MaxWireVersion 5}}conn.Version{Parts: []uint8{3, 4, 0}}{{else}}conn.Version{Parts: []uint8{3, 2, 0}}{{end}},
+		Version: {{if eq .MaxWireVersion 5}}model.Version{Parts: []uint8{3, 4, 0}}{{else}}model.Version{Parts: []uint8{3, 2, 0}}{{end}},
 	}
 	{{end}}
-    c := &Desc{
-        Type: {{.Type}},
-        Servers: []*server.Desc{
+    c := &model.Cluster{
+        Kind: model.{{.Type}},
+        Servers: []*model.Server{
         {{range .Servers}}{{.Name}},
             {{end}}
         },
@@ -212,12 +211,12 @@ func TestReadPref_{{.Name}}(t *testing.T) {
 	rp := readpref.{{if .Mode}}{{.Mode}}{{else}}Primary{{end}}(
 		{{if .MaxStalenessSeconds}}readpref.WithMaxStaleness(time.Duration({{.MaxStalenessSeconds}})*time.Second),{{end}}
         {{if .TagSets}}readpref.WithTagSets({{range .TagSets}}
-			server.NewTagSet({{range $key, $value := .}}
+			model.NewTagSet({{range $key, $value := .}}
 				"{{$key}}", "{{$value}}",
 			{{end -}}),
         {{end}}),{{end}}
 	){{end}}
-	selector := ReadPrefSelector(rp)
+	selector := readpref.Selector(rp)
 	{{end}}
 	{{if .Error}}
 	_, err := selector(c, c.Servers)

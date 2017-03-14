@@ -6,32 +6,31 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/server"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/stretchr/testify/require"
 )
 
-func selectFirst(_ *Desc, servers []*server.Desc) ([]*server.Desc, error) {
+func selectFirst(_ *model.Cluster, servers []*model.Server) ([]*model.Server, error) {
 	if len(servers) == 0 {
-		return []*server.Desc{}, nil
+		return []*model.Server{}, nil
 	}
 	return servers[0:1], nil
 }
 
-func selectNone(_ *Desc, _ []*server.Desc) ([]*server.Desc, error) {
-	return []*server.Desc{}, nil
+func selectNone(_ *model.Cluster, _ []*model.Server) ([]*model.Server, error) {
+	return []*model.Server{}, nil
 }
 
-func selectError(_ *Desc, _ []*server.Desc) ([]*server.Desc, error) {
+func selectError(_ *model.Cluster, _ []*model.Server) ([]*model.Server, error) {
 	return nil, errors.New("encountered an error in the selector")
 }
 
 type fakeMonitor struct {
-	updates chan *Desc
+	updates chan *model.Cluster
 }
 
 func newFakeMonitor(endpoints ...string) *fakeMonitor {
-	updates := make(chan *Desc, 1)
+	updates := make(chan *model.Cluster, 1)
 	monitor := &fakeMonitor{
 		updates: updates,
 	}
@@ -39,7 +38,7 @@ func newFakeMonitor(endpoints ...string) *fakeMonitor {
 	return monitor
 }
 
-func (f *fakeMonitor) Subscribe() (<-chan *Desc, func(), error) {
+func (f *fakeMonitor) Subscribe() (<-chan *model.Cluster, func(), error) {
 	return f.updates, func() {}, nil
 }
 
@@ -48,16 +47,16 @@ func (f *fakeMonitor) RequestImmediateCheck() {
 }
 
 func (f *fakeMonitor) updateEndpoints(endpoints ...string) {
-	servers := make([]*server.Desc, len(endpoints))
+	servers := make([]*model.Server, len(endpoints))
 	for i, end := range endpoints {
-		endpoint := conn.Endpoint(end)
-		server := &server.Desc{
-			Endpoint: endpoint,
-			Type:     server.Standalone,
+		addr := model.Addr(end)
+		server := &model.Server{
+			Addr: addr,
+			Kind: model.Standalone,
 		}
 		servers[i] = server
 	}
-	clusterDesc := &Desc{
+	cluster := &model.Cluster{
 		Servers: servers,
 	}
 
@@ -65,7 +64,7 @@ func (f *fakeMonitor) updateEndpoints(endpoints ...string) {
 	case <-f.updates:
 	default:
 	}
-	f.updates <- clusterDesc
+	f.updates <- cluster
 }
 
 func TestSelectServer_Success(t *testing.T) {
@@ -73,13 +72,13 @@ func TestSelectServer_Success(t *testing.T) {
 	srvs, err := selectServers(context.Background(), m, selectFirst)
 	require.NoError(t, err)
 	require.Len(t, srvs, 1)
-	require.Equal(t, "one", string(srvs[0].Endpoint))
+	require.Equal(t, "one", string(srvs[0].Addr))
 }
 
 func TestSelectServer_Updated(t *testing.T) {
 	m := newFakeMonitor()
 	errCh := make(chan error)
-	srvCh := make(chan []*server.Desc)
+	srvCh := make(chan []*model.Server)
 
 	go func() {
 		srvs, err := selectServers(context.Background(), m, selectFirst)
@@ -94,7 +93,7 @@ func TestSelectServer_Updated(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, srvs, 1)
-	require.Equal(t, "four", string(srvs[0].Endpoint))
+	require.Equal(t, "four", string(srvs[0].Addr))
 }
 
 func TestSelectServer_Cancel(t *testing.T) {

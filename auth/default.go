@@ -23,7 +23,7 @@ type DefaultAuthenticator struct {
 func (a *DefaultAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
 	var actual Authenticator
 	var err error
-	if err = feature.ScramSHA1(c.Desc().Version); err != nil {
+	if err = feature.ScramSHA1(c.Model().Version); err != nil {
 		actual, err = newMongoDBCRAuthenticator(a.Cred)
 	} else {
 		actual, err = newScramSHA1Authenticator(a.Cred)

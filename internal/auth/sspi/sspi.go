@@ -11,12 +11,10 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
-
-	"github.com/10gen/mongo-go-driver/conn"
 )
 
 // New creates a new SaslClient.
-func New(endpoint conn.Endpoint, username, password string, passwordSet bool, props map[string]string) (*SaslClient, error) {
+func New(target, username, password string, passwordSet bool, props map[string]string) (*SaslClient, error) {
 
 	var err error
 	serviceName := "mongodb"
@@ -39,7 +37,7 @@ func New(endpoint conn.Endpoint, username, password string, passwordSet bool, pr
 	}
 
 	return &SaslClient{
-		endpoint:             endpoint,
+		target:               target,
 		serviceName:          serviceName,
 		canonicalizeHostName: canonicalizeHostName,
 		serviceRealm:         serviceRealm,
@@ -50,7 +48,7 @@ func New(endpoint conn.Endpoint, username, password string, passwordSet bool, pr
 }
 
 type SaslClient struct {
-	endpoint             conn.Endpoint
+	target               string
 	serviceName          string
 	serviceRealm         string
 	canonicalizeHostName bool
@@ -81,9 +79,9 @@ func (sc *SaslClient) init() error {
 		return initError
 	}
 
-	hostname, _, err := net.SplitHostPort(string(sc.endpoint))
+	hostname, _, err := net.SplitHostPort(sc.target)
 	if err != nil {
-		return fmt.Errorf("invalid endpoint (%s) specified: %s", sc.endpoint, err)
+		return fmt.Errorf("invalid endpoint (%s) specified: %s", sc.target, err)
 	}
 	if sc.canonicalizeHostName {
 		names, err := net.LookupAddr(hostname)

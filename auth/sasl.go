@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/model"
 
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/msg"
@@ -20,6 +21,12 @@ type saslClientCloser interface {
 }
 
 func conductSaslConversation(ctx context.Context, c conn.Connection, db string, client saslClient) error {
+
+	// Arbiters cannot be authenticated
+	if c.Model().Kind == model.RSArbiter {
+		return nil
+	}
+
 	if db == "" {
 		db = defaultAuthDB
 	}

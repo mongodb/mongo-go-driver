@@ -1,4 +1,4 @@
-package server
+package model
 
 // Tag is a name/value pair.
 type Tag struct {

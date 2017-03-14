@@ -1,9 +1,9 @@
-package server_test
+package model_test
 
 import (
 	"testing"
 
-	. "github.com/10gen/mongo-go-driver/server"
+	. "github.com/10gen/mongo-go-driver/model"
 	"github.com/stretchr/testify/require"
 )
 

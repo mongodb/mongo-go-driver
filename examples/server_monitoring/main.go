@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/server"
 	"github.com/kr/pretty"
 )
 
 func main() {
 	monitor, err := server.StartMonitor(
-		conn.Endpoint("localhost:27017"),
+		model.Addr("localhost:27017"),
 		server.WithHeartbeatInterval(2*time.Second),
 		server.WithConnectionOptions(
 			conn.WithAppName("server_monitor test"),

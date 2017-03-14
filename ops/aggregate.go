@@ -50,12 +50,6 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline in
 		aggregateCommand,
 	)
 
-	if rpMeta := readPrefMeta(s.ReadPref, s.Desc().Type); rpMeta != nil {
-		msg.AddMeta(request, map[string]interface{}{
-			"$readPreference": rpMeta,
-		})
-	}
-
 	var result cursorReturningResult
 
 	c, err := s.Connection(ctx)
@@ -63,6 +57,12 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline in
 		return nil, internal.WrapError(err, "unable to get a connection to execute aggregate")
 	}
 	defer c.Close()
+
+	if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
+		msg.AddMeta(request, map[string]interface{}{
+			"$readPreference": rpMeta,
+		})
+	}
 
 	err = conn.ExecuteCommand(ctx, c, request, &result)
 	if err != nil {
