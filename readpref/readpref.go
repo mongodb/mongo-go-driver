@@ -18,24 +18,28 @@ func Primary() *ReadPref {
 
 // PrimaryPreferred constructs a read preference with a PrimaryPreferredMode.
 func PrimaryPreferred(opts ...Option) *ReadPref {
+	// New only returns an error with a mode of Primary
 	rp, _ := New(PrimaryPreferredMode, opts...)
 	return rp
 }
 
 // SecondaryPreferred constructs a read preference with a SecondaryPreferredMode.
 func SecondaryPreferred(opts ...Option) *ReadPref {
+	// New only returns an error with a mode of Primary
 	rp, _ := New(SecondaryPreferredMode, opts...)
 	return rp
 }
 
 // Secondary constructs a read preference with a SecondaryMode.
 func Secondary(opts ...Option) *ReadPref {
+	// New only returns an error with a mode of Primary
 	rp, _ := New(SecondaryMode, opts...)
 	return rp
 }
 
 // Nearest constructs a read preference with a NearestMode.
 func Nearest(opts ...Option) *ReadPref {
+	// New only returns an error with a mode of Primary
 	rp, _ := New(NearestMode, opts...)
 	return rp
 }
