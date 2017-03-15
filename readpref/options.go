@@ -30,10 +30,6 @@ func WithTags(tags ...string) Option {
 // overrides all previous calls to either method.
 func WithTagSets(tagSets ...server.TagSet) Option {
 	return func(rp *ReadPref) {
-		if rp.mode != PrimaryMode {
-			rp.tagSets = tagSets
-		} else {
-			panic("can't set tag set on primary")
-		}
+		rp.tagSets = tagSets
 	}
 }

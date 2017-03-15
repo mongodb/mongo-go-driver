@@ -7,41 +7,40 @@ import (
 	"github.com/10gen/mongo-go-driver/server"
 )
 
-const (
-	errInvalidReadPreference = errors.New("can not specify ")
+var (
+	errInvalidReadPreference = errors.New("can not specify tags or max staleness on primary")
 )
 
 // Primary constructs a read preference with a PrimaryMode.
 func Primary() *ReadPref {
-	rp, _ := New(PrimaryMode)
-	return rp
+	return &ReadPref{mode: PrimaryMode}
 }
 
 // PrimaryPreferred constructs a read preference with a PrimaryPreferredMode.
 func PrimaryPreferred(opts ...Option) *ReadPref {
-	rp, _ := New(PrimaryPreferredMode)
+	rp, _ := New(PrimaryPreferredMode, opts...)
 	return rp
 }
 
 // SecondaryPreferred constructs a read preference with a SecondaryPreferredMode.
 func SecondaryPreferred(opts ...Option) *ReadPref {
-	rp, _ := New(SecondaryPreferredMode)
+	rp, _ := New(SecondaryPreferredMode, opts...)
 	return rp
 }
 
 // Secondary constructs a read preference with a SecondaryMode.
-func Secondary(opts ...SecondaryMode) *ReadPref {
-	rp, _ := New(PrimaryPreferredMode)
+func Secondary(opts ...Option) *ReadPref {
+	rp, _ := New(SecondaryMode, opts...)
 	return rp
 }
 
 // Nearest constructs a read preference with a NearestMode.
 func Nearest(opts ...Option) *ReadPref {
-	rp, _ := New(NearestMode)
+	rp, _ := New(NearestMode, opts...)
 	return rp
 }
 
-func New(mode Mode, opts ...Option) *ReadPref {
+func New(mode Mode, opts ...Option) (*ReadPref, error) {
 	rp := &ReadPref{
 		mode: mode,
 	}
@@ -54,7 +53,7 @@ func New(mode Mode, opts ...Option) *ReadPref {
 		opt(rp)
 	}
 
-	return rp
+	return rp, nil
 }
 
 // ReadPref determines which servers are considered suitable for read operations.
