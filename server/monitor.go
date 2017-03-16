@@ -229,7 +229,6 @@ func (m *Monitor) heartbeat() *Desc {
 		delay := time.Since(now)
 
 		d = BuildDesc(m.endpoint, isMasterResult, buildInfoResult)
-		fmt.Println(d.Type)
 		d.SetAverageRTT(m.updateAverageRTT(delay))
 		d.HeartbeatInterval = m.cfg.heartbeatInterval
 	}
