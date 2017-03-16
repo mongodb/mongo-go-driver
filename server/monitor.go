@@ -5,7 +5,6 @@ package server
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
