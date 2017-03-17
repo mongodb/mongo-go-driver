@@ -1,9 +1,9 @@
 package ops
 
 import (
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/readpref"
 	"github.com/10gen/mongo-go-driver/server"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func slaveOk(rp *readpref.ReadPref) bool {
