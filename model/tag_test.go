@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTagSets_Contains(t *testing.T) {
+func TestTagSets_NewTagSet(t *testing.T) {
 	t.Parallel()
 
 	ts := NewTagSet("a", "1")
@@ -16,6 +16,37 @@ func TestTagSets_Contains(t *testing.T) {
 	require.False(t, ts.Contains("1", "a"))
 	require.False(t, ts.Contains("A", "1"))
 	require.False(t, ts.Contains("a", "10"))
+}
+
+func TestTagSets_NewTagSetFromMap(t *testing.T) {
+	t.Parallel()
+
+	ts := NewTagSetFromMap(map[string]string{"a": "1"})
+
+	require.True(t, ts.Contains("a", "1"))
+	require.False(t, ts.Contains("1", "a"))
+	require.False(t, ts.Contains("A", "1"))
+	require.False(t, ts.Contains("a", "10"))
+}
+
+func TestTagSets_NewTagSetsFromMaps(t *testing.T) {
+	t.Parallel()
+
+	tss := NewTagSetsFromMaps([]map[string]string{{"a": "1"}, {"b": "1"}})
+
+	require.Len(t, tss, 2)
+
+	ts := tss[0]
+	require.True(t, ts.Contains("a", "1"))
+	require.False(t, ts.Contains("1", "a"))
+	require.False(t, ts.Contains("A", "1"))
+	require.False(t, ts.Contains("a", "10"))
+
+	ts = tss[1]
+	require.True(t, ts.Contains("b", "1"))
+	require.False(t, ts.Contains("1", "b"))
+	require.False(t, ts.Contains("B", "1"))
+	require.False(t, ts.Contains("b", "10"))
 }
 
 func TestTagSets_ContainsAll(t *testing.T) {
