@@ -88,6 +88,32 @@ func TestConnect(t *testing.T) {
 	}
 }
 
+func TestConnectTimeout(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected time.Duration
+		err      bool
+	}{
+		{s: "connectTimeoutMS=10", expected: time.Duration(10) * time.Millisecond},
+		{s: "connectTimeoutMS=100", expected: time.Duration(100) * time.Millisecond},
+		{s: "connectTimeoutMS=-2", err: true},
+		{s: "connectTimeoutMS=gsdge", err: true},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.ConnectTimeout)
+			}
+		})
+	}
+}
+
 func TestHeartbeatInterval(t *testing.T) {
 	tests := []struct {
 		s        string
@@ -249,6 +275,57 @@ func TestMaxPoolSize(t *testing.T) {
 	}
 }
 
+func TestReadPreference(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected string
+		err      bool
+	}{
+		{s: "readPreference=primary", expected: "primary"},
+		{s: "readPreference=secondaryPreferred", expected: "secondaryPreferred"},
+		{s: "readPreference=something", expected: "something"}, // we don't validate here
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.ReadPreference)
+			}
+		})
+	}
+}
+
+func TestReadPreferenceTags(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected []map[string]string
+		err      bool
+	}{
+		{s: "readPreferenceTags=one:1", expected: []map[string]string{{"one": "1"}}},
+		{s: "readPreferenceTags=one:1,two:2", expected: []map[string]string{{"one": "1", "two": "2"}}},
+		{s: "readPreferenceTags=one:1&readPreferenceTags=two:2", expected: []map[string]string{{"one": "1"}, {"two": "2"}}},
+		{s: "readPreferenceTags=one:1:3,two:2", err: true},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.ReadPreferenceTagSets)
+			}
+		})
+	}
+}
+
 func TestReplicaSet(t *testing.T) {
 	tests := []struct {
 		s        string
@@ -294,6 +371,32 @@ func TestServerSelectionTimeout(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, test.expected, cs.ServerSelectionTimeout)
+			}
+		})
+	}
+}
+
+func TestSocketTimeout(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected time.Duration
+		err      bool
+	}{
+		{s: "socketTimeoutMS=10", expected: time.Duration(10) * time.Millisecond},
+		{s: "socketTimeoutMS=100", expected: time.Duration(100) * time.Millisecond},
+		{s: "socketTimeoutMS=-2", err: true},
+		{s: "socketTimeoutMS=gsdge", err: true},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.SocketTimeout)
 			}
 		})
 	}

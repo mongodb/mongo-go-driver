@@ -31,6 +31,7 @@ type ConnString struct {
 	AuthMechanismProperties map[string]string
 	AuthSource              string
 	Connect                 ConnectMode
+	ConnectTimeout          time.Duration
 	Database                string
 	HeartbeatInterval       time.Duration
 	Hosts                   []string
@@ -42,11 +43,15 @@ type ConnString struct {
 	MaxIdleConnsPerHostSet  bool
 	Password                string
 	PasswordSet             bool
+	ReadPreference          string
+	ReadPreferenceTagSets   []map[string]string
 	ReplicaSet              string
 	ServerSelectionTimeout  time.Duration
+	SocketTimeout           time.Duration
 	Username                string
 	WTimeout                time.Duration
 
+	Options        map[string][]string
 	UnknownOptions map[string][]string
 }
 
@@ -259,6 +264,12 @@ func (p *parser) addOption(pair string) error {
 		default:
 			return fmt.Errorf("invalid 'connect' value: %s", value)
 		}
+	case "connecttimeoutms":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.ConnectTimeout = time.Duration(n) * time.Millisecond
 	case "heartbeatintervalms", "heartbeatfrequencyms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
@@ -300,6 +311,19 @@ func (p *parser) addOption(pair string) error {
 		p.MaxConnsPerHostSet = true
 		p.MaxIdleConnsPerHost = uint16(n)
 		p.MaxIdleConnsPerHostSet = true
+	case "readpreference":
+		p.ReadPreference = value
+	case "readpreferencetags":
+		tags := make(map[string]string)
+		items := strings.Split(value, ",")
+		for _, item := range items {
+			parts := strings.Split(item, ":")
+			if len(parts) != 2 {
+				return fmt.Errorf("invalid value for %s: %s", key, value)
+			}
+			tags[parts[0]] = parts[1]
+		}
+		p.ReadPreferenceTagSets = append(p.ReadPreferenceTagSets, tags)
 	case "replicaset":
 		p.ReplicaSet = value
 	case "serverselectiontimeoutms":
@@ -308,6 +332,12 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.ServerSelectionTimeout = time.Duration(n) * time.Millisecond
+	case "sockettimeoutms":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.SocketTimeout = time.Duration(n) * time.Millisecond
 	case "wtimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
@@ -331,6 +361,11 @@ func (p *parser) addOption(pair string) error {
 		}
 		p.UnknownOptions[lowerKey] = append(p.UnknownOptions[lowerKey], value)
 	}
+
+	if p.Options == nil {
+		p.Options = make(map[string][]string)
+	}
+	p.Options[lowerKey] = append(p.Options[lowerKey], value)
 
 	return nil
 }
