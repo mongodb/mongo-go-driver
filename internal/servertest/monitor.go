@@ -19,7 +19,7 @@ func NewFakeMonitor(kind model.ServerKind, addr model.Addr, opts ...server.Optio
 	fm := &FakeMonitor{
 		kind: kind,
 	}
-	opts = append(opts, server.WithConnectionDialer(fm.dial))
+	opts = append(opts, server.WithConnectionOpener(fm.open))
 	m, _ := server.StartMonitor(addr, opts...)
 	fm.Monitor = m
 	return fm
@@ -46,7 +46,7 @@ func (m *FakeMonitor) SetKind(kind model.ServerKind) {
 	}
 }
 
-func (m *FakeMonitor) dial(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+func (m *FakeMonitor) open(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
 	if m.kind == model.Unknown {
 		return nil, fmt.Errorf("server type is unknown")
 	}

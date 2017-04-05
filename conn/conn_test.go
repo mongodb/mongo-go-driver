@@ -16,7 +16,7 @@ import (
 
 func createIntegrationTestConn(opts ...Option) (Connection, error) {
 	opts = append(opts, WithAppName("mongo-go-driver-test"))
-	c, err := Dial(context.Background(), model.Addr(*host), opts...)
+	c, err := New(context.Background(), model.Addr(*host), opts...)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err)

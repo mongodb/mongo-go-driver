@@ -205,7 +205,7 @@ func (m *Monitor) heartbeat() *model.Server {
 		}
 
 		if m.conn == nil {
-			conn, err := m.cfg.dialer(ctx, m.addr, m.cfg.connOpts...)
+			conn, err := m.cfg.opener(ctx, m.addr, m.cfg.connOpts...)
 			if err != nil {
 				savedErr = err
 				if conn != nil {

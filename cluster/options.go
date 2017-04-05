@@ -119,8 +119,8 @@ func WithConnString(cs connstring.ConnString) Option {
 			if authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred); err == nil {
 				c.serverOpts = append(
 					c.serverOpts,
-					server.WithWrappedConnectionDialer(func(current conn.Dialer) conn.Dialer {
-						return auth.Dialer(current, authenticator)
+					server.WithWrappedConnectionOpener(func(current conn.Opener) conn.Opener {
+						return auth.Opener(current, authenticator)
 					}),
 				)
 			}

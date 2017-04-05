@@ -35,16 +35,16 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 	authFactories[name] = factory
 }
 
-// Dialer returns a connection dialer that will open and authenticate the connection.
-func Dialer(dialer conn.Dialer, authenticator Authenticator) conn.Dialer {
+// Opener returns a connection opener that will open and authenticate the connection.
+func Opener(opener conn.Opener, authenticator Authenticator) conn.Opener {
 	return func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
-		return Dial(ctx, authenticator, dialer, addr, opts...)
+		return NewConnection(ctx, authenticator, opener, addr, opts...)
 	}
 }
 
-// Dial opens a connection and authenticates it.
-func Dial(ctx context.Context, authenticator Authenticator, dialer conn.Dialer, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
-	conn, err := dialer(ctx, addr, opts...)
+// NewConnection opens a connection and authenticates it.
+func NewConnection(ctx context.Context, authenticator Authenticator, opener conn.Opener, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+	conn, err := opener(ctx, addr, opts...)
 	if err != nil {
 		if conn != nil {
 			conn.Close()

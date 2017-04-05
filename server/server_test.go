@@ -27,7 +27,7 @@ func TestServer_Close_should_not_return_new_connections(t *testing.T) {
 	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -50,7 +50,7 @@ func TestServer_Connection_should_provide_up_to_maxConn_connections(t *testing.T
 	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -84,7 +84,7 @@ func TestServer_Connection_should_pool_connections(t *testing.T) {
 	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -120,7 +120,7 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"), WithHeartbeatInterval(1*time.Second))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -159,7 +159,7 @@ func TestServer_Connection_Read_failure_should_cause_immediate_monitor_check(t *
 	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"), WithHeartbeatInterval(100*time.Second))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 
@@ -201,7 +201,7 @@ func TestServer_Connection_Write_failure_should_cause_immediate_monitor_check(t 
 	fake := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"), WithHeartbeatInterval(100*time.Second))
 	s := NewWithMonitor(
 		fake.Monitor,
-		WithConnectionDialer(dialer),
+		WithConnectionOpener(dialer),
 		WithMaxConnections(2),
 	)
 

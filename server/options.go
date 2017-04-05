@@ -8,7 +8,7 @@ import (
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		dialer:            conn.Dial,
+		opener:            conn.New,
 		heartbeatInterval: 10 * time.Second,
 		maxConns:          100,
 		maxIdleConns:      100,
@@ -24,7 +24,7 @@ type Option func(*config)
 
 type config struct {
 	connOpts          []conn.Option
-	dialer            conn.Dialer
+	opener            conn.Opener
 	heartbeatInterval time.Duration
 	maxConns          uint16
 	maxIdleConns      uint16
@@ -33,7 +33,7 @@ type config struct {
 func (c *config) reconfig(opts ...Option) *config {
 	cfg := &config{
 		connOpts:          c.connOpts,
-		dialer:            c.dialer,
+		opener:            c.opener,
 		heartbeatInterval: c.heartbeatInterval,
 		maxConns:          c.maxConns,
 		maxIdleConns:      c.maxIdleConns,
@@ -49,19 +49,19 @@ func (c *config) apply(opts ...Option) {
 	}
 }
 
-// WithConnectionDialer configures the dialer to use
+// WithConnectionOpener configures the opener to use
 // to create a new connection.
-func WithConnectionDialer(dialer conn.Dialer) Option {
+func WithConnectionOpener(opener conn.Opener) Option {
 	return func(c *config) {
-		c.dialer = dialer
+		c.opener = opener
 	}
 }
 
-// WithWrappedConnectionDialer configures a new dialer to be used
-// which wraps the current dialer.
-func WithWrappedConnectionDialer(wrapper func(conn.Dialer) conn.Dialer) Option {
+// WithWrappedConnectionOpener configures a new opener to be used
+// which wraps the current opener.
+func WithWrappedConnectionOpener(wrapper func(conn.Opener) conn.Opener) Option {
 	return func(c *config) {
-		c.dialer = wrapper(c.dialer)
+		c.opener = wrapper(c.opener)
 	}
 }
 

@@ -12,15 +12,15 @@ import (
 var ErrPoolClosed = errors.New("pool is closed")
 
 // NewPool creates a new connection pool.
-func NewPool(maxSize uint64, factory Factory) Pool {
+func NewPool(maxSize uint64, provider Provider) Pool {
 
 	if maxSize == 0 {
-		return &nonPool{factory}
+		return &nonPool{provider}
 	}
 
 	return &idlePool{
-		factory: factory,
-		conns:   make(chan *poolConn, maxSize),
+		provider: provider,
+		conns:    make(chan *poolConn, maxSize),
 	}
 }
 
@@ -37,7 +37,7 @@ type Pool interface {
 }
 
 type nonPool struct {
-	factory Factory
+	provider Provider
 }
 
 func (p *nonPool) Clear() {}
@@ -45,11 +45,11 @@ func (p *nonPool) Clear() {}
 func (p *nonPool) Close() {}
 
 func (p *nonPool) Get(ctx context.Context) (Connection, error) {
-	return p.factory(ctx)
+	return p.provider(ctx)
 }
 
 type idlePool struct {
-	factory Factory
+	provider Provider
 
 	connsLock sync.Mutex
 	conns     chan *poolConn
@@ -110,7 +110,7 @@ func (p *idlePool) getConn(ctx context.Context, conns chan *poolConn) (Connectio
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
-		c, err := p.factory(ctx)
+		c, err := p.provider(ctx)
 		if err != nil {
 			return nil, err
 		}

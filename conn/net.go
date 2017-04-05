@@ -5,10 +5,11 @@ import (
 	"net"
 )
 
-// NetDialer creates a net.Conn.
-type NetDialer func(context.Context, string, string) (net.Conn, error)
+// Dialer dials a server according to the network and address.
+type Dialer func(ctx context.Context, network, address string) (net.Conn, error)
 
-func dialNet(ctx context.Context, network, address string) (net.Conn, error) {
+// Dial is the default Dialer.
+func Dial(ctx context.Context, network, address string) (net.Conn, error) {
 	dialer := net.Dialer{}
 	conn, err := dialer.DialContext(ctx, network, address)
 	if err != nil {

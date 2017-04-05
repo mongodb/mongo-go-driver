@@ -21,11 +21,11 @@ func nextClientConnectionID() int32 {
 	return atomic.AddInt32(&globalClientConnectionID, 1)
 }
 
-// Dialer dials a connection.
-type Dialer func(context.Context, model.Addr, ...Option) (Connection, error)
+// Opener opens a connection.
+type Opener func(context.Context, model.Addr, ...Option) (Connection, error)
 
-// Dial opens a connection to a server.
-func Dial(ctx context.Context, addr model.Addr, opts ...Option) (Connection, error) {
+// New opens a connection to a server.
+func New(ctx context.Context, addr model.Addr, opts ...Option) (Connection, error) {
 
 	cfg := newConfig(opts...)
 
