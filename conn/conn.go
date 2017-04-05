@@ -72,6 +72,8 @@ type Connection interface {
 	Alive() bool
 	// Close closes the connection.
 	Close() error
+	// MarkDead forces a connection to close.
+	MarkDead()
 	// Model gets a description of the connection.
 	Model() *model.Conn
 	// Expired indicates if the connection has expired.
@@ -131,6 +133,10 @@ func (c *connImpl) Close() error {
 	}
 
 	return nil
+}
+
+func (c *connImpl) MarkDead() {
+	c.dead = true
 }
 
 func (c *connImpl) Model() *model.Conn {

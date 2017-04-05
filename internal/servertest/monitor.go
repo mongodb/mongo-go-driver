@@ -71,6 +71,10 @@ func (c *fakeMonitorConn) Close() error {
 	return nil
 }
 
+func (c *fakeMonitorConn) MarkDead() {
+	c.Dead = true
+}
+
 func (c *fakeMonitorConn) Model() *model.Conn {
 	return &model.Conn{}
 }

@@ -26,6 +26,10 @@ func (c *MockConnection) Close() error {
 	return nil
 }
 
+func (c *MockConnection) MarkDead() {
+	c.Dead = true
+}
+
 func (c *MockConnection) Model() *model.Conn {
 	return &model.Conn{}
 }
