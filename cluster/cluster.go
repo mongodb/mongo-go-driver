@@ -99,11 +99,9 @@ func (c *Cluster) Model() *model.Cluster {
 // SelectServer complies with the server selection spec, and will time
 // out after serverSelectionTimeout or when the parent context is done.
 func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Server, error) {
-	timeout, cancel := context.WithTimeout(ctx, c.cfg.serverSelectionTimeout)
 	for {
-		suitable, err := SelectServers(timeout, c.monitor, selector)
+		suitable, err := SelectServers(ctx, c.monitor, selector)
 		if err != nil {
-			cancel()
 			return nil, err
 		}
 
@@ -112,12 +110,10 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 		c.stateLock.Lock()
 		if c.stateServers == nil {
 			c.stateLock.Unlock()
-			cancel()
 			return nil, ErrClusterClosed
 		}
 		if server, ok := c.stateServers[selected.Addr]; ok {
 			c.stateLock.Unlock()
-			cancel()
 			return server, nil
 		}
 		c.stateLock.Unlock()

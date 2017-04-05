@@ -1,8 +1,6 @@
 package cluster
 
 import (
-	"time"
-
 	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/connstring"
@@ -11,8 +9,7 @@ import (
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		seedList:               []string{"localhost:27017"},
-		serverSelectionTimeout: 30 * time.Second,
+		seedList: []string{"localhost:27017"},
 	}
 
 	cfg.apply(opts...)
@@ -24,20 +21,18 @@ func newConfig(opts ...Option) *config {
 type Option func(*config)
 
 type config struct {
-	mode                   MonitorMode
-	replicaSetName         string
-	seedList               []string
-	serverOpts             []server.Option
-	serverSelectionTimeout time.Duration
+	mode           MonitorMode
+	replicaSetName string
+	seedList       []string
+	serverOpts     []server.Option
 }
 
 func (c *config) reconfig(opts ...Option) *config {
 	cfg := &config{
-		mode:                   c.mode,
-		replicaSetName:         c.replicaSetName,
-		seedList:               c.seedList,
-		serverOpts:             c.serverOpts,
-		serverSelectionTimeout: c.serverSelectionTimeout,
+		mode:           c.mode,
+		replicaSetName: c.replicaSetName,
+		seedList:       c.seedList,
+		serverOpts:     c.serverOpts,
 	}
 
 	cfg.apply(opts...)
@@ -90,10 +85,6 @@ func WithConnString(cs connstring.ConnString) Option {
 
 		if cs.ReplicaSet != "" {
 			c.replicaSetName = cs.ReplicaSet
-		}
-
-		if cs.ServerSelectionTimeout > 0 {
-			c.serverSelectionTimeout = cs.ServerSelectionTimeout
 		}
 
 		if cs.Username != "" || cs.AuthMechanism == auth.GSSAPI {
@@ -156,13 +147,6 @@ func WithReplicaSetName(name string) Option {
 func WithSeedList(seedList ...string) Option {
 	return func(c *config) {
 		c.seedList = seedList
-	}
-}
-
-// WithServerSelectionTimeout configures a cluster's server selection timeout.
-func WithServerSelectionTimeout(timeout time.Duration) Option {
-	return func(c *config) {
-		c.serverSelectionTimeout = timeout
 	}
 }
 
