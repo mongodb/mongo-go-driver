@@ -332,12 +332,10 @@ func createClientDoc(appName string) bson.M {
 			"version": internal.Version,
 		},
 		"os": bson.M{
-			"type":         "unknown",
-			"name":         runtime.GOOS,
+			"type":         runtime.GOOS,
 			"architecture": runtime.GOARCH,
-			"version":      "unknown",
 		},
-		"platform": nil,
+		"platform": runtime.Version(),
 	}
 	if appName != "" {
 		clientDoc["application"] = bson.M{"name": appName}
