@@ -249,7 +249,7 @@ functions:
             export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
           fi;
           export PATH="${GCC_PATH}:$PATH"
-          make evg-test-auth
+          MONGODB_URI="${MONGODB_URI}" make -s evg-test-auth
 
   run-enterprise-gssapi-auth-tests:
     - command: shell.exec
@@ -269,7 +269,7 @@ functions:
             export MONGODB_URI=${gssapi_auth_linux_mongodb_uri}
           fi;
           export PATH="${GCC_PATH}:$PATH"
-          make evg-test-auth
+          make -s evg-test-auth
 
 pre:
   - func: fetch-source

@@ -1,12 +1,14 @@
 //+build gssapi
-//+build linux darwin freebsd
+//+build linux darwin
 
 package gssapi
 
 /*
+#cgo linux CFLAGS: -DGOOS_linux
 #cgo linux LDFLAGS: -lgssapi_krb5 -lkrb5
-#cgo freebsd pkg-config: heimdal-gssapi
-#include "gssapi_wrapper.h"
+#cgo darwin CFLAGS: -DGOOS_darwin
+#cgo darwin LDFLAGS: -framework GSS
+#include "gss_wrapper.h"
 */
 import "C"
 import (

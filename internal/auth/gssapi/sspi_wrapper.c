@@ -1,3 +1,5 @@
+//+build gssapi,windows
+
 #include "sspi_wrapper.h"
 
 static HINSTANCE sspi_secur32_dll = NULL;
@@ -22,7 +24,7 @@ int sspi_init(
         return -2;
     }
 
-	return 0;
+	return SSPI_OK;
 }
 
 int sspi_client_init(
@@ -72,6 +74,8 @@ int sspi_client_destroy(
     }
 
     sspi_functions->FreeCredentialsHandle(&client->cred);
+
+    return SSPI_OK;
 }
 
 int sspi_client_get_username(

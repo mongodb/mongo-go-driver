@@ -1,6 +1,6 @@
 //+build gssapi,windows
 
-package sspi
+package gssapi
 
 // #include "sspi_wrapper.h"
 import "C"

@@ -1,6 +1,16 @@
+//+build gssapi
+//+build linux darwin
+#ifndef GSS_WRAPPER_H
+#define GSS_WRAPPER_H
+
 #include <stdlib.h>
+#ifdef GOOS_linux
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_krb5.h>
+#endif
+#ifdef GOOS_darwin
+#include <GSS/GSS.h>
+#endif
 
 #define GSSAPI_OK 0
 #define GSSAPI_CONTINUE 1
@@ -45,3 +55,5 @@ int gssapi_init_sec_context(
     void** output,
     size_t* output_length
 );
+
+#endif

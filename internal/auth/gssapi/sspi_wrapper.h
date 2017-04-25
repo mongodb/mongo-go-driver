@@ -1,3 +1,8 @@
+//+build gssapi,windows
+
+#ifndef SSPI_WRAPPER_H
+#define SSPI_WRAPPER_H
+
 #define SECURITY_WIN32 1  /* Required for SSPI */
 
 #include <windows.h>
@@ -50,3 +55,4 @@ int sspi_init_sec_context(
     ULONG* output_length
 );
 
+#endif

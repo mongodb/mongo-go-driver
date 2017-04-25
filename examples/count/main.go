@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"os"
-	"time"
 
 	"flag"
 
@@ -15,18 +13,18 @@ import (
 	"github.com/10gen/mongo-go-driver/readpref"
 )
 
+var uri = flag.String("uri", "mongodb://localhost:27017", "the mongodb uri to use")
 var col = flag.String("c", "test", "the collection name to use")
 
 func main() {
 
 	flag.Parse()
 
-	mongodbURI := os.Getenv("MONGODB_URI")
-	if mongodbURI == "" {
-		log.Fatalf("MONGODB_URI was not set")
+	if *uri == "" {
+		log.Fatalf("uri flag must have a value")
 	}
 
-	cs, err := connstring.Parse(mongodbURI)
+	cs, err := connstring.Parse(*uri)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,10 +37,8 @@ func main() {
 	}
 
 	ctx := context.Background()
-	selectCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
 
-	s, err := c.SelectServer(selectCtx, cluster.WriteSelector())
+	s, err := c.SelectServer(ctx, cluster.WriteSelector())
 	if err != nil {
 		log.Fatalf("%v: %v", err, c.Model().Servers[0].LastError)
 	}

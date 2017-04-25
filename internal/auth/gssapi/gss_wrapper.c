@@ -1,6 +1,9 @@
+//+build gssapi
+//+build linux darwin
+
 #include <string.h>
 #include <stdio.h>
-#include "gssapi_wrapper.h"
+#include "gss_wrapper.h"
 
 void gssapi_print_error(
     OM_uint32 status_code
@@ -80,6 +83,8 @@ int gssapi_client_destroy(
     if (client->cred != GSS_C_NO_CREDENTIAL) {
         maj_stat = gss_release_cred(&min_stat, &client->cred);
     }
+
+    return GSSAPI_OK;
 }
 
 int gssapi_client_get_username(

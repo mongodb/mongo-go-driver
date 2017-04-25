@@ -49,4 +49,4 @@ evg-test:
 	go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $(PKGS) > test.suite
 
 evg-test-auth:
-	go run -tags gssapi ./examples/auth/main.go
+	go run -tags gssapi ./examples/count/main.go -uri $(MONGODB_URI)
