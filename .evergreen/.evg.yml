@@ -233,8 +233,7 @@ functions:
         working_dir: src/github.com/10gen/mongo-go-driver
         script: |
           ${PREPARE_SHELL}
-          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} make evg-test BUILD_TAGS="-tags gssapi"
-
+          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} make evg-test
 
   run-enterprise-auth-tests:
     - command: shell.exec
@@ -250,7 +249,27 @@ functions:
             export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
           fi;
           export PATH="${GCC_PATH}:$PATH"
-          MONGODB_URI="${MONGODB_URI}" make evg-test-auth BUILD_TAGS="-tags gssapi"
+          make evg-test-auth
+
+  run-enterprise-gssapi-auth-tests:
+    - command: shell.exec
+      type: test
+      params:
+        silent: true
+        working_dir: src/github.com/10gen/mongo-go-driver
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            export MONGODB_URI=${gssapi_auth_windows_mongodb_uri}
+          else
+            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            echo ${gssapi_auth_linux_keytab_base64} | base64 -d > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
+            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p ${gssapi_auth_username}
+            export MONGODB_URI=${gssapi_auth_linux_mongodb_uri}
+          fi;
+          export PATH="${GCC_PATH}:$PATH"
+          make evg-test-auth
 
 pre:
   - func: fetch-source
@@ -359,9 +378,7 @@ tasks:
     - name: test-enterprise-auth-gssapi
       tags: ["test", "enterprise-auth"]
       commands:
-        - func: run-enterprise-auth-tests
-          vars:
-            MONGODB_URI: "${gssapi_auth_mongodb_uri}"
+        - func: run-enterprise-gssapi-auth-tests
 
 axes:
   - id: version
@@ -402,24 +419,14 @@ buildvariants:
   tasks:
     - name: ".static-analysis"
 
-- name: enterprise-auth-tests-windows
-  display_name: "Enterprise Auth Windows"
-  run_on:
-    - windows-64-vs2015-small
-  expansions:
-    GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-  tasks:
-    - name: ".test .enterprise-auth"
-
-- name: enterprise-auth-tests-linux
-  display_name: "Enterprise Auth Linux"
-  run_on:
-    - ubuntu1404-build
-  tasks:
-    - name: test-enterprise-auth-plain
-
 - matrix_name: "tests"
   matrix_spec: { version: "*", os: "*" }
   display_name: "${version} ${os}"
   tasks:
      - name: ".test !.enterprise-auth"
+
+- matrix_name: "enterprise-auth-tests"
+  matrix_spec: { os: "*" }
+  display_name: "Enterprise Auth - ${os}"
+  tasks:
+     - name: ".test .enterprise-auth"
