@@ -98,7 +98,7 @@ func WithConnString(cs connstring.ConnString) Option {
 
 			if cs.AuthSource != "" {
 				cred.Source = cs.AuthSource
-			} else if cs.Database != "" {
+			} else {
 				switch cs.AuthMechanism {
 				case auth.GSSAPI, auth.PLAIN:
 					cred.Source = "$external"
@@ -107,14 +107,22 @@ func WithConnString(cs connstring.ConnString) Option {
 				}
 			}
 
-			if authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred); err == nil {
-				c.serverOpts = append(
-					c.serverOpts,
-					server.WithWrappedConnectionOpener(func(current conn.Opener) conn.Opener {
-						return auth.Opener(current, authenticator)
-					}),
-				)
+			authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred)
+			if err != nil {
+				// TODO: I'm not completely sure how I feel about this... It would
+				// suck to have to return an error from this method. And panic seems
+				// sorta right because this app simply won't work like they want
+				// it to if we don't stop now. Any there really isn't anything
+				// they can do with the error to correct the problem.
+				panic(err)
 			}
+
+			c.serverOpts = append(
+				c.serverOpts,
+				server.WithWrappedConnectionOpener(func(current conn.Opener) conn.Opener {
+					return auth.Opener(current, authenticator)
+				}),
+			)
 		}
 
 		if len(connOpts) > 0 {

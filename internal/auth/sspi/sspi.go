@@ -2,7 +2,7 @@
 
 package sspi
 
-// #include "sspi_windows.h"
+// #include "sspi_wrapper.h"
 import "C"
 import (
 	"fmt"
@@ -15,6 +15,10 @@ import (
 
 // New creates a new SaslClient.
 func New(target, username, password string, passwordSet bool, props map[string]string) (*SaslClient, error) {
+	initOnce.Do(initSSPI)
+	if initError != nil {
+		return nil, initError
+	}
 
 	var err error
 	serviceName := "mongodb"
@@ -36,57 +40,14 @@ func New(target, username, password string, passwordSet bool, props map[string]s
 		}
 	}
 
-	return &SaslClient{
-		target:               target,
-		serviceName:          serviceName,
-		canonicalizeHostName: canonicalizeHostName,
-		serviceRealm:         serviceRealm,
-		username:             username,
-		password:             password,
-		passwordSet:          passwordSet,
-	}, nil
-}
-
-type SaslClient struct {
-	target               string
-	serviceName          string
-	serviceRealm         string
-	canonicalizeHostName bool
-	username             string
-	password             string
-	passwordSet          bool
-
-	// state
-	servicePrincipalName string
-	credHandle           C.CredHandle
-	context              C.CtxtHandle
-	hasContext           C.int
-	contextComplete      bool
-	done                 bool
-}
-
-func (sc *SaslClient) Close() {
-	if sc.hasContext > 0 {
-		C.sspi_delete_security_context(&sc.context)
-	}
-
-	C.sspi_free_credentials_handle(&sc.credHandle)
-}
-
-func (sc *SaslClient) init() error {
-	initOnce.Do(initSSPI)
-	if initError != nil {
-		return initError
-	}
-
-	hostname, _, err := net.SplitHostPort(sc.target)
+	hostname, _, err := net.SplitHostPort(target)
 	if err != nil {
-		return fmt.Errorf("invalid endpoint (%s) specified: %s", sc.target, err)
+		return nil, fmt.Errorf("invalid endpoint (%s) specified: %s", target, err)
 	}
-	if sc.canonicalizeHostName {
+	if canonicalizeHostName {
 		names, err := net.LookupAddr(hostname)
 		if err != nil || len(names) == 0 {
-			return fmt.Errorf("unable to canonicalize host name: %s", err)
+			return nil, fmt.Errorf("unable to canonicalize hostname: %s", err)
 		}
 		hostname = names[0]
 		if hostname[len(hostname)-1] == '.' {
@@ -94,50 +55,53 @@ func (sc *SaslClient) init() error {
 		}
 	}
 
-	sc.servicePrincipalName = fmt.Sprintf("%s/%s", sc.serviceName, hostname)
-	if sc.serviceRealm != "" {
-		sc.servicePrincipalName += "@" + sc.serviceRealm
+	servicePrincipalName := fmt.Sprintf("%s/%s", serviceName, hostname)
+	if serviceRealm != "" {
+		servicePrincipalName += "@" + serviceRealm
 	}
 
-	return nil
+	return &SaslClient{
+		servicePrincipalName: servicePrincipalName,
+		username:             username,
+		password:             password,
+		passwordSet:          passwordSet,
+	}, nil
+}
+
+type SaslClient struct {
+	servicePrincipalName string
+	username             string
+	password             string
+	passwordSet          bool
+
+	// state
+	state           C.sspi_client_state
+	contextComplete bool
+	done            bool
+}
+
+func (sc *SaslClient) Close() {
+	C.sspi_client_destroy(&sc.state)
 }
 
 func (sc *SaslClient) Start() (string, []byte, error) {
-
 	const mechName = "GSSAPI"
 
-	err := sc.init()
-	if err != nil {
-		return mechName, nil, err
-	}
-
-	var status C.SECURITY_STATUS
+	var cusername *C.char
+	var cpassword *C.char
 	if sc.passwordSet {
-		cusername := C.CString(sc.username)
+		cusername = C.CString(sc.username)
 		defer C.free(unsafe.Pointer(cusername))
-		cpassword := C.CString(sc.password)
+		cpassword = C.CString(sc.password)
 		defer C.free(unsafe.Pointer(cpassword))
-		status = C.sspi_acquire_credentials_handle(&sc.credHandle, cusername, cpassword)
-	} else {
-		status = C.sspi_acquire_default_credentials_handle(&sc.credHandle)
+	}
+	status := C.sspi_client_init(&sc.state, cusername, cpassword)
+
+	if status != C.SSPI_OK {
+		return mechName, nil, fmt.Errorf("unable to intitialize sspi client state: %s", statusMessage(sc.state.status))
 	}
 
-	if status != C.SEC_E_OK {
-		return mechName, nil, fmt.Errorf("failed to acquire credentials handle: %s", statusMessage(status))
-	}
-
-	if sc.username == "" {
-		var outName *C.char
-		status = C.sspi_get_cred_name(&sc.credHandle, &outName)
-		if status != C.SEC_E_OK {
-			return mechName, nil, fmt.Errorf("failed to query credential attributes for name: %s", statusMessage(status))
-		}
-		defer C.free(unsafe.Pointer(outName))
-
-		sc.username = C.GoString((*C.char)(unsafe.Pointer(outName)))
-	}
-
-	return mechName, []byte{}, nil
+	return mechName, nil, nil
 }
 
 func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
@@ -145,13 +109,23 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 	var outBuf C.PVOID
 	var outBufLen C.ULONG
 
-	var status C.SECURITY_STATUS
 	if sc.contextComplete {
-		cusername := C.CString(sc.username)
-		defer C.free(unsafe.Pointer(cusername))
-		status = C.sspi_send_client_authz_id(&sc.context, &outBuf, &outBufLen, cusername)
-		if status != C.SEC_E_OK {
-			return nil, fmt.Errorf("failed to send client authz id: %s", statusMessage(status))
+		if sc.username == "" {
+			var cusername *C.char
+			status := C.sspi_client_get_username(&sc.state, &cusername)
+			if status != C.SSPI_OK {
+				return nil, fmt.Errorf("unable to acquire username: %v", statusMessage(sc.state.status))
+			}
+			defer C.free(unsafe.Pointer(cusername))
+			sc.username = C.GoString((*C.char)(unsafe.Pointer(cusername)))
+		}
+
+		bytes := append([]byte{1, 0, 0, 0}, []byte(sc.username)...)
+		buf := (C.PVOID)(unsafe.Pointer(&bytes[0]))
+		bufLen := C.ULONG(len(bytes))
+		status := C.sspi_client_wrap_msg(&sc.state, buf, bufLen, &outBuf, &outBufLen)
+		if status != C.SSPI_OK {
+			return nil, fmt.Errorf("unable to wrap authz: %v", statusMessage(sc.state.status))
 		}
 
 		sc.done = true
@@ -164,14 +138,14 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 		}
 		cservicePrincipalName := C.CString(sc.servicePrincipalName)
 		defer C.free(unsafe.Pointer(cservicePrincipalName))
-		status = C.sspi_initialize_security_context(&sc.credHandle, sc.hasContext, &sc.context, buf, bufLen, &outBuf, &outBufLen, cservicePrincipalName)
-		sc.hasContext = 1
+
+		status := C.sspi_init_sec_context(&sc.state, cservicePrincipalName, buf, bufLen, &outBuf, &outBufLen)
 		switch status {
-		case C.SEC_E_OK:
+		case C.SSPI_OK:
 			sc.contextComplete = true
-		case C.SEC_I_CONTINUE_NEEDED, C.SEC_I_COMPLETE_AND_CONTINUE:
+		case C.SSPI_CONTINUE:
 		default:
-			return nil, fmt.Errorf("failed to initialize security context: %s", statusMessage(status))
+			return nil, fmt.Errorf("unable to initialize sec context: %v", statusMessage(sc.state.status))
 		}
 	}
 
@@ -190,9 +164,9 @@ var initOnce sync.Once
 var initError error
 
 func initSSPI() {
-	rc := C.load_secur32_dll()
+	rc := C.sspi_init()
 	if rc != 0 {
-		initError = fmt.Errorf("error loading libraries: %v", rc)
+		initError = fmt.Errorf("error initializing sspi: %v", rc)
 	}
 }
 

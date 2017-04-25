@@ -14,7 +14,6 @@ import (
 const GSSAPI = "GSSAPI"
 
 func newGSSAPIAuthenticator(cred *Cred) (Authenticator, error) {
-
 	if cred.Source != "" && cred.Source != "$external" {
 		return nil, fmt.Errorf("GSSAPI source must be empty or $external")
 	}

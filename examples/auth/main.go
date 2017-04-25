@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"flag"
 
@@ -38,10 +39,12 @@ func main() {
 	}
 
 	ctx := context.Background()
+	selectCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 
-	s, err := c.SelectServer(ctx, cluster.WriteSelector())
+	s, err := c.SelectServer(selectCtx, cluster.WriteSelector())
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("%v: %v", err, c.Model().Servers[0].LastError)
 	}
 
 	dbname := cs.Database
