@@ -5,93 +5,125 @@
 #include <stdio.h>
 #include "gss_wrapper.h"
 
-void gssapi_print_error(
-    OM_uint32 status_code
+OM_uint32 gssapi_canonicalize_name(
+    OM_uint32* minor_status, 
+    char *input_name, 
+    gss_OID input_name_type, 
+    gss_name_t *output_name
 )
 {
-    OM_uint32 message_context;
-    OM_uint32 maj_status;
-    OM_uint32 min_status;
-    gss_buffer_desc status_string;
+    OM_uint32 major_status;
+    gss_name_t imported_name = GSS_C_NO_NAME;
+    gss_buffer_desc buffer = GSS_C_EMPTY_BUFFER;
 
-    message_context = 0;
+    buffer.value = input_name;
+    buffer.length = strlen(input_name);
+    major_status = gss_import_name(minor_status, &buffer, input_name_type, &imported_name);
+    if (GSS_ERROR(major_status)) {
+        return major_status;
+    }
 
-    do {
-        maj_status = gss_display_status(&min_status, status_code, GSS_C_GSS_CODE, GSS_C_NO_OID, &message_context, &status_string);
-        printf("%.*s\n", (int)status_string.length, (char *)status_string.value);
-        gss_release_buffer(&min_status, &status_string);
-    } while (message_context != 0);
+    major_status = gss_canonicalize_name(minor_status, imported_name, (gss_OID)gss_mech_krb5, output_name);
+    if (imported_name != GSS_C_NO_NAME) {
+        OM_uint32 ignored;
+        gss_release_name(&ignored, &imported_name);
+    }
+
+    return major_status;
+}
+
+int gssapi_error_desc(
+    OM_uint32 maj_stat, 
+    OM_uint32 min_stat, 
+    char **desc
+)
+{
+    OM_uint32 stat = maj_stat;
+    int stat_type = GSS_C_GSS_CODE;
+    if (min_stat != 0) {
+        stat = min_stat;
+        stat_type = GSS_C_MECH_CODE;
+    }
+
+    OM_uint32 local_maj_stat, local_min_stat;
+    OM_uint32 msg_ctx = 0;
+    gss_buffer_desc desc_buffer;
+    do
+    {
+        local_maj_stat = gss_display_status(
+            &local_min_stat,
+            stat,
+            stat_type,
+            GSS_C_NO_OID,
+            &msg_ctx,
+            &desc_buffer
+        );
+        if (GSS_ERROR(local_maj_stat)) {
+            return GSSAPI_ERROR;
+        }
+
+        if (*desc) {
+            free(*desc);
+        }
+
+        *desc = malloc(desc_buffer.length+1);
+        memcpy(*desc, desc_buffer.value, desc_buffer.length+1);
+
+        gss_release_buffer(&local_min_stat, &desc_buffer);
+    }
+    while(msg_ctx != 0);
+
+    return GSSAPI_OK;
 }
 
 int gssapi_client_init(
     gssapi_client_state *client,
     char* spn,
-    char* username
+    char* username,
+    char* password
 )
 {
     client->cred = GSS_C_NO_CREDENTIAL;
     client->ctx = GSS_C_NO_CONTEXT;
 
-    gss_buffer_desc spn_buffer = GSS_C_EMPTY_BUFFER;
-
-    spn_buffer.value = spn;
-    spn_buffer.length = strlen(spn);
-    client->maj_stat = gss_import_name(&client->min_stat, &spn_buffer, GSS_C_NT_HOSTBASED_SERVICE, &client->spn);
-
+    client->maj_stat = gssapi_canonicalize_name(&client->min_stat, spn, GSS_C_NT_HOSTBASED_SERVICE, &client->spn);
     if (GSS_ERROR(client->maj_stat)) {
         return GSSAPI_ERROR;
     }
 
     if (username) {
-        gss_buffer_desc name_buffer = GSS_C_EMPTY_BUFFER;
-        name_buffer.value = username;
-        name_buffer.length = strlen(username);
         gss_name_t name;
-
-        client->maj_stat = gss_import_name(&client->min_stat, &name_buffer, GSS_C_NT_USER_NAME, &name);
+        client->maj_stat = gssapi_canonicalize_name(&client->min_stat, username, GSS_C_NT_USER_NAME, &name);
         if (GSS_ERROR(client->maj_stat)) {
             return GSSAPI_ERROR;
         }
 
-        client->maj_stat = gss_acquire_cred(&client->min_stat, name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET, GSS_C_INITIATE, &client->cred, NULL, NULL);
+        if (password) {
+            gss_buffer_desc password_buffer;
+            password_buffer.value = password;
+            password_buffer.length = strlen(password);
+            client->maj_stat = gss_acquire_cred_with_password(&client->min_stat, name, &password_buffer, GSS_C_INDEFINITE, GSS_C_NO_OID_SET, GSS_C_INITIATE, &client->cred, NULL, NULL);
+        } else {
+            client->maj_stat = gss_acquire_cred(&client->min_stat, name, GSS_C_INDEFINITE, GSS_C_NO_OID_SET, GSS_C_INITIATE, &client->cred, NULL, NULL);
+        }
+
         if (GSS_ERROR(client->maj_stat)) {
             return GSSAPI_ERROR;
         }
 
-        client->maj_stat = gss_release_name(&client->min_stat, &name);
-        if (GSS_ERROR(client->maj_stat)) {
-            return GSSAPI_ERROR;
-        }
+        OM_uint32 ignored;
+        gss_release_name(&ignored, &name);
     }
 
     return GSSAPI_OK;
 }
 
-int gssapi_client_destroy(
-    gssapi_client_state *client
-)
-{
-    OM_uint32 maj_stat, min_stat;
-    if (client->ctx != GSS_C_NO_CONTEXT) {
-        maj_stat = gss_delete_sec_context(&min_stat, &client->ctx, GSS_C_NO_BUFFER);
-    }
-
-    if (client->spn != GSS_C_NO_NAME) {
-        maj_stat = gss_release_name(&min_stat, &client->spn);
-    }
-
-    if (client->cred != GSS_C_NO_CREDENTIAL) {
-        maj_stat = gss_release_cred(&min_stat, &client->cred);
-    }
-
-    return GSSAPI_OK;
-}
-
-int gssapi_client_get_username(
+int gssapi_client_username(
     gssapi_client_state *client,
     char** username
 )
 {
+    OM_uint32 ignored;
     gss_name_t name = GSS_C_NO_NAME;
 
     client->maj_stat = gss_inquire_context(&client->min_stat, client->ctx, &name, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -102,54 +134,19 @@ int gssapi_client_get_username(
     gss_buffer_desc name_buffer;
     client->maj_stat = gss_display_name(&client->min_stat, name, &name_buffer, NULL);
     if (GSS_ERROR(client->maj_stat)) {
-        if (name_buffer.value) {
-            gss_release_buffer(&client->min_stat, &name_buffer);
-        }
-        gss_release_name(&client->min_stat, &name);
+        gss_release_name(&ignored, &name);
         return GSSAPI_ERROR;
     }
 
 	*username = malloc(name_buffer.length+1);
 	memcpy(*username, name_buffer.value, name_buffer.length+1);
 
-    gss_release_buffer(&client->min_stat, &name_buffer);
-    gss_release_name(&client->min_stat, &name);
+    gss_release_buffer(&ignored, &name_buffer);
+    gss_release_name(&ignored, &name);
     return GSSAPI_OK;
 }
 
-int gssapi_client_wrap_msg(
-    gssapi_client_state *client,
-    void* input,
-    size_t input_length,
-    void** output,
-    size_t* output_length 
-)
-{
-    gss_buffer_desc input_token = GSS_C_EMPTY_BUFFER;
-    gss_buffer_desc output_token = GSS_C_EMPTY_BUFFER;
-
-    input_token.value = input;
-    input_token.length = input_length;
-
-    client->maj_stat = gss_wrap(&client->min_stat, client->ctx, 0, GSS_C_QOP_DEFAULT, &input_token, NULL, &output_token);
-
-    if (output_token.length) {
-        *output = malloc(output_token.length);
-        *output_length = output_token.length;
-        memcpy(*output, output_token.value, output_token.length);
-
-        client->maj_stat = gss_release_buffer(&client->min_stat, &output_token);
-    }
-
-    if (GSS_ERROR(client->maj_stat)) {
-        gssapi_print_error(client->maj_stat);
-        return GSSAPI_ERROR;
-    }
-
-    return GSSAPI_OK;
-}
-
-int gssapi_init_sec_context(
+int gssapi_client_negotiate(
     gssapi_client_state *client,
     void* input,
     size_t input_length,
@@ -157,12 +154,12 @@ int gssapi_init_sec_context(
     size_t* output_length
 )
 {
-    gss_buffer_desc input_token = GSS_C_EMPTY_BUFFER;
-    gss_buffer_desc output_token = GSS_C_EMPTY_BUFFER;
+    gss_buffer_desc input_buffer = GSS_C_EMPTY_BUFFER;
+    gss_buffer_desc output_buffer = GSS_C_EMPTY_BUFFER;
 
     if (input) {
-        input_token.value = input;
-        input_token.length = input_length;
+        input_buffer.value = input;
+        input_buffer.length = input_length;
     }
 
     client->maj_stat = gss_init_sec_context(
@@ -174,25 +171,20 @@ int gssapi_init_sec_context(
         GSS_C_MUTUAL_FLAG | GSS_C_SEQUENCE_FLAG,
         0,
         GSS_C_NO_CHANNEL_BINDINGS,
-        &input_token,
+        &input_buffer,
         NULL,
-        &output_token,
+        &output_buffer,
         NULL,
         NULL
     );
 
-    if (output_token.length) {
-        *output = malloc(output_token.length);
-        *output_length = output_token.length;
-        memcpy(*output, output_token.value, output_token.length);
+    if (output_buffer.length) {
+        *output = malloc(output_buffer.length);
+        *output_length = output_buffer.length;
+        memcpy(*output, output_buffer.value, output_buffer.length);
 
-        OM_uint32 maj_stat, min_stat;
-        maj_stat = gss_release_buffer(&min_stat, &output_token);
-        if (GSS_ERROR(maj_stat)) {
-            client->maj_stat = maj_stat;
-            client->min_stat = min_stat;
-            return GSSAPI_ERROR;
-        }
+        OM_uint32 ignored;
+        gss_release_buffer(&ignored, &output_buffer);
     }
 
     if (GSS_ERROR(client->maj_stat)) {
@@ -204,3 +196,53 @@ int gssapi_init_sec_context(
     return GSSAPI_OK;
 }
 
+int gssapi_client_wrap_msg(
+    gssapi_client_state *client,
+    void* input,
+    size_t input_length,
+    void** output,
+    size_t* output_length 
+)
+{
+    gss_buffer_desc input_buffer = GSS_C_EMPTY_BUFFER;
+    gss_buffer_desc output_buffer = GSS_C_EMPTY_BUFFER;
+
+    input_buffer.value = input;
+    input_buffer.length = input_length;
+
+    client->maj_stat = gss_wrap(&client->min_stat, client->ctx, 0, GSS_C_QOP_DEFAULT, &input_buffer, NULL, &output_buffer);
+
+    if (output_buffer.length) {
+        *output = malloc(output_buffer.length);
+        *output_length = output_buffer.length;
+        memcpy(*output, output_buffer.value, output_buffer.length);
+
+        gss_release_buffer(&client->min_stat, &output_buffer);
+    }
+
+    if (GSS_ERROR(client->maj_stat)) {
+        return GSSAPI_ERROR;
+    }
+
+    return GSSAPI_OK;
+}
+
+int gssapi_client_destroy(
+    gssapi_client_state *client
+)
+{
+    OM_uint32 ignored;
+    if (client->ctx != GSS_C_NO_CONTEXT) {
+        gss_delete_sec_context(&ignored, &client->ctx, GSS_C_NO_BUFFER);
+    }
+
+    if (client->spn != GSS_C_NO_NAME) {
+        gss_release_name(&ignored, &client->spn);
+    }
+
+    if (client->cred != GSS_C_NO_CREDENTIAL) {
+        gss_release_cred(&ignored, &client->cred);
+    }
+
+    return GSSAPI_OK;
+}

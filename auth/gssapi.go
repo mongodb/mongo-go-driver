@@ -42,5 +42,5 @@ func (a *GSSAPIAuthenticator) Auth(ctx context.Context, c conn.Connection) error
 	if err != nil {
 		return err
 	}
-	return conductSaslConversation(ctx, c, "$external", client)
+	return ConductSaslConversation(ctx, c, "$external", client)
 }

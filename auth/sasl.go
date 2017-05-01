@@ -10,17 +10,20 @@ import (
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
-type saslClient interface {
+// SaslClient is the client piece of a sasl conversation.
+type SaslClient interface {
 	Start() (string, []byte, error)
 	Next(challenge []byte) ([]byte, error)
 	Completed() bool
 }
 
-type saslClientCloser interface {
+// SaslClientCloser is a SaslClient that has resources to clean up.
+type SaslClientCloser interface {
+	SaslClient
 	Close()
 }
 
-func conductSaslConversation(ctx context.Context, c conn.Connection, db string, client saslClient) error {
+func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, client SaslClient) error {
 
 	// Arbiters cannot be authenticated
 	if c.Model().Kind == model.RSArbiter {
@@ -31,7 +34,7 @@ func conductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 		db = defaultAuthDB
 	}
 
-	if closer, ok := client.(saslClientCloser); ok {
+	if closer, ok := client.(SaslClientCloser); ok {
 		defer closer.Close()
 	}
 

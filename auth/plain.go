@@ -29,7 +29,7 @@ type PlainAuthenticator struct {
 
 // Auth authenticates the connection.
 func (a *PlainAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
-	return conductSaslConversation(ctx, c, "$external", &plainSaslClient{
+	return ConductSaslConversation(ctx, c, "$external", &plainSaslClient{
 		username: a.Username,
 		password: a.Password,
 	})

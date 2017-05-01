@@ -44,7 +44,7 @@ type ScramSHA1Authenticator struct {
 
 // Auth authenticates the connection.
 func (a *ScramSHA1Authenticator) Auth(ctx context.Context, c conn.Connection) error {
-	return conductSaslConversation(ctx, c, a.DB, &scramSaslClient{
+	return ConductSaslConversation(ctx, c, a.DB, &scramSaslClient{
 		username:       a.Username,
 		password:       a.Password,
 		nonceGenerator: a.NonceGenerator,
