@@ -89,11 +89,13 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 
 	var cusername *C.char
 	var cpassword *C.char
-	if sc.passwordSet {
+	if sc.username != "" {
 		cusername = C.CString(sc.username)
 		defer C.free(unsafe.Pointer(cusername))
-		cpassword = C.CString(sc.password)
-		defer C.free(unsafe.Pointer(cpassword))
+		if sc.passwordSet {
+			cpassword = C.CString(sc.password)
+			defer C.free(unsafe.Pointer(cpassword))
+		}
 	}
 	status := C.sspi_client_init(&sc.state, cusername, cpassword)
 
