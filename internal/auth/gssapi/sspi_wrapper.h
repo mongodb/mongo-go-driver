@@ -29,30 +29,30 @@ int sspi_client_init(
     char* password
 );
 
-int sspi_client_destroy(
-    sspi_client_state *client
-);
-
-int sspi_client_get_username(
+int sspi_client_username(
     sspi_client_state *client,
     char** username
 );
 
-int sspi_client_wrap_msg(
-    sspi_client_state *client,
-    PVOID* input,
-    ULONG input_length,
-    PVOID* output,
-    ULONG* output_length 
-);
-
-int sspi_init_sec_context(
+int sspi_client_negotiate(
     sspi_client_state *client,
     char* spn,
     PVOID input,
     ULONG input_length,
     PVOID* output,
     ULONG* output_length
+);
+
+int sspi_client_wrap_msg(
+    sspi_client_state *client,
+    PVOID input,
+    ULONG input_length,
+    PVOID* output,
+    ULONG* output_length 
+);
+
+int sspi_client_destroy(
+    sspi_client_state *client
 );
 
 #endif

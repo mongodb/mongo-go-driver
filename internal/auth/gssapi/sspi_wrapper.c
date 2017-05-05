@@ -36,24 +36,24 @@ int sspi_client_init(
 	TimeStamp timestamp;
 
     if (username) {
-        SEC_WINNT_AUTH_IDENTITY auth_identity;
-        
-    #ifdef _UNICODE
-        auth_identity.Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
-    #else
-        auth_identity.Flags = SEC_WINNT_AUTH_IDENTITY_ANSI;
-    #endif
-        auth_identity.User = (LPSTR) username;
-        auth_identity.UserLength = strlen(username);
-        auth_identity.Password = NULL;
-        auth_identity.PasswordLength = 0;
         if (password) {
+            SEC_WINNT_AUTH_IDENTITY auth_identity;
+            
+        #ifdef _UNICODE
+            auth_identity.Flags = SEC_WINNT_AUTH_IDENTITY_UNICODE;
+        #else
+            auth_identity.Flags = SEC_WINNT_AUTH_IDENTITY_ANSI;
+        #endif
+            auth_identity.User = (LPSTR) username;
+            auth_identity.UserLength = strlen(username);
             auth_identity.Password = (LPSTR) password;
             auth_identity.PasswordLength = strlen(password);
+            auth_identity.Domain = NULL;
+            auth_identity.DomainLength = 0;
+            client->status = sspi_functions->AcquireCredentialsHandle(NULL, SSPI_PACKAGE_NAME, SECPKG_CRED_OUTBOUND, NULL, &auth_identity, NULL, NULL, &client->cred, &timestamp);
+        } else {
+            client->status = sspi_functions->AcquireCredentialsHandle(username, SSPI_PACKAGE_NAME, SECPKG_CRED_OUTBOUND, NULL, NULL, NULL, NULL, &client->cred, &timestamp);
         }
-        auth_identity.Domain = NULL;
-        auth_identity.DomainLength = 0;
-        client->status = sspi_functions->AcquireCredentialsHandle(NULL, SSPI_PACKAGE_NAME, SECPKG_CRED_OUTBOUND, NULL, &auth_identity, NULL, NULL, &client->cred, &timestamp);
     } else {
         client->status = sspi_functions->AcquireCredentialsHandle(NULL, SSPI_PACKAGE_NAME, SECPKG_CRED_OUTBOUND, NULL, NULL, NULL, NULL, &client->cred, &timestamp);
     }
@@ -65,20 +65,7 @@ int sspi_client_init(
     return SSPI_OK;
 }
 
-int sspi_client_destroy(
-    sspi_client_state *client
-)
-{
-    if (client->has_ctx > 0) {
-        sspi_functions->DeleteSecurityContext(&client->ctx);
-    }
-
-    sspi_functions->FreeCredentialsHandle(&client->cred);
-
-    return SSPI_OK;
-}
-
-int sspi_client_get_username(
+int sspi_client_username(
     sspi_client_state *client,
     char** username
 )
@@ -94,9 +81,70 @@ int sspi_client_get_username(
 	*username = malloc(len);
 	memcpy(*username, names.sUserName, len);
 
-	client->status = sspi_functions->FreeContextBuffer(names.sUserName);
-    if (client->status != SEC_E_OK) {
+	sspi_functions->FreeContextBuffer(names.sUserName);
+
+    return SSPI_OK;
+}
+
+int sspi_client_negotiate(
+    sspi_client_state *client,
+    char* spn,
+    PVOID input,
+    ULONG input_length,
+    PVOID* output,
+    ULONG* output_length
+)
+{
+    SecBufferDesc inbuf;
+	SecBuffer in_bufs[1];
+	SecBufferDesc outbuf;
+	SecBuffer out_bufs[1];
+
+	if (client->has_ctx > 0) {
+		inbuf.ulVersion = SECBUFFER_VERSION;
+		inbuf.cBuffers = 1;
+		inbuf.pBuffers = in_bufs;
+		in_bufs[0].pvBuffer = input;
+		in_bufs[0].cbBuffer = input_length;
+		in_bufs[0].BufferType = SECBUFFER_TOKEN;
+	}
+
+	outbuf.ulVersion = SECBUFFER_VERSION;
+	outbuf.cBuffers = 1;
+	outbuf.pBuffers = out_bufs;
+	out_bufs[0].pvBuffer = NULL;
+	out_bufs[0].cbBuffer = 0;
+	out_bufs[0].BufferType = SECBUFFER_TOKEN;
+
+	ULONG context_attr = 0;
+
+	client->status = sspi_functions->InitializeSecurityContext(
+        &client->cred,
+        client->has_ctx > 0 ? &client->ctx : NULL,
+        (LPSTR) spn,
+        ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_MUTUAL_AUTH,
+        0,
+        SECURITY_NETWORK_DREP,
+        client->has_ctx > 0 ? &inbuf : NULL,
+        0,
+        &client->ctx,
+        &outbuf,
+        &context_attr,
+        NULL);
+
+    if (client->status != SEC_E_OK && client->status != SEC_I_CONTINUE_NEEDED) {
         return SSPI_ERROR;
+    }
+
+    client->has_ctx = 1;
+
+	*output = malloc(out_bufs[0].cbBuffer);
+	*output_length = out_bufs[0].cbBuffer;
+	memcpy(*output, out_bufs[0].pvBuffer, *output_length);
+    sspi_functions->FreeContextBuffer(out_bufs[0].pvBuffer);
+
+    if (client->status == SEC_I_CONTINUE_NEEDED) {
+        return SSPI_CONTINUE;
     }
 
     return SSPI_OK;
@@ -104,7 +152,7 @@ int sspi_client_get_username(
 
 int sspi_client_wrap_msg(
     sspi_client_state *client,
-    PVOID* input,
+    PVOID input,
     ULONG input_length,
     PVOID* output,
     ULONG* output_length 
@@ -156,62 +204,15 @@ int sspi_client_wrap_msg(
 	return SSPI_OK;
 }
 
-int sspi_init_sec_context(
-    sspi_client_state *client,
-    char* spn,
-    PVOID input,
-    ULONG input_length,
-    PVOID* output,
-    ULONG* output_length
+int sspi_client_destroy(
+    sspi_client_state *client
 )
 {
-    SecBufferDesc inbuf;
-	SecBuffer in_bufs[1];
-	SecBufferDesc outbuf;
-	SecBuffer out_bufs[1];
-
-	if (client->has_ctx > 0) {
-		inbuf.ulVersion = SECBUFFER_VERSION;
-		inbuf.cBuffers = 1;
-		inbuf.pBuffers = in_bufs;
-		in_bufs[0].pvBuffer = input;
-		in_bufs[0].cbBuffer = input_length;
-		in_bufs[0].BufferType = SECBUFFER_TOKEN;
-	}
-
-	outbuf.ulVersion = SECBUFFER_VERSION;
-	outbuf.cBuffers = 1;
-	outbuf.pBuffers = out_bufs;
-	out_bufs[0].pvBuffer = NULL;
-	out_bufs[0].cbBuffer = 0;
-	out_bufs[0].BufferType = SECBUFFER_TOKEN;
-
-	ULONG context_attr = 0;
-
-	client->status = sspi_functions->InitializeSecurityContext(
-        &client->cred,
-        client->has_ctx > 0 ? &client->ctx : NULL,
-        (LPSTR) spn,
-        ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_MUTUAL_AUTH,
-        0,
-        SECURITY_NETWORK_DREP,
-        client->has_ctx > 0 ? &inbuf : NULL,
-        0,
-        &client->ctx,
-        &outbuf,
-        &context_attr,
-        NULL);
-
-	*output = malloc(out_bufs[0].cbBuffer);
-	*output_length = out_bufs[0].cbBuffer;
-	memcpy(*output, out_bufs[0].pvBuffer, *output_length);
-    client->has_ctx = 1;
-
-    if (client->status == SEC_I_CONTINUE_NEEDED || client->status == SEC_I_COMPLETE_AND_CONTINUE) {
-        return SSPI_CONTINUE;
-    } else if (client->status == SEC_E_OK) {
-        return SSPI_OK;
+    if (client->has_ctx > 0) {
+        sspi_functions->DeleteSecurityContext(&client->ctx);
     }
 
-    return SSPI_ERROR;
+    sspi_functions->FreeCredentialsHandle(&client->cred);
+
+    return SSPI_OK;
 }

@@ -98,7 +98,7 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 	status := C.sspi_client_init(&sc.state, cusername, cpassword)
 
 	if status != C.SSPI_OK {
-		return mechName, nil, fmt.Errorf("unable to intitialize sspi client state: %s", statusMessage(sc.state.status))
+		return mechName, nil, sc.getError("unable to intitialize client")
 	}
 
 	return mechName, nil, nil
@@ -112,9 +112,9 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 	if sc.contextComplete {
 		if sc.username == "" {
 			var cusername *C.char
-			status := C.sspi_client_get_username(&sc.state, &cusername)
+			status := C.sspi_client_username(&sc.state, &cusername)
 			if status != C.SSPI_OK {
-				return nil, fmt.Errorf("unable to acquire username: %v", statusMessage(sc.state.status))
+				return nil, sc.getError("unable to acquire username")
 			}
 			defer C.free(unsafe.Pointer(cusername))
 			sc.username = C.GoString((*C.char)(unsafe.Pointer(cusername)))
@@ -125,7 +125,7 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 		bufLen := C.ULONG(len(bytes))
 		status := C.sspi_client_wrap_msg(&sc.state, buf, bufLen, &outBuf, &outBufLen)
 		if status != C.SSPI_OK {
-			return nil, fmt.Errorf("unable to wrap authz: %v", statusMessage(sc.state.status))
+			return nil, sc.getError("unable to wrap authz")
 		}
 
 		sc.done = true
@@ -139,13 +139,13 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 		cservicePrincipalName := C.CString(sc.servicePrincipalName)
 		defer C.free(unsafe.Pointer(cservicePrincipalName))
 
-		status := C.sspi_init_sec_context(&sc.state, cservicePrincipalName, buf, bufLen, &outBuf, &outBufLen)
+		status := C.sspi_client_negotiate(&sc.state, cservicePrincipalName, buf, bufLen, &outBuf, &outBufLen)
 		switch status {
 		case C.SSPI_OK:
 			sc.contextComplete = true
 		case C.SSPI_CONTINUE:
 		default:
-			return nil, fmt.Errorf("unable to initialize sec context: %v", statusMessage(sc.state.status))
+			return nil, sc.getError("unable to negotiate with server")
 		}
 	}
 
@@ -160,6 +160,10 @@ func (sc *SaslClient) Completed() bool {
 	return sc.done
 }
 
+func (sc *SaslClient) getError(prefix string) error {
+	return getError(prefix, sc.state.status)
+}
+
 var initOnce sync.Once
 var initError error
 
@@ -170,7 +174,7 @@ func initSSPI() {
 	}
 }
 
-func statusMessage(status C.SECURITY_STATUS) string {
+func getError(prefix string, status C.SECURITY_STATUS) error {
 	var s string
 	switch status {
 	case C.SEC_E_ALGORITHM_MISMATCH:
@@ -326,8 +330,8 @@ func statusMessage(status C.SECURITY_STATUS) string {
 	case C.SEC_I_RENEGOTIATE:
 		s = "The context data must be renegotiated with the peer."
 	default:
-		return fmt.Sprintf("status code 0x%x", uint32(status))
+		return fmt.Errorf("%s: 0x%x", prefix, uint32(status))
 	}
 
-	return fmt.Sprintf("status code 0x%x: %s", uint32(status), s)
+	return fmt.Errorf("%s: %s(0x%x)", prefix, s, uint32(status))
 }

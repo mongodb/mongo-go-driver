@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"time"
 
 	"flag"
 
@@ -37,8 +38,10 @@ func main() {
 	}
 
 	ctx := context.Background()
+	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
-	s, err := c.SelectServer(ctx, cluster.WriteSelector())
+	s, err := c.SelectServer(timeoutCtx, cluster.WriteSelector())
 	if err != nil {
 		log.Fatalf("%v: %v", err, c.Model().Servers[0].LastError)
 	}
