@@ -30,4 +30,4 @@ Commits to master are run automatically on [evergreen](https://evergreen.mongodb
 -------------------------
 ## License
 
-The MongoDB Go Driver is licensed under the [Apache License](LICENSE.md).
+The MongoDB Go Driver is licensed under the [Apache License](LICENSE).
