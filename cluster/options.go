@@ -63,6 +63,10 @@ func WithConnString(cs connstring.ConnString) Option {
 
 		c.seedList = cs.Hosts
 
+		if cs.ConnectTimeout > 0 {
+			connOpts = append(connOpts, conn.WithConnectTimeout(cs.ConnectTimeout))
+		}
+
 		if cs.HeartbeatInterval > 0 {
 			c.serverOpts = append(c.serverOpts, server.WithHeartbeatInterval(cs.HeartbeatInterval))
 		}

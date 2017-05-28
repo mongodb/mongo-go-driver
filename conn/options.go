@@ -8,10 +8,11 @@ import (
 
 func newConfig(opts ...Option) *config {
 	cfg := &config{
-		codec:       msg.NewWireProtocolCodec(),
-		dialer:      Dial,
-		idleTimeout: 10 * time.Minute,
-		lifeTimeout: 30 * time.Minute,
+		codec:          msg.NewWireProtocolCodec(),
+		connectTimeout: 30 * time.Second,
+		dialer:         Dial,
+		idleTimeout:    10 * time.Minute,
+		lifeTimeout:    30 * time.Minute,
 	}
 
 	for _, opt := range opts {
@@ -25,11 +26,13 @@ func newConfig(opts ...Option) *config {
 type Option func(*config)
 
 type config struct {
-	appName     string
-	codec       msg.Codec
-	dialer      Dialer
-	idleTimeout time.Duration
-	lifeTimeout time.Duration
+	appName        string
+	codec          msg.Codec
+	connectTimeout time.Duration
+	dialer         Dialer
+	idleTimeout    time.Duration
+	keepAlive      time.Duration
+	lifeTimeout    time.Duration
 }
 
 // WithAppName sets the application name which gets
@@ -45,6 +48,15 @@ func WithAppName(name string) Option {
 func WithCodec(codec msg.Codec) Option {
 	return func(c *config) {
 		c.codec = codec
+	}
+}
+
+// WithConnectTimeout configures the maximum amount of time
+// a dial will wait for a connect to complete. The default
+// is 30 seconds.
+func WithConnectTimeout(timeout time.Duration) Option {
+	return func(c *config) {
+		c.connectTimeout = timeout
 	}
 }
 
@@ -67,6 +79,15 @@ func WithWrappedDialer(wrapper func(dialer Dialer) Dialer) Option {
 func WithIdleTimeout(timeout time.Duration) Option {
 	return func(c *config) {
 		c.idleTimeout = timeout
+	}
+}
+
+// WithKeepAlive configures the the keep-alive period for
+// an active network connection. If zero, keep-alives are
+// not enabled.
+func WithKeepAlive(keepAlive time.Duration) Option {
+	return func(c *config) {
+		c.keepAlive = keepAlive
 	}
 }
 

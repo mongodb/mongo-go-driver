@@ -32,9 +32,7 @@ func TestConn_Initialize(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	require.True(t, subject.Alive())
 	require.False(t, subject.Expired())
@@ -48,9 +46,7 @@ func TestConn_ReadWrite(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	isMasterRequest := msg.NewCommand(
 		msg.NextRequestID(),
@@ -77,9 +73,8 @@ func TestConn_Expired_due_to_idle_time(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn(WithIdleTimeout(2 * time.Second))
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
+
 	require.False(t, subject.Expired())
 	time.Sleep(4 * time.Second)
 	require.True(t, subject.Expired())
@@ -93,9 +88,8 @@ func TestConn_Expired_due_to_life_time(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn(WithLifeTimeout(2 * time.Second))
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
+
 	require.False(t, subject.Expired())
 	time.Sleep(4 * time.Second)
 	require.True(t, subject.Expired())
@@ -109,9 +103,7 @@ func TestConnection_Write_cancel(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	isMasterRequest := msg.NewCommand(
 		msg.NextRequestID(),
@@ -136,9 +128,7 @@ func TestConnection_Write_timeout(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	isMasterRequest := msg.NewCommand(
 		msg.NextRequestID(),
@@ -160,9 +150,7 @@ func TestConnection_Write_after_connection_is_dead(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	isMasterRequest := msg.NewCommand(
 		msg.NextRequestID(),
@@ -186,9 +174,7 @@ func TestConnection_Read_cancel(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -207,9 +193,7 @@ func TestConnection_Read_timeout(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	_, err = subject.Read(&timeoutContext{}, 0)
 	require.Error(t, err)
@@ -225,9 +209,7 @@ func TestConnection_Read_after_connection_is_dead(t *testing.T) {
 	t.Parallel()
 
 	subject, err := createIntegrationTestConn()
-	if err != nil {
-		t.Error(err)
-	}
+	require.NoError(t, err)
 
 	_, err = subject.Read(&timeoutContext{}, 0)
 	require.Error(t, err)

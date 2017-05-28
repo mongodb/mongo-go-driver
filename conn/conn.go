@@ -29,7 +29,12 @@ func New(ctx context.Context, addr model.Addr, opts ...Option) (Connection, erro
 
 	cfg := newConfig(opts...)
 
-	netConn, err := cfg.dialer(ctx, addr.Network(), addr.String())
+	dialer := net.Dialer{
+		Timeout:   cfg.connectTimeout,
+		KeepAlive: cfg.keepAlive,
+	}
+
+	netConn, err := cfg.dialer(ctx, &dialer, addr.Network(), addr.String())
 	if err != nil {
 		return nil, err
 	}
