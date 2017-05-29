@@ -15,7 +15,10 @@ type monitor interface {
 
 // StartMonitor begins monitoring a cluster.
 func StartMonitor(opts ...Option) (*Monitor, error) {
-	cfg := newConfig(opts...)
+	cfg, err := newConfig(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	m := &Monitor{
 		cfg:         cfg,

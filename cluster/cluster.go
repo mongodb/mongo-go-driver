@@ -25,7 +25,10 @@ func New(opts ...Option) (*Cluster, error) {
 		return nil, err
 	}
 
-	cluster := NewWithMonitor(monitor, opts...)
+	cluster, err := NewWithMonitor(monitor, opts...)
+	if err != nil {
+		return nil, err
+	}
 	cluster.ownsMonitor = true
 	return cluster, nil
 }
@@ -35,9 +38,13 @@ func New(opts ...Option) (*Cluster, error) {
 // the monitor will not be stopped. Any unspecified
 // options will have their default value pulled from the monitor.
 // Any monitor specific options will be ignored.
-func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
+func NewWithMonitor(monitor *Monitor, opts ...Option) (*Cluster, error) {
+	cfg, err := monitor.cfg.reconfig(opts...)
+	if err != nil {
+		return nil, err
+	}
 	cluster := &Cluster{
-		cfg:          monitor.cfg.reconfig(opts...),
+		cfg:          cfg,
 		stateModel:   &model.Cluster{},
 		stateServers: make(map[model.Addr]*server.Server),
 		monitor:      monitor,
@@ -50,7 +57,7 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Cluster {
 		}
 	}()
 
-	return cluster
+	return cluster, nil
 }
 
 // ServerSelector is a function that selects a server.
@@ -166,8 +173,7 @@ func selectServers(ctx context.Context, m monitor, selector ServerSelector) ([]*
 }
 
 // applyUpdate handles updating the current description as well
-// as ensure that the servers are still accurate. This method
-// *must* be called under the descLock.
+// as ensure that the servers are still accurate.
 func (c *Cluster) applyUpdate(cm *model.Cluster) {
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
@@ -181,7 +187,14 @@ func (c *Cluster) applyUpdate(cm *model.Cluster) {
 
 	for _, added := range diff.AddedServers {
 		if mon, ok := c.monitor.ServerMonitor(added.Addr); ok {
-			c.stateServers[added.Addr] = server.NewWithMonitor(mon, c.cfg.serverOpts...)
+			m, err := server.NewWithMonitor(mon, c.cfg.serverOpts...)
+			if err != nil {
+				// TODO: We need to log this... notify someone of something
+				// here. The server couldn't be added because of some
+				// reason.
+				continue
+			}
+			c.stateServers[added.Addr] = m
 		}
 	}
 

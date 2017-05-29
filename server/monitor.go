@@ -19,7 +19,10 @@ const minHeartbeatFreqMS = 500 * time.Millisecond
 
 // StartMonitor returns a new Monitor.
 func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
-	cfg := newConfig(opts...)
+	cfg, err := newConfig(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	done := make(chan struct{}, 1)
 	checkNow := make(chan struct{}, 1)

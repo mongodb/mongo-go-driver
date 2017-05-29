@@ -27,7 +27,10 @@ type Opener func(context.Context, model.Addr, ...Option) (Connection, error)
 // New opens a connection to a server.
 func New(ctx context.Context, addr model.Addr, opts ...Option) (Connection, error) {
 
-	cfg := newConfig(opts...)
+	cfg, err := newConfig(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	dialer := net.Dialer{
 		Timeout:   cfg.connectTimeout,

@@ -6,7 +6,7 @@ import (
 	"github.com/10gen/mongo-go-driver/conn"
 )
 
-func newConfig(opts ...Option) *config {
+func newConfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		opener:            conn.New,
 		heartbeatInterval: 10 * time.Second,
@@ -14,13 +14,12 @@ func newConfig(opts ...Option) *config {
 		maxIdleConns:      100,
 	}
 
-	cfg.apply(opts...)
-
-	return cfg
+	err := cfg.apply(opts...)
+	return cfg, err
 }
 
 // Option configures a server.
-type Option func(*config)
+type Option func(*config) error
 
 type config struct {
 	connOpts          []conn.Option
@@ -30,7 +29,7 @@ type config struct {
 	maxIdleConns      uint16
 }
 
-func (c *config) reconfig(opts ...Option) *config {
+func (c *config) reconfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		connOpts:          c.connOpts,
 		opener:            c.opener,
@@ -39,37 +38,45 @@ func (c *config) reconfig(opts ...Option) *config {
 		maxIdleConns:      c.maxIdleConns,
 	}
 
-	cfg.apply(opts...)
-	return cfg
+	err := cfg.apply(opts...)
+	return cfg, err
 }
 
-func (c *config) apply(opts ...Option) {
+func (c *config) apply(opts ...Option) error {
 	for _, opt := range opts {
-		opt(c)
+		err := opt(c)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // WithConnectionOpener configures the opener to use
 // to create a new connection.
 func WithConnectionOpener(opener conn.Opener) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.opener = opener
+		return nil
 	}
 }
 
 // WithWrappedConnectionOpener configures a new opener to be used
 // which wraps the current opener.
 func WithWrappedConnectionOpener(wrapper func(conn.Opener) conn.Opener) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.opener = wrapper(c.opener)
+		return nil
 	}
 }
 
 // WithConnectionOptions configures server's connections. The options provided
 // overwrite all previously configured options.
 func WithConnectionOptions(opts ...conn.Option) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.connOpts = opts
+		return nil
 	}
 }
 
@@ -77,8 +84,9 @@ func WithConnectionOptions(opts ...conn.Option) Option {
 // additional options. The options provided are appended to any
 // current options and may override previously configured options.
 func WithMoreConnectionOptions(opts ...conn.Option) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.connOpts = append(c.connOpts, opts...)
+		return nil
 	}
 }
 
@@ -86,8 +94,9 @@ func WithMoreConnectionOptions(opts ...conn.Option) Option {
 // This option will be ignored when creating a Server with a
 // pre-existing monitor.
 func WithHeartbeatInterval(interval time.Duration) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.heartbeatInterval = interval
+		return nil
 	}
 }
 
@@ -95,15 +104,17 @@ func WithHeartbeatInterval(interval time.Duration) Option {
 // allow for a given server. If max is 0, then there is no upper
 // limit on the number of connections.
 func WithMaxConnections(max uint16) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.maxConns = max
+		return nil
 	}
 }
 
 // WithMaxIdleConnections configures the maximum number of idle connections
 // allowed for the server.
 func WithMaxIdleConnections(size uint16) Option {
-	return func(c *config) {
+	return func(c *config) error {
 		c.maxIdleConns = size
+		return nil
 	}
 }

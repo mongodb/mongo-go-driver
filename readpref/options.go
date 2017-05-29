@@ -7,14 +7,15 @@ import (
 )
 
 // Option configures a read preference
-type Option func(*ReadPref)
+type Option func(*ReadPref) error
 
 // WithMaxStaleness sets the maximum staleness a
 // server is allowed.
 func WithMaxStaleness(ms time.Duration) Option {
-	return func(rp *ReadPref) {
+	return func(rp *ReadPref) error {
 		rp.maxStaleness = ms
 		rp.maxStalenessSet = true
+		return nil
 	}
 }
 
@@ -29,7 +30,8 @@ func WithTags(tags ...string) Option {
 // a server. The last call to WithTags or WithTagSets
 // overrides all previous calls to either method.
 func WithTagSets(tagSets ...model.TagSet) Option {
-	return func(rp *ReadPref) {
+	return func(rp *ReadPref) error {
 		rp.tagSets = tagSets
+		return nil
 	}
 }

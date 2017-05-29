@@ -24,7 +24,10 @@ func New(addr model.Addr, opts ...Option) (*Server, error) {
 		return nil, err
 	}
 
-	s := NewWithMonitor(monitor, opts...)
+	s, err := NewWithMonitor(monitor, opts...)
+	if err != nil {
+		return nil, err
+	}
 	s.ownsMonitor = true
 	return s, nil
 }
@@ -34,8 +37,11 @@ func New(addr model.Addr, opts ...Option) (*Server, error) {
 // the monitor will not be stopped. Any unspecified
 // options will have their default value pulled from the monitor.
 // Any monitor specific options will be ignored.
-func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
-	cfg := monitor.cfg.reconfig(opts...)
+func NewWithMonitor(monitor *Monitor, opts ...Option) (*Server, error) {
+	cfg, err := monitor.cfg.reconfig(opts...)
+	if err != nil {
+		return nil, err
+	}
 	server := &Server{
 		monitor: monitor,
 	}
@@ -58,7 +64,7 @@ func NewWithMonitor(monitor *Monitor, opts ...Option) *Server {
 		}
 	}()
 
-	return server
+	return server, nil
 }
 
 // Server is a logical connection to a server.
