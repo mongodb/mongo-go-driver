@@ -23,6 +23,7 @@ type SaslClientCloser interface {
 	Close()
 }
 
+// ConductSaslConversation handles running a sasl conversation with MongoDB.
 func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, client SaslClient) error {
 
 	// Arbiters cannot be authenticated
