@@ -4,9 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/internal"
-	"github.com/10gen/mongo-go-driver/msg"
 )
 
 // AggregationOptions are the options for the aggregate command.
@@ -43,28 +41,9 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline in
 		},
 	}
 
-	request := msg.NewCommand(
-		msg.NextRequestID(),
-		ns.DB,
-		slaveOk(s.ReadPref),
-		aggregateCommand,
-	)
-
 	var result cursorReturningResult
 
-	c, err := s.Connection(ctx)
-	if err != nil {
-		return nil, internal.WrapError(err, "unable to get a connection to execute aggregate")
-	}
-	defer c.Close()
-
-	if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
-		msg.AddMeta(request, map[string]interface{}{
-			"$readPreference": rpMeta,
-		})
-	}
-
-	err = conn.ExecuteCommand(ctx, c, request, &result)
+	err := runMayUseSecondary(ctx, s, ns.DB, aggregateCommand, &result)
 	if err != nil {
 		return nil, internal.WrapError(err, "failed to execute aggregate")
 	}

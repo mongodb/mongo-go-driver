@@ -6,13 +6,17 @@ import (
 	"github.com/10gen/mongo-go-driver/readpref"
 )
 
-func slaveOk(rp *readpref.ReadPref) bool {
-	if rp == nil {
+func slaveOk(selectedServer *SelectedServer) bool {
+	if selectedServer.ClusterKind == model.Single {
+		return true
+	}
+
+	if selectedServer.ReadPref == nil {
 		// assume primary
 		return false
 	}
 
-	return rp.Mode() != readpref.PrimaryMode
+	return selectedServer.ReadPref.Mode() != readpref.PrimaryMode
 }
 
 func readPrefMeta(rp *readpref.ReadPref, kind model.ServerKind) interface{} {

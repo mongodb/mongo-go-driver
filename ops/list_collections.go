@@ -3,10 +3,6 @@ package ops
 import (
 	"context"
 	"time"
-
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/internal"
-	"github.com/10gen/mongo-go-driver/msg"
 )
 
 // ListCollectionsOptions are the options for listing collections.
@@ -38,21 +34,9 @@ func ListCollections(ctx context.Context, s *SelectedServer, db string, options 
 			BatchSize: options.BatchSize,
 		},
 	}
-	request := msg.NewCommand(
-		msg.NextRequestID(),
-		db,
-		slaveOk(s.ReadPref),
-		listCollectionsCommand,
-	)
-
-	c, err := s.Connection(ctx)
-	if err != nil {
-		return nil, internal.WrapError(err, "unable to get a connection to execute listCollections")
-	}
-	defer c.Close()
 
 	var result cursorReturningResult
-	err = conn.ExecuteCommand(ctx, c, request, &result)
+	err := runMustUsePrimary(ctx, s, db, listCollectionsCommand, &result)
 	if err != nil {
 		return nil, err
 	}

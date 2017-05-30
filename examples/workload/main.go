@@ -133,7 +133,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 				bson.D{{"$limit", limit}},
 			}
 
-			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, rp}, ns, pipeline, ops.AggregationOptions{
+			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, pipeline, ops.AggregationOptions{
 				BatchSize: 200,
 			})
 			if err != nil {

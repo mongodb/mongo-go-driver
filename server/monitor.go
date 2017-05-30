@@ -15,7 +15,7 @@ import (
 	"github.com/10gen/mongo-go-driver/msg"
 )
 
-const minHeartbeatFreqMS = 500 * time.Millisecond
+const minHeartbeatInterval = 500 * time.Millisecond
 
 // StartMonitor returns a new Monitor.
 func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
@@ -63,7 +63,7 @@ func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
 
 		// restart the timers
 		rateLimitTimer.Stop()
-		rateLimitTimer.Reset(minHeartbeatFreqMS)
+		rateLimitTimer.Reset(minHeartbeatInterval)
 		heartbeatTimer.Stop()
 		heartbeatTimer.Reset(cfg.heartbeatInterval)
 	}

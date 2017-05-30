@@ -21,6 +21,9 @@ type Server interface {
 // server during communication.
 type SelectedServer struct {
 	Server
+	// ClusterKind indicates the kind of the cluster the
+	// server was selected from.
+	ClusterKind model.ClusterKind
 	// ReadPref indicates the read preference that should
 	// be passed to MongoS. This can be nil.
 	ReadPref *readpref.ReadPref

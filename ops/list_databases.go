@@ -5,9 +5,6 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/internal"
-	"github.com/10gen/mongo-go-driver/msg"
 )
 
 // ListDatabasesOptions are the options for listing databases.
@@ -26,23 +23,11 @@ func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabases
 		ListDatabases: 1,
 		MaxTimeMS:     int64(options.MaxTime / time.Millisecond),
 	}
-	request := msg.NewCommand(
-		msg.NextRequestID(),
-		"admin",
-		slaveOk(s.ReadPref),
-		listDatabasesCommand,
-	)
-
-	c, err := s.Connection(ctx)
-	if err != nil {
-		return nil, internal.WrapError(err, "unable to get a connection to execute listCollections")
-	}
-	defer c.Close()
 
 	var result struct {
 		Databases []bson.Raw `bson:"databases"`
 	}
-	err = conn.ExecuteCommand(ctx, c, request, &result)
+	err := runMustUsePrimary(ctx, s, "admin", listDatabasesCommand, &result)
 	if err != nil {
 		return nil, err
 	}
