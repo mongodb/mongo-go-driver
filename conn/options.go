@@ -36,6 +36,8 @@ type config struct {
 	idleTimeout    time.Duration
 	keepAlive      time.Duration
 	lifeTimeout    time.Duration
+	readTimeout    time.Duration
+	writeTimeout   time.Duration
 }
 
 // WithAppName sets the application name which gets
@@ -106,6 +108,24 @@ func WithKeepAlive(keepAlive time.Duration) Option {
 func WithLifeTimeout(timeout time.Duration) Option {
 	return func(c *config) error {
 		c.lifeTimeout = timeout
+		return nil
+	}
+}
+
+// WithReadTimeout configures the maximum read time
+// for a connection.
+func WithReadTimeout(timeout time.Duration) Option {
+	return func(c *config) error {
+		c.readTimeout = timeout
+		return nil
+	}
+}
+
+// WithWriteTimeout configures the maximum read time
+// for a connection.
+func WithWriteTimeout(timeout time.Duration) Option {
+	return func(c *config) error {
+		c.writeTimeout = timeout
 		return nil
 	}
 }

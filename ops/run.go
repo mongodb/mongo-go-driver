@@ -25,14 +25,19 @@ func runMustUsePrimary(ctx context.Context, s *SelectedServer, db string, comman
 	if err != nil {
 		return err
 	}
-	defer c.Close()
 
-	err = conn.ExecuteCommand(ctx, c, request, result)
-	if err != nil {
+	errChan := make(chan error, 1)
+	go func() {
+		defer c.Close()
+		errChan <- conn.ExecuteCommand(context.Background(), c, request, result)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err = <-errChan:
 		return err
 	}
-
-	return nil
 }
 
 func runMayUseSecondary(ctx context.Context, s *SelectedServer, db string, command interface{}, result interface{}) error {
@@ -47,18 +52,23 @@ func runMayUseSecondary(ctx context.Context, s *SelectedServer, db string, comma
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	errChan := make(chan error, 1)
+	go func() {
+		defer c.Close()
 
-	if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
-		msg.AddMeta(request, map[string]interface{}{
-			"$readPreference": rpMeta,
-		})
-	}
+		if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
+			msg.AddMeta(request, map[string]interface{}{
+				"$readPreference": rpMeta,
+			})
+		}
 
-	err = conn.ExecuteCommand(ctx, c, request, result)
-	if err != nil {
+		errChan <- conn.ExecuteCommand(context.Background(), c, request, result)
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err = <-errChan:
 		return err
 	}
-
-	return nil
 }
