@@ -10,7 +10,7 @@ func newConfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		codec:          msg.NewWireProtocolCodec(),
 		connectTimeout: 30 * time.Second,
-		dialer:         Dial,
+		dialer:         dial,
 		idleTimeout:    10 * time.Minute,
 		lifeTimeout:    30 * time.Minute,
 	}

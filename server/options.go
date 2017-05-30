@@ -10,6 +10,7 @@ func newConfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		opener:            conn.New,
 		heartbeatInterval: 10 * time.Second,
+		heartbeatTimeout:  30 * time.Second,
 		maxConns:          100,
 		maxIdleConns:      100,
 	}
@@ -25,6 +26,7 @@ type config struct {
 	connOpts          []conn.Option
 	opener            conn.Opener
 	heartbeatInterval time.Duration
+	heartbeatTimeout  time.Duration
 	maxConns          uint16
 	maxIdleConns      uint16
 }
@@ -34,6 +36,7 @@ func (c *config) reconfig(opts ...Option) (*config, error) {
 		connOpts:          c.connOpts,
 		opener:            c.opener,
 		heartbeatInterval: c.heartbeatInterval,
+		heartbeatTimeout:  c.heartbeatTimeout,
 		maxConns:          c.maxConns,
 		maxIdleConns:      c.maxIdleConns,
 	}
@@ -96,6 +99,15 @@ func WithMoreConnectionOptions(opts ...conn.Option) Option {
 func WithHeartbeatInterval(interval time.Duration) Option {
 	return func(c *config) error {
 		c.heartbeatInterval = interval
+		return nil
+	}
+}
+
+// WithHeartbeatTimeout configures how long to wait for a heartbeat
+// socket to connect.
+func WithHeartbeatTimeout(timeout time.Duration) Option {
+	return func(c *config) error {
+		c.heartbeatTimeout = timeout
 		return nil
 	}
 }
