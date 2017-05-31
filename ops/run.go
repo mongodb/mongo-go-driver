@@ -14,10 +14,11 @@ func Run(ctx context.Context, s *SelectedServer, db string, command interface{},
 }
 
 func runMustUsePrimary(ctx context.Context, s *SelectedServer, db string, command interface{}, result interface{}) error {
+
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		db,
-		s.ClusterKind == model.Single, // slaveOk
+		s.ClusterKind == model.Single && s.Model().Kind != model.Mongos, // slaveOk
 		command,
 	)
 

@@ -7,7 +7,7 @@ import (
 )
 
 func slaveOk(selectedServer *SelectedServer) bool {
-	if selectedServer.ClusterKind == model.Single {
+	if selectedServer.ClusterKind == model.Single && selectedServer.Model().Kind != model.Mongos {
 		return true
 	}
 
