@@ -12,6 +12,7 @@ type MockConnection struct {
 	Dead      bool
 	Sent      []msg.Request
 	ResponseQ []*msg.Reply
+	ReadErr   error
 	WriteErr  error
 
 	SkipResponseToFixup bool
@@ -39,6 +40,12 @@ func (c *MockConnection) Expired() bool {
 }
 
 func (c *MockConnection) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
+	if c.ReadErr != nil {
+		err := c.ReadErr
+		c.ReadErr = nil
+		return nil, err
+	}
+
 	if len(c.ResponseQ) == 0 {
 		return nil, fmt.Errorf("no response queued")
 	}

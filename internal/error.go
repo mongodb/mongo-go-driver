@@ -26,6 +26,19 @@ func RolledUpErrorMessage(err error) string {
 	return err.Error()
 }
 
+//UnwrapError attempts to unwrap the error down to its root cause.
+func UnwrapError(err error) error {
+
+	switch tErr := err.(type) {
+	case WrappedError:
+		return UnwrapError(tErr.Inner())
+	case *multiError:
+		return UnwrapError(tErr.errors[0])
+	}
+
+	return err
+}
+
 // WrapError wraps an error with a message.
 func WrapError(inner error, message string) error {
 	return &wrappedError{message, inner}
