@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"errors"
+	"net"
+	"net/url"
 	"sync"
 
 	"github.com/10gen/mongo-go-driver/conn"
+	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
 )
@@ -165,18 +168,40 @@ type serverConn struct {
 // Read reads a message from the connection.
 func (c *serverConn) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
 	resp, err := c.Connection.Read(ctx, responseTo)
-	if err != nil {
-		c.server.monitor.RequestImmediateCheck()
-	}
+	c.handleErr(err)
 	return resp, err
 }
 
 // Write writes a number of messages to the connection.
 func (c *serverConn) Write(ctx context.Context, reqs ...msg.Request) error {
 	err := c.Connection.Write(ctx, reqs...)
-	if err != nil {
-		c.server.monitor.RequestImmediateCheck()
+	c.handleErr(err)
+	return err
+}
+
+func (c *serverConn) handleErr(err error) {
+	if err == nil {
+		return
 	}
 
-	return err
+	err = internal.UnwrapError(err)
+
+	switch tErr := err.(type) {
+	case net.Error:
+		if tErr.Temporary() || tErr.Timeout() {
+			return
+		}
+	case *url.Error:
+		if netErr, ok := tErr.Err.(net.Error); ok && (netErr.Temporary() || netErr.Timeout()) {
+			return
+		}
+	default:
+		if tErr == context.Canceled || tErr == context.DeadlineExceeded {
+			return
+		}
+	}
+
+	// this is not a timeout or otherwise error localized to this connection
+	// so we'll be pragmatic and clear the pool.
+	c.server.conns.Clear()
 }
