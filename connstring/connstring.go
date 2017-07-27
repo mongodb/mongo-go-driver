@@ -30,6 +30,7 @@ type ConnString struct {
 	AuthMechanism           string
 	AuthMechanismProperties map[string]string
 	AuthSource              string
+	Compressors             []string
 	Connect                 ConnectMode
 	ConnectTimeout          time.Duration
 	Database                string
@@ -50,6 +51,8 @@ type ConnString struct {
 	SocketTimeout           time.Duration
 	Username                string
 	WTimeout                time.Duration
+	ZLibCompressionLevel    int
+	ZLibCompressionLevelSet bool
 
 	Options        map[string][]string
 	UnknownOptions map[string][]string
@@ -256,6 +259,8 @@ func (p *parser) addOption(pair string) error {
 		}
 	case "authsource":
 		p.AuthSource = value
+	case "compressors":
+		p.Compressors = strings.Split(value, ",")
 	case "connect":
 		switch strings.ToLower(value) {
 		case "auto", "automatic":
@@ -355,6 +360,13 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.WTimeout = time.Duration(n) * time.Millisecond
+	case "zlibcompressionlevel":
+		n, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.ZLibCompressionLevel = n
+		p.ZLibCompressionLevelSet = true
 	default:
 		if p.UnknownOptions == nil {
 			p.UnknownOptions = make(map[string][]string)

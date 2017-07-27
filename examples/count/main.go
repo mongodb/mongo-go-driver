@@ -14,7 +14,7 @@ import (
 	"github.com/10gen/mongo-go-driver/readpref"
 )
 
-var uri = flag.String("uri", "mongodb://localhost:27017", "the mongodb uri to use")
+var uri = flag.String("uri", "mongodb://localhost:27017/?compressors=zlib", "the mongodb uri to use")
 var col = flag.String("c", "test", "the collection name to use")
 
 func main() {

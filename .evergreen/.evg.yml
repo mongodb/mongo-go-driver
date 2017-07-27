@@ -233,7 +233,7 @@ functions:
         working_dir: src/github.com/10gen/mongo-go-driver
         script: |
           ${PREPARE_SHELL}
-          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} make evg-test
+          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} COMPRESSORS=${COMPRESSORS} .evergreen/run-tests.sh
 
   run-enterprise-auth-tests:
     - command: shell.exec
@@ -308,6 +308,17 @@ tasks:
           vars:
             targets: build-examples
 
+    - name: test-standalone-compression-zlib
+      tags: ["test", "standalone", "compression"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+            COMPRESSORS: "zlib"
+
     - name: test-standalone-noauth-nossl
       tags: ["test", "standalone"]
       commands:
@@ -319,7 +330,7 @@ tasks:
             SSL: "nossl"
 
     - name: test-standalone-auth-nossl
-      tags: ["test", "standalone"]
+      tags: ["test", "standalone", "auth"]
       commands:
         - func: bootstrap-mongo-orchestration
         - func: run-tests
@@ -339,7 +350,7 @@ tasks:
             SSL: "nossl"
 
     - name: test-replicaset-auth-nossl
-      tags: ["test", "replicaset"]
+      tags: ["test", "replicaset", "auth"]
       commands:
         - func: bootstrap-mongo-orchestration
         - func: run-tests
@@ -359,7 +370,7 @@ tasks:
             SSL: "nossl"
 
     - name: test-sharded-auth-nossl
-      tags: ["test", "sharded"]
+      tags: ["test", "sharded", "auth"]
       commands:
         - func: bootstrap-mongo-orchestration
         - func: run-tests
@@ -369,14 +380,14 @@ tasks:
             SSL: "nossl"
 
     - name: test-enterprise-auth-plain
-      tags: ["test", "enterprise-auth"]
+      tags: ["test", "auth", "enterprise"]
       commands:
         - func: run-enterprise-auth-tests
           vars:
             MONGODB_URI: "${plain_auth_mongodb_uri}"
 
     - name: test-enterprise-auth-gssapi
-      tags: ["test", "enterprise-auth"]
+      tags: ["test", "auth", "enterprise"]
       commands:
         - func: run-enterprise-gssapi-auth-tests
 
@@ -384,14 +395,18 @@ axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "latest"
+        display_name: "Latest"
+        variables:
+          VERSION: "latest"
       - id: "3.4"
         display_name: "3.4"
         variables:
-           VERSION: "3.4"
+          VERSION: "3.4"
       - id: "3.2"
         display_name: "3.2"
         variables:
-           VERSION: "3.2"
+          VERSION: "3.2"
 
   - id: os
     display_name: OS
@@ -404,17 +419,15 @@ axes:
       - id: "ubuntu1404-64"
         display_name: "Ubuntu 14.04"
         run_on: ubuntu1404-build
-      - id: osx
-        display_name: "OSX 10.10"
-        run_on: osx-1010
+      - id: macOS
+        display_name: "MacOS 10.12"
+        run_on: macos-1012
 
 
 buildvariants:
 - name: static-analysis
   display_name: "Static Analysis"
   run_on:
-    # we don't care where this one runs
-    - osx-1010
     - ubuntu1404-build
   tasks:
     - name: ".static-analysis"
@@ -423,10 +436,10 @@ buildvariants:
   matrix_spec: { version: "*", os: "*" }
   display_name: "${version} ${os}"
   tasks:
-     - name: ".test !.enterprise-auth"
+     - name: ".test !.enterprise"
 
 - matrix_name: "enterprise-auth-tests"
   matrix_spec: { os: "*" }
   display_name: "Enterprise Auth - ${os}"
   tasks:
-     - name: ".test .enterprise-auth"
+     - name: ".test .enterprise .auth"

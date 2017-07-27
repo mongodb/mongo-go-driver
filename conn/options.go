@@ -4,11 +4,13 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/msg"
+	"github.com/10gen/mongo-go-driver/msg/compress"
 )
 
 func newConfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		codec:          msg.NewWireProtocolCodec(),
+		compressors:    nil,
 		connectTimeout: 30 * time.Second,
 		dialer:         dial,
 		idleTimeout:    10 * time.Minute,
@@ -31,6 +33,7 @@ type Option func(*config) error
 type config struct {
 	appName        string
 	codec          msg.Codec
+	compressors    []compress.Compressor
 	connectTimeout time.Duration
 	dialer         Dialer
 	idleTimeout    time.Duration
@@ -54,6 +57,14 @@ func WithAppName(name string) Option {
 func WithCodec(codec msg.Codec) Option {
 	return func(c *config) error {
 		c.codec = codec
+		return nil
+	}
+}
+
+// WithCompressors sets the supported compressors.
+func WithCompressors(compressors ...compress.Compressor) Option {
+	return func(c *config) error {
+		c.compressors = compressors
 		return nil
 	}
 }
