@@ -1,5 +1,6 @@
-PKGS = ./auth ./bson ./cluster ./conn ./connstring ./internal ./internal/feature ./model ./msg ./ops ./readpref ./server
-VETPKGS = ./auth ./bson ./cluster ./conn ./connstring ./model ./msg ./ops ./readpref ./server
+PKGS = ./auth ./bson ./cluster ./conn ./connstring ./internal ./internal/feature ./model ./msg ./ops ./readpref ./server ./yamgo
+VETPKGS = ./auth ./bson ./cluster ./conn ./connstring ./model ./msg ./ops ./readpref ./server ./yamgo
+
 LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
 
