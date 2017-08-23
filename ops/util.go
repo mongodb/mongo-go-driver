@@ -33,7 +33,7 @@ func readPrefMeta(rp *readpref.ReadPref, kind model.ServerKind) interface{} {
 
 	var doc struct {
 		Mode                string   `bson:"mode,omitempty"`
-		Tags                []bson.D `bson:"tag_sets,omitempty"`
+		Tags                []bson.D `bson:"tags,omitempty"`
 		MaxStalenessSeconds uint32   `bson:"maxStalenessSeconds,omitempty"`
 	}
 
