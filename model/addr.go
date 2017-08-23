@@ -22,6 +22,9 @@ func (a Addr) Network() string {
 func (a Addr) String() string {
 	// TODO: unicode case folding?
 	s := strings.ToLower(string(a))
+	if len(s) == 0 {
+		return ""
+	}
 	if a.Network() != "unix" {
 		_, _, err := net.SplitHostPort(s)
 		if err != nil && strings.Contains(err.Error(), "missing port in address") {
