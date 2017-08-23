@@ -53,7 +53,7 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 	i := &Server{
 		Addr: addr,
 
-		CanonicalAddr:   Addr(isMasterResult.Me),
+		CanonicalAddr:   Addr(isMasterResult.Me).Canonicalize(),
 		ElectionID:      isMasterResult.ElectionID,
 		GitVersion:      buildInfoResult.GitVersion,
 		LastUpdateTime:  time.Now().UTC(),
