@@ -63,7 +63,7 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 		MaxMessageSize:  isMasterResult.MaxMessageSizeBytes,
 		SetName:         isMasterResult.SetName,
 		SetVersion:      isMasterResult.SetVersion,
-		Tags:            nil, // TODO: get tags
+		Tags:            NewTagSetFromMap(isMasterResult.Tags),
 		Version: Version{
 			Desc:  buildInfoResult.Version,
 			Parts: buildInfoResult.VersionArray,
