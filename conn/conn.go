@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/mongo-go-driver/internal"
 	"github.com/10gen/mongo-go-driver/model"
 	"github.com/10gen/mongo-go-driver/msg"
+	"github.com/10gen/mongo-go-driver/msg/compress"
 
 	"github.com/10gen/mongo-go-driver/bson"
 )
@@ -51,7 +52,8 @@ func New(ctx context.Context, addr model.Addr, opts ...Option) (Connection, erro
 
 	c := &connImpl{
 		id:    id,
-		codec: cfg.codec,
+		cfg:   cfg,
+		codec: compress.NewCodec(cfg.codec, cfg.compressors...),
 		model: &model.Conn{
 			ID: id,
 			Server: model.Server{
@@ -61,9 +63,6 @@ func New(ctx context.Context, addr model.Addr, opts ...Option) (Connection, erro
 		addr:             addr,
 		rw:               netConn,
 		lifetimeDeadline: lifetimeDeadline,
-		idleTimeout:      cfg.idleTimeout,
-		readTimeout:      cfg.readTimeout,
-		writeTimeout:     cfg.writeTimeout,
 	}
 
 	c.bumpIdleDeadline()
@@ -121,16 +120,14 @@ type connImpl struct {
 	// if id is negative, it's the client identifier; otherwise it's the same
 	// as the id the server is using.
 	id               string
+	cfg              *config
 	codec            msg.Codec
 	model            *model.Conn
 	addr             model.Addr
 	rw               net.Conn
 	dead             bool
-	idleTimeout      time.Duration
 	idleDeadline     time.Time
 	lifetimeDeadline time.Time
-	readTimeout      time.Duration
-	writeTimeout     time.Duration
 }
 
 func (c *connImpl) Alive() bool {
@@ -181,15 +178,14 @@ func (c *connImpl) Read(ctx context.Context, responseTo int32) (msg.Response, er
 		// know if there is a message sitting on the wire
 		// unread.
 		c.Close()
-		c.dead = true
 		return nil, c.wrapError(ctx.Err(), "failed to read")
 	default:
 	}
 
 	// first set deadline based on the read timeout.
 	deadline := time.Time{}
-	if c.readTimeout != 0 {
-		deadline = time.Now().Add(c.readTimeout)
+	if c.cfg.readTimeout != 0 {
+		deadline = time.Now().Add(c.cfg.readTimeout)
 	}
 
 	// second, if the ctxDeadline is before the read timeout's deadline, then use it instead.
@@ -204,7 +200,6 @@ func (c *connImpl) Read(ctx context.Context, responseTo int32) (msg.Response, er
 	message, err := c.codec.Decode(c.rw)
 	if err != nil {
 		c.Close()
-		c.dead = true
 		return nil, c.wrapError(err, "failed reading")
 	}
 
@@ -244,8 +239,8 @@ func (c *connImpl) Write(ctx context.Context, requests ...msg.Request) error {
 
 	// first set deadline based on the write timeout.
 	deadline := time.Time{}
-	if c.writeTimeout != 0 {
-		deadline = time.Now().Add(c.writeTimeout)
+	if c.cfg.writeTimeout != 0 {
+		deadline = time.Now().Add(c.cfg.writeTimeout)
 	}
 
 	// second, if the ctxDeadline is before the read timeout's deadline, then use it instead.
@@ -265,7 +260,6 @@ func (c *connImpl) Write(ctx context.Context, requests ...msg.Request) error {
 	err := c.codec.Encode(c.rw, messages...)
 	if err != nil {
 		c.Close()
-		c.dead = true
 		return c.wrapError(err, "failed writing")
 	}
 
@@ -274,13 +268,26 @@ func (c *connImpl) Write(ctx context.Context, requests ...msg.Request) error {
 }
 
 func (c *connImpl) bumpIdleDeadline() {
-	if c.idleTimeout > 0 {
-		c.idleDeadline = time.Now().Add(c.idleTimeout)
+	if c.cfg.idleTimeout > 0 {
+		c.idleDeadline = time.Now().Add(c.cfg.idleTimeout)
 	}
 }
 
 func (c *connImpl) describeServer(ctx context.Context, clientDoc bson.M) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
-	isMasterCmd := bson.D{{Name: "ismaster", Value: 1}}
+
+	isMasterCmd := bson.D{
+		{Name: "ismaster", Value: 1},
+	}
+	if len(c.cfg.compressors) > 0 {
+		var names []string
+		for _, compressor := range c.cfg.compressors {
+			names = append(names, compressor.Name())
+		}
+		isMasterCmd = append(isMasterCmd, bson.DocElem{
+			Name:  "compression",
+			Value: names,
+		})
+	}
 	if clientDoc != nil {
 		isMasterCmd = append(isMasterCmd, bson.DocElem{
 			Name:  "client",
@@ -306,6 +313,13 @@ func (c *connImpl) describeServer(ctx context.Context, clientDoc bson.M) (*inter
 	err := ExecuteCommands(ctx, c, []msg.Request{isMasterReq, buildInfoReq}, []interface{}{&isMasterResult, &buildInfoResult})
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if len(isMasterResult.Compression) > 0 {
+		compCodec := c.codec.(*compress.Codec)
+		compCodec.SetCompressors(isMasterResult.Compression)
+	} else {
+		c.codec = c.cfg.codec
 	}
 
 	return &isMasterResult, &buildInfoResult, nil

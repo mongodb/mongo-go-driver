@@ -1,9 +1,12 @@
 package cluster
 
 import (
+	"strings"
+
 	"github.com/10gen/mongo-go-driver/auth"
 	"github.com/10gen/mongo-go-driver/conn"
 	"github.com/10gen/mongo-go-driver/connstring"
+	"github.com/10gen/mongo-go-driver/msg/compress"
 	"github.com/10gen/mongo-go-driver/server"
 )
 
@@ -65,6 +68,23 @@ func WithConnString(cs connstring.ConnString) Option {
 		}
 
 		c.seedList = cs.Hosts
+
+		if len(cs.Compressors) > 0 {
+			var compressors []compress.Compressor
+			for _, name := range cs.Compressors {
+				switch strings.ToLower(strings.TrimSpace(name)) {
+				case "zlib":
+					if cs.ZLibCompressionLevelSet {
+						compressors = append(compressors, compress.NewZLibCompressorWithLevel(cs.ZLibCompressionLevel))
+					} else {
+						compressors = append(compressors, compress.NewZLibCompressor())
+					}
+				case "noop":
+					compressors = append(compressors, compress.NewNoopCompressor())
+				}
+			}
+			connOpts = append(connOpts, conn.WithCompressors(compressors...))
+		}
 
 		if cs.ConnectTimeout > 0 {
 			connOpts = append(connOpts, conn.WithConnectTimeout(cs.ConnectTimeout))

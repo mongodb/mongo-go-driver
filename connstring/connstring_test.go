@@ -60,6 +60,33 @@ func TestAuthMechanism(t *testing.T) {
 	}
 }
 
+func TestCompressors(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected []string
+		err      bool
+	}{
+		{s: "compressors=snappy", expected: []string{"snappy"}},
+		{s: "compressors=zlib,snappy", expected: []string{"zlib", "snappy"}},
+		{s: "compressors=zlib , snappy", expected: []string{"zlib ", " snappy"}},
+		{s: "compressors=", expected: []string{""}},
+		{s: "compressors=  ", expected: []string{"  "}},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.Compressors)
+			}
+		})
+	}
+}
+
 func TestConnect(t *testing.T) {
 	tests := []struct {
 		s        string
@@ -423,6 +450,33 @@ func TestWTimeout(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, test.expected, cs.WTimeout)
+			}
+		})
+	}
+}
+
+func TestZLibCompressionLevel(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected int
+		err      bool
+	}{
+		{s: "zlibCompressionLevel=0", expected: 0},
+		{s: "zlibCompressionLevel=9", expected: 9},
+		{s: "zlibCompressionLevel=-2", expected: -2},
+		{s: "zlibCompressionLevel=gsdge", err: true},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.True(t, cs.ZLibCompressionLevelSet)
+				require.Equal(t, test.expected, cs.ZLibCompressionLevel)
 			}
 		})
 	}
