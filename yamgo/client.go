@@ -9,11 +9,13 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 )
 
+// Client performs operations on a given cluster.
 type Client struct {
 	cluster    *cluster.Cluster
 	connString connstring.ConnString
 }
 
+// NewClient creates a new client to connect to a cluster specified by the uri.
 func NewClient(uri string) (*Client, error) {
 	cs, err := connstring.Parse(uri)
 	if err != nil {
@@ -23,6 +25,7 @@ func NewClient(uri string) (*Client, error) {
 	return NewClientFromConnString(cs)
 }
 
+// NewClientFromConnString creates a new client to connect to a cluster specified by the connection string.
 func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 	clst, err := cluster.New(cluster.WithConnString(cs))
 	if err != nil {
@@ -32,28 +35,28 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 	return &Client{cluster: clst, connString: cs}, nil
 }
 
+// Database returns a handle for a given database.
 func (client *Client) Database(name string) *Database {
 	return &Database{client: client, name: name}
 }
 
+// ConnectionString returns the connection string of the cluster the client is connected to.
 func (client *Client) ConnectionString() connstring.ConnString {
 	return client.connString
 }
 
-func (client *Client) RunCommand(ctx context.Context, db string, command interface{}, result interface{}) error {
-	s, err := client.cluster.SelectServer(context.Background(), cluster.WriteSelector())
+func (client *Client) selectServer(ctx context.Context, selector cluster.ServerSelector,
+	pref *readpref.ReadPref) (*ops.SelectedServer, error) {
+
+	s, err := client.cluster.SelectServer(ctx, selector)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return ops.Run(
-		ctx,
-		&ops.SelectedServer{
-			Server:   s,
-			ReadPref: readpref.Primary(),
-		},
-		db,
-		command,
-		&result,
-	)
+	selected := ops.SelectedServer{
+		Server:   s,
+		ReadPref: pref,
+	}
+
+	return &selected, nil
 }

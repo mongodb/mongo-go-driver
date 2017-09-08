@@ -127,6 +127,11 @@ type DocElem struct {
 	Value interface{}
 }
 
+// NewDocElem constructs a new DocElem from the name and value.
+func NewDocElem(name string, value interface{}) DocElem {
+	return DocElem{Name: name, Value: value}
+}
+
 // Map returns a map out of the ordered element name/value pairs in d.
 func (d D) Map() (m M) {
 	m = make(M, len(d))
@@ -134,6 +139,18 @@ func (d D) Map() (m M) {
 		m[item.Name] = item.Value
 	}
 	return m
+}
+
+// AppendMap appends each key-value pair from an M to the D.
+func (d *D) AppendMap(m M) {
+	for name, value := range m {
+		*d = append(*d, DocElem{Name: name, Value: value})
+	}
+}
+
+// AppendElem appends the given name and value to the D.
+func (d *D) AppendElem(name string, value interface{}) {
+	*d = append(*d, DocElem{Name: name, Value: value})
 }
 
 // The Raw type represents raw unprocessed BSON documents and elements.
