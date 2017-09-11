@@ -1,6 +1,7 @@
 package testconfig
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"sync"
@@ -75,7 +76,7 @@ func DBName(t *testing.T) string {
 		return cs.Database
 	}
 
-	return "mongo-go-driver"
+	return fmt.Sprintf("mongo-go-driver-%s", os.Getpid())
 }
 
 // Integration should be called at the beginning of integration
