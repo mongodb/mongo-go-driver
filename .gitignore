@@ -1,5 +1,6 @@
 .vscode
 debug
+.idea
 *.iml
 *.ipr
 *.iws
