@@ -54,7 +54,7 @@ func ConnString(t *testing.T) connstring.ConnString {
 	connectionStringOnce.Do(func() {
 		mongodbURI := os.Getenv("MONGODB_URI")
 		if mongodbURI == "" {
-			mongodbURI = "mongodb://localhost:27017/mongo-go-driver"
+			mongodbURI = "mongodb://localhost:27017"
 		}
 		var err error
 		connectionString, err = connstring.Parse(mongodbURI)
