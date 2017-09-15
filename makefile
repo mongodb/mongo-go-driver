@@ -1,53 +1,59 @@
-PKGS = ./auth ./bson ./cluster ./conn ./connstring ./internal ./internal/feature ./model ./msg ./ops ./readpref ./server ./yamgo
-VETPKGS = ./auth ./bson ./cluster ./conn ./connstring ./model ./msg ./ops ./readpref ./server ./yamgo
+BSON_PKGS = $(shell ./find_pkgs.sh ./bson)
+BSON_TEST_PKGS = $(shell ./find_pkgs.sh ./bson _test)
+YAMGO_PKGS = $(shell ./find_pkgs.sh ./yamgo)
+YAMGO_TEST_PKGS = $(shell ./find_pkgs.sh ./yamgo _test)
+PKGS = $(BSON_PKGS) $(YAMGO_PKGS)
+TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 
 LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
 
+.PHONY: default
 default: generate test-cover lint vet build-examples
 
+.PHONY: doc
 doc:
 	godoc -http=:6060 -index
 
+.PHONY: build-examples
 build-examples:
 	go build $(BUILD_TAGS) ./examples/...
 
-generate:
-	go generate $(PKGS)
+.PHONY: generate
+generate: 
+	go generate -x ./bson/... ./yamgo/...
 
+.PHONY: lint
 lint:
-	golint $(LINTARGS) ./auth
-	golint -min_confidence="1.0" ./bson
-	golint $(LINTARGS) ./cluster
-	golint $(LINTARGS) ./conn
-	golint $(LINTARGS) ./connstring
-	golint $(LINTARGS) ./internal/auth
-	golint $(LINTARGS) ./internal/feature
-	golint $(LINTARGS) ./model
-	golint $(LINTARGS) ./msg
-	golint $(LINTARGS) ./ops
-	golint $(LINTARGS) ./readpref
-	golint $(LINTARGS) ./server
+	golint $(LINTARGS) $(YAMGO_PKGS)
+	golint -min_confidence="1.0"  $(BSON_PKGS)
 
+.PHONY: test
 test:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $(PKGS)
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $(TEST_PKGS)
 
+.PHONY: test-cover
 test-cover:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $(PKGS)
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $(TEST_PKGS)
 
+.PHONY: test-race
 test-race:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $(PKGS)
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $(TEST_PKGS)
 
+.PHONY: test-short
 test-short:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(PKGS)
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(TEST_PKGS)
 
+.PHONY: vet
 vet:
-	go tool vet -composites=false -structtags=false -unusedstringmethods="Error" $(VETPKGS)
+	go tool vet -composites=false -structtags=false -unusedstringmethods="Error" $(PKGS)
 
 
 # Evergreen specific targets
+.PHONY: evg-test
 evg-test:
-	go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $(PKGS) > test.suite
+	go test $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $(TEST_PKGS) > test.suite
 
+.PHONY: evg-test-auth
 evg-test-auth:
 	go run -tags gssapi ./examples/count/main.go -uri $(MONGODB_URI)

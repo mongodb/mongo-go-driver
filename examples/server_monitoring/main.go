@@ -4,9 +4,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/model"
-	"github.com/10gen/mongo-go-driver/server"
+	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
+	"github.com/10gen/mongo-go-driver/yamgo/private/server"
 	"github.com/kr/pretty"
 )
 

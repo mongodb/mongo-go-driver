@@ -3,10 +3,10 @@ package yamgo
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/connstring"
-	"github.com/10gen/mongo-go-driver/ops"
-	"github.com/10gen/mongo-go-driver/readpref"
+	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
+	"github.com/10gen/mongo-go-driver/yamgo/connstring"
+	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
+	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 )
 
 type Client struct {

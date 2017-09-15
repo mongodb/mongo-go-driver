@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/10gen/mongo-go-driver/cluster"
+	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/kr/pretty"
 )
 

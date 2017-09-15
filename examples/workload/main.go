@@ -13,11 +13,11 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
-	"github.com/10gen/mongo-go-driver/cluster"
-	"github.com/10gen/mongo-go-driver/conn"
-	"github.com/10gen/mongo-go-driver/msg"
-	"github.com/10gen/mongo-go-driver/ops"
-	"github.com/10gen/mongo-go-driver/readpref"
+	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
+	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
+	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
+	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 )
 
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")

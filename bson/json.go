@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/internal/json"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 )
 
 // UnmarshalJSON unmarshals a JSON value that may hold non-standard

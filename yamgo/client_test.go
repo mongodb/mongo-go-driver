@@ -3,7 +3,7 @@ package yamgo
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
 	"github.com/stretchr/testify/require"
 )
 

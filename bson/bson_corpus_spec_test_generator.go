@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/internal/json"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 )
 
 func main() {
@@ -56,7 +56,7 @@ const name = "bson_corpus_spec_test_generator"
 
 func (g *Generator) generate() []byte {
 
-	testFiles, err := filepath.Glob("../specifications/source/bson-corpus/tests/*.json")
+	testFiles, err := filepath.Glob("../../specifications/source/bson-corpus/tests/*.json")
 	if err != nil {
 		log.Fatalf("error reading bson-corpus files: %s", err)
 	}
@@ -160,9 +160,7 @@ func (g *Generator) getTemplate() (*template.Template, error) {
 	content := `package bson_test
 
 import (
-    "encoding/hex"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
     "github.com/10gen/mongo-go-driver/bson"

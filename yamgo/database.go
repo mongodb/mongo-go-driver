@@ -3,7 +3,7 @@ package yamgo
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/readpref"
+	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 )
 
 type Database struct {

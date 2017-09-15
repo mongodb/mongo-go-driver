@@ -191,7 +191,7 @@ functions:
       params:
         script: |
           ${PREPARE_SHELL}
-          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY}/.evergreen -name \*.sh); do
+          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
             cat $i | tr -d '\r' > $i.new
             mv $i.new $i
           done
@@ -202,7 +202,7 @@ functions:
       params:
         script: |
           ${PREPARE_SHELL}
-          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY}/.evergreen -name \*.sh); do
+          for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
             chmod +x $i
           done
 
