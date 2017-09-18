@@ -48,7 +48,7 @@ func (i *Server) SetAverageRTT(rtt time.Duration) {
 	}
 }
 
-// BuildServer builds a server.Desc from an endpoint, IsMasterResult, and a BuildInfoResult.
+// BuildServer builds a server.Server from an endpoint, IsMasterResult, and a BuildInfoResult.
 func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoResult *internal.BuildInfoResult) *Server {
 	i := &Server{
 		Addr: addr,
