@@ -9,6 +9,8 @@ import (
 )
 
 // Insert executes an insert command for the given set of  documents.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
 func Insert(ctx context.Context, s *SelectedServer, ns Namespace, docs []interface{},
 	result interface{}, options ...options.InsertOption) error {
 

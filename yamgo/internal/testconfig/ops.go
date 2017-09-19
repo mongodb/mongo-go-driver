@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
+	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,7 +34,7 @@ func AutoCreateIndex(t *testing.T, keys []string) {
 		createIndexCommand,
 	)
 
-	s, err := Cluster(t).SelectServer(context.Background(), cluster.WriteSelector())
+	s, err := Cluster(t).SelectServer(context.Background(), cluster.WriteSelector(), readpref.Primary())
 	require.NoError(t, err)
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
@@ -50,7 +51,7 @@ func AutoDropCollection(t *testing.T) {
 
 // DropCollection drops the collection in the test cluster.
 func DropCollection(t *testing.T, dbname, colname string) {
-	s, err := Cluster(t).SelectServer(context.Background(), cluster.WriteSelector())
+	s, err := Cluster(t).SelectServer(context.Background(), cluster.WriteSelector(), readpref.Primary())
 	require.NoError(t, err)
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
@@ -73,7 +74,7 @@ func DropCollection(t *testing.T, dbname, colname string) {
 }
 
 func autoDropDB(t *testing.T, clstr *cluster.Cluster) {
-	s, err := clstr.SelectServer(context.Background(), cluster.WriteSelector())
+	s, err := clstr.SelectServer(context.Background(), cluster.WriteSelector(), readpref.Primary())
 	require.NoError(t, err)
 
 	c, err := s.Connection(context.Background())
@@ -113,7 +114,7 @@ func InsertDocs(t *testing.T, dbname, colname string, docs ...bson.D) {
 		insertCommand,
 	)
 
-	s, err := Cluster(t).SelectServer(context.Background(), cluster.WriteSelector())
+	s, err := Cluster(t).SelectServer(context.Background(), cluster.WriteSelector(), readpref.Primary())
 	require.NoError(t, err)
 
 	c, err := s.Connection(context.Background())

@@ -2,6 +2,7 @@ package yamgo
 
 import (
 	"context"
+	"time"
 
 	"github.com/10gen/mongo-go-driver/yamgo/connstring"
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
@@ -9,10 +10,14 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 )
 
+const defaultLocalThreshold = 15 * time.Millisecond
+
 // Client performs operations on a given cluster.
 type Client struct {
-	cluster    *cluster.Cluster
-	connString connstring.ConnString
+	cluster        *cluster.Cluster
+	connString     connstring.ConnString
+	localThreshold time.Duration
+	readPreference *readpref.ReadPref
 }
 
 // NewClient creates a new client to connect to a cluster specified by the uri.
@@ -32,31 +37,34 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{cluster: clst, connString: cs}, nil
+	// TODO GODRIVER-92: Allow custom localThreshold
+	client := &Client{
+		cluster:        clst,
+		connString:     cs,
+		localThreshold: defaultLocalThreshold,
+		readPreference: readpref.Primary(),
+	}
+
+	return client, nil
 }
 
 // Database returns a handle for a given database.
-func (client *Client) Database(name string) *Database {
-	return &Database{client: client, name: name}
+func (client *Client) Database(name string, options ...DatabaseOption) *Database {
+	return newDatabase(client, name, options...)
 }
 
 // ConnectionString returns the connection string of the cluster the client is connected to.
-func (client *Client) ConnectionString() connstring.ConnString {
-	return client.connString
+func (client *Client) ConnectionString() string {
+	return client.connString.Original
 }
 
 func (client *Client) selectServer(ctx context.Context, selector cluster.ServerSelector,
-	pref *readpref.ReadPref) (*ops.SelectedServer, error) {
+	readPref *readpref.ReadPref) (*ops.SelectedServer, error) {
 
-	s, err := client.cluster.SelectServer(ctx, selector)
+	s, err := client.cluster.SelectServer(ctx, selector, readPref)
 	if err != nil {
 		return nil, err
 	}
 
-	selected := ops.SelectedServer{
-		Server:   s,
-		ReadPref: pref,
-	}
-
-	return &selected, nil
+	return s, nil
 }

@@ -8,7 +8,9 @@ import (
 
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
 	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
 	"github.com/10gen/mongo-go-driver/yamgo/private/server"
+	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 )
 
 // ErrClusterClosed occurs on an attempt to use a closed
@@ -105,7 +107,9 @@ func (c *Cluster) Model() *model.Cluster {
 // SelectServer selects a server given a selector.
 // SelectServer complies with the server selection spec, and will time
 // out after serverSelectionTimeout or when the parent context is done.
-func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Server, error) {
+func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector,
+	readPreference *readpref.ReadPref) (*ops.SelectedServer, error) {
+
 	for {
 		suitable, err := SelectServers(ctx, c.monitor, selector)
 		if err != nil {
@@ -121,7 +125,13 @@ func (c *Cluster) SelectServer(ctx context.Context, selector ServerSelector) (Se
 		}
 		if server, ok := c.stateServers[selected.Addr]; ok {
 			c.stateLock.Unlock()
-			return server, nil
+
+			selectedServer := ops.SelectedServer{
+				Server:   server,
+				ReadPref: readPreference,
+			}
+
+			return &selectedServer, nil
 		}
 		c.stateLock.Unlock()
 

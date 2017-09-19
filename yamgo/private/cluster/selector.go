@@ -10,7 +10,7 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/model"
 )
 
-// CompositeSelector combines mulitple selectors into a single selector.
+// CompositeSelector combines multiple selectors into a single selector.
 func CompositeSelector(selectors []ServerSelector) ServerSelector {
 	return func(c *model.Cluster, candidates []*model.Server) ([]*model.Server, error) {
 		var err error

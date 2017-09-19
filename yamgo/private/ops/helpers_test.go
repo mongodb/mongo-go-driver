@@ -18,7 +18,7 @@ func getServer(t *testing.T) *SelectedServer {
 
 	c := testconfig.Cluster(t)
 
-	server, err := c.SelectServer(context.Background(), cluster.WriteSelector())
+	server, err := c.SelectServer(context.Background(), cluster.WriteSelector(), readpref.Primary())
 	require.NoError(t, err)
 
 	return &SelectedServer{

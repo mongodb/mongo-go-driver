@@ -1,20 +1,5 @@
 package options
 
-// OptArrayFilters is for internal use.
-type OptArrayFilters []interface{}
-
-// OptBypassDocumentValidation is for internal use.
-type OptBypassDocumentValidation bool
-
-// OptCollation is for internal use.
-type OptCollation struct{ Collation *CollationOptions }
-
-// OptOrdered is for internal use.
-type OptOrdered bool
-
-// OptUpsert is for internal use.
-type OptUpsert bool
-
 // CollationOptions allows users to specify language-specific rules for string comparison, such as
 // rules for lettercase and accent marks.
 type CollationOptions struct {
@@ -27,3 +12,17 @@ type CollationOptions struct {
 	MaxVariable     string ",omitempty"
 	Backwards       bool   ",omitempty"
 }
+
+// CursorType specifies whether a cursor should close when the last data is retrieved. See
+// NonTailable, Tailable, and TailableAwait.
+type CursorType int8
+
+const (
+	// NonTailable specifies that a cursor should close after retrieving the last data.
+	NonTailable CursorType = iota
+	// Tailable specifies that a cursor should not close when the last data is retrieved.
+	Tailable
+	// TailableAwait specifies that a cursor should not close when the last data is retrieved and
+	// that it should block for a certain amount of time for new data before returning no data.
+	TailableAwait
+)

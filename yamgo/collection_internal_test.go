@@ -1,11 +1,13 @@
 package yamgo
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/options"
 	"github.com/stretchr/testify/require"
 )
 
@@ -114,6 +116,22 @@ func TestCollection_DeleteOne_notFound(t *testing.T) {
 
 	filter := bson.D{{Name: "x", Value: 0}}
 	result, err := coll.DeleteOne(filter)
+	require.Nil(t, err)
+	require.Equal(t, result.DeletedCount, int64(0))
+}
+
+func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{{Name: "x", Value: 0}}
+	result, err := coll.DeleteOne(filter, Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -248,4 +266,302 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
+}
+
+func TestCollection_Aggregate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	pipeline := []bson.D{
+		{
+			bson.NewDocElem("$match", bson.D{
+				bson.NewDocElem("x", bson.D{
+					bson.NewDocElem("$gte", 2),
+				}),
+			}),
+		},
+		{
+			bson.NewDocElem("$project", bson.D{
+				bson.NewDocElem("_id", 0),
+				bson.NewDocElem("x", 1),
+			}),
+		},
+		{
+			bson.NewDocElem("$sort", bson.D{
+				bson.NewDocElem("x", 1),
+			}),
+		},
+	}
+	cursor, err := coll.Aggregate(pipeline)
+	require.Nil(t, err)
+
+	for i := 2; i < 5; i++ {
+		var doc bson.M
+		cursor.Next(context.Background(), &doc)
+		require.Len(t, doc, 1)
+		require.Equal(t, doc["x"], i)
+	}
+}
+
+func TestCollection_Aggregate_withOptions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	pipeline := []bson.D{
+		{
+			bson.NewDocElem("$match", bson.D{
+				bson.NewDocElem("x", bson.D{
+					bson.NewDocElem("$gte", 2),
+				}),
+			}),
+		},
+		{
+			bson.NewDocElem("$project", bson.D{
+				bson.NewDocElem("_id", 0),
+				bson.NewDocElem("x", 1),
+			}),
+		},
+		{
+			bson.NewDocElem("$sort", bson.D{
+				bson.NewDocElem("x", 1),
+			}),
+		},
+	}
+	cursor, err := coll.Aggregate(pipeline, AllowDiskUse(true))
+	require.Nil(t, err)
+
+	for i := 2; i < 5; i++ {
+		var doc bson.M
+		cursor.Next(context.Background(), &doc)
+		require.Len(t, doc, 1)
+		require.Equal(t, doc["x"], i)
+	}
+}
+
+func TestCollection_Count(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	count, err := coll.Count(nil)
+	require.Nil(t, err)
+	require.Equal(t, count, int64(5))
+}
+
+func TestCollection_Count_withFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{
+		bson.NewDocElem("x", bson.D{
+			bson.NewDocElem("$gt", 2),
+		}),
+	}
+	count, err := coll.Count(filter)
+	require.Nil(t, err)
+	require.Equal(t, count, int64(3))
+}
+
+func TestCollection_Count_withOption(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	count, err := coll.Count(nil, Limit(3))
+	require.Nil(t, err)
+	require.Equal(t, count, int64(3))
+}
+
+func TestCollection_Distinct(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	results, err := coll.Distinct("x", nil)
+	require.Nil(t, err)
+	require.Equal(t, results, []interface{}{1, 2, 3, 4, 5})
+}
+
+func TestCollection_Distinct_withFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{
+		bson.NewDocElem("x", bson.D{
+			bson.NewDocElem("$gt", 2),
+		}),
+	}
+	results, err := coll.Distinct("x", filter)
+	require.Nil(t, err)
+	require.Equal(t, results, []interface{}{3, 4, 5})
+}
+
+func TestCollection_Distinct_withOption(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	results, err := coll.Distinct("x", nil, Collation(&options.CollationOptions{Locale: "en_US"}))
+	require.Nil(t, err)
+	require.Equal(t, results, []interface{}{1, 2, 3, 4, 5})
+}
+
+func TestCollection_Find_found(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	cursor, err := coll.Find(
+		nil,
+		Sort(bson.D{bson.NewDocElem("x", 1)}),
+	)
+	require.Nil(t, err)
+
+	results := make([]int, 0, 5)
+	var doc bson.M
+	for cursor.Next(context.Background(), &doc) {
+		require.Nil(t, err)
+		require.Len(t, doc, 2)
+		_, ok := doc["_id"]
+		require.True(t, ok)
+
+		results = append(results, doc["x"].(int))
+	}
+
+	require.Len(t, results, 5)
+	require.Equal(t, results, []int{1, 2, 3, 4, 5})
+}
+
+func TestCollection_Find_notFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	cursor, err := coll.Find(bson.D{bson.NewDocElem("x", 6)})
+	require.Nil(t, err)
+
+	var doc bson.M
+	require.False(t, cursor.Next(context.Background(), &doc))
+}
+
+func TestCollection_FindOne_found(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 1)}
+	var result bson.M
+	found, err := coll.FindOne(
+		filter,
+		&result,
+	)
+	require.Nil(t, err)
+	require.True(t, found)
+	require.Len(t, result, 2)
+
+	_, ok := result["_id"]
+	require.True(t, ok)
+	require.Equal(t, result["x"], 1)
+}
+
+func TestCollection_FindOne_found_withOption(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 1)}
+	var result bson.M
+	found, err := coll.FindOne(
+		filter,
+		&result,
+		Comment("here's a query for ya"),
+	)
+	require.Nil(t, err)
+	require.True(t, found)
+	require.Len(t, result, 2)
+
+	_, ok := result["_id"]
+	require.True(t, ok)
+	require.Equal(t, result["x"], 1)
+}
+
+func TestCollection_FindOne_notFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 6)}
+	var result bson.M
+	found, err := coll.FindOne(filter, &result)
+	require.Nil(t, err)
+	require.False(t, found)
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
+	"github.com/10gen/mongo-go-driver/yamgo"
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
@@ -98,7 +99,7 @@ func prep(ctx context.Context, c *cluster.Cluster) error {
 		insertCommand,
 	)
 
-	s, err := c.SelectServer(ctx, cluster.WriteSelector())
+	s, err := c.SelectServer(ctx, cluster.WriteSelector(), readpref.Primary())
 	if err != nil {
 		return err
 	}
@@ -123,7 +124,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 
 			limit := r.Intn(999) + 1
 
-			s, err := c.SelectServer(ctx, readpref.Selector(rp))
+			s, err := c.SelectServer(ctx, readpref.Selector(rp), rp)
 			if err != nil {
 				log.Printf("%d-failed selecting a server: %s", idx, err)
 				continue
@@ -133,9 +134,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 				bson.D{{"$limit", limit}},
 			}
 
-			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, pipeline, ops.AggregationOptions{
-				BatchSize: 200,
-			})
+			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, pipeline, yamgo.BatchSize(200))
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue
