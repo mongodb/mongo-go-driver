@@ -287,13 +287,20 @@ post:
   - func: cleanup
 
 tasks:
+    - name: sa-fmt
+      tags: ["static-analysis"]
+      commands:
+        - func: run-make
+          vars:
+            targets: check-fmt
+
     - name: sa-lint
       tags: ["static-analysis"]
       commands:
         - func: run-make
           vars:
             targets: lint
-    
+
     - name: sa-vet
       tags: ["static-analysis"]
       commands:
