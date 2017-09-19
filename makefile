@@ -5,7 +5,6 @@ YAMGO_TEST_PKGS = $(shell ./find_pkgs.sh ./yamgo _test)
 PKGS = $(BSON_PKGS) $(YAMGO_PKGS)
 TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 
-LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
 
 .PHONY: default
@@ -33,8 +32,8 @@ generate:
 
 .PHONY: lint
 lint:
-	golint $(LINTARGS) $(YAMGO_PKGS)
-	golint -min_confidence="1.0"  $(BSON_PKGS)
+	golint -set_exit_status -min_confidence="1.0" $(BSON_PKGS) \
+	    || golint -set_exit_status -min_confidence="0.3" $(YAMGO_PKGS)
 
 .PHONY: test
 test:
