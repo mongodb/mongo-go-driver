@@ -16,15 +16,15 @@ func TestWriteSelector_ReplicaSetWithPrimary(t *testing.T) {
 	c := &model.Cluster{
 		Kind: model.ReplicaSetWithPrimary,
 		Servers: []*model.Server{
-			&model.Server{
+			{
 				Addr: model.Addr("localhost:27017"),
 				Kind: model.RSPrimary,
 			},
-			&model.Server{
+			{
 				Addr: model.Addr("localhost:27018"),
 				Kind: model.RSSecondary,
 			},
-			&model.Server{
+			{
 				Addr: model.Addr("localhost:27018"),
 				Kind: model.RSSecondary,
 			},
@@ -46,11 +46,11 @@ func TestWriteSelector_ReplicaSetNoPrimary(t *testing.T) {
 	c := &model.Cluster{
 		Kind: model.ReplicaSetNoPrimary,
 		Servers: []*model.Server{
-			&model.Server{
+			{
 				Addr: model.Addr("localhost:27018"),
 				Kind: model.RSSecondary,
 			},
-			&model.Server{
+			{
 				Addr: model.Addr("localhost:27018"),
 				Kind: model.RSSecondary,
 			},
@@ -72,11 +72,11 @@ func TestWriteSelector_Sharded(t *testing.T) {
 	c := &model.Cluster{
 		Kind: model.Sharded,
 		Servers: []*model.Server{
-			&model.Server{
+			{
 				Addr: model.Addr("localhost:27018"),
 				Kind: model.Mongos,
 			},
-			&model.Server{
+			{
 				Addr: model.Addr("localhost:27018"),
 				Kind: model.Mongos,
 			},
@@ -98,7 +98,7 @@ func TestWriteSelector_Single(t *testing.T) {
 	c := &model.Cluster{
 		Kind: model.Single,
 		Servers: []*model.Server{
-			&model.Server{
+			{
 				Addr: model.Addr("localhost:27018"),
 				Kind: model.Standalone,
 			},

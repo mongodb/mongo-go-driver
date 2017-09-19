@@ -532,7 +532,7 @@ var unmarshalItems = []testItemType{
 	// Ignore unsuitable types silently.
 	{map[string]string{"str": "s"},
 		"\x02str\x00\x02\x00\x00\x00s\x00" + "\x10int\x00\x01\x00\x00\x00"},
-	{map[string][]int{"array": []int{5, 9}},
+	{map[string][]int{"array": {5, 9}},
 		"\x04array\x00" + wrapInDoc("\x100\x00\x05\x00\x00\x00"+"\x021\x00\x02\x00\x00\x00s\x00"+"\x102\x00\x09\x00\x00\x00")},
 
 	// Wrong type. Shouldn't init pointer.
@@ -1231,7 +1231,7 @@ var twoWayCrossItems = []crossTypeItem{
 			B, C int
 		}
 	}{struct{ B, C int }{1, 2}},
-		map[string]map[string]int{"a": map[string]int{"b": 1, "c": 2}}},
+		map[string]map[string]int{"a": {"b": 1, "c": 2}}},
 
 	{&struct{ A bson.Symbol }{"abc"}, map[string]string{"a": "abc"}},
 	{&struct{ A bson.Symbol }{"abc"}, map[string][]byte{"a": []byte("abc")}},
@@ -1256,8 +1256,8 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ URL url.URL }{*parseURL("h://e.c/p")}, map[string]string{"url": "h://e.c/p"}},
 
 	// Slices
-	{&struct{ S []int }{[]int{1, 2, 3}}, map[string][]int{"s": []int{1, 2, 3}}},
-	{&struct{ S *[]int }{&[]int{1, 2, 3}}, map[string][]int{"s": []int{1, 2, 3}}},
+	{&struct{ S []int }{[]int{1, 2, 3}}, map[string][]int{"s": {1, 2, 3}}},
+	{&struct{ S *[]int }{&[]int{1, 2, 3}}, map[string][]int{"s": {1, 2, 3}}},
 
 	// Conditionals
 	{&condBool{true}, map[string]bool{"v": true}},
@@ -1271,7 +1271,7 @@ var twoWayCrossItems = []crossTypeItem{
 	{&condStr{}, map[string]string{}},
 	{&condStrNS{"yo"}, map[string]string{"v": "yo"}},
 	{&condStrNS{}, map[string]string{}},
-	{&condSlice{[]string{"yo"}}, map[string][]string{"v": []string{"yo"}}},
+	{&condSlice{[]string{"yo"}}, map[string][]string{"v": {"yo"}}},
 	{&condSlice{}, map[string][]string{}},
 	{&condMap{map[string]int{"k": 1}}, bson.M{"v": bson.M{"k": 1}}},
 	{&condMap{}, map[string][]string{}},
@@ -1315,7 +1315,7 @@ var twoWayCrossItems = []crossTypeItem{
 	{&inlineUnexported{M: map[string]interface{}{"b": 1}, unexported: unexported{A: 2}}, map[string]interface{}{"b": 1, "a": 2}},
 
 	// []byte <=> Binary
-	{&struct{ B []byte }{[]byte("abc")}, map[string]bson.Binary{"b": bson.Binary{Data: []byte("abc")}}},
+	{&struct{ B []byte }{[]byte("abc")}, map[string]bson.Binary{"b": {Data: []byte("abc")}}},
 
 	// []byte <=> MyBytes
 	{&struct{ B MyBytes }{[]byte("abc")}, map[string]string{"b": "abc"}},
@@ -1330,8 +1330,8 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ B bool }{}, map[string]MyBool{"b": false}},
 
 	// arrays
-	{&struct{ V [2]int }{[...]int{1, 2}}, map[string][2]int{"v": [2]int{1, 2}}},
-	{&struct{ V [2]byte }{[...]byte{1, 2}}, map[string][2]byte{"v": [2]byte{1, 2}}},
+	{&struct{ V [2]int }{[...]int{1, 2}}, map[string][2]int{"v": {1, 2}}},
+	{&struct{ V [2]byte }{[...]byte{1, 2}}, map[string][2]byte{"v": {1, 2}}},
 
 	// zero time
 	{&struct{ V time.Time }{}, map[string]interface{}{"v": time.Time{}}},
@@ -1456,21 +1456,21 @@ type objectIdParts struct {
 }
 
 var objectIds = []objectIdParts{
-	objectIdParts{
+	{
 		bson.ObjectIdHex("4d88e15b60f486e428412dc9"),
 		1300816219,
 		[]byte{0x60, 0xf4, 0x86},
 		0xe428,
 		4271561,
 	},
-	objectIdParts{
+	{
 		bson.ObjectIdHex("000000000000000000000000"),
 		0,
 		[]byte{0x00, 0x00, 0x00},
 		0x0000,
 		0,
 	},
-	objectIdParts{
+	{
 		bson.ObjectIdHex("00000000aabbccddee000001"),
 		0,
 		[]byte{0xaa, 0xbb, 0xcc},

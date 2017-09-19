@@ -9,7 +9,7 @@ LINTARGS = -min_confidence="0.3"
 TEST_TIMEOUT = 20
 
 .PHONY: default
-default: generate test-cover lint vet build-examples
+default: generate test-cover check-fmt lint vet build-examples
 
 .PHONY: doc
 doc:
@@ -18,6 +18,14 @@ doc:
 .PHONY: build-examples
 build-examples:
 	go build $(BUILD_TAGS) ./examples/...
+
+.PHONY: check-fmt
+check-fmt:
+	@gofmt -l -s $(PKGS) | read; if [ $$? == 0 ]; then echo "gofmt check failed for:"; gofmt -l -s $(PKGS) | sed -e 's/^/ - /'; exit 1; fi
+
+.PHONY: fmt
+fmt:
+	gofmt -l -s -w $(PKGS)
 
 .PHONY: generate
 generate: 
