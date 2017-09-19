@@ -264,9 +264,12 @@ functions:
             export MONGODB_URI=${gssapi_auth_windows_mongodb_uri}
           else
             export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
-            echo ${gssapi_auth_linux_keytab_base64} | base64 -d > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
-            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p ${gssapi_auth_username}
-            export MONGODB_URI=${gssapi_auth_linux_mongodb_uri}
+            echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
+            base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
+            mkdir -p ~/.krb5
+            cat .evergreen/krb5.config | tee -a ~/.krb5/config
+            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${gssapi_auth_username}"
+            export MONGODB_URI="${gssapi_auth_linux_mongodb_uri}"
           fi;
           export PATH="${GCC_PATH}:$PATH"
           make -s evg-test-auth
