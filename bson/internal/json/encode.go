@@ -209,6 +209,8 @@ func (e *UnsupportedTypeError) Error() string {
 	return "json: unsupported type: " + e.Type.String()
 }
 
+// UnsupportedValueError is returned by Marshal when attempting to encode an unsupported value,
+// such as NaN.
 type UnsupportedValueError struct {
 	Value reflect.Value
 	Str   string
@@ -218,8 +220,9 @@ func (e *UnsupportedValueError) Error() string {
 	return "json: unsupported value: " + e.Str
 }
 
-// Before Go 1.2, an InvalidUTF8Error was returned by Marshal when
+// An InvalidUTF8Error was returned before Go 1.2 by Marshal when
 // attempting to encode a string value with invalid UTF-8 sequences.
+//
 // As of Go 1.2, Marshal instead coerces the string to valid UTF-8 by
 // replacing invalid bytes with the Unicode replacement rune U+FFFD.
 // This error is no longer generated but is kept for backwards compatibility
@@ -232,6 +235,8 @@ func (e *InvalidUTF8Error) Error() string {
 	return "json: invalid UTF-8 in string: " + strconv.Quote(e.S)
 }
 
+// MarshalerError is returned when a custom encoder provided by an extension fails to encode some
+// value.
 type MarshalerError struct {
 	Type reflect.Type
 	Err  error

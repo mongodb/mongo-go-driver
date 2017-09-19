@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 )
 
+// CreateCommandReply creates a msg.Reply from the BSON response from the server.
 func CreateCommandReply(cmd interface{}) *msg.Reply {
 	doc, _ := bson.Marshal(cmd)
 	reply := &msg.Reply{

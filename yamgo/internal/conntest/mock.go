@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 )
 
+// MockConnection is used to mock a connection for testing purposes.
 type MockConnection struct {
 	Dead      bool
 	Sent      []msg.Request
@@ -18,27 +19,33 @@ type MockConnection struct {
 	SkipResponseToFixup bool
 }
 
+// Alive returns whether a MockConnection is alive.
 func (c *MockConnection) Alive() bool {
 	return !c.Dead
 }
 
+// Close closes a MockConnection.
 func (c *MockConnection) Close() error {
 	c.Dead = true
 	return nil
 }
 
+// MarkDead marks a MockConnection as dead.
 func (c *MockConnection) MarkDead() {
 	c.Dead = true
 }
 
+// Model returns the description of a MockConnection.
 func (c *MockConnection) Model() *model.Conn {
 	return &model.Conn{}
 }
 
+// Expired returns whether a MockConnection is expired.
 func (c *MockConnection) Expired() bool {
 	return c.Dead
 }
 
+// Read reads a server response from the MockConnection.
 func (c *MockConnection) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
 	if c.ReadErr != nil {
 		err := c.ReadErr
@@ -54,6 +61,7 @@ func (c *MockConnection) Read(ctx context.Context, responseTo int32) (msg.Respon
 	return resp, nil
 }
 
+// Write writes a wire protocol message to MockConnection.
 func (c *MockConnection) Write(ctx context.Context, reqs ...msg.Request) error {
 	if c.WriteErr != nil {
 		err := c.WriteErr
