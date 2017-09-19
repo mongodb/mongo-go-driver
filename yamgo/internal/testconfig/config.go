@@ -43,7 +43,8 @@ func Cluster(t *testing.T) *cluster.Cluster {
 // ColName gets a collection name that should be unique
 // to the currently executing test.
 func ColName(t *testing.T) string {
-	v := reflect.ValueOf(*t)
+	// Get this indirectly to avoid copying a mutex
+	v := reflect.Indirect(reflect.ValueOf(t))
 	name := v.FieldByName("name")
 	return name.String()
 }
@@ -76,7 +77,7 @@ func DBName(t *testing.T) string {
 		return cs.Database
 	}
 
-	return fmt.Sprintf("mongo-go-driver-%s", os.Getpid())
+	return fmt.Sprintf("mongo-go-driver-%d", os.Getpid())
 }
 
 // Integration should be called at the beginning of integration
