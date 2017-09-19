@@ -12,6 +12,8 @@ import (
 	"sort"
 
 	"strings"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 func main() {
