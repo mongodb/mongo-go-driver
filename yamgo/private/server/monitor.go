@@ -238,6 +238,8 @@ func (m *Monitor) heartbeat() *model.Server {
 		s = model.BuildServer(m.addr, isMasterResult, buildInfoResult)
 		s.SetAverageRTT(m.updateAverageRTT(delay))
 		s.HeartbeatInterval = m.cfg.heartbeatInterval
+
+		break
 	}
 
 	if s == nil {
