@@ -1,8 +1,9 @@
 package ops
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseNamespace(t *testing.T) {

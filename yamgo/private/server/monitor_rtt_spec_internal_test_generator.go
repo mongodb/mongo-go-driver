@@ -10,8 +10,6 @@ import (
 	"os"
 	"path"
 	"text/template"
-
-	"gopkg.in/yaml.v2"
 )
 
 var (

@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/auth/gssapi"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.

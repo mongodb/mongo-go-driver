@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/ops"
 	"github.com/10gen/mongo-go-driver/yamgo/readpref"

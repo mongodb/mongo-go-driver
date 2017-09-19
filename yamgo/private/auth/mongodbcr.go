@@ -8,8 +8,8 @@ import (
 	"io"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 )
 

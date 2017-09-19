@@ -11,9 +11,9 @@ import (
 
 	"encoding/base64"
 
-	. "github.com/10gen/mongo-go-driver/yamgo/private/auth"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/msgtest"
+	. "github.com/10gen/mongo-go-driver/yamgo/private/auth"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 )
 

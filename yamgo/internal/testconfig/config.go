@@ -7,8 +7,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/connstring"
+	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 )
 
 var connectionString connstring.ConnString

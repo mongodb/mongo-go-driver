@@ -3,8 +3,8 @@ package cluster_test
 import (
 	"testing"
 
-	. "github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/model"
+	. "github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/stretchr/testify/require"
 )
 

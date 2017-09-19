@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/msgtest"
 	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 	"github.com/10gen/mongo-go-driver/yamgo/private/server"
 )

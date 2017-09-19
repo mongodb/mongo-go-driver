@@ -1,9 +1,9 @@
 package cluster
 
 import (
+	"github.com/10gen/mongo-go-driver/yamgo/connstring"
 	"github.com/10gen/mongo-go-driver/yamgo/private/auth"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
-	"github.com/10gen/mongo-go-driver/yamgo/connstring"
 	"github.com/10gen/mongo-go-driver/yamgo/private/server"
 )
 

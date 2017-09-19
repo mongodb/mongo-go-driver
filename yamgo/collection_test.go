@@ -1,9 +1,10 @@
 package yamgo
 
 import (
-	"testing"
-	"github.com/stretchr/testify/require"
 	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func createTestCollection(t *testing.T, dbName string, collName string) *Collection {

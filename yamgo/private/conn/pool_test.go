@@ -7,8 +7,8 @@ import (
 
 	"time"
 
-	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
+	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/stretchr/testify/require"
 )
 

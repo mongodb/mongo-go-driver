@@ -8,9 +8,9 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
-	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/msgtest"
+	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
 )
 

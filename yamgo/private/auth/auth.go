@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/model"
+	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 )
 
 // AuthenticatorFactory constructs an authenticator.
