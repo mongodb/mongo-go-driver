@@ -26,11 +26,11 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 	}
 
 	getNonceReply := msgtest.CreateCommandReply(bson.D{
-		{"ok", 1},
-		{"nonce", "2375531c32080ae8"},
+		bson.NewDocElem("ok", 1),
+		bson.NewDocElem("nonce", "2375531c32080ae8"),
 	})
 
-	authenticateReply := msgtest.CreateCommandReply(bson.D{{"ok", 0}})
+	authenticateReply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 0)})
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
@@ -57,11 +57,11 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	getNonceReply := msgtest.CreateCommandReply(bson.D{
-		{"ok", 1},
-		{"nonce", "2375531c32080ae8"},
+		bson.NewDocElem("ok", 1),
+		bson.NewDocElem("nonce", "2375531c32080ae8"),
 	})
 
-	authenticateReply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	authenticateReply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
@@ -77,16 +77,16 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	getNonceRequest := conn.Sent[0].(*msg.Query)
-	if !reflect.DeepEqual(getNonceRequest.Query, bson.D{{"getnonce", 1}}) {
+	if !reflect.DeepEqual(getNonceRequest.Query, bson.D{bson.NewDocElem("getnonce", 1)}) {
 		t.Fatalf("getnonce command was incorrect: %v", getNonceRequest.Query)
 	}
 
 	authenticateRequest := conn.Sent[1].(*msg.Query)
 	expectedAuthenticateDoc := bson.D{
-		{"authenticate", 1},
-		{"user", "user"},
-		{"nonce", "2375531c32080ae8"},
-		{"key", "21742f26431831d5cfca035a08c5bdf6"},
+		bson.NewDocElem("authenticate", 1),
+		bson.NewDocElem("user", "user"),
+		bson.NewDocElem("nonce", "2375531c32080ae8"),
+		bson.NewDocElem("key", "21742f26431831d5cfca035a08c5bdf6"),
 	}
 
 	if !reflect.DeepEqual(authenticateRequest.Query, expectedAuthenticateDoc) {

@@ -15,7 +15,7 @@ func TestListIndexesWithInvalidDatabaseName(t *testing.T) {
 	testconfig.Integration(t)
 
 	s := getServer(t)
-	ns := Namespace{"space", "ex"}
+	ns := Namespace{Collection: "space", DB: "ex"}
 	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
 	require.Nil(t, err)
 
@@ -34,7 +34,7 @@ func TestListIndexesWithInvalidCollectionName(t *testing.T) {
 	testconfig.Integration(t)
 
 	s := getServer(t)
-	ns := Namespace{testconfig.DBName(t), "ex"}
+	ns := Namespace{Collection: testconfig.DBName(t), DB: "ex"}
 	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
 	require.Nil(t, err)
 

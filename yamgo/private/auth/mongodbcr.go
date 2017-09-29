@@ -48,7 +48,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 		msg.NextRequestID(),
 		db,
 		true,
-		bson.D{{"getnonce", 1}},
+		bson.D{{Name: "getnonce", Value: 1}},
 	)
 	var getNonceResult struct {
 		Nonce string `bson:"nonce"`
@@ -64,10 +64,10 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 		db,
 		true,
 		bson.D{
-			{"authenticate", 1},
-			{"user", a.Username},
-			{"nonce", getNonceResult.Nonce},
-			{"key", a.createKey(getNonceResult.Nonce)},
+			{Name: "authenticate", Value: 1},
+			{Name: "user", Value: a.Username},
+			{Name: "nonce", Value: getNonceResult.Nonce},
+			{Name: "key", Value: a.createKey(getNonceResult.Nonce)},
 		},
 	)
 	err = conn.ExecuteCommand(ctx, c, authRequest, &bson.D{})

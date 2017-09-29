@@ -8,6 +8,11 @@ type Range struct {
 	Max uint8
 }
 
+// NewRange creates a new Range given a min and a max.
+func NewRange(min uint8, max uint8) Range {
+	return Range{Min: min, Max: max}
+}
+
 // Includes returns a bool indicating whether the supplied
 // integer is included in the range.
 func (r *Range) Includes(i uint8) bool {

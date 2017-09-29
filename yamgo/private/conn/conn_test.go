@@ -52,7 +52,7 @@ func TestConn_ReadWrite(t *testing.T) {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{{"ismaster", 1}},
+		bson.D{bson.NewDocElem("ismaster", 1)},
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -109,7 +109,7 @@ func TestConnection_Write_cancel(t *testing.T) {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{{"ismaster", 1}},
+		bson.D{bson.NewDocElem("ismaster", 1)},
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -134,7 +134,7 @@ func TestConnection_Write_timeout(t *testing.T) {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{{"ismaster", 1}},
+		bson.D{bson.NewDocElem("ismaster", 1)},
 	)
 
 	err = subject.Write(&timeoutContext{}, isMasterRequest)
@@ -156,7 +156,7 @@ func TestConnection_Write_after_connection_is_dead(t *testing.T) {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{{"ismaster", 1}},
+		bson.D{bson.NewDocElem("ismaster", 1)},
 	)
 
 	err = subject.Write(&timeoutContext{}, isMasterRequest)

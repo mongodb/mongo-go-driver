@@ -49,9 +49,9 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 		db,
 		true,
 		bson.D{
-			{"saslStart", 1},
-			{"mechanism", mech},
-			{"payload", payload},
+			{Name: "saslStart", Value: 1},
+			{Name: "mechanism", Value: mech},
+			{Name: "payload", Value: payload},
 		},
 	)
 
@@ -93,9 +93,9 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 			db,
 			true,
 			bson.D{
-				{"saslContinue", 1},
-				{"conversationId", cid},
-				{"payload", payload},
+				{Name: "saslContinue", Value: 1},
+				{Name: "conversationId", Value: cid},
+				{Name: "payload", Value: payload},
 			},
 		)
 

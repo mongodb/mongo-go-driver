@@ -34,7 +34,7 @@ func TestExecuteCommand_Valid(t *testing.T) {
 	}
 
 	conn := &conntest.MockConnection{}
-	conn.ResponseQ = append(conn.ResponseQ, msgtest.CreateCommandReply(bson.D{{"ok", 1}}))
+	conn.ResponseQ = append(conn.ResponseQ, msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)}))
 
 	var result okResp
 	err := ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
@@ -80,10 +80,10 @@ func TestExecuteCommand_Error_from_multiple_requests(t *testing.T) {
 	conn := &conntest.MockConnection{
 		SkipResponseToFixup: true,
 	}
-	reply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.NumberReturned = 0
 	conn.ResponseQ = append(conn.ResponseQ, reply)
-	reply = msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply = msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.NumberReturned = 0
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
@@ -97,7 +97,7 @@ func TestExecuteCommand_NumberReturned_is_0(t *testing.T) {
 	t.Parallel()
 
 	conn := &conntest.MockConnection{}
-	reply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.NumberReturned = 0
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
@@ -111,7 +111,7 @@ func TestExecuteCommand_NumberReturned_is_greater_than_1(t *testing.T) {
 	t.Parallel()
 
 	conn := &conntest.MockConnection{}
-	reply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.NumberReturned = 10
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
@@ -142,7 +142,7 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 
 	// can't read length
 	conn := &conntest.MockConnection{}
-	reply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.DocumentsBytes = []byte{0, 1, 5}
 	reply.ResponseFlags = msg.QueryFailure
 	conn.ResponseQ = append(conn.ResponseQ, reply)
@@ -154,7 +154,7 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 
 	// not enough bytes for document
 	conn = &conntest.MockConnection{}
-	reply = msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply = msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.DocumentsBytes = []byte{0, 1, 5, 62, 23}
 	reply.ResponseFlags = msg.QueryFailure
 	conn.ResponseQ = append(conn.ResponseQ, reply)
@@ -165,7 +165,7 @@ func TestExecuteCommand_QueryFailure_flag_with_malformed_document(t *testing.T) 
 
 	// corrupted document
 	conn = &conntest.MockConnection{}
-	reply = msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply = msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.DocumentsBytes = []byte{1, 0, 0, 0, 4, 6}
 	reply.ResponseFlags = msg.QueryFailure
 	conn.ResponseQ = append(conn.ResponseQ, reply)
@@ -179,7 +179,7 @@ func TestExecuteCommand_QueryFailure_flag_with_document(t *testing.T) {
 	t.Parallel()
 
 	conn := &conntest.MockConnection{}
-	reply := msgtest.CreateCommandReply(bson.D{{"error", true}})
+	reply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("error", true)})
 	reply.ResponseFlags = msg.QueryFailure
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
@@ -209,7 +209,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 
 	// can't read length
 	conn := &conntest.MockConnection{}
-	reply := msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.DocumentsBytes = []byte{0, 1, 5}
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
@@ -220,7 +220,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 
 	// not enough bytes for document
 	conn = &conntest.MockConnection{}
-	reply = msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply = msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.DocumentsBytes = []byte{0, 1, 5, 62, 23}
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
@@ -230,7 +230,7 @@ func TestExecuteCommand_Error_decoding_response(t *testing.T) {
 
 	// corrupted document
 	conn = &conntest.MockConnection{}
-	reply = msgtest.CreateCommandReply(bson.D{{"ok", 1}})
+	reply = msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
 	reply.DocumentsBytes = []byte{1, 0, 0, 0, 4, 6}
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
@@ -243,7 +243,7 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 	t.Parallel()
 
 	conn := &conntest.MockConnection{}
-	reply := msgtest.CreateCommandReply(bson.D{{"funny", 0}})
+	reply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("funny", 0)})
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	var result bson.D
@@ -252,7 +252,7 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 	validateExecuteCommandError(t, err, "command failed", 1)
 
 	conn = &conntest.MockConnection{}
-	reply = msgtest.CreateCommandReply(bson.D{{"ok", 0}})
+	reply = msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 0)})
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)
@@ -260,7 +260,7 @@ func TestExecuteCommand_OK_field_is_false(t *testing.T) {
 	validateExecuteCommandError(t, err, "command failed", 1)
 
 	conn = &conntest.MockConnection{}
-	reply = msgtest.CreateCommandReply(bson.D{{"ok", 0}, {"errmsg", "weird command was invalid"}})
+	reply = msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 0), bson.NewDocElem("errmsg", "weird command was invalid")})
 	conn.ResponseQ = append(conn.ResponseQ, reply)
 
 	err = ExecuteCommand(context.Background(), conn, &msg.Query{}, &result)

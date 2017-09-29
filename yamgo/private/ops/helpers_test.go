@@ -29,10 +29,10 @@ func getServer(t *testing.T) *SelectedServer {
 
 func find(t *testing.T, s Server, batchSize int32) CursorResult {
 	findCommand := bson.D{
-		{"find", testconfig.ColName(t)},
+		bson.NewDocElem("find", testconfig.ColName(t)),
 	}
 	if batchSize != 0 {
-		findCommand = append(findCommand, bson.DocElem{"batchSize", batchSize})
+		findCommand = append(findCommand, bson.NewDocElem("batchSize", batchSize))
 	}
 	request := msg.NewCommand(
 		msg.NextRequestID(),

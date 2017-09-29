@@ -23,8 +23,8 @@ func AutoCreateIndex(t *testing.T, keys []string) {
 	indexes = bson.M{"key": indexes, "name": name}
 
 	createIndexCommand := bson.D{
-		{"createIndexes", ColName(t)},
-		{"indexes", []bson.M{indexes}},
+		bson.NewDocElem("createIndexes", ColName(t)),
+		bson.NewDocElem("indexes", []bson.M{indexes}),
 	}
 
 	request := msg.NewCommand(
@@ -64,7 +64,7 @@ func DropCollection(t *testing.T, dbname, colname string) {
 			msg.NextRequestID(),
 			dbname,
 			false,
-			bson.D{{"drop", colname}},
+			bson.D{bson.NewDocElem("drop", colname)},
 		),
 		&bson.D{},
 	)
@@ -88,7 +88,7 @@ func autoDropDB(t *testing.T, clstr *cluster.Cluster) {
 			msg.NextRequestID(),
 			DBName(t),
 			false,
-			bson.D{{"dropDatabase", 1}},
+			bson.D{bson.NewDocElem("dropDatabase", 1)},
 		),
 		&bson.D{},
 	)
@@ -103,8 +103,8 @@ func AutoInsertDocs(t *testing.T, docs ...bson.D) {
 // InsertDocs inserts the docs into the test cluster.
 func InsertDocs(t *testing.T, dbname, colname string, docs ...bson.D) {
 	insertCommand := bson.D{
-		{"insert", colname},
-		{"documents", docs},
+		bson.NewDocElem("insert", colname),
+		bson.NewDocElem("documents", docs),
 	}
 
 	request := msg.NewCommand(
@@ -139,8 +139,8 @@ func EnableMaxTimeFailPoint(t *testing.T, s cluster.Server) error {
 			"admin",
 			false,
 			bson.D{
-				{"configureFailPoint", "maxTimeAlwaysTimeOut"},
-				{"mode", "alwaysOn"},
+				bson.NewDocElem("configureFailPoint", "maxTimeAlwaysTimeOut"),
+				bson.NewDocElem("mode", "alwaysOn"),
 			},
 		),
 		&bson.D{},
@@ -160,8 +160,8 @@ func DisableMaxTimeFailPoint(t *testing.T, s cluster.Server) {
 			"admin",
 			false,
 			bson.D{
-				{"configureFailPoint", "maxTimeAlwaysTimeOut"},
-				{"mode", "off"},
+				bson.NewDocElem("configureFailPoint", "maxTimeAlwaysTimeOut"),
+				bson.NewDocElem("mode", "off"),
 			},
 		),
 		&bson.D{},

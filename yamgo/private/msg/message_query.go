@@ -41,7 +41,7 @@ func AddMeta(r Request, meta map[string]interface{}) {
 		switch typedR := r.(type) {
 		case *Query:
 			doc := bson.D{
-				{"$query", typedR.Query},
+				{Name: "$query", Value: typedR.Query},
 			}
 
 			for k, v := range meta {

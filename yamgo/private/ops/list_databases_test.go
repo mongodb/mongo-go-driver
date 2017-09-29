@@ -15,7 +15,7 @@ func TestListDatabases(t *testing.T) {
 	t.Parallel()
 	testconfig.Integration(t)
 	testconfig.AutoDropCollection(t)
-	testconfig.AutoInsertDocs(t, bson.D{{"_id", 1}})
+	testconfig.AutoInsertDocs(t, bson.D{bson.NewDocElem("_id", 1)})
 
 	s := getServer(t)
 	cursor, err := ListDatabases(context.Background(), s, ListDatabasesOptions{})

@@ -26,11 +26,11 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	}
 
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
-		{"ok", 1},
-		{"conversationId", 1},
-		{"payload", []byte{}},
-		{"code", 143},
-		{"done", true},
+		bson.NewDocElem("ok", 1),
+		bson.NewDocElem("conversationId", 1),
+		bson.NewDocElem("payload", []byte{}),
+		bson.NewDocElem("code", 143),
+		bson.NewDocElem("done", true),
 	})
 
 	conn := &conntest.MockConnection{
@@ -57,16 +57,16 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	}
 
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
-		{"ok", 1},
-		{"conversationId", 1},
-		{"payload", []byte{}},
-		{"done", false},
+		bson.NewDocElem("ok", 1),
+		bson.NewDocElem("conversationId", 1),
+		bson.NewDocElem("payload", []byte{}),
+		bson.NewDocElem("done", false),
 	})
 	saslContinueReply := msgtest.CreateCommandReply(bson.D{
-		{"ok", 1},
-		{"conversationId", 1},
-		{"payload", []byte{}},
-		{"done", true},
+		bson.NewDocElem("ok", 1),
+		bson.NewDocElem("conversationId", 1),
+		bson.NewDocElem("payload", []byte{}),
+		bson.NewDocElem("done", true),
 	})
 
 	conn := &conntest.MockConnection{
@@ -93,10 +93,10 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
-		{"ok", 1},
-		{"conversationId", 1},
-		{"payload", []byte{}},
-		{"done", true},
+		bson.NewDocElem("ok", 1),
+		bson.NewDocElem("conversationId", 1),
+		bson.NewDocElem("payload", []byte{}),
+		bson.NewDocElem("done", true),
 	})
 
 	conn := &conntest.MockConnection{
@@ -115,9 +115,9 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	saslStartRequest := conn.Sent[0].(*msg.Query)
 	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
 	expectedCmd := bson.D{
-		{"saslStart", 1},
-		{"mechanism", "PLAIN"},
-		{"payload", payload},
+		bson.NewDocElem("saslStart", 1),
+		bson.NewDocElem("mechanism", "PLAIN"),
+		bson.NewDocElem("payload", payload),
 	}
 	if !reflect.DeepEqual(saslStartRequest.Query, expectedCmd) {
 		t.Fatalf("saslStart command was incorrect: %v", saslStartRequest.Query)

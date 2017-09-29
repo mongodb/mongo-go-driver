@@ -38,7 +38,10 @@ func TestCursorSingleBatch(t *testing.T) {
 	t.Parallel()
 	testconfig.Integration(t)
 	testconfig.AutoDropCollection(t)
-	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}}
+	documents := []bson.D{
+		{bson.NewDocElem("_id", 1)},
+		{bson.NewDocElem("_id", 2)},
+	}
 	testconfig.AutoInsertDocs(t, documents...)
 
 	s := getServer(t)
@@ -63,7 +66,13 @@ func TestCursorMultipleBatches(t *testing.T) {
 	t.Parallel()
 	testconfig.Integration(t)
 	testconfig.AutoDropCollection(t)
-	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
+	documents := []bson.D{
+		{bson.NewDocElem("_id", 1)},
+		{bson.NewDocElem("_id", 2)},
+		{bson.NewDocElem("_id", 3)},
+		{bson.NewDocElem("_id", 4)},
+		{bson.NewDocElem("_id", 5)},
+	}
 	testconfig.AutoInsertDocs(t, documents...)
 
 	s := getServer(t)
@@ -100,7 +109,13 @@ func TestCursorClose(t *testing.T) {
 	t.Parallel()
 	testconfig.Integration(t)
 	testconfig.AutoDropCollection(t)
-	documents := []bson.D{{{"_id", 1}}, {{"_id", 2}}, {{"_id", 3}}, {{"_id", 4}}, {{"_id", 5}}}
+	documents := []bson.D{
+		{bson.NewDocElem("_id", 1)},
+		{bson.NewDocElem("_id", 2)},
+		{bson.NewDocElem("_id", 3)},
+		{bson.NewDocElem("_id", 4)},
+		{bson.NewDocElem("_id", 5)},
+	}
 	testconfig.AutoInsertDocs(t, documents...)
 
 	s := getServer(t)
@@ -119,11 +134,11 @@ func TestCursorError(t *testing.T) {
 	testconfig.Integration(t)
 	testconfig.AutoDropCollection(t)
 	testconfig.AutoInsertDocs(t,
-		bson.D{{"_id", 1}},
-		bson.D{{"_id", 2}},
-		bson.D{{"_id", 3}},
-		bson.D{{"_id", 4}},
-		bson.D{{"_id", 5}},
+		bson.D{bson.NewDocElem("_id", 1)},
+		bson.D{bson.NewDocElem("_id", 2)},
+		bson.D{bson.NewDocElem("_id", 3)},
+		bson.D{bson.NewDocElem("_id", 4)},
+		bson.D{bson.NewDocElem("_id", 5)},
 	)
 
 	s := getServer(t)

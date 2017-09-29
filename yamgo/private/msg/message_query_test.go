@@ -17,7 +17,7 @@ func TestWrapWithMeta(t *testing.T) {
 	err = bson.Unmarshal(buf, &actual)
 	require.NoError(t, err)
 	expected := bson.D{
-		{"a", 1},
+		bson.NewDocElem("a", 1),
 	}
 	require.Equal(t, expected, actual)
 
@@ -32,8 +32,12 @@ func TestWrapWithMeta(t *testing.T) {
 	err = bson.Unmarshal(buf, &actual)
 	require.NoError(t, err)
 	expected = bson.D{
-		{"$query", bson.D{{"a", 1}}},
-		{"$readPreference", bson.D{{"mode", "secondary"}}},
+		bson.NewDocElem("$query",
+			bson.D{bson.NewDocElem("a", 1)},
+		),
+		bson.NewDocElem("$readPreference",
+			bson.D{bson.NewDocElem("mode", "secondary")},
+		),
 	}
 	require.Equal(t, expected, actual)
 }

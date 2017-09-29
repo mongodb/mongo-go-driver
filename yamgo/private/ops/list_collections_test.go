@@ -31,9 +31,9 @@ func TestListCollections(t *testing.T) {
 	testconfig.DropCollection(t, dbname, collectionNameOne)
 	testconfig.DropCollection(t, dbname, collectionNameTwo)
 	testconfig.DropCollection(t, dbname, collectionNameThree)
-	testconfig.InsertDocs(t, dbname, collectionNameOne, bson.D{{"_id", 1}})
-	testconfig.InsertDocs(t, dbname, collectionNameTwo, bson.D{{"_id", 1}})
-	testconfig.InsertDocs(t, dbname, collectionNameThree, bson.D{{"_id", 1}})
+	testconfig.InsertDocs(t, dbname, collectionNameOne, bson.D{bson.NewDocElem("_id", 1)})
+	testconfig.InsertDocs(t, dbname, collectionNameTwo, bson.D{bson.NewDocElem("_id", 1)})
+	testconfig.InsertDocs(t, dbname, collectionNameThree, bson.D{bson.NewDocElem("_id", 1)})
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{})
@@ -59,13 +59,13 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	testconfig.DropCollection(t, dbname, collectionNameOne)
 	testconfig.DropCollection(t, dbname, collectionNameTwo)
 	testconfig.DropCollection(t, dbname, collectionNameThree)
-	testconfig.InsertDocs(t, dbname, collectionNameOne, bson.D{{"_id", 1}})
-	testconfig.InsertDocs(t, dbname, collectionNameTwo, bson.D{{"_id", 1}})
-	testconfig.InsertDocs(t, dbname, collectionNameThree, bson.D{{"_id", 1}})
+	testconfig.InsertDocs(t, dbname, collectionNameOne, bson.D{bson.NewDocElem("_id", 1)})
+	testconfig.InsertDocs(t, dbname, collectionNameTwo, bson.D{bson.NewDocElem("_id", 1)})
+	testconfig.InsertDocs(t, dbname, collectionNameThree, bson.D{bson.NewDocElem("_id", 1)})
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{
-		Filter:    bson.D{{"name", bson.RegEx{Pattern: fmt.Sprintf("^%s.*", collectionNameOne)}}},
+		Filter:    bson.D{bson.NewDocElem("name", bson.RegEx{Pattern: fmt.Sprintf("^%s.*", collectionNameOne)})},
 		BatchSize: 2})
 	require.NoError(t, err)
 

@@ -23,7 +23,7 @@ func TestRun(t *testing.T) {
 		ctx,
 		server,
 		"admin",
-		bson.D{{"getnonce", 1}},
+		bson.D{bson.NewDocElem("getnonce", 1)},
 		result,
 	)
 	require.NoError(t, err)
@@ -35,7 +35,7 @@ func TestRun(t *testing.T) {
 		ctx,
 		server,
 		"admin",
-		bson.D{{"ping", 1}},
+		bson.D{bson.NewDocElem("ping", 1)},
 		result,
 	)
 
