@@ -32,10 +32,7 @@ func New(ctx context.Context, addr model.Addr, opts ...Option) (Connection, erro
 		return nil, err
 	}
 
-	dialer := net.Dialer{
-		Timeout:   cfg.connectTimeout,
-		KeepAlive: cfg.keepAlive,
-	}
+	dialer := net.Dialer{Timeout: cfg.connectTimeout}
 
 	netConn, err := cfg.dialer(ctx, &dialer, addr.Network(), addr.String())
 	if err != nil {

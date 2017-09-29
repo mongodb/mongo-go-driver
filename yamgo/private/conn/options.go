@@ -34,7 +34,6 @@ type config struct {
 	connectTimeout time.Duration
 	dialer         Dialer
 	idleTimeout    time.Duration
-	keepAlive      time.Duration
 	lifeTimeout    time.Duration
 	readTimeout    time.Duration
 	writeTimeout   time.Duration
@@ -89,16 +88,6 @@ func WithWrappedDialer(wrapper func(dialer Dialer) Dialer) Option {
 func WithIdleTimeout(timeout time.Duration) Option {
 	return func(c *config) error {
 		c.idleTimeout = timeout
-		return nil
-	}
-}
-
-// WithKeepAlive configures the the keep-alive period for
-// an active network connection. If zero, keep-alives are
-// not enabled.
-func WithKeepAlive(keepAlive time.Duration) Option {
-	return func(c *config) error {
-		c.keepAlive = keepAlive
 		return nil
 	}
 }
