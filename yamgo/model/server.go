@@ -55,7 +55,6 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 
 		CanonicalAddr:   Addr(isMasterResult.Me).Canonicalize(),
 		ElectionID:      isMasterResult.ElectionID,
-		GitVersion:      buildInfoResult.GitVersion,
 		LastUpdateTime:  time.Now().UTC(),
 		LastWriteTime:   isMasterResult.LastWriteTimestamp,
 		MaxBatchCount:   isMasterResult.MaxWriteBatchSize,
@@ -64,14 +63,16 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 		SetName:         isMasterResult.SetName,
 		SetVersion:      isMasterResult.SetVersion,
 		Tags:            NewTagSetFromMap(isMasterResult.Tags),
-		Version: Version{
-			Desc:  buildInfoResult.Version,
-			Parts: buildInfoResult.VersionArray,
-		},
 		WireVersion: Range{
 			Min: isMasterResult.MinWireVersion,
 			Max: isMasterResult.MaxWireVersion,
 		},
+	}
+
+	if buildInfoResult != nil {
+		i.GitVersion = buildInfoResult.GitVersion
+		i.Version.Desc = buildInfoResult.Version
+		i.Version.Parts = buildInfoResult.VersionArray
 	}
 
 	if i.CanonicalAddr == "" {

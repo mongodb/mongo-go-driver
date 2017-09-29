@@ -171,28 +171,21 @@ func (m *Monitor) RequestImmediateCheck() {
 	}
 }
 
-func (m *Monitor) describeServer(ctx context.Context) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
+func (m *Monitor) describeServer(ctx context.Context) (*internal.IsMasterResult, error) {
 	isMasterReq := msg.NewCommand(
 		msg.NextRequestID(),
 		"admin",
 		true,
 		bson.D{{Name: "ismaster", Value: 1}},
 	)
-	buildInfoReq := msg.NewCommand(
-		msg.NextRequestID(),
-		"admin",
-		true,
-		bson.D{{Name: "buildInfo", Value: 1}},
-	)
 
 	var isMasterResult internal.IsMasterResult
-	var buildInfoResult internal.BuildInfoResult
-	err := conn.ExecuteCommands(ctx, m.conn, []msg.Request{isMasterReq, buildInfoReq}, []interface{}{&isMasterResult, &buildInfoResult})
+	err := conn.ExecuteCommand(ctx, m.conn, isMasterReq, &isMasterResult)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return &isMasterResult, &buildInfoResult, nil
+	return &isMasterResult, nil
 }
 
 func (m *Monitor) heartbeat() *model.Server {
@@ -226,7 +219,7 @@ func (m *Monitor) heartbeat() *model.Server {
 		}
 
 		now := time.Now()
-		isMasterResult, buildInfoResult, err := m.describeServer(ctx)
+		isMasterResult, err := m.describeServer(ctx)
 		if err != nil {
 			savedErr = err
 			m.conn.Close()
@@ -235,7 +228,7 @@ func (m *Monitor) heartbeat() *model.Server {
 		}
 		delay := time.Since(now)
 
-		s = model.BuildServer(m.addr, isMasterResult, buildInfoResult)
+		s = model.BuildServer(m.addr, isMasterResult, nil)
 		s.SetAverageRTT(m.updateAverageRTT(delay))
 		s.HeartbeatInterval = m.cfg.heartbeatInterval
 
