@@ -8,7 +8,7 @@ TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 TEST_TIMEOUT = 20
 
 .PHONY: default
-default: generate test-cover check-fmt lint-bson lint-yamgo vet build-examples
+default: generate test-cover check-fmt vet build-examples lint
 
 .PHONY: doc
 doc:
@@ -30,13 +30,13 @@ fmt:
 generate: 
 	go generate -x ./bson/... ./yamgo/...
 
-.PHONY: lint-bson
-lint-bson:
-	golint -set_exit_status -min_confidence="1.0" $(BSON_PKGS) \
+.PHONY: lint
+lint:
+	golint $(PKGS) | ./lintscreen.pl .lint-whitelist
 
-.PHONY: lint-yamgo
-lint-yamgo:
-	golint -set_exit_status -min_confidence="0.3" $(YAMGO_PKGS)
+.PHONY: lint-add-whitelist
+lint-add-whitelist:
+	golint $(PKGS) | ./lintscreen.pl -u .lint-whitelist
 
 .PHONY: test
 test:
