@@ -27,6 +27,8 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
+	require.True(t, authenticator.IsClientKeyNil())
+
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
 		bson.NewDocElem("ok", 1),
 		bson.NewDocElem("conversationId", 1),
@@ -44,6 +46,7 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\""
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
@@ -58,6 +61,8 @@ func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cz1yUTlaWTNNbnRCZXVQM0UxVERWQzR3PT0saT0xMDAwMA===")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -76,6 +81,8 @@ func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server response"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
@@ -90,6 +97,8 @@ func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("bD0yMzJnLHM9clE5WlkzTW50QmV1UDNFMVREVkM0dz09LGk9MTAwMDA=")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -107,6 +116,8 @@ func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
@@ -121,6 +132,8 @@ func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvLWQybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -139,6 +152,8 @@ func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_No_salt(t *testing.T) {
@@ -153,6 +168,8 @@ func TestScramSHA1Authenticator_No_salt(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxrPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw======")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -171,6 +188,8 @@ func TestScramSHA1Authenticator_No_salt(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid salt"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
@@ -185,6 +204,8 @@ func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxrPXNkZg======")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -203,6 +224,8 @@ func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
@@ -217,6 +240,8 @@ func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPWFiYw====")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -235,6 +260,8 @@ func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
@@ -249,6 +276,8 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -274,6 +303,8 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server signature"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
@@ -288,6 +319,8 @@ func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -313,6 +346,8 @@ func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": server passed error"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
@@ -327,6 +362,8 @@ func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -352,6 +389,8 @@ func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid final message"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
@@ -366,6 +405,8 @@ func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -397,6 +438,8 @@ func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": unexpected server challenge"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+
+	require.True(t, authenticator.IsClientKeyNil())
 }
 
 func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
@@ -411,6 +454,8 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 			return nil
 		},
 	}
+
+	require.True(t, authenticator.IsClientKeyNil())
 
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
 	saslStartReply := msgtest.CreateCommandReply(bson.D{
@@ -454,4 +499,6 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 	}
 
 	require.True(t, reflect.DeepEqual(saslContinueRequest.Query, expectedCmd))
+
+	require.False(t, authenticator.IsClientKeyNil())
 }

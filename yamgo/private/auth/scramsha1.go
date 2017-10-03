@@ -35,26 +35,38 @@ func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
 
 // ScramSHA1Authenticator uses the SCRAM-SHA-1 algorithm over SASL to authenticate a connection.
 type ScramSHA1Authenticator struct {
-	DB       string
-	Username string
-	Password string
+	DB        string
+	Username  string
+	Password  string
+	clientKey []byte
 
 	NonceGenerator func([]byte) error
 }
 
 // Auth authenticates the connection.
 func (a *ScramSHA1Authenticator) Auth(ctx context.Context, c conn.Connection) error {
-	return ConductSaslConversation(ctx, c, a.DB, &scramSaslClient{
+	client := &scramSaslClient{
 		username:       a.Username,
 		password:       a.Password,
 		nonceGenerator: a.NonceGenerator,
-	})
+		clientKey:      a.clientKey,
+	}
+
+	err := ConductSaslConversation(ctx, c, a.DB, client)
+	if err != nil {
+		return err
+	}
+
+	a.clientKey = client.clientKey
+
+	return nil
 }
 
 type scramSaslClient struct {
 	username       string
 	password       string
 	nonceGenerator func([]byte) error
+	clientKey      []byte
 
 	step                   uint8
 	clientNonce            []byte
@@ -122,11 +134,16 @@ func (c *scramSaslClient) step1(challenge []byte) ([]byte, error) {
 
 	clientFinalMessageWithoutProof := "c=biws,r=" + string(r)
 	authMessage := c.clientFirstMessageBare + "," + string(challenge) + "," + clientFinalMessageWithoutProof
+
 	saltedPassword := pbkdf2.Key([]byte(mongoPasswordDigest(c.username, c.password)), s, i, 20, sha1.New)
-	clientKey := c.hmac(saltedPassword, "Client Key")
-	storedKey := c.h(clientKey)
+
+	if c.clientKey == nil {
+		c.clientKey = c.hmac(saltedPassword, "Client Key")
+	}
+
+	storedKey := c.h(c.clientKey)
 	clientSignature := c.hmac(storedKey, authMessage)
-	clientProof := c.xor(clientKey, clientSignature)
+	clientProof := c.xor(c.clientKey, clientSignature)
 	serverKey := c.hmac(saltedPassword, "Server Key")
 	c.serverSignature = c.hmac(serverKey, authMessage)
 
