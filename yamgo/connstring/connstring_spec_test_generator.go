@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path"
+	"path/filepath"
 	"sort"
 
 	"strings"
@@ -128,9 +129,16 @@ func (g *Generator) generateFromFile(filename string) {
 		log.Fatalf("error unmarshalling file %q: %s", filename, err)
 	}
 
+	// Trim path and ".yml" extension
+	filenameWithoutPath := g.replaceCharacters(filepath.Base(filename), "-", "_")
+	filenameWithoutExtension := filenameWithoutPath[:len(filenameWithoutPath)-4]
+
 	for _, testDef := range testContainer.Tests {
 		g.printf("\n\n")
-		g.printlnf("func TestParse_%s(t *testing.T) {", g.replaceCharacters(testDef.Description, " '-,()", "_"))
+		g.printlnf(
+			"func TestParse_%s_%s(t *testing.T) {",
+			filenameWithoutExtension,
+			g.replaceCharacters(testDef.Description, " '-,()+", "_"))
 		g.printlnf("t.Parallel()")
 		g.printlnf("")
 		// Validity

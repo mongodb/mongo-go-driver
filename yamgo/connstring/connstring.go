@@ -100,6 +100,12 @@ func (p *parser) parse(original string) error {
 			password = userInfo[idx+1:]
 		}
 
+		if len(username) > 1 {
+			if strings.Contains(username, "/") {
+				return fmt.Errorf("unescaped slash in username")
+			}
+		}
+
 		p.Username, err = url.QueryUnescape(username)
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid username")
@@ -107,6 +113,9 @@ func (p *parser) parse(original string) error {
 		if len(password) > 1 {
 			if strings.Contains(password, ":") {
 				return fmt.Errorf("unescaped colon in password")
+			}
+			if strings.Contains(password, "/") {
+				return fmt.Errorf("unescaped slash in password")
 			}
 			p.Password, err = url.QueryUnescape(password)
 			if err != nil {
