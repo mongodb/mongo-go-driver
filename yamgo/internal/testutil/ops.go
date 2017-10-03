@@ -38,7 +38,7 @@ func AutoCreateIndex(t *testing.T, keys []string) {
 	require.NoError(t, err)
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer c.Close()
+	defer RequireNoErrorOnClose(t, c)
 
 	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
 	require.NoError(t, err)
@@ -55,7 +55,7 @@ func DropCollection(t *testing.T, dbname, colname string) {
 	require.NoError(t, err)
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer c.Close()
+	defer RequireNoErrorOnClose(t, c)
 
 	err = conn.ExecuteCommand(
 		context.Background(),
@@ -79,7 +79,7 @@ func autoDropDB(t *testing.T, clstr *cluster.Cluster) {
 
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer c.Close()
+	defer RequireNoErrorOnClose(t, c)
 
 	err = conn.ExecuteCommand(
 		context.Background(),
@@ -119,7 +119,7 @@ func InsertDocs(t *testing.T, dbname, colname string, docs ...bson.D) {
 
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer c.Close()
+	defer RequireNoErrorOnClose(t, c)
 
 	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
 	require.NoError(t, err)
@@ -129,7 +129,7 @@ func InsertDocs(t *testing.T, dbname, colname string, docs ...bson.D) {
 func EnableMaxTimeFailPoint(t *testing.T, s cluster.Server) error {
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer c.Close()
+	defer RequireNoErrorOnClose(t, c)
 
 	return conn.ExecuteCommand(
 		context.Background(),
@@ -151,7 +151,7 @@ func EnableMaxTimeFailPoint(t *testing.T, s cluster.Server) error {
 func DisableMaxTimeFailPoint(t *testing.T, s cluster.Server) {
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer c.Close()
+	defer RequireNoErrorOnClose(t, c)
 
 	err = conn.ExecuteCommand(
 		context.Background(),

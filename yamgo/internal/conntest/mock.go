@@ -30,6 +30,11 @@ func (c *MockConnection) Close() error {
 	return nil
 }
 
+// CloseIgnoreError closes a MockConnection and ignores any error that occurs.
+func (c *MockConnection) CloseIgnoreError() {
+	_ = c.Close()
+}
+
 // MarkDead marks a MockConnection as dead.
 func (c *MockConnection) MarkDead() {
 	c.Dead = true

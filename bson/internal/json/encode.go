@@ -689,8 +689,14 @@ func encodeByteSlice(e *encodeState, v reflect.Value, _ encOpts) {
 		// for large buffers, avoid unnecessary extra temporary
 		// buffer space.
 		enc := base64.NewEncoder(base64.StdEncoding, e)
-		enc.Write(s)
-		enc.Close()
+
+		if _, err := enc.Write(s); err != nil {
+			e.error(fmt.Errorf("unable to base64 encode byte slice: %v", err))
+		}
+
+		if err := enc.Close(); err != nil {
+			e.error(fmt.Errorf("unable to close encoder: %v", err))
+		}
 	}
 	e.WriteByte('"')
 }

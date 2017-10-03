@@ -29,7 +29,10 @@ func runMustUsePrimary(ctx context.Context, s *SelectedServer, db string, comman
 
 	errChan := make(chan error, 1)
 	go func() {
-		defer c.Close()
+		defer func() {
+			// Ignore any error that occurs since we're in a different goroutine.
+			_ = c.Close()
+		}()
 		errChan <- conn.ExecuteCommand(context.Background(), c, request, result)
 	}()
 
@@ -55,7 +58,10 @@ func runMayUseSecondary(ctx context.Context, s *SelectedServer, db string, comma
 	}
 	errChan := make(chan error, 1)
 	go func() {
-		defer c.Close()
+		defer func() {
+			// Ignore any error that occurs since we're in a different goroutine.
+			_ = c.Close()
+		}()
 
 		if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
 			msg.AddMeta(request, map[string]interface{}{

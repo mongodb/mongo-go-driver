@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/stretchr/testify/require"
 )
@@ -20,15 +21,18 @@ func TestCappedProvider_only_allows_max_number_of_connections(t *testing.T) {
 
 	cappedProvider := CappedProvider(2, factory)
 
-	cappedProvider(context.Background())
-	cappedProvider(context.Background())
+	_, err := cappedProvider(context.Background())
+	require.NoError(t, err)
+
+	_, err = cappedProvider(context.Background())
+	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		time.Sleep(1 * time.Second)
 		cancel()
 	}()
-	_, err := cappedProvider(ctx)
+	_, err = cappedProvider(ctx)
 	require.Error(t, err)
 }
 
@@ -42,12 +46,13 @@ func TestCappedProvider_closing_a_connection_releases_a_resource(t *testing.T) {
 	cappedProvider := CappedProvider(2, factory)
 
 	c1, _ := cappedProvider(context.Background())
-	cappedProvider(context.Background())
+	_, err := cappedProvider(context.Background())
+	require.NoError(t, err)
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		c1.Close()
+		testutil.RequireNoErrorOnClose(t, c1)
 	}()
-	_, err := cappedProvider(context.Background())
+	_, err = cappedProvider(context.Background())
 	require.NoError(t, err)
 }

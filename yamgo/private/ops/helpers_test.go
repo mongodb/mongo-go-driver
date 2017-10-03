@@ -43,7 +43,7 @@ func find(t *testing.T, s Server, batchSize int32) CursorResult {
 
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer c.Close()
+	defer testutil.RequireNoErrorOnClose(t, c)
 
 	var result cursorReturningResult
 

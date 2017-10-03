@@ -29,7 +29,8 @@ func ExampleMarshal() {
 	if err != nil {
 		fmt.Println("error:", err)
 	}
-	os.Stdout.Write(b)
+	_, _ = os.Stdout.Write(b)
+
 	// Output:
 	// {"ID":1,"Name":"Reds","Colors":["Crimson","Red","Ruby","Maroon"]}
 }
@@ -236,8 +237,9 @@ func ExampleIndent() {
 	}
 
 	var out bytes.Buffer
-	json.Indent(&out, b, "=", "\t")
-	out.WriteTo(os.Stdout)
+	_ = json.Indent(&out, b, "=", "\t")
+	_, _ = out.WriteTo(os.Stdout)
+
 	// Output:
 	// [
 	// =	{

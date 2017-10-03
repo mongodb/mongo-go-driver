@@ -10,8 +10,8 @@ const defaultAuthDB = "admin"
 
 func mongoPasswordDigest(username, password string) string {
 	h := md5.New()
-	io.WriteString(h, username)
-	io.WriteString(h, ":mongo:")
-	io.WriteString(h, password)
+	_, _ = io.WriteString(h, username)
+	_, _ = io.WriteString(h, ":mongo:")
+	_, _ = io.WriteString(h, password)
 	return fmt.Sprintf("%x", h.Sum(nil))
 }

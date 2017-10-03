@@ -47,14 +47,16 @@ func NewConnection(ctx context.Context, authenticator Authenticator, opener conn
 	conn, err := opener(ctx, addr, opts...)
 	if err != nil {
 		if conn != nil {
-			conn.Close()
+			// Ignore any error that occurs since we're already returning a different one.
+			_ = conn.Close()
 		}
 		return nil, err
 	}
 
 	err = authenticator.Auth(ctx, conn)
 	if err != nil {
-		conn.Close()
+		// Ignore any error that occurs since we're already returning a different one.
+		_ = conn.Close()
 		return nil, err
 	}
 

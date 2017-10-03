@@ -59,6 +59,10 @@ func (c *fakeMonitorConn) Close() error {
 	return nil
 }
 
+func (c *fakeMonitorConn) CloseIgnoreError() {
+	_ = c.Close()
+}
+
 func (c *fakeMonitorConn) MarkDead() {
 	c.dead = true
 }

@@ -35,15 +35,17 @@ type FakeMonitor struct {
 }
 
 // SetKind sets the server kind for the monitor.
-func (m *FakeMonitor) SetKind(kind model.ServerKind) {
+func (m *FakeMonitor) SetKind(kind model.ServerKind) error {
 	if m.kind != kind {
 		m.kind = kind
 		m.connLock.Lock()
 		defer m.connLock.Unlock()
 		if m.conn != nil {
-			m.conn.Close()
+			return m.conn.Close()
 		}
 	}
+
+	return nil
 }
 
 func (m *FakeMonitor) open(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
@@ -69,6 +71,10 @@ func (c *fakeMonitorConn) Alive() bool {
 func (c *fakeMonitorConn) Close() error {
 	c.Dead = true
 	return nil
+}
+
+func (c *fakeMonitorConn) CloseIgnoreError() {
+	_ = c.Close()
 }
 
 func (c *fakeMonitorConn) MarkDead() {

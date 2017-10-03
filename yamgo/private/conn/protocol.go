@@ -95,11 +95,14 @@ func readCommandResponse(resp msg.Response, out interface{}) error {
 					break
 				}
 			case "errmsg":
-				rawElem.Value.Unmarshal(&errmsg)
+				// Ignore any error that occurs since we're handling malformed documents below.
+				_ = rawElem.Value.Unmarshal(&errmsg)
 			case "codeName":
-				rawElem.Value.Unmarshal(&codeName)
+				// Ignore any error that occurs since we're handling malformed documents below.
+				_ = rawElem.Value.Unmarshal(&codeName)
 			case "code":
-				rawElem.Value.Unmarshal(&code)
+				// Ignore any error that occurs since we're handling malformed documents below.
+				_ = rawElem.Value.Unmarshal(&code)
 			}
 		}
 

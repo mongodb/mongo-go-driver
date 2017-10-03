@@ -17,4 +17,7 @@ bson/internal/json/stream_test.go:221:3: struct field Id should be ID
 bson/internal/json/stream_test.go:285:22: should omit type []tokenStreamCase from declaration of var tokenStreamCases; it will be inferred from the right-hand side
 yamgo/options.go:157:1: exported function OplogReplay should have comment or be unexported
 yamgo/options.go:177:56: exported func ReadPreference returns unexported type *yamgo.optReadPreference, which can be annoying to use
-yamgo/internal/testutil/helpers.go:12:1: exported function FindJSONFilesInDir should have comment or be unexported
+yamgo/internal/testutil/helpers.go:10:1: exported function RequireNoErrorOnClose should have comment or be unexported
+bson/internal/testutil/close_helper.go:8:1: exported function CloseOrError should have comment or be unexported
+bson/internal/testutil/close_helper.go:14:1: exported function CloseReadOnlyFile should have comment or be unexported
+yamgo/internal/testutil/helpers.go:14:1: exported function FindJSONFilesInDir should have comment or be unexported

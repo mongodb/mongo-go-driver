@@ -196,7 +196,7 @@ func (m *Monitor) heartbeat() *model.Server {
 	ctx := context.Background()
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn != nil && m.conn.Expired() {
-			m.conn.Close()
+			m.conn.CloseIgnoreError()
 			m.conn = nil
 		}
 
@@ -210,7 +210,7 @@ func (m *Monitor) heartbeat() *model.Server {
 			if err != nil {
 				savedErr = err
 				if conn != nil {
-					conn.Close()
+					conn.CloseIgnoreError()
 				}
 				m.conn = nil
 				continue
@@ -222,7 +222,7 @@ func (m *Monitor) heartbeat() *model.Server {
 		isMasterResult, err := m.describeServer(ctx)
 		if err != nil {
 			savedErr = err
-			m.conn.Close()
+			m.conn.CloseIgnoreError()
 			m.conn = nil
 			continue
 		}

@@ -197,13 +197,13 @@ func (c *scramSaslClient) generateClientNonce(n uint8) error {
 
 func (c *scramSaslClient) h(data []byte) []byte {
 	h := sha1.New()
-	h.Write(data)
+	_, _ = h.Write(data)
 	return h.Sum(nil)
 }
 
 func (c *scramSaslClient) hmac(data []byte, key string) []byte {
 	h := hmac.New(sha1.New, data)
-	io.WriteString(h, key)
+	_, _ = io.WriteString(h, key)
 	return h.Sum(nil)
 }
 

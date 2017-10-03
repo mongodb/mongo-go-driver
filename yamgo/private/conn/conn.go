@@ -79,6 +79,8 @@ type Connection interface {
 	Alive() bool
 	// Close closes the connection.
 	Close() error
+	// CloseIgnoreError closes the connection and ignores any error that occurs.
+	CloseIgnoreError()
 	// MarkDead forces a connection to close.
 	MarkDead()
 	// Model gets a description of the connection.
@@ -144,6 +146,10 @@ func (c *connImpl) Close() error {
 	return nil
 }
 
+func (c *connImpl) CloseIgnoreError() {
+	_ = c.Close()
+}
+
 func (c *connImpl) MarkDead() {
 	c.dead = true
 }
@@ -177,7 +183,7 @@ func (c *connImpl) Read(ctx context.Context, responseTo int32) (msg.Response, er
 		// we need to close here because we don't
 		// know if there is a message sitting on the wire
 		// unread.
-		c.Close()
+		c.CloseIgnoreError()
 		c.dead = true
 		return nil, c.wrapError(ctx.Err(), "failed to read")
 	default:
@@ -200,7 +206,7 @@ func (c *connImpl) Read(ctx context.Context, responseTo int32) (msg.Response, er
 
 	message, err := c.codec.Decode(c.rw)
 	if err != nil {
-		c.Close()
+		c.CloseIgnoreError()
 		c.dead = true
 		return nil, c.wrapError(err, "failed reading")
 	}
@@ -261,7 +267,8 @@ func (c *connImpl) Write(ctx context.Context, requests ...msg.Request) error {
 
 	err := c.codec.Encode(c.rw, messages...)
 	if err != nil {
-		c.Close()
+		// Ignore any error that occurs since we're already returning a different one.
+		_ = c.Close()
 		c.dead = true
 		return c.wrapError(err, "failed writing")
 	}

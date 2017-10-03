@@ -90,7 +90,6 @@ func runTest(t *testing.T, directory string, filename string) {
 	t.Run(testName, func(t *testing.T) {
 		var test testCase
 		require.NoError(t, json.Unmarshal(content, &test))
-
 		fsm := setUpFSM(t, test.URI)
 
 		for _, phase := range test.Phases {

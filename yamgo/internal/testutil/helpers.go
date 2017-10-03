@@ -6,6 +6,8 @@ import (
 
 	"testing"
 
+	"io"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,4 +26,8 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 	}
 
 	return files
+}
+
+func RequireNoErrorOnClose(t *testing.T, c io.Closer) {
+	require.NoError(t, c.Close())
 }

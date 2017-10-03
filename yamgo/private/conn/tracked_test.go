@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/stretchr/testify/require"
 )
@@ -22,11 +23,11 @@ func TestTracked_Inc(t *testing.T) {
 	require.True(t, tracked.Alive())
 	require.True(t, c.Alive())
 
-	tracked.Close()
+	testutil.RequireNoErrorOnClose(t, tracked)
 	require.True(t, tracked.Alive())
 	require.True(t, c.Alive())
 
-	tracked.Close()
+	testutil.RequireNoErrorOnClose(t, tracked)
 	require.False(t, tracked.Alive())
 	require.False(t, c.Alive())
 }

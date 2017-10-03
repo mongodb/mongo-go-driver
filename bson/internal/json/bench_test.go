@@ -17,6 +17,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/10gen/mongo-go-driver/bson/internal/testutil"
 )
 
 type codeResponse struct {
@@ -42,7 +44,7 @@ func codeInit() {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer testutil.CloseReadOnlyFile(f)
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		panic(err)

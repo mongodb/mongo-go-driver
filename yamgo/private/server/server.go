@@ -87,16 +87,16 @@ type Server struct {
 }
 
 // Close closes the server.
-func (s *Server) Close() {
+func (s *Server) Close() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.monitor == nil {
 		// already closed
-		return
+		return nil
 	}
 
 	s.cancelSubscription()
-	s.conns.Close()
+	err := s.conns.Close()
 	if s.ownsMonitor {
 		s.monitor.Stop()
 	}
@@ -104,6 +104,8 @@ func (s *Server) Close() {
 	s.conns = nil
 	s.monitor = nil
 	s.connProvider = nil
+
+	return err
 }
 
 // Connection gets a connection to the server.

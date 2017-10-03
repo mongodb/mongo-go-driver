@@ -77,7 +77,7 @@ type Cluster struct {
 }
 
 // Close closes the cluster.
-func (c *Cluster) Close() {
+func (c *Cluster) Close() error {
 	if c.ownsMonitor {
 		c.monitor.Stop()
 	}
@@ -86,14 +86,17 @@ func (c *Cluster) Close() {
 	defer c.stateLock.Unlock()
 
 	if c.stateServers == nil {
-		return
+		return nil
 	}
 
+	var err error
 	for _, server := range c.stateServers {
-		server.Close()
+		err = server.Close()
 	}
 	c.stateServers = nil
 	c.stateModel = &model.Cluster{}
+
+	return err
 }
 
 // Model gets a description of the cluster.
@@ -210,7 +213,8 @@ func (c *Cluster) applyUpdate(cm *model.Cluster) {
 
 	for _, removed := range diff.RemovedServers {
 		if server, ok := c.stateServers[removed.Addr]; ok {
-			server.Close()
+			// Ignore any error that occurs since this only gets called in a different goroutine.
+			_ = server.Close()
 		}
 
 		delete(c.stateServers, removed.Addr)
