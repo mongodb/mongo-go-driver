@@ -8,7 +8,9 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/options"
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
+	"github.com/10gen/mongo-go-driver/yamgo/readconcern"
 	"github.com/10gen/mongo-go-driver/yamgo/readpref"
+	"github.com/10gen/mongo-go-driver/yamgo/writeconcern"
 )
 
 // Collection performs operations on a given collection.
@@ -16,16 +18,21 @@ type Collection struct {
 	client         *Client
 	db             *Database
 	name           string
+	readConcern    *readconcern.ReadConcern
+	writeConcern   *writeconcern.WriteConcern
 	readPreference *readpref.ReadPref
 	readSelector   cluster.ServerSelector
 	writeSelector  cluster.ServerSelector
 }
 
-func newCollection(db *Database, name string, options ...CollectionOption) *Collection {
-	coll := &Collection{client: db.client, db: db, name: name, readPreference: db.readPreference}
-
-	for _, option := range options {
-		option.setCollectionOption(coll)
+func newCollection(db *Database, name string) *Collection {
+	coll := &Collection{
+		client:         db.client,
+		db:             db,
+		name:           name,
+		readPreference: db.readPreference,
+		readConcern:    db.readConcern,
+		writeConcern:   db.writeConcern,
 	}
 
 	latencySelector := cluster.LatencySelector(db.client.localThreshold)
@@ -73,7 +80,16 @@ func (coll *Collection) InsertOneContext(ctx context.Context, document interface
 	}
 
 	var d bson.D
-	err = ops.Insert(ctx, s, coll.namespace(), []interface{}{doc}, &d, options...)
+	err = ops.Insert(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		[]interface{}{doc},
+		&d,
+		options...,
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +117,16 @@ func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{}
 	}
 
 	var result DeleteOneResult
-	err = ops.Delete(ctx, s, coll.namespace(), deleteDocs, &result, options...)
+	err = ops.Delete(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		deleteDocs,
+		&result,
+		options...,
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +152,16 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface
 	}
 
 	var result UpdateOneResult
-	err = ops.Update(ctx, s, coll.namespace(), updateDocs, &result, options...)
+	err = ops.Update(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		updateDocs,
+		&result,
+		options...,
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +236,7 @@ func (coll *Collection) AggregateContext(ctx context.Context, pipeline interface
 		return nil, err
 	}
 
-	cursor, err := ops.Aggregate(ctx, s, coll.namespace(), pipeline, options...)
+	cursor, err := ops.Aggregate(ctx, s, coll.namespace(), coll.readConcern, pipeline, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +256,7 @@ func (coll *Collection) CountContext(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
-	count, err := ops.Count(ctx, s, coll.namespace(), filter, options...)
+	count, err := ops.Count(ctx, s, coll.namespace(), coll.readConcern, filter, options...)
 	if err != nil {
 		return 0, err
 	}
@@ -238,11 +272,21 @@ func (coll *Collection) DistinctContext(ctx context.Context, fieldName string, f
 	options ...options.DistinctOption) ([]interface{}, error) {
 
 	s, err := coll.getReadableServer(ctx)
+
 	if err != nil {
 		return nil, err
 	}
 
-	values, err := ops.Distinct(ctx, s, coll.namespace(), fieldName, filter, options...)
+	values, err := ops.Distinct(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.readConcern,
+		fieldName,
+		filter,
+		options...,
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -250,8 +294,8 @@ func (coll *Collection) DistinctContext(ctx context.Context, fieldName string, f
 	return values, nil
 }
 
-// FindContext finds the documents matching the model.
-// A user can supply a custom context to this method.
+// FindContext finds the documents matching a model. A user can supply a custom context to this
+// method.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) FindContext(ctx context.Context, filter interface{},
@@ -262,7 +306,7 @@ func (coll *Collection) FindContext(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	cursor, err := ops.Find(ctx, s, coll.namespace(), filter, options...)
+	cursor, err := ops.Find(ctx, s, coll.namespace(), coll.readConcern, filter, options...)
 	if err != nil {
 		return nil, err
 	}

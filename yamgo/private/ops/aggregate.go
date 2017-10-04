@@ -7,13 +7,16 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
 	"github.com/10gen/mongo-go-driver/yamgo/options"
+	"github.com/10gen/mongo-go-driver/yamgo/readconcern"
 )
 
 // Aggregate performs an aggregation.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline interface{},
-	opts ...options.AggregateOption) (Cursor, error) {
+// TODO GODRIVER-95: Deal with $out and corresponding behavior (read preference primary, write
+// concern, etc.)
+func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
+	pipeline interface{}, opts ...options.AggregateOption) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -44,7 +47,9 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline in
 
 	command.AppendElem("cursor", cursorArg)
 
-	// TODO: GODRIVER-27 read concern
+	if readConcern != nil {
+		command.AppendElem("readConcern", readConcern)
+	}
 
 	var result cursorReturningResult
 

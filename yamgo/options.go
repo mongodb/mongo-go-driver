@@ -4,28 +4,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/yamgo/options"
-	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 )
-
-type optReadPreference struct{ ReadPreference *readpref.ReadPref }
-
-// DatabaseOption is an option to provide for Database creation.
-type DatabaseOption interface {
-	setDatabaseOption(*Database)
-}
-
-func (opt *optReadPreference) setDatabaseOption(db *Database) {
-	db.readPreference = opt.ReadPreference
-}
-
-// CollectionOption is an option to provide for Collection creation.
-type CollectionOption interface {
-	setCollectionOption(*Collection)
-}
-
-func (opt *optReadPreference) setCollectionOption(db *Collection) {
-	db.readPreference = opt.ReadPreference
-}
 
 // In order to facilitate users not having to supply a default value (e.g. nil or an uninitialized
 // struct) when not using any options for an operation, options are defined as functions that take
@@ -170,12 +149,6 @@ func Ordered(b bool) *options.OptOrdered {
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func Projection(projection interface{}) *options.OptProjection {
 	opt := options.OptProjection{Projection: projection}
-	return &opt
-}
-
-// ReadPreference describes which servers in a deployment can receive read operations.
-func ReadPreference(readPreference *readpref.ReadPref) *optReadPreference {
-	opt := optReadPreference{ReadPreference: readPreference}
 	return &opt
 }
 

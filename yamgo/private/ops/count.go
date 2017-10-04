@@ -8,11 +8,12 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
 	"github.com/10gen/mongo-go-driver/yamgo/options"
+	"github.com/10gen/mongo-go-driver/yamgo/readconcern"
 )
 
 // Count counts how many documents in a collection match a given query.
-func Count(ctx context.Context, s *SelectedServer, ns Namespace, query interface{},
-	options ...options.CountOption) (int, error) {
+func Count(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
+	query interface{}, options ...options.CountOption) (int, error) {
 
 	if err := ns.validate(); err != nil {
 		return 0, err
@@ -36,7 +37,9 @@ func Count(ctx context.Context, s *SelectedServer, ns Namespace, query interface
 		}
 	}
 
-	// TODO GODRIVER-27: read concern
+	if readConcern != nil {
+		command.AppendElem("readConcern", readConcern)
+	}
 
 	result := struct{ N int }{}
 

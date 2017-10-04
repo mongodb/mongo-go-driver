@@ -20,6 +20,7 @@ func TestAggregateWithInvalidNamespace(t *testing.T) {
 		context.Background(),
 		getServer(t),
 		Namespace{},
+		nil,
 		[]bson.D{},
 	)
 	require.Error(t, err)
@@ -39,7 +40,7 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 
 	server := getServer(t)
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
-	cursor, err := Aggregate(context.Background(), server, namespace,
+	cursor, err := Aggregate(context.Background(), server, namespace, nil,
 		[]bson.D{
 			{
 				bson.NewDocElem("$match", bson.D{
@@ -81,7 +82,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 
 	server := getServer(t)
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
-	_, err := Aggregate(context.Background(), server, namespace,
+	_, err := Aggregate(context.Background(), server, namespace, nil,
 		[]bson.D{},
 		yamgo.AllowDiskUse(true),
 	)
@@ -101,7 +102,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 	defer testutil.DisableMaxTimeFailPoint(t, s)
 
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
-	_, err := Aggregate(context.Background(), s, namespace,
+	_, err := Aggregate(context.Background(), s, namespace, nil,
 		[]bson.D{},
 		yamgo.MaxTime(time.Millisecond),
 	)

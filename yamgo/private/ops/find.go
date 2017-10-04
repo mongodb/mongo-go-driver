@@ -8,13 +8,14 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
 	"github.com/10gen/mongo-go-driver/yamgo/options"
+	"github.com/10gen/mongo-go-driver/yamgo/readconcern"
 )
 
 // Find executes a query.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func Find(ctx context.Context, s *SelectedServer, ns Namespace, filter interface{},
-	findOptions ...options.FindOption) (Cursor, error) {
+func Find(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
+	filter interface{}, findOptions ...options.FindOption) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -69,7 +70,9 @@ func Find(ctx context.Context, s *SelectedServer, ns Namespace, filter interface
 		command.AppendElem("singleBatch", true)
 	}
 
-	// TODO GODRIVER-27: read concern
+	if readConcern != nil {
+		command.AppendElem("readConcern", readConcern)
+	}
 
 	var result cursorReturningResult
 

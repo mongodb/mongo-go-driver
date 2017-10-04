@@ -8,11 +8,12 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
 	"github.com/10gen/mongo-go-driver/yamgo/options"
+	"github.com/10gen/mongo-go-driver/yamgo/readconcern"
 )
 
 // Distinct returns the distinct values for a specified field across a single collection.
-func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, field string, query interface{},
-	options ...options.DistinctOption) ([]interface{}, error) {
+func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
+	field string, query interface{}, options ...options.DistinctOption) ([]interface{}, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -40,7 +41,9 @@ func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, field string
 		}
 	}
 
-	// TODO GODRIVER-27: read concern
+	if readConcern != nil {
+		command.AppendElem("readConcern", readConcern)
+	}
 
 	result := struct{ Values []interface{} }{}
 
