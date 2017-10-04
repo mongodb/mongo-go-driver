@@ -15,6 +15,7 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/internal/msgtest"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/auth"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
+	"github.com/stretchr/testify/require"
 )
 
 func TestScramSHA1Authenticator_Fails(t *testing.T) {
@@ -39,14 +40,10 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\""
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
@@ -75,14 +72,10 @@ func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server response"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
@@ -111,14 +104,9 @@ func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
@@ -147,14 +135,10 @@ func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_No_salt(t *testing.T) {
@@ -183,14 +167,10 @@ func TestScramSHA1Authenticator_No_salt(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid salt"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
@@ -219,14 +199,10 @@ func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
@@ -255,14 +231,10 @@ func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
@@ -298,14 +270,10 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server signature"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
@@ -341,14 +309,10 @@ func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": server passed error"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
@@ -384,14 +348,10 @@ func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid final message"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
@@ -433,14 +393,10 @@ func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err == nil {
-		t.Fatalf("expected an error but got none")
-	}
+	require.Error(t, err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": unexpected server challenge"
-	if !strings.HasPrefix(err.Error(), errPrefix) {
-		t.Fatalf("expected an err starting with \"%s\" but got \"%s\"", errPrefix, err)
-	}
+	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
 }
 
 func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
@@ -476,13 +432,9 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), conn)
-	if err != nil {
-		t.Fatalf("expected no error but got \"%s\"", err)
-	}
+	require.NoError(t, err)
 
-	if len(conn.Sent) != 2 {
-		t.Fatalf("expected 2 messages to be sent but had %d", len(conn.Sent))
-	}
+	require.Len(t, conn.Sent, 2)
 
 	saslStartRequest := conn.Sent[0].(*msg.Query)
 	payload, _ = base64.RawStdEncoding.DecodeString("biwsbj11c2VyLHI9ZnlrbytkMmxiYkZnT05Sdjlxa3hkYXdM")
@@ -491,9 +443,7 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 		bson.NewDocElem("mechanism", "SCRAM-SHA-1"),
 		bson.NewDocElem("payload", payload),
 	}
-	if !reflect.DeepEqual(saslStartRequest.Query, expectedCmd) {
-		t.Fatalf("saslStart command was incorrect:\n  expected: %v\n    actual: %v", expectedCmd, saslStartRequest.Query)
-	}
+	require.True(t, reflect.DeepEqual(saslStartRequest.Query, expectedCmd))
 
 	saslContinueRequest := conn.Sent[1].(*msg.Query)
 	payload, _ = base64.RawStdEncoding.DecodeString("Yz1iaXdzLHI9ZnlrbytkMmxiYkZnT05Sdjlxa3hkYXdMSG8rVmdrN3F2VU9LVXd1V0xJV2c0bC85U3JhR01IRUUscD1NQzJUOEJ2Ym1XUmNrRHc4b1dsNUlWZ2h3Q1k9")
@@ -502,7 +452,6 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 		bson.NewDocElem("conversationId", 1),
 		bson.NewDocElem("payload", payload),
 	}
-	if !reflect.DeepEqual(saslContinueRequest.Query, expectedCmd) {
-		t.Fatalf("saslContinue command was incorrect:\n  expected: %v\n    actual: %v", expectedCmd, saslContinueRequest.Query)
-	}
+
+	require.True(t, reflect.DeepEqual(saslContinueRequest.Query, expectedCmd))
 }
