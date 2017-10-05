@@ -99,8 +99,8 @@ func (c *Cluster) Close() {
 // Model gets a description of the cluster.
 func (c *Cluster) Model() *model.Cluster {
 	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
 	m := c.stateModel
-	c.stateLock.Unlock()
 	return m
 }
 

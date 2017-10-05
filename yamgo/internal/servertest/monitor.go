@@ -39,10 +39,10 @@ func (m *FakeMonitor) SetKind(kind model.ServerKind) {
 	if m.kind != kind {
 		m.kind = kind
 		m.connLock.Lock()
+		defer m.connLock.Unlock()
 		if m.conn != nil {
 			m.conn.Close()
 		}
-		m.connLock.Unlock()
 	}
 }
 

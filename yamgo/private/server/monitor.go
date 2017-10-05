@@ -50,6 +50,7 @@ func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
 
 		// send the update to all subscribers
 		m.subscriberLock.Lock()
+		defer m.subscriberLock.Unlock()
 		for _, ch := range m.subscribers {
 			select {
 			case <-ch:
@@ -59,7 +60,6 @@ func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
 			}
 			ch <- model
 		}
-		m.subscriberLock.Unlock()
 
 		// restart the timers
 		rateLimitTimer.Stop()
@@ -135,8 +135,8 @@ func (m *Monitor) Subscribe() (<-chan *model.Server, func(), error) {
 	// create channel and populate with current state
 	ch := make(chan *model.Server, 1)
 	m.currentLock.Lock()
+	defer m.currentLock.Unlock()
 	ch <- m.current
-	m.currentLock.Unlock()
 
 	// add channel to subscribers
 	m.subscriberLock.Lock()

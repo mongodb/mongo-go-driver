@@ -130,18 +130,18 @@ func (s *Server) Connection(ctx context.Context) (conn.Connection, error) {
 // Model gets a description of the server as of the last heartbeat.
 func (s *Server) Model() *model.Server {
 	s.currentLock.Lock()
+	defer s.currentLock.Unlock()
 	current := s.current
-	s.currentLock.Unlock()
 	return current
 }
 
 func (s *Server) applyUpdate(m *model.Server) {
 	var first bool
 	s.currentLock.Lock()
+	defer s.currentLock.Unlock()
 	s.current = m
 	first = !s.hasCurrent
 	s.hasCurrent = true
-	s.currentLock.Unlock()
 
 	if first {
 		// don't clear the pool for the first update.
@@ -151,8 +151,8 @@ func (s *Server) applyUpdate(m *model.Server) {
 	switch m.Kind {
 	case model.Unknown:
 		s.lock.Lock()
+		defer s.lock.Unlock()
 		conns := s.conns
-		s.lock.Unlock()
 
 		if conns != nil {
 			conns.Clear()
