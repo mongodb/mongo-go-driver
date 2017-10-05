@@ -35,6 +35,7 @@ type ConnString struct {
 	Database                string
 	HeartbeatInterval       time.Duration
 	Hosts                   []string
+	LocalThreshold          time.Duration
 	MaxConnIdleTime         time.Duration
 	MaxConnLifeTime         time.Duration
 	MaxConnsPerHost         uint16
@@ -285,6 +286,12 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.HeartbeatInterval = time.Duration(n) * time.Millisecond
+	case "localthresholdms":
+		n, err := strconv.Atoi(value)
+		if err != nil || n < 0 {
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.LocalThreshold = time.Duration(n) * time.Millisecond
 	case "maxconnsperhost":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {

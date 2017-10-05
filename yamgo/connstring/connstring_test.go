@@ -140,6 +140,33 @@ func TestHeartbeatInterval(t *testing.T) {
 	}
 }
 
+func TestLocalThreshold(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected time.Duration
+		err      bool
+	}{
+		{s: "localThresholdMS=0", expected: time.Duration(0) * time.Millisecond},
+		{s: "localThresholdMS=10", expected: time.Duration(10) * time.Millisecond},
+		{s: "localThresholdMS=100", expected: time.Duration(100) * time.Millisecond},
+		{s: "localThresholdMS=-2", err: true},
+		{s: "localThresholdMS=gsdge", err: true},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.LocalThreshold)
+			}
+		})
+	}
+}
+
 func TestMaxConnIdleTime(t *testing.T) {
 	tests := []struct {
 		s        string
