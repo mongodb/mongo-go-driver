@@ -186,15 +186,6 @@ func TestParse_invalid_uris_Incomplete_key_value_pair_for_option(t *testing.T) {
 	}
 }
 
-func TestParse_invalid_uris_Username_with_password_containing_an_unescaped_percent_sign(t *testing.T) {
-	t.Parallel()
-
-	_, err := Parse("mongodb://alice%foo:bar@127.0.0.1")
-	if err == nil {
-		t.Fatal("expected an error but didn't get one")
-	}
-}
-
 func TestParse_invalid_uris_Username_with_password_containing_an_unescaped_colon(t *testing.T) {
 	t.Parallel()
 
@@ -222,10 +213,55 @@ func TestParse_invalid_uris_Username_with_password_containing_an_unescaped_at_si
 	}
 }
 
+func TestParse_invalid_uris_Username_containing_an_unescaped_slash(t *testing.T) {
+	t.Parallel()
+
+	_, err := Parse("mongodb://alice/@localhost/db")
+	if err == nil {
+		t.Fatal("expected an error but didn't get one")
+	}
+}
+
+func TestParse_invalid_uris_Username_containing_unescaped_slash_with_password(t *testing.T) {
+	t.Parallel()
+
+	_, err := Parse("mongodb://alice/bob:foo@localhost/db")
+	if err == nil {
+		t.Fatal("expected an error but didn't get one")
+	}
+}
+
+func TestParse_invalid_uris_Username_with_password_containing_an_unescaped_slash(t *testing.T) {
+	t.Parallel()
+
+	_, err := Parse("mongodb://alice:foo/bar@localhost/db")
+	if err == nil {
+		t.Fatal("expected an error but didn't get one")
+	}
+}
+
 func TestParse_invalid_uris_Host_with_unescaped_slash(t *testing.T) {
 	t.Parallel()
 
 	_, err := Parse("mongodb:///tmp/mongodb-27017.sock/")
+	if err == nil {
+		t.Fatal("expected an error but didn't get one")
+	}
+}
+
+func TestParse_invalid_uris_mongodb_srv_with_multiple_service_names(t *testing.T) {
+	t.Parallel()
+
+	_, err := Parse("mongodb+srv://test5.test.mongodb.com,test6.test.mongodb.com")
+	if err == nil {
+		t.Fatal("expected an error but didn't get one")
+	}
+}
+
+func TestParse_invalid_uris_mongodb_srv_with_port_number(t *testing.T) {
+	t.Parallel()
+
+	_, err := Parse("mongodb+srv://test7.test.mongodb.com:27018")
 	if err == nil {
 		t.Fatal("expected an error but didn't get one")
 	}
@@ -276,30 +312,6 @@ func TestParse_valid_auth_User_info_for_single_IPv4_host_with_database(t *testin
 	}
 	if uri.Database != "test" {
 		t.Fatalf("expected uri.Database to be \"test\", but got \"%s\"", uri.Database)
-	}
-}
-
-func TestParse_valid_auth_User_info_for_single_IPv4_host_with_database__escaped_null_bytes_(t *testing.T) {
-	t.Parallel()
-
-	uri, err := Parse("mongodb://a%00lice:f%00oo@127.0.0.1/t%00est")
-	if err != nil {
-		t.Fatalf("error parsing \"%s\": %s", "mongodb://a%00lice:f%00oo@127.0.0.1/t%00est", err)
-	}
-	if len(uri.Hosts) != 1 {
-		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
-	}
-	if uri.Hosts[0] != "127.0.0.1" {
-		t.Fatalf("expected uri.Hosts[0] to be \"127.0.0.1\", but got \"%s\"", uri.Hosts[0])
-	}
-	if uri.Username != "a\x00lice" {
-		t.Fatalf("expected uri.Username to be \"a\x00lice\", but got \"%s\"", uri.Username)
-	}
-	if uri.Password != "f\x00oo" {
-		t.Fatalf("expected uri.Password to be \"f\x00oo\", but got \"%s\"", uri.Password)
-	}
-	if uri.Database != "t\x00est" {
-		t.Fatalf("expected uri.Database to be \"t\x00est\", but got \"%s\"", uri.Database)
 	}
 }
 
@@ -504,9 +516,9 @@ func TestParse_valid_auth_Username_with_empty_password(t *testing.T) {
 func TestParse_valid_auth_Escaped_username_and_database_without_password(t *testing.T) {
 	t.Parallel()
 
-	uri, err := Parse("mongodb://%40l%3Ace@example.com/my%3Ddb")
+	uri, err := Parse("mongodb://%40l%3Ace%2F%3D@example.com/my%3Ddb")
 	if err != nil {
-		t.Fatalf("error parsing \"%s\": %s", "mongodb://%40l%3Ace@example.com/my%3Ddb", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%40l%3Ace%2F%3D@example.com/my%3Ddb", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -514,8 +526,8 @@ func TestParse_valid_auth_Escaped_username_and_database_without_password(t *test
 	if uri.Hosts[0] != "example.com" {
 		t.Fatalf("expected uri.Hosts[0] to be \"example.com\", but got \"%s\"", uri.Hosts[0])
 	}
-	if uri.Username != "@l:ce" {
-		t.Fatalf("expected uri.Username to be \"@l:ce\", but got \"%s\"", uri.Username)
+	if uri.Username != "@l:ce/=" {
+		t.Fatalf("expected uri.Username to be \"@l:ce/=\", but got \"%s\"", uri.Username)
 	}
 	if uri.Password != "" {
 		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
@@ -528,9 +540,9 @@ func TestParse_valid_auth_Escaped_username_and_database_without_password(t *test
 func TestParse_valid_auth_Escaped_user_info_and_database__MONGODB_CR_(t *testing.T) {
 	t.Parallel()
 
-	uri, err := Parse("mongodb://%24am:f%3Azzb%40zz@127.0.0.1/admin%3F?authMechanism=MONGODB-CR")
+	uri, err := Parse("mongodb://%24am:f%3Azzb%40z%2Fz%3D@127.0.0.1/admin%3F?authMechanism=MONGODB-CR")
 	if err != nil {
-		t.Fatalf("error parsing \"%s\": %s", "mongodb://%24am:f%3Azzb%40zz@127.0.0.1/admin%3F?authMechanism=MONGODB-CR", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%24am:f%3Azzb%40z%2Fz%3D@127.0.0.1/admin%3F?authMechanism=MONGODB-CR", err)
 	}
 	if len(uri.Hosts) != 1 {
 		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -541,8 +553,8 @@ func TestParse_valid_auth_Escaped_user_info_and_database__MONGODB_CR_(t *testing
 	if uri.Username != "$am" {
 		t.Fatalf("expected uri.Username to be \"$am\", but got \"%s\"", uri.Username)
 	}
-	if uri.Password != "f:zzb@zz" {
-		t.Fatalf("expected uri.Password to be \"f:zzb@zz\", but got \"%s\"", uri.Password)
+	if uri.Password != "f:zzb@z/z=" {
+		t.Fatalf("expected uri.Password to be \"f:zzb@z/z=\", but got \"%s\"", uri.Password)
 	}
 	if uri.Database != "admin?" {
 		t.Fatalf("expected uri.Database to be \"admin?\", but got \"%s\"", uri.Database)
@@ -648,6 +660,114 @@ func TestParse_valid_auth_At_signs_in_options_aren_t_part_of_the_userinfo(t *tes
 	}
 	if uri.ReplicaSet != "my@replicaset" {
 		t.Fatalf("expected uri.ReplicaSet to be \"my@replicaset\", but got \"%s\"", uri.ReplicaSet)
+	}
+}
+
+func TestParse_valid_db_with_dotted_name_Multiple_Unix_domain_sockets_and_auth_DB_resembling_a_socket__relative_path_(t *testing.T) {
+	t.Parallel()
+
+	uri, err := Parse("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.sock")
+	if err != nil {
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.sock", err)
+	}
+	if len(uri.Hosts) != 2 {
+		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
+	}
+	if uri.Hosts[0] != "rel/mongodb-27017.sock" {
+		t.Fatalf("expected uri.Hosts[0] to be \"rel/mongodb-27017.sock\", but got \"%s\"", uri.Hosts[0])
+	}
+	if uri.Hosts[1] != "rel/mongodb-27018.sock" {
+		t.Fatalf("expected uri.Hosts[1] to be \"rel/mongodb-27018.sock\", but got \"%s\"", uri.Hosts[1])
+	}
+	if uri.Username != "" {
+		t.Fatalf("expected uri.Username to be \"\", but got \"%s\"", uri.Username)
+	}
+	if uri.Password != "" {
+		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
+	}
+	if uri.Database != "admin.sock" {
+		t.Fatalf("expected uri.Database to be \"admin.sock\", but got \"%s\"", uri.Database)
+	}
+}
+
+func TestParse_valid_db_with_dotted_name_Multiple_Unix_domain_sockets_with_auth_DB_resembling_a_path__relative_path_(t *testing.T) {
+	t.Parallel()
+
+	uri, err := Parse("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.shoe")
+	if err != nil {
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.shoe", err)
+	}
+	if len(uri.Hosts) != 2 {
+		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
+	}
+	if uri.Hosts[0] != "rel/mongodb-27017.sock" {
+		t.Fatalf("expected uri.Hosts[0] to be \"rel/mongodb-27017.sock\", but got \"%s\"", uri.Hosts[0])
+	}
+	if uri.Hosts[1] != "rel/mongodb-27018.sock" {
+		t.Fatalf("expected uri.Hosts[1] to be \"rel/mongodb-27018.sock\", but got \"%s\"", uri.Hosts[1])
+	}
+	if uri.Username != "" {
+		t.Fatalf("expected uri.Username to be \"\", but got \"%s\"", uri.Username)
+	}
+	if uri.Password != "" {
+		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
+	}
+	if uri.Database != "admin.shoe" {
+		t.Fatalf("expected uri.Database to be \"admin.shoe\", but got \"%s\"", uri.Database)
+	}
+}
+
+func TestParse_valid_db_with_dotted_name_Multiple_Unix_domain_sockets_and_auth_DB_resembling_a_socket__absolute_path_(t *testing.T) {
+	t.Parallel()
+
+	uri, err := Parse("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.sock")
+	if err != nil {
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.sock", err)
+	}
+	if len(uri.Hosts) != 2 {
+		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
+	}
+	if uri.Hosts[0] != "/tmp/mongodb-27017.sock" {
+		t.Fatalf("expected uri.Hosts[0] to be \"/tmp/mongodb-27017.sock\", but got \"%s\"", uri.Hosts[0])
+	}
+	if uri.Hosts[1] != "/tmp/mongodb-27018.sock" {
+		t.Fatalf("expected uri.Hosts[1] to be \"/tmp/mongodb-27018.sock\", but got \"%s\"", uri.Hosts[1])
+	}
+	if uri.Username != "" {
+		t.Fatalf("expected uri.Username to be \"\", but got \"%s\"", uri.Username)
+	}
+	if uri.Password != "" {
+		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
+	}
+	if uri.Database != "admin.sock" {
+		t.Fatalf("expected uri.Database to be \"admin.sock\", but got \"%s\"", uri.Database)
+	}
+}
+
+func TestParse_valid_db_with_dotted_name_Multiple_Unix_domain_sockets_with_auth_DB_resembling_a_path__absolute_path_(t *testing.T) {
+	t.Parallel()
+
+	uri, err := Parse("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.shoe")
+	if err != nil {
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.shoe", err)
+	}
+	if len(uri.Hosts) != 2 {
+		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
+	}
+	if uri.Hosts[0] != "/tmp/mongodb-27017.sock" {
+		t.Fatalf("expected uri.Hosts[0] to be \"/tmp/mongodb-27017.sock\", but got \"%s\"", uri.Hosts[0])
+	}
+	if uri.Hosts[1] != "/tmp/mongodb-27018.sock" {
+		t.Fatalf("expected uri.Hosts[1] to be \"/tmp/mongodb-27018.sock\", but got \"%s\"", uri.Hosts[1])
+	}
+	if uri.Username != "" {
+		t.Fatalf("expected uri.Username to be \"\", but got \"%s\"", uri.Username)
+	}
+	if uri.Password != "" {
+		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
+	}
+	if uri.Database != "admin.shoe" {
+		t.Fatalf("expected uri.Database to be \"admin.shoe\", but got \"%s\"", uri.Database)
 	}
 }
 
@@ -906,36 +1026,6 @@ func TestParse_valid_options_Option_names_are_normalized_to_lowercase(t *testing
 	}
 }
 
-func TestParse_valid_options_Option_key_and_value__escaped_null_bytes_(t *testing.T) {
-	t.Parallel()
-
-	uri, err := Parse("mongodb://example.com/?replicaSet=my%00rs")
-	if err != nil {
-		t.Fatalf("error parsing \"%s\": %s", "mongodb://example.com/?replicaSet=my%00rs", err)
-	}
-	if len(uri.Hosts) != 1 {
-		t.Fatalf("expected 1 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
-	}
-	if uri.Hosts[0] != "example.com" {
-		t.Fatalf("expected uri.Hosts[0] to be \"example.com\", but got \"%s\"", uri.Hosts[0])
-	}
-	if uri.Username != "" {
-		t.Fatalf("expected uri.Username to be \"\", but got \"%s\"", uri.Username)
-	}
-	if uri.Password != "" {
-		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
-	}
-	if uri.Database != "" {
-		t.Fatalf("expected uri.Database to be \"\", but got \"%s\"", uri.Database)
-	}
-	if uri.AuthMechanism != "" {
-		t.Fatalf("expected uri.AuthMechanism to be \"\", but got \"%s\"", uri.AuthMechanism)
-	}
-	if uri.ReplicaSet != "my\x00rs" {
-		t.Fatalf("expected uri.ReplicaSet to be \"my\x00rs\", but got \"%s\"", uri.ReplicaSet)
-	}
-}
-
 func TestParse_valid_unix_socket_absolute_Unix_domain_socket__absolute_path_with_trailing_slash_(t *testing.T) {
 	t.Parallel()
 
@@ -1185,12 +1275,12 @@ func TestParse_valid_unix_socket_absolute_Unix_domain_socket_with_path_resemblin
 	}
 }
 
-func TestParse_valid_unix_socket_absolute_Multiple_Unix_domain_sockets_and_auth_DB_resembling_a_socket__absolute_path_(t *testing.T) {
+func TestParse_valid_unix_socket_absolute_Multiple_Unix_domain_sockets_and_auth_DB__absolute_path_(t *testing.T) {
 	t.Parallel()
 
-	uri, err := Parse("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.sock")
+	uri, err := Parse("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.sock", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1207,17 +1297,17 @@ func TestParse_valid_unix_socket_absolute_Multiple_Unix_domain_sockets_and_auth_
 	if uri.Password != "" {
 		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
 	}
-	if uri.Database != "admin.sock" {
-		t.Fatalf("expected uri.Database to be \"admin.sock\", but got \"%s\"", uri.Database)
+	if uri.Database != "admin" {
+		t.Fatalf("expected uri.Database to be \"admin\", but got \"%s\"", uri.Database)
 	}
 }
 
-func TestParse_valid_unix_socket_absolute_Multiple_Unix_domain_sockets_with_auth_DB_resembling_a_path__absolute_path_(t *testing.T) {
+func TestParse_valid_unix_socket_absolute_Multiple_Unix_domain_sockets_with_auth_DB__absolute_path_(t *testing.T) {
 	t.Parallel()
 
-	uri, err := Parse("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.shoe")
+	uri, err := Parse("mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin.shoe", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://%2Ftmp%2Fmongodb-27017.sock,%2Ftmp%2Fmongodb-27018.sock/admin", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1234,8 +1324,8 @@ func TestParse_valid_unix_socket_absolute_Multiple_Unix_domain_sockets_with_auth
 	if uri.Password != "" {
 		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
 	}
-	if uri.Database != "admin.shoe" {
-		t.Fatalf("expected uri.Database to be \"admin.shoe\", but got \"%s\"", uri.Database)
+	if uri.Database != "admin" {
+		t.Fatalf("expected uri.Database to be \"admin\", but got \"%s\"", uri.Database)
 	}
 }
 
@@ -1551,9 +1641,9 @@ func TestParse_valid_unix_socket_relative_Unix_domain_socket_with_path_resemblin
 func TestParse_valid_unix_socket_relative_Multiple_Unix_domain_sockets_and_auth_DB_resembling_a_socket__relative_path_(t *testing.T) {
 	t.Parallel()
 
-	uri, err := Parse("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.sock")
+	uri, err := Parse("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.sock", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1570,17 +1660,17 @@ func TestParse_valid_unix_socket_relative_Multiple_Unix_domain_sockets_and_auth_
 	if uri.Password != "" {
 		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
 	}
-	if uri.Database != "admin.sock" {
-		t.Fatalf("expected uri.Database to be \"admin.sock\", but got \"%s\"", uri.Database)
+	if uri.Database != "admin" {
+		t.Fatalf("expected uri.Database to be \"admin\", but got \"%s\"", uri.Database)
 	}
 }
 
 func TestParse_valid_unix_socket_relative_Multiple_Unix_domain_sockets_with_auth_DB_resembling_a_path__relative_path_(t *testing.T) {
 	t.Parallel()
 
-	uri, err := Parse("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.shoe")
+	uri, err := Parse("mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin")
 	if err != nil {
-		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin.shoe", err)
+		t.Fatalf("error parsing \"%s\": %s", "mongodb://rel%2Fmongodb-27017.sock,rel%2Fmongodb-27018.sock/admin", err)
 	}
 	if len(uri.Hosts) != 2 {
 		t.Fatalf("expected 2 hosts, but had %d: %v", len(uri.Hosts), uri.Hosts)
@@ -1597,8 +1687,8 @@ func TestParse_valid_unix_socket_relative_Multiple_Unix_domain_sockets_with_auth
 	if uri.Password != "" {
 		t.Fatalf("expected uri.Password to be \"\", but got \"%s\"", uri.Password)
 	}
-	if uri.Database != "admin.shoe" {
-		t.Fatalf("expected uri.Database to be \"admin.shoe\", but got \"%s\"", uri.Database)
+	if uri.Database != "admin" {
+		t.Fatalf("expected uri.Database to be \"admin\", but got \"%s\"", uri.Database)
 	}
 }
 

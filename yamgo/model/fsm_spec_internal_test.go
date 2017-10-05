@@ -8,6 +8,73 @@ import "github.com/10gen/mongo-go-driver/yamgo/connstring"
 import "github.com/10gen/mongo-go-driver/yamgo/internal"
 import . "github.com/10gen/mongo-go-driver/yamgo/model"
 
+func TestFSM_Replica_set_member_with_large_maxWireVersion(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.IsMaster = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.Secondary = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "rs" {
+		t.Fatalf("expected fsm.SetName to be \"rs\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Kind to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != RSPrimary {
+		t.Fatalf("expected s.Kind to be RSPrimary, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != RSSecondary {
+		t.Fatalf("expected s.Kind to be RSSecondary, but got \"%v\"", s.Kind)
+	}
+}
+
 func TestFSM_Discover_arbiters(t *testing.T) {
 	t.Parallel()
 
@@ -661,6 +728,116 @@ func TestFSM_Host_list_differs_from_seeds(t *testing.T) {
 	}
 	if s.Kind != Unknown {
 		t.Fatalf("expected s.Kind to be Unknown, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Parse_logicalSessionTimeoutMinutes_from_replica_set(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a/?replicaSet=rs")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.IsMaster = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.Secondary = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "rs" {
+		t.Fatalf("expected fsm.SetName to be \"rs\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Kind to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != RSPrimary {
+		t.Fatalf("expected s.Kind to be RSPrimary, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != RSSecondary {
+		t.Fatalf("expected s.Kind to be RSSecondary, but got \"%v\"", s.Kind)
+	}
+
+	// phase 2 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.IsMaster = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 2 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.Secondary = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 2 outcome
+	if fsm.SetName != "rs" {
+		t.Fatalf("expected fsm.SetName to be \"rs\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Kind to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != RSPrimary {
+		t.Fatalf("expected s.Kind to be RSPrimary, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != RSSecondary {
+		t.Fatalf("expected s.Kind to be RSSecondary, but got \"%v\"", s.Kind)
 	}
 }
 
@@ -3227,6 +3404,140 @@ func TestFSM_Primary_becomes_a_secondary_with_wrong_setName(t *testing.T) {
 	}
 }
 
+func TestFSM_Replica_set_member_with_large_minWireVersion(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.IsMaster = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.Secondary = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "rs" {
+		t.Fatalf("expected fsm.SetName to be \"rs\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Kind to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != RSPrimary {
+		t.Fatalf("expected s.Kind to be RSPrimary, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != RSSecondary {
+		t.Fatalf("expected s.Kind to be RSSecondary, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Replica_set_member_with_default_maxWireVersion_of_0(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a,b/?replicaSet=rs")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.IsMaster = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.Hosts = []string{"a:27017", "b:27017"}
+	imr.Secondary = true
+	imr.SetName = "rs"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "rs" {
+		t.Fatalf("expected fsm.SetName to be \"rs\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != ReplicaSetWithPrimary {
+		t.Fatalf("expected fsm.Kind to be ReplicaSetWithPrimary, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != RSPrimary {
+		t.Fatalf("expected s.Kind to be RSPrimary, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != RSSecondary {
+		t.Fatalf("expected s.Kind to be RSSecondary, but got \"%v\"", s.Kind)
+	}
+}
+
 func TestFSM_Unexpected_mongos(t *testing.T) {
 	t.Parallel()
 
@@ -3447,6 +3758,177 @@ func TestFSM_Wrong_setName(t *testing.T) {
 	}
 	if s.Kind != Unknown {
 		t.Fatalf("expected s.Kind to be Unknown, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Multiple_mongoses_with_large_maxWireVersion(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Sharded {
+		t.Fatalf("expected fsm.Kind to be Sharded, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Parse_logicalSessionTimeoutMinutes_from_mongoses(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Sharded {
+		t.Fatalf("expected fsm.Kind to be Sharded, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+
+	// phase 2 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 2 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 2 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Sharded {
+		t.Fatalf("expected fsm.Kind to be Sharded, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
 	}
 }
 
@@ -3745,6 +4227,185 @@ func TestFSM_Normalize_URI_case(t *testing.T) {
 	}
 	if s.Kind != Unknown {
 		t.Fatalf("expected s.Kind to be Unknown, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Multiple_mongoses_with_large_minWireVersion(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Sharded {
+		t.Fatalf("expected fsm.Kind to be Sharded, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Multiple_mongoses_with_default_maxWireVersion_of_0(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a,b")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 - response 2
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	imr.Msg = "isdbgrid"
+	s = BuildServer(Addr("b:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Sharded {
+		t.Fatalf("expected fsm.Kind to be Sharded, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 2 {
+		t.Fatalf("expected len(fsm.Servers) to be 2, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+	s, ok = fsm.Server(Addr("b:27017"))
+	if !ok {
+		t.Fatalf("server b:27017 was not found")
+	}
+	if s.Kind != Mongos {
+		t.Fatalf("expected s.Kind to be Mongos, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Standalone_with_large_maxWireVersion(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Single {
+		t.Fatalf("expected fsm.Kind to be Single, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 1 {
+		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Standalone {
+		t.Fatalf("expected s.Kind to be Standalone, but got \"%v\"", s.Kind)
 	}
 }
 
@@ -4099,6 +4760,55 @@ func TestFSM_Connect_to_standalone(t *testing.T) {
 	}
 }
 
+func TestFSM_Parse_logicalSessionTimeoutMinutes_from_standalone(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Single {
+		t.Fatalf("expected fsm.Kind to be Single, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 1 {
+		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Standalone {
+		t.Fatalf("expected s.Kind to be Standalone, but got \"%v\"", s.Kind)
+	}
+}
+
 func TestFSM_Handle_a_not_ok_ismaster_response(t *testing.T) {
 	t.Parallel()
 
@@ -4200,6 +4910,104 @@ func TestFSM_Standalone_removed_from_multi_server_topology(t *testing.T) {
 	}
 	if s.Kind != Unknown {
 		t.Fatalf("expected s.Kind to be Unknown, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Standalone_with_large_minWireVersion(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Single {
+		t.Fatalf("expected fsm.Kind to be Single, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 1 {
+		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Standalone {
+		t.Fatalf("expected s.Kind to be Standalone, but got \"%v\"", s.Kind)
+	}
+}
+
+func TestFSM_Standalone_with_default_maxWireVersion_of_0(t *testing.T) {
+	t.Parallel()
+
+	fsm := NewFSM()
+
+	cs, _ := connstring.Parse("mongodb://a")
+	fsm.SetName = cs.ReplicaSet
+	if fsm.SetName != "" {
+		fsm.Kind = ReplicaSetNoPrimary
+	}
+	if len(cs.Hosts) == 1 && fsm.SetName == "" {
+		fsm.Kind = Single
+	}
+	for _, host := range cs.Hosts {
+		fsm.Servers = append(fsm.Servers, &Server{Addr: Addr(host).Canonicalize()})
+	}
+
+	var s *Server
+	bir := &internal.BuildInfoResult{Version: "3.4.0", VersionArray: []uint8{3, 4, 0}}
+	var imr *internal.IsMasterResult
+
+	// phase 1 - response 1
+	imr = &internal.IsMasterResult{}
+	imr.OK = true
+	imr.IsMaster = true
+	s = BuildServer(Addr("a:27017"), imr, bir)
+	fsm.Apply(s)
+
+	// phase 1 outcome
+	if fsm.SetName != "" {
+		t.Fatalf("expected fsm.SetName to be \"\", but got \"%v\"", fsm.SetName)
+	}
+	if fsm.Kind != Single {
+		t.Fatalf("expected fsm.Kind to be Single, but got \"%v\"", fsm.Kind)
+	}
+	if len(fsm.Servers) != 1 {
+		t.Fatalf("expected len(fsm.Servers) to be 1, but got \"%v\"", len(fsm.Servers))
+	}
+
+	var ok bool
+	s, ok = fsm.Server(Addr("a:27017"))
+	if !ok {
+		t.Fatalf("server a:27017 was not found")
+	}
+	if s.Kind != Standalone {
+		t.Fatalf("expected s.Kind to be Standalone, but got \"%v\"", s.Kind)
 	}
 }
 
