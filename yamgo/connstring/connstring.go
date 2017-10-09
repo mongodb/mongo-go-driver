@@ -1,7 +1,5 @@
 package connstring
 
-//go:generate go run connstring_spec_test_generator.go
-
 import (
 	"fmt"
 	"net"
@@ -99,6 +97,7 @@ func (p *parser) parse(original string) error {
 		if idx := strings.Index(userInfo, ":"); idx != -1 {
 			username = userInfo[:idx]
 			password = userInfo[idx+1:]
+			p.PasswordSet = true
 		}
 
 		if len(username) > 1 {
@@ -122,7 +121,6 @@ func (p *parser) parse(original string) error {
 			if err != nil {
 				return internal.WrapErrorf(err, "invalid password")
 			}
-			p.PasswordSet = true
 		}
 
 	}
