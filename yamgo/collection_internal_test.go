@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	"github.com/10gen/mongo-go-driver/yamgo/options"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestCollection(t *testing.T, dbName *string, collName *string) *Collection {
 	if collName == nil {
-		coll := testconfig.ColName(t)
+		coll := testutil.ColName(t)
 		collName = &coll
 	}
 

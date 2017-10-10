@@ -1,7 +1,5 @@
 package model
 
-//go:generate go run fsm_spec_internal_test_generator.go
-
 import (
 	"fmt"
 

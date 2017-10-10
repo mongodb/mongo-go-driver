@@ -93,7 +93,7 @@ func (c *fakeMonitorConn) Write(_ context.Context, msgs ...msg.Request) error {
 			case "ismaster":
 				reply = msgtest.CreateCommandReply(
 					internal.IsMasterResult{
-						OK:       true,
+						OK:       1,
 						IsMaster: true,
 					},
 				)

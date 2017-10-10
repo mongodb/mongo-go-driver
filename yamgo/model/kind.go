@@ -28,3 +28,41 @@ const (
 	RSGhost     ServerKind = 32 + RSMember
 	Mongos      ServerKind = 256
 )
+
+func (kind ClusterKind) String() string {
+	switch kind {
+	case Single:
+		return "Single"
+	case ReplicaSet:
+		return "ReplicaSet"
+	case ReplicaSetNoPrimary:
+		return "ReplicaSetNoPrimary"
+	case ReplicaSetWithPrimary:
+		return "ReplicaSetWithPrimary"
+	case Sharded:
+		return "Sharded"
+	}
+
+	return "Unknown"
+}
+
+func (kind ServerKind) String() string {
+	switch kind {
+	case Standalone:
+		return "Standalone"
+	case RSMember:
+		return "RSOther"
+	case RSPrimary:
+		return "RSPrimary"
+	case RSSecondary:
+		return "RSSecondary"
+	case RSArbiter:
+		return "RSArbiter"
+	case RSGhost:
+		return "RSGhost"
+	case Mongos:
+		return "Mongos"
+	}
+
+	return "Unknown"
+}

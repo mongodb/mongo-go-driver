@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/ops"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCursorWithInvalidNamespace(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	s := getServer(t)
 	_, err := NewCursor(&firstBatchCursorResult{
@@ -23,8 +23,8 @@ func TestCursorWithInvalidNamespace(t *testing.T) {
 
 func TestCursorEmpty(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoDropCollection(t)
+	testutil.Integration(t)
+	testutil.AutoDropCollection(t)
 
 	s := getServer(t)
 	cursorResult := find(t, s, 0)
@@ -36,13 +36,13 @@ func TestCursorEmpty(t *testing.T) {
 
 func TestCursorSingleBatch(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoDropCollection(t)
+	testutil.Integration(t)
+	testutil.AutoDropCollection(t)
 	documents := []bson.D{
 		{bson.NewDocElem("_id", 1)},
 		{bson.NewDocElem("_id", 2)},
 	}
-	testconfig.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, documents...)
 
 	s := getServer(t)
 	cursorResult := find(t, s, 0)
@@ -64,8 +64,8 @@ func TestCursorSingleBatch(t *testing.T) {
 
 func TestCursorMultipleBatches(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoDropCollection(t)
+	testutil.Integration(t)
+	testutil.AutoDropCollection(t)
 	documents := []bson.D{
 		{bson.NewDocElem("_id", 1)},
 		{bson.NewDocElem("_id", 2)},
@@ -73,7 +73,7 @@ func TestCursorMultipleBatches(t *testing.T) {
 		{bson.NewDocElem("_id", 4)},
 		{bson.NewDocElem("_id", 5)},
 	}
-	testconfig.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, documents...)
 
 	s := getServer(t)
 	cursorResult := find(t, s, 2)
@@ -107,8 +107,8 @@ func TestCursorMultipleBatches(t *testing.T) {
 
 func TestCursorClose(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoDropCollection(t)
+	testutil.Integration(t)
+	testutil.AutoDropCollection(t)
 	documents := []bson.D{
 		{bson.NewDocElem("_id", 1)},
 		{bson.NewDocElem("_id", 2)},
@@ -116,7 +116,7 @@ func TestCursorClose(t *testing.T) {
 		{bson.NewDocElem("_id", 4)},
 		{bson.NewDocElem("_id", 5)},
 	}
-	testconfig.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, documents...)
 
 	s := getServer(t)
 	cursorResult := find(t, s, 2)
@@ -131,9 +131,9 @@ func TestCursorClose(t *testing.T) {
 
 func TestCursorError(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoDropCollection(t)
-	testconfig.AutoInsertDocs(t,
+	testutil.Integration(t)
+	testutil.AutoDropCollection(t)
+	testutil.AutoInsertDocs(t,
 		bson.D{bson.NewDocElem("_id", 1)},
 		bson.D{bson.NewDocElem("_id", 2)},
 		bson.D{bson.NewDocElem("_id", 3)},

@@ -3,15 +3,15 @@ package yamgo
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	"github.com/10gen/mongo-go-driver/yamgo/readpref"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestClient(t *testing.T) *Client {
 	return &Client{
-		cluster:        testconfig.Cluster(t),
-		connString:     testconfig.ConnString(t),
+		cluster:        testutil.Cluster(t),
+		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 	}
 }

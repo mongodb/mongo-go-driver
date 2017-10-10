@@ -79,7 +79,7 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 		i.CanonicalAddr = addr
 	}
 
-	if !isMasterResult.OK {
+	if isMasterResult.OK != 1 {
 		i.LastError = fmt.Errorf("not ok")
 		return i
 	}

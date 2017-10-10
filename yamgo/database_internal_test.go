@@ -3,13 +3,13 @@ package yamgo
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestDatabase(t *testing.T, name *string) *Database {
 	if name == nil {
-		db := testconfig.DBName(t)
+		db := testutil.DBName(t)
 		name = &db
 	}
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
@@ -16,7 +16,7 @@ import (
 
 func getServer(t *testing.T) *SelectedServer {
 
-	c := testconfig.Cluster(t)
+	c := testutil.Cluster(t)
 
 	server, err := c.SelectServer(context.Background(), cluster.WriteSelector(), readpref.Primary())
 	require.NoError(t, err)
@@ -29,14 +29,14 @@ func getServer(t *testing.T) *SelectedServer {
 
 func find(t *testing.T, s Server, batchSize int32) CursorResult {
 	findCommand := bson.D{
-		bson.NewDocElem("find", testconfig.ColName(t)),
+		bson.NewDocElem("find", testutil.ColName(t)),
 	}
 	if batchSize != 0 {
 		findCommand = append(findCommand, bson.NewDocElem("batchSize", batchSize))
 	}
 	request := msg.NewCommand(
 		msg.NextRequestID(),
-		testconfig.DBName(t),
+		testutil.DBName(t),
 		false,
 		findCommand,
 	)

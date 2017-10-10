@@ -12,7 +12,7 @@ func TestRange_Includes(t *testing.T) {
 	subject := NewRange(1, 3)
 
 	tests := []struct {
-		n        uint8
+		n        int32
 		expected bool
 	}{
 		{0, false},
