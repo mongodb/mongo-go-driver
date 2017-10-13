@@ -56,7 +56,7 @@ const name = "bson_corpus_spec_test_generator"
 
 func (g *Generator) generate() []byte {
 
-	testFiles, err := filepath.Glob("../../specifications/source/bson-corpus/tests/*.json")
+	testFiles, err := filepath.Glob("../../data/bson-corpus/*.json")
 	if err != nil {
 		log.Fatalf("error reading bson-corpus files: %s", err)
 	}

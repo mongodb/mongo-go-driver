@@ -99,7 +99,7 @@ func (g *Generator) generate() []byte {
 	g.printlnf("import \"time\"")
 	g.printlnf("import . \"github.com/10gen/mongo-go-driver/yamgo/connstring\"")
 
-	testsDir := "../../specifications/source/connection-string/tests/"
+	testsDir := "../../data/connection-string/"
 
 	entries, err := ioutil.ReadDir(testsDir)
 	if err != nil {

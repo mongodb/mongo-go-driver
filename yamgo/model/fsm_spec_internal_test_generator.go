@@ -100,7 +100,7 @@ func (g *Generator) generate() []byte {
 	g.printlnf("import \"github.com/10gen/mongo-go-driver/yamgo/internal\"")
 	g.printlnf("import . \"github.com/10gen/mongo-go-driver/yamgo/model\"")
 
-	testsDir := "../../specifications/source/server-discovery-and-monitoring/tests/"
+	testsDir := "../../data/server-discovery-and-monitoring/"
 
 	entries, err := ioutil.ReadDir(testsDir)
 	if err != nil {

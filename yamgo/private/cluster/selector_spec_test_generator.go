@@ -67,17 +67,17 @@ const name = "selector_spec_test_generator"
 
 func (g *Generator) generate() []byte {
 
-	serverSelectionFiles, err := filepath.Glob("../../../specifications/source/server-selection/tests/server_selection/*/*/*.yml")
+	serverSelectionFiles, err := filepath.Glob("../../../data/server-selection/server_selection/*/*/*.yml")
 	if err != nil {
 		log.Fatalf("error reading server-selection files: %s", err)
 	}
-	serverSelectionTests := g.loadTests("ServerSelection", "../../../specifications/source/server-selection/tests/server_selection", serverSelectionFiles)
+	serverSelectionTests := g.loadTests("ServerSelection", "../../../data/server-selection/server_selection", serverSelectionFiles)
 
-	maxStalenessFiles, err := filepath.Glob("../../../specifications/source/max-staleness/tests/**/*.yml")
+	maxStalenessFiles, err := filepath.Glob("../../../data/max-staleness/**/*.yml")
 	if err != nil {
 		log.Fatalf("error reading max-staleness files: %s", err)
 	}
-	maxStalenessTests := g.loadTests("MaxStaleness", "../../../specifications/source/max-staleness/tests", maxStalenessFiles)
+	maxStalenessTests := g.loadTests("MaxStaleness", "../../../data/max-staleness", maxStalenessFiles)
 
 	tests := append(serverSelectionTests, maxStalenessTests...)
 
@@ -178,7 +178,7 @@ import (
 {{range .}}
 func TestReadPref_{{.Name}}(t *testing.T) {
 	t.Parallel()
-	
+
 	require := require.New(t)
 	{{with .TopologyDescription}}
 	{{range .Servers}}

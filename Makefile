@@ -1,7 +1,7 @@
-BSON_PKGS = $(shell ./find_pkgs.sh ./bson)
-BSON_TEST_PKGS = $(shell ./find_pkgs.sh ./bson _test)
-YAMGO_PKGS = $(shell ./find_pkgs.sh ./yamgo)
-YAMGO_TEST_PKGS = $(shell ./find_pkgs.sh ./yamgo _test)
+BSON_PKGS = $(shell ./etc/find_pkgs.sh ./bson)
+BSON_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./bson _test)
+YAMGO_PKGS = $(shell ./etc/find_pkgs.sh ./yamgo)
+YAMGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./yamgo _test)
 PKGS = $(BSON_PKGS) $(YAMGO_PKGS)
 TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 
@@ -32,11 +32,11 @@ generate:
 
 .PHONY: lint
 lint:
-	golint $(PKGS) | ./lintscreen.pl .lint-whitelist
+	golint $(PKGS) | ./etc/lintscreen.pl .lint-whitelist
 
 .PHONY: lint-add-whitelist
 lint-add-whitelist:
-	golint $(PKGS) | ./lintscreen.pl -u .lint-whitelist
+	golint $(PKGS) | ./etc/lintscreen.pl -u .lint-whitelist
 
 .PHONY: test
 test:
@@ -53,6 +53,26 @@ test-race:
 .PHONY: test-short
 test-short:
 	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(TEST_PKGS)
+
+.PHONY: update-bson-corpus-tests
+update-bson-corpus-tests:
+	etc/update-spec-tests.sh bson-corpus
+
+.PHONY: update-connection-string-tests
+update-connection-string-tests:
+	etc/update-spec-tests.sh connection-string
+
+.PHONY: update-max-staleness-tests
+update-max-staleness-tests:
+	etc/update-spec-tests.sh max-staleness
+
+.PHONY: update-server-discovery-and-monitoring-tests
+update-server-discovery-and-monitoring-tests:
+	etc/update-spec-tests.sh server-discovery-and-monitoring
+
+.PHONY: update-server-selection-tests
+update-server-selection-tests:
+	etc/update-spec-tests.sh server-selection
 
 .PHONY: vet
 vet:
