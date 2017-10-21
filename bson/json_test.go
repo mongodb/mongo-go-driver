@@ -1,14 +1,13 @@
 package bson_test
 
 import (
+	"reflect"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/stretchr/testify/require"
-
-	"reflect"
-	"strings"
-	"time"
 )
 
 type jsonTest struct {
