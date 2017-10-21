@@ -384,7 +384,6 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 		case Binary:
 			e.addElemName(0x05, name)
 			e.addBinary(s.Kind, s.Data)
-
 		case Decimal128:
 			e.addElemName(0x13, name)
 			e.addInt64(int64(s.l))

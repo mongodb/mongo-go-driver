@@ -99,6 +99,7 @@ func Unmarshal(data []byte, v interface{}) error {
 	}
 
 	d.init(data)
+	d.useNumber = true
 	return d.unmarshal(v)
 }
 
