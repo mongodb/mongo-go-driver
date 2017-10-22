@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/stitch/common"
-
 	gc "github.com/smartystreets/goconvey/convey"
 	"github.com/10gen/mongo-go-driver/bson"
 )
@@ -751,7 +749,7 @@ func BenchmarkMarshalDEncode(b *testing.B) {
 }
 
 func TestValueEncryption(t *testing.T) {
-	crypter := common.NewTestCrypter()
+	crypter := NewTestCrypter()
 	gc.Convey("Round tripping values should work", t, func() {
 		for _, tc := range []Value{
 			{V: 1.0},

@@ -428,12 +428,12 @@ func TestExtendedJSONSpecEncode(t *testing.T) {
 			Namespace: "db.collection",
 			Id:        bson.ObjectIdHex("57e193d7a9cc81b4027498b1"),
 		}},
-		{"DBRef", DBRef{
+		{"DBRef", xjson.DBRef{
 			Collection: "collection",
 			Id:         bson.ObjectIdHex("57fd71e96e32ab4225b723fb"),
 			Database:   "database",
 		}},
-		{"DBRef2", DBRef{
+		{"DBRef2", xjson.DBRef{
 			Collection: "collection",
 			Id:         "test",
 			Database:   "database",

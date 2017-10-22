@@ -36,10 +36,10 @@ func DecodeExtended(value interface{}) (interface{}, error) {
 		doc, err := decodeExtendedBsonD(bson.D(x))
 		return MarshalD(doc), err
 	case bson.M:
-		doc, err := decodeExtendedBsonD(utils.MapAsBsonD(map[string]interface{}(x)))
+		doc, err := decodeExtendedBsonD(MapAsBsonD(map[string]interface{}(x)))
 		return doc.Map(), err
 	case map[string]interface{}:
-		doc, err := decodeExtendedBsonD(utils.MapAsBsonD(x))
+		doc, err := decodeExtendedBsonD(MapAsBsonD(x))
 		return map[string]interface{}(doc.Map()), err
 	case []interface{}:
 		arr := make([]interface{}, len(x))

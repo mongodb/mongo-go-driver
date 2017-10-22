@@ -12,7 +12,6 @@ import (
 	"github.com/10gen/stitch/common"
 
 	"github.com/10gen/mongo-go-driver/bson"
-
 )
 
 // The DBRef type implements support for the database reference MongoDB
