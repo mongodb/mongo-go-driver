@@ -757,9 +757,12 @@ func TestValueEncryption(t *testing.T) {
 			{V: nil},
 			{V: 1.0},
 			{V: "secret"},
-			{V: bson.D{{"1", false}}},
+			{
+				V: bson.D{{"1", false}}},
 		} {
-			encrypted, err := crypter.Encrypt(tc)
+			// Incorrect method being called
+			//encrypted, err := crypter.Encrypt(tc)
+			encrypted, err := tc.Encrypt(crypter)
 			gc.So(err, gc.ShouldBeNil)
 			gc.So(encrypted, gc.ShouldNotResemble, tc)
 

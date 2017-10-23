@@ -67,6 +67,7 @@ func assertBsonD(jsonString string) (bson.D, bson.D) {
 	return bson.D(rDoc), bsonDoc
 }
 
+
 func assertMarshalD(jsonString string) (xjson.MarshalD, xjson.MarshalD) {
 	doc := xjson.MarshalD{}
 	gc.So(json.Unmarshal([]byte(jsonString), &doc), gc.ShouldBeNil)

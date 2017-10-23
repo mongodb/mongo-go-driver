@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/10gen/stitch/common"
-
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
@@ -88,7 +87,7 @@ type Value struct {
 }
 
 // Encrypt encrypts the underlying value of this value
-func (v Value) Encrypt(crypter common.Crypter) (interface{}, error) {
+func (v Value) Encrypt(crypter Crypter) (interface{}, error) {
 	encValue, err := crypter.EncryptValue(v)
 	if err != nil {
 		return nil, err
@@ -98,7 +97,7 @@ func (v Value) Encrypt(crypter common.Crypter) (interface{}, error) {
 }
 
 // Decrypt decrypts the underlying value of this value
-func (v Value) Decrypt(crypter common.Crypter) (interface{}, error) {
+func (v Value) Decrypt(crypter Crypter) (interface{}, error) {
 	valueEnc, ok := v.V.(string)
 	if !ok {
 		return nil, errors.New("expected raw value to be encrypted as a string")
