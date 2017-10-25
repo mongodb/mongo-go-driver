@@ -1,4 +1,4 @@
-package xjson
+package extjson
 
 import (
 	"crypto/aes"

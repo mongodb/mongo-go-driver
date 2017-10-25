@@ -1,4 +1,4 @@
-package xjson
+package extjson
 
 // OptionalValue is a wrapper around Value which has special meaning when the
 // value is not present.

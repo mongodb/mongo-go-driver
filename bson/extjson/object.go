@@ -1,4 +1,4 @@
-package xjson
+package extjson
 
 import "github.com/10gen/mongo-go-driver/bson"
 

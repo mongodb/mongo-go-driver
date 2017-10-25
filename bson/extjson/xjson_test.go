@@ -1,4 +1,4 @@
-package xjson_test
+package extjson_test
 
 import (
 	"encoding/base64"
@@ -11,7 +11,7 @@ import (
 	"github.com/10gen/stitch/utils/test"
 
 	gc "github.com/smartystreets/goconvey/convey"
-	"github.com/10gen/mongo-go-driver/bson/internal/xjson"
+	xjson "github.com/10gen/mongo-go-driver/bson/extjson"
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
@@ -50,7 +50,7 @@ const docStr = `{
 	"reportsTo" : "name.namey"
 }`
 
-func assertBsonD(jsonString string) (bson.D, bson.D) {
+func assertBsonD(t *testing.T, jsonString string) (bson.D, bson.D) {
 	doc := xjson.MarshalD{} // Need this to get the data
 	gc.So(json.Unmarshal([]byte(jsonString), &doc), gc.ShouldBeNil)
 	bsonDoc := bson.D(doc)
@@ -68,9 +68,10 @@ func assertBsonD(jsonString string) (bson.D, bson.D) {
 }
 
 
-func assertMarshalD(jsonString string) (xjson.MarshalD, xjson.MarshalD) {
+func assertMarshalD(t,jsonString string) (xjson.MarshalD, xjson.MarshalD) {
 	doc := xjson.MarshalD{}
 	gc.So(json.Unmarshal([]byte(jsonString), &doc), gc.ShouldBeNil)
+
 
 	dec, err := xjson.DecodeExtended(doc)
 	gc.So(err, gc.ShouldBeNil)
@@ -86,7 +87,7 @@ func assertMarshalD(jsonString string) (xjson.MarshalD, xjson.MarshalD) {
 
 func TestDecodeExtended(t *testing.T) {
 	gc.Convey("Round tripping a bson.D should work", t, func() {
-		actual, expected := assertBsonD(docStr)
+		actual, expected := assertBsonD(t, docStr)
 		gc.So(actual, gc.ShouldResemble, expected)
 	})
 
@@ -99,7 +100,7 @@ func TestDecodeExtended(t *testing.T) {
 				"d1" : {"$numberDouble": "NaN"}
 			}
 		`
-		actual, _ := assertBsonD(nanStr)
+		actual, _ := assertBsonD(t, nanStr)
 
 		d1Value := actual.Map()["d1"]
 		isNan := math.IsNaN(d1Value.(float64))
