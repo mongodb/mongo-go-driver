@@ -1,7 +1,5 @@
 package cluster
 
-//go:generate go run selector_spec_test_generator.go
-
 import (
 	"time"
 
