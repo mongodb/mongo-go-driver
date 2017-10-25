@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/stretchr/testify/require"
 )
@@ -34,14 +34,14 @@ func TestPool_caches_connections(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, created, 3)
 
-	testutil.RequireNoErrorOnClose(t, c3)
+	testhelpers.RequireNoErrorOnClose(t, c3)
 
 	c4, err := p.Get(context.Background())
 	require.NoError(t, err)
 	require.Len(t, created, 3)
 
-	testutil.RequireNoErrorOnClose(t, c4)
-	testutil.RequireNoErrorOnClose(t, c2)
+	testhelpers.RequireNoErrorOnClose(t, c4)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	c5, err := p.Get(context.Background())
 	require.NoError(t, err)
@@ -50,9 +50,9 @@ func TestPool_caches_connections(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, created, 3)
 
-	testutil.RequireNoErrorOnClose(t, c6)
-	testutil.RequireNoErrorOnClose(t, c5)
-	testutil.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c6)
+	testhelpers.RequireNoErrorOnClose(t, c5)
+	testhelpers.RequireNoErrorOnClose(t, c1)
 
 	_, err = p.Get(context.Background())
 	require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestPool_Get_a_connection_which_expired_in_the_pool(t *testing.T) {
 	c1, err := p.Get(context.Background())
 	require.NoError(t, err)
 	require.Len(t, created, 1)
-	testutil.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c1)
 
 	created[0].Dead = true
 
@@ -141,7 +141,7 @@ func TestPool_Get_returns_an_error_after_pool_is_closed(t *testing.T) {
 
 	p := NewPool(2, factory)
 
-	testutil.RequireNoErrorOnClose(t, p)
+	testhelpers.RequireNoErrorOnClose(t, p)
 
 	_, err := p.Get(context.Background())
 	require.Error(t, err)
@@ -162,7 +162,7 @@ func TestPool_Connection_Close_does_not_error_after_pool_is_closed(t *testing.T)
 	require.NoError(t, err)
 	require.Len(t, created, 1)
 
-	testutil.RequireNoErrorOnClose(t, p)
+	testhelpers.RequireNoErrorOnClose(t, p)
 	err = c1.Close()
 	require.NoError(t, err)
 	require.False(t, created[0].Alive())
@@ -234,11 +234,11 @@ func TestPool_Connection_Close_closes_underlying_connection_when_pool_is_full(t 
 	require.NoError(t, err)
 	require.Len(t, created, 3)
 
-	testutil.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c1)
 	require.True(t, created[0].Alive())
-	testutil.RequireNoErrorOnClose(t, c2)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 	require.True(t, created[1].Alive())
-	testutil.RequireNoErrorOnClose(t, c3)
+	testhelpers.RequireNoErrorOnClose(t, c3)
 	require.False(t, created[2].Alive())
 }
 
@@ -281,9 +281,9 @@ func TestPool_Clear_expires_idle_connections(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	testutil.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c1)
 	require.True(t, created[0].Alive())
-	testutil.RequireNoErrorOnClose(t, c2)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 	require.True(t, created[1].Alive())
 
 	p.Clear()
@@ -305,8 +305,8 @@ func TestPool_Close_can_be_called_multiple_times(t *testing.T) {
 
 	p := NewPool(2, factory)
 
-	testutil.RequireNoErrorOnClose(t, p)
-	testutil.RequireNoErrorOnClose(t, p)
+	testhelpers.RequireNoErrorOnClose(t, p)
+	testhelpers.RequireNoErrorOnClose(t, p)
 }
 
 func TestPool_Close_closes_all_connections_in_the_pool(t *testing.T) {
@@ -327,12 +327,12 @@ func TestPool_Close_closes_all_connections_in_the_pool(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	testutil.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c1)
 	require.True(t, created[0].Alive())
-	testutil.RequireNoErrorOnClose(t, c2)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 	require.True(t, created[1].Alive())
 
-	testutil.RequireNoErrorOnClose(t, p)
+	testhelpers.RequireNoErrorOnClose(t, p)
 
 	require.False(t, created[0].Alive())
 	require.False(t, created[1].Alive())

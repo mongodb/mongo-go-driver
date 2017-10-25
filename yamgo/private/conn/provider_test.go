@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +51,7 @@ func TestCappedProvider_closing_a_connection_releases_a_resource(t *testing.T) {
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		testutil.RequireNoErrorOnClose(t, c1)
+		testhelpers.RequireNoErrorOnClose(t, c1)
 	}()
 	_, err = cappedProvider(context.Background())
 	require.NoError(t, err)

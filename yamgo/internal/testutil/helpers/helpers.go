@@ -1,4 +1,4 @@
-package testutil
+package testhelpers
 
 import (
 	"io/ioutil"

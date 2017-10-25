@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
@@ -43,7 +44,7 @@ func find(t *testing.T, s Server, batchSize int32) CursorResult {
 
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer testutil.RequireNoErrorOnClose(t, c)
+	defer testhelpers.RequireNoErrorOnClose(t, c)
 
 	var result cursorReturningResult
 

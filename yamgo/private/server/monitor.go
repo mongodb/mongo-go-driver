@@ -1,7 +1,5 @@
 package server
 
-//go:generate go run monitor_rtt_spec_internal_test_generator.go
-
 import (
 	"context"
 	"errors"

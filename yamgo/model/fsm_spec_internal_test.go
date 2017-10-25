@@ -11,7 +11,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/yamgo/connstring"
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	"github.com/10gen/mongo-go-driver/yamgo/model"
 	"github.com/stretchr/testify/require"
 )
@@ -123,7 +123,7 @@ func runTest(t *testing.T, directory string, filename string) {
 // Test case for all SDAM spec tests.
 func TestSDAMSpec(t *testing.T) {
 	for _, subdir := range []string{"single", "rs", "sharded"} {
-		for _, file := range testutil.FindJSONFilesInDir(t, path.Join(testsDir, subdir)) {
+		for _, file := range testhelpers.FindJSONFilesInDir(t, path.Join(testsDir, subdir)) {
 			runTest(t, subdir, file)
 		}
 	}

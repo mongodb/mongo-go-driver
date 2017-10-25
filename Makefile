@@ -37,6 +37,7 @@ lint:
 .PHONY: lint-add-whitelist
 lint-add-whitelist:
 	golint $(PKGS) | ./etc/lintscreen.pl -u .lint-whitelist
+	sort .lint-whitelist -o .lint-whitelist
 
 .PHONY: errcheck
 errcheck:

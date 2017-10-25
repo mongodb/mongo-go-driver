@@ -10,7 +10,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/servertest"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	"github.com/10gen/mongo-go-driver/yamgo/model"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
@@ -99,8 +99,8 @@ func TestServer_Connection_should_pool_connections(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	testutil.RequireNoErrorOnClose(t, c1)
-	testutil.RequireNoErrorOnClose(t, c2)
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	_, err = s.Connection(context.Background())
 	require.NoError(t, err)
@@ -135,8 +135,8 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	testutil.RequireNoErrorOnClose(t, c1)
-	testutil.RequireNoErrorOnClose(t, c2)
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	require.NoError(t, fake.SetKind(model.Unknown))
 	time.Sleep(1 * time.Second)
@@ -180,8 +180,8 @@ func TestServer_Connection_Read_non_specific_error_should_clear_the_pool(t *test
 
 	c1.MarkDead()
 
-	testutil.RequireNoErrorOnClose(t, c1)
-	testutil.RequireNoErrorOnClose(t, c2)
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	time.Sleep(1 * time.Second)
 
@@ -245,8 +245,8 @@ func TestServer_Connection_Read_specific_error_should_not_clear_the_pool(t *test
 
 			c1.MarkDead()
 
-			testutil.RequireNoErrorOnClose(t, c1)
-			testutil.RequireNoErrorOnClose(t, c2)
+			testhelpers.RequireNoErrorOnClose(t, c1)
+			testhelpers.RequireNoErrorOnClose(t, c2)
 
 			time.Sleep(1 * time.Second)
 
@@ -290,8 +290,8 @@ func TestServer_Connection_Write_non_specific_error_should_clear_the_pool(t *tes
 	require.EqualError(t, c1.Write(context.Background(), &msg.Query{}), nonSpecificError.Error())
 	c1.MarkDead()
 
-	testutil.RequireNoErrorOnClose(t, c1)
-	testutil.RequireNoErrorOnClose(t, c2)
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	time.Sleep(1 * time.Second)
 
@@ -334,8 +334,8 @@ func TestServer_Connection_Write_specific_error_should_not_clear_the_pool(t *tes
 			require.EqualError(t, c1.Write(context.Background(), &msg.Query{}), ignoredErr.Error())
 			c1.MarkDead()
 
-			testutil.RequireNoErrorOnClose(t, c1)
-			testutil.RequireNoErrorOnClose(t, c2)
+			testhelpers.RequireNoErrorOnClose(t, c1)
+			testhelpers.RequireNoErrorOnClose(t, c2)
 
 			time.Sleep(1 * time.Second)
 
