@@ -67,9 +67,9 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		}
 
 
-		if (entry.Name() != "decimal128-1.json") {
-			continue
-		}
+		//if (entry.Name() != "decimal128-1.json") {
+		//	continue
+		//}
 
 
 		files = append(files, entry.Name())
@@ -96,8 +96,6 @@ func runTest(t *testing.T, filename string) {
 		}
 
 		//printTestCaseData(t, test)
-
-
 
 		for _, validCase := range test.Valid {
 			//t.Log("\n\nDescription", validCase.Description)
@@ -197,10 +195,7 @@ func validateREJ(t *testing.T, rEJ string) {
 
 	nativeRepr := bson.M{}
 	require.NoError(t, json.Unmarshal([]byte(rEJ), &nativeRepr))
-	debuglog(t, "nativeRepr", nativeRepr)
 	roundTripREJ, err := json.Marshal(nativeRepr)
-	debuglog(t, "roundTripREJ", roundTripREJ)
-	debuglog(t, "roundTripREJ", string(roundTripREJ))
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
 }
@@ -213,7 +208,6 @@ func compressJSON(js string) string {
 	}
 	return buffer.String()
 }
-
 
 
 func debuglog(t *testing.T, desc string, ob interface{}) {
