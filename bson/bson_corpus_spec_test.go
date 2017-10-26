@@ -67,9 +67,9 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		}
 
 
-		//if (entry.Name() != "decimal128-1.json") {
-		//	continue
-		//}
+		if (entry.Name() != "binary.json") {
+			continue
+		}
 
 
 		files = append(files, entry.Name())
@@ -111,10 +111,10 @@ func runTest(t *testing.T, filename string) {
 			rEJ := validCase.Relaxed_Extjson
 			if (validCase.Relaxed_Extjson != "") {
 				t.Run(testName+"validateBsonToRelaxedJson", func(t *testing.T) {
-					validateBsonToRelaxedJson(t, cB, rEJ)
+					validateBsonToRelaxedJSON(t, cB, rEJ)
 				})
 				t.Run(testName+"validateREJ", func(t *testing.T) {
-					validateREJ(t, rEJ)
+					validateRelaxedExtendedJSON(t, rEJ)
 				})
 			}
 			t.Run(testName+"validateCanonicalExtendedJSON", func(t *testing.T) {
@@ -148,13 +148,17 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	err = bson.Unmarshal([]byte(decoded), &nativeReprBsonD)
 	require.NoError(t, err)
 
+	roundTripCE, err := xjson.NewValueOf(nativeReprBsonD).MarshalJSON()
+	t.Log("roundTripCE", roundTripCE)
+	t.Log("roundTripCE", string(roundTripCE))
+
 	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
 }
 
 //native_to_relaxed_extended_json( bson_to_native(cB) ) = rEJ (if rEJ exists)
-func validateBsonToRelaxedJson(t *testing.T, cB string, rEJ string) {
+func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
 	// Convert BSON to native
 	decoded, err := hex.DecodeString(cB)
 	require.NoError(t, err)
@@ -190,7 +194,7 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string) {
 
 //for rEJ input (if it exists):
 //native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
-func validateREJ(t *testing.T, rEJ string) {
+func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
 	debuglog(t, "rEJ", rEJ)
 
 	nativeRepr := bson.M{}
