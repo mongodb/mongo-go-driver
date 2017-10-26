@@ -72,6 +72,9 @@ type OptOrdered bool
 // OptProjection is for internal use.
 type OptProjection struct{ Projection interface{} }
 
+// OptReturnDocument is for internal use.
+type OptReturnDocument ReturnDocument
+
 // OptReturnKey is for internal use.
 type OptReturnKey bool
 

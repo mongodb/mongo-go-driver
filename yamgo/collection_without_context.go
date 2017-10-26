@@ -117,3 +117,41 @@ func (coll *Collection) FindOne(filter interface{}, result interface{},
 
 	return coll.FindOneContext(context.Background(), filter, result, options...)
 }
+
+// FindOneAndDelete find a single document and deletes it, returning the original in result.
+// The document to return may be nil. It uses a default context of context.Background.
+//
+// See FindOneAndDeleteContext for details and options.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) FindOneAndDelete(filter interface{},
+	result interface{}, opts ...options.FindOneAndDeleteOption) (bool, error) {
+
+	return coll.FindOneAndDeleteContext(context.Background(), filter, result, opts...)
+}
+
+// FindOneAndReplace finds a single document and replaces it, returning either the original
+// or the replaced document. The document to return may be nil. It uses a default context of
+// context.Background.
+//
+// See FindOneAndReplaceContext for details and options.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) FindOneAndReplace(filter interface{},
+	replacement interface{}, result interface{}, opts ...options.FindOneAndReplaceOption) (bool, error) {
+
+	return coll.FindOneAndReplaceContext(context.Background(), filter, replacement, result, opts...)
+}
+
+// FindOneAndUpdate finds a single document an updates it, returning either the original
+// or the updated document. The document to return may be nil. It uses a default context of
+// context.Background.
+//
+// See FindOneAndUpdateContext for details and options.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) FindOneAndUpdate(filter interface{},
+	update interface{}, result interface{}, opts ...options.FindOneAndUpdateOption) (bool, error) {
+
+	return coll.FindOneAndUpdateContext(context.Background(), filter, update, result, opts...)
+}

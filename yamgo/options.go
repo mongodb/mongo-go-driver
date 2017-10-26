@@ -158,6 +158,13 @@ func Projection(projection interface{}) *options.OptProjection {
 	return &opt
 }
 
+// ReturnDocument specifies whether a findAndUpdate should return the document as it was before the
+// update or as it is after.
+func ReturnDocument(returnDocument options.ReturnDocument) *options.OptReturnDocument {
+	opt := options.OptReturnDocument(returnDocument)
+	return &opt
+}
+
 // ReturnKey specifies whether to only return the index keys in the resulting documents.
 func ReturnKey(b bool) *options.OptReturnKey {
 	opt := options.OptReturnKey(b)

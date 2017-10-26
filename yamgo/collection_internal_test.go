@@ -107,6 +107,7 @@ func TestCollection_DeleteOne_found(t *testing.T) {
 	filter := bson.D{{Name: "x", Value: 1}}
 	result, err := coll.DeleteOne(filter)
 	require.Nil(t, err)
+	require.NotNil(t, result)
 	require.Equal(t, result.DeletedCount, int64(1))
 }
 
@@ -161,6 +162,7 @@ func TestCollection_UpdateOne_found(t *testing.T) {
 
 	result, err := coll.UpdateOne(filter, update)
 	require.Nil(t, err)
+	require.NotNil(t, result)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(1))
 	require.Nil(t, result.UpsertedID)
@@ -229,6 +231,7 @@ func TestCollection_ReplaceOne_found(t *testing.T) {
 
 	result, err := coll.ReplaceOne(filter, replacement)
 	require.Nil(t, err)
+	require.NotNil(t, result)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(1))
 	require.Nil(t, result.UpsertedID)
@@ -569,5 +572,250 @@ func TestCollection_FindOne_notFound(t *testing.T) {
 	var result bson.M
 	found, err := coll.FindOne(filter, &result)
 	require.Nil(t, err)
+	require.False(t, found)
+}
+
+func TestCollection_FindOneAndDelete_found(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 3)}
+
+	var result bson.M
+	found, err := coll.FindOneAndDelete(filter, &result)
+	require.NoError(t, err)
+	require.True(t, found)
+
+	x, ok := result["x"]
+	require.True(t, ok)
+	require.Equal(t, x, 3)
+}
+
+func TestCollection_FindOneAndDelete_found_ignoreResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 3)}
+
+	found, err := coll.FindOneAndDelete(filter, nil)
+	require.NoError(t, err)
+	require.True(t, found)
+}
+
+func TestCollection_FindOneAndDelete_notFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 6)}
+
+	var result bson.M
+	found, err := coll.FindOneAndDelete(filter, &result)
+	require.NoError(t, err)
+	require.False(t, found)
+}
+
+func TestCollection_FindOneAndDelete_notFound_ignoreResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 6)}
+
+	found, err := coll.FindOneAndDelete(filter, nil)
+	require.NoError(t, err)
+	require.False(t, found)
+}
+
+func TestCollection_FindOneAndReplace_found(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 3)}
+	replacement := bson.D{bson.NewDocElem("y", 3)}
+
+	var result bson.M
+	found, err := coll.FindOneAndReplace(filter, replacement, &result)
+	require.NoError(t, err)
+	require.True(t, found)
+
+	x, ok := result["x"]
+	require.True(t, ok)
+	require.Equal(t, x, 3)
+}
+
+func TestCollection_FindOneAndReplace_found_ignoreResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 3)}
+	replacement := bson.D{bson.NewDocElem("y", 3)}
+
+	found, err := coll.FindOneAndReplace(filter, replacement, nil)
+	require.NoError(t, err)
+	require.True(t, found)
+}
+
+func TestCollection_FindOneAndReplace_notFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 6)}
+	replacement := bson.D{bson.NewDocElem("y", 6)}
+
+	var result bson.M
+	found, err := coll.FindOneAndReplace(filter, replacement, &result)
+	require.NoError(t, err)
+	require.False(t, found)
+}
+
+func TestCollection_FindOneAndReplace_notFound_ignoreResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 6)}
+	replacement := bson.D{bson.NewDocElem("y", 6)}
+
+	found, err := coll.FindOneAndReplace(filter, replacement, nil)
+	require.NoError(t, err)
+	require.False(t, found)
+}
+
+func TestCollection_FindOneAndUpdate_found(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 3)}
+	update := bson.D{
+		bson.NewDocElem("$set", bson.D{
+			bson.NewDocElem("x", 6),
+		}),
+	}
+	var result bson.M
+	found, err := coll.FindOneAndUpdate(filter, update, &result)
+	require.NoError(t, err)
+	require.True(t, found)
+
+	x, ok := result["x"]
+	require.True(t, ok)
+	require.Equal(t, x, 3)
+}
+
+func TestCollection_FindOneAndUpdate_found_ignoreResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 3)}
+	update := bson.D{
+		bson.NewDocElem("$set", bson.D{
+			bson.NewDocElem("x", 6),
+		}),
+	}
+
+	found, err := coll.FindOneAndUpdate(filter, update, nil)
+	require.NoError(t, err)
+	require.True(t, found)
+}
+
+func TestCollection_FindOneAndUpdate_notFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 6)}
+	update := bson.D{
+		bson.NewDocElem("$set", bson.D{
+			bson.NewDocElem("x", 6),
+		}),
+	}
+
+	var result bson.M
+	found, err := coll.FindOneAndUpdate(filter, update, &result)
+	require.NoError(t, err)
+	require.False(t, found)
+}
+
+func TestCollection_FindOneAndUpdate_notFound_ignoreResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{bson.NewDocElem("x", 6)}
+	update := bson.D{
+		bson.NewDocElem("$set", bson.D{
+			bson.NewDocElem("x", 6),
+		}),
+	}
+
+	found, err := coll.FindOneAndUpdate(filter, update, nil)
+	require.NoError(t, err)
 	require.False(t, found)
 }

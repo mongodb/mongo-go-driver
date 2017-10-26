@@ -32,3 +32,14 @@ const (
 	// that it should block for a certain amount of time for new data before returning no data.
 	TailableAwait
 )
+
+// ReturnDocument specifies whether a findAndUpdate operation should return the document as it was
+// before the update or as it is after the update.
+type ReturnDocument int8
+
+const (
+	// Before specifies that findAndUpdate should return the document as it was before the update.
+	Before ReturnDocument = iota
+	// After specifies that findAndUpdate should return the document as it is after the update.
+	After
+)

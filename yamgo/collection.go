@@ -181,7 +181,7 @@ func (coll *Collection) UpdateOneContext(ctx context.Context, filter interface{}
 		return nil, err
 	}
 
-	// XXX: Roundtrip is inefficient.
+	// TODO GODRIVER-111: Roundtrip is inefficient.
 	var doc bson.D
 	err = bson.Unmarshal(bytes, &doc)
 	if err != nil {
@@ -207,7 +207,7 @@ func (coll *Collection) ReplaceOneContext(ctx context.Context, filter interface{
 		return nil, err
 	}
 
-	// XXX: Roundtrip is inefficient.
+	// TODO GODRIVER-111: Roundtrip is inefficient.
 	var doc bson.D
 	err = bson.Unmarshal(bytes, &doc)
 	if err != nil {
@@ -334,4 +334,113 @@ func (coll *Collection) FindOneContext(ctx context.Context, filter interface{}, 
 	}
 
 	return found, nil
+}
+
+// FindOneAndDeleteContext find a single document and deletes it, returning the original in result.
+// The document to return may be nil.
+//
+// A user can supply a custom context to this method.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) FindOneAndDeleteContext(ctx context.Context, filter interface{},
+	result interface{}, opts ...options.FindOneAndDeleteOption) (bool, error) {
+
+	s, err := coll.getWriteableServer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return ops.FindOneAndDelete(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		filter,
+		result,
+		opts...,
+	)
+}
+
+// FindOneAndReplaceContext finds a single document and replaces it, returning either the original
+// or the replaced document. The document to return may be nil.
+//
+// A user can supply a custom context to this method.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) FindOneAndReplaceContext(ctx context.Context, filter interface{},
+	replacement interface{}, result interface{}, opts ...options.FindOneAndReplaceOption) (bool, error) {
+
+	bytes, err := bson.Marshal(replacement)
+	if err != nil {
+		return false, err
+	}
+
+	// TODO GODRIVER-111: Roundtrip is inefficient.
+	var doc bson.D
+	err = bson.Unmarshal(bytes, &doc)
+	if err != nil {
+		return false, err
+	}
+
+	if len(doc) > 0 && doc[0].Name[0] == '$' {
+		return false, errors.New("replacement document cannot contains keys beginning with '$")
+	}
+
+	s, err := coll.getWriteableServer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return ops.FindOneAndReplace(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		filter,
+		replacement,
+		result,
+		opts...,
+	)
+}
+
+// FindOneAndUpdateContext finds a single document and updates it, returning either the original
+// or the updated. The document to return may be nil.
+//
+// A user can supply a custom context to this method.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) FindOneAndUpdateContext(ctx context.Context, filter interface{},
+	update interface{}, result interface{}, opts ...options.FindOneAndUpdateOption) (bool, error) {
+
+	bytes, err := bson.Marshal(update)
+	if err != nil {
+		return false, err
+	}
+
+	// TODO GODRIVER-111: Roundtrip is inefficient.
+	var doc bson.D
+	err = bson.Unmarshal(bytes, &doc)
+	if err != nil {
+		return false, err
+	}
+
+	if len(doc) > 0 && doc[0].Name[0] != '$' {
+		return false, errors.New("update document must contain key beginning with '$")
+	}
+
+	s, err := coll.getWriteableServer(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	return ops.FindOneAndUpdate(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		filter,
+		update,
+		result,
+		opts...,
+	)
 }
