@@ -8,9 +8,11 @@ import (
 	"encoding/json"
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/bson/extjson"
-	"reflect"
 	"encoding/hex"
 	"github.com/10gen/stitch/utils/xjson"
+	"bytes"
+	"fmt"
+	"strings"
 )
 
 type parseError struct {
@@ -63,10 +65,10 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		}
 
 
-		if (entry.Name() != "int32.json") {
-			continue
-		}
-
+		//if (entry.Name() != "int32.json") {
+		//	continue
+		//}
+		//
 
 		files = append(files, entry.Name())
 	}
@@ -85,174 +87,126 @@ func runTest(t *testing.T, filename string) {
 	t.Run(testName, func(t *testing.T) {
 		var test testCase
 		require.NoError(t, json.Unmarshal(content, &test))
+		//t.Log("TestDescription", test.Description)
 
+		if (test.Deprecated) {
+			return
+		}
 
 		//printTestCaseData(t, test)
 
 
-		t.Log("TestDescription", test.Description)
+
 		for _, validCase := range test.Valid {
-			t.Log("Description", validCase.Description)
-			t.Log("cB", validCase.Canonical_Bson)
-			t.Log("cEJ", validCase.Canonical_Extjson)
+			//t.Log("\n\nDescription", validCase.Description)
 
 			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
-			//validateCEJ(t, cEJ)
-			//validateCEJ2(t, cEJ, validCase.Canonical_Bson)
 
-			validateCanonicalBSON(t, cB, cEJ)
+			t.Run(testName+"validateCanonicalBSON", func(t *testing.T) {
+				validateCanonicalBSON(t, cB, cEJ)
+			})
+
+
+			rEJ := validCase.Relaxed_Extjson
+			if (validCase.Relaxed_Extjson != "") {
+				t.Run(testName+"validateBsonToRelaxedJson", func(t *testing.T) {
+					validateBsonToRelaxedJson(t, cB, rEJ)
+				})
+				t.Run(testName+"validateREJ", func(t *testing.T) {
+					validateREJ(t, rEJ)
+				})
+			}
+			t.Run(testName+"validateCanonicalExtendedJSON", func(t *testing.T) {
+				validateCanonicalExtendedJSON(t, cB, cEJ)
+			})
 		}
-		t.Log("\n\n")
+
 
 	})
 }
 
 
-type testItemTypes struct {
-	obj  interface{}
-	data string
-}
-
-
-// --------------------------------------------------------------------------
-// Samples from bsonspec.org:
-
-var items = []testItemTypes{
-	{bson.M{"hello": "world"},
-		"\x16\x00\x00\x00\x02hello\x00\x06\x00\x00\x00world\x00\x00"},
-	//{bson.M{"BSON": []interface{}{"awesome", float64(5.05), 1986}},
-	//	"1\x00\x00\x00\x04BSON\x00&\x00\x00\x00\x020\x00\x08\x00\x00\x00" +
-	//		"awesome\x00\x011\x00333333\x14@\x102\x00\xc2\x07\x00\x00\x00\x00"},
-}
-
 //for cB input:
 //native_to_bson( bson_to_native(cB) ) = cB
 //native_to_canonical_extended_json( bson_to_native(cB) ) = cEJ
-//native_to_relaxed_extended_json( bson_to_native(cB) ) = rEJ (if rEJ exists)
 func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
-	t.Log("\n\n")
-
 	// Convert BSON to native then back to bson
 	decoded, err := hex.DecodeString(cB)
-	t.Log("decoded", decoded)
-	nativeValue := bson.M{}
-	error := bson.Unmarshal([]byte(decoded), nativeValue)
-	t.Log("cb", cB)
-	t.Log("cEJ", cEJ)
-	t.Log("[]byte(cB)", []byte(cB))
-	t.Log("error", error)
-	t.Log("nativeValue", nativeValue)
-	asdf, err := bson.Marshal(nativeValue);
-	//encode := hex.EncodeToString(asdf);
-	encode2 := hex.EncodeToString(asdf);
-	t.Log("encode2", encode2)
-	t.Log("asdf", asdf)
-	t.Log("asdf", string(asdf))
-	t.Log("err", err)
+	require.NoError(t, err)
 
+	nativeRepr := bson.M{}
+	err = bson.Unmarshal([]byte(decoded), nativeRepr)
+	require.NoError(t, err)
 
-	// Reference xjson_test.go:testencodeextended
-	// Now convert native to extended JSON
-	var doc bson.D
-	err = bson.Unmarshal([]byte(decoded), &doc)
-	t.Log("doc", doc)
-	t.Log("err", err)
+	roundTripCBByteRepr, err := bson.Marshal(nativeRepr);
+	roundTripCB := hex.EncodeToString(roundTripCBByteRepr);
+	require.Equal(t, cB, strings.ToUpper(roundTripCB))
 
-	extended, err := extjson.EncodeBSONDtoJSON(doc)
-	t.Log("extended", extended)
-	t.Log("extended", string(extended)) // THis is what I want!
-	t.Log("err", err)
+	// Convert native to extended JSON
+	var nativeReprBsonD bson.D // Need this new bson.D object as encodeBsonDtoJson wants a Bson.D
+	err = bson.Unmarshal([]byte(decoded), &nativeReprBsonD)
+	require.NoError(t, err)
 
-	//
-	//md, err := json.Marshal(xjson.NewValueOf(nativeValue))
-	//t.Log("md", string(md))
-	//t.Log("err", err)
-	//
-	//
-	//d := bson.D{{"1", 1}, {"2", 2}, {"3", 3}}
-	//md2, err := json.Marshal(xjson.NewValueOf(d))
-	//md3, err := extjson.EncodeBSONDtoJSON(d)
-	//t.Log("md2", string(md2))
-	//t.Log("md2", string(md3))
-	//t.Log("err", err)
+	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
+	require.NoError(t, err)
+	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
 }
 
+//native_to_relaxed_extended_json( bson_to_native(cB) ) = rEJ (if rEJ exists)
+func validateBsonToRelaxedJson(t *testing.T, cB string, rEJ string) {
+	// Convert BSON to native
+	decoded, err := hex.DecodeString(cB)
+	require.NoError(t, err)
 
+	nativeRepr := bson.M{}
+	error := bson.Unmarshal([]byte(decoded), nativeRepr)
+	require.NoError(t, error)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	roundTripREJ, err := json.Marshal(xjson.NewValueOf(nativeRepr))
+	require.NoError(t, err)
+	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
+}
 
 //for cEJ input:
-//	native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
-func validateCEJ2(t *testing.T, cEJ string, cB string) {
-	nativeJSON, _ := extjson.DecodeExtended(cEJ)
-	t.Log("typeof", reflect.TypeOf(nativeJSON));
-	t.Log("nativeJSON", nativeJSON)
+//1. native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
+//2. native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
+func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string) {
+	marshalDDoc := extjson.MarshalD{}
+	json.Unmarshal([]byte(cEJ), &marshalDDoc)
 
-	bsonData, error := bson.Marshal(nativeJSON.(bson.D))
+	bsonDDoc := bson.D(marshalDDoc)
+	bsonHexDecoded, err := bson.Marshal(bsonDDoc);
+	require.NoError(t, err)
 
-	t.Log("BSONedDATA", bsonData)
-	t.Log("cB", cB)
-	t.Log("error", error)
+	roundTripCB := hex.EncodeToString(bsonHexDecoded)
+	require.Equal(t, cB, strings.ToUpper(roundTripCB))
+
+	// Next do cEJ => native => cEJ
+	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
+	require.NoError(t, err)
+	require.Equal(t, compressJSON(cEJ), string(roundTripCEJByteRepr))
 }
 
-//	native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
-func validateCEJ(t *testing.T, cEJ string) {
-	// Create BSON Document from cEJ
-	doc := extjson.MarshalD{} // Need this to get the data
-
-	//gc.So(json.Unmarshal([]byte(cEJ), &doc), gc.ShouldBeNil)
-	json.Unmarshal([]byte(cEJ), &doc)
-	bsonDoc := bson.D(doc)
-
-
-	// Decoded eJSON
-	decoded, _ := extjson.DecodeExtended(bsonDoc)
-	//gc.So(err, gc.ShouldBeNil)
-
-	r := extjson.MarshalD(decoded.(bson.D))
-	rDocStr, _ := r.MarshalJSON()
-	//gc.So(err, gc.ShouldBeNil)
-
-	rDoc := extjson.MarshalD{}
-	//gc.So(json.Unmarshal([]byte(rDocStr), &rDoc), gc.ShouldBeNil)
-	json.Unmarshal([]byte(rDocStr), &rDoc)
-	//return bson.D(rDoc), bsonDoc
-
-
-
-
-	t.Log("doc", doc)
-	t.Log("bsonDoc", bsonDoc)
-	t.Log("decoded", decoded)
-	t.Log("r", r)
-	t.Log("rDocStr", rDocStr)
-	t.Log("rDoc", rDoc)
-	t.Log("bson.D(rDoc)", bson.D(rDoc))
+//for rEJ input (if it exists):
+//native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
+func validateREJ(t *testing.T, rEJ string) {
+	nativeRepr := bson.M{}
+	require.NoError(t, json.Unmarshal([]byte(rEJ), &nativeRepr))
+	roundTripREJ, err := json.Marshal(nativeRepr)
+	require.NoError(t, err)
+	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
 }
+
+func compressJSON(js string) string {
+	var json_bytes = []byte(js)
+	buffer := new(bytes.Buffer)
+	if err := json.Compact(buffer, json_bytes); err != nil {
+		fmt.Println(err)
+	}
+	return buffer.String()
+}
+
 
 func printTestCaseData(t *testing.T, test testCase) {
 	t.Log(test.Description)
@@ -263,55 +217,3 @@ func printTestCaseData(t *testing.T, test testCase) {
 	t.Log(test.ParseErrors)
 	t.Log(test.Deprecated)
 }
-
-/*
-
-
-	t.Log("\n\n\n AssertBSOND")
-	// AssertBSOND
-
-	expectedDoc := extjson.MarshalD{}
-	json.Unmarshal([]byte(cEJ), &expectedDoc)
-	t.Log("[]byte(cEJ)", []byte(cEJ))
-	t.Log("expectedDoc", expectedDoc)
-	dec, err := xjson.DecodeExtended(expectedDoc)
-	t.Log("dec", dec)
-	t.Log("err", err)
-
-	rDocStr, err := json.Marshal(dec)
-	t.Log("rDocStr", rDocStr)
-	t.Log("err", err)
-
-	actualDoc := xjson.MarshalD{}
-	json.Unmarshal([]byte(rDocStr), &actualDoc)
-	t.Log("actualDoc", actualDoc)
-
-
-
-
-	t.Log("\n\n\nAssertMarshallD ")
-	//	ASSERT MarshalD
-
-
-	unmarshalledRes := extjson.MarshalD{} // Need this to get the data
-	json.Unmarshal([]byte(cEJ), &unmarshalledRes)
-	bsonDoc := bson.D(doc)
-	t.Log("unmarshalledRes", unmarshalledRes)
-	t.Log("bsonDoc", bsonDoc)
-
-	decodedBsonDoc, err := extjson.DecodeExtended(bsonDoc)
-	t.Log("decodedBsonDoc", decodedBsonDoc)
-
-	r := extjson.MarshalD(decodedBsonDoc.(bson.D))
-	resDoc, err := r.MarshalJSON()
-	t.Log("r", r)
-	t.Log("resDoc", resDoc)
-
-	rDoc := extjson.MarshalD{}
-	json.Unmarshal([]byte(resDoc), &rDoc)
-
-	t.Log("rDoc", rDoc)
-
-
-
- */
