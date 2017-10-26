@@ -47,6 +47,8 @@ type testCase struct {
 	Deprecated   bool          "json:omitempty"
 }
 
+const DEBUG = true;
+
 const testsDir string = "../specifications/source/bson-corpus/tests/"
 
 func TestBSONSpec(t *testing.T) {
@@ -65,10 +67,10 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		}
 
 
-		//if (entry.Name() != "int32.json") {
-		//	continue
-		//}
-		//
+		if (entry.Name() != "decimal128-1.json") {
+			continue
+		}
+
 
 		files = append(files, entry.Name())
 	}
@@ -191,9 +193,14 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string) {
 //for rEJ input (if it exists):
 //native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
 func validateREJ(t *testing.T, rEJ string) {
+	debuglog(t, "rEJ", rEJ)
+
 	nativeRepr := bson.M{}
 	require.NoError(t, json.Unmarshal([]byte(rEJ), &nativeRepr))
+	debuglog(t, "nativeRepr", nativeRepr)
 	roundTripREJ, err := json.Marshal(nativeRepr)
+	debuglog(t, "roundTripREJ", roundTripREJ)
+	debuglog(t, "roundTripREJ", string(roundTripREJ))
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
 }
@@ -207,6 +214,13 @@ func compressJSON(js string) string {
 	return buffer.String()
 }
 
+
+
+func debuglog(t *testing.T, desc string, ob interface{}) {
+	if (DEBUG) {
+		t.Log(desc, ob)
+	}
+}
 
 func printTestCaseData(t *testing.T, test testCase) {
 	t.Log(test.Description)
