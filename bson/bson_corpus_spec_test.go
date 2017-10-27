@@ -1,6 +1,7 @@
 package bson_test
 
 import (
+	"strconv"
 	"testing"
 	"path"
 	"io/ioutil"
@@ -9,7 +10,6 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/bson/extjson"
 	"encoding/hex"
-	"github.com/10gen/stitch/utils/xjson"
 	"bytes"
 	"fmt"
 	"strings"
@@ -67,7 +67,7 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		}
 
 
-		if (entry.Name() != "binary.json") {
+		if (entry.Name() != "code.json") {
 			continue
 		}
 
@@ -148,10 +148,6 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	err = bson.Unmarshal([]byte(decoded), &nativeReprBsonD)
 	require.NoError(t, err)
 
-	roundTripCE, err := xjson.NewValueOf(nativeReprBsonD).MarshalJSON()
-	t.Log("roundTripCE", roundTripCE)
-	t.Log("roundTripCE", string(roundTripCE))
-
 	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
@@ -167,7 +163,7 @@ func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
 	error := bson.Unmarshal([]byte(decoded), nativeRepr)
 	require.NoError(t, error)
 
-	roundTripREJ, err := json.Marshal(xjson.NewValueOf(nativeRepr))
+	roundTripREJ, err := json.Marshal(extjson.NewValueOf(nativeRepr))
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
 }
@@ -188,6 +184,34 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string) {
 
 	// Next do cEJ => native => cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
+	t.Log(roundTripCEJByteRepr)
+
+
+
+	////resCEJ := fmt.Sprintf("%+q",  string(roundTripCEJByteRepr))
+	////t.Log(resCEJ)
+	//q2 := strconv.QuoteToASCII(string(roundTripCEJByteRepr))
+	//
+	//t.Log(q2)
+	//
+	//t.Log(string(roundTripCEJByteRepr))
+	//
+	//cleanedStr := ""
+	//for _, c := range string(roundTripCEJByteRepr) {
+	//	// Is ascii
+	//	if (c < 127) {
+	//		cleanedStr += string(c)
+	//	} else {
+	//		nonAscStr := string(92) + strconv.QuoteToASCII(string(c))
+	//		t.Log(nonAscStr)
+	//		//cleanedStr +=
+	//		cleanedStr += nonAscStr
+	//	}
+	//}
+	//t.Log(cleanedStr)
+	//
+	//
+
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(cEJ), string(roundTripCEJByteRepr))
 }
