@@ -65,10 +65,9 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 
-		//
-		//if (entry.Name() != "regex.json") {
-		//	continue
-		//}
+		if (entry.Name() != "binary.json") {
+			continue
+		}
 
 
 		files = append(files, entry.Name())
