@@ -72,8 +72,6 @@ func (coll *Collection) InsertOneContext(ctx context.Context, document interface
 		return nil, err
 	}
 
-	// TODO GODRIVER-27: write concern
-
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
 		return nil, err
@@ -109,8 +107,6 @@ func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{}
 		{Name: "limit", Value: 1},
 	}}
 
-	// TODO GODRIVER-27: write concern
-
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
 		return nil, err
@@ -143,8 +139,6 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface
 		{Name: "u", Value: update},
 		{Name: "multi", Value: false},
 	}}
-
-	// TODO GODRIVER-27: write concern
 
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
