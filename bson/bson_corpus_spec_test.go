@@ -1,7 +1,6 @@
 package bson_test
 
 import (
-	"strconv"
 	"testing"
 	"path"
 	"io/ioutil"
@@ -66,10 +65,10 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 
-
-		if (entry.Name() != "code.json") {
-			continue
-		}
+		//
+		//if (entry.Name() != "regex.json") {
+		//	continue
+		//}
 
 
 		files = append(files, entry.Name())
@@ -184,9 +183,6 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string) {
 
 	// Next do cEJ => native => cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
-	t.Log(roundTripCEJByteRepr)
-
-
 
 	////resCEJ := fmt.Sprintf("%+q",  string(roundTripCEJByteRepr))
 	////t.Log(resCEJ)
@@ -219,8 +215,6 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string) {
 //for rEJ input (if it exists):
 //native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
 func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
-	debuglog(t, "rEJ", rEJ)
-
 	nativeRepr := bson.M{}
 	require.NoError(t, json.Unmarshal([]byte(rEJ), &nativeRepr))
 	roundTripREJ, err := json.Marshal(nativeRepr)

@@ -54,11 +54,11 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(fmt.Sprintf("%d", (x.Unix()*1e3)+(int64(x.Nanosecond())/1e6)))
 		buff.WriteString(`"}}`)
 	case bson.RegEx:
-		buff.WriteString(`{"$regex":"`)
+		buff.WriteString(`{"$regularExpression":{"pattern":"`)
 		buff.WriteString(x.Pattern)
-		buff.WriteString(`","$options":"`)
+		buff.WriteString(`","options":"`)
 		buff.WriteString(x.Options)
-		buff.WriteString(`"}`)
+		buff.WriteString(`"}}`)
 	case bson.DBPointer:
 		buff.WriteString(`{"$dbPointer":{"$ref":"`)
 		buff.WriteString(x.Namespace)
@@ -98,6 +98,13 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(`{"$timestamp":"`)
 		buff.WriteString(fmt.Sprintf("%d", x))
 		buff.WriteString(`"}`)
+
+
+	//expected: "{\"a\":{\"$timestamp\":{\"t\":123456789,\"i\":42}}}"
+	//received: "{\"a\":{\"$timestamp\":\"530242871224172586\"}}"
+	//<t> is the JSON representation of a 32-bit unsigned integer for seconds since epoch.
+	//<i> is a 32-bit unsigned integer for the increment.
+
 	case bson.Decimal128:
 		var v string
 		switch x {
