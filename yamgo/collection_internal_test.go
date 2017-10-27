@@ -94,6 +94,36 @@ func TestCollection_InsertOne(t *testing.T) {
 	require.Equal(t, result.InsertedID, id)
 }
 
+func TestCollection_InsertMany(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	docs := []interface{}{
+		bson.D{
+			bson.NewDocElem("_id", 11),
+		},
+		bson.D{
+			bson.NewDocElem("x", 6),
+		},
+		bson.D{
+			bson.NewDocElem("_id", 12),
+		},
+	}
+	coll := createTestCollection(t, nil, nil)
+
+	result, err := coll.InsertMany(docs)
+	require.Nil(t, err)
+
+	require.Len(t, result.InsertedIDs, 3)
+	require.Equal(t, result.InsertedIDs[0], 11)
+	require.NotNil(t, result.InsertedIDs[1])
+	require.Equal(t, result.InsertedIDs[2], 12)
+
+}
+
 func TestCollection_DeleteOne_found(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -139,6 +169,66 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 
 	filter := bson.D{{Name: "x", Value: 0}}
 	result, err := coll.DeleteOne(filter, Collation(&options.CollationOptions{Locale: "en_US"}))
+	require.Nil(t, err)
+	require.Equal(t, result.DeletedCount, int64(0))
+}
+
+func TestCollection_DeleteMany_found(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{
+		bson.NewDocElem("x", bson.D{
+			bson.NewDocElem("$gte", 3),
+		}),
+	}
+	result, err := coll.DeleteMany(filter)
+	require.Nil(t, err)
+	require.Equal(t, result.DeletedCount, int64(3))
+}
+
+func TestCollection_DeleteMany_notFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{
+		bson.NewDocElem("x", bson.D{
+			bson.NewDocElem("$lt", 1),
+		}),
+	}
+	result, err := coll.DeleteMany(filter)
+	require.Nil(t, err)
+	require.Equal(t, result.DeletedCount, int64(0))
+}
+
+func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{
+		bson.NewDocElem("x", bson.D{
+			bson.NewDocElem("$lt", 1),
+		}),
+	}
+	result, err := coll.DeleteMany(filter, Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -210,6 +300,90 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 	}
 
 	result, err := coll.UpdateOne(filter, update, Upsert(true))
+	require.Nil(t, err)
+	require.Equal(t, result.MatchedCount, int64(1))
+	require.Equal(t, result.ModifiedCount, int64(0))
+	require.NotNil(t, result.UpsertedID)
+}
+
+func TestCollection_UpdateMany_found(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{
+		bson.NewDocElem("x", bson.D{
+			bson.NewDocElem("$gte", 3),
+		}),
+	}
+	update := bson.M{
+		"$inc": bson.M{
+			"x": 1,
+		},
+	}
+
+	result, err := coll.UpdateMany(filter, update)
+	require.Nil(t, err)
+	require.Equal(t, result.MatchedCount, int64(3))
+	require.Equal(t, result.ModifiedCount, int64(3))
+	require.Nil(t, result.UpsertedID)
+}
+
+func TestCollection_UpdateMany_notFound(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{
+		bson.NewDocElem("x", bson.D{
+			bson.NewDocElem("$lt", 1),
+		}),
+	}
+	update := bson.M{
+		"$inc": bson.M{
+			"x": 1,
+		},
+	}
+
+	result, err := coll.UpdateMany(filter, update)
+	require.Nil(t, err)
+	require.Equal(t, result.MatchedCount, int64(0))
+	require.Equal(t, result.ModifiedCount, int64(0))
+	require.Nil(t, result.UpsertedID)
+}
+
+func TestCollection_UpdateMany_upsert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.D{
+		bson.NewDocElem("x", bson.D{
+			bson.NewDocElem("$lt", 1),
+		}),
+	}
+	update := bson.M{
+		"$inc": bson.M{
+			"x": 1,
+		},
+	}
+
+	result, err := coll.UpdateMany(filter, update, Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(0))

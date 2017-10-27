@@ -101,12 +101,56 @@ func (coll *Collection) InsertOneContext(ctx context.Context, document interface
 	return &InsertOneResult{InsertedID: insertedID}, nil
 }
 
+// InsertManyContext inserts the provided documents. A user can supply a custom context to this
+// method.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) InsertManyContext(ctx context.Context, documents []interface{},
+	options ...options.InsertOption) (*InsertManyResult, error) {
+
+	result := make([]interface{}, len(documents))
+
+	for i, doc := range documents {
+		docWithID, insertedID, err := getOrInsertID(doc)
+		if err != nil {
+			return nil, err
+		}
+
+		documents[i] = docWithID
+		result[int64(i)] = insertedID
+	}
+
+	// TODO GODRIVER-27: write concern
+
+	s, err := coll.getWriteableServer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var d bson.D
+	err = ops.Insert(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		documents,
+		&d,
+		options...,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &InsertManyResult{InsertedIDs: result}, nil
+}
+
 // DeleteOneContext deletes a single document from the collection. A user can supply a custom
 // context to this method.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{},
-	options ...options.DeleteOption) (*DeleteOneResult, error) {
+	options ...options.DeleteOption) (*DeleteResult, error) {
 
 	deleteDocs := []bson.D{{
 		{Name: "q", Value: filter},
@@ -118,7 +162,44 @@ func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{}
 		return nil, err
 	}
 
-	var result DeleteOneResult
+	var result DeleteResult
+	err = ops.Delete(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		deleteDocs,
+		&result,
+		options...,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DeleteManyContext deletes multiple documents from the collection. A user can supply a custom
+// context to this method.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) DeleteManyContext(ctx context.Context, filter interface{},
+	options ...options.DeleteOption) (*DeleteResult, error) {
+
+	deleteDocs := []bson.D{{
+		{Name: "q", Value: filter},
+		{Name: "limit", Value: 0},
+	}}
+
+	// TODO GODRIVER-27: write concern
+
+	s, err := coll.getWriteableServer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var result DeleteResult
 	err = ops.Delete(
 		ctx,
 		s,
@@ -138,7 +219,7 @@ func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{}
 
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface{},
-	update interface{}, options ...options.UpdateOption) (*UpdateOneResult, error) {
+	update interface{}, options ...options.UpdateOption) (*UpdateResult, error) {
 
 	updateDocs := []bson.D{{
 		{Name: "q", Value: filter},
@@ -151,7 +232,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface
 		return nil, err
 	}
 
-	var result UpdateOneResult
+	var result UpdateResult
 	err = ops.Update(
 		ctx,
 		s,
@@ -174,25 +255,55 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) UpdateOneContext(ctx context.Context, filter interface{}, update interface{},
-	options ...options.UpdateOption) (*UpdateOneResult, error) {
+	options ...options.UpdateOption) (*UpdateResult, error) {
 
-	bytes, err := bson.Marshal(update)
-	if err != nil {
+	if err := ensureDollarKey(update); err != nil {
 		return nil, err
-	}
-
-	// TODO GODRIVER-111: Roundtrip is inefficient.
-	var doc bson.D
-	err = bson.Unmarshal(bytes, &doc)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(doc) > 0 && doc[0].Name[0] != '$' {
-		return nil, errors.New("update document must contain key beginning with '$")
 	}
 
 	return coll.updateOrReplaceOne(ctx, filter, update, options...)
+}
+
+// UpdateManyContext updates multiple documents in the collection. A user can supply a custom
+// context to this method.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) UpdateManyContext(ctx context.Context, filter interface{}, update interface{},
+	options ...options.UpdateOption) (*UpdateResult, error) {
+
+	if err := ensureDollarKey(update); err != nil {
+		return nil, err
+	}
+
+	updateDocs := []bson.D{{
+		{Name: "q", Value: filter},
+		{Name: "u", Value: update},
+		{Name: "multi", Value: true},
+	}}
+
+	// TODO GODRIVER-27: write concern
+
+	s, err := coll.getWriteableServer(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var result UpdateResult
+	err = ops.Update(
+		ctx,
+		s,
+		coll.namespace(),
+		coll.writeConcern,
+		updateDocs,
+		&result,
+		options...,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
 
 // ReplaceOneContext replaces a single document in the collection. A user can supply a custom
@@ -200,7 +311,7 @@ func (coll *Collection) UpdateOneContext(ctx context.Context, filter interface{}
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) ReplaceOneContext(ctx context.Context, filter interface{},
-	replacement interface{}, options ...options.UpdateOption) (*UpdateOneResult, error) {
+	replacement interface{}, options ...options.UpdateOption) (*UpdateResult, error) {
 
 	bytes, err := bson.Marshal(replacement)
 	if err != nil {

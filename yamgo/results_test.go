@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDeleteOneResult_unmarshalInto(t *testing.T) {
+func TestDeleteResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
 	doc := bson.D{
@@ -24,16 +24,16 @@ func TestDeleteOneResult_unmarshalInto(t *testing.T) {
 	bytes, err := bson.Marshal(doc)
 	require.Nil(t, err)
 
-	var result DeleteOneResult
+	var result DeleteResult
 	err = bson.Unmarshal(bytes, &result)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(2))
 }
 
-func TestDeleteOneResult_marshalFrom(t *testing.T) {
+func TestDeleteResult_marshalFrom(t *testing.T) {
 	t.Parallel()
 
-	result := DeleteOneResult{DeletedCount: 1}
+	result := DeleteResult{DeletedCount: 1}
 	bytes, err := bson.Marshal(result)
 	require.Nil(t, err)
 
@@ -61,7 +61,7 @@ func TestUpdateServerResponse_unmarshalInto(t *testing.T) {
 	bytes, err := bson.Marshal(doc)
 	require.Nil(t, err)
 
-	var result updateOneServerResponse
+	var result updateServerResponse
 	err = bson.Unmarshal(bytes, &result)
 	require.Nil(t, err)
 	require.Equal(t, result.N, int64(1))
@@ -73,7 +73,7 @@ func TestUpdateServerResponse_unmarshalInto(t *testing.T) {
 func TestUpdateServerResponse_marshalFrom(t *testing.T) {
 	t.Parallel()
 
-	result := updateOneServerResponse{
+	result := updateServerResponse{
 		N:         1,
 		NModified: 2,
 		Upserted:  []docID{{ID: 3}},
@@ -113,7 +113,7 @@ func TestUpdateOneResult_unmarshalInto(t *testing.T) {
 	bytes, err := bson.Marshal(doc)
 	require.Nil(t, err)
 
-	var result UpdateOneResult
+	var result UpdateResult
 	err = bson.Unmarshal(bytes, &result)
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(1))

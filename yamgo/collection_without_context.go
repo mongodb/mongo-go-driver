@@ -24,6 +24,15 @@ func (coll *Collection) InsertOne(document interface{},
 	return coll.InsertOneContext(context.Background(), document, options...)
 }
 
+// InsertMany inserts the provided documents, adding an _id to any document without one. It
+// uses a default context of context.Background.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) InsertMany(documents []interface{},
+	options ...options.InsertOption) (*InsertManyResult, error) {
+	return coll.InsertManyContext(context.Background(), documents, options...)
+}
+
 // DeleteOne deletes a single document from the collection with a default context of
 // context.Background.
 //
@@ -31,9 +40,21 @@ func (coll *Collection) InsertOne(document interface{},
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) DeleteOne(filter interface{},
-	options ...options.DeleteOption) (*DeleteOneResult, error) {
+	options ...options.DeleteOption) (*DeleteResult, error) {
 
 	return coll.DeleteOneContext(context.Background(), filter, options...)
+}
+
+// DeleteMany deletes multiple single documents from the collection with a default context of
+// context.Background.
+//
+// See DeleteManyContext for details and options.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) DeleteMany(filter interface{},
+	options ...options.DeleteOption) (*DeleteResult, error) {
+
+	return coll.DeleteManyContext(context.Background(), filter, options...)
 }
 
 // UpdateOne updates a single document in the collection with a default context of
@@ -43,9 +64,21 @@ func (coll *Collection) DeleteOne(filter interface{},
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) UpdateOne(filter interface{}, update interface{},
-	options ...options.UpdateOption) (*UpdateOneResult, error) {
+	options ...options.UpdateOption) (*UpdateResult, error) {
 
 	return coll.UpdateOneContext(context.Background(), filter, update, options...)
+}
+
+// UpdateMany updates multiple documents in the collection with a default context of
+// context.Background.
+//
+// See UpdateManyContext for details and options.
+//
+// TODO GODRIVER-76: Document which types for interface{} are valid.
+func (coll *Collection) UpdateMany(filter interface{}, update interface{},
+	options ...options.UpdateOption) (*UpdateResult, error) {
+
+	return coll.UpdateManyContext(context.Background(), filter, update, options...)
 }
 
 // ReplaceOne replaces a single document in the collection with a default context of
@@ -55,7 +88,7 @@ func (coll *Collection) UpdateOne(filter interface{}, update interface{},
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) ReplaceOne(filter interface{}, replacement interface{},
-	options ...options.UpdateOption) (*UpdateOneResult, error) {
+	options ...options.UpdateOption) (*UpdateResult, error) {
 
 	return coll.ReplaceOneContext(context.Background(), filter, replacement, options...)
 }

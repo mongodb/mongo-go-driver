@@ -7,8 +7,30 @@
 package yamgo
 
 import (
+	"errors"
+
 	"github.com/10gen/mongo-go-driver/bson"
 )
+
+func ensureDollarKey(update interface{}) error {
+	bytes, err := bson.Marshal(update)
+	if err != nil {
+		return err
+	}
+
+	// XXX: Roundtrip is inefficient.
+	var doc bson.D
+	err = bson.Unmarshal(bytes, &doc)
+	if err != nil {
+		return err
+	}
+
+	if len(doc) > 0 && doc[0].Name[0] != '$' {
+		return errors.New("update document must contain key beginning with '$")
+	}
+
+	return nil
+}
 
 func getOrInsertID(document interface{}) (bson.M, interface{}, error) {
 	bytes, err := bson.Marshal(document)
