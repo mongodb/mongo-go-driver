@@ -42,22 +42,6 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(`","subType":"`)
 		buff.WriteString(hex.EncodeToString([]byte{x.Kind}))
 		buff.WriteString(`"}}`)
-
-
-	//
-	//expected: "{\"x\":{\"$binary\":{\"base64\":\"c//SZESzTGmQ6OfR38A11A==\",\"subType\":\"03\"}}}"
-	//received: "{\"x\":{\"$binary\":\"c//SZESzTGmQ6OfR38A11A==\",\"$type\":\"03\"}}"
-
-	//expected: "{\"x\":{\"$binary\":{\"base64\":\"c//SZESzTGmQ6OfR38A11A==\",\"subType\":\"04\"}}}"
-	//received: "{\"x\":{\"$binary\":{\"base64\":\"c//SZESzTGmQ6OfR38A11A==\",\"subtype\":\"04\"}}}"
-	//
-	//expected: "{\"x\":{\"$binary\":{\"base64\":\"c//SZESzTGmQ6OfR38A11A==\",\"subType\":\"05\"}}}"
-	//received: "{\"x\":{\"$binary\":{\"base64\":\"c//SZESzTGmQ6OfR38A11A==\",\"subtype\":\"05\"}}}"
-	//
-	//
-	//expected: "{\"x\":{\"$binary\":{\"base64\":\"//8=\",\"subType\":\"00\"}}}"
-	//received: "{\"x\":{\"$binary\":\"//8=\",\"$type\":\"00\"}}"
-
 	case []byte:
 		buff.WriteString(`{"$binary":{"base64":"`)
 		buff.WriteString(base64.StdEncoding.EncodeToString(x))

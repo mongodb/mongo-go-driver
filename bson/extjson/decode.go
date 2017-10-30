@@ -354,7 +354,7 @@ func decodeDate(v map[string]interface{}) (time.Time, error) {
 		if err != nil {
 			return time.Time{}, err
 		}
-		return time.Unix(n/int64(1e3), (n%int64(1e3))*int64(1e6)), err
+		return time.Unix(n/int64(1e3), (n%int64(1e3))*int64(1e6)).UTC(), err
 	}
 	return time.Time{}, errors.New("expected $numberLong field in $date")
 }

@@ -65,9 +65,9 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 
-		if (entry.Name() != "binary.json") {
-			continue
-		}
+		//if (entry.Name() != "double.json") {
+		//	continue
+		//}
 
 
 		files = append(files, entry.Name())
@@ -98,32 +98,58 @@ func runTest(t *testing.T, filename string) {
 		for _, validCase := range test.Valid {
 			//t.Log("\n\nDescription", validCase.Description)
 
-			cEJ := validCase.Canonical_Extjson
+			//cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
 
-			t.Run(testName+"validateCanonicalBSON", func(t *testing.T) {
-				validateCanonicalBSON(t, cB, cEJ)
-			})
+			//t.Run(testName+"validateCanonicalBSON", func(t *testing.T) {
+				//validateCanonicalBSON(t, cB, cEJ)
+			//})
 
 
 			rEJ := validCase.Relaxed_Extjson
-			if (validCase.Relaxed_Extjson != "") {
-				t.Run(testName+"validateBsonToRelaxedJson", func(t *testing.T) {
-					validateBsonToRelaxedJSON(t, cB, rEJ)
-				})
-				t.Run(testName+"validateREJ", func(t *testing.T) {
-					validateRelaxedExtendedJSON(t, rEJ)
-				})
+			if rEJ != "" {
+				//t.Run(testName+"validateBsonToRelaxedJSON", func(t *testing.T) {
+					//validateBsonToRelaxedJSON(t, cB, rEJ)
+				//})
+				//t.Run(testName+"validateRelaxedExtendedJSON", func(t *testing.T) {
+				//	validateRelaxedExtendedJSON(t, rEJ)
+				//})
 			}
-			t.Run(testName+"validateCanonicalExtendedJSON", func(t *testing.T) {
-				validateCanonicalExtendedJSON(t, cB, cEJ)
-			})
+
+			//dB := validCase.Degenerate_Bson
+			//if dB != "" {
+			//	t.Run(testName+"validateDegenerateBSON", func(t *testing.T) {
+			//		validateDegenerateBSON(t, dB, cB)
+			//	})
+			//}
+
+			//t.Run(testName+"validateCanonicalExtendedJSON", func(t *testing.T) {
+				//validateCanonicalExtendedJSON(t, cB, cEJ)
+			//})
 		}
-
-
 	})
+
+	//now := time.Now().UTC()
+	//layout := "2006-01-02T03:04:05.000Z07:00"
+	//t.Log(now.Format(layout))
 }
 
+
+//for dB input (if it exists):
+//native_to_bson( bson_to_native(dB) ) = cB
+func validateDegenerateBSON(t *testing.T, dB string, cB string) {
+	// Convert DB to native then back to bson
+	decoded, err := hex.DecodeString(dB)
+	require.NoError(t, err)
+
+	nativeRepr := bson.M{}
+	err = bson.Unmarshal([]byte(decoded), nativeRepr)
+	require.NoError(t, err)
+
+	dBByteRepr, err := bson.Marshal(nativeRepr);
+	roundTripDB := hex.EncodeToString(dBByteRepr);
+	require.Equal(t, cB, strings.ToUpper(roundTripDB))
+}
 
 //for cB input:
 //native_to_bson( bson_to_native(cB) ) = cB
@@ -160,6 +186,8 @@ func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
 	nativeRepr := bson.M{}
 	error := bson.Unmarshal([]byte(decoded), nativeRepr)
 	require.NoError(t, error)
+
+
 
 	roundTripREJ, err := json.Marshal(extjson.NewValueOf(nativeRepr))
 	require.NoError(t, err)
