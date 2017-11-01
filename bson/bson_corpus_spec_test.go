@@ -95,41 +95,47 @@ func runTest(t *testing.T, filename string) {
 
 		//printTestCaseData(t, test)
 
-		for _, validCase := range test.Valid {
-			lossy := validCase.Lossy
-			cEJ := validCase.Canonical_Extjson
-			cB := validCase.Canonical_Bson
+		//for _, validCase := range test.Valid {
+		//	lossy := validCase.Lossy
+		//	cEJ := validCase.Canonical_Extjson
+		//	cB := validCase.Canonical_Bson
+		//
+		//	t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
+		//		validateCanonicalBSON(t, cB, cEJ)
+		//	})
+		//	t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
+		//		validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
+		//	})
+		//
+		//	rEJ := validCase.Relaxed_Extjson
+		//	if rEJ != "" {
+		//		t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
+		//			validateBsonToRelaxedJSON(t, cB, rEJ)
+		//		})
+		//		t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
+		//			validateRelaxedExtendedJSON(t, rEJ)
+		//		})
+		//	}
+		//
+		//	dB := validCase.Degenerate_Bson
+		//	if dB != "" {
+		//		t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
+		//			validateDegenerateBSON(t, dB, cB)
+		//		})
+		//	}
+		//
+		//	dEJ := validCase.Degenerate_Extjson
+		//	if dEJ != "" {
+		//		t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
+		//			validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
+		//		})
+		//	}
+		//}
 
-			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
-				validateCanonicalBSON(t, cB, cEJ)
+		for _, decodeError := range test.DecodeErrors {
+			t.Run(testName+"decodeError:"+decodeError.Description, func (t *testing.T) {
+				testDecodeError(t, decodeError.Bson)
 			})
-			t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
-				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
-			})
-
-			rEJ := validCase.Relaxed_Extjson
-			if rEJ != "" {
-				t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
-					validateBsonToRelaxedJSON(t, cB, rEJ)
-				})
-				t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
-					validateRelaxedExtendedJSON(t, rEJ)
-				})
-			}
-
-			dB := validCase.Degenerate_Bson
-			if dB != "" {
-				t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
-					validateDegenerateBSON(t, dB, cB)
-				})
-			}
-
-			dEJ := validCase.Degenerate_Extjson
-			if dEJ != "" {
-				t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
-					validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
-				})
-			}
 		}
 	})
 
@@ -278,3 +284,17 @@ func compressJSON(js string) string {
 	}
 	return buffer.String()
 }
+
+
+// Currently have 2 cases failing
+//--- FAIL: TestBSONSpec/code;/code;decodeError:invalid_UTF-8 (0.00s)
+//--- FAIL: TestBSONSpec/string;/string;decodeError:invalid_UTF-8 (0.00s)
+func testDecodeError(t *testing.T, b string) {
+	decoded, err := hex.DecodeString(b)
+	require.NoError(t, err)
+
+	nativeRepr := bson.M{}
+	err = bson.Unmarshal([]byte(decoded), nativeRepr)
+	require.Error(t, err)
+}
+
