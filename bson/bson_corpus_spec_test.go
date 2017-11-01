@@ -132,9 +132,15 @@ func runTest(t *testing.T, filename string) {
 		//	}
 		//}
 
-		for _, decodeError := range test.DecodeErrors {
-			t.Run(testName+"decodeError:"+decodeError.Description, func (t *testing.T) {
-				testDecodeError(t, decodeError.Bson)
+		//for _, decodeTest := range test.DecodeErrors {
+		//	t.Run(testName+"decodeTest:"+decodeTest.Description, func (t *testing.T) {
+		//		testDecodeError(t, decodeTest.Bson)
+		//	})
+		//}
+
+		for _, parseTest := range test.ParseErrors {
+			t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
+				testParseError(t, parseTest.String)
 			})
 		}
 	})
@@ -298,3 +304,8 @@ func testDecodeError(t *testing.T, b string) {
 	require.Error(t, err)
 }
 
+func testParseError(t *testing.T, s string) {
+	var nativeReprBsonD bson.D
+	d := bson.Unmarshal([]byte(s), &nativeReprBsonD)
+	require.Error(t, d)
+}
