@@ -96,36 +96,40 @@ func runTest(t *testing.T, filename string) {
 		//printTestCaseData(t, test)
 
 		for _, validCase := range test.Valid {
-			//t.Log("\n\nDescription", validCase.Description)
-
-			//cEJ := validCase.Canonical_Extjson
+			lossy := validCase.Lossy
+			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
 
-			//t.Run(testName+"validateCanonicalBSON", func(t *testing.T) {
-				//validateCanonicalBSON(t, cB, cEJ)
-			//})
-
+			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
+				validateCanonicalBSON(t, cB, cEJ)
+			})
+			t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
+				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
+			})
 
 			rEJ := validCase.Relaxed_Extjson
 			if rEJ != "" {
-				//t.Run(testName+"validateBsonToRelaxedJSON", func(t *testing.T) {
-					//validateBsonToRelaxedJSON(t, cB, rEJ)
-				//})
-				//t.Run(testName+"validateRelaxedExtendedJSON", func(t *testing.T) {
-				//	validateRelaxedExtendedJSON(t, rEJ)
-				//})
+				t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
+					validateBsonToRelaxedJSON(t, cB, rEJ)
+				})
+				t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
+					validateRelaxedExtendedJSON(t, rEJ)
+				})
 			}
 
-			//dB := validCase.Degenerate_Bson
-			//if dB != "" {
-			//	t.Run(testName+"validateDegenerateBSON", func(t *testing.T) {
-			//		validateDegenerateBSON(t, dB, cB)
-			//	})
-			//}
+			dB := validCase.Degenerate_Bson
+			if dB != "" {
+				t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
+					validateDegenerateBSON(t, dB, cB)
+				})
+			}
 
-			//t.Run(testName+"validateCanonicalExtendedJSON", func(t *testing.T) {
-				//validateCanonicalExtendedJSON(t, cB, cEJ)
-			//})
+			dEJ := validCase.Degenerate_Extjson
+			if dEJ != "" {
+				t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
+					validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
+				})
+			}
 		}
 	})
 
@@ -134,28 +138,9 @@ func runTest(t *testing.T, filename string) {
 	//t.Log(now.Format(layout))
 }
 
-
-//for dB input (if it exists):
-//native_to_bson( bson_to_native(dB) ) = cB
-func validateDegenerateBSON(t *testing.T, dB string, cB string) {
-	// Convert DB to native then back to bson
-	decoded, err := hex.DecodeString(dB)
-	require.NoError(t, err)
-
-	nativeRepr := bson.M{}
-	err = bson.Unmarshal([]byte(decoded), nativeRepr)
-	require.NoError(t, err)
-
-	dBByteRepr, err := bson.Marshal(nativeRepr);
-	roundTripDB := hex.EncodeToString(dBByteRepr);
-	require.Equal(t, cB, strings.ToUpper(roundTripDB))
-}
-
 //for cB input:
-//native_to_bson( bson_to_native(cB) ) = cB
-//native_to_canonical_extended_json( bson_to_native(cB) ) = cEJ
 func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
-	// Convert BSON to native then back to bson
+	//native_to_bson( bson_to_native(cB) ) = cB
 	decoded, err := hex.DecodeString(cB)
 	require.NoError(t, err)
 
@@ -167,7 +152,7 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	roundTripCB := hex.EncodeToString(roundTripCBByteRepr);
 	require.Equal(t, cB, strings.ToUpper(roundTripCB))
 
-	// Convert native to extended JSON
+	//native_to_canonical_extended_json( bson_to_native(cB) ) = cEJ
 	var nativeReprBsonD bson.D // Need this new bson.D object as encodeBsonDtoJson wants a Bson.D
 	err = bson.Unmarshal([]byte(decoded), &nativeReprBsonD)
 	require.NoError(t, err)
@@ -187,29 +172,32 @@ func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
 	error := bson.Unmarshal([]byte(decoded), nativeRepr)
 	require.NoError(t, error)
 
-
-
 	roundTripREJ, err := json.Marshal(extjson.NewValueOf(nativeRepr))
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
 }
 
+func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
+	//native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
+	nativeRepr := bson.M{}
+	require.NoError(t, json.Unmarshal([]byte(rEJ), &nativeRepr))
+	roundTripREJ, err := json.Marshal(nativeRepr)
+	require.NoError(t, err)
+	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
+}
+
 //for cEJ input:
-//1. native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
 //2. native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
-func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string) {
+func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bool) {
+	////1. native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
 	marshalDDoc := extjson.MarshalD{}
 	json.Unmarshal([]byte(cEJ), &marshalDDoc)
-
 	bsonDDoc := bson.D(marshalDDoc)
-	bsonHexDecoded, err := bson.Marshal(bsonDDoc);
+	bsonHexDecoded, err := bson.Marshal(bsonDDoc)
 	require.NoError(t, err)
 
 	roundTripCB := hex.EncodeToString(bsonHexDecoded)
 	require.Equal(t, cB, strings.ToUpper(roundTripCB))
-
-	// Next do cEJ => native => cEJ
-	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
 
 	////resCEJ := fmt.Sprintf("%+q",  string(roundTripCEJByteRepr))
 	////t.Log(resCEJ)
@@ -235,18 +223,51 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string) {
 	//
 	//
 
+	//2. cEJ => native => cEJ
+	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(cEJ), string(roundTripCEJByteRepr))
 }
 
-//for rEJ input (if it exists):
-//native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
-func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
-	nativeRepr := bson.M{}
-	require.NoError(t, json.Unmarshal([]byte(rEJ), &nativeRepr))
-	roundTripREJ, err := json.Marshal(nativeRepr)
+
+//for dB input (if it exists):
+func validateDegenerateBSON(t *testing.T, dB string, cB string) {
+	//native_to_bson( bson_to_native(dB) ) = cB
+	decoded, err := hex.DecodeString(dB)
 	require.NoError(t, err)
-	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
+
+	nativeRepr := bson.M{}
+	err = bson.Unmarshal([]byte(decoded), nativeRepr)
+	require.NoError(t, err)
+
+	dBByteRepr, err := bson.Marshal(nativeRepr);
+	require.NoError(t, err)
+	roundTripDB := hex.EncodeToString(dBByteRepr);
+	require.Equal(t, cB, strings.ToUpper(roundTripDB))
+}
+
+//for dEJ input (if it exists):
+func validateDegenerateExtendedJSON(t *testing.T, dEJ string, cEJ string, cB string, lossy bool) {
+	//native_to_canonical_extended_json( json_to_native(dEJ) ) = cEJ
+	nativeRepr := bson.M{}
+	require.NoError(t, json.Unmarshal([]byte(dEJ), &nativeRepr))
+
+	//native_to_canonical_extended_json( bson_to_native(cB) ) = cEJ
+	var nativeReprBsonD bson.D // Need this new bson.D object as encodeBsonDtoJson wants a Bson.D
+	err := bson.Unmarshal([]byte(dEJ), &nativeReprBsonD)
+	require.NoError(t, err)
+
+	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
+	require.NoError(t, err)
+	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
+
+	//native_to_bson( json_to_native(dEJ) ) = cB (unless lossy)
+	if !lossy {
+		dBByteRepr, err := bson.Marshal(nativeRepr);
+		require.NoError(t, err)
+		roundTripDB := hex.EncodeToString(dBByteRepr);
+		require.Equal(t, cB, strings.ToUpper(roundTripDB))
+	}
 }
 
 func compressJSON(js string) string {
@@ -256,21 +277,4 @@ func compressJSON(js string) string {
 		fmt.Println(err)
 	}
 	return buffer.String()
-}
-
-
-func debuglog(t *testing.T, desc string, ob interface{}) {
-	if (DEBUG) {
-		t.Log(desc, ob)
-	}
-}
-
-func printTestCaseData(t *testing.T, test testCase) {
-	t.Log(test.Description)
-	t.Log(test.Bson_Type)
-	t.Log(test.Test_Key)
-	t.Log(test.Valid)
-	t.Log(test.DecodeErrors)
-	t.Log(test.ParseErrors)
-	t.Log(test.Deprecated)
 }
