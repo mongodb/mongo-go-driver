@@ -79,6 +79,10 @@ update-server-discovery-and-monitoring-tests:
 update-server-selection-tests:
 	etc/update-spec-tests.sh server-selection
 
+.PHONY: update-notices
+update-notices:
+	etc/generate-notices.pl > THIRD-PARTY-NOTICES
+
 .PHONY: vet
 vet:
 	go tool vet -composites=false -structtags=false -unusedstringmethods="Error" $(PKGS)
