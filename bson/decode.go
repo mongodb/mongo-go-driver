@@ -500,7 +500,7 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 
 	start := d.i
 
-	if kind == 0x03 {
+	if kind == 0x03 { // Document
 		// Delegate unmarshaling of documents.
 		outt := out.Type()
 		outk := out.Kind()

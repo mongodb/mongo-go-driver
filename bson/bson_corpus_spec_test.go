@@ -65,9 +65,9 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 
-		//if (entry.Name() != "double.json") {
-		//	continue
-		//}
+		if (entry.Name() != "double.json") {
+			continue
+		}
 
 
 		files = append(files, entry.Name())
@@ -95,54 +95,54 @@ func runTest(t *testing.T, filename string) {
 
 		//printTestCaseData(t, test)
 
-		//for _, validCase := range test.Valid {
-		//	lossy := validCase.Lossy
-		//	cEJ := validCase.Canonical_Extjson
-		//	cB := validCase.Canonical_Bson
-		//
-		//	t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
-		//		validateCanonicalBSON(t, cB, cEJ)
-		//	})
-		//	t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
-		//		validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
-		//	})
-		//
-		//	rEJ := validCase.Relaxed_Extjson
-		//	if rEJ != "" {
-		//		t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
-		//			validateBsonToRelaxedJSON(t, cB, rEJ)
-		//		})
-		//		t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
-		//			validateRelaxedExtendedJSON(t, rEJ)
-		//		})
-		//	}
-		//
-		//	dB := validCase.Degenerate_Bson
-		//	if dB != "" {
-		//		t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
-		//			validateDegenerateBSON(t, dB, cB)
-		//		})
-		//	}
-		//
-		//	dEJ := validCase.Degenerate_Extjson
-		//	if dEJ != "" {
-		//		t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
-		//			validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
-		//		})
-		//	}
-		//}
+		for _, validCase := range test.Valid {
+			//lossy := validCase.Lossy
+			cEJ := validCase.Canonical_Extjson
+			cB := validCase.Canonical_Bson
 
+			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
+				validateCanonicalBSON(t, cB, cEJ)
+			})
+			//t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
+			//	validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
+			//})
+			//
+			//rEJ := validCase.Relaxed_Extjson
+			//if rEJ != "" {
+			//	t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
+			//		validateBsonToRelaxedJSON(t, cB, rEJ)
+			//	})
+			//	t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
+			//		validateRelaxedExtendedJSON(t, rEJ)
+			//	})
+			//}
+			//
+			//dB := validCase.Degenerate_Bson
+			//if dB != "" {
+			//	t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
+			//		validateDegenerateBSON(t, dB, cB)
+			//	})
+			//}
+
+			//dEJ := validCase.Degenerate_Extjson
+			//if dEJ != "" {
+			//	t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
+			//		validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
+			//	})
+			//}
+		}
+		//
 		//for _, decodeTest := range test.DecodeErrors {
 		//	t.Run(testName+"decodeTest:"+decodeTest.Description, func (t *testing.T) {
 		//		testDecodeError(t, decodeTest.Bson)
 		//	})
 		//}
-
-		for _, parseTest := range test.ParseErrors {
-			t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
-				testParseError(t, parseTest.String)
-			})
-		}
+		//
+		//for _, parseTest := range test.ParseErrors {
+		//	t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
+		//		testParseError(t, parseTest.String)
+		//	})
+		//}
 	})
 
 	//now := time.Now().UTC()
@@ -169,7 +169,16 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	err = bson.Unmarshal([]byte(decoded), &nativeReprBsonD)
 	require.NoError(t, err)
 
+	//fmt.Printf("%.1f", 1.0)
+
 	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
+	t.Log(roundTripCEJ)
+
+	//for _, b := range roundTripCEJ {
+	//	//t.Log(b)
+	//	t.Log(string(b))
+	//}
+
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
 }
@@ -264,7 +273,6 @@ func validateDegenerateExtendedJSON(t *testing.T, dEJ string, cEJ string, cB str
 	nativeRepr := bson.M{}
 	require.NoError(t, json.Unmarshal([]byte(dEJ), &nativeRepr))
 
-	//native_to_canonical_extended_json( bson_to_native(cB) ) = cEJ
 	var nativeReprBsonD bson.D // Need this new bson.D object as encodeBsonDtoJson wants a Bson.D
 	err := bson.Unmarshal([]byte(dEJ), &nativeReprBsonD)
 	require.NoError(t, err)
