@@ -65,7 +65,7 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 
-		if (entry.Name() != "binary.json") {
+		if (entry.Name() != "double.json") {
 			continue
 		}
 
@@ -97,7 +97,7 @@ func runTest(t *testing.T, filename string) {
 			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
 
-
+			//
 			//if (validCase.Description != "subtype 0x02") {
 			//	continue
 			//}

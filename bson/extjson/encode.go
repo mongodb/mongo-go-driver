@@ -31,19 +31,43 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		} else if math.IsInf(x, -1) {
 			v = decValueNegInfinity
 		} else {
-			minPresicion := strconv.FormatFloat(x, 'f', -1, 64) // TODO:STEVEN This needs to be fixed to allow x.0
-			oneDecimal := strconv.FormatFloat(x, 'f', 1, 64)
 
-			minF, _ := strconv.ParseFloat(minPresicion, 64)
-			oneF, _ := strconv.ParseFloat(oneDecimal, 64)
+			fmt.Println(x)
 
-			if (math.Float64bits(minF) == math.Float64bits(oneF)) {
-				// Same result, then use the one with one decimal point (1.0)
-				v = oneDecimal
-			} else {
-				v = minPresicion
+			//fmt.Println(strconv.FormatFloat(x, 'e', -1, 64))
+			//fmt.Println(strconv.FormatFloat(x, 'E', -1, 64))
+			//fmt.Println(strconv.FormatFloat(x, 'f', -1, 64))
+			//fmt.Println(strconv.FormatFloat(x, 'F', -1, 64))
+			//fmt.Println(strconv.FormatFloat(x, 'g', -1, 64))
+			//fmt.Println(strconv.FormatFloat(x, 'G', -1, 64))
+
+
+			withEIfNecessary := strconv.FormatFloat(x, 'G', -1, 64)
+			hasE := false
+			for _, ch := range withEIfNecessary {
+				if string(ch) == "E" {
+					hasE = true
+					break
+				}
 			}
+			fmt.Println(hasE)
 
+			if (hasE) {
+				v = withEIfNecessary
+			} else {
+				minPresicion := strconv.FormatFloat(x, 'f', -1, 64) // TODO:STEVEN This needs to be fixed to allow x.0
+				oneDecimal := strconv.FormatFloat(x, 'f', 1, 64)
+
+				minF, _ := strconv.ParseFloat(minPresicion, 64)
+				oneF, _ := strconv.ParseFloat(oneDecimal, 64)
+
+				if (math.Float64bits(minF) == math.Float64bits(oneF)) {
+					// Same result, then use the one with one decimal point (1.0)
+					v = oneDecimal
+				} else {
+					v = minPresicion
+				}
+			}
 		}
 		buff.WriteString(`{"$numberDouble":"`)
 		buff.WriteString(v)
