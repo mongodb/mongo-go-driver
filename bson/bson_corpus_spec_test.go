@@ -97,6 +97,12 @@ func runTest(t *testing.T, filename string) {
 			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
 
+
+			//if (validCase.Description != "subtype 0x02") {
+			//	continue
+			//}
+
+
 			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
 				validateCanonicalBSON(t, cB, cEJ)
 			})

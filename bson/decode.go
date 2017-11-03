@@ -558,11 +558,13 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 		}
 	case 0x05: // Binary
 		b := d.readBinary()
-		if b.Kind == 0x00 || b.Kind == 0x02 {
-			in = b.Data
-		} else {
-			in = b
-		}
+		// TODO:Steven - did not need this if statement
+		//if b.Kind == 0x00 || b.Kind == 0x02 {
+		//	in = b
+		//} else {
+		//	in = b
+		//}
+		in = b
 	case 0x06: // Undefined (obsolete, but still seen in the wild)
 		in = Undefined
 	case 0x07: // ObjectId
