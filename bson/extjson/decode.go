@@ -208,6 +208,68 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			default:
 				return nil, errors.New("expected $dbPointer field to have document value")
 			}
+
+
+		// TODO Steven: Clean up
+		case "$binary":
+			binary := bson.Binary{}
+			// binary.Kind => subType field
+			// binary.Data => whatever goes in base64
+
+			value, ok := doc["$binary"]
+			if !ok {
+				return nil, errors.New("Not ok, could not parse")
+			}
+			valueBsonD := value.(bson.D)
+
+			if len(valueBsonD) != 2 {
+				return nil, errors.New("Binary BsonD not of valid length")
+			}
+
+			for _, doc := range valueBsonD {
+				if doc.Name == "subType" {
+					kind, _ := hex.DecodeString(doc.Value.(string))
+					binary.Kind = kind[0]
+				} else if doc.Name == "base64" {
+					bytes, _ := base64.StdEncoding.DecodeString(doc.Value.(string))
+					binary.Data = bytes
+				}
+			}
+			return binary, nil
+
+			//if value, ok := doc["$binary"]; ok {
+			//	binary := bson.Binary{}
+			//	v, ok := value.(string)
+			//	if !ok {
+			//		return nil, errors.New("expected $binary field to have string value")
+			//	}
+			//	bytes, err := base64.StdEncoding.DecodeString(v)
+			//	if err != nil {
+			//		return nil, err
+			//	}
+			//	binary.Data = bytes
+			//
+			//	if value, ok = doc["$type"]; ok {
+			//		v, ok := value.(string)
+			//		if !ok {
+			//			return nil, errors.New("expected $type field to have string value")
+			//		}
+			//		kind, err := hex.DecodeString(v)
+			//		if err != nil {
+			//			return nil, err
+			//		}
+			//		if len(kind) != 1 {
+			//			return nil, errors.New("expected single byte (as hexadecimal string) for $type field")
+			//		}
+			//		binary.Kind = kind[0]
+			//		return binary, nil
+			//	}
+			//	return nil, errors.New("expected $type field with $binary field")
+			//}
+
+			//
+
+
 		case "$symbol":
 			v, ok := value.(string)
 			if !ok {
@@ -274,52 +336,26 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			return nil, errors.New("expected $options field with $regex field")
 		}
 
-		if value, ok := doc["$binary"]; ok {
-			binary := bson.Binary{}
-			v, ok := value.(string)
-			if !ok {
-				return nil, errors.New("expected $binary field to have string value")
-			}
-			bytes, err := base64.StdEncoding.DecodeString(v)
-			if err != nil {
-				return nil, err
-			}
-			binary.Data = bytes
 
-			if value, ok = doc["$type"]; ok {
-				v, ok := value.(string)
-				if !ok {
-					return nil, errors.New("expected $type field to have string value")
-				}
-				kind, err := hex.DecodeString(v)
-				if err != nil {
-					return nil, err
-				}
-				if len(kind) != 1 {
-					return nil, errors.New("expected single byte (as hexadecimal string) for $type field")
-				}
-				binary.Kind = kind[0]
-				return binary, nil
-			}
-			return nil, errors.New("expected $type field with $binary field")
-		}
-
-		if value, ok := doc["$ref"]; ok {
-			if _, ok = value.(string); !ok {
-				return nil, errors.New("expected string for $ref field")
-			}
-			if value, ok = doc["$id"]; ok {
-				switch v := value.(type) {
-				case map[string]interface{}, bson.D, bson.M, MarshalD:
-					if _, err := parseSpecialKeys(v); err != nil {
-						return nil, fmt.Errorf("error parsing $id field: %v", err)
-					}
-				}
-
-				// We do not care for dbRef as a typed object as it's not real BSON
-				return special, nil
-			}
-		}
+		//
+		// No longer need this as DBRefs are obsolete
+		//
+		//if value, ok := doc["$ref"]; ok {
+		//	if _, ok = value.(string); !ok {
+		//		return nil, errors.New("expected string for $ref field")
+		//	}
+		//	if value, ok = doc["$id"]; ok {
+		//		switch v := value.(type) {
+		//		case map[string]interface{}, bson.D, bson.M, MarshalD:
+		//			if _, err := parseSpecialKeys(v); err != nil {
+		//				return nil, fmt.Errorf("error parsing $id field: %v", err)
+		//			}
+		//		}
+		//
+		//		// We do not care for dbRef as a typed object as it's not real BSON
+		//		return special, nil
+		//	}
+		//}
 	case 3:
 		if value, ok := doc["$ref"]; ok {
 			if _, ok = value.(string); !ok {

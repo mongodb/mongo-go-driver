@@ -64,10 +64,10 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
 			continue
 		}
-
-		if (entry.Name() != "double.json") {
-			continue
-		}
+		//
+		//if (entry.Name() != "binary.json") {
+		//	continue
+		//}
 
 
 		files = append(files, entry.Name())
@@ -96,53 +96,53 @@ func runTest(t *testing.T, filename string) {
 		//printTestCaseData(t, test)
 
 		for _, validCase := range test.Valid {
-			//lossy := validCase.Lossy
+			lossy := validCase.Lossy
 			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
 
 			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
 				validateCanonicalBSON(t, cB, cEJ)
 			})
-			//t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
-			//	validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
-			//})
-			//
-			//rEJ := validCase.Relaxed_Extjson
-			//if rEJ != "" {
-			//	t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
-			//		validateBsonToRelaxedJSON(t, cB, rEJ)
-			//	})
-			//	t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
-			//		validateRelaxedExtendedJSON(t, rEJ)
-			//	})
-			//}
-			//
-			//dB := validCase.Degenerate_Bson
-			//if dB != "" {
-			//	t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
-			//		validateDegenerateBSON(t, dB, cB)
-			//	})
-			//}
+			t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
+				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
+			})
 
-			//dEJ := validCase.Degenerate_Extjson
-			//if dEJ != "" {
-			//	t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
-			//		validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
-			//	})
-			//}
+			rEJ := validCase.Relaxed_Extjson
+			if rEJ != "" {
+				t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
+					validateBsonToRelaxedJSON(t, cB, rEJ)
+				})
+				t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
+					validateRelaxedExtendedJSON(t, rEJ)
+				})
+			}
+
+			dB := validCase.Degenerate_Bson
+			if dB != "" {
+				t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
+					validateDegenerateBSON(t, dB, cB)
+				})
+			}
+
+			dEJ := validCase.Degenerate_Extjson
+			if dEJ != "" {
+				t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
+					validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
+				})
+			}
 		}
-		//
-		//for _, decodeTest := range test.DecodeErrors {
-		//	t.Run(testName+"decodeTest:"+decodeTest.Description, func (t *testing.T) {
-		//		testDecodeError(t, decodeTest.Bson)
-		//	})
-		//}
-		//
-		//for _, parseTest := range test.ParseErrors {
-		//	t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
-		//		testParseError(t, parseTest.String)
-		//	})
-		//}
+
+		for _, decodeTest := range test.DecodeErrors {
+			t.Run(testName+"decodeTest:"+decodeTest.Description, func (t *testing.T) {
+				testDecodeError(t, decodeTest.Bson)
+			})
+		}
+
+		for _, parseTest := range test.ParseErrors {
+			t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
+				testParseError(t, parseTest.String)
+			})
+		}
 	})
 
 	//now := time.Now().UTC()
@@ -172,7 +172,7 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	//fmt.Printf("%.1f", 1.0)
 
 	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
-	t.Log(roundTripCEJ)
+	//t.Log(roundTripCEJ)
 
 	//for _, b := range roundTripCEJ {
 	//	//t.Log(b)
@@ -220,29 +220,7 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bo
 	roundTripCB := hex.EncodeToString(bsonHexDecoded)
 	require.Equal(t, cB, strings.ToUpper(roundTripCB))
 
-	////resCEJ := fmt.Sprintf("%+q",  string(roundTripCEJByteRepr))
-	////t.Log(resCEJ)
-	//q2 := strconv.QuoteToASCII(string(roundTripCEJByteRepr))
-	//
-	//t.Log(q2)
-	//
-	//t.Log(string(roundTripCEJByteRepr))
-	//
-	//cleanedStr := ""
-	//for _, c := range string(roundTripCEJByteRepr) {
-	//	// Is ascii
-	//	if (c < 127) {
-	//		cleanedStr += string(c)
-	//	} else {
-	//		nonAscStr := string(92) + strconv.QuoteToASCII(string(c))
-	//		t.Log(nonAscStr)
-	//		//cleanedStr +=
-	//		cleanedStr += nonAscStr
-	//	}
-	//}
-	//t.Log(cleanedStr)
-	//
-	//
+
 
 	//2. cEJ => native => cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
