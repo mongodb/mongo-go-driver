@@ -13,8 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"fmt"
-
 	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	"github.com/stretchr/testify/require"
 )
@@ -38,8 +36,6 @@ func runTest(t *testing.T, filename string) {
 	t.Run(testName, func(t *testing.T) {
 		var test testCase
 		require.NoError(t, json.Unmarshal(content, &test))
-		fmt.Println(string(content))
-		fmt.Println(test.AvgRttMs)
 
 		var monitor Monitor
 
