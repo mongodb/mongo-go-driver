@@ -145,7 +145,7 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	require.NoError(t, fake.SetKind(model.Unknown))
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 
 	_, err = s.Connection(context.Background())
 	require.NoError(t, err)

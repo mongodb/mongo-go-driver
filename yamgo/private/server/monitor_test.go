@@ -7,6 +7,7 @@
 package server_test
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -22,22 +23,30 @@ func TestMonitor_Close_should_close_all_update_channels(t *testing.T) {
 
 	updates1, _, _ := fm.Subscribe()
 	done1 := false
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	go func() {
+		defer wg.Done()
 		for range updates1 {
 		}
+
 		done1 = true
 	}()
+
 	updates2, _, _ := fm.Subscribe()
 	done2 := false
 	go func() {
+		defer wg.Done()
 		for range updates2 {
 		}
+
 		done2 = true
 	}()
 
 	fm.Stop()
-
-	time.Sleep(1 * time.Second)
+	wg.Wait()
 
 	require.True(t, done1)
 	require.True(t, done2)

@@ -8,7 +8,7 @@ TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 TEST_TIMEOUT = 20
 
 .PHONY: default
-default: generate test-cover check-fmt vet build-examples lint errcheck
+default: generate test-cover test-race check-fmt vet build-examples lint errcheck
 
 .PHONY: doc
 doc:

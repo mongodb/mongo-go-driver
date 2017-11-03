@@ -42,10 +42,12 @@ type FakeMonitor struct {
 
 // SetKind sets the server kind for the monitor.
 func (m *FakeMonitor) SetKind(kind model.ServerKind) error {
+	m.connLock.Lock()
+	defer m.connLock.Unlock()
+
 	if m.kind != kind {
+
 		m.kind = kind
-		m.connLock.Lock()
-		defer m.connLock.Unlock()
 		if m.conn != nil {
 			return m.conn.Close()
 		}
@@ -55,27 +57,32 @@ func (m *FakeMonitor) SetKind(kind model.ServerKind) error {
 }
 
 func (m *FakeMonitor) open(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+	m.connLock.Lock()
+	defer m.connLock.Unlock()
+
 	if m.kind == model.Unknown {
 		return nil, fmt.Errorf("server type is unknown")
 	}
 
-	m.connLock.Lock()
-	defer m.connLock.Unlock()
 	m.conn = &fakeMonitorConn{}
 	return m.conn, nil
 }
 
 type fakeMonitorConn struct {
+	sync.Mutex
 	Dead      bool
 	responses []msg.Response
 }
 
 func (c *fakeMonitorConn) Alive() bool {
+	c.Lock()
+	defer c.Unlock()
+
 	return !c.Dead
 }
 
 func (c *fakeMonitorConn) Close() error {
-	c.Dead = true
+	c.MarkDead()
 	return nil
 }
 
@@ -84,6 +91,9 @@ func (c *fakeMonitorConn) CloseIgnoreError() {
 }
 
 func (c *fakeMonitorConn) MarkDead() {
+	c.Lock()
+	defer c.Unlock()
+
 	c.Dead = true
 }
 
@@ -92,11 +102,14 @@ func (c *fakeMonitorConn) Model() *model.Conn {
 }
 
 func (c *fakeMonitorConn) Expired() bool {
+	c.Lock()
+	defer c.Unlock()
+
 	return c.Dead
 }
 
 func (c *fakeMonitorConn) Read(_ context.Context, _ int32) (msg.Response, error) {
-	if c.Dead {
+	if c.Expired() {
 		return nil, fmt.Errorf("conn is closed")
 	}
 	r := c.responses[0]
@@ -105,9 +118,10 @@ func (c *fakeMonitorConn) Read(_ context.Context, _ int32) (msg.Response, error)
 }
 
 func (c *fakeMonitorConn) Write(_ context.Context, msgs ...msg.Request) error {
-	if c.Dead {
+	if c.Expired() {
 		return fmt.Errorf("conn is closed")
 	}
+
 	for _, m := range msgs {
 		var reply *msg.Reply
 		switch typedM := m.(type) {
