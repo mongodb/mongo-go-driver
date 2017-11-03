@@ -235,6 +235,7 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 					binary.Data = bytes
 				}
 			}
+			fmt.Println(binary)
 			return binary, nil
 
 			//if value, ok := doc["$binary"]; ok {

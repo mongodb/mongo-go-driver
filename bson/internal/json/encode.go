@@ -546,6 +546,8 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 	if opts.quoted {
 		e.WriteByte('"')
 	}
+
+	// TODO:Steven - Need to modify this to allow 1.0s for double.json relaxed types.
 	e.Write(b)
 	if opts.quoted {
 		e.WriteByte('"')
