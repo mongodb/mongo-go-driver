@@ -121,7 +121,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 		var value interface{}
 		for key, value = range doc {
 		}
-		fmt.Println(key)
 		switch key {
 		case "$date":
 			switch v := value.(type) {
@@ -269,8 +268,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			//}
 
 			//
-
-
 		case "$regularExpression":
 			regex := bson.RegEx{}
 			//Pattern string
@@ -283,8 +280,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			if len(valueBsonD) != 2 {
 				return nil, errors.New("Regex BsonD not of valid length")
 			}
-
-			fmt.Println(valueBsonD)
 			for _, doc := range valueBsonD {
 				if doc.Name == "pattern" {
 					v, ok := doc.Value.(string)
@@ -310,40 +305,34 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 				}
 			}
 			return regex, nil
-
-
-
-
-
-
-
-			if value, ok := doc["$regex"]; ok {
-				regex := bson.RegEx{}
-				v, ok := value.(string)
-				if !ok {
-					return nil, errors.New("expected $regex field to have string value")
-				}
-				regex.Pattern = v
-
-				if value, ok = doc["$options"]; ok {
-					v, ok = value.(string)
-					if !ok {
-						return nil, errors.New("expected $options field to have string value")
-					}
-					regex.Options = v
-
-					// Validate regular expression options
-					for i := range regex.Options {
-						switch o := regex.Options[i]; o {
-						case 'g', 'i', 'm', 's': // allowed
-						default:
-							return nil, fmt.Errorf("invalid regular expression option '%v'", o)
-						}
-					}
-					return regex, nil
-				}
-				return nil, errors.New("expected $options field with $regex field")
-			}
+			//
+			//if value, ok := doc["$regex"]; ok {
+			//	regex := bson.RegEx{}
+			//	v, ok := value.(string)
+			//	if !ok {
+			//		return nil, errors.New("expected $regex field to have string value")
+			//	}
+			//	regex.Pattern = v
+			//
+			//	if value, ok = doc["$options"]; ok {
+			//		v, ok = value.(string)
+			//		if !ok {
+			//			return nil, errors.New("expected $options field to have string value")
+			//		}
+			//		regex.Options = v
+			//
+			//		// Validate regular expression options
+			//		for i := range regex.Options {
+			//			switch o := regex.Options[i]; o {
+			//			case 'g', 'i', 'm', 's': // allowed
+			//			default:
+			//				return nil, fmt.Errorf("invalid regular expression option '%v'", o)
+			//			}
+			//		}
+			//		return regex, nil
+			//	}
+			//	return nil, errors.New("expected $options field with $regex field")
+			//}
 
 
 
@@ -416,7 +405,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 		//}
 
 
-		//
 		// No longer need this as DBRefs are obsolete
 		//
 		//if value, ok := doc["$ref"]; ok {
@@ -436,27 +424,27 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 		//	}
 		//}
 	case 3:
-		if value, ok := doc["$ref"]; ok {
-			if _, ok = value.(string); !ok {
-				return nil, errors.New("expected string for $ref field")
-			}
-			if value, ok = doc["$id"]; ok {
-				switch v := value.(type) {
-				case map[string]interface{}, bson.D, bson.M, MarshalD:
-					if _, err := parseSpecialKeys(v); err != nil {
-						return nil, fmt.Errorf("error parsing $id field: %v", err)
-					}
-				}
-				if value, ok = doc["$db"]; ok {
-					if _, ok = value.(string); !ok {
-						return nil, errors.New("expected string for $db field")
-					}
-
-					// We do not care for dbRef as a typed object as it's not real BSON
-					return special, nil
-				}
-			}
-		}
+		//if value, ok := doc["$ref"]; ok {
+		//	if _, ok = value.(string); !ok {
+		//		return nil, errors.New("expected string for $ref field")
+		//	}
+		//	if value, ok = doc["$id"]; ok {
+		//		switch v := value.(type) {
+		//		case map[string]interface{}, bson.D, bson.M, MarshalD:
+		//			if _, err := parseSpecialKeys(v); err != nil {
+		//				return nil, fmt.Errorf("error parsing $id field: %v", err)
+		//			}
+		//		}
+		//		if value, ok = doc["$db"]; ok {
+		//			if _, ok = value.(string); !ok {
+		//				return nil, errors.New("expected string for $db field")
+		//			}
+		//
+		//			// We do not care for dbRef as a typed object as it's not real BSON
+		//			return special, nil
+		//		}
+		//	}
+		//}
 	}
 
 	// nothing matched, so we recurse deeper

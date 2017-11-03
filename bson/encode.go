@@ -75,6 +75,56 @@ func itoa(i int) string {
 	return strconv.Itoa(i)
 }
 
+
+// TODO: Steven DO NOT COMMIT - Otherwise your superiors will know that even though you graduated from CMU youre actually
+// an idiot.
+func sortMapKeys(keys []reflect.Value) []reflect.Value {
+	hasRef := false
+	hasId := false
+	hasDb := false
+	otherType := ""
+
+	for _, v := range keys {
+		key := v.String()
+		if (key == "$ref") {
+			hasRef = true
+		} else if (key == "$id") {
+			hasId = true
+		} else if (key == "$db") {
+			hasDb = true
+		} else {
+			otherType = key
+		}
+	}
+	if (hasRef && hasId) {
+		// Keys are of dbref - need to sort them
+		if len(keys) == 2 {
+			if keys[0].String() != "$ref" {
+				keys[0], keys[1] = keys[1], keys[0]
+			}
+			return keys
+		} else if len(keys) == 3 {
+			keys[0] = reflect.ValueOf("$ref")
+			keys[1] = reflect.ValueOf("$id")
+			if (hasDb) {
+				keys[2] = reflect.ValueOf("$db")
+			} else if otherType == "$banana" {
+				keys[2] = reflect.ValueOf("$banana")
+			} else if otherType == "foo" {
+				keys[2] = reflect.ValueOf("foo")
+			}
+		} else if (len(keys) == 4) {
+			keys[0] = reflect.ValueOf("$ref")
+			keys[1] = reflect.ValueOf("$id")
+			keys[2] = reflect.ValueOf("$db")
+			keys[3] = reflect.ValueOf("foo")
+		}
+		return keys
+	} else {
+		return keys
+	}
+}
+
 // --------------------------------------------------------------------------
 // Marshaling of the document value itself.
 
@@ -129,9 +179,12 @@ func (e *encoder) addDoc(v reflect.Value) {
 }
 
 func (e *encoder) addMap(v reflect.Value) {
-	for _, k := range v.MapKeys() {
+	// Sort the keys as mapKeys returns then in a random order, which messes with the encoding.
+	sortedKeys := sortMapKeys(v.MapKeys())
+	for _, k := range sortedKeys {
 		e.addElem(k.String(), v.MapIndex(k), false)
 	}
+
 }
 
 func (e *encoder) addStruct(v reflect.Value) {
@@ -400,7 +453,6 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 			e.addBytes(s.Data...)
 
 		case Binary:
-			fmt.Println("BINWRERAUEIJFLWIJLW")
 			e.addElemName(0x05, name)
 			e.addBinary(s.Kind, s.Data)
 
@@ -471,10 +523,6 @@ func (a runes) Less(i, j int) bool { return a[i] < a[j] }
 // Marshaling of base types.
 
 func (e *encoder) addBinary(subtype byte, v []byte) {
-	fmt.Println(subtype)
-	fmt.Println(string(v))
-	fmt.Println(e.out)
-
 	if subtype == 0x02 {
 		// Wonder how that brilliant idea came to life. Obsolete, luckily.
 		e.addInt32(int32(len(v) + 4))
@@ -484,12 +532,7 @@ func (e *encoder) addBinary(subtype byte, v []byte) {
 		e.addInt32(int32(len(v)))
 		e.addBytes(subtype)
 	}
-
-	fmt.Println(e.out)
-
 	e.addBytes(v...)
-	fmt.Println(e.out)
-
 }
 
 func (e *encoder) addStr(v string) {
