@@ -31,17 +31,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		} else if math.IsInf(x, -1) {
 			v = decValueNegInfinity
 		} else {
-
-			fmt.Println(x)
-
-			//fmt.Println(strconv.FormatFloat(x, 'e', -1, 64))
-			//fmt.Println(strconv.FormatFloat(x, 'E', -1, 64))
-			//fmt.Println(strconv.FormatFloat(x, 'f', -1, 64))
-			//fmt.Println(strconv.FormatFloat(x, 'F', -1, 64))
-			//fmt.Println(strconv.FormatFloat(x, 'g', -1, 64))
-			//fmt.Println(strconv.FormatFloat(x, 'G', -1, 64))
-
-
+			//TODO:Steven Clean this up and figure out the 64bit issue
 			withEIfNecessary := strconv.FormatFloat(x, 'G', -1, 64)
 			hasE := false
 			for _, ch := range withEIfNecessary {
@@ -50,8 +40,6 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 					break
 				}
 			}
-			fmt.Println(hasE)
-
 			if (hasE) {
 				v = withEIfNecessary
 			} else {

@@ -202,24 +202,25 @@ func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
 }
 
 //for cEJ input:
-//2. native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
 func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bool) {
 	////1. native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
 	marshalDDoc := extjson.MarshalD{}
 	json.Unmarshal([]byte(cEJ), &marshalDDoc)
 	bsonDDoc := bson.D(marshalDDoc)
-	bsonHexDecoded, err := bson.Marshal(bsonDDoc)
-	require.NoError(t, err)
 
-	roundTripCB := hex.EncodeToString(bsonHexDecoded)
-	require.Equal(t, cB, strings.ToUpper(roundTripCB))
-
-
-
-	//2. cEJ => native => cEJ
+	// native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(cEJ), string(roundTripCEJByteRepr))
+
+	// native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
+	if !lossy {
+		bsonHexDecoded, err := bson.Marshal(bsonDDoc)
+		require.NoError(t, err)
+
+		roundTripCB := hex.EncodeToString(bsonHexDecoded)
+		require.Equal(t, cB, strings.ToUpper(roundTripCB))
+	}
 }
 
 
