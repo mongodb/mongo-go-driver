@@ -121,6 +121,7 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 		var value interface{}
 		for key, value = range doc {
 		}
+		fmt.Println(key)
 		switch key {
 		case "$date":
 			switch v := value.(type) {
@@ -270,6 +271,84 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			//
 
 
+		case "$regularExpression":
+			regex := bson.RegEx{}
+			//Pattern string
+			//Options string
+			value, ok := doc["$regularExpression"]
+			if !ok {
+				return nil, errors.New("Not ok, could not parse regex")
+			}
+			valueBsonD := value.(bson.D)
+			if len(valueBsonD) != 2 {
+				return nil, errors.New("Regex BsonD not of valid length")
+			}
+
+			fmt.Println(valueBsonD)
+			for _, doc := range valueBsonD {
+				if doc.Name == "pattern" {
+					v, ok := doc.Value.(string)
+					if !ok {
+						return nil, errors.New("expected $regex field to have string value")
+					}
+					regex.Pattern = v
+				} else if doc.Name == "options" {
+					v, ok := doc.Value.(string)
+					if !ok {
+						return nil, errors.New("expected $options field to have string value")
+					}
+					regex.Options = v
+
+					// Validate regular expression options
+					for i := range regex.Options {
+						switch o := regex.Options[i]; o {
+						case 'g', 'i', 'm', 's', 'x', 'l', 'u': // allowed
+						default:
+							return nil, fmt.Errorf("invalid regular expression option '%v'", o)
+						}
+					}
+				}
+			}
+			return regex, nil
+
+
+
+
+
+
+
+			if value, ok := doc["$regex"]; ok {
+				regex := bson.RegEx{}
+				v, ok := value.(string)
+				if !ok {
+					return nil, errors.New("expected $regex field to have string value")
+				}
+				regex.Pattern = v
+
+				if value, ok = doc["$options"]; ok {
+					v, ok = value.(string)
+					if !ok {
+						return nil, errors.New("expected $options field to have string value")
+					}
+					regex.Options = v
+
+					// Validate regular expression options
+					for i := range regex.Options {
+						switch o := regex.Options[i]; o {
+						case 'g', 'i', 'm', 's': // allowed
+						default:
+							return nil, fmt.Errorf("invalid regular expression option '%v'", o)
+						}
+					}
+					return regex, nil
+				}
+				return nil, errors.New("expected $options field with $regex field")
+			}
+
+
+
+
+
 		case "$symbol":
 			v, ok := value.(string)
 			if !ok {
@@ -308,33 +387,33 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			return nil, errors.New("expected $scope field with $code field")
 		}
 
-		if value, ok := doc["$regex"]; ok {
-			regex := bson.RegEx{}
-			v, ok := value.(string)
-			if !ok {
-				return nil, errors.New("expected $regex field to have string value")
-			}
-			regex.Pattern = v
-
-			if value, ok = doc["$options"]; ok {
-				v, ok = value.(string)
-				if !ok {
-					return nil, errors.New("expected $options field to have string value")
-				}
-				regex.Options = v
-
-				// Validate regular expression options
-				for i := range regex.Options {
-					switch o := regex.Options[i]; o {
-					case 'g', 'i', 'm', 's': // allowed
-					default:
-						return nil, fmt.Errorf("invalid regular expression option '%v'", o)
-					}
-				}
-				return regex, nil
-			}
-			return nil, errors.New("expected $options field with $regex field")
-		}
+		//if value, ok := doc["$regex"]; ok {
+		//	regex := bson.RegEx{}
+		//	v, ok := value.(string)
+		//	if !ok {
+		//		return nil, errors.New("expected $regex field to have string value")
+		//	}
+		//	regex.Pattern = v
+		//
+		//	if value, ok = doc["$options"]; ok {
+		//		v, ok = value.(string)
+		//		if !ok {
+		//			return nil, errors.New("expected $options field to have string value")
+		//		}
+		//		regex.Options = v
+		//
+		//		// Validate regular expression options
+		//		for i := range regex.Options {
+		//			switch o := regex.Options[i]; o {
+		//			case 'g', 'i', 'm', 's': // allowed
+		//			default:
+		//				return nil, fmt.Errorf("invalid regular expression option '%v'", o)
+		//			}
+		//		}
+		//		return regex, nil
+		//	}
+		//	return nil, errors.New("expected $options field with $regex field")
+		//}
 
 
 		//

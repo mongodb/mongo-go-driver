@@ -64,10 +64,10 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
 			continue
 		}
-		//
-		//if (entry.Name() != "binary.json") {
-		//	continue
-		//}
+
+		if (entry.Name() != "regex.json") {
+			continue
+		}
 
 
 		files = append(files, entry.Name())
@@ -124,12 +124,12 @@ func runTest(t *testing.T, filename string) {
 				})
 			}
 
-			dEJ := validCase.Degenerate_Extjson
-			if dEJ != "" {
-				t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
-					validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
-				})
-			}
+			//dEJ := validCase.Degenerate_Extjson
+			//if dEJ != "" {
+			//	t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
+			//		validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
+			//	})
+			//}
 		}
 
 		for _, decodeTest := range test.DecodeErrors {
@@ -210,6 +210,8 @@ func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
 //for cEJ input:
 //2. native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
 func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bool) {
+	fmt.Println(cEJ)
+
 	////1. native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
 	marshalDDoc := extjson.MarshalD{}
 	json.Unmarshal([]byte(cEJ), &marshalDDoc)
