@@ -65,8 +65,8 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
 			continue
 		}
-		//
-		if (entry.Name() != "timestamp.json") {
+
+		if (entry.Name() != "code_w_scope.json") {
 			continue
 		}
 
@@ -97,10 +97,10 @@ func runTest(t *testing.T, filename string) {
 			lossy := validCase.Lossy
 			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
-			//
-			//t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
-			//	validateCanonicalBSON(t, cB, cEJ)
-			//})
+
+			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
+				validateCanonicalBSON(t, cB, cEJ)
+			})
 			t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
 				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
 			})
@@ -114,14 +114,14 @@ func runTest(t *testing.T, filename string) {
 			//		validateRelaxedExtendedJSON(t, rEJ)
 			//	})
 			//}
-
+			//
 			//dB := validCase.Degenerate_Bson
 			//if dB != "" {
 			//	t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
 			//		validateDegenerateBSON(t, dB, cB)
 			//	})
 			//}
-
+			//
 			//dEJ := validCase.Degenerate_Extjson
 			//if dEJ != "" {
 			//	t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
@@ -210,9 +210,6 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bo
 
 		bsonDDoc = bson.D{}
 		bsonDDoc.AppendMap(nativeRepr)
-		t.Log(bsonDDoc)
-		t.Log(nativeRepr)
-		t.Log(bsonDDoc)
 	}
 
 	// native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
