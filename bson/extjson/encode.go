@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"reflect"
 )
 
 // Special values for extended JSON.
@@ -90,6 +91,10 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		encodeOIDToBuffer(x.Id, buff)
 		buff.WriteString(`}}`)
 	case bson.JavaScript:
+		fmt.Println(x.Code)
+		fmt.Println(x.Scope)
+
+
 		buff.WriteString(`{"$code":"`)
 		buff.WriteString(x.Code)
 		buff.WriteString(`"`)
@@ -98,6 +103,24 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 			buff.WriteString(`}`)
 			break
 		}
+		
+		// TODO:Steven - very ghetto way of converting things. If anything, we should be researching why its turned out
+		// that in one of the cases (through validateCanonicalExtJSON) its giving us that x.scope is a bson.D object while
+		// in the other (validateCanonicalBSON) its providing us with a map. That would be the real solution here.
+
+		// Convert x.Scope from Map into bson.D
+		fmt.Println(reflect.ValueOf(x.Scope).Kind())
+
+		switch x.Scope.(type) {
+		case bson.M:
+			fmt.Println("MAPPPPPPP!p")
+			d := bson.D{}
+			d.AppendMap(x.Scope.(bson.M))
+			x.Scope = d
+		default:
+			fmt.Println("NOT a map")
+		}
+
 
 		buff.WriteString(`,"$scope":`)
 		if err := encodeMarshalable(x.Scope, enc, buff, true); err != nil {
