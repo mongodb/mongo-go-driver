@@ -125,9 +125,9 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		fmt.Println(int32(x >> 32))
 
 		buff.WriteString(`{"$timestamp":{"t":`)
-		buff.WriteString(fmt.Sprintf("%d", int32(x>>32)))
+		buff.WriteString(fmt.Sprintf("%d", uint32(x>>32)))
 		buff.WriteString(`,"i":`)
-		buff.WriteString(fmt.Sprintf("%d", int32(x)))
+		buff.WriteString(fmt.Sprintf("%d", uint32(x)))
 		buff.WriteString(`}}`)
 
 
