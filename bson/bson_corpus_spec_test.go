@@ -5,9 +5,10 @@ import (
 	"path"
 	"io/ioutil"
 	"github.com/stretchr/testify/require"
-	"encoding/json"
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/bson/extjson"
+	//"github.com/10gen/mongo-go-driver/bson/internal/json"
+	"encoding/json"
 	"encoding/hex"
 	"bytes"
 	"fmt"
@@ -65,7 +66,7 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 
-		if (entry.Name() != "double.json") {
+		if (entry.Name() != "timestamp.json") {
 			continue
 		}
 
@@ -96,12 +97,6 @@ func runTest(t *testing.T, filename string) {
 			lossy := validCase.Lossy
 			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
-
-			//
-			//if (validCase.Description != "subtype 0x02") {
-			//	continue
-			//}
-
 
 			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
 				validateCanonicalBSON(t, cB, cEJ)
@@ -203,10 +198,11 @@ func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
 
 //for cEJ input:
 func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bool) {
-	////1. native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
 	marshalDDoc := extjson.MarshalD{}
 	json.Unmarshal([]byte(cEJ), &marshalDDoc)
 	bsonDDoc := bson.D(marshalDDoc)
+
+	t.Log(bsonDDoc)
 
 	// native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
