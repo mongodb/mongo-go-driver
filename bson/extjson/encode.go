@@ -119,23 +119,11 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 	case int64:
 		encodeInt64ToBuffer(x, buff)
 	case bson.MongoTimestamp:
-
-		fmt.Println(x)
-		fmt.Println(int32(x))
-		fmt.Println(int32(x >> 32))
-
 		buff.WriteString(`{"$timestamp":{"t":`)
 		buff.WriteString(fmt.Sprintf("%d", uint32(x>>32)))
 		buff.WriteString(`,"i":`)
 		buff.WriteString(fmt.Sprintf("%d", uint32(x)))
 		buff.WriteString(`}}`)
-
-
-	//expected: "{\"a\":{\"$timestamp\":{\"t\":123456789,\"i\":42}}}"
-	//received: "{\"a\":{\"$timestamp\":\"530242871224172586\"}}"
-	//<t> is the JSON representation of a 32-bit unsigned integer for seconds since epoch.
-	//<i> is a 32-bit unsigned integer for the increment.
-
 	case bson.Decimal128:
 		var v string
 		switch x {

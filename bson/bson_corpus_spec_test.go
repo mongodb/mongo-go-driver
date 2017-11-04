@@ -65,7 +65,7 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
 			continue
 		}
-
+		//
 		if (entry.Name() != "timestamp.json") {
 			continue
 		}
@@ -97,10 +97,10 @@ func runTest(t *testing.T, filename string) {
 			lossy := validCase.Lossy
 			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
-
-			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
-				validateCanonicalBSON(t, cB, cEJ)
-			})
+			//
+			//t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
+			//	validateCanonicalBSON(t, cB, cEJ)
+			//})
 			t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
 				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
 			})
@@ -202,7 +202,18 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bo
 	json.Unmarshal([]byte(cEJ), &marshalDDoc)
 	bsonDDoc := bson.D(marshalDDoc)
 
-	t.Log(bsonDDoc)
+	// TODO:Steven - In some scenarios, json.Unmarshall(bson.D) doesn't work well.
+	// As a backup we're gonna import the other stufff.
+	if len(bsonDDoc) == 0 {
+		nativeRepr := bson.M{}
+		require.NoError(t, json.Unmarshal([]byte(cEJ), &nativeRepr))
+
+		bsonDDoc = bson.D{}
+		bsonDDoc.AppendMap(nativeRepr)
+		t.Log(bsonDDoc)
+		t.Log(nativeRepr)
+		t.Log(bsonDDoc)
+	}
 
 	// native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
