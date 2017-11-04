@@ -103,7 +103,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 			buff.WriteString(`}`)
 			break
 		}
-		
+
 		// TODO:Steven - very ghetto way of converting things. If anything, we should be researching why its turned out
 		// that in one of the cases (through validateCanonicalExtJSON) its giving us that x.scope is a bson.D object while
 		// in the other (validateCanonicalBSON) its providing us with a map. That would be the real solution here.

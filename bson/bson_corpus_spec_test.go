@@ -66,9 +66,9 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 
-		if (entry.Name() != "code_w_scope.json") {
-			continue
-		}
+		//if (entry.Name() != "code_w_scope.json") {
+		//	continue
+		//}
 
 		files = append(files, entry.Name())
 	}
