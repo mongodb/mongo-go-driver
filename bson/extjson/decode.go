@@ -158,15 +158,39 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			}
 			return nil, errors.New("expected $numberInt field to have string value")
 		case "$timestamp":
-			v, ok := value.(string)
-			if !ok || v == "" {
-				return nil, errors.New("expected $timestamp key to be a string")
+			// We're gonna convert the map/bson.d into a mongotimestamp
+			// To do this we'll extract the bits from
+			switch v := value.(type) {
+			case bson.D:
+				// Timestamp should only have 2 fields
+				if len(v) != 2 {
+					return nil, errors.New("Expected $timestamp value to contain only two fields")
+				}
+
+				var t uint64
+				var i uint64
+				if v[0].Name == "t" {
+					t = uint64(v[0].Value.(float64))
+					i = uint64(v[1].Value.(float64))
+				} else {
+					t = uint64(v[1].Value.(float64))
+					i = uint64(v[0].Value.(float64))
+				}
+
+				var parsed uint64
+
+				parsed = (t << 32)
+				parsed = parsed + i
+				//
+				//fmt.Println(strconv.FormatInt(int64(t), 2)) // 1111011
+				//fmt.Println(strconv.FormatInt(int64(i), 2)) // 1111011
+				//fmt.Println(strconv.FormatInt(int64(parsed), 2)) // 1111011
+				//fmt.Println(strconv.FormatInt(int64(530242871224172586), 2)) // 1111011
+
+				return bson.MongoTimestamp(int64(parsed)), nil
+			default:
+				return nil, errors.New("expected $timestamp value to be a bson.D")
 			}
-			parsed, err := strconv.ParseUint(v, 10, 64)
-			if err != nil {
-				return nil, errors.New("expected $timestamp key to be a string representing a 64-bit unsigned timestamp")
-			}
-			return bson.MongoTimestamp(parsed), nil
 		case "$numberDouble":
 			if v, ok := value.(string); ok {
 				switch v {
@@ -210,7 +234,7 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			}
 
 
-		// TODO Steven: Clean up
+		// TODO:Steven: Clean up
 		case "$binary":
 			binary := bson.Binary{}
 			// binary.Kind => subType field

@@ -76,7 +76,7 @@ func itoa(i int) string {
 }
 
 
-// TODO: Steven DO NOT COMMIT - Otherwise your superiors will know that even though you graduated from CMU youre actually
+// TODO:Steven DO NOT COMMIT - Otherwise your superiors will know that even though you graduated from CMU youre actually
 // an idiot.
 func sortMapKeys(keys []reflect.Value) []reflect.Value {
 	hasRef := false

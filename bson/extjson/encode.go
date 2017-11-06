@@ -33,6 +33,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 			v = decValueNegInfinity
 		} else {
 			//TODO:Steven Clean this up and figure out the 64bit issue
+			// So the 64 bit issue we cant do anything about it- therefore we would need to
 			withEIfNecessary := strconv.FormatFloat(x, 'G', -1, 64)
 			hasE := false
 			for _, ch := range withEIfNecessary {
@@ -44,7 +45,8 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 			if (hasE) {
 				v = withEIfNecessary
 			} else {
-				minPresicion := strconv.FormatFloat(x, 'f', -1, 64) // TODO:STEVEN This needs to be fixed to allow x.0
+
+				minPresicion := strconv.FormatFloat(x, 'f', -1, 64)
 				oneDecimal := strconv.FormatFloat(x, 'f', 1, 64)
 
 				minF, _ := strconv.ParseFloat(minPresicion, 64)

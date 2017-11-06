@@ -65,8 +65,8 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
 			continue
 		}
-
-		//if (entry.Name() != "code_w_scope.json") {
+		//
+		//if (entry.Name() != "timestamp.json") {
 		//	continue
 		//}
 
@@ -148,6 +148,15 @@ func runTest(t *testing.T, filename string) {
 	//t.Log(now.Format(layout))
 }
 
+
+// This method is necessary to normalize the json string given in the specification. Normalization is necessary for cases
+// when we're not able to accurately represent something as a string (ie converting a float64 to a string).
+func normalizeSpecificationJSONString() {
+
+}
+
+
+
 //for cB input:
 func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	//native_to_bson( bson_to_native(cB) ) = cB
@@ -199,18 +208,22 @@ func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
 //for cEJ input:
 func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bool) {
 	marshalDDoc := extjson.MarshalD{}
-	json.Unmarshal([]byte(cEJ), &marshalDDoc)
+	err := json.Unmarshal([]byte(cEJ), &marshalDDoc)
+	require.NoError(t, err)
+
 	bsonDDoc := bson.D(marshalDDoc)
 
-	// TODO:Steven - In some scenarios, json.Unmarshall(bson.D) doesn't work well.
-	// As a backup we're gonna import the other stufff.
-	if len(bsonDDoc) == 0 {
-		nativeRepr := bson.M{}
-		require.NoError(t, json.Unmarshal([]byte(cEJ), &nativeRepr))
+	//fmt.Println(bsonDDoc)
 
-		bsonDDoc = bson.D{}
-		bsonDDoc.AppendMap(nativeRepr)
-	}
+	// TODO:Steven - In some scenarios, json.Unmarshall(bson.D) doesn't work well. ie timestamps
+	// As a backup we're gonna import the other stufff.
+	//if len(bsonDDoc) == 0 {
+	//	nativeRepr := bson.M{}
+	//	require.NoError(t, json.Unmarshal([]byte(cEJ), &nativeRepr))
+	//
+	//	bsonDDoc = bson.D{}
+	//	bsonDDoc.AppendMap(nativeRepr)
+	//}
 
 	// native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
