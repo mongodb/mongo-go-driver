@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -82,6 +82,19 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(`"}}`)
 	case bson.RegEx:
 		buff.WriteString(`{"$regularExpression":{"pattern":"`)
+
+
+		fmt.Println(x.Pattern)
+
+		// ab\"ab
+
+		// \\\\ \\\"
+
+		                               //                      ab    \"  ab
+	//expected: "{\"a\":{\"$regularExpression\":{\"pattern\":\"ab\\\\\\\"ab\",\"options\":\"\"}}}"
+	//received: "{\"a\":{\"$regularExpression\":{\"pattern\":\"ab\\\"ab\",\"options\":\"\"}}}"
+
+
 		buff.WriteString(x.Pattern)
 		buff.WriteString(`","options":"`)
 		buff.WriteString(x.Options)

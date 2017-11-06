@@ -2,7 +2,7 @@ package extjson
 
 import (
 	"bytes"
-	"encoding/json"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,7 +13,8 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
-// The DBRef type implements support for the database reference MongoDB
+// The DBRef type impleme
+// nts support for the database reference MongoDB
 // convention as supported by multiple drivers.  This convention enables
 // cross-referencing documents between collections and databases using
 // a structure which includes a collection name, a document id, and

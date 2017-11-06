@@ -38,7 +38,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"errors"
 	"fmt"
 	"io"

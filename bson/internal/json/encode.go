@@ -581,7 +581,8 @@ func stringEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		}
 		e.string(string(sb), opts.escapeHTML)
 	} else {
-		e.string(v.String(), opts.escapeHTML)
+		strVal := v.String()
+		e.string(strVal, opts.escapeHTML)
 	}
 }
 
@@ -917,7 +918,28 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 		i += size
 	}
 	if start < len(s) {
-		e.WriteString(s[start:])
+
+
+		for pos, char := range s {
+
+			rn, size := utf8.DecodeLastRuneInString(string(char))
+			//fmt.Println(utf8.DecodeLastRuneInString(s))
+
+			fmt.Printf("character %c starts at byte position %d\n", char, pos)
+
+			if size  > 1 {
+				/// We need to encode it properly
+				//e.WriteString("\\")
+				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
+				unquoted := quoted[1:len(quoted)-1]      // unquoted = "\u554a"
+				fmt.Println(unquoted)
+				fmt.Println(quoted)
+				e.WriteString(unquoted)
+			} else {
+				e.WriteString(string(char))
+			}
+		}
+		//e.WriteString(s)
 	}
 	e.WriteByte('"')
 	return e.Len() - len0

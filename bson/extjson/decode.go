@@ -239,7 +239,7 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			binary := bson.Binary{}
 			// binary.Kind => subType field
 			// binary.Data => whatever goes in base64
-
+			//
 			value, ok := doc["$binary"]
 			if !ok {
 				return nil, errors.New("Not ok, could not parse")

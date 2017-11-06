@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/bson/extjson"
-	//"github.com/10gen/mongo-go-driver/bson/internal/json"
-	"encoding/json"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
+	//"encoding/json"
 	"encoding/hex"
 	"bytes"
 	"fmt"
@@ -65,10 +65,10 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
 			continue
 		}
-		//
-		//if (entry.Name() != "timestamp.json") {
-		//	continue
-		//}
+
+		if (entry.Name() != "string.json") {
+			continue
+		}
 
 		files = append(files, entry.Name())
 	}
