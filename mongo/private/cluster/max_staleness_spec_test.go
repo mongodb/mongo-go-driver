@@ -13,10 +13,10 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
 )
 
-const selectorTestsDir = "../../../data/server-selection/server_selection"
+const maxStalenessTestsDir = "../../../data/max-staleness"
 
-// Test case for all SDAM spec tests.
-func TestServerSelectionSpec(t *testing.T) {
+// Test case for all max staleness spec tests.
+func TestMaxStalenessSpec(t *testing.T) {
 	for _, topology := range [...]string{
 		"ReplicaSetNoPrimary",
 		"ReplicaSetWithPrimary",
@@ -24,14 +24,10 @@ func TestServerSelectionSpec(t *testing.T) {
 		"Single",
 		"Unknown",
 	} {
-		for _, subdir := range [...]string{"read", "write"} {
-			subdirPath := path.Join(topology, subdir)
+		for _, file := range testhelpers.FindJSONFilesInDir(t,
+			path.Join(maxStalenessTestsDir, topology)) {
 
-			for _, file := range testhelpers.FindJSONFilesInDir(t,
-				path.Join(selectorTestsDir, subdirPath)) {
-
-				runTest(t, selectorTestsDir, subdirPath, file)
-			}
+			runTest(t, maxStalenessTestsDir, topology, file)
 		}
 	}
 }

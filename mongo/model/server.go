@@ -40,7 +40,7 @@ type Server struct {
 	SetVersion        uint32
 	Tags              TagSet
 	Kind              ServerKind
-	WireVersion       Range
+	WireVersion       *Range
 	Version           Version
 }
 
@@ -69,7 +69,7 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 		SetName:         isMasterResult.SetName,
 		SetVersion:      isMasterResult.SetVersion,
 		Tags:            NewTagSetFromMap(isMasterResult.Tags),
-		WireVersion: Range{
+		WireVersion: &Range{
 			Min: isMasterResult.MinWireVersion,
 			Max: isMasterResult.MaxWireVersion,
 		},

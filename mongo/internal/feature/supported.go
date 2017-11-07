@@ -14,8 +14,8 @@ import (
 
 // MaxStaleness returns an error if the given server version
 // does not support max staleness.
-func MaxStaleness(version model.Version) error {
-	if !version.AtLeast(3, 4, 0) {
+func MaxStaleness(serverVersion model.Version, wireVersion *model.Range) error {
+	if !serverVersion.AtLeast(3, 4, 0) || (wireVersion != nil && wireVersion.Max < 5) {
 		return fmt.Errorf("max staleness is only supported for servers 3.4 or newer")
 	}
 

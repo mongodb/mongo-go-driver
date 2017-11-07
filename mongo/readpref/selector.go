@@ -26,7 +26,7 @@ func selectServer(rp *ReadPref, c *model.Cluster, candidates []*model.Server) ([
 	if _, set := rp.MaxStaleness(); set {
 		for _, s := range candidates {
 			if s.Kind != model.Unknown {
-				if err := feature.MaxStaleness(s.Version); err != nil {
+				if err := feature.MaxStaleness(s.Version, s.WireVersion); err != nil {
 					return nil, err
 				}
 			}
