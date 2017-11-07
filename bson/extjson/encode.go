@@ -12,6 +12,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"reflect"
+	"strings"
 )
 
 // Special values for extended JSON.
@@ -84,15 +85,16 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(`{"$regularExpression":{"pattern":"`)
 
 
-		//fmt.Println(x.Pattern)
+		// Escape any characters necessary within x.Pattern here.
+		ad := "\\\\"
+		sl := "\\"
+		qt := "\""
+		dbl := "\\\""
+		x.Pattern = strings.Replace(x.Pattern, sl, ad, -1)
+		x.Pattern = strings.Replace(x.Pattern, qt, dbl, -1)
 
-		// ab\"ab
-
-		// \\\\ \\\"
-
-		                               //                      ab    \"  ab
-	//expected: "{\"a\":{\"$regularExpression\":{\"pattern\":\"ab\\\\\\\"ab\",\"options\":\"\"}}}"
-	//received: "{\"a\":{\"$regularExpression\":{\"pattern\":\"ab\\\"ab\",\"options\":\"\"}}}"
+		x.Options = strings.Replace(x.Options, sl, ad, -1)
+		x.Options = strings.Replace(x.Options, qt, dbl, -1)
 
 
 		buff.WriteString(x.Pattern)
