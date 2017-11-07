@@ -7,13 +7,17 @@
 package testhelpers
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path"
+	"strings"
+	"time"
 
 	"testing"
 
 	"io"
 
+	"github.com/10gen/mongo-go-driver/mongo/connstring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,4 +40,66 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 
 func RequireNoErrorOnClose(t *testing.T, c io.Closer) {
 	require.NoError(t, c.Close())
+}
+
+func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map[string]interface{}) {
+	// Check that all options are present.
+	for key, value := range options {
+
+		key = strings.ToLower(key)
+		switch key {
+		case "appname":
+			require.Equal(t, value, cs.AppName)
+		case "authsource":
+			require.Equal(t, value, cs.AuthSource)
+		case "authmechanism":
+			require.Equal(t, value, cs.AuthMechanism)
+		case "authmechanismproperties":
+			convertedMap := value.(map[string]interface{})
+			require.Equal(t,
+				mapInterfaceToString(convertedMap),
+				cs.AuthMechanismProperties)
+		case "connecttimeoutms":
+			require.Equal(t, value, float64(cs.ConnectTimeout/time.Millisecond))
+		case "heartbeatfrequencyms":
+			require.Equal(t, value, float64(cs.HeartbeatInterval/time.Millisecond))
+		case "maxidletimems":
+			require.Equal(t, value, cs.MaxConnIdleTime)
+		case "maxconnlifetimems":
+			require.Equal(t, value, cs.MaxConnLifeTime)
+		case "maxconnsperhost":
+			require.True(t, cs.MaxIdleConnsPerHostSet)
+			require.Equal(t, value, cs.MaxIdleConnsPerHost)
+		case "maxidleconnsperhost":
+			require.True(t, cs.MaxIdleConnsPerHostSet)
+			require.Equal(t, value, cs.MaxIdleConnsPerHost)
+		case "readpreference":
+			require.Equal(t, value, cs.ReadPreference)
+		case "readpreferencetags":
+			require.Equal(t, value, cs.ReadPreferenceTagSets)
+		case "replicaset":
+			require.Equal(t, value, cs.ReplicaSet)
+		case "serverselectiontimeoutms":
+			require.Equal(t, value, float64(cs.ServerSelectionTimeout/time.Millisecond))
+		case "sockettimeoutms":
+			require.Equal(t, value, float64(cs.SocketTimeout/time.Millisecond))
+		case "wtimeoutms":
+			require.Equal(t, value, float64(cs.WTimeout/time.Millisecond))
+		default:
+			opt, ok := cs.UnknownOptions[key]
+			require.True(t, ok)
+			require.Contains(t, opt, fmt.Sprint(value))
+		}
+	}
+}
+
+// Convert each interface{} value in the map to a string.
+func mapInterfaceToString(m map[string]interface{}) map[string]string {
+	out := make(map[string]string)
+
+	for key, value := range m {
+		out[key] = fmt.Sprint(value)
+	}
+
+	return out
 }

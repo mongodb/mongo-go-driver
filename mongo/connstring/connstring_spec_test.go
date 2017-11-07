@@ -8,13 +8,12 @@ package connstring_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"path"
 	"testing"
-	"time"
 
 	"github.com/10gen/mongo-go-driver/mongo/connstring"
+	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -78,17 +77,6 @@ func hostsToStrings(hosts []host) []string {
 	return out
 }
 
-// Convert each interface{} value in the map to a string.
-func mapInterfaceToString(m map[string]interface{}) map[string]string {
-	out := make(map[string]string)
-
-	for key, value := range m {
-		out[key] = fmt.Sprint(value)
-	}
-
-	return out
-}
-
 func runTestsInFile(t *testing.T, filename string) {
 	filepath := path.Join(testsDir, filename)
 	content, err := ioutil.ReadFile(filepath)
@@ -134,49 +122,7 @@ func runTest(t *testing.T, filename string, test *testCase) {
 		}
 
 		// Check that all options are present.
-		for key, value := range test.Options {
-			switch key {
-			case "appname":
-				require.Equal(t, value, cs.AppName)
-			case "authsource":
-				require.Equal(t, value, cs.AuthSource)
-			case "authmechanism":
-				require.Equal(t, value, cs.AuthMechanism)
-			case "authmechanismproperties":
-				convertedMap := value.(map[string]interface{})
-				require.Equal(t,
-					mapInterfaceToString(convertedMap),
-					cs.AuthMechanismProperties)
-			case "heartbeatfrequencyms":
-				require.Equal(t, value, float64(cs.HeartbeatInterval/time.Millisecond))
-			case "maxidletimems":
-				require.Equal(t, value, cs.MaxConnIdleTime)
-			case "maxconnlifetimems":
-				require.Equal(t, value, cs.MaxConnLifeTime)
-			case "maxconnsperhost":
-				require.True(t, cs.MaxIdleConnsPerHostSet)
-				require.Equal(t, value, cs.MaxIdleConnsPerHost)
-			case "maxidleconnsperhost":
-				require.True(t, cs.MaxIdleConnsPerHostSet)
-				require.Equal(t, value, cs.MaxIdleConnsPerHost)
-			case "readpreference":
-				require.Equal(t, value, cs.ReadPreference)
-			case "readpreferencetags":
-				require.Equal(t, value, cs.ReadPreferenceTagSets)
-			case "replicaset":
-				require.Equal(t, value, cs.ReplicaSet)
-			case "serverselectiontimeoutms":
-				require.Equal(t, value, float64(cs.ServerSelectionTimeout/time.Millisecond))
-			case "sockettimeoutms":
-				require.Equal(t, value, float64(cs.SocketTimeout/time.Millisecond))
-			case "wtimeoutms":
-				require.Equal(t, value, float64(cs.WTimeout/time.Millisecond))
-			default:
-				opt, ok := cs.UnknownOptions[key]
-				require.True(t, ok)
-				require.Contains(t, opt, fmt.Sprint(value))
-			}
-		}
+		testhelpers.VerifyConnStringOptions(t, cs, test.Options)
 
 		// Check that non-present options are unset. This will be redundant with the above checks
 		// for options that are present.

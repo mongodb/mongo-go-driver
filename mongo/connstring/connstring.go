@@ -82,16 +82,20 @@ type parser struct {
 
 func (p *parser) parse(original string) error {
 	p.Original = original
-
 	uri := original
-	var err error
-	// scheme
-	if !strings.HasPrefix(uri, "mongodb://") {
-		return fmt.Errorf("scheme must be \"mongodb\"")
-	}
 
-	// user info
-	uri = uri[10:]
+	var err error
+	var isSRV bool
+	if strings.HasPrefix(uri, "mongodb+srv://") {
+		isSRV = true
+		// remove the scheme
+		uri = uri[14:]
+	} else if strings.HasPrefix(uri, "mongodb://") {
+		// remove the scheme
+		uri = uri[10:]
+	} else {
+		return fmt.Errorf("scheme must be \"mongodb\" or \"mongodb+srv\"")
+	}
 
 	if idx := strings.Index(uri, "@"); idx != -1 {
 		userInfo := uri[:idx]
@@ -128,10 +132,9 @@ func (p *parser) parse(original string) error {
 				return internal.WrapErrorf(err, "invalid password")
 			}
 		}
-
 	}
 
-	// hosts
+	// fetch the hosts field
 	hosts := uri
 	if idx := strings.IndexAny(uri, "/?@"); idx != -1 {
 		if uri[idx] == '@' {
@@ -140,17 +143,36 @@ func (p *parser) parse(original string) error {
 		if uri[idx] == '?' {
 			return fmt.Errorf("must have a / before the query ?")
 		}
-
 		hosts = uri[:idx]
 	}
 
-	for _, host := range strings.Split(hosts, ",") {
+	var connectionArgsFromTXT []string
+	parsedHosts := strings.Split(hosts, ",")
+
+	if isSRV {
+		parsedHosts = strings.Split(hosts, ",")
+		if len(parsedHosts) != 1 {
+			return fmt.Errorf("URI with SRV must include one and only one hostname")
+		}
+		parsedHosts, err = fetchSeedlistFromSRV(parsedHosts[0])
+		if err != nil {
+			return err
+		}
+
+		// error ignored because finding a TXT record should not be
+		// considered an error.
+		recordsFromTXT, _ := net.LookupTXT(hosts)
+		for _, recordFromTXT := range recordsFromTXT {
+			connectionArgsFromTXT = append(connectionArgsFromTXT, strings.FieldsFunc(recordFromTXT, func(r rune) bool { return r == ';' || r == '&' })...)
+		}
+	}
+
+	for _, host := range parsedHosts {
 		err = p.addHost(host)
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid host \"%s\"", host)
 		}
 	}
-
 	if len(p.Hosts) == 0 {
 		return fmt.Errorf("must have at least 1 host")
 	}
@@ -195,7 +217,10 @@ func (p *parser) parse(original string) error {
 		return nil
 	}
 
-	for _, pair := range strings.FieldsFunc(uri, func(r rune) bool { return r == ';' || r == '&' }) {
+	connectionArgsFromQueryString := strings.FieldsFunc(uri, func(r rune) bool { return r == ';' || r == '&' })
+	connectionArgPairs := append(connectionArgsFromTXT, connectionArgsFromQueryString...)
+
+	for _, pair := range connectionArgPairs {
 		err = p.addOption(pair)
 		if err != nil {
 			return err
@@ -203,6 +228,29 @@ func (p *parser) parse(original string) error {
 	}
 
 	return nil
+}
+
+func fetchSeedlistFromSRV(host string) ([]string, error) {
+	var err error
+
+	_, _, err = net.SplitHostPort(host)
+
+	if err == nil {
+		// we were able to successfully extract a port from the host,
+		// but should not be able to when using SRV
+		return nil, fmt.Errorf("URI with srv must not include a port number")
+	}
+
+	_, addresses, err := net.LookupSRV("mongodb", "tcp", host)
+	if err != nil {
+		return nil, err
+	}
+	parsedHosts := make([]string, len(addresses))
+	for i, address := range addresses {
+		parsedHosts[i] = fmt.Sprintf("%s:%d", strings.TrimSuffix(address.Target, "."), address.Port)
+	}
+
+	return parsedHosts, nil
 }
 
 func (p *parser) addHost(host string) error {
