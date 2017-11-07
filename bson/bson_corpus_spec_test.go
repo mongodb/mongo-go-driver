@@ -66,7 +66,7 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 
-		if (entry.Name() != "regex.json") {
+		if (entry.Name() != "multi-type.json") {
 			continue
 		}
 
@@ -165,11 +165,21 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	err = bson.Unmarshal([]byte(decoded), nativeRepr)
 	require.NoError(t, err)
 
+
+
+	nativeReprD := bson.D{}
+	err = bson.Unmarshal([]byte(decoded), &nativeReprD)
+	require.NoError(t, err)
+
+
+	t.Log(nativeReprD)
+
+
 	// TODO:Steven
 	// Converted to BSON.D As order is preservered. With bson.M its just a map so its random.
-	nativeD := bson.D{}
-	nativeD.AppendMap(nativeRepr)
-	roundTripCBByteRepr, err := bson.Marshal(nativeD);
+	//nativeD := bson.D{}
+	//nativeD.AppendMap(nativeRepr)
+	roundTripCBByteRepr, err := bson.Marshal(nativeReprD);
 	//roundTripCBByteRepr, err := bson.Marshal(nativeRepr);
 	roundTripCB := hex.EncodeToString(roundTripCBByteRepr);
 	require.Equal(t, cB, strings.ToUpper(roundTripCB))

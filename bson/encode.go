@@ -259,6 +259,9 @@ func (e *encoder) addSlice(v reflect.Value) {
 	vi := v.Interface()
 	if d, ok := vi.(D); ok {
 		for _, elem := range d {
+			fmt.Println(elem.Name)
+			fmt.Println(reflect.ValueOf(elem.Value))
+
 			e.addElem(elem.Name, reflect.ValueOf(elem.Value), false)
 		}
 		return

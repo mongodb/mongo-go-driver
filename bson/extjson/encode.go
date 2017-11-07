@@ -84,7 +84,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 	case bson.RegEx:
 		buff.WriteString(`{"$regularExpression":{"pattern":"`)
 
-
+		// TODO: Steven - Not clean. Need a more methodological wayk
 		// Escape any characters necessary within x.Pattern here.
 		ad := "\\\\"
 		sl := "\\"
