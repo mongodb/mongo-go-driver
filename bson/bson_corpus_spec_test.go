@@ -95,11 +95,6 @@ func runTest(t *testing.T, filename string) {
 			lossy := validCase.Lossy
 			cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
-			//
-			//if (validCase.Description != "Embedded nulls") {
-			//	continue
-			//}
-
 
 			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
 				validateCanonicalBSON(t, cB, cEJ)
@@ -150,20 +145,7 @@ func runTest(t *testing.T, filename string) {
 		//	})
 		//}
 	})
-
-	//now := time.Now().UTC()
-	//layout := "2006-01-02T03:04:05.000Z07:00"
-	//t.Log(now.Format(layout))
 }
-
-
-// This method is necessary to normalize the json string given in the specification. Normalization is necessary for cases
-// when we're not able to accurately represent something as a string (ie converting a float64 to a string).
-func normalizeSpecificationJSONString() {
-
-}
-
-
 
 //for cB input:
 func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
