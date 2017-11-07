@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"reflect"
 	"strings"
+	"unicode/utf8"
 )
 
 // Special values for extended JSON.
@@ -96,7 +97,6 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		x.Options = strings.Replace(x.Options, sl, ad, -1)
 		x.Options = strings.Replace(x.Options, qt, dbl, -1)
 
-
 		buff.WriteString(x.Pattern)
 		buff.WriteString(`","options":"`)
 		buff.WriteString(x.Options)
@@ -108,12 +108,42 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		encodeOIDToBuffer(x.Id, buff)
 		buff.WriteString(`}}`)
 	case bson.JavaScript:
-		fmt.Println(x.Code)
-		fmt.Println(x.Scope)
-
-
 		buff.WriteString(`{"$code":"`)
-		buff.WriteString(x.Code)
+
+
+		// Q. Why do we need this?
+		//	Error Trace:    bson_corpus_spec_test.go:201
+		//	bson_corpus_spec_test.go:105
+		//Error:          Received unexpected error:
+		//json: error calling MarshalJSON for type extjson.MarshalD: invalid character '\x00' in string literal
+		//	--- FAIL: TestBSONSpec/code_w_scope;/code_w_scope;validateCanonicalExtendedJSON:Unicode_and_embedded_null_in_code_string,_empty_scope (0.00s)
+		//	Error Trace:    bson_corpus_spec_test.go:266
+		//	bson_corpus_spec_test.go:108
+		//Error:          Received unexpected error:
+		//json: error calling MarshalJSON for type extjson.MarshalD: invalid character '\x00' in string literal
+
+
+		for _, char := range x.Code {
+			//TODO: Steven - clean this up
+			rn, size := utf8.DecodeLastRuneInString(string(char))
+			fmt.Println("RN: ", rn, string(rn), size)
+			if size  > 1 || rn < 10 {
+				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
+				unquoted := quoted[1:len(quoted)-1]      // unquoted = "\u554a"
+				fmt.Println("unquoted: ", unquoted)
+
+				// TODO: Steven - horrible
+				if (unquoted == "\\x00") {
+					buff.WriteString("\\u0000")
+				} else {
+					buff.WriteString(unquoted)
+				}
+			} else {
+				buff.WriteString(string(char))
+			}
+		}
+
+		//buff.WriteString(x.Code)
 		buff.WriteString(`"`)
 
 		if x.Scope == nil {
@@ -137,7 +167,6 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		default:
 			fmt.Println("NOT a map")
 		}
-
 
 		buff.WriteString(`,"$scope":`)
 		if err := encodeMarshalable(x.Scope, enc, buff, true); err != nil {

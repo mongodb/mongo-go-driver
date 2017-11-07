@@ -66,9 +66,9 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 			continue
 		}
 		//
-		//if (entry.Name() != "dbref.json") {
-		//	continue
-		//}
+		if   entry.Name() != "strings.json" {
+			continue
+		}
 
 		files = append(files, entry.Name())
 	}
@@ -91,17 +91,22 @@ func runTest(t *testing.T, filename string) {
 			return
 		}
 
-		//for _, validCase := range test.Valid {
-			//lossy := validCase.Lossy
-			//cEJ := validCase.Canonical_Extjson
-			//cB := validCase.Canonical_Bson
+		for _, validCase := range test.Valid {
+			lossy := validCase.Lossy
+			cEJ := validCase.Canonical_Extjson
+			cB := validCase.Canonical_Bson
 			//
-			//t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
-			//	validateCanonicalBSON(t, cB, cEJ)
-			//})
-			//t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
-			//	validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
-			//})
+			//if (validCase.Description != "Embedded nulls") {
+			//	continue
+			//}
+
+
+			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
+				validateCanonicalBSON(t, cB, cEJ)
+			})
+			t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
+				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
+			})
 
 			// TODO: Steven - Issues with decimal points & dates & NaNs
 			//rEJ := validCase.Relaxed_Extjson
@@ -129,7 +134,7 @@ func runTest(t *testing.T, filename string) {
 			//		validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
 			//	})
 			//}
-		//}
+		}
 
 		// TODO: Steven - invalidUTF8 passes decodeTest, cant happen.
 		//for _, decodeTest := range test.DecodeErrors {
@@ -139,11 +144,11 @@ func runTest(t *testing.T, filename string) {
 		//}
 
 		// TODO: Steven - Passes all. All good here.
-		for _, parseTest := range test.ParseErrors {
-			t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
-				testParseError(t, parseTest.String)
-			})
-		}
+		//for _, parseTest := range test.ParseErrors {
+		//	t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
+		//		testParseError(t, parseTest.String)
+		//	})
+		//}
 	})
 
 	//now := time.Now().UTC()
@@ -166,16 +171,12 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	decoded, err := hex.DecodeString(cB)
 	require.NoError(t, err)
 
-
-
 	nativeReprD := bson.D{}
 	err = bson.Unmarshal([]byte(decoded), &nativeReprD)
 	require.NoError(t, err)
 
 	// TODO: Steven - update: The above code works as it preserves order
-	// TODO:Steven
 	// Converted to BSON.D As order is preservered. With bson.M its just a map so its random.
-
 	//nativeRepr := bson.M{}
 	//err = bson.Unmarshal([]byte(decoded), nativeRepr)
 	//require.NoError(t, err)
@@ -183,7 +184,7 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	//nativeD := bson.D{}
 	//nativeD.AppendMap(nativeRepr)
 	//roundTripCBByteRepr, err := bson.Marshal(nativeRepr);
-
+	/////////////////////////////////////////////////////////////////////////
 
 	roundTripCBByteRepr, err := bson.Marshal(nativeReprD);
 	roundTripCB := hex.EncodeToString(roundTripCBByteRepr);
@@ -193,6 +194,8 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	var nativeReprBsonD bson.D // Need this new bson.D object as encodeBsonDtoJson wants a Bson.D
 	err = bson.Unmarshal([]byte(decoded), &nativeReprBsonD)
 	require.NoError(t, err)
+
+	//t.Log(nativeReprBsonD)
 
 	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
 	require.NoError(t, err)

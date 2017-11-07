@@ -4,7 +4,10 @@
 
 package json
 
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+)
 
 // Compact appends to dst the JSON-encoded src with
 // insignificant space characters elided.
@@ -17,6 +20,9 @@ func compact(dst *bytes.Buffer, src []byte, escape bool) error {
 	var scan scanner
 	scan.reset()
 	start := 0
+
+	fmt.Println("Indent.GO: Compact - src: ", src)
+	fmt.Println("Indent.GO: Compact - src: ", string(src))
 	for i, c := range src {
 		if escape && (c == '<' || c == '>' || c == '&') {
 			if start < i {
@@ -36,11 +42,13 @@ func compact(dst *bytes.Buffer, src []byte, escape bool) error {
 			dst.WriteByte(hex[src[i+2]&0xF])
 			start = i + 3
 		}
+
+		// TODO: Steven - this place is where the error comes in.
 		v := scan.step(&scan, c)
 		if v >= scanSkipSpace {
-			if v == scanError {
-				break
-			}
+			//if v == scanError {
+			//	break
+			//}
 			if start < i {
 				dst.Write(src[start:i])
 			}

@@ -358,6 +358,7 @@ func typeEncoder(t reflect.Type) encoderFunc {
 	innerf := newTypeEncoder(t, true)
 	f = func(e *encodeState, v reflect.Value, opts encOpts) {
 		encode, ok := e.ext.encode[v.Type()]
+
 		if !ok {
 			innerf(e, v, opts)
 			return
@@ -446,6 +447,8 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	}
 	m := v.Interface().(Marshaler)
 	b, err := m.MarshalJSON()
+	fmt.Println(b)
+	fmt.Println(string(b))
 	if err == nil {
 		// copy JSON into buffer, checking validity.
 		err = compact(&e.Buffer, b, opts.escapeHTML)
@@ -848,16 +851,22 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 	len0 := e.Len()
 	e.WriteByte('"')
 	start := 0
+	fmt.Println("encode.GO: string - s: ", s)
+	fmt.Println("encode.GO: string - s: ", []byte(s))
 	for i := 0; i < len(s); {
+		fmt.Println(i)
 		if b := s[i]; b < utf8.RuneSelf {
 			if 0x20 <= b && b != '\\' && b != '"' &&
 				(!escapeHTML || b != '<' && b != '>' && b != '&') {
 				i++
 				continue
 			}
+
 			if start < i {
+				fmt.Println("writing..: ", s[start:i])
 				e.WriteString(s[start:i])
 			}
+
 			switch b {
 			case '\\', '"':
 				e.WriteByte('\\')
@@ -871,7 +880,12 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 			case '\t':
 				e.WriteByte('\\')
 				e.WriteByte('t')
+			//case '\u0000':
+				//fmt.Println("sdfghjhgvfgtyhujkl")
+				//e.WriteString("\\u0000")
+
 			default:
+				fmt.Println("Writing...:" , b)
 				// This encodes bytes < 0x20 except for \t, \n and \r.
 				// If escapeHTML is set, it also escapes <, >, and &
 				// because they can lead to security holes when
@@ -914,26 +928,24 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 		}
 		i += size
 	}
+	fmt.Println("encode.GO: after 1st for loop - s: ", e.String())
 	if start < len(s) {
-		for _, char := range s {
-
+		//e.WriteString(s[start:])
+		for _, char := range s[start:] {
+			//TODO: Steven - clean this up
 			rn, size := utf8.DecodeLastRuneInString(string(char))
-			//fmt.Println(utf8.DecodeLastRuneInString(string(char)))
 			if size  > 1 {
-				/// We need to encode it properly
-				//e.WriteString("\\")
 				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
 				unquoted := quoted[1:len(quoted)-1]      // unquoted = "\u554a"
-				//fmt.Println(unquoted)
-				//fmt.Println(quoted)
 				e.WriteString(unquoted)
 			} else {
 				e.WriteString(string(char))
 			}
 		}
-		//e.WriteString(s)
 	}
 	e.WriteByte('"')
+	fmt.Println("encode.GO: after 2nd for loop - s: ", e.String())
+
 	return e.Len() - len0
 }
 
