@@ -8,7 +8,7 @@ package model
 
 import "fmt"
 
-// Range is an inclusive range between 2 uint8.
+// Range is an inclusive range between 2 uint32.
 type Range struct {
 	Min int32
 	Max int32
