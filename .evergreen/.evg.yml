@@ -342,6 +342,10 @@ tasks:
       tags: ["test", "replicaset"]
       commands:
         - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "noauth"
+            SSL: "nossl"
         - func: run-tests
           vars:
             TOPOLOGY: "replica_set"

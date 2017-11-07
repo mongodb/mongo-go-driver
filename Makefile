@@ -67,6 +67,10 @@ update-bson-corpus-tests:
 update-connection-string-tests:
 	etc/update-spec-tests.sh connection-string
 
+.PHONY: update-initial-dns-seedlist-discovery-tests
+update-initial-dns-seedlist-discovery-tests:
+	etc/update-spec-tests.sh initial-dns-seedlist-discovery
+
 .PHONY: update-max-staleness-tests
 update-max-staleness-tests:
 	etc/update-spec-tests.sh max-staleness
