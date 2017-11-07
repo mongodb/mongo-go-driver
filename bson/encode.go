@@ -75,57 +75,6 @@ func itoa(i int) string {
 	return strconv.Itoa(i)
 }
 
-
-// TODO:Steven DO NOT COMMIT - Otherwise your superiors will know that even though you graduated from CMU youre actually
-// an idiot.
-// https://github.com/mongodb/specifications/blob/master/source/extended-json.rst#id12
-func sortMapKeys(keys []reflect.Value) []reflect.Value {
-	hasRef := false
-	hasId := false
-	hasDb := false
-	otherType := ""
-
-	for _, v := range keys {
-		key := v.String()
-		if (key == "$ref") {
-			hasRef = true
-		} else if (key == "$id") {
-			hasId = true
-		} else if (key == "$db") {
-			hasDb = true
-		} else {
-			otherType = key
-		}
-	}
-	if (hasRef && hasId) {
-		// Keys are of dbref - need to sort them
-		if len(keys) == 2 {
-			if keys[0].String() != "$ref" {
-				keys[0], keys[1] = keys[1], keys[0]
-			}
-			return keys
-		} else if len(keys) == 3 {
-			keys[0] = reflect.ValueOf("$ref")
-			keys[1] = reflect.ValueOf("$id")
-			if (hasDb) {
-				keys[2] = reflect.ValueOf("$db")
-			} else if otherType == "$banana" {
-				keys[2] = reflect.ValueOf("$banana")
-			} else if otherType == "foo" {
-				keys[2] = reflect.ValueOf("foo")
-			}
-		} else if (len(keys) == 4) {
-			keys[0] = reflect.ValueOf("$ref")
-			keys[1] = reflect.ValueOf("$id")
-			keys[2] = reflect.ValueOf("$db")
-			keys[3] = reflect.ValueOf("foo")
-		}
-		return keys
-	} else {
-		return keys
-	}
-}
-
 // --------------------------------------------------------------------------
 // Marshaling of the document value itself.
 
@@ -180,9 +129,7 @@ func (e *encoder) addDoc(v reflect.Value) {
 }
 
 func (e *encoder) addMap(v reflect.Value) {
-	// Sort the keys as mapKeys returns then in a random order, which messes with the encoding.
-	sortedKeys := sortMapKeys(v.MapKeys())
-	for _, k := range sortedKeys {
+	for _, k := range v.MapKeys() {
 		e.addElem(k.String(), v.MapIndex(k), false)
 	}
 
@@ -259,9 +206,6 @@ func (e *encoder) addSlice(v reflect.Value) {
 	vi := v.Interface()
 	if d, ok := vi.(D); ok {
 		for _, elem := range d {
-			fmt.Println(elem.Name)
-			fmt.Println(reflect.ValueOf(elem.Value))
-
 			e.addElem(elem.Name, reflect.ValueOf(elem.Value), false)
 		}
 		return

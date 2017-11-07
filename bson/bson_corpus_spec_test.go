@@ -65,10 +65,10 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
 			continue
 		}
-
-		if (entry.Name() != "multi-type.json") {
-			continue
-		}
+		//
+		//if (entry.Name() != "dbref.json") {
+		//	continue
+		//}
 
 		files = append(files, entry.Name())
 	}
@@ -91,28 +91,30 @@ func runTest(t *testing.T, filename string) {
 			return
 		}
 
-		for _, validCase := range test.Valid {
-			lossy := validCase.Lossy
-			cEJ := validCase.Canonical_Extjson
-			cB := validCase.Canonical_Bson
+		//for _, validCase := range test.Valid {
+			//lossy := validCase.Lossy
+			//cEJ := validCase.Canonical_Extjson
+			//cB := validCase.Canonical_Bson
+			//
+			//t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
+			//	validateCanonicalBSON(t, cB, cEJ)
+			//})
+			//t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
+			//	validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
+			//})
 
-			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
-				validateCanonicalBSON(t, cB, cEJ)
-			})
-			t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
-				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
-			})
-
+			// TODO: Steven - Issues with decimal points & dates & NaNs
 			//rEJ := validCase.Relaxed_Extjson
 			//if rEJ != "" {
-				//t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
-				//	validateBsonToRelaxedJSON(t, cB, rEJ)
-				//})
-				//t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
-				//	validateRelaxedExtendedJSON(t, rEJ)
-				//})
+			//	t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
+			//		validateBsonToRelaxedJSON(t, cB, rEJ)
+			//	})
+			//	t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
+			//		validateRelaxedExtendedJSON(t, rEJ)
+			//	})
 			//}
 
+			// TODO: Steven - Passes all. All good here
 			//dB := validCase.Degenerate_Bson
 			//if dB != "" {
 			//	t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
@@ -120,25 +122,28 @@ func runTest(t *testing.T, filename string) {
 			//	})
 			//}
 
+			// TODO: Steven - Not looking too good.
 			//dEJ := validCase.Degenerate_Extjson
 			//if dEJ != "" {
 			//	t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func (t *testing.T) {
 			//		validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
 			//	})
 			//}
-		}
+		//}
 
+		// TODO: Steven - invalidUTF8 passes decodeTest, cant happen.
 		//for _, decodeTest := range test.DecodeErrors {
 		//	t.Run(testName+"decodeTest:"+decodeTest.Description, func (t *testing.T) {
 		//		testDecodeError(t, decodeTest.Bson)
 		//	})
 		//}
-		//
-		//for _, parseTest := range test.ParseErrors {
-		//	t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
-		//		testParseError(t, parseTest.String)
-		//	})
-		//}
+
+		// TODO: Steven - Passes all. All good here.
+		for _, parseTest := range test.ParseErrors {
+			t.Run(testName+"parseTest:"+parseTest.Description, func (t *testing.T) {
+				testParseError(t, parseTest.String)
+			})
+		}
 	})
 
 	//now := time.Now().UTC()
@@ -161,26 +166,26 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	decoded, err := hex.DecodeString(cB)
 	require.NoError(t, err)
 
-	nativeRepr := bson.M{}
-	err = bson.Unmarshal([]byte(decoded), nativeRepr)
-	require.NoError(t, err)
-
 
 
 	nativeReprD := bson.D{}
 	err = bson.Unmarshal([]byte(decoded), &nativeReprD)
 	require.NoError(t, err)
 
-
-	t.Log(nativeReprD)
-
-
+	// TODO: Steven - update: The above code works as it preserves order
 	// TODO:Steven
 	// Converted to BSON.D As order is preservered. With bson.M its just a map so its random.
+
+	//nativeRepr := bson.M{}
+	//err = bson.Unmarshal([]byte(decoded), nativeRepr)
+	//require.NoError(t, err)
+
 	//nativeD := bson.D{}
 	//nativeD.AppendMap(nativeRepr)
-	roundTripCBByteRepr, err := bson.Marshal(nativeReprD);
 	//roundTripCBByteRepr, err := bson.Marshal(nativeRepr);
+
+
+	roundTripCBByteRepr, err := bson.Marshal(nativeReprD);
 	roundTripCB := hex.EncodeToString(roundTripCBByteRepr);
 	require.Equal(t, cB, strings.ToUpper(roundTripCB))
 
@@ -306,20 +311,23 @@ func validateDegenerateExtendedJSON(t *testing.T, dEJ string, cEJ string, cB str
 	nativeRepr := bson.M{}
 	require.NoError(t, json.Unmarshal([]byte(dEJ), &nativeRepr))
 
-	//t.Log(dEJ)
-	//t.Log(nativeRepr)
 
-	nativeReprBsonD := bson.D{}
-	nativeReprBsonD.AppendMap(nativeRepr)
+	// TODO: Steven - if I have this the BSON stuff errors. If I leave the above, extJSON errors.
+	//marshalDDoc := extjson.MarshalD{}
+	//err := json.Unmarshal([]byte(dEJ), &marshalDDoc)
+	//require.NoError(t, err)
+	//
+	//nativeReprBsonD := bson.D(marshalDDoc)
 
-	t.Log(nativeReprBsonD)
+	nativeD := bson.D{}
+	nativeD.AppendMap(nativeRepr)
 
-	// The code below doesn't work as it gives a corrupted document error
-	//var nativeReprBsonD bson.D // Need this new bson.D object as encodeBsonDtoJson wants a Bson.D
-	//err := bson.Unmarshal([]byte(dEJ), &nativeReprBsonD)
+	// This code will corrupt the document
+	//var nativeD bson.D // Need this new bson.D object as encodeBsonDtoJson wants a Bson.D
+	//err := bson.Unmarshal([]byte(dEJ), &nativeD)
 	//require.NoError(t, err)
 
-	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
+	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeD)
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
 
