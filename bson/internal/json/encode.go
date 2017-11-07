@@ -863,7 +863,7 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 			}
 
 			if start < i {
-				fmt.Println("writing..: ", s[start:i])
+				fmt.Println("In 866 writing..: ", s[start:i])
 				e.WriteString(s[start:i])
 			}
 
@@ -877,15 +877,29 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 			case '\r':
 				e.WriteByte('\\')
 				e.WriteByte('r')
+
+			case '\b':
+				e.WriteByte('\\')
+				e.WriteByte('b')
 			case '\t':
 				e.WriteByte('\\')
 				e.WriteByte('t')
-			//case '\u0000':
+			case '\f':
+				e.WriteByte('\\')
+				e.WriteByte('f')
+
+	//
+	//expected: "{\"a\":\"ab\\\\\\\"\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007\\b" +
+	//	"\\t\\n\\u000b\\f\\r\\u000e\\u000f\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015" +
+	//		"\\u0016\\u0017\\u0018\\u0019\\u001a\\u001b\\u001c\\u001d\\u001e\\u001fab\"}"
+
+
+				//case '\u0000':
 				//fmt.Println("sdfghjhgvfgtyhujkl")
 				//e.WriteString("\\u0000")
 
 			default:
-				fmt.Println("Writing...:" , b)
+				fmt.Println("In 888 Writing...:" , b)
 				// This encodes bytes < 0x20 except for \t, \n and \r.
 				// If escapeHTML is set, it also escapes <, >, and &
 				// because they can lead to security holes when
