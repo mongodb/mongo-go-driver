@@ -78,6 +78,7 @@ func itoa(i int) string {
 
 // TODO:Steven DO NOT COMMIT - Otherwise your superiors will know that even though you graduated from CMU youre actually
 // an idiot.
+// https://github.com/mongodb/specifications/blob/master/source/extended-json.rst#id12
 func sortMapKeys(keys []reflect.Value) []reflect.Value {
 	hasRef := false
 	hasId := false
