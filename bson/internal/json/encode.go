@@ -546,9 +546,6 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 	if opts.quoted {
 		e.WriteByte('"')
 	}
-
-	// TODO:Steven - Need to modify this to allow 1.0s for double.json relaxed types.
-	// TODO: I'm not sure why I wrote that, it all looks good right now.
 	e.Write(b)
 	if opts.quoted {
 		e.WriteByte('"')
@@ -918,22 +915,17 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 		i += size
 	}
 	if start < len(s) {
-
-
-		for pos, char := range s {
+		for _, char := range s {
 
 			rn, size := utf8.DecodeLastRuneInString(string(char))
-			//fmt.Println(utf8.DecodeLastRuneInString(s))
-
-			fmt.Printf("character %c starts at byte position %d\n", char, pos)
-
+			//fmt.Println(utf8.DecodeLastRuneInString(string(char)))
 			if size  > 1 {
 				/// We need to encode it properly
 				//e.WriteString("\\")
 				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
 				unquoted := quoted[1:len(quoted)-1]      // unquoted = "\u554a"
-				fmt.Println(unquoted)
-				fmt.Println(quoted)
+				//fmt.Println(unquoted)
+				//fmt.Println(quoted)
 				e.WriteString(unquoted)
 			} else {
 				e.WriteString(string(char))

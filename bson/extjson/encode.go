@@ -84,7 +84,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(`{"$regularExpression":{"pattern":"`)
 
 
-		fmt.Println(x.Pattern)
+		//fmt.Println(x.Pattern)
 
 		// ab\"ab
 
