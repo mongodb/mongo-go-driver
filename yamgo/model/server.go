@@ -44,7 +44,7 @@ type Server struct {
 	Version           Version
 }
 
-// SetAverageRTT sets the average rount trip time.
+// SetAverageRTT sets the average round trip time.
 func (i *Server) SetAverageRTT(rtt time.Duration) {
 	i.AverageRTT = rtt
 	if rtt == UnsetRTT {
