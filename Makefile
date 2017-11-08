@@ -1,7 +1,7 @@
 BSON_PKGS = $(shell ./etc/find_pkgs.sh ./bson)
 BSON_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./bson _test)
-YAMGO_PKGS = $(shell ./etc/find_pkgs.sh ./yamgo)
-YAMGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./yamgo _test)
+YAMGO_PKGS = $(shell ./etc/find_pkgs.sh ./mongo)
+YAMGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./mongo _test)
 PKGS = $(BSON_PKGS) $(YAMGO_PKGS)
 TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 
@@ -28,7 +28,7 @@ fmt:
 
 .PHONY: generate
 generate: 
-	go generate -x ./bson/... ./yamgo/...
+	go generate -x ./bson/... ./mongo/...
 
 .PHONY: lint
 lint:
@@ -41,7 +41,7 @@ lint-add-whitelist:
 
 .PHONY: errcheck
 errcheck:
-	errcheck ./bson/... ./yamgo/...
+	errcheck ./bson/... ./mongo/...
 
 .PHONY: test
 test:
