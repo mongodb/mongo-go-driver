@@ -17,10 +17,10 @@ bson/internal/testutil/close_helper.go:14:1: exported function CloseReadOnlyFile
 bson/internal/testutil/close_helper.go:8:1: exported function CloseOrError should have comment or be unexported
 bson/json.go:246:6: func jdecObjectId should be jdecObjectID
 bson/json.go:263:6: func jencObjectId should be jencObjectID
-yamgo/internal/testutil/helpers/helpers.go:10:1: exported function RequireNoErrorOnClose should have comment or be unexported
-yamgo/internal/testutil/helpers/helpers.go:14:1: exported function FindJSONFilesInDir should have comment or be unexported
-yamgo/options/find_and_modify.go:19:1: exported function CopyFindOneAndReplaceOptions should have comment or be unexported
-yamgo/options/find_and_modify.go:29:1: exported function CopyFindOneAndUpdateOptions should have comment or be unexported
-yamgo/options/find_and_modify.go:9:1: exported function CopyFindOneAndDeleteOptions should have comment or be unexported
-yamgo/options.go:157:1: exported function OplogReplay should have comment or be unexported
-yamgo/options.go:177:56: exported func ReadPreference returns unexported type *yamgo.optReadPreference, which can be annoying to use
+mongo/internal/testutil/helpers/helpers.go:10:1: exported function RequireNoErrorOnClose should have comment or be unexported
+mongo/internal/testutil/helpers/helpers.go:14:1: exported function FindJSONFilesInDir should have comment or be unexported
+mongo/options/find_and_modify.go:19:1: exported function CopyFindOneAndReplaceOptions should have comment or be unexported
+mongo/options/find_and_modify.go:29:1: exported function CopyFindOneAndUpdateOptions should have comment or be unexported
+mongo/options/find_and_modify.go:9:1: exported function CopyFindOneAndDeleteOptions should have comment or be unexported
+mongo/options.go:157:1: exported function OplogReplay should have comment or be unexported
+mongo/options.go:177:56: exported func ReadPreference returns unexported type *mongo.optReadPreference, which can be annoying to use

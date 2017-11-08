@@ -19,12 +19,12 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
-	"github.com/10gen/mongo-go-driver/yamgo"
-	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
-	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
-	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
-	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
-	"github.com/10gen/mongo-go-driver/yamgo/readpref"
+	"github.com/10gen/mongo-go-driver/mongo"
+	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/mongo-go-driver/mongo/readpref"
 )
 
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")
@@ -140,7 +140,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 				bson.D{{"$limit", limit}},
 			}
 
-			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, nil, pipeline, yamgo.BatchSize(200))
+			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, nil, pipeline, mongo.BatchSize(200))
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue
