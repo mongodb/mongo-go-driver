@@ -47,7 +47,6 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 			if (hasE) {
 				v = withEIfNecessary
 			} else {
-
 				minPresicion := strconv.FormatFloat(x, 'f', -1, 64)
 				oneDecimal := strconv.FormatFloat(x, 'f', 1, 64)
 
@@ -156,7 +155,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		// in the other (validateCanonicalBSON) its providing us with a map. That would be the real solution here.
 
 		// Convert x.Scope from Map into bson.D
-		fmt.Println(reflect.ValueOf(x.Scope).Kind())
+		fmt.Println("Extjson/encode.go:159- ", reflect.ValueOf(x.Scope).Kind())
 
 		switch x.Scope.(type) {
 		case bson.M:

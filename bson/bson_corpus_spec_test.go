@@ -92,27 +92,27 @@ func runTest(t *testing.T, filename string) {
 		}
 
 		for _, validCase := range test.Valid {
-			lossy := validCase.Lossy
-			cEJ := validCase.Canonical_Extjson
+			//lossy := validCase.Lossy
+			//cEJ := validCase.Canonical_Extjson
 			cB := validCase.Canonical_Bson
+			//
+			//t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
+			//	validateCanonicalBSON(t, cB, cEJ)
+			//})
+			//t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
+			//	validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
+			//})
 
-			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
-				validateCanonicalBSON(t, cB, cEJ)
-			})
-			t.Run(testName+"validateCanonicalExtendedJSON:"+validCase.Description, func(t *testing.T) {
-				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
-			})
-
-			// TODO: Steven - Issues with decimal points & dates & NaNs
-			//rEJ := validCase.Relaxed_Extjson
-			//if rEJ != "" {
-			//	t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
-			//		validateBsonToRelaxedJSON(t, cB, rEJ)
-			//	})
-			//	t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
-			//		validateRelaxedExtendedJSON(t, rEJ)
-			//	})
-			//}
+			 //TODO: Steven - Issues with decimal points & dates & NaNs
+			rEJ := validCase.Relaxed_Extjson
+			if rEJ != "" {
+				t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
+					validateBsonToRelaxedJSON(t, cB, rEJ)
+				})
+				//t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
+				//	validateRelaxedExtendedJSON(t, rEJ)
+				//})
+			}
 
 			// TODO: Steven - Passes all. All good here
 			//dB := validCase.Degenerate_Bson
@@ -204,9 +204,21 @@ func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
 	error := bson.Unmarshal([]byte(decoded), nativeRepr)
 	require.NoError(t, error)
 
-	roundTripREJ, err := json.Marshal(extjson.NewValueOf(nativeRepr))
+	roundTripREJ, err := json.Marshal(nativeRepr)
 	require.NoError(t, err)
 	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
+
+	// TODO: Steven
+	// In case of doubles the conversion cant be fully represented due to lack of bytes. Therefore we'll do magic on this side.
+	//if strings.Contains(cEJ, "$numberDouble") && compressJSON(cEJ) != string(roundTripCEJ) {
+	//	t.Log("IN NUMBERDOUBLE")
+	//	marshalDDoc := extjson.MarshalD{}
+	//	err := json.Unmarshal([]byte(cEJ), &marshalDDoc)
+	//	require.NoError(t, err)
+	//	require.Equal(t, marshalDDoc[0].Value, nativeReprBsonD[0].Value)
+	//} else {
+	//	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
+	//}
 }
 
 func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {

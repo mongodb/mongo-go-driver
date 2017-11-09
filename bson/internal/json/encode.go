@@ -446,9 +446,10 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		return
 	}
 	m := v.Interface().(Marshaler)
+	fmt.Println("Value of m", m)
 	b, err := m.MarshalJSON()
-	fmt.Println(b)
-	fmt.Println(string(b))
+	fmt.Println("Value of V", b)
+	fmt.Println("String of V", string(b))
 	if err == nil {
 		// copy JSON into buffer, checking validity.
 		err = compact(&e.Buffer, b, opts.escapeHTML)
@@ -540,16 +541,77 @@ func uintEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 
 type floatEncoder int // number of bits
 
+
+const (
+	// Here we need to add the $numberDouble signature
+	decValueInfinity    = "Infinity"
+	decValueNegInfinity = "-Infinity"
+	decValueNaN         = "NaN"
+)
+
 func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 	f := v.Float()
-	if math.IsInf(f, 0) || math.IsNaN(f) {
-		e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, int(bits))})
+
+	// TODO:Steven - Changed to allow infinite values and nan
+	//if math.IsInf(f, 0) || math.IsNaN(f) {
+	//	e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, int(bits))})
+	//}
+
+	var b string
+	if math.IsNaN(f) {
+		b = decValueNaN
+	} else if math.IsInf(f, 1) {
+		b = decValueInfinity
+	} else if math.IsInf(f, -1) {
+		b = decValueNegInfinity
+	} else {
+
+		//b := strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits))
+
+		//TODO:Steven Clean this up and figure out the 64bit issue
+		// So the 64 bit issue we cant do anything about it- therefore we would need to
+		withEIfNecessary := strconv.FormatFloat(f, 'G', -1, 64)
+		hasE := false
+		for _, ch := range withEIfNecessary {
+			if string(ch) == "E" {
+				hasE = true
+				break
+			}
+		}
+		if (hasE) {
+			b = withEIfNecessary
+		} else {
+			minPresicion := strconv.FormatFloat(f, 'f', -1, 64)
+			oneDecimal := strconv.FormatFloat(f, 'f', 1, 64)
+
+			minF, _ := strconv.ParseFloat(minPresicion, 64)
+			oneF, _ := strconv.ParseFloat(oneDecimal, 64)
+
+			if (math.Float64bits(minF) == math.Float64bits(oneF)) {
+				// Same result, then use the one with one decimal point (1.0)
+				b = oneDecimal
+			} else {
+				b = minPresicion
+			}
+		}
 	}
-	b := strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits))
+	//fmt.Println("VAL OF APPENDFLOAT1", string(strconv.AppendFloat(e.scratch[:0], f, 'g', 1, int(bits))))
+	//fmt.Println("VAL OF APPENDFLOAT1", strconv.AppendFloat(e.scratch[:0], f, 'g', 1, int(bits)))
+	//
+	//fmt.Println("VAL OF APPENDFLOAT-1", string(strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits))))
+	//fmt.Println("VAL OF APPENDFLOAT-1", strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits)))
+
 	if opts.quoted {
 		e.WriteByte('"')
 	}
-	e.Write(b)
+
+	if b == decValueNaN || b ==  decValueInfinity || b == decValueNegInfinity {
+		e.WriteString(`{"$numberDouble":"`)
+		e.Write([]byte(b))
+		e.WriteString(`"}`)
+	} else {
+		e.Write([]byte(b))
+	}
 	if opts.quoted {
 		e.WriteByte('"')
 	}
