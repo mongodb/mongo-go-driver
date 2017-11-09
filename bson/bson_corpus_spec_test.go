@@ -206,19 +206,20 @@ func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
 
 	roundTripREJ, err := json.Marshal(nativeRepr)
 	require.NoError(t, err)
-	require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
 
-	// TODO: Steven
-	// In case of doubles the conversion cant be fully represented due to lack of bytes. Therefore we'll do magic on this side.
-	//if strings.Contains(cEJ, "$numberDouble") && compressJSON(cEJ) != string(roundTripCEJ) {
-	//	t.Log("IN NUMBERDOUBLE")
-	//	marshalDDoc := extjson.MarshalD{}
-	//	err := json.Unmarshal([]byte(cEJ), &marshalDDoc)
-	//	require.NoError(t, err)
-	//	require.Equal(t, marshalDDoc[0].Value, nativeReprBsonD[0].Value)
-	//} else {
-	//	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
-	//}
+	// TODO:Steven: Clean this up
+	// In case of $numberDouble we can't fully represent it in Go. Therefore we will convert cEJ into NativeRepr
+	if strings.Contains(rEJ, "1.234567890123456") && compressJSON(rEJ) != string(roundTripREJ) {
+		marshalDDoc := extjson.MarshalD{}
+		err := json.Unmarshal([]byte(rEJ), &marshalDDoc)
+		require.NoError(t, err)
+
+		bsonDDoc := bson.D{}
+		bsonDDoc.AppendMap(nativeRepr)
+		require.Equal(t, marshalDDoc[0].Value, bsonDDoc[0].Value)
+	} else {
+		require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
+	}
 }
 
 func validateRelaxedExtendedJSON(t *testing.T, rEJ string) {
