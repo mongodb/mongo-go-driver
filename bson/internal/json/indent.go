@@ -46,9 +46,9 @@ func compact(dst *bytes.Buffer, src []byte, escape bool) error {
 		// TODO: Steven - this place is where the error comes in.
 		v := scan.step(&scan, c)
 		if v >= scanSkipSpace {
-			//if v == scanError {
-			//	break
-			//}
+			if v == scanError {
+				break
+			}
 			if start < i {
 				dst.Write(src[start:i])
 			}

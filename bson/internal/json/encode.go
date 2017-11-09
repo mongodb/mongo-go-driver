@@ -24,6 +24,7 @@ import (
 	"sync"
 	"unicode"
 	"unicode/utf8"
+	"time"
 )
 
 // Marshal returns the JSON encoding of v.
@@ -446,8 +447,78 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		return
 	}
 	m := v.Interface().(Marshaler)
-	fmt.Println("Value of m", m)
-	b, err := m.MarshalJSON()
+
+	// TODO: Steven
+	var err error
+	var b []byte
+	switch x := v.Interface().(type) {
+	case time.Time:
+		// Need to be able to handle 3 types of outputs.
+		//1.             "relaxed_extjson": "{\"a\" : {\"$date\" : \"1970-01-01T00:00:00Z\"}}",
+		//2.            "relaxed_extjson": "{\"a\" : {\"$date\" : \"2012-12-24T12:15:30.501Z\"}}",
+		//3.             "relaxed_extjson": "{\"a\" : {\"$date\" : {\"$numberLong\" : \"-284643869501\"}}}",
+
+
+		//fmt.Println("Val X: ", x.UTC().Nanosecond())
+		//fmt.Println("Val X: ", x.UTC().Unix())
+
+		utc := x.UTC()
+
+		var st string
+		var fmtted string
+		if utc.Unix() < 0 {
+			// Require numberLong to be in unixms but that method doesnt exist
+			var MILLION int64
+			MILLION = 1000000
+			s := strconv.FormatInt(utc.UnixNano() / MILLION, 10)
+			st = `{"$date":{"$numberLong":"` + s + `"}}`
+			fmt.Println(utc.UnixNano())
+			fmt.Println(s)
+		} else {
+			if utc.Nanosecond() == 0 {
+				fmtted = x.UTC().Format("2006-01-02T15:04:05Z")
+			} else {
+				fmtted = x.UTC().Format("2006-01-02T15:04:05.000Z")
+			}
+			st = `{"$date":"` + fmtted + `"}`
+		}
+
+		// Convert string to bytes to compact it later
+		b = []byte(st)
+		break
+	default:
+		b, err = m.MarshalJSON()
+	}
+
+	//"relaxed_extjson": "{\"a\" : {\"$date\" : \"1970-01-01T00:00:00Z\"}}",
+	//	String of V                             1970-01-01T00:00:00+0000
+
+	// 	case time.Time:
+	//// Overflow here is undefiend
+	//buff.WriteString(`{"$date":{"$numberLong":"`)
+	//buff.WriteString(fmt.Sprintf("%d", (x.Unix()*1e3)+(int64(x.Nanosecond())/1e6)))
+	//buff.WriteString(`"}}`)
+
+
+
+	// TODO: Steven: Issue here is that m.MarshallJSON is calling the actuall time.go's json marshaller and thats not being friendly
+	// // MarshalJSON implements the json.Marshaler interface.
+	// The time is a quoted string in RFC 3339 format, with sub-second precision added if present.
+	//func (t Time) MarshalJSON() ([]byte, error) {
+	//	if y := t.Year(); y < 0 || y >= 10000 {
+	//		// RFC 3339 is clear that years are 4 digits exactly.
+	//		// See golang.org/issue/4556#c15 for more discussion.
+	//		return nil, errors.New("Time.MarshalJSON: year outside of range [0,9999]")
+	//	}
+	//
+	//	b := make([]byte, 0, len(RFC3339Nano)+2)
+	//	b = append(b, '"')
+	//	b = t.AppendFormat(b, RFC3339Nano)
+	//	b = append(b, '"')
+	//	return b, nil
+	//}
+
+
 	fmt.Println("Value of V", b)
 	fmt.Println("String of V", string(b))
 	if err == nil {
@@ -595,11 +666,6 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 			}
 		}
 	}
-	//fmt.Println("VAL OF APPENDFLOAT1", string(strconv.AppendFloat(e.scratch[:0], f, 'g', 1, int(bits))))
-	//fmt.Println("VAL OF APPENDFLOAT1", strconv.AppendFloat(e.scratch[:0], f, 'g', 1, int(bits)))
-	//
-	//fmt.Println("VAL OF APPENDFLOAT-1", string(strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits))))
-	//fmt.Println("VAL OF APPENDFLOAT-1", strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits)))
 
 	if opts.quoted {
 		e.WriteByte('"')
