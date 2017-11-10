@@ -104,6 +104,10 @@ func (coll *Collection) InsertOneContext(ctx context.Context, document interface
 // InsertManyContext inserts the provided documents. A user can supply a custom context to this
 // method.
 //
+// Currently, batching is not implemented for this operation. Because of this, extremely large
+// sets of documents will not fit into a single BSON document to be sent to the server, so the
+// operation will fail.
+//
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) InsertManyContext(ctx context.Context, documents []interface{},
 	options ...options.InsertOption) (*InsertManyResult, error) {
