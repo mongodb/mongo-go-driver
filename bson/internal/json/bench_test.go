@@ -1,6 +1,11 @@
-// Copyright 2011 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on github.com/golang/go by The Go Authors
+// See THIRD-PARTY-NOTICES for original license terms.
 
 // Large data benchmark.
 // The JSON data is a summary of agl's changes in the
@@ -17,6 +22,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/10gen/mongo-go-driver/bson/internal/testutil"
 )
 
 type codeResponse struct {
@@ -42,7 +49,7 @@ func codeInit() {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer testutil.CloseReadOnlyFile(f)
 	gz, err := gzip.NewReader(f)
 	if err != nil {
 		panic(err)

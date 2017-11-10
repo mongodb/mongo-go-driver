@@ -402,6 +402,10 @@ axes:
         display_name: "3.2"
         variables:
            VERSION: "3.2"
+      - id: "latest"
+        display_name: "latest"
+        variables:
+           VERSION: "latest"
 
   - id: os
     display_name: OS

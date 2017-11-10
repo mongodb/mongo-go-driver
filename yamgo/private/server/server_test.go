@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package server_test
 
 import (
@@ -10,6 +16,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
 	"github.com/10gen/mongo-go-driver/yamgo/internal/servertest"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	"github.com/10gen/mongo-go-driver/yamgo/model"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
@@ -33,7 +40,7 @@ func TestServer_Close_should_not_return_new_connections(t *testing.T) {
 		WithMaxConnections(2),
 	)
 
-	s.Close()
+	require.NoError(t, s.Close())
 
 	_, err := s.Connection(context.Background())
 	require.Error(t, err)
@@ -98,8 +105,8 @@ func TestServer_Connection_should_pool_connections(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	c1.Close()
-	c2.Close()
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	_, err = s.Connection(context.Background())
 	require.NoError(t, err)
@@ -134,11 +141,11 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	c1.Close()
-	c2.Close()
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
-	fake.SetKind(model.Unknown)
-	time.Sleep(1 * time.Second)
+	require.NoError(t, fake.SetKind(model.Unknown))
+	time.Sleep(3 * time.Second)
 
 	_, err = s.Connection(context.Background())
 	require.NoError(t, err)
@@ -173,12 +180,14 @@ func TestServer_Connection_Read_non_specific_error_should_clear_the_pool(t *test
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	c1.Write(context.Background(), &msg.Query{})
-	c1.Read(context.Background(), 0)
+	require.NoError(t, c1.Write(context.Background(), &msg.Query{}))
+	// Don't check for errors here since no response is queued.
+	_, _ = c1.Read(context.Background(), 0)
+
 	c1.MarkDead()
 
-	c1.Close()
-	c2.Close()
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	time.Sleep(1 * time.Second)
 
@@ -235,12 +244,15 @@ func TestServer_Connection_Read_specific_error_should_not_clear_the_pool(t *test
 			require.Len(t, created, 2)
 
 			created[0].ReadErr = ignoredErr
-			c1.Write(context.Background(), &msg.Query{})
-			c1.Read(context.Background(), 0)
+
+			require.NoError(t, c1.Write(context.Background(), &msg.Query{}))
+			_, err = c1.Read(context.Background(), 0)
+			require.EqualError(t, err, ignoredErr.Error())
+
 			c1.MarkDead()
 
-			c1.Close()
-			c2.Close()
+			testhelpers.RequireNoErrorOnClose(t, c1)
+			testhelpers.RequireNoErrorOnClose(t, c2)
 
 			time.Sleep(1 * time.Second)
 
@@ -279,12 +291,13 @@ func TestServer_Connection_Write_non_specific_error_should_clear_the_pool(t *tes
 	require.NoError(t, err)
 	require.Len(t, created, 2)
 
-	created[0].WriteErr = fmt.Errorf("forced write error")
-	c1.Write(context.Background(), &msg.Query{})
+	nonSpecificError := fmt.Errorf("forced write error")
+	created[0].WriteErr = nonSpecificError
+	require.EqualError(t, c1.Write(context.Background(), &msg.Query{}), nonSpecificError.Error())
 	c1.MarkDead()
 
-	c1.Close()
-	c2.Close()
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	time.Sleep(1 * time.Second)
 
@@ -324,11 +337,11 @@ func TestServer_Connection_Write_specific_error_should_not_clear_the_pool(t *tes
 			require.Len(t, created, 2)
 
 			created[0].WriteErr = ignoredErr
-			c1.Write(context.Background(), &msg.Query{})
+			require.EqualError(t, c1.Write(context.Background(), &msg.Query{}), ignoredErr.Error())
 			c1.MarkDead()
 
-			c1.Close()
-			c2.Close()
+			testhelpers.RequireNoErrorOnClose(t, c1)
+			testhelpers.RequireNoErrorOnClose(t, c2)
 
 			time.Sleep(1 * time.Second)
 

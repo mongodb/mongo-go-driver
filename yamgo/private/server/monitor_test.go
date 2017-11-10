@@ -1,6 +1,13 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package server_test
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -16,22 +23,30 @@ func TestMonitor_Close_should_close_all_update_channels(t *testing.T) {
 
 	updates1, _, _ := fm.Subscribe()
 	done1 := false
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	go func() {
+		defer wg.Done()
 		for range updates1 {
 		}
+
 		done1 = true
 	}()
+
 	updates2, _, _ := fm.Subscribe()
 	done2 := false
 	go func() {
+		defer wg.Done()
 		for range updates2 {
 		}
+
 		done2 = true
 	}()
 
 	fm.Stop()
-
-	time.Sleep(1 * time.Second)
+	wg.Wait()
 
 	require.True(t, done1)
 	require.True(t, done2)

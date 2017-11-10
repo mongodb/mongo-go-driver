@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops_test
 
 import (
@@ -5,14 +11,14 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/ops"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRun(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	server := getServer(t)
 

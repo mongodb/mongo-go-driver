@@ -1,6 +1,10 @@
-package server
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//go:generate go run monitor_rtt_spec_internal_test_generator.go
+package server
 
 import (
 	"context"
@@ -50,6 +54,7 @@ func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
 
 		// send the update to all subscribers
 		m.subscriberLock.Lock()
+		defer m.subscriberLock.Unlock()
 		for _, ch := range m.subscribers {
 			select {
 			case <-ch:
@@ -59,7 +64,6 @@ func StartMonitor(addr model.Addr, opts ...Option) (*Monitor, error) {
 			}
 			ch <- model
 		}
-		m.subscriberLock.Unlock()
 
 		// restart the timers
 		rateLimitTimer.Stop()
@@ -135,8 +139,8 @@ func (m *Monitor) Subscribe() (<-chan *model.Server, func(), error) {
 	// create channel and populate with current state
 	ch := make(chan *model.Server, 1)
 	m.currentLock.Lock()
+	defer m.currentLock.Unlock()
 	ch <- m.current
-	m.currentLock.Unlock()
 
 	// add channel to subscribers
 	m.subscriberLock.Lock()
@@ -196,7 +200,7 @@ func (m *Monitor) heartbeat() *model.Server {
 	ctx := context.Background()
 	for i := 1; i <= maxRetryCount; i++ {
 		if m.conn != nil && m.conn.Expired() {
-			m.conn.Close()
+			m.conn.CloseIgnoreError()
 			m.conn = nil
 		}
 
@@ -210,7 +214,7 @@ func (m *Monitor) heartbeat() *model.Server {
 			if err != nil {
 				savedErr = err
 				if conn != nil {
-					conn.Close()
+					conn.CloseIgnoreError()
 				}
 				m.conn = nil
 				continue
@@ -222,7 +226,7 @@ func (m *Monitor) heartbeat() *model.Server {
 		isMasterResult, err := m.describeServer(ctx)
 		if err != nil {
 			savedErr = err
-			m.conn.Close()
+			m.conn.CloseIgnoreError()
 			m.conn = nil
 			continue
 		}

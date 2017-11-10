@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package cluster
 
 import (
@@ -77,7 +83,7 @@ type Cluster struct {
 }
 
 // Close closes the cluster.
-func (c *Cluster) Close() {
+func (c *Cluster) Close() error {
 	if c.ownsMonitor {
 		c.monitor.Stop()
 	}
@@ -86,21 +92,24 @@ func (c *Cluster) Close() {
 	defer c.stateLock.Unlock()
 
 	if c.stateServers == nil {
-		return
+		return nil
 	}
 
+	var err error
 	for _, server := range c.stateServers {
-		server.Close()
+		err = server.Close()
 	}
 	c.stateServers = nil
 	c.stateModel = &model.Cluster{}
+
+	return err
 }
 
 // Model gets a description of the cluster.
 func (c *Cluster) Model() *model.Cluster {
 	c.stateLock.Lock()
+	defer c.stateLock.Unlock()
 	m := c.stateModel
-	c.stateLock.Unlock()
 	return m
 }
 
@@ -210,7 +219,8 @@ func (c *Cluster) applyUpdate(cm *model.Cluster) {
 
 	for _, removed := range diff.RemovedServers {
 		if server, ok := c.stateServers[removed.Addr]; ok {
-			server.Close()
+			// Ignore any error that occurs since this only gets called in a different goroutine.
+			_ = server.Close()
 		}
 
 		delete(c.stateServers, removed.Addr)

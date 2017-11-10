@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package conn
 
 import (
@@ -30,7 +36,7 @@ type Pool interface {
 	// Clear drains the pool.
 	Clear()
 	// Close closes the pool, making it unusable.
-	Close()
+	Close() error
 	// Get gets a connection from the pool. To return the connection
 	// to the pool, close it.
 	Get(context.Context) (Connection, error)
@@ -42,7 +48,7 @@ type nonPool struct {
 
 func (p *nonPool) Clear() {}
 
-func (p *nonPool) Close() {}
+func (p *nonPool) Close() error { return nil }
 
 func (p *nonPool) Get(ctx context.Context) (Connection, error) {
 	return p.provider(ctx)
@@ -60,20 +66,26 @@ func (p *idlePool) Clear() {
 	atomic.AddUint32(&p.gen, 1)
 }
 
-func (p *idlePool) Close() {
+// Close will return the last error encountered when closing the connections in the pool.
+func (p *idlePool) Close() error {
 	p.connsLock.Lock()
 	conns := p.conns
 	p.conns = nil
 	p.connsLock.Unlock()
 
 	if conns == nil {
-		return
+		return nil
 	}
 
 	close(conns)
+
+	var err error
+
 	for c := range conns {
-		c.Close()
+		err = c.Close()
 	}
+
+	return err
 }
 
 func (p *idlePool) Get(ctx context.Context) (Connection, error) {
@@ -102,7 +114,9 @@ func (p *idlePool) getConn(ctx context.Context, conns chan *poolConn) (Connectio
 		}
 
 		if c.Expired() {
-			c.Connection.Close()
+			if err := c.Connection.Close(); err != nil {
+				return nil, err
+			}
 			return p.getConn(ctx, conns)
 		}
 

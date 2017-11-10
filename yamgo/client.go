@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package yamgo
 
 import (
@@ -7,7 +13,9 @@ import (
 	"github.com/10gen/mongo-go-driver/yamgo/connstring"
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/private/ops"
+	"github.com/10gen/mongo-go-driver/yamgo/readconcern"
 	"github.com/10gen/mongo-go-driver/yamgo/readpref"
+	"github.com/10gen/mongo-go-driver/yamgo/writeconcern"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -18,6 +26,8 @@ type Client struct {
 	connString     connstring.ConnString
 	localThreshold time.Duration
 	readPreference *readpref.ReadPref
+	readConcern    *readconcern.ReadConcern
+	writeConcern   *writeconcern.WriteConcern
 }
 
 // NewClient creates a new client to connect to a cluster specified by the uri.
@@ -49,8 +59,8 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 }
 
 // Database returns a handle for a given database.
-func (client *Client) Database(name string, options ...DatabaseOption) *Database {
-	return newDatabase(client, name, options...)
+func (client *Client) Database(name string) *Database {
+	return newDatabase(client, name)
 }
 
 // ConnectionString returns the connection string of the cluster the client is connected to.

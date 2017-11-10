@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package internal
 
 import (
@@ -21,10 +27,10 @@ type IsMasterResult struct {
 	MaxMessageSizeBytes uint32            `bson:"maxMessageSizeBytes,omitempty"`
 	MaxWriteBatchSize   uint16            `bson:"maxWriteBatchSize,omitempty"`
 	Me                  string            `bson:"me,omitempty"`
-	MaxWireVersion      uint8             `bson:"maxWireVersion,omitempty"`
-	MinWireVersion      uint8             `bson:"minWireVersion,omitempty"`
+	MaxWireVersion      int32             `bson:"maxWireVersion,omitempty"`
+	MinWireVersion      int32             `bson:"minWireVersion,omitempty"`
 	Msg                 string            `bson:"msg,omitempty"`
-	OK                  bool              `bson:"ok"`
+	OK                  int32             `bson:"ok"`
 	Passives            []string          `bson:"passives,omitempty"`
 	ReadOnly            bool              `bson:"readOnly,omitempty"`
 	Secondary           bool              `bson:"secondary,omitempty"`

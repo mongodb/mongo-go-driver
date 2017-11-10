@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package conn
 
 import (
@@ -95,11 +101,14 @@ func readCommandResponse(resp msg.Response, out interface{}) error {
 					break
 				}
 			case "errmsg":
-				rawElem.Value.Unmarshal(&errmsg)
+				// Ignore any error that occurs since we're handling malformed documents below.
+				_ = rawElem.Value.Unmarshal(&errmsg)
 			case "codeName":
-				rawElem.Value.Unmarshal(&codeName)
+				// Ignore any error that occurs since we're handling malformed documents below.
+				_ = rawElem.Value.Unmarshal(&codeName)
 			case "code":
-				rawElem.Value.Unmarshal(&code)
+				// Ignore any error that occurs since we're handling malformed documents below.
+				_ = rawElem.Value.Unmarshal(&code)
 			}
 		}
 

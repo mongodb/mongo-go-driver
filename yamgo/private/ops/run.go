@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops
 
 import (
@@ -29,7 +35,10 @@ func runMustUsePrimary(ctx context.Context, s *SelectedServer, db string, comman
 
 	errChan := make(chan error, 1)
 	go func() {
-		defer c.Close()
+		defer func() {
+			// Ignore any error that occurs since we're in a different goroutine.
+			_ = c.Close()
+		}()
 		errChan <- conn.ExecuteCommand(context.Background(), c, request, result)
 	}()
 
@@ -55,7 +64,10 @@ func runMayUseSecondary(ctx context.Context, s *SelectedServer, db string, comma
 	}
 	errChan := make(chan error, 1)
 	go func() {
-		defer c.Close()
+		defer func() {
+			// Ignore any error that occurs since we're in a different goroutine.
+			_ = c.Close()
+		}()
 
 		if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
 			msg.AddMeta(request, map[string]interface{}{

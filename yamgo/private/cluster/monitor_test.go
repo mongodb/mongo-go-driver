@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package cluster_test
 
 import (
@@ -59,6 +65,10 @@ func (c *fakeMonitorConn) Close() error {
 	return nil
 }
 
+func (c *fakeMonitorConn) CloseIgnoreError() {
+	_ = c.Close()
+}
+
 func (c *fakeMonitorConn) MarkDead() {
 	c.dead = true
 }
@@ -93,7 +103,7 @@ func (c *fakeMonitorConn) Write(_ context.Context, msgs ...msg.Request) error {
 			case "ismaster":
 				reply = msgtest.CreateCommandReply(
 					internal.IsMasterResult{
-						OK:       true,
+						OK:       1,
 						IsMaster: true,
 					},
 				)

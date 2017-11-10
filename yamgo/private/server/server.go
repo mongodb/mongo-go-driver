@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package server
 
 import (
@@ -87,16 +93,16 @@ type Server struct {
 }
 
 // Close closes the server.
-func (s *Server) Close() {
+func (s *Server) Close() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	if s.monitor == nil {
 		// already closed
-		return
+		return nil
 	}
 
 	s.cancelSubscription()
-	s.conns.Close()
+	err := s.conns.Close()
 	if s.ownsMonitor {
 		s.monitor.Stop()
 	}
@@ -104,6 +110,8 @@ func (s *Server) Close() {
 	s.conns = nil
 	s.monitor = nil
 	s.connProvider = nil
+
+	return err
 }
 
 // Connection gets a connection to the server.
@@ -130,18 +138,18 @@ func (s *Server) Connection(ctx context.Context) (conn.Connection, error) {
 // Model gets a description of the server as of the last heartbeat.
 func (s *Server) Model() *model.Server {
 	s.currentLock.Lock()
+	defer s.currentLock.Unlock()
 	current := s.current
-	s.currentLock.Unlock()
 	return current
 }
 
 func (s *Server) applyUpdate(m *model.Server) {
 	var first bool
 	s.currentLock.Lock()
+	defer s.currentLock.Unlock()
 	s.current = m
 	first = !s.hasCurrent
 	s.hasCurrent = true
-	s.currentLock.Unlock()
 
 	if first {
 		// don't clear the pool for the first update.
@@ -151,8 +159,8 @@ func (s *Server) applyUpdate(m *model.Server) {
 	switch m.Kind {
 	case model.Unknown:
 		s.lock.Lock()
+		defer s.lock.Unlock()
 		conns := s.conns
-		s.lock.Unlock()
 
 		if conns != nil {
 			conns.Clear()

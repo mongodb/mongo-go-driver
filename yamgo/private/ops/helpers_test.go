@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops_test
 
 import (
@@ -5,7 +11,8 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	"github.com/10gen/mongo-go-driver/yamgo/private/cluster"
 	"github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/10gen/mongo-go-driver/yamgo/private/msg"
@@ -16,7 +23,7 @@ import (
 
 func getServer(t *testing.T) *SelectedServer {
 
-	c := testconfig.Cluster(t)
+	c := testutil.Cluster(t)
 
 	server, err := c.SelectServer(context.Background(), cluster.WriteSelector(), readpref.Primary())
 	require.NoError(t, err)
@@ -29,21 +36,21 @@ func getServer(t *testing.T) *SelectedServer {
 
 func find(t *testing.T, s Server, batchSize int32) CursorResult {
 	findCommand := bson.D{
-		bson.NewDocElem("find", testconfig.ColName(t)),
+		bson.NewDocElem("find", testutil.ColName(t)),
 	}
 	if batchSize != 0 {
 		findCommand = append(findCommand, bson.NewDocElem("batchSize", batchSize))
 	}
 	request := msg.NewCommand(
 		msg.NextRequestID(),
-		testconfig.DBName(t),
+		testutil.DBName(t),
 		false,
 		findCommand,
 	)
 
 	c, err := s.Connection(context.Background())
 	require.NoError(t, err)
-	defer c.Close()
+	defer testhelpers.RequireNoErrorOnClose(t, c)
 
 	var result cursorReturningResult
 

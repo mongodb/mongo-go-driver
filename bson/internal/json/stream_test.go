@@ -1,6 +1,11 @@
-// Copyright 2010 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on github.com/golang/go by The Go Authors
+// See THIRD-PARTY-NOTICES for original license terms.
 
 package json
 
@@ -15,6 +20,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/10gen/mongo-go-driver/bson/internal/testutil"
 )
 
 // Test values for the stream test.
@@ -79,7 +86,9 @@ func TestEncoderIndent(t *testing.T) {
 	enc := NewEncoder(&buf)
 	enc.Indent(">", ".")
 	for _, v := range streamTest {
-		enc.Encode(v)
+		if err := enc.Encode(v); err != nil {
+			t.Errorf("unable to encode: %v", err)
+		}
 	}
 	if have, want := buf.String(), streamEncodedIndent; have != want {
 		t.Error("indented encoding mismatch")
@@ -247,7 +256,11 @@ var blockingTests = []string{
 func TestBlocking(t *testing.T) {
 	for _, enc := range blockingTests {
 		r, w := net.Pipe()
-		go w.Write([]byte(enc))
+		go func() {
+			if _, err := w.Write([]byte(enc)); err != nil {
+				t.Errorf("unable to write bytes: %v", err)
+			}
+		}()
 		var val interface{}
 
 		// If Decode reads beyond what w.Write writes above,
@@ -255,8 +268,8 @@ func TestBlocking(t *testing.T) {
 		if err := NewDecoder(r).Decode(&val); err != nil {
 			t.Errorf("decoding %s: %v", enc, err)
 		}
-		r.Close()
-		w.Close()
+		testutil.CloseOrError(t, r)
+		testutil.CloseOrError(t, w)
 	}
 }
 
@@ -388,14 +401,16 @@ func TestHTTPDecoding(t *testing.T) {
 	const raw = `{ "foo": "bar" }`
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(raw))
+		if _, err := w.Write([]byte(raw)); err != nil {
+			t.Errorf("unable to write bytes: %v", err)
+		}
 	}))
 	defer ts.Close()
 	res, err := http.Get(ts.URL)
 	if err != nil {
 		log.Fatalf("GET failed: %v", err)
 	}
-	defer res.Body.Close()
+	defer testutil.CloseOrError(t, res.Body)
 
 	foo := struct {
 		Foo string

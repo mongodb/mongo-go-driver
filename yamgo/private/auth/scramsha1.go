@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package auth
 
 import (
@@ -197,13 +203,13 @@ func (c *scramSaslClient) generateClientNonce(n uint8) error {
 
 func (c *scramSaslClient) h(data []byte) []byte {
 	h := sha1.New()
-	h.Write(data)
+	_, _ = h.Write(data)
 	return h.Sum(nil)
 }
 
 func (c *scramSaslClient) hmac(data []byte, key string) []byte {
 	h := hmac.New(sha1.New, data)
-	io.WriteString(h, key)
+	_, _ = io.WriteString(h, key)
 	return h.Sum(nil)
 }
 

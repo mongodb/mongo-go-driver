@@ -1,6 +1,10 @@
-package connstring
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//go:generate go run connstring_spec_test_generator.go
+package connstring
 
 import (
 	"fmt"
@@ -99,6 +103,7 @@ func (p *parser) parse(original string) error {
 		if idx := strings.Index(userInfo, ":"); idx != -1 {
 			username = userInfo[:idx]
 			password = userInfo[idx+1:]
+			p.PasswordSet = true
 		}
 
 		if len(username) > 1 {
@@ -122,7 +127,6 @@ func (p *parser) parse(original string) error {
 			if err != nil {
 				return internal.WrapErrorf(err, "invalid password")
 			}
-			p.PasswordSet = true
 		}
 
 	}

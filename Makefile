@@ -8,7 +8,7 @@ TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 TEST_TIMEOUT = 20
 
 .PHONY: default
-default: generate test-cover check-fmt vet build-examples lint
+default: generate test-cover test-race check-fmt vet build-examples lint errcheck
 
 .PHONY: doc
 doc:
@@ -37,6 +37,11 @@ lint:
 .PHONY: lint-add-whitelist
 lint-add-whitelist:
 	golint $(PKGS) | ./etc/lintscreen.pl -u .lint-whitelist
+	sort .lint-whitelist -o .lint-whitelist
+
+.PHONY: errcheck
+errcheck:
+	errcheck ./bson/... ./yamgo/...
 
 .PHONY: test
 test:
@@ -73,6 +78,10 @@ update-server-discovery-and-monitoring-tests:
 .PHONY: update-server-selection-tests
 update-server-selection-tests:
 	etc/update-spec-tests.sh server-selection
+
+.PHONY: update-notices
+update-notices:
+	etc/generate-notices.pl > THIRD-PARTY-NOTICES
 
 .PHONY: vet
 vet:

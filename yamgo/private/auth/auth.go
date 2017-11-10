@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package auth
 
 import (
@@ -47,14 +53,16 @@ func NewConnection(ctx context.Context, authenticator Authenticator, opener conn
 	conn, err := opener(ctx, addr, opts...)
 	if err != nil {
 		if conn != nil {
-			conn.Close()
+			// Ignore any error that occurs since we're already returning a different one.
+			_ = conn.Close()
 		}
 		return nil, err
 	}
 
 	err = authenticator.Auth(ctx, conn)
 	if err != nil {
-		conn.Close()
+		// Ignore any error that occurs since we're already returning a different one.
+		_ = conn.Close()
 		return nil, err
 	}
 

@@ -1,6 +1,11 @@
-// Copyright 2010 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on github.com/golang/go by The Go Authors
+// See THIRD-PARTY-NOTICES for original license terms.
 
 // Package json implements encoding and decoding of JSON as defined in
 // RFC 4627. The mapping between JSON and Go values is described
@@ -819,8 +824,14 @@ func encodeByteSlice(e *encodeState, v reflect.Value, _ encOpts) {
 		// for large buffers, avoid unnecessary extra temporary
 		// buffer space.
 		enc := base64.NewEncoder(base64.StdEncoding, e)
-		enc.Write(s)
-		enc.Close()
+
+		if _, err := enc.Write(s); err != nil {
+			e.error(fmt.Errorf("unable to base64 encode byte slice: %v", err))
+		}
+
+		if err := enc.Close(); err != nil {
+			e.error(fmt.Errorf("unable to close encoder: %v", err))
+		}
 	}
 	e.WriteByte('"')
 }

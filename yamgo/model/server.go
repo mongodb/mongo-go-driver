@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package model
 
 import (
@@ -38,7 +44,7 @@ type Server struct {
 	Version           Version
 }
 
-// SetAverageRTT sets the average rount trip time.
+// SetAverageRTT sets the average round trip time.
 func (i *Server) SetAverageRTT(rtt time.Duration) {
 	i.AverageRTT = rtt
 	if rtt == UnsetRTT {
@@ -79,7 +85,7 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 		i.CanonicalAddr = addr
 	}
 
-	if !isMasterResult.OK {
+	if isMasterResult.OK != 1 {
 		i.LastError = fmt.Errorf("not ok")
 		return i
 	}

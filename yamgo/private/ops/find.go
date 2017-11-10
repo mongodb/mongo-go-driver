@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops
 
 import (
@@ -8,13 +14,14 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
 	"github.com/10gen/mongo-go-driver/yamgo/options"
+	"github.com/10gen/mongo-go-driver/yamgo/readconcern"
 )
 
 // Find executes a query.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func Find(ctx context.Context, s *SelectedServer, ns Namespace, filter interface{},
-	findOptions ...options.FindOption) (Cursor, error) {
+func Find(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
+	filter interface{}, findOptions ...options.FindOption) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -69,7 +76,9 @@ func Find(ctx context.Context, s *SelectedServer, ns Namespace, filter interface
 		command.AppendElem("singleBatch", true)
 	}
 
-	// TODO GODRIVER-27: read concern
+	if readConcern != nil {
+		command.AppendElem("readConcern", readConcern)
+	}
 
 	var result cursorReturningResult
 

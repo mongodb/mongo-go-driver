@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops
 
 import (
@@ -131,7 +137,6 @@ func (c *cursorImpl) Close(ctx context.Context) error {
 		)
 		return c.err
 	}
-	defer connection.Close()
 
 	err = conn.ExecuteCommand(ctx, connection, killCursorsRequest, &bson.D{})
 	if err != nil {
@@ -143,6 +148,15 @@ func (c *cursorImpl) Close(ctx context.Context) error {
 	}
 
 	c.cursorID = 0
+
+	err = connection.Close()
+	if err != nil {
+		c.err = internal.MultiError(
+			c.err,
+			internal.WrapErrorf(err, "unable to close connection of cursor %d", c.cursorID),
+		)
+	}
+
 	return c.err
 }
 
@@ -199,11 +213,16 @@ func (c *cursorImpl) getMore(ctx context.Context) {
 		c.err = internal.WrapErrorf(err, "unable to get a connection to get the next batch for cursor %d", c.cursorID)
 		return
 	}
-	defer connection.Close()
 
 	err = conn.ExecuteCommand(ctx, connection, getMoreRequest, &response)
 	if err != nil {
 		c.err = internal.WrapErrorf(err, "unable get the next batch for cursor %d", c.cursorID)
+		return
+	}
+
+	err = connection.Close()
+	if err != nil {
+		c.err = internal.WrapErrorf(err, "unable to close connection for cursor %d", c.cursorID)
 		return
 	}
 

@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops_test
 
 import (
@@ -5,14 +11,14 @@ import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/ops"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListIndexesWithInvalidDatabaseName(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	s := getServer(t)
 	ns := Namespace{Collection: "space", DB: "ex"}
@@ -31,10 +37,10 @@ func TestListIndexesWithInvalidDatabaseName(t *testing.T) {
 
 func TestListIndexesWithInvalidCollectionName(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	s := getServer(t)
-	ns := Namespace{Collection: testconfig.DBName(t), DB: "ex"}
+	ns := Namespace{Collection: testutil.DBName(t), DB: "ex"}
 	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
 	require.Nil(t, err)
 
@@ -50,14 +56,14 @@ func TestListIndexesWithInvalidCollectionName(t *testing.T) {
 
 func TestListIndexes(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoDropCollection(t)
-	testconfig.AutoCreateIndex(t, []string{"a"})
-	testconfig.AutoCreateIndex(t, []string{"b"})
-	testconfig.AutoCreateIndex(t, []string{"c"})
-	testconfig.AutoCreateIndex(t, []string{"d", "e"})
+	testutil.Integration(t)
+	testutil.AutoDropCollection(t)
+	testutil.AutoCreateIndex(t, []string{"a"})
+	testutil.AutoCreateIndex(t, []string{"b"})
+	testutil.AutoCreateIndex(t, []string{"c"})
+	testutil.AutoCreateIndex(t, []string{"d", "e"})
 
-	ns := NewNamespace(testconfig.DBName(t), testconfig.ColName(t))
+	ns := NewNamespace(testutil.DBName(t), testutil.ColName(t))
 
 	s := getServer(t)
 	cursor, err := ListIndexes(context.Background(), s, ns, ListIndexesOptions{})
@@ -81,14 +87,14 @@ func TestListIndexes(t *testing.T) {
 
 func TestListIndexesMultipleBatches(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoDropCollection(t)
-	testconfig.AutoCreateIndex(t, []string{"a"})
-	testconfig.AutoCreateIndex(t, []string{"b"})
-	testconfig.AutoCreateIndex(t, []string{"c"})
+	testutil.Integration(t)
+	testutil.AutoDropCollection(t)
+	testutil.AutoCreateIndex(t, []string{"a"})
+	testutil.AutoCreateIndex(t, []string{"b"})
+	testutil.AutoCreateIndex(t, []string{"c"})
 
 	s := getServer(t)
-	ns := NewNamespace(testconfig.DBName(t), testconfig.ColName(t))
+	ns := NewNamespace(testutil.DBName(t), testutil.ColName(t))
 	options := ListIndexesOptions{BatchSize: 1}
 	cursor, err := ListIndexes(context.Background(), s, ns, options)
 	require.Nil(t, err)

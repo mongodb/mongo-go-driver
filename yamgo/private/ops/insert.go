@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops
 
 import (
@@ -6,13 +12,14 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo/internal"
 	"github.com/10gen/mongo-go-driver/yamgo/options"
+	"github.com/10gen/mongo-go-driver/yamgo/writeconcern"
 )
 
 // Insert executes an insert command for the given set of  documents.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func Insert(ctx context.Context, s *SelectedServer, ns Namespace, docs []interface{},
-	result interface{}, options ...options.InsertOption) error {
+func Insert(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
+	docs []interface{}, result interface{}, options ...options.InsertOption) error {
 
 	if err := ns.validate(); err != nil {
 		return err
@@ -27,7 +34,9 @@ func Insert(ctx context.Context, s *SelectedServer, ns Namespace, docs []interfa
 		command.AppendElem(option.InsertName(), option.InsertValue())
 	}
 
-	// TODO GODRIVER-27: write concern
+	if writeConcern != nil {
+		command.AppendElem("writeConcern", writeConcern)
+	}
 
 	err := runMustUsePrimary(ctx, s, ns.DB, command, result)
 	if err != nil {

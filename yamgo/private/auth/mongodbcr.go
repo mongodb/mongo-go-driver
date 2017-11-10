@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package auth
 
 import (
@@ -81,8 +87,8 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 func (a *MongoDBCRAuthenticator) createKey(nonce string) string {
 	h := md5.New()
 
-	io.WriteString(h, nonce)
-	io.WriteString(h, a.Username)
-	io.WriteString(h, mongoPasswordDigest(a.Username, a.Password))
+	_, _ = io.WriteString(h, nonce)
+	_, _ = io.WriteString(h, a.Username)
+	_, _ = io.WriteString(h, mongoPasswordDigest(a.Username, a.Password))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }

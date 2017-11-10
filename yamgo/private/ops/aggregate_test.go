@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops_test
 
 import (
@@ -7,19 +13,20 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/yamgo"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/ops"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAggregateWithInvalidNamespace(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	_, err := Aggregate(
 		context.Background(),
 		getServer(t),
 		Namespace{},
+		nil,
 		[]bson.D{},
 	)
 	require.Error(t, err)
@@ -27,7 +34,7 @@ func TestAggregateWithInvalidNamespace(t *testing.T) {
 
 func TestAggregateWithMultipleBatches(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 	documents := []bson.D{
 		{bson.NewDocElem("_id", 1)},
 		{bson.NewDocElem("_id", 2)},
@@ -35,11 +42,11 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 		{bson.NewDocElem("_id", 4)},
 		{bson.NewDocElem("_id", 5)},
 	}
-	testconfig.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, documents...)
 
 	server := getServer(t)
-	namespace := Namespace{DB: testconfig.DBName(t), Collection: testconfig.ColName(t)}
-	cursor, err := Aggregate(context.Background(), server, namespace,
+	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
+	cursor, err := Aggregate(context.Background(), server, namespace, nil,
 		[]bson.D{
 			{
 				bson.NewDocElem("$match", bson.D{
@@ -73,15 +80,15 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 // check the validity of field names for the aggregate command
 func TestAggregateWithAllowDiskUse(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoInsertDocs(t,
+	testutil.Integration(t)
+	testutil.AutoInsertDocs(t,
 		bson.D{bson.NewDocElem("_id", 1)},
 		bson.D{bson.NewDocElem("_id", 2)},
 	)
 
 	server := getServer(t)
-	namespace := Namespace{DB: testconfig.DBName(t), Collection: testconfig.ColName(t)}
-	_, err := Aggregate(context.Background(), server, namespace,
+	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
+	_, err := Aggregate(context.Background(), server, namespace, nil,
 		[]bson.D{},
 		yamgo.AllowDiskUse(true),
 	)
@@ -91,17 +98,17 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 func TestAggregateWithMaxTimeMS(t *testing.T) {
 	t.Skip("max time is flaky on the server")
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	s := getServer(t)
 
-	if testconfig.EnableMaxTimeFailPoint(t, s) != nil {
+	if testutil.EnableMaxTimeFailPoint(t, s) != nil {
 		t.Skip("skipping maxTimeMS test when max time failpoint is disabled")
 	}
-	defer testconfig.DisableMaxTimeFailPoint(t, s)
+	defer testutil.DisableMaxTimeFailPoint(t, s)
 
-	namespace := Namespace{DB: testconfig.DBName(t), Collection: testconfig.ColName(t)}
-	_, err := Aggregate(context.Background(), s, namespace,
+	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
+	_, err := Aggregate(context.Background(), s, namespace, nil,
 		[]bson.D{},
 		yamgo.MaxTime(time.Millisecond),
 	)
@@ -113,7 +120,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 
 func TestLegacyAggregateWithInvalidNamespace(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	_, err := LegacyAggregate(
 		context.Background(),
@@ -126,7 +133,7 @@ func TestLegacyAggregateWithInvalidNamespace(t *testing.T) {
 
 func TestLegacyAggregateWithMultipleBatches(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 	documents := []bson.D{
 		{bson.NewDocElem("_id", 1)},
 		{bson.NewDocElem("_id", 2)},
@@ -134,10 +141,10 @@ func TestLegacyAggregateWithMultipleBatches(t *testing.T) {
 		{bson.NewDocElem("_id", 4)},
 		{bson.NewDocElem("_id", 5)},
 	}
-	testconfig.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, documents...)
 
 	server := getServer(t)
-	namespace := Namespace{DB: testconfig.DBName(t), Collection: testconfig.ColName(t)}
+	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	cursor, err := LegacyAggregate(context.Background(), server, namespace,
 		[]bson.D{
 			{
@@ -172,14 +179,14 @@ func TestLegacyAggregateWithMultipleBatches(t *testing.T) {
 // check the validity of field names for the aggregate command
 func TestLegacyAggregateWithAllowDiskUse(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	testconfig.AutoInsertDocs(t,
+	testutil.Integration(t)
+	testutil.AutoInsertDocs(t,
 		bson.D{bson.NewDocElem("_id", 1)},
 		bson.D{bson.NewDocElem("_id", 2)},
 	)
 
 	server := getServer(t)
-	namespace := Namespace{DB: testconfig.DBName(t), Collection: testconfig.ColName(t)}
+	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	_, err := LegacyAggregate(context.Background(), server, namespace,
 		[]bson.D{},
 		AggregationOptions{
@@ -190,16 +197,16 @@ func TestLegacyAggregateWithAllowDiskUse(t *testing.T) {
 func TestLegacyAggregateWithMaxTimeMS(t *testing.T) {
 	t.Skip("max time is flaky on the server")
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	s := getServer(t)
 
-	if testconfig.EnableMaxTimeFailPoint(t, s) != nil {
+	if testutil.EnableMaxTimeFailPoint(t, s) != nil {
 		t.Skip("skipping maxTimeMS test when max time failpoint is disabled")
 	}
-	defer testconfig.DisableMaxTimeFailPoint(t, s)
+	defer testutil.DisableMaxTimeFailPoint(t, s)
 
-	namespace := Namespace{DB: testconfig.DBName(t), Collection: testconfig.ColName(t)}
+	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	_, err := LegacyAggregate(context.Background(), s, namespace,
 		[]bson.D{},
 		AggregationOptions{

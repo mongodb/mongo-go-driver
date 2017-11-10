@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package model
 
 // Unknown is an unknown cluster or server kind.
@@ -28,3 +34,41 @@ const (
 	RSGhost     ServerKind = 32 + RSMember
 	Mongos      ServerKind = 256
 )
+
+func (kind ClusterKind) String() string {
+	switch kind {
+	case Single:
+		return "Single"
+	case ReplicaSet:
+		return "ReplicaSet"
+	case ReplicaSetNoPrimary:
+		return "ReplicaSetNoPrimary"
+	case ReplicaSetWithPrimary:
+		return "ReplicaSetWithPrimary"
+	case Sharded:
+		return "Sharded"
+	}
+
+	return "Unknown"
+}
+
+func (kind ServerKind) String() string {
+	switch kind {
+	case Standalone:
+		return "Standalone"
+	case RSMember:
+		return "RSOther"
+	case RSPrimary:
+		return "RSPrimary"
+	case RSSecondary:
+		return "RSSecondary"
+	case RSArbiter:
+		return "RSArbiter"
+	case RSGhost:
+		return "RSGhost"
+	case Mongos:
+		return "Mongos"
+	}
+
+	return "Unknown"
+}

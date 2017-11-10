@@ -1,9 +1,16 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package conn_test
 
 import (
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/yamgo/internal/conntest"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil/helpers"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/conn"
 	"github.com/stretchr/testify/require"
 )
@@ -22,11 +29,11 @@ func TestTracked_Inc(t *testing.T) {
 	require.True(t, tracked.Alive())
 	require.True(t, c.Alive())
 
-	tracked.Close()
+	testhelpers.RequireNoErrorOnClose(t, tracked)
 	require.True(t, tracked.Alive())
 	require.True(t, c.Alive())
 
-	tracked.Close()
+	testhelpers.RequireNoErrorOnClose(t, tracked)
 	require.False(t, tracked.Alive())
 	require.False(t, c.Alive())
 }

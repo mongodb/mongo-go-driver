@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops_test
 
 import (
@@ -7,14 +13,14 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/yamgo/internal/testconfig"
+	"github.com/10gen/mongo-go-driver/yamgo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/yamgo/private/ops"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListCollectionsWithInvalidDatabaseName(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	s := getServer(t)
 	_, err := ListCollections(context.Background(), s, "", ListCollectionsOptions{})
@@ -23,17 +29,17 @@ func TestListCollectionsWithInvalidDatabaseName(t *testing.T) {
 
 func TestListCollections(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	dbname := testconfig.DBName(t)
-	collectionNameOne := testconfig.ColName(t)
+	testutil.Integration(t)
+	dbname := testutil.DBName(t)
+	collectionNameOne := testutil.ColName(t)
 	collectionNameTwo := collectionNameOne + "2"
 	collectionNameThree := collectionNameOne + "3"
-	testconfig.DropCollection(t, dbname, collectionNameOne)
-	testconfig.DropCollection(t, dbname, collectionNameTwo)
-	testconfig.DropCollection(t, dbname, collectionNameThree)
-	testconfig.InsertDocs(t, dbname, collectionNameOne, bson.D{bson.NewDocElem("_id", 1)})
-	testconfig.InsertDocs(t, dbname, collectionNameTwo, bson.D{bson.NewDocElem("_id", 1)})
-	testconfig.InsertDocs(t, dbname, collectionNameThree, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.DropCollection(t, dbname, collectionNameOne)
+	testutil.DropCollection(t, dbname, collectionNameTwo)
+	testutil.DropCollection(t, dbname, collectionNameThree)
+	testutil.InsertDocs(t, dbname, collectionNameOne, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.InsertDocs(t, dbname, collectionNameTwo, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.InsertDocs(t, dbname, collectionNameThree, bson.D{bson.NewDocElem("_id", 1)})
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{})
@@ -51,17 +57,17 @@ func TestListCollections(t *testing.T) {
 
 func TestListCollectionsMultipleBatches(t *testing.T) {
 	t.Parallel()
-	testconfig.Integration(t)
-	dbname := testconfig.DBName(t)
-	collectionNameOne := testconfig.ColName(t)
+	testutil.Integration(t)
+	dbname := testutil.DBName(t)
+	collectionNameOne := testutil.ColName(t)
 	collectionNameTwo := collectionNameOne + "2"
 	collectionNameThree := collectionNameOne + "3"
-	testconfig.DropCollection(t, dbname, collectionNameOne)
-	testconfig.DropCollection(t, dbname, collectionNameTwo)
-	testconfig.DropCollection(t, dbname, collectionNameThree)
-	testconfig.InsertDocs(t, dbname, collectionNameOne, bson.D{bson.NewDocElem("_id", 1)})
-	testconfig.InsertDocs(t, dbname, collectionNameTwo, bson.D{bson.NewDocElem("_id", 1)})
-	testconfig.InsertDocs(t, dbname, collectionNameThree, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.DropCollection(t, dbname, collectionNameOne)
+	testutil.DropCollection(t, dbname, collectionNameTwo)
+	testutil.DropCollection(t, dbname, collectionNameThree)
+	testutil.InsertDocs(t, dbname, collectionNameOne, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.InsertDocs(t, dbname, collectionNameTwo, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.InsertDocs(t, dbname, collectionNameThree, bson.D{bson.NewDocElem("_id", 1)})
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{
@@ -85,16 +91,16 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 func TestListCollectionsWithMaxTimeMS(t *testing.T) {
 	t.Skip("max time is flaky on the server")
 	t.Parallel()
-	testconfig.Integration(t)
+	testutil.Integration(t)
 
 	s := getServer(t)
 
-	if testconfig.EnableMaxTimeFailPoint(t, s) != nil {
+	if testutil.EnableMaxTimeFailPoint(t, s) != nil {
 		t.Skip("skipping maxTimeMS test when max time failpoint is disabled")
 	}
-	defer testconfig.DisableMaxTimeFailPoint(t, s)
+	defer testutil.DisableMaxTimeFailPoint(t, s)
 
-	_, err := ListCollections(context.Background(), s, testconfig.DBName(t), ListCollectionsOptions{MaxTime: time.Millisecond})
+	_, err := ListCollections(context.Background(), s, testutil.DBName(t), ListCollectionsOptions{MaxTime: time.Millisecond})
 	require.Error(t, err)
 
 	// Hacky check for the error message.  Should we be returning a more structured error?

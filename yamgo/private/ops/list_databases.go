@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package ops
 
 import (
@@ -5,6 +11,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/yamgo/internal"
 )
 
 // ListDatabasesOptions are the options for listing databases.
@@ -41,11 +48,17 @@ func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabases
 type listDatabasesCursor struct {
 	databases []bson.Raw
 	current   int
+	err       error
 }
 
 func (cursor *listDatabasesCursor) Next(_ context.Context, result interface{}) bool {
 	if cursor.current < len(cursor.databases) {
-		bson.Unmarshal(cursor.databases[cursor.current].Data, result)
+		err := bson.Unmarshal(cursor.databases[cursor.current].Data, result)
+		if err != nil {
+			cursor.err = internal.WrapError(err, "unable to parse listDatabases result")
+			return false
+		}
+
 		cursor.current++
 		return true
 	}
@@ -54,7 +67,7 @@ func (cursor *listDatabasesCursor) Next(_ context.Context, result interface{}) b
 
 // Err returns the error status of the cursor.
 func (cursor *listDatabasesCursor) Err() error {
-	return nil
+	return cursor.err
 }
 
 // Close closes the cursor. Ordinarily this is a no-op as the server
