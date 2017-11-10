@@ -5,14 +5,12 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/10gen/mongo-go-driver/bson/internal/json"
-	"math"
-	"strconv"
-	"time"
-
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -26,41 +24,7 @@ var (
 func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Buffer) (bool, error) {
 	switch x := value.(type) {
 	case float64:
-		var v string
-		if math.IsNaN(x) {
-			v = decValueNaN
-		} else if math.IsInf(x, 1) {
-			v = decValueInfinity
-		} else if math.IsInf(x, -1) {
-			v = decValueNegInfinity
-		} else {
-			//TODO:Steven Clean this up and figure out the 64bit issue
-			// So the 64 bit issue we cant do anything about it- therefore we would need to
-			withEIfNecessary := strconv.FormatFloat(x, 'G', -1, 64)
-			hasE := false
-			for _, ch := range withEIfNecessary {
-				if string(ch) == "E" {
-					hasE = true
-					break
-				}
-			}
-			if hasE {
-				v = withEIfNecessary
-			} else {
-				minPresicion := strconv.FormatFloat(x, 'f', -1, 64)
-				oneDecimal := strconv.FormatFloat(x, 'f', 1, 64)
-
-				minF, _ := strconv.ParseFloat(minPresicion, 64)
-				oneF, _ := strconv.ParseFloat(oneDecimal, 64)
-
-				if math.Float64bits(minF) == math.Float64bits(oneF) {
-					// Same result, then use the one with one decimal point (1.0)
-					v = oneDecimal
-				} else {
-					v = minPresicion
-				}
-			}
-		}
+		v := json.EncodeFloatProperlyFormatted(x)
 		buff.WriteString(`{"$numberDouble":"`)
 		buff.WriteString(v)
 		buff.WriteString(`"}`)
@@ -77,7 +41,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 	case bson.ObjectId:
 		encodeOIDToBuffer(x, buff)
 	case time.Time:
-		// Overflow here is undefiend
+		// Overflow here is undefined
 		buff.WriteString(`{"$date":{"$numberLong":"`)
 		buff.WriteString(fmt.Sprintf("%d", (x.Unix()*1e3)+(int64(x.Nanosecond())/1e6)))
 		buff.WriteString(`"}}`)
@@ -99,14 +63,13 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(x.Pattern)
 		buff.WriteString(`","options":"`)
 
-		//TODO: Steven - cleanup. x.Options should be alphabetically ordered
-		var strArr []string
+		// x.Options should be alphabetically ordered
+		var optionsArr []string
 		for _, ch := range x.Options {
-			strArr = append(strArr, string(ch))
+			optionsArr = append(optionsArr, string(ch))
 		}
-		sort.Strings(strArr)
-
-		sortedOptions := strings.Join(strArr, "")
+		sort.Strings(optionsArr)
+		sortedOptions := strings.Join(optionsArr, "")
 
 		buff.WriteString(sortedOptions)
 		buff.WriteString(`"}}`)
@@ -119,16 +82,13 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 	case bson.JavaScript:
 		buff.WriteString(`{"$code":"`)
 
-		// Q. Why do we need this?
-		//json: error calling MarshalJSON for type extjson.MarshalD: invalid character '\x00' in string literal
-		// TODO: Steven
+		// Remove all null characters within x.Code and replace them with unicode representation of \u0000
+		// Also get any non utf-8 values and convert them to their escaped unicode representation.
 		for _, char := range x.Code {
-			//TODO: Steven - clean this up
 			rn, size := utf8.DecodeLastRuneInString(string(char))
-			if size > 1 || rn < 10 {
+			if size > 1 || rn == 0 {
 				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
 				unquoted := quoted[1 : len(quoted)-1]  // unquoted = "\u554a"
-				// TODO: Steven - horrible
 				if unquoted == "\\x00" {
 					buff.WriteString("\\u0000")
 				} else {
@@ -145,10 +105,9 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 			break
 		}
 
-		// TODO:Steven - very ghetto way of converting things. If anything, we should be researching why its turned out
-		// that in one of the cases (through validateCanonicalExtJSON) its giving us that x.scope is a bson.D object while
-		// in the other (validateCanonicalBSON) its providing us with a map. That would be the real solution here.
-		// Convert x.Scope from Map into bson.D
+		// Need this switch as the contents of x.Scope should be marshalled into extJSON as well. However its currently
+		// being representated as a map, which becomes serialized as is. Thus we convert it into a bson.D which will then
+		// be serialized correctly.
 		switch x.Scope.(type) {
 		case bson.M:
 			d := bson.D{}
@@ -203,12 +162,10 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		if err := encodeMarshalable(x.Id, enc, buff, true); err != nil {
 			return false, err
 		}
-
 		if x.Database == "" {
 			buff.WriteString(`}`)
 			break
 		}
-
 		buff.WriteString(`,"$db":"`)
 		buff.WriteString(x.Database)
 		buff.WriteString(`"}`)
