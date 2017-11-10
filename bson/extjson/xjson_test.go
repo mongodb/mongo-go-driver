@@ -10,9 +10,9 @@ import (
 
 	"github.com/10gen/stitch/utils/test"
 
-	gc "github.com/smartystreets/goconvey/convey"
-	xjson "github.com/10gen/mongo-go-driver/bson/extjson"
 	"github.com/10gen/mongo-go-driver/bson"
+	xjson "github.com/10gen/mongo-go-driver/bson/extjson"
+	gc "github.com/smartystreets/goconvey/convey"
 )
 
 const docStr = `{
@@ -67,11 +67,9 @@ func assertBsonD(t *testing.T, jsonString string) (bson.D, bson.D) {
 	return bson.D(rDoc), bsonDoc
 }
 
-
 func assertMarshalD(jsonString string) (xjson.MarshalD, xjson.MarshalD) {
 	doc := xjson.MarshalD{}
 	gc.So(json.Unmarshal([]byte(jsonString), &doc), gc.ShouldBeNil)
-
 
 	dec, err := xjson.DecodeExtended(doc)
 	gc.So(err, gc.ShouldBeNil)

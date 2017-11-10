@@ -2,15 +2,15 @@ package extjson
 
 import (
 	"bytes"
-	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"errors"
 	"fmt"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"io"
 	"runtime"
 	"time"
 
-	"github.com/10gen/stitch/common"
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/stitch/common"
 )
 
 // The DBRef type implements support for the database reference MongoDB
@@ -30,8 +30,6 @@ type DBRef struct {
 	Id         interface{} `bson:"$id"`
 	Database   string      `bson:"$db,omitempty"`
 }
-
-
 
 // decodeJSONasBSON decodes an object from the stream as json, using bson.D to represented maps
 // to maintain ordering information.

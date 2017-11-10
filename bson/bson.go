@@ -38,9 +38,9 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"errors"
 	"fmt"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"io"
 	"os"
 	"reflect"
@@ -135,7 +135,6 @@ func NewDocElem(name string, value interface{}) DocElem {
 // Map returns a map out of the ordered element name/value pairs in d.
 func (d D) Map() (m M) {
 	m = make(M, len(d))
-
 	for _, item := range d {
 		m[item.Name] = item.Value
 	}

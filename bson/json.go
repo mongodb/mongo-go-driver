@@ -352,7 +352,6 @@ func jdecMaxKey(data []byte) (interface{}, error) {
 	return MaxKey, nil
 }
 
-
 func jencMinMaxKey(v interface{}) ([]byte, error) {
 	switch v.(orderKey) {
 	case MinKey:

@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/stitch/utils"
 	"math"
 	"strconv"
 	"time"
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/stitch/utils"
 )
 
 // DecodeExtended decodes any extended JSON values in the given value.
@@ -233,7 +233,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 				return nil, errors.New("expected $dbPointer field to have document value")
 			}
 
-
 		// TODO:Steven: Clean up
 		case "$binary":
 			binary := bson.Binary{}
@@ -358,10 +357,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			//	return nil, errors.New("expected $options field with $regex field")
 			//}
 
-
-
-
-
 		case "$symbol":
 			v, ok := value.(string)
 			if !ok {
@@ -427,7 +422,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 		//	}
 		//	return nil, errors.New("expected $options field with $regex field")
 		//}
-
 
 		// No longer need this as DBRefs are obsolete
 		//

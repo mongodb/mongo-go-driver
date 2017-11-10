@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	gc "github.com/smartystreets/goconvey/convey"
 	"github.com/10gen/mongo-go-driver/bson"
+	gc "github.com/smartystreets/goconvey/convey"
 )
 
 func TestMarshalD(t *testing.T) {

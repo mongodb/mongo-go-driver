@@ -4,17 +4,17 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
-	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"fmt"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"math"
 	"strconv"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"reflect"
+	"sort"
 	"strings"
 	"unicode/utf8"
-	"sort"
 )
 
 // Special values for extended JSON.
@@ -45,7 +45,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 					break
 				}
 			}
-			if (hasE) {
+			if hasE {
 				v = withEIfNecessary
 			} else {
 				minPresicion := strconv.FormatFloat(x, 'f', -1, 64)
@@ -54,7 +54,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 				minF, _ := strconv.ParseFloat(minPresicion, 64)
 				oneF, _ := strconv.ParseFloat(oneDecimal, 64)
 
-				if (math.Float64bits(minF) == math.Float64bits(oneF)) {
+				if math.Float64bits(minF) == math.Float64bits(oneF) {
 					// Same result, then use the one with one decimal point (1.0)
 					v = oneDecimal
 				} else {
@@ -120,7 +120,6 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 	case bson.JavaScript:
 		buff.WriteString(`{"$code":"`)
 
-
 		// Q. Why do we need this?
 		//	Error Trace:    bson_corpus_spec_test.go:201
 		//	bson_corpus_spec_test.go:105
@@ -132,18 +131,17 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		//Error:          Received unexpected error:
 		//json: error calling MarshalJSON for type extjson.MarshalD: invalid character '\x00' in string literal
 
-
 		for _, char := range x.Code {
 			//TODO: Steven - clean this up
 			rn, size := utf8.DecodeLastRuneInString(string(char))
 			fmt.Println("RN: ", rn, string(rn), size)
-			if size  > 1 || rn < 10 {
+			if size > 1 || rn < 10 {
 				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
-				unquoted := quoted[1:len(quoted)-1]      // unquoted = "\u554a"
+				unquoted := quoted[1 : len(quoted)-1]  // unquoted = "\u554a"
 				fmt.Println("unquoted: ", unquoted)
 
 				// TODO: Steven - horrible
-				if (unquoted == "\\x00") {
+				if unquoted == "\\x00" {
 					buff.WriteString("\\u0000")
 				} else {
 					buff.WriteString(unquoted)

@@ -2,7 +2,6 @@ package extjson
 
 import "github.com/10gen/mongo-go-driver/bson"
 
-
 // MapAsBsonD returns a shallow copy of the given document.
 func MapAsBsonD(m map[string]interface{}) bson.D {
 	doc := make(bson.D, 0, len(m))

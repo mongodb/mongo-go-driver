@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 	"unicode/utf8"
-	"time"
 )
 
 // Marshal returns the JSON encoding of v.
@@ -461,7 +461,6 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		//2.            "relaxed_extjson": "{\"a\" : {\"$date\" : \"2012-12-24T12:15:30.501Z\"}}",
 		//3.             "relaxed_extjson": "{\"a\" : {\"$date\" : {\"$numberLong\" : \"-284643869501\"}}}",
 
-
 		//fmt.Println("Val X: ", x.UTC().Nanosecond())
 		//fmt.Println("Val X: ", x.UTC().Unix())
 
@@ -473,7 +472,7 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 			// Require numberLong to be in unixms but that method doesnt exist
 			var MILLION int64
 			MILLION = 1000000
-			s := strconv.FormatInt(utc.UnixNano() / MILLION, 10)
+			s := strconv.FormatInt(utc.UnixNano()/MILLION, 10)
 			st = `{"$date":{"$numberLong":"` + s + `"}}`
 			fmt.Println(utc.UnixNano())
 			fmt.Println(s)
@@ -502,8 +501,6 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	//buff.WriteString(fmt.Sprintf("%d", (x.Unix()*1e3)+(int64(x.Nanosecond())/1e6)))
 	//buff.WriteString(`"}}`)
 
-
-
 	// TODO: Steven: Issue here is that m.MarshallJSON is calling the actuall time.go's json marshaller and thats not being friendly
 	// // MarshalJSON implements the json.Marshaler interface.
 	// The time is a quoted string in RFC 3339 format, with sub-second precision added if present.
@@ -520,7 +517,6 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	//	b = append(b, '"')
 	//	return b, nil
 	//}
-
 
 	fmt.Println("Value of V", b)
 	fmt.Println("String of V", string(b))
@@ -615,7 +611,6 @@ func uintEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 
 type floatEncoder int // number of bits
 
-
 const (
 	// Here we need to add the $numberDouble signature
 	decValueInfinity    = "Infinity"
@@ -652,7 +647,7 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 				break
 			}
 		}
-		if (hasE) {
+		if hasE {
 			b = withEIfNecessary
 		} else {
 			minPresicion := strconv.FormatFloat(f, 'f', -1, 64)
@@ -661,7 +656,7 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 			minF, _ := strconv.ParseFloat(minPresicion, 64)
 			oneF, _ := strconv.ParseFloat(oneDecimal, 64)
 
-			if (math.Float64bits(minF) == math.Float64bits(oneF)) {
+			if math.Float64bits(minF) == math.Float64bits(oneF) {
 				// Same result, then use the one with one decimal point (1.0)
 				b = oneDecimal
 			} else {
@@ -674,7 +669,7 @@ func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 		e.WriteByte('"')
 	}
 
-	if b == decValueNaN || b ==  decValueInfinity || b == decValueNegInfinity {
+	if b == decValueNaN || b == decValueInfinity || b == decValueNegInfinity {
 		e.WriteString(`{"$numberDouble":"`)
 		e.Write([]byte(b))
 		e.WriteString(`"}`)
@@ -1019,7 +1014,7 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 				e.WriteByte('\\')
 				e.WriteByte('f')
 			default:
-				fmt.Println("In 888 Writing...:" , b)
+				fmt.Println("In 888 Writing...:", b)
 				// This encodes bytes < 0x20 except for \t, \n and \r.
 				// If escapeHTML is set, it also escapes <, >, and &
 				// because they can lead to security holes when
@@ -1068,9 +1063,9 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 		for _, char := range s[start:] {
 			//TODO: Steven - clean this up
 			rn, size := utf8.DecodeLastRuneInString(string(char))
-			if size  > 1 {
+			if size > 1 {
 				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
-				unquoted := quoted[1:len(quoted)-1]      // unquoted = "\u554a"
+				unquoted := quoted[1 : len(quoted)-1]  // unquoted = "\u554a"
 				e.WriteString(unquoted)
 			} else {
 				e.WriteString(string(char))
