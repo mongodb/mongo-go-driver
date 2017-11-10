@@ -27,6 +27,10 @@ func (coll *Collection) InsertOne(document interface{},
 // InsertMany inserts the provided documents, adding an _id to any document without one. It
 // uses a default context of context.Background.
 //
+// Currently, batching is not implemented for this operation. Because of this, extremely large
+// sets of documents will not fit into a single BSON document to be sent to the server, so the
+// operation will fail.
+//
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) InsertMany(documents []interface{},
 	options ...options.InsertOption) (*InsertManyResult, error) {
