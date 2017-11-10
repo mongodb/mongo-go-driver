@@ -358,6 +358,9 @@ func typeEncoder(t reflect.Type) encoderFunc {
 	// Might duplicate effort but won't hold other computations back.
 	innerf := newTypeEncoder(t, true)
 	f = func(e *encodeState, v reflect.Value, opts encOpts) {
+		a := v.Interface()
+		fmt.Println("INTERFACE  A: ", a)
+		fmt.Println("INTERFACE  A: ", reflect.TypeOf(a))
 		encode, ok := e.ext.encode[v.Type()]
 
 		if !ok {
