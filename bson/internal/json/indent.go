@@ -11,7 +11,6 @@ package json
 
 import (
 	"bytes"
-	"fmt"
 )
 
 // Compact appends to dst the JSON-encoded src with
@@ -25,9 +24,6 @@ func compact(dst *bytes.Buffer, src []byte, escape bool) error {
 	var scan scanner
 	scan.reset()
 	start := 0
-
-	fmt.Println("Indent.GO: Compact - src: ", src)
-	fmt.Println("Indent.GO: Compact - src: ", string(src))
 	for i, c := range src {
 		if escape && (c == '<' || c == '>' || c == '&') {
 			if start < i {
@@ -48,7 +44,6 @@ func compact(dst *bytes.Buffer, src []byte, escape bool) error {
 			start = i + 3
 		}
 
-		// TODO: Steven - this place is where the error comes in.
 		v := scan.step(&scan, c)
 		if v >= scanSkipSpace {
 			if v == scanError {

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"reflect"
 	"sort"
 	"strings"
 	"unicode/utf8"
@@ -121,25 +120,14 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(`{"$code":"`)
 
 		// Q. Why do we need this?
-		//	Error Trace:    bson_corpus_spec_test.go:201
-		//	bson_corpus_spec_test.go:105
-		//Error:          Received unexpected error:
 		//json: error calling MarshalJSON for type extjson.MarshalD: invalid character '\x00' in string literal
-		//	--- FAIL: TestBSONSpec/code_w_scope;/code_w_scope;validateCanonicalExtendedJSON:Unicode_and_embedded_null_in_code_string,_empty_scope (0.00s)
-		//	Error Trace:    bson_corpus_spec_test.go:266
-		//	bson_corpus_spec_test.go:108
-		//Error:          Received unexpected error:
-		//json: error calling MarshalJSON for type extjson.MarshalD: invalid character '\x00' in string literal
-
+		// TODO: Steven
 		for _, char := range x.Code {
 			//TODO: Steven - clean this up
 			rn, size := utf8.DecodeLastRuneInString(string(char))
-			fmt.Println("RN: ", rn, string(rn), size)
 			if size > 1 || rn < 10 {
 				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
 				unquoted := quoted[1 : len(quoted)-1]  // unquoted = "\u554a"
-				fmt.Println("unquoted: ", unquoted)
-
 				// TODO: Steven - horrible
 				if unquoted == "\\x00" {
 					buff.WriteString("\\u0000")
@@ -151,9 +139,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 			}
 		}
 
-		//buff.WriteString(x.Code)
 		buff.WriteString(`"`)
-
 		if x.Scope == nil {
 			buff.WriteString(`}`)
 			break
@@ -162,18 +148,12 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		// TODO:Steven - very ghetto way of converting things. If anything, we should be researching why its turned out
 		// that in one of the cases (through validateCanonicalExtJSON) its giving us that x.scope is a bson.D object while
 		// in the other (validateCanonicalBSON) its providing us with a map. That would be the real solution here.
-
 		// Convert x.Scope from Map into bson.D
-		fmt.Println("Extjson/encode.go:159- ", reflect.ValueOf(x.Scope).Kind())
-
 		switch x.Scope.(type) {
 		case bson.M:
-			fmt.Println("MAPPPPPPP!p")
 			d := bson.D{}
 			d.AppendMap(x.Scope.(bson.M))
 			x.Scope = d
-		default:
-			fmt.Println("NOT a map")
 		}
 
 		buff.WriteString(`,"$scope":`)

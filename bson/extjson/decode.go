@@ -166,9 +166,7 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 				if len(v) != 2 {
 					return nil, errors.New("Expected $timestamp value to contain only two fields")
 				}
-
-				var t uint64
-				var i uint64
+				var t, i, parsed uint64
 				if v[0].Name == "t" {
 					t = uint64(v[0].Value.(float64))
 					i = uint64(v[1].Value.(float64))
@@ -176,17 +174,8 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 					t = uint64(v[1].Value.(float64))
 					i = uint64(v[0].Value.(float64))
 				}
-
-				var parsed uint64
-
 				parsed = (t << 32)
 				parsed = parsed + i
-				//
-				//fmt.Println(strconv.FormatInt(int64(t), 2)) // 1111011
-				//fmt.Println(strconv.FormatInt(int64(i), 2)) // 1111011
-				//fmt.Println(strconv.FormatInt(int64(parsed), 2)) // 1111011
-				//fmt.Println(strconv.FormatInt(int64(530242871224172586), 2)) // 1111011
-
 				return bson.MongoTimestamp(int64(parsed)), nil
 			default:
 				return nil, errors.New("expected $timestamp value to be a bson.D")

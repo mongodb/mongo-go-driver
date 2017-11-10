@@ -363,16 +363,11 @@ func typeEncoder(t reflect.Type) encoderFunc {
 	// Might duplicate effort but won't hold other computations back.
 	innerf := newTypeEncoder(t, true)
 	f = func(e *encodeState, v reflect.Value, opts encOpts) {
-		a := v.Interface()
-		fmt.Println("INTERFACE  A: ", a)
-		fmt.Println("INTERFACE  A: ", reflect.TypeOf(a))
 		encode, ok := e.ext.encode[v.Type()]
-
 		if !ok {
 			innerf(e, v, opts)
 			return
 		}
-
 		b, err := encode(v.Interface())
 		if err == nil {
 			// copy JSON into buffer, checking validity.
@@ -461,26 +456,20 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 	var b []byte
 	switch x := v.Interface().(type) {
 	case time.Time:
+		// TODO: Steven: Issue here is that m.MarshallJSON is calling the actuall time.go's json marshaller and thats not being friendly
 		// Need to be able to handle 3 types of outputs.
 		//1.             "relaxed_extjson": "{\"a\" : {\"$date\" : \"1970-01-01T00:00:00Z\"}}",
 		//2.            "relaxed_extjson": "{\"a\" : {\"$date\" : \"2012-12-24T12:15:30.501Z\"}}",
 		//3.             "relaxed_extjson": "{\"a\" : {\"$date\" : {\"$numberLong\" : \"-284643869501\"}}}",
 
-		//fmt.Println("Val X: ", x.UTC().Nanosecond())
-		//fmt.Println("Val X: ", x.UTC().Unix())
-
 		utc := x.UTC()
-
-		var st string
-		var fmtted string
+		var st, fmtted string
 		if utc.Unix() < 0 {
 			// Require numberLong to be in unixms but that method doesnt exist
 			var MILLION int64
 			MILLION = 1000000
 			s := strconv.FormatInt(utc.UnixNano()/MILLION, 10)
 			st = `{"$date":{"$numberLong":"` + s + `"}}`
-			fmt.Println(utc.UnixNano())
-			fmt.Println(s)
 		} else {
 			if utc.Nanosecond() == 0 {
 				fmtted = x.UTC().Format("2006-01-02T15:04:05Z")
@@ -489,42 +478,12 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 			}
 			st = `{"$date":"` + fmtted + `"}`
 		}
-
-		// Convert string to bytes to compact it later
 		b = []byte(st)
 		break
 	default:
 		b, err = m.MarshalJSON()
 	}
 
-	//"relaxed_extjson": "{\"a\" : {\"$date\" : \"1970-01-01T00:00:00Z\"}}",
-	//	String of V                             1970-01-01T00:00:00+0000
-
-	// 	case time.Time:
-	//// Overflow here is undefiend
-	//buff.WriteString(`{"$date":{"$numberLong":"`)
-	//buff.WriteString(fmt.Sprintf("%d", (x.Unix()*1e3)+(int64(x.Nanosecond())/1e6)))
-	//buff.WriteString(`"}}`)
-
-	// TODO: Steven: Issue here is that m.MarshallJSON is calling the actuall time.go's json marshaller and thats not being friendly
-	// // MarshalJSON implements the json.Marshaler interface.
-	// The time is a quoted string in RFC 3339 format, with sub-second precision added if present.
-	//func (t Time) MarshalJSON() ([]byte, error) {
-	//	if y := t.Year(); y < 0 || y >= 10000 {
-	//		// RFC 3339 is clear that years are 4 digits exactly.
-	//		// See golang.org/issue/4556#c15 for more discussion.
-	//		return nil, errors.New("Time.MarshalJSON: year outside of range [0,9999]")
-	//	}
-	//
-	//	b := make([]byte, 0, len(RFC3339Nano)+2)
-	//	b = append(b, '"')
-	//	b = t.AppendFormat(b, RFC3339Nano)
-	//	b = append(b, '"')
-	//	return b, nil
-	//}
-
-	fmt.Println("Value of V", b)
-	fmt.Println("String of V", string(b))
 	if err == nil {
 		// copy JSON into buffer, checking validity.
 		err = compact(&e.Buffer, b, opts.escapeHTML)
@@ -988,10 +947,7 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 	len0 := e.Len()
 	e.WriteByte('"')
 	start := 0
-	fmt.Println("encode.GO: string - s: ", s)
-	fmt.Println("encode.GO: string - s: ", []byte(s))
 	for i := 0; i < len(s); {
-		fmt.Println(i)
 		if b := s[i]; b < utf8.RuneSelf {
 			if 0x20 <= b && b != '\\' && b != '"' &&
 				(!escapeHTML || b != '<' && b != '>' && b != '&') {
@@ -1000,7 +956,6 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 			}
 
 			if start < i {
-				fmt.Println("In 866 writing..: ", s[start:i])
 				e.WriteString(s[start:i])
 			}
 
@@ -1025,7 +980,6 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 				e.WriteByte('\\')
 				e.WriteByte('f')
 			default:
-				fmt.Println("In 888 Writing...:", b)
 				// This encodes bytes < 0x20 except for \t, \n and \r.
 				// If escapeHTML is set, it also escapes <, >, and &
 				// because they can lead to security holes when
@@ -1068,9 +1022,7 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 		}
 		i += size
 	}
-	fmt.Println("encode.GO: after 1st for loop - s: ", e.String())
 	if start < len(s) {
-		//e.WriteString(s[start:])
 		for _, char := range s[start:] {
 			//TODO: Steven - clean this up
 			rn, size := utf8.DecodeLastRuneInString(string(char))
@@ -1084,8 +1036,6 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 		}
 	}
 	e.WriteByte('"')
-	fmt.Println("encode.GO: after 2nd for loop - s: ", e.String())
-
 	return e.Len() - len0
 }
 
