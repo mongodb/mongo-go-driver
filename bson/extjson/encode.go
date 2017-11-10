@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strings"
 	"unicode/utf8"
+	"sort"
 )
 
 // Special values for extended JSON.
@@ -98,7 +99,17 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 
 		buff.WriteString(x.Pattern)
 		buff.WriteString(`","options":"`)
-		buff.WriteString(x.Options)
+
+		//TODO: Steven - cleanup. x.Options should be alphabetically ordered
+		var strArr []string
+		for _, ch := range x.Options {
+			strArr = append(strArr, string(ch))
+		}
+		sort.Strings(strArr)
+
+		sortedOptions := strings.Join(strArr, "")
+
+		buff.WriteString(sortedOptions)
 		buff.WriteString(`"}}`)
 	case bson.DBPointer:
 		buff.WriteString(`{"$dbPointer":{"$ref":"`)

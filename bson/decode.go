@@ -35,6 +35,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 type decoder struct {
@@ -848,6 +849,11 @@ func (d *decoder) readBinary() Binary {
 func (d *decoder) readStr() string {
 	l := d.readInt32()
 	b := d.readBytes(l - 1)
+
+	if !utf8.Valid(b) {
+		corrupted()
+	}
+
 	if d.readByte() != '\x00' {
 		corrupted()
 	}
