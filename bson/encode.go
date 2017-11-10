@@ -114,7 +114,6 @@ func (e *encoder) addMap(v reflect.Value) {
 	for _, k := range v.MapKeys() {
 		e.addElem(k.String(), v.MapIndex(k), false)
 	}
-
 }
 
 func (e *encoder) addStruct(v reflect.Value) {

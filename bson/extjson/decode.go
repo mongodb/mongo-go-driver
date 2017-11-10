@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/stitch/utils"
 	"math"
+	"reflect"
 	"strconv"
 	"time"
 )
@@ -17,7 +17,7 @@ import (
 // Information might be lost due to inaccessible struct fields and as
 // such should only really be used once on a new value.
 func DecodeExtended(value interface{}) (interface{}, error) {
-	value, isPtr, isValid := utils.Deref(value)
+	value, isPtr, isValid := Deref(value)
 	if value == nil || !isValid {
 		return value, nil
 	}
@@ -26,7 +26,7 @@ func DecodeExtended(value interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		return utils.Ref(decoded), nil
+		return Ref(decoded), nil
 	}
 
 	switch x := value.(type) {
@@ -58,8 +58,8 @@ func DecodeExtended(value interface{}) (interface{}, error) {
 		}
 		return ValueOf(decoded), nil
 	default:
-		if utils.IsStruct(value) && !canExtend(value) {
-			return utils.StructValueMapWithErr(value, decodeSpecial)
+		if IsStruct(value) && !canExtend(value) {
+			return StructValueMapWithErr(value, decodeSpecial)
 		}
 		return value, nil
 	}
@@ -523,4 +523,66 @@ func canExtend(v interface{}) bool {
 		return true
 	}
 	return false
+}
+
+// Methods below were obtained from stitch/utils
+
+// Deref pulls an underlying object out of a pointer or interface, if applicable.
+// It returns the dereferenced value where possible, otherwise just the given value.
+// It also returns whether the original value was a pointer, and whether the
+// inner value is valid.
+func Deref(v interface{}) (value interface{}, isPtr bool, isValid bool) {
+	val := reflect.ValueOf(v)
+	isPtr = val.Kind() == reflect.Ptr
+	if isPtr || val.Kind() == reflect.Interface {
+		val = val.Elem()
+	}
+	if !val.IsValid() {
+		return v, isPtr, false
+	}
+	return val.Interface(), isPtr, true
+}
+
+// Ref returns a pointer to the given concrete value.
+func Ref(v interface{}) interface{} {
+	val := reflect.ValueOf(v)
+	out := reflect.New(val.Type())
+	out.Elem().Set(val)
+	return out.Interface()
+}
+
+// IsStruct returns whether the argument is a struct.
+func IsStruct(v interface{}) bool {
+	return reflect.ValueOf(v).Kind() == reflect.Struct
+}
+
+// StructValueMapWithErr applies a mapping to each exported value of the given struct, failing upon error.
+// WARNING: use of this is discouraged, explore non-reflection alternatives before use.
+func StructValueMapWithErr(st interface{}, mapping func(interface{}) (interface{}, error)) (interface{}, error) {
+	st, isPtr, _ := Deref(st)
+	if isPtr {
+		out, err := StructValueMapWithErr(st, mapping)
+		return Ref(out), err
+	}
+	if !IsStruct(st) {
+		return st, fmt.Errorf("expected struct, given %T", st)
+	}
+	val := reflect.ValueOf(st)
+	vt := val.Type()
+	out := reflect.New(vt).Elem()
+	for fieldIdx := 0; fieldIdx < vt.NumField(); fieldIdx++ {
+		if len(vt.Field(fieldIdx).PkgPath) != 0 {
+			continue // unexported
+		}
+		field := val.Field(fieldIdx).Interface()
+		newField, err := mapping(field)
+		if err != nil {
+			return nil, err
+		}
+		if newField == nil {
+			continue
+		}
+		out.Field(fieldIdx).Set(reflect.ValueOf(newField))
+	}
+	return out.Interface(), nil
 }

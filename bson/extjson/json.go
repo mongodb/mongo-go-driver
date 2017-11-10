@@ -10,8 +10,82 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/stitch/common"
+	"reflect"
+	"strings"
 )
+
+// Code obtained from Stitch/common
+
+const Debug bool = false
+
+// PrimitiveType is a dummy type to represent a primitive type for FriendlyTypeName
+type PrimitiveType struct{}
+
+const (
+	nullTypeName       = "null"
+	booleanTypeName    = "boolean"
+	objectTypeName     = "object"
+	arrayTypeName      = "array"
+	objectIDTypeName   = "ObjectId"
+	stringTypeName     = "string"
+	decimal128TypeName = "decimal128"
+	primitiveTypeName  = "primitive"
+)
+
+// FriendlyTypeName returns a user friendly type of the given go type
+// that abstracts away the go types
+func FriendlyTypeName(v interface{}) string {
+	if v == nil {
+		return "null"
+	}
+
+	vv := reflect.ValueOf(v)
+	t := vv.Type()
+	switch t.Kind() {
+	case reflect.Bool:
+		return booleanTypeName
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32,
+		reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16,
+		reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32,
+		reflect.Float64:
+		return t.Kind().String()
+	case reflect.Map:
+		if t.Elem().Kind() != reflect.Interface {
+			return fmt.Sprintf("%s[%s]", objectTypeName, FriendlyTypeName(reflect.New(t.Elem()).Interface()))
+		}
+		return objectTypeName
+	case reflect.Ptr:
+		if vv.IsNil() {
+			return nullTypeName
+		}
+		return FriendlyTypeName(vv.Elem().Interface())
+	case reflect.Array, reflect.Slice:
+		if t == reflect.TypeOf(bson.D{}) {
+			return objectTypeName
+		}
+		if t.Elem().Kind() != reflect.Interface {
+			return fmt.Sprintf("%s[%s]", arrayTypeName, FriendlyTypeName(reflect.New(t.Elem()).Interface()))
+		}
+		return arrayTypeName
+	case reflect.String:
+		if t == reflect.TypeOf(bson.ObjectId("")) {
+			return objectIDTypeName
+		}
+		return stringTypeName
+	case reflect.Struct:
+		if t == reflect.TypeOf(bson.Decimal128{}) {
+			return decimal128TypeName
+		}
+		if t == reflect.TypeOf(PrimitiveType{}) {
+			return primitiveTypeName
+		}
+		return objectTypeName
+	default:
+		return strings.ToLower(t.Name())
+	}
+}
+
+// Code obtained from Stitch/common
 
 // The DBRef type implements support for the database reference MongoDB
 // convention as supported by multiple drivers.  This convention enables
@@ -127,7 +201,7 @@ func ValueOf(v interface{}) Value {
 }
 
 func assertValidValue(v interface{}) {
-	if !common.Debug {
+	if !Debug {
 		return
 	}
 	_, file, line, _ := runtime.Caller(2) // caller of ValueOf
@@ -305,7 +379,7 @@ func (md *MarshalD) UnmarshalJSON(in []byte) error {
 		*md = MarshalD(outAsD)
 		return nil
 	}
-	return fmt.Errorf("unable to decode '%s' into an 'object'", common.FriendlyTypeName(object))
+	return fmt.Errorf("unable to decode '%s' into an 'object'", FriendlyTypeName(object))
 }
 
 // MarshalJSON behaves like a normal JSON marshal on an

@@ -541,12 +541,6 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 		}
 	case 0x05: // Binary
 		b := d.readBinary()
-		// TODO:Steven - did not need this if statement
-		//if b.Kind == 0x00 || b.Kind == 0x02 {
-		//	in = b
-		//} else {
-		//	in = b
-		//}
 		in = b
 	case 0x06: // Undefined (obsolete, but still seen in the wild)
 		in = Undefined
@@ -831,11 +825,9 @@ func (d *decoder) readBinary() Binary {
 func (d *decoder) readStr() string {
 	l := d.readInt32()
 	b := d.readBytes(l - 1)
-
 	if !utf8.Valid(b) {
 		corrupted()
 	}
-
 	if d.readByte() != '\x00' {
 		corrupted()
 	}
