@@ -1,9 +1,7 @@
 package bson_test
 
 import (
-	"bytes"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -12,6 +10,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/bson/extjson"
 	"github.com/10gen/mongo-go-driver/bson/internal/json"
+	"github.com/10gen/mongo-go-driver/bson/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,22 +49,9 @@ type testCase struct {
 const testsDir string = "../specifications/source/bson-corpus/tests/"
 
 func TestBSONSpec(t *testing.T) {
-	for _, file := range FindJSONFilesInDir(t, testsDir) {
+	for _, file := range testutil.FindJSONFilesInDir(t, testsDir) {
 		runTest(t, file)
 	}
-}
-
-func FindJSONFilesInDir(t *testing.T, dir string) []string {
-	files := make([]string, 0)
-	entries, err := ioutil.ReadDir(dir)
-	require.NoError(t, err)
-	for _, entry := range entries {
-		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
-			continue
-		}
-		files = append(files, entry.Name())
-	}
-	return files
 }
 
 func runTest(t *testing.T, filename string) {
@@ -156,16 +142,7 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 
 	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeReprBsonD)
 	require.NoError(t, err)
-
-	// In case of $numberDouble we can't fully represent it in Go. Therefore we will convert cEJ into NativeRepr
-	if strings.Contains(cEJ, "$numberDouble") && compressJSON(cEJ) != string(roundTripCEJ) {
-		marshalDDoc := extjson.MarshalD{}
-		err := json.Unmarshal([]byte(cEJ), &marshalDDoc)
-		require.NoError(t, err)
-		require.Equal(t, marshalDDoc[0].Value, nativeReprBsonD[0].Value)
-	} else {
-		require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
-	}
+	validateExtendedJSONWithCondition(t, cEJ, string(roundTripCEJ), nativeReprBsonD)
 }
 
 //for cEJ input:
@@ -178,17 +155,7 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bo
 	// native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
 	require.NoError(t, err)
-
-	// TODO:Steven: Clean this up
-	// In case of $numberDouble we can't fully represent it in Go. Therefore we will convert cEJ into NativeRepr
-	if strings.Contains(cEJ, "$numberDouble") && compressJSON(cEJ) != string(roundTripCEJByteRepr) {
-		marshalDDoc := extjson.MarshalD{}
-		err := json.Unmarshal([]byte(cEJ), &marshalDDoc)
-		require.NoError(t, err)
-		require.Equal(t, marshalDDoc[0].Value, bsonDDoc[0].Value)
-	} else {
-		require.Equal(t, compressJSON(cEJ), string(roundTripCEJByteRepr))
-	}
+	validateExtendedJSONWithCondition(t, cEJ, string(roundTripCEJByteRepr), bsonDDoc)
 
 	// native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
 	if !lossy {
@@ -213,51 +180,31 @@ func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
 	roundTripREJ, err := json.Marshal(nativeRepr)
 	require.NoError(t, err)
 
-	// TODO:Steven: Clean this up
-	// In case of $numberDouble we can't fully represent it in Go. Therefore we will convert cEJ into NativeRepr
-	if strings.Contains(rEJ, "1.234567890123456") && compressJSON(rEJ) != string(roundTripREJ) {
-		marshalDDoc := extjson.MarshalD{}
-		err := json.Unmarshal([]byte(rEJ), &marshalDDoc)
-		require.NoError(t, err)
-
-		bsonDDoc := bson.D{}
-		bsonDDoc.AppendMap(nativeRepr)
-		require.Equal(t, marshalDDoc[0].Value, bsonDDoc[0].Value)
-	} else {
-		require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
-	}
+	bsonDDoc := bson.D{}
+	bsonDDoc.AppendMap(nativeRepr)
+	validateExtendedJSONWithCondition(t, rEJ, string(roundTripREJ), bsonDDoc)
 }
 
+// for rEJ input
 func validateRelaxedExtendedJSON(t *testing.T, rEJ string, testFileName string) {
 	//native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
 	nativeRepr := bson.M{}
 	require.NoError(t, json.Unmarshal([]byte(rEJ), &nativeRepr))
 
-	// TODO: steven -  Need this as without this JSON.unmarshall will see a JSON Number and it will convert that into a float64
-	// Then I have no idea whether the user wanted a floating point number 1.0 or an integer 1.
 	// TODO: Fails on MaxInt
+	// Need this as without this JSON.unmarshall will see a JSON Number and it will convert that into a float64
+	// Then I have no idea whether the user wanted a floating point number 1.0 or an integer 1.
 	if strings.Contains(testFileName, "Int") {
 		for k := range nativeRepr {
 			nativeRepr[k] = int64(nativeRepr[k].(float64))
 		}
-
 	}
 	roundTripREJ, err := json.Marshal(nativeRepr)
 	require.NoError(t, err)
 
-	// TODO: Steven Clean
-	// In case of $numberDouble we can't fully represent it in Go. Therefore we will convert cEJ into NativeRepr
-	if strings.Contains(testFileName, "Double") && compressJSON(rEJ) != string(roundTripREJ) {
-		marshalDDoc := extjson.MarshalD{}
-		err := json.Unmarshal([]byte(rEJ), &marshalDDoc)
-		require.NoError(t, err)
-
-		nativeReprBsonD := bson.D{}
-		nativeReprBsonD.AppendMap(nativeRepr)
-		require.Equal(t, marshalDDoc[0].Value, nativeReprBsonD[0].Value)
-	} else {
-		require.Equal(t, compressJSON(rEJ), string(roundTripREJ))
-	}
+	nativeReprBsonD := bson.D{}
+	nativeReprBsonD.AppendMap(nativeRepr)
+	validateExtendedJSONWithCondition(t, rEJ, string(roundTripREJ), nativeReprBsonD)
 }
 
 //for dB input (if it exists):
@@ -286,7 +233,7 @@ func validateDegenerateExtendedJSON(t *testing.T, dEJ string, cEJ string, cB str
 
 	roundTripCEJ, err := extjson.EncodeBSONDtoJSON(nativeD)
 	require.NoError(t, err)
-	require.Equal(t, compressJSON(cEJ), string(roundTripCEJ))
+	require.Equal(t, testutil.CompressJSON(cEJ), string(roundTripCEJ))
 
 	//native_to_bson( json_to_native(dEJ) ) = cB (unless lossy)
 	if !lossy {
@@ -295,15 +242,6 @@ func validateDegenerateExtendedJSON(t *testing.T, dEJ string, cEJ string, cB str
 		roundTripDB := hex.EncodeToString(dBByteRepr)
 		require.Equal(t, cB, strings.ToUpper(roundTripDB))
 	}
-}
-
-func compressJSON(js string) string {
-	var json_bytes = []byte(js)
-	buffer := new(bytes.Buffer)
-	if err := json.Compact(buffer, json_bytes); err != nil {
-		fmt.Println(err)
-	}
-	return buffer.String()
 }
 
 func testDecodeError(t *testing.T, b string) {
@@ -318,4 +256,19 @@ func testParseError(t *testing.T, s string) {
 	var nativeReprBsonD bson.D
 	d := bson.Unmarshal([]byte(s), &nativeReprBsonD)
 	require.Error(t, d)
+}
+
+// This method is required as due to the double values in double.json cannot be represented in 64bit floats in Go.
+// Therefore we will check for the condition and if the condition holds, we'll convert the expected string into Go's
+// native representation and compare those values.
+func validateExtendedJSONWithCondition(t *testing.T, expected string, returned string, nativeRepr bson.D) {
+	// In case of $numberDouble we can't fully represent it in Go. Therefore we will convert cEJ into NativeRepr
+	if strings.Contains(expected, "1.234567890123456") && testutil.CompressJSON(expected) != string(returned) {
+		marshalDDoc := extjson.MarshalD{}
+		err := json.Unmarshal([]byte(expected), &marshalDDoc)
+		require.NoError(t, err)
+		require.Equal(t, marshalDDoc[0].Value, nativeRepr[0].Value)
+	} else {
+		require.Equal(t, testutil.CompressJSON(expected), string(returned))
+	}
 }

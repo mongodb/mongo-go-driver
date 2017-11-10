@@ -9,9 +9,7 @@
 
 package json
 
-import (
-	"bytes"
-)
+import "bytes"
 
 // Compact appends to dst the JSON-encoded src with
 // insignificant space characters elided.
@@ -43,7 +41,6 @@ func compact(dst *bytes.Buffer, src []byte, escape bool) error {
 			dst.WriteByte(hex[src[i+2]&0xF])
 			start = i + 3
 		}
-
 		v := scan.step(&scan, c)
 		if v >= scanSkipSpace {
 			if v == scanError {
