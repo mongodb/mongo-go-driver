@@ -84,15 +84,24 @@ func (coll *Collection) InsertOneContext(ctx context.Context, document interface
 	}
 
 	var d bson.D
-	err = ops.Insert(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		[]interface{}{doc},
-		&d,
-		options...,
-	)
+	insert := func() error {
+		return ops.Insert(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			[]interface{}{doc},
+			&d,
+			options...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _ = insert() }()
+		return nil, nil
+	}
+
+	err = insert()
 
 	if err != nil {
 		return nil, err
@@ -132,15 +141,24 @@ func (coll *Collection) InsertManyContext(ctx context.Context, documents []inter
 	}
 
 	var d bson.D
-	err = ops.Insert(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		documents,
-		&d,
-		options...,
-	)
+	insert := func() error {
+		return ops.Insert(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			documents,
+			&d,
+			options...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _ = insert() }()
+		return nil, nil
+	}
+
+	err = insert()
 
 	if err != nil {
 		return nil, err
@@ -167,15 +185,24 @@ func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{}
 	}
 
 	var result DeleteResult
-	err = ops.Delete(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		deleteDocs,
-		&result,
-		options...,
-	)
+	doDelete := func() error {
+		return ops.Delete(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			deleteDocs,
+			&result,
+			options...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _ = doDelete() }()
+		return nil, nil
+	}
+
+	err = doDelete()
 
 	if err != nil {
 		return nil, err
@@ -204,15 +231,24 @@ func (coll *Collection) DeleteManyContext(ctx context.Context, filter interface{
 	}
 
 	var result DeleteResult
-	err = ops.Delete(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		deleteDocs,
-		&result,
-		options...,
-	)
+	doDelete := func() error {
+		return ops.Delete(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			deleteDocs,
+			&result,
+			options...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _ = doDelete() }()
+		return nil, nil
+	}
+
+	err = doDelete()
 
 	if err != nil {
 		return nil, err
@@ -237,15 +273,24 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface
 	}
 
 	var result UpdateResult
-	err = ops.Update(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		updateDocs,
-		&result,
-		options...,
-	)
+	doUpdate := func() error {
+		return ops.Update(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			updateDocs,
+			&result,
+			options...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _ = doUpdate() }()
+		return nil, nil
+	}
+
+	err = doUpdate()
 
 	if err != nil {
 		return nil, err
@@ -293,15 +338,24 @@ func (coll *Collection) UpdateManyContext(ctx context.Context, filter interface{
 	}
 
 	var result UpdateResult
-	err = ops.Update(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		updateDocs,
-		&result,
-		options...,
-	)
+	doUpdate := func() error {
+		return ops.Update(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			updateDocs,
+			&result,
+			options...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _ = doUpdate() }()
+		return nil, nil
+	}
+
+	err = doUpdate()
 
 	if err != nil {
 		return nil, err
@@ -465,15 +519,24 @@ func (coll *Collection) FindOneAndDeleteContext(ctx context.Context, filter inte
 		return false, err
 	}
 
-	return ops.FindOneAndDelete(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		filter,
-		result,
-		opts...,
-	)
+	findOneAndDelete := func() (bool, error) {
+		return ops.FindOneAndDelete(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			filter,
+			result,
+			opts...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _, _ = findOneAndDelete() }()
+		return false, nil
+	}
+
+	return findOneAndDelete()
 }
 
 // FindOneAndReplaceContext finds a single document and replaces it, returning either the original
@@ -506,16 +569,25 @@ func (coll *Collection) FindOneAndReplaceContext(ctx context.Context, filter int
 		return false, err
 	}
 
-	return ops.FindOneAndReplace(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		filter,
-		replacement,
-		result,
-		opts...,
-	)
+	findOneAndReplace := func() (bool, error) {
+		return ops.FindOneAndReplace(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			filter,
+			replacement,
+			result,
+			opts...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _, _ = findOneAndReplace() }()
+		return false, nil
+	}
+
+	return findOneAndReplace()
 }
 
 // FindOneAndUpdateContext finds a single document and updates it, returning either the original
@@ -548,14 +620,23 @@ func (coll *Collection) FindOneAndUpdateContext(ctx context.Context, filter inte
 		return false, err
 	}
 
-	return ops.FindOneAndUpdate(
-		ctx,
-		s,
-		coll.namespace(),
-		coll.writeConcern,
-		filter,
-		update,
-		result,
-		opts...,
-	)
+	findOneAndUpdate := func() (bool, error) {
+		return ops.FindOneAndUpdate(
+			ctx,
+			s,
+			coll.namespace(),
+			coll.writeConcern,
+			filter,
+			update,
+			result,
+			opts...,
+		)
+	}
+
+	if !coll.writeConcern.Acknowledged() {
+		go func() { _, _ = findOneAndUpdate() }()
+		return false, nil
+	}
+
+	return findOneAndUpdate()
 }

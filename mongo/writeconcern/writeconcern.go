@@ -97,6 +97,22 @@ func (wc *WriteConcern) GetBSON() (interface{}, error) {
 	return doc, nil
 }
 
+// Acknowledged indicates whether or not a write with the given write concern will be acknowledged.
+func (wc *WriteConcern) Acknowledged() bool {
+	if wc == nil || wc.j {
+		return true
+	}
+
+	switch v := wc.w.(type) {
+	case int:
+		if v == 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
 // IsValid checks whether the write concern is invalid.
 func (wc *WriteConcern) IsValid() bool {
 	if !wc.j {
