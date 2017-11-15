@@ -11,127 +11,14 @@
             "ismaster": true,
             "hosts": [
               "a:27017",
-              "b:27017",
-              "c:27017",
-              "d:27017",
-              "e:27017"
+              "b:27017"
             ],
             "setName": "rs",
-            "logicalSessionTimeoutMinutes": 3,
+            "logicalSessionTimeoutMinutes": 1,
             "minWireVersion": 0,
             "maxWireVersion": 6
           }
-        ]
-      ],
-      "outcome": {
-        "servers": {
-          "a:27017": {
-            "type": "RSPrimary",
-            "setName": "rs"
-          },
-          "b:27017": {
-            "type": "Unknown"
-          },
-          "c:27017": {
-            "type": "Unknown"
-          },
-          "d:27017": {
-            "type": "Unknown"
-          },
-          "e:27017": {
-            "type": "Unknown"
-          }
-        },
-        "topologyType": "ReplicaSetWithPrimary",
-        "logicalSessionTimeoutMinutes": 3,
-        "setName": "rs"
-      }
-    },
-    {
-      "responses": [
-        [
-          "d:27017",
-          {
-            "ok": 1,
-            "ismaster": false,
-            "isreplicaset": true,
-            "minWireVersion": 0,
-            "maxWireVersion": 6
-          }
-        ]
-      ],
-      "outcome": {
-        "servers": {
-          "a:27017": {
-            "type": "RSPrimary",
-            "setName": "rs"
-          },
-          "b:27017": {
-            "type": "Unknown"
-          },
-          "c:27017": {
-            "type": "Unknown"
-          },
-          "d:27017": {
-            "type": "RSGhost"
-          },
-          "e:27017": {
-            "type": "Unknown"
-          }
-        },
-        "topologyType": "ReplicaSetWithPrimary",
-        "logicalSessionTimeoutMinutes": 3,
-        "setName": "rs"
-      }
-    },
-    {
-      "responses": [
-        [
-          "e:27017",
-          {
-            "ok": 1,
-            "ismaster": false,
-            "hosts": [
-              "a:27017",
-              "b:27017",
-              "c:27017",
-              "d:27017",
-              "e:27017"
-            ],
-            "setName": "rs",
-            "arbiterOnly": true,
-            "minWireVersion": 0,
-            "maxWireVersion": 6
-          }
-        ]
-      ],
-      "outcome": {
-        "servers": {
-          "a:27017": {
-            "type": "RSPrimary",
-            "setName": "rs"
-          },
-          "b:27017": {
-            "type": "Unknown"
-          },
-          "c:27017": {
-            "type": "Unknown"
-          },
-          "d:27017": {
-            "type": "RSGhost"
-          },
-          "e:27017": {
-            "type": "RSArbiter",
-            "setName": "rs"
-          }
-        },
-        "topologyType": "ReplicaSetWithPrimary",
-        "logicalSessionTimeoutMinutes": 3,
-        "setName": "rs"
-      }
-    },
-    {
-      "responses": [
+        ],
         [
           "b:27017",
           {
@@ -140,10 +27,7 @@
             "secondary": true,
             "hosts": [
               "a:27017",
-              "b:27017",
-              "c:27017",
-              "d:27017",
-              "e:27017"
+              "b:27017"
             ],
             "setName": "rs",
             "logicalSessionTimeoutMinutes": 2,
@@ -161,67 +45,30 @@
           "b:27017": {
             "type": "RSSecondary",
             "setName": "rs"
-          },
-          "c:27017": {
-            "type": "Unknown"
-          },
-          "d:27017": {
-            "type": "RSGhost"
-          },
-          "e:27017": {
-            "type": "RSArbiter",
-            "setName": "rs"
           }
         },
         "topologyType": "ReplicaSetWithPrimary",
-        "logicalSessionTimeoutMinutes": 2,
+        "logicalSessionTimeoutMinutes": 1,
         "setName": "rs"
       }
     },
     {
       "responses": [
         [
-          "c:27017",
+          "a:27017",
           {
             "ok": 1,
-            "ismaster": false,
+            "ismaster": true,
+            "hosts": [
+              "a:27017",
+              "b:27017"
+            ],
             "setName": "rs",
-            "hidden": true,
             "logicalSessionTimeoutMinutes": 1,
             "minWireVersion": 0,
             "maxWireVersion": 6
           }
-        ]
-      ],
-      "outcome": {
-        "servers": {
-          "a:27017": {
-            "type": "RSPrimary",
-            "setName": "rs"
-          },
-          "b:27017": {
-            "type": "RSSecondary",
-            "setName": "rs"
-          },
-          "c:27017": {
-            "type": "RSOther",
-            "setName": "rs"
-          },
-          "d:27017": {
-            "type": "RSGhost"
-          },
-          "e:27017": {
-            "type": "RSArbiter",
-            "setName": "rs"
-          }
-        },
-        "topologyType": "ReplicaSetWithPrimary",
-        "logicalSessionTimeoutMinutes": 2,
-        "setName": "rs"
-      }
-    },
-    {
-      "responses": [
+        ],
         [
           "b:27017",
           {
@@ -230,10 +77,7 @@
             "secondary": true,
             "hosts": [
               "a:27017",
-              "b:27017",
-              "c:27017",
-              "d:27017",
-              "e:27017"
+              "b:27017"
             ],
             "setName": "rs",
             "logicalSessionTimeoutMinutes": null,
@@ -250,17 +94,6 @@
           },
           "b:27017": {
             "type": "RSSecondary",
-            "setName": "rs"
-          },
-          "c:27017": {
-            "type": "RSOther",
-            "setName": "rs"
-          },
-          "d:27017": {
-            "type": "RSGhost"
-          },
-          "e:27017": {
-            "type": "RSArbiter",
             "setName": "rs"
           }
         },
