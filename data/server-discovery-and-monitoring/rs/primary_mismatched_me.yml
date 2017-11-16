@@ -20,5 +20,7 @@ phases:
           ismaster: true
           ok: 1
           setName: rs
+          minWireVersion: 0
+          maxWireVersion: 6
 uri: 'mongodb://localhost:27017/?replicaSet=rs'
 

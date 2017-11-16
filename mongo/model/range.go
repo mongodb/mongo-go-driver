@@ -19,6 +19,15 @@ func NewRange(min int32, max int32) Range {
 	return Range{Min: min, Max: max}
 }
 
+// Intersects checks if another range intersects with this one.
+//
+// If either range is nil, Intersects returns true.
+func (r *Range) Intersects(other *Range) bool {
+	return r == nil || other == nil ||
+		r.Includes(other.Min) || r.Includes(other.Max) ||
+		other.Includes(r.Min) || other.Includes(r.Max)
+}
+
 // Includes returns a bool indicating whether the supplied
 // integer is included in the range.
 func (r *Range) Includes(i int32) bool {
