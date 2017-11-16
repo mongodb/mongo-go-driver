@@ -12,6 +12,13 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
+var supportedWireVersions = NewRange(2, 6)
+var ErrUnsupportedWireVersion = fmt.Errorf(
+	"this driver only supports wire versions between %d and %d",
+	supportedWireVersions.Min,
+	supportedWireVersions.Max,
+)
+
 // NewFSM creates a new FSM.
 func NewFSM() *FSM {
 	return &FSM{}
@@ -27,7 +34,7 @@ type FSM struct {
 }
 
 // Apply uses the server model to transition states.
-func (fsm *FSM) Apply(s *Server) {
+func (fsm *FSM) Apply(s *Server) error {
 
 	newServers := make([]*Server, len(fsm.Servers))
 	copy(newServers, fsm.Servers)
@@ -38,7 +45,11 @@ func (fsm *FSM) Apply(s *Server) {
 	}
 
 	if _, ok := fsm.findServer(s.Addr); !ok {
-		return
+		return nil
+	}
+
+	if !supportedWireVersions.Intersects(s.WireVersion) {
+		return ErrUnsupportedWireVersion
 	}
 
 	switch fsm.Kind {
@@ -53,6 +64,8 @@ func (fsm *FSM) Apply(s *Server) {
 	case Single:
 		fsm.applyToSingle(s)
 	}
+
+	return nil
 }
 
 func (fsm *FSM) applyToReplicaSetNoPrimary(s *Server) {

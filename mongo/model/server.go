@@ -69,10 +69,6 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 		SetName:         isMasterResult.SetName,
 		SetVersion:      isMasterResult.SetVersion,
 		Tags:            NewTagSetFromMap(isMasterResult.Tags),
-		WireVersion: &Range{
-			Min: isMasterResult.MinWireVersion,
-			Max: isMasterResult.MaxWireVersion,
-		},
 	}
 
 	if buildInfoResult != nil {
@@ -120,6 +116,11 @@ func BuildServer(addr Addr, isMasterResult *internal.IsMasterResult, buildInfoRe
 		}
 	} else if isMasterResult.Msg == "isdbgrid" {
 		i.Kind = Mongos
+	}
+
+	i.WireVersion = &Range{
+		Min: isMasterResult.MinWireVersion,
+		Max: isMasterResult.MaxWireVersion,
 	}
 
 	return i

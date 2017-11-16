@@ -36,6 +36,7 @@ type outcome struct {
 	Servers      map[string]server
 	TopologyType string
 	SetName      string
+	Compatible   *bool
 }
 
 type phase struct {
@@ -84,6 +85,19 @@ func setUpFSM(t *testing.T, uri string) *model.FSM {
 	return fsm
 }
 
+func applyResponses(fsm *model.FSM, responses []response) error {
+	for _, response := range responses {
+		server := model.BuildServer(model.Addr(response.Host), response.IsMaster, nil)
+		err := fsm.Apply(server)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func runTest(t *testing.T, directory string, filename string) {
 	filepath := path.Join(testsDir, directory, filename)
 	content, err := ioutil.ReadFile(filepath)
@@ -99,9 +113,12 @@ func runTest(t *testing.T, directory string, filename string) {
 		fsm := setUpFSM(t, test.URI)
 
 		for _, phase := range test.Phases {
-			for _, response := range phase.Responses {
-				server := model.BuildServer(model.Addr(response.Host), response.IsMaster, nil)
-				fsm.Apply(server)
+			err = applyResponses(fsm, phase.Responses)
+			if phase.Outcome.Compatible == nil || *phase.Outcome.Compatible {
+				require.NoError(t, err)
+			} else {
+				require.Equal(t, err, model.ErrUnsupportedWireVersion)
+				continue
 			}
 
 			require.Equal(t, phase.Outcome.TopologyType, fsm.Kind.String())

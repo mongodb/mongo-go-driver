@@ -28,7 +28,9 @@
             ],
             "ismaster": false,
             "ok": 1,
-            "setName": "rs"
+            "setName": "rs",
+            "minWireVersion": 0,
+            "maxWireVersion": 6
           }
         ]
       ]

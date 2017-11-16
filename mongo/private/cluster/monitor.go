@@ -52,7 +52,11 @@ func StartMonitor(opts ...Option) (*Monitor, error) {
 	go func() {
 		for change := range m.changes {
 			// apply the change
-			current := m.apply(change)
+			current, err := m.apply(change)
+			if err != nil {
+				continue
+			}
+
 			m.currentLock.Lock()
 			m.current = current
 			m.currentLock.Unlock()
@@ -205,16 +209,21 @@ func (m *Monitor) stopMonitoringServer(addr model.Addr, server *server.Monitor) 
 	delete(m.servers, addr)
 }
 
-func (m *Monitor) apply(s *model.Server) *model.Cluster {
+func (m *Monitor) apply(s *model.Server) (*model.Cluster, error) {
 	old := m.fsm.Cluster
-	m.fsm.Apply(s)
+
+	err := m.fsm.Apply(s)
+	if err != nil {
+		return nil, err
+	}
+
 	new := m.fsm.Cluster
 
 	diff := model.DiffCluster(&old, &new)
 	m.serversLock.Lock()
 	if m.serversClosed {
 		m.serversLock.Unlock()
-		return &model.Cluster{}
+		return &model.Cluster{}, nil
 	}
 	for _, oldServer := range diff.RemovedServers {
 		if sm, ok := m.servers[oldServer.Addr]; ok {
@@ -227,5 +236,5 @@ func (m *Monitor) apply(s *model.Server) *model.Cluster {
 		}
 	}
 	m.serversLock.Unlock()
-	return &new
+	return &new, nil
 }
