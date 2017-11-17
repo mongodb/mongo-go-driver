@@ -145,6 +145,8 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 	testhelpers.RequireNoErrorOnClose(t, c2)
 
 	require.NoError(t, fake.SetKind(model.Unknown))
+
+	// TODO GODRIVER-19: Use command monitoring to wait for changes to apply instead of sleeping.
 	time.Sleep(3 * time.Second)
 
 	_, err = s.Connection(context.Background())
@@ -188,8 +190,6 @@ func TestServer_Connection_Read_non_specific_error_should_clear_the_pool(t *test
 
 	testhelpers.RequireNoErrorOnClose(t, c1)
 	testhelpers.RequireNoErrorOnClose(t, c2)
-
-	time.Sleep(1 * time.Second)
 
 	_, err = s.Connection(context.Background())
 	require.NoError(t, err)
@@ -254,8 +254,6 @@ func TestServer_Connection_Read_specific_error_should_not_clear_the_pool(t *test
 			testhelpers.RequireNoErrorOnClose(t, c1)
 			testhelpers.RequireNoErrorOnClose(t, c2)
 
-			time.Sleep(1 * time.Second)
-
 			_, err = s.Connection(context.Background())
 			require.NoError(t, err)
 			require.Len(t, created, 2)
@@ -299,8 +297,6 @@ func TestServer_Connection_Write_non_specific_error_should_clear_the_pool(t *tes
 	testhelpers.RequireNoErrorOnClose(t, c1)
 	testhelpers.RequireNoErrorOnClose(t, c2)
 
-	time.Sleep(1 * time.Second)
-
 	_, err = s.Connection(context.Background())
 	require.NoError(t, err)
 	require.Len(t, created, 3)
@@ -342,8 +338,6 @@ func TestServer_Connection_Write_specific_error_should_not_clear_the_pool(t *tes
 
 			testhelpers.RequireNoErrorOnClose(t, c1)
 			testhelpers.RequireNoErrorOnClose(t, c2)
-
-			time.Sleep(1 * time.Second)
 
 			_, err = s.Connection(context.Background())
 			require.NoError(t, err)

@@ -8,9 +8,8 @@ package conn_test
 
 import (
 	"context"
+	"sync"
 	"testing"
-
-	"time"
 
 	"github.com/10gen/mongo-go-driver/mongo/internal/conntest"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
@@ -34,12 +33,16 @@ func TestCappedProvider_only_allows_max_number_of_connections(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		time.Sleep(1 * time.Second)
-		cancel()
+		_, err = cappedProvider(ctx)
+		require.Error(t, err)
+		wg.Done()
 	}()
-	_, err = cappedProvider(ctx)
-	require.Error(t, err)
+
+	cancel()
+	wg.Wait()
 }
 
 func TestCappedProvider_closing_a_connection_releases_a_resource(t *testing.T) {
@@ -55,10 +58,15 @@ func TestCappedProvider_closing_a_connection_releases_a_resource(t *testing.T) {
 	_, err := cappedProvider(context.Background())
 	require.NoError(t, err)
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		time.Sleep(1 * time.Second)
-		testhelpers.RequireNoErrorOnClose(t, c1)
+		_, err = cappedProvider(context.Background())
+		require.NoError(t, err)
+		wg.Done()
 	}()
-	_, err = cappedProvider(context.Background())
-	require.NoError(t, err)
+
+	testhelpers.RequireNoErrorOnClose(t, c1)
+	wg.Wait()
+
 }
