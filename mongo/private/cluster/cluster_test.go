@@ -92,7 +92,6 @@ func TestSelectServer_Updated(t *testing.T) {
 		srvCh <- srvs
 	}()
 
-	time.Sleep(1 * time.Second)
 	m.updateEndpoints("four", "five")
 	err := <-errCh
 	srvs := <-srvCh
@@ -112,11 +111,10 @@ func TestSelectServer_Cancel(t *testing.T) {
 		errCh <- err
 	}()
 
-	time.Sleep(1 * time.Second)
 	select {
 	case <-errCh:
 		t.Fatal("selectServers returned before it was cancelled")
-	default:
+	case <-time.After(time.Second * 1):
 		// this is what we expect
 	}
 
@@ -142,11 +140,10 @@ func TestSelectServer_Timeout(t *testing.T) {
 		errCh <- err
 	}()
 
-	time.Sleep(1 * time.Second)
 	select {
 	case <-errCh:
 		t.Fatal("selectServers returned before it was cancelled")
-	default:
+	case <-time.After(1 * time.Second):
 		// this is what we expect
 	}
 

@@ -9,7 +9,6 @@ package server_test
 import (
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/10gen/mongo-go-driver/mongo/internal/servertest"
 	"github.com/10gen/mongo-go-driver/mongo/model"
@@ -56,10 +55,12 @@ func TestMonitor_Subscribe_after_close_should_return_an_error(t *testing.T) {
 	t.Parallel()
 
 	fm := servertest.NewFakeMonitor(model.Standalone, model.Addr("localhost:27017"))
-
+	updates, _, _ := fm.Subscribe()
 	fm.Stop()
 
-	time.Sleep(1 * time.Second)
+	// Ensure that the monitor is closed.
+	for range updates {
+	}
 
 	_, _, err := fm.Subscribe()
 	require.Error(t, err)

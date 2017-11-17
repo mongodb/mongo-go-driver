@@ -9,9 +9,8 @@ package conn_test
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
-
-	"time"
 
 	"github.com/10gen/mongo-go-driver/mongo/internal/conntest"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
@@ -115,14 +114,17 @@ func TestPool_Get_when_context_is_done(t *testing.T) {
 	require.Len(t, created, 2)
 
 	ctx, cancel := context.WithCancel(context.Background())
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		time.Sleep(1 * time.Second)
-		cancel()
+		_, err = p.Get(ctx)
+		require.Error(t, err)
+		require.Len(t, created, 2)
+		wg.Done()
 	}()
 
-	_, err = p.Get(ctx)
-	require.Error(t, err)
-	require.Len(t, created, 2)
+	cancel()
+	wg.Wait()
 }
 
 func TestPool_Get_returns_an_error_when_unable_to_create_a_connection(t *testing.T) {
