@@ -322,6 +322,10 @@ tasks:
       tags: ["test", "standalone"]
       commands:
         - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
         - func: run-tests
           vars:
             TOPOLOGY: "server"
@@ -332,6 +336,10 @@ tasks:
       tags: ["test", "standalone"]
       commands:
         - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "nossl"
         - func: run-tests
           vars:
             TOPOLOGY: "server"
@@ -356,6 +364,10 @@ tasks:
       tags: ["test", "replicaset"]
       commands:
         - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "auth"
+            SSL: "nossl"
         - func: run-tests
           vars:
             TOPOLOGY: "replica_set"
@@ -366,6 +378,10 @@ tasks:
       tags: ["test", "sharded"]
       commands:
         - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "nossl"
         - func: run-tests
           vars:
             TOPOLOGY: "sharded_cluster"
@@ -376,6 +392,10 @@ tasks:
       tags: ["test", "sharded"]
       commands:
         - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "nossl"
         - func: run-tests
           vars:
             TOPOLOGY: "sharded_cluster"
