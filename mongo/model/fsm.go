@@ -13,11 +13,7 @@ import (
 )
 
 var supportedWireVersions = NewRange(2, 6)
-var ErrUnsupportedWireVersion = fmt.Errorf(
-	"this driver only supports wire versions between %d and %d",
-	supportedWireVersions.Min,
-	supportedWireVersions.Max,
-)
+var minSupportedMongoDBVersion = "2.6"
 
 // NewFSM creates a new FSM.
 func NewFSM() *FSM {
@@ -48,8 +44,27 @@ func (fsm *FSM) Apply(s *Server) error {
 		return nil
 	}
 
-	if !supportedWireVersions.Intersects(s.WireVersion) {
-		return ErrUnsupportedWireVersion
+	if s.WireVersion != nil {
+		if s.WireVersion.Max < supportedWireVersions.Min {
+			return fmt.Errorf(
+				"server at %s reports wire version %d, but this version of the Go driver requires "+
+					"at least %d (MongoDB %s)",
+				s.Addr.String(),
+				s.WireVersion.Max,
+				supportedWireVersions.Min,
+				minSupportedMongoDBVersion,
+			)
+		}
+
+		if s.WireVersion.Min > supportedWireVersions.Max {
+			return fmt.Errorf(
+				"server at %s requires wire version %d, but this version of the Go driver only "+
+					"supports up to %d",
+				s.Addr.String(),
+				s.WireVersion.Min,
+				supportedWireVersions.Max,
+			)
+		}
 	}
 
 	switch fsm.Kind {
