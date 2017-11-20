@@ -117,7 +117,7 @@ func runTest(t *testing.T, directory string, filename string) {
 			if phase.Outcome.Compatible == nil || *phase.Outcome.Compatible {
 				require.NoError(t, err)
 			} else {
-				require.Equal(t, err, model.ErrUnsupportedWireVersion)
+				require.Error(t, err)
 				continue
 			}
 
