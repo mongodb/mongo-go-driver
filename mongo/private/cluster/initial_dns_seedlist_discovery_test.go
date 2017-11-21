@@ -27,14 +27,14 @@ type seedlistTestCase struct {
 	URI     string
 	Seeds   []string
 	Hosts   []string
+	Error   bool
 	Options map[string]interface{}
 }
 
 func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 	t.Run(filename, func(t *testing.T) {
 		cs, err := connstring.Parse(test.URI)
-		if len(test.Hosts) == 0 {
-			// require the parsing to have errored
+		if test.Error {
 			require.Error(t, err)
 			return
 		}
