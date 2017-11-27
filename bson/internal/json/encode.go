@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 	"unicode/utf8"
 )
@@ -367,7 +368,6 @@ func typeEncoder(t reflect.Type) encoderFunc {
 			innerf(e, v, opts)
 			return
 		}
-
 		b, err := encode(v.Interface())
 		if err == nil {
 			// copy JSON into buffer, checking validity.
@@ -450,7 +450,38 @@ func marshalerEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		return
 	}
 	m := v.Interface().(Marshaler)
-	b, err := m.MarshalJSON()
+
+	var err error
+	var b []byte
+	switch x := v.Interface().(type) {
+	case time.Time:
+		// Issue here is that m.MarshallJSON is calling the actual time.Time's json marshaller and thats not being friendly
+		// Need to be able to handle 3 types of outputs.
+		// 1. "relaxed_extjson": "{\"a\" : {\"$date\" : \"1970-01-01T00:00:00Z\"}}",
+		// 2. "relaxed_extjson": "{\"a\" : {\"$date\" : \"2012-12-24T12:15:30.501Z\"}}",
+		// 3. "relaxed_extjson": "{\"a\" : {\"$date\" : {\"$numberLong\" : \"-284643869501\"}}}",
+		utc := x.UTC()
+		var timeStr, fmtTime string
+		if utc.Unix() < 0 {
+			// Require numberLong to be in unixms but that method doesnt exist
+			var MILLION int64
+			MILLION = 1000000
+			unixMs := strconv.FormatInt(utc.UnixNano()/MILLION, 10)
+			timeStr = `{"$date":{"$numberLong":"` + unixMs + `"}}`
+		} else {
+			if utc.Nanosecond() == 0 {
+				fmtTime = x.UTC().Format("2006-01-02T15:04:05Z")
+			} else {
+				fmtTime = x.UTC().Format("2006-01-02T15:04:05.000Z")
+			}
+			timeStr = `{"$date":"` + fmtTime + `"}`
+		}
+		b = []byte(timeStr)
+		break
+	default:
+		b, err = m.MarshalJSON()
+	}
+
 	if err == nil {
 		// copy JSON into buffer, checking validity.
 		err = compact(&e.Buffer, b, opts.escapeHTML)
@@ -542,16 +573,59 @@ func uintEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 
 type floatEncoder int // number of bits
 
+const (
+	// Here we need to add the $numberDouble signature
+	decValueInfinity    = "Infinity"
+	decValueNegInfinity = "-Infinity"
+	decValueNaN         = "NaN"
+)
+
+func EncodeFloatProperlyFormatted(x float64) string {
+	var v string
+	if math.IsNaN(x) {
+		v = decValueNaN
+	} else if math.IsInf(x, 1) {
+		v = decValueInfinity
+	} else if math.IsInf(x, -1) {
+		v = decValueNegInfinity
+	} else {
+		fmtG := strconv.FormatFloat(x, 'G', -1, 64)
+		lastIndex := strings.LastIndex(fmtG, "E")
+		if lastIndex > -1 {
+			v = fmtG
+		} else {
+			// Required as doubles need to be represented with the minimum precision (1.234 vs 1.234000) and need
+			// at least one decimal point (1 vs 1.0)
+			minPresicion := strconv.FormatFloat(x, 'f', -1, 64)
+			oneDecimalPoint := strconv.FormatFloat(x, 'f', 1, 64)
+
+			minF, _ := strconv.ParseFloat(minPresicion, 64)
+			oneF, _ := strconv.ParseFloat(oneDecimalPoint, 64)
+			if math.Float64bits(minF) == math.Float64bits(oneF) {
+				// Same result, then use the one with one decimal point (1.0)
+				v = oneDecimalPoint
+			} else {
+				v = minPresicion
+			}
+		}
+	}
+	return v
+}
+
 func (bits floatEncoder) encode(e *encodeState, v reflect.Value, opts encOpts) {
 	f := v.Float()
-	if math.IsInf(f, 0) || math.IsNaN(f) {
-		e.error(&UnsupportedValueError{v, strconv.FormatFloat(f, 'g', -1, int(bits))})
-	}
-	b := strconv.AppendFloat(e.scratch[:0], f, 'g', -1, int(bits))
+	b := EncodeFloatProperlyFormatted(f)
+
 	if opts.quoted {
 		e.WriteByte('"')
 	}
-	e.Write(b)
+	if b == decValueNaN || b == decValueInfinity || b == decValueNegInfinity {
+		e.WriteString(`{"$numberDouble":"`)
+		e.Write([]byte(b))
+		e.WriteString(`"}`)
+	} else {
+		e.Write([]byte(b))
+	}
 	if opts.quoted {
 		e.WriteByte('"')
 	}
@@ -583,7 +657,8 @@ func stringEncoder(e *encodeState, v reflect.Value, opts encOpts) {
 		}
 		e.string(string(sb), opts.escapeHTML)
 	} else {
-		e.string(v.String(), opts.escapeHTML)
+		strVal := v.String()
+		e.string(strVal, opts.escapeHTML)
 	}
 }
 
@@ -878,9 +953,16 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 			case '\r':
 				e.WriteByte('\\')
 				e.WriteByte('r')
+			// TODO: Steven - Added these case statements below as ExtJSON wanted them.
 			case '\t':
 				e.WriteByte('\\')
 				e.WriteByte('t')
+			case '\b':
+				e.WriteByte('\\')
+				e.WriteByte('b')
+			case '\f':
+				e.WriteByte('\\')
+				e.WriteByte('f')
 			default:
 				// This encodes bytes < 0x20 except for \t, \n and \r.
 				// If escapeHTML is set, it also escapes <, >, and &
@@ -925,7 +1007,17 @@ func (e *encodeState) string(s string, escapeHTML bool) int {
 		i += size
 	}
 	if start < len(s) {
-		e.WriteString(s[start:])
+		for _, char := range s[start:] {
+			rn, size := utf8.DecodeLastRuneInString(string(char))
+			if size > 1 {
+				// Escape non-utf8 characters
+				quoted := strconv.QuoteRuneToASCII(rn) // quoted = "'\u554a'"
+				unquoted := quoted[1 : len(quoted)-1]  // unquoted = "\u554a"
+				e.WriteString(unquoted)
+			} else {
+				e.WriteString(string(char))
+			}
+		}
 	}
 	e.WriteByte('"')
 	return e.Len() - len0

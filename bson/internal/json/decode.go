@@ -99,6 +99,7 @@ func Unmarshal(data []byte, v interface{}) error {
 	}
 
 	d.init(data)
+	d.useNumber = true
 	return d.unmarshal(v)
 }
 
@@ -742,6 +743,7 @@ func (d *decodeState) object(v reflect.Value) {
 			default:
 				panic("json: Unexpected key type") // should never occur
 			}
+			fmt.Println(kv, subv)
 			v.SetMapIndex(kv, subv)
 		}
 

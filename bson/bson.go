@@ -21,7 +21,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -32,6 +31,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 )
 
 //go:generate go run bson_corpus_spec_test_generator.go

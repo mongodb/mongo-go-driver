@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 type decoder struct {
@@ -482,7 +483,7 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 
 	start := d.i
 
-	if kind == 0x03 {
+	if kind == 0x03 { // Document
 		// Delegate unmarshaling of documents.
 		outt := out.Type()
 		outk := out.Kind()
@@ -540,7 +541,8 @@ func (d *decoder) readElemTo(out reflect.Value, kind byte) (good bool) {
 		}
 	case 0x05: // Binary
 		b := d.readBinary()
-		if b.Kind == 0x00 || b.Kind == 0x02 {
+		if b.Kind == 0x00 {
+			//fmt.Println("Binary kind 0x02 or 0x00", b)
 			in = b.Data
 		} else {
 			in = b
@@ -828,6 +830,9 @@ func (d *decoder) readBinary() Binary {
 func (d *decoder) readStr() string {
 	l := d.readInt32()
 	b := d.readBytes(l - 1)
+	if !utf8.Valid(b) {
+		corrupted()
+	}
 	if d.readByte() != '\x00' {
 		corrupted()
 	}
