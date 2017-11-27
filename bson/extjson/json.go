@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/10gen/mongo-go-driver/bson/internal/json"
 	"io"
+	"reflect"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"reflect"
-	"strings"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 )
 
 // Code obtained from Stitch/common
@@ -34,7 +34,7 @@ const (
 
 // FriendlyTypeName returns a user friendly type of the given go type
 // that abstracts away the go types
-func FriendlyTypeName(v interface{}) string {
+func friendlyTypeName(v interface{}) string {
 	if v == nil {
 		return "null"
 	}
@@ -51,20 +51,20 @@ func FriendlyTypeName(v interface{}) string {
 		return t.Kind().String()
 	case reflect.Map:
 		if t.Elem().Kind() != reflect.Interface {
-			return fmt.Sprintf("%s[%s]", objectTypeName, FriendlyTypeName(reflect.New(t.Elem()).Interface()))
+			return fmt.Sprintf("%s[%s]", objectTypeName, friendlyTypeName(reflect.New(t.Elem()).Interface()))
 		}
 		return objectTypeName
 	case reflect.Ptr:
 		if vv.IsNil() {
 			return nullTypeName
 		}
-		return FriendlyTypeName(vv.Elem().Interface())
+		return friendlyTypeName(vv.Elem().Interface())
 	case reflect.Array, reflect.Slice:
 		if t == reflect.TypeOf(bson.D{}) {
 			return objectTypeName
 		}
 		if t.Elem().Kind() != reflect.Interface {
-			return fmt.Sprintf("%s[%s]", arrayTypeName, FriendlyTypeName(reflect.New(t.Elem()).Interface()))
+			return fmt.Sprintf("%s[%s]", arrayTypeName, friendlyTypeName(reflect.New(t.Elem()).Interface()))
 		}
 		return arrayTypeName
 	case reflect.String:
@@ -379,7 +379,7 @@ func (md *MarshalD) UnmarshalJSON(in []byte) error {
 		*md = MarshalD(outAsD)
 		return nil
 	}
-	return fmt.Errorf("unable to decode '%s' into an 'object'", FriendlyTypeName(object))
+	return fmt.Errorf("unable to decode '%s' into an 'object'", friendlyTypeName(object))
 }
 
 // MarshalJSON behaves like a normal JSON marshal on an

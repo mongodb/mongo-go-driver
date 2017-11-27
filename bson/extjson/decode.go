@@ -5,11 +5,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/10gen/mongo-go-driver/bson"
 	"math"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // DecodeExtended decodes any extended JSON values in the given value.
@@ -17,7 +18,7 @@ import (
 // Information might be lost due to inaccessible struct fields and as
 // such should only really be used once on a new value.
 func DecodeExtended(value interface{}) (interface{}, error) {
-	value, isPtr, isValid := Deref(value)
+	value, isPtr, isValid := deref(value)
 	if value == nil || !isValid {
 		return value, nil
 	}
@@ -26,7 +27,7 @@ func DecodeExtended(value interface{}) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		return Ref(decoded), nil
+		return ref(decoded), nil
 	}
 
 	switch x := value.(type) {
@@ -58,8 +59,8 @@ func DecodeExtended(value interface{}) (interface{}, error) {
 		}
 		return ValueOf(decoded), nil
 	default:
-		if IsStruct(value) && !canExtend(value) {
-			return StructValueMapWithErr(value, decodeSpecial)
+		if isStruct(value) && !canExtend(value) {
+			return structValueMapWithErr(value, decodeSpecial)
 		}
 		return value, nil
 	}
@@ -100,6 +101,10 @@ const (
 // type (e.g $numberLong) and replaces any such values with the corresponding
 // BSON type.
 func parseSpecialKeys(special interface{}) (interface{}, error) {
+	return ParseSpecialKeys(special)
+}
+
+func ParseSpecialKeys(special interface{}) (interface{}, error) {
 	// first ensure we are using a correct document type
 	var doc map[string]interface{}
 	switch v := special.(type) {
@@ -158,8 +163,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			}
 			return nil, errors.New("expected $numberInt field to have string value")
 		case "$timestamp":
-			// We're gonna convert the map/bson.d into a mongotimestamp
-			// To do this we'll extract the bits from
 			switch v := value.(type) {
 			case bson.D:
 				// Timestamp should only have 2 fields
@@ -221,13 +224,8 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			default:
 				return nil, errors.New("expected $dbPointer field to have document value")
 			}
-
-		// TODO:Steven: Clean up
 		case "$binary":
 			binary := bson.Binary{}
-			// binary.Kind => subType field
-			// binary.Data => whatever goes in base64
-			//
 			value, ok := doc["$binary"]
 			if !ok {
 				return nil, errors.New("Not ok, could not parse")
@@ -248,42 +246,8 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 				}
 			}
 			return binary, nil
-
-			//if value, ok := doc["$binary"]; ok {
-			//	binary := bson.Binary{}
-			//	v, ok := value.(string)
-			//	if !ok {
-			//		return nil, errors.New("expected $binary field to have string value")
-			//	}
-			//	bytes, err := base64.StdEncoding.DecodeString(v)
-			//	if err != nil {
-			//		return nil, err
-			//	}
-			//	binary.Data = bytes
-			//
-			//	if value, ok = doc["$type"]; ok {
-			//		v, ok := value.(string)
-			//		if !ok {
-			//			return nil, errors.New("expected $type field to have string value")
-			//		}
-			//		kind, err := hex.DecodeString(v)
-			//		if err != nil {
-			//			return nil, err
-			//		}
-			//		if len(kind) != 1 {
-			//			return nil, errors.New("expected single byte (as hexadecimal string) for $type field")
-			//		}
-			//		binary.Kind = kind[0]
-			//		return binary, nil
-			//	}
-			//	return nil, errors.New("expected $type field with $binary field")
-			//}
-
-			//
 		case "$regularExpression":
 			regex := bson.RegEx{}
-			//Pattern string
-			//Options string
 			value, ok := doc["$regularExpression"]
 			if !ok {
 				return nil, errors.New("Not ok, could not parse regex")
@@ -317,35 +281,6 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 				}
 			}
 			return regex, nil
-			//
-			//if value, ok := doc["$regex"]; ok {
-			//	regex := bson.RegEx{}
-			//	v, ok := value.(string)
-			//	if !ok {
-			//		return nil, errors.New("expected $regex field to have string value")
-			//	}
-			//	regex.Pattern = v
-			//
-			//	if value, ok = doc["$options"]; ok {
-			//		v, ok = value.(string)
-			//		if !ok {
-			//			return nil, errors.New("expected $options field to have string value")
-			//		}
-			//		regex.Options = v
-			//
-			//		// Validate regular expression options
-			//		for i := range regex.Options {
-			//			switch o := regex.Options[i]; o {
-			//			case 'g', 'i', 'm', 's': // allowed
-			//			default:
-			//				return nil, fmt.Errorf("invalid regular expression option '%v'", o)
-			//			}
-			//		}
-			//		return regex, nil
-			//	}
-			//	return nil, errors.New("expected $options field with $regex field")
-			//}
-
 		case "$symbol":
 			v, ok := value.(string)
 			if !ok {
@@ -383,77 +318,7 @@ func parseSpecialKeys(special interface{}) (interface{}, error) {
 			}
 			return nil, errors.New("expected $scope field with $code field")
 		}
-
-		//if value, ok := doc["$regex"]; ok {
-		//	regex := bson.RegEx{}
-		//	v, ok := value.(string)
-		//	if !ok {
-		//		return nil, errors.New("expected $regex field to have string value")
-		//	}
-		//	regex.Pattern = v
-		//
-		//	if value, ok = doc["$options"]; ok {
-		//		v, ok = value.(string)
-		//		if !ok {
-		//			return nil, errors.New("expected $options field to have string value")
-		//		}
-		//		regex.Options = v
-		//
-		//		// Validate regular expression options
-		//		for i := range regex.Options {
-		//			switch o := regex.Options[i]; o {
-		//			case 'g', 'i', 'm', 's': // allowed
-		//			default:
-		//				return nil, fmt.Errorf("invalid regular expression option '%v'", o)
-		//			}
-		//		}
-		//		return regex, nil
-		//	}
-		//	return nil, errors.New("expected $options field with $regex field")
-		//}
-
-		// No longer need this as DBRefs are obsolete
-		//
-		//if value, ok := doc["$ref"]; ok {
-		//	if _, ok = value.(string); !ok {
-		//		return nil, errors.New("expected string for $ref field")
-		//	}
-		//	if value, ok = doc["$id"]; ok {
-		//		switch v := value.(type) {
-		//		case map[string]interface{}, bson.D, bson.M, MarshalD:
-		//			if _, err := parseSpecialKeys(v); err != nil {
-		//				return nil, fmt.Errorf("error parsing $id field: %v", err)
-		//			}
-		//		}
-		//
-		//		// We do not care for dbRef as a typed object as it's not real BSON
-		//		return special, nil
-		//	}
-		//}
-	case 3:
-		//if value, ok := doc["$ref"]; ok {
-		//	if _, ok = value.(string); !ok {
-		//		return nil, errors.New("expected string for $ref field")
-		//	}
-		//	if value, ok = doc["$id"]; ok {
-		//		switch v := value.(type) {
-		//		case map[string]interface{}, bson.D, bson.M, MarshalD:
-		//			if _, err := parseSpecialKeys(v); err != nil {
-		//				return nil, fmt.Errorf("error parsing $id field: %v", err)
-		//			}
-		//		}
-		//		if value, ok = doc["$db"]; ok {
-		//			if _, ok = value.(string); !ok {
-		//				return nil, errors.New("expected string for $db field")
-		//			}
-		//
-		//			// We do not care for dbRef as a typed object as it's not real BSON
-		//			return special, nil
-		//		}
-		//	}
-		//}
 	}
-
 	// nothing matched, so we recurse deeper
 	return DecodeExtended(special)
 }
@@ -527,11 +392,11 @@ func canExtend(v interface{}) bool {
 
 // Methods below were obtained from stitch/utils
 
-// Deref pulls an underlying object out of a pointer or interface, if applicable.
+// deref pulls an underlying object out of a pointer or interface, if applicable.
 // It returns the dereferenced value where possible, otherwise just the given value.
 // It also returns whether the original value was a pointer, and whether the
 // inner value is valid.
-func Deref(v interface{}) (value interface{}, isPtr bool, isValid bool) {
+func deref(v interface{}) (value interface{}, isPtr bool, isValid bool) {
 	val := reflect.ValueOf(v)
 	isPtr = val.Kind() == reflect.Ptr
 	if isPtr || val.Kind() == reflect.Interface {
@@ -543,28 +408,28 @@ func Deref(v interface{}) (value interface{}, isPtr bool, isValid bool) {
 	return val.Interface(), isPtr, true
 }
 
-// Ref returns a pointer to the given concrete value.
-func Ref(v interface{}) interface{} {
+// ref returns a pointer to the given concrete value.
+func ref(v interface{}) interface{} {
 	val := reflect.ValueOf(v)
 	out := reflect.New(val.Type())
 	out.Elem().Set(val)
 	return out.Interface()
 }
 
-// IsStruct returns whether the argument is a struct.
-func IsStruct(v interface{}) bool {
+// isStruct returns whether the argument is a struct.
+func isStruct(v interface{}) bool {
 	return reflect.ValueOf(v).Kind() == reflect.Struct
 }
 
-// StructValueMapWithErr applies a mapping to each exported value of the given struct, failing upon error.
+// structValueMapWithErr applies a mapping to each exported value of the given struct, failing upon error.
 // WARNING: use of this is discouraged, explore non-reflection alternatives before use.
-func StructValueMapWithErr(st interface{}, mapping func(interface{}) (interface{}, error)) (interface{}, error) {
-	st, isPtr, _ := Deref(st)
+func structValueMapWithErr(st interface{}, mapping func(interface{}) (interface{}, error)) (interface{}, error) {
+	st, isPtr, _ := deref(st)
 	if isPtr {
-		out, err := StructValueMapWithErr(st, mapping)
-		return Ref(out), err
+		out, err := structValueMapWithErr(st, mapping)
+		return ref(out), err
 	}
-	if !IsStruct(st) {
+	if !isStruct(st) {
 		return st, fmt.Errorf("expected struct, given %T", st)
 	}
 	val := reflect.ValueOf(st)

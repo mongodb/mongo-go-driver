@@ -339,6 +339,7 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 		if et.Kind() == reflect.Uint8 {
 			e.addElemName(0x05, name)
 			e.addBinary(0x00, v.Bytes())
+			fmt.Println(name, v.Bytes(), et.String())
 		} else if et == typeDocElem || et == typeRawDocElem {
 			e.addElemName(0x03, name)
 			e.addDoc(v)
@@ -384,6 +385,7 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 		case Binary:
 			e.addElemName(0x05, name)
 			e.addBinary(s.Kind, s.Data)
+			fmt.Println("s", s.Kind, s.Data)
 
 		case Decimal128:
 			e.addElemName(0x13, name)

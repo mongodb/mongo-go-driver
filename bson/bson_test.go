@@ -55,6 +55,8 @@ func testUnmarshal(t *testing.T, data string, obj interface{}) {
 	zero := makeZeroDoc(obj)
 	err := bson.Unmarshal([]byte(data), zero)
 	require.NoError(t, err)
+	t.Log("ZERO", zero)
+	t.Log("obj", obj)
 	require.Equal(t, zero, obj)
 }
 
@@ -536,11 +538,11 @@ var unmarshalItems = []testItemType{
 		"\x03rawd\x00" + wrapInDoc("\x0Aa\x00\x0Ac\x00\x08b\x00\x01")},
 
 	// Decode old binary.
-	{bson.M{"_": []byte("old")},
+	{bson.M{"_": bson.Binary{0x02, []byte("old")}},
 		"\x05_\x00\x07\x00\x00\x00\x02\x03\x00\x00\x00old"},
 
 	// Decode old binary without length. According to the spec, this shouldn't happen.
-	{bson.M{"_": []byte("old")},
+	{bson.M{"_": bson.Binary{0x02, []byte("old")}},
 		"\x05_\x00\x03\x00\x00\x00\x02old"},
 
 	// Decode a doc within a doc in to a slice within a doc; shouldn't error
@@ -1298,6 +1300,7 @@ var twoWayCrossItems = []crossTypeItem{
 
 	// []byte <=> Binary
 	{&struct{ B []byte }{[]byte("abc")}, map[string]bson.Binary{"b": {Data: []byte("abc")}}},
+	//{&struct{ B []byte }{[]byte("abcabcabcabcabc")}, map[string]bson.Binary{"b": {Data: []byte("abcabcabcabcabc"), Kind: 0x02}}},
 
 	// []byte <=> MyBytes
 	{&struct{ B MyBytes }{[]byte("abc")}, map[string]string{"b": "abc"}},

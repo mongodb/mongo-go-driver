@@ -82,7 +82,7 @@ type CryptMode int
 
 // The set of available crypt modes
 const (
-	CryptModeEncrypt = iota
+	CryptModeEncrypt CryptMode = iota
 	CryptModeDecrypt
 )
 

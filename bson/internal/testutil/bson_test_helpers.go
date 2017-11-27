@@ -3,11 +3,12 @@ package testutil
 import (
 	"bytes"
 	"fmt"
-	"github.com/10gen/mongo-go-driver/bson/internal/json"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"path"
 	"testing"
+
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
+	"github.com/stretchr/testify/require"
 )
 
 func CompressJSON(js string) string {

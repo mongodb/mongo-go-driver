@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/stitch/utils/test"
-
 	"github.com/10gen/mongo-go-driver/bson"
 	xjson "github.com/10gen/mongo-go-driver/bson/extjson"
+	"github.com/10gen/stitch/utils/test"
 	gc "github.com/smartystreets/goconvey/convey"
 )
 

@@ -25,28 +25,28 @@ type decodeError struct {
 }
 
 type valid struct {
-	Description        string
-	Canonical_Bson     string
-	Canonical_Extjson  string
-	Relaxed_Extjson    string "json:omitempty"
-	Degenerate_Bson    string "json:omitempty"
-	Degenerate_Extjson string "json:omitempty"
-	Converted_Bson     string "json:omitempty"
-	Converted_Extjson  string "json:omitempty"
-	Lossy              bool   "json:omitempty"
+	Description       string
+	CanonicalBson     string `json:"canonical_bson"`
+	CanonicalExtjson  string `json:"canonical_extjson"`
+	RelaxedExtjson    string `json:"relaxed_extjson", omitempty`
+	DegenerateBson    string `json:"degenerate_bson", omitempty`
+	DegenerateExtjson string `json:"degenerate_extjson", omitempty`
+	ConvertedBson     string `json:"converted_bson", omitempty`
+	ConvertedExtjson  string `json:"converted_extjson", omitempty`
+	Lossy             bool   `json:omitempty`
 }
 
 type testCase struct {
 	Description  string
-	Bson_Type    string
-	Test_Key     string        "json:omitempty"
-	Valid        []valid       "json:omitempty"
-	DecodeErrors []decodeError "json:omitempty"
-	ParseErrors  []parseError  "json:omitempty"
-	Deprecated   bool          "json:omitempty"
+	BsonType     string        `json:"bson_type"`
+	TestKey      string        `json:"test_key, omitempty"`
+	Valid        []valid       `json:omitempty`
+	DecodeErrors []decodeError `json:omitempty`
+	ParseErrors  []parseError  `json:omitempty`
+	Deprecated   bool          `json:omitempty`
 }
 
-const testsDir string = "../specifications/source/bson-corpus/tests/"
+const testsDir string = "../data/bson-corpus/"
 
 func TestBSONSpec(t *testing.T) {
 	for _, file := range testutil.FindJSONFilesInDir(t, testsDir) {
@@ -70,10 +70,11 @@ func runTest(t *testing.T, filename string) {
 			return
 		}
 
+		bsonType := test.BsonType
 		for _, validCase := range test.Valid {
 			lossy := validCase.Lossy
-			cEJ := validCase.Canonical_Extjson
-			cB := validCase.Canonical_Bson
+			cEJ := validCase.CanonicalExtjson
+			cB := validCase.CanonicalBson
 
 			t.Run(testName+"validateCanonicalBSON:"+validCase.Description, func(t *testing.T) {
 				validateCanonicalBSON(t, cB, cEJ)
@@ -82,7 +83,7 @@ func runTest(t *testing.T, filename string) {
 				validateCanonicalExtendedJSON(t, cB, cEJ, lossy)
 			})
 
-			rEJ := validCase.Relaxed_Extjson
+			rEJ := validCase.RelaxedExtjson
 			if rEJ != "" {
 				t.Run(testName+"validateBsonToRelaxedJSON:"+validCase.Description, func(t *testing.T) {
 					validateBsonToRelaxedJSON(t, cB, rEJ)
@@ -90,18 +91,18 @@ func runTest(t *testing.T, filename string) {
 
 				// TODO: Failing on int64.json MaxInt
 				t.Run(testName+"validateRelaxedExtendedJSON:"+validCase.Description, func(t *testing.T) {
-					validateRelaxedExtendedJSON(t, rEJ, test.Description)
+					validateRelaxedExtendedJSON(t, rEJ, bsonType)
 				})
 			}
 
-			dB := validCase.Degenerate_Bson
+			dB := validCase.DegenerateBson
 			if dB != "" {
 				t.Run(testName+"validateDegenerateBSON:"+validCase.Description, func(t *testing.T) {
 					validateDegenerateBSON(t, dB, cB)
 				})
 			}
 
-			dEJ := validCase.Degenerate_Extjson
+			dEJ := validCase.DegenerateExtjson
 			if dEJ != "" {
 				t.Run(testName+"validateDegenerateExtendedJSON:"+validCase.Description, func(t *testing.T) {
 					validateDegenerateExtendedJSON(t, dEJ, cEJ, cB, lossy)
@@ -121,9 +122,10 @@ func runTest(t *testing.T, filename string) {
 	})
 }
 
-//for cB input:
+// This method validates round trip accuracy for canonical BSON and conversion from canonical BSON to canonical
+// Extended JSON.
 func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
-	//native_to_bson( bson_to_native(cB) ) = cB
+	// 1. native_to_bson( bson_to_native(cB) ) = cB
 	decoded, err := hex.DecodeString(cB)
 	require.NoError(t, err)
 
@@ -135,7 +137,7 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	roundTripCB := hex.EncodeToString(roundTripCBByteRepr)
 	require.Equal(t, cB, strings.ToUpper(roundTripCB))
 
-	//native_to_canonical_extended_json( bson_to_native(cB) ) = cEJ
+	// 2. native_to_canonical_extended_json( bson_to_native(cB) ) = cEJ
 	var nativeReprBsonD bson.D
 	err = bson.Unmarshal([]byte(decoded), &nativeReprBsonD)
 	require.NoError(t, err)
@@ -145,19 +147,20 @@ func validateCanonicalBSON(t *testing.T, cB string, cEJ string) {
 	validateExtendedJSONWithCondition(t, cEJ, string(roundTripCEJ), nativeReprBsonD)
 }
 
-//for cEJ input:
+// This method validates round trip accuracy for canonical Extended JSON and conversion from canonical Extended JSON
+// to canonical BSON.
 func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bool) {
 	marshalDDoc := extjson.MarshalD{}
 	err := json.Unmarshal([]byte(cEJ), &marshalDDoc)
 	require.NoError(t, err)
 	bsonDDoc := bson.D(marshalDDoc)
 
-	// native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
+	// 1. native_to_canonical_extended_json( json_to_native(cEJ) ) = cEJ
 	roundTripCEJByteRepr, err := extjson.EncodeBSONDtoJSON(bsonDDoc)
 	require.NoError(t, err)
 	validateExtendedJSONWithCondition(t, cEJ, string(roundTripCEJByteRepr), bsonDDoc)
 
-	// native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
+	// 2. native_to_bson( json_to_native(cEJ) ) = cB (unless lossy)
 	if !lossy {
 		bsonHexDecoded, err := bson.Marshal(bsonDDoc)
 		require.NoError(t, err)
@@ -167,9 +170,9 @@ func validateCanonicalExtendedJSON(t *testing.T, cB string, cEJ string, lossy bo
 	}
 }
 
-//native_to_relaxed_extended_json( bson_to_native(cB) ) = rEJ (if rEJ exists)
+// This method validates conversion from canonical BSON into relaxed Extended JSON
 func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
-	// Convert BSON to native
+	// 1. native_to_relaxed_extended_json( bson_to_native(cB) ) = rEJ (if rEJ exists)
 	decoded, err := hex.DecodeString(cB)
 	require.NoError(t, err)
 
@@ -185,31 +188,23 @@ func validateBsonToRelaxedJSON(t *testing.T, cB string, rEJ string) {
 	validateExtendedJSONWithCondition(t, rEJ, string(roundTripREJ), bsonDDoc)
 }
 
-// for rEJ input
-func validateRelaxedExtendedJSON(t *testing.T, rEJ string, testFileName string) {
-	//native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
-	nativeRepr := bson.M{}
+// This method validates round trip accuracy for relaxed Extended JSON.
+func validateRelaxedExtendedJSON(t *testing.T, rEJ string, bsonType string) {
+	// 1. native_to_relaxed_extended_json( json_to_native(rEJ) ) = rEJ
+
+	var nativeRepr = bson.M{}
 	require.NoError(t, json.Unmarshal([]byte(rEJ), &nativeRepr))
 
-	// TODO: Fails on MaxInt
-	// Need this as without this JSON.unmarshall will see a JSON Number and it will convert that into a float64
-	// Then I have no idea whether the user wanted a floating point number 1.0 or an integer 1.
-	if strings.Contains(testFileName, "Int") {
-		for k := range nativeRepr {
-			nativeRepr[k] = int64(nativeRepr[k].(float64))
-		}
-	}
 	roundTripREJ, err := json.Marshal(nativeRepr)
 	require.NoError(t, err)
-
 	nativeReprBsonD := bson.D{}
 	nativeReprBsonD.AppendMap(nativeRepr)
 	validateExtendedJSONWithCondition(t, rEJ, string(roundTripREJ), nativeReprBsonD)
 }
 
-//for dB input (if it exists):
+// This method validates conversion from degenerate BSON into canonical BSON.
 func validateDegenerateBSON(t *testing.T, dB string, cB string) {
-	//native_to_bson( bson_to_native(dB) ) = cB
+	// 1. native_to_bson( bson_to_native(dB) ) = cB
 	decoded, err := hex.DecodeString(dB)
 	require.NoError(t, err)
 
@@ -223,9 +218,10 @@ func validateDegenerateBSON(t *testing.T, dB string, cB string) {
 	require.Equal(t, cB, strings.ToUpper(roundTripDB))
 }
 
-//for dEJ input (if it exists):
+// This method validates conversion from degenerate Extended JSON into canonical Extended JSON, as well as conversion
+// from degenerate Extended JSON into canonical Extended JSON.
 func validateDegenerateExtendedJSON(t *testing.T, dEJ string, cEJ string, cB string, lossy bool) {
-	//native_to_canonical_extended_json( json_to_native(dEJ) ) = cEJ
+	// 1. native_to_canonical_extended_json( json_to_native(dEJ) ) = cEJ
 	marshalDDoc := extjson.MarshalD{}
 	err := json.Unmarshal([]byte(dEJ), &marshalDDoc)
 	require.NoError(t, err)
@@ -235,7 +231,7 @@ func validateDegenerateExtendedJSON(t *testing.T, dEJ string, cEJ string, cB str
 	require.NoError(t, err)
 	require.Equal(t, testutil.CompressJSON(cEJ), string(roundTripCEJ))
 
-	//native_to_bson( json_to_native(dEJ) ) = cB (unless lossy)
+	// 1. native_to_bson( json_to_native(dEJ) ) = cB (unless lossy)
 	if !lossy {
 		dBByteRepr, err := bson.Marshal(nativeD)
 		require.NoError(t, err)
@@ -262,8 +258,7 @@ func testParseError(t *testing.T, s string) {
 // Therefore we will check for the condition and if the condition holds, we'll convert the expected string into Go's
 // native representation and compare those values.
 func validateExtendedJSONWithCondition(t *testing.T, expected string, returned string, nativeRepr bson.D) {
-	// In case of $numberDouble we can't fully represent it in Go. Therefore we will convert cEJ into NativeRepr
-	if strings.Contains(expected, "1.234567890123456") && testutil.CompressJSON(expected) != string(returned) {
+	if testutil.CompressJSON(expected) != string(returned) {
 		marshalDDoc := extjson.MarshalD{}
 		err := json.Unmarshal([]byte(expected), &marshalDDoc)
 		require.NoError(t, err)

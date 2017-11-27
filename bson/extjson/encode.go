@@ -5,13 +5,15 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/bson/internal/json"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/bson/internal/json"
 )
 
 // Special values for extended JSON.
@@ -47,20 +49,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(`"}}`)
 	case bson.RegEx:
 		buff.WriteString(`{"$regularExpression":{"pattern":"`)
-
-		// TODO: Steven - Not clean. Need a more methodological wayk
-		// Escape any characters necessary within x.Pattern here.
-		ad := "\\\\"
-		sl := "\\"
-		qt := "\""
-		dbl := "\\\""
-		x.Pattern = strings.Replace(x.Pattern, sl, ad, -1)
-		x.Pattern = strings.Replace(x.Pattern, qt, dbl, -1)
-
-		x.Options = strings.Replace(x.Options, sl, ad, -1)
-		x.Options = strings.Replace(x.Options, qt, dbl, -1)
-
-		buff.WriteString(x.Pattern)
+		buff.WriteString(escapeJSONMetaCharacters(x.Pattern))
 		buff.WriteString(`","options":"`)
 
 		// x.Options should be alphabetically ordered
@@ -125,7 +114,7 @@ func encodeExtendedToBuffer(value interface{}, enc *json.Encoder, buff *bytes.Bu
 		buff.WriteString(string(x))
 		buff.WriteString(`"}`)
 	case int:
-		if x < -2147483648 || x > 2147483647 {
+		if x < math.MinInt32 || x > math.MaxInt32 {
 			encodeInt64ToBuffer(int64(x), buff)
 			break
 		}
@@ -201,4 +190,13 @@ func encodeInt64ToBuffer(v int64, buff *bytes.Buffer) {
 	buff.WriteString(`{"$numberLong":"`)
 	buff.WriteString(fmt.Sprintf("%d", v))
 	buff.WriteString(`"}`)
+}
+
+func escapeJSONMetaCharacters(s string) string {
+	metaChars := [8]string{"\\", "\"", "\b", "\t", "\f", "\n", "\r", "\t"}
+	for _, ch := range metaChars {
+		esc := "\\" + ch
+		s = strings.Replace(s, ch, esc, -1)
+	}
+	return s
 }
