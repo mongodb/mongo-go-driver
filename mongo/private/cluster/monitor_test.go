@@ -9,6 +9,7 @@ package cluster_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"testing"
 
@@ -75,6 +76,10 @@ func (c *fakeMonitorConn) MarkDead() {
 
 func (c *fakeMonitorConn) Model() *model.Conn {
 	return &model.Conn{}
+}
+
+func (c *fakeMonitorConn) LocalAddr() net.Addr {
+	return nil
 }
 
 func (c *fakeMonitorConn) Expired() bool {

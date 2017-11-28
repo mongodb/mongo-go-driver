@@ -9,6 +9,7 @@ package conntest
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
@@ -54,6 +55,11 @@ func (c *MockConnection) Model() *model.Conn {
 // Expired returns whether a MockConnection is expired.
 func (c *MockConnection) Expired() bool {
 	return c.Dead
+}
+
+// LocalAddr returns nil.
+func (c *MockConnection) LocalAddr() net.Addr {
+	return nil
 }
 
 // Read reads a server response from the MockConnection.

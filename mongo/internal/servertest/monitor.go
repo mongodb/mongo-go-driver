@@ -9,6 +9,7 @@ package servertest
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -88,6 +89,10 @@ func (c *fakeMonitorConn) Close() error {
 
 func (c *fakeMonitorConn) CloseIgnoreError() {
 	_ = c.Close()
+}
+
+func (c *fakeMonitorConn) LocalAddr() net.Addr {
+	return nil
 }
 
 func (c *fakeMonitorConn) MarkDead() {

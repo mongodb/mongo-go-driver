@@ -93,6 +93,8 @@ type Connection interface {
 	Model() *model.Conn
 	// Expired indicates if the connection has expired.
 	Expired() bool
+	// LocalAddr returns the local address of the connection.
+	LocalAddr() net.Addr
 	// Read reads a message from the connection.
 	Read(context.Context, int32) (msg.Response, error)
 	// Write writes a number of messages to the connection.
@@ -174,6 +176,11 @@ func (c *connImpl) Expired() bool {
 	}
 
 	return c.dead
+}
+
+// LocalAddr returns the local address of a connection.
+func (c *connImpl) LocalAddr() net.Addr {
+	return c.rw.LocalAddr()
 }
 
 func (c *connImpl) Read(ctx context.Context, responseTo int32) (msg.Response, error) {

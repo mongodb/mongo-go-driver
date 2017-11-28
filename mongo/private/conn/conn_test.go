@@ -9,6 +9,7 @@ package conn_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -205,6 +206,14 @@ func TestConnection_Read_timeout(t *testing.T) {
 	require.Error(t, err)
 
 	require.False(t, subject.Alive())
+}
+
+func TestConnection_LocalAddr(t *testing.T) {
+	t.Parallel()
+	subject, err := createIntegrationTestConn()
+	require.NoError(t, err)
+	localAddr := subject.LocalAddr()
+	require.NotEqual(t, localAddr, &net.TCPAddr{})
 }
 
 func TestConnection_Read_after_connection_is_dead(t *testing.T) {
