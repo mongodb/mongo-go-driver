@@ -18,6 +18,7 @@ import (
 	. "github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/stretchr/testify/require"
+	"net"
 )
 
 func createIntegrationTestConn(opts ...Option) (Connection, error) {
@@ -205,6 +206,14 @@ func TestConnection_Read_timeout(t *testing.T) {
 	require.Error(t, err)
 
 	require.False(t, subject.Alive())
+}
+
+func TestConnection_LocalAddr(t *testing.T) {
+	t.Parallel()
+	subject, err := createIntegrationTestConn()
+	require.NoError(t, err)
+	localAddr := subject.LocalAddr()
+	require.NotEqual(t, localAddr, &net.TCPAddr{})
 }
 
 func TestConnection_Read_after_connection_is_dead(t *testing.T) {

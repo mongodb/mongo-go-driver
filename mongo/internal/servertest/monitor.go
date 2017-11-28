@@ -18,6 +18,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
+	"net"
 )
 
 // NewFakeMonitor creates a fake monitor.
@@ -88,6 +89,10 @@ func (c *fakeMonitorConn) Close() error {
 
 func (c *fakeMonitorConn) CloseIgnoreError() {
 	_ = c.Close()
+}
+
+func (c *fakeMonitorConn) LocalAddr() net.Addr {
+	return nil
 }
 
 func (c *fakeMonitorConn) MarkDead() {

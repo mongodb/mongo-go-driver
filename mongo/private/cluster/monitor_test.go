@@ -22,6 +22,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"net"
 )
 
 func TestStop(t *testing.T) {
@@ -75,6 +76,10 @@ func (c *fakeMonitorConn) MarkDead() {
 
 func (c *fakeMonitorConn) Model() *model.Conn {
 	return &model.Conn{}
+}
+
+func (c *fakeMonitorConn) LocalAddr() net.Addr {
+	return nil
 }
 
 func (c *fakeMonitorConn) Expired() bool {
