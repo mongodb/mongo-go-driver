@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"runtime"
 	"testing"
 
 	"github.com/10gen/mongo-go-driver/mongo/connstring"
@@ -33,6 +34,9 @@ type seedlistTestCase struct {
 
 func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 	t.Run(filename, func(t *testing.T) {
+		if runtime.GOOS == "windows" && filename == "two-txt-records" {
+			t.Skip("Skipping to avoid windows multiple TXT record lookup bug")
+		}
 		cs, err := connstring.Parse(test.URI)
 		if test.Error {
 			require.Error(t, err)

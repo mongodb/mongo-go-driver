@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -163,6 +164,14 @@ func (p *parser) parse(original string) error {
 		// error ignored because finding a TXT record should not be
 		// considered an error.
 		recordsFromTXT, _ := net.LookupTXT(hosts)
+
+		// This is a temporary fix to get around bug https://github.com/golang/go/issues/21472.
+		// It will currently incorrectly concatenate multiple TXT records to one
+		// on windows.
+		if runtime.GOOS == "windows" {
+			recordsFromTXT = []string{strings.Join(recordsFromTXT, "")}
+		}
+
 		if len(recordsFromTXT) > 1 {
 			return errors.New("multiple records from TXT not supported")
 		}
