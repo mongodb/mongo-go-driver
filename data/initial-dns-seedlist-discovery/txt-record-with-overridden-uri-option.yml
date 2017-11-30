@@ -1,4 +1,4 @@
-uri: "mongodb+srv://test3.test.build.10gen.cc/?replicaSet=repl0"
+uri: "mongodb+srv://test5.test.build.10gen.cc/?authSource=otherDB"
 seeds:
     - localhost.test.build.10gen.cc:27017
 hosts:
@@ -7,4 +7,5 @@ hosts:
     - localhost:27019
 options:
     replicaSet: repl0
+    authSource: otherDB
     ssl: true

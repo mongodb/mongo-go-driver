@@ -1,5 +1,5 @@
 {
-  "uri": "mongodb+srv://test5.test.build.10gen.cc/",
+  "uri": "mongodb+srv://test5.test.build.10gen.cc/?authSource=otherDB",
   "seeds": [
     "localhost.test.build.10gen.cc:27017"
   ],
@@ -10,7 +10,7 @@
   ],
   "options": {
     "replicaSet": "repl0",
-    "authSource": "thisDB",
+    "authSource": "otherDB",
     "ssl": true
   }
 }
