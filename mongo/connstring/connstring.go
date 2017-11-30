@@ -470,7 +470,7 @@ func extractQueryArgsFromURI(uri string) ([]string, error) {
 	}
 
 	if uri[0] != '?' {
-		return nil, fmt.Errorf("must have a ? separator between path and query")
+		return nil, errors.New("must have a ? separator between path and query")
 	}
 
 	uri = uri[1:]
@@ -496,7 +496,7 @@ func extractDatabaseFromURI(uri string) (extractedDatabase, error) {
 	}
 
 	if uri[0] != '/' {
-		return extractedDatabase{}, fmt.Errorf("must have a / separator between hosts and path")
+		return extractedDatabase{}, errors.New("must have a / separator between hosts and path")
 	}
 
 	uri = uri[1:]
