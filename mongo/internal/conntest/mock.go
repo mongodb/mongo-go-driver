@@ -9,10 +9,10 @@ package conntest
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"net"
 )
 
 // MockConnection is used to mock a connection for testing purposes.

@@ -9,6 +9,7 @@ package cluster_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"testing"
 
@@ -22,7 +23,6 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"net"
 )
 
 func TestStop(t *testing.T) {

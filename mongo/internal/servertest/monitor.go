@@ -9,6 +9,7 @@ package servertest
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -18,7 +19,6 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
-	"net"
 )
 
 // NewFakeMonitor creates a fake monitor.
