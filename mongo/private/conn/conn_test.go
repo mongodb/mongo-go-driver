@@ -9,6 +9,7 @@ package conn_test
 import (
 	"context"
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -18,7 +19,6 @@ import (
 	. "github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/stretchr/testify/require"
-	"net"
 )
 
 func createIntegrationTestConn(opts ...Option) (Connection, error) {
