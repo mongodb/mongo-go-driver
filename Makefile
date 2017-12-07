@@ -8,7 +8,7 @@ TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 TEST_TIMEOUT = 60
 
 .PHONY: default
-default: generate test-cover test-race check-fmt vet build-examples lint errcheck
+default: test-cover test-race check-fmt vet build-examples lint errcheck
 
 .PHONY: doc
 doc:
@@ -25,10 +25,6 @@ check-fmt:
 .PHONY: fmt
 fmt:
 	gofmt -l -s -w $(PKGS)
-
-.PHONY: generate
-generate: 
-	go generate -x ./bson/... ./mongo/...
 
 .PHONY: lint
 lint:
