@@ -9,6 +9,7 @@ package mongo
 import (
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -31,4 +32,16 @@ func TestDatabase_initialize(t *testing.T) {
 	db := createTestDatabase(t, &name)
 	require.Equal(t, db.name, name)
 	require.NotNil(t, db.client)
+}
+
+func TestDatabase_RunCommand(t *testing.T) {
+	t.Parallel()
+
+	db := createTestDatabase(t, nil)
+
+	var result bson.M
+	err := db.RunCommand(bson.D{{Name: "ismaster", Value: 1}}, &result)
+	require.NoError(t, err)
+	require.Equal(t, result["ismaster"], true)
+	require.Equal(t, result["ok"], 1.0)
 }

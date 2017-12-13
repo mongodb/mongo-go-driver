@@ -7,7 +7,10 @@
 package mongo
 
 import (
+	"context"
+
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
@@ -58,4 +61,19 @@ func (db *Database) Name() string {
 // Collection gets a handle for a given collection in the database.
 func (db *Database) Collection(name string) *Collection {
 	return newCollection(db, name)
+}
+
+// RunCommand runs a command on the database.
+func (db *Database) RunCommand(command interface{}, result interface{}) error {
+	return db.RunCommandWithContext(context.Background(), command, result)
+}
+
+// RunCommandWithContext runs a command on the database. A user can supply a custom context to this method.
+func (db *Database) RunCommandWithContext(ctx context.Context, command interface{}, result interface{}) error {
+	s, err := db.client.selectServer(ctx, readpref.Selector(readpref.Primary()), readpref.Primary())
+	if err != nil {
+		return err
+	}
+
+	return ops.RunCommand(ctx, s, db.Name(), command, result)
 }
