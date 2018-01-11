@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 
@@ -23,6 +24,27 @@ var connectionStringErr error
 var liveCluster *cluster.Cluster
 var liveClusterOnce sync.Once
 var liveClusterErr error
+
+// AddTLSConfigToURI checks for the environmental variable indicating that the tests are being run
+// on an SSL-enabled server, and if so, returns a new URI with the necessary configuration.
+func AddTLSConfigToURI(uri string) string {
+	caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE")
+	if len(caFile) == 0 {
+		return uri
+	}
+
+	if !strings.ContainsRune(uri, '?') {
+		if uri[len(uri)-1] != '/' {
+			uri += "/"
+		}
+
+		uri += "?"
+	} else {
+		uri += "&"
+	}
+
+	return uri + "ssl=true&sslCertificateAuthorityFile=" + caFile
+}
 
 // Cluster gets the globally configured cluster.
 func Cluster(t *testing.T) *cluster.Cluster {
@@ -62,6 +84,9 @@ func ConnString(t *testing.T) connstring.ConnString {
 		if mongodbURI == "" {
 			mongodbURI = "mongodb://localhost:27017"
 		}
+
+		mongodbURI = AddTLSConfigToURI(mongodbURI)
+
 		var err error
 		connectionString, err = connstring.Parse(mongodbURI)
 		if err != nil {

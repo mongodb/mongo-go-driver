@@ -7,8 +7,10 @@
 package mongo
 
 import (
+	"os"
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
 	"github.com/stretchr/testify/require"
@@ -38,4 +40,34 @@ func TestClient_Database(t *testing.T) {
 	db := c.Database(dbName)
 	require.Equal(t, db.Name(), dbName)
 	require.Exactly(t, c, db.Client())
+}
+
+func TestClient_TLSConnection(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE")
+
+	if len(caFile) == 0 {
+		t.Skip()
+	}
+
+	c := createTestClient(t)
+	db := c.Database("test")
+
+	var result bson.M
+	err := db.RunCommand(bson.M{"serverStatus": 1}, &result)
+	require.NoError(t, err)
+
+	security, ok := result["security"].(bson.M)
+	require.True(t, ok)
+
+	_, found := security["SSLServerSubjectName"]
+	require.True(t, found)
+
+	_, found = security["SSLServerHasCertificateAuthority"]
+	require.True(t, found)
 }

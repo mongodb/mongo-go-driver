@@ -133,6 +133,23 @@ func WithConnString(cs connstring.ConnString) Option {
 			)
 		}
 
+		if cs.SSL {
+			tls := conn.NewTLSConfig()
+
+			if cs.SSLCaFileSet {
+				err := tls.AddCaCertFromFile(cs.SSLCaFile)
+				if err != nil {
+					return err
+				}
+			}
+
+			if cs.SSLInsecure {
+				tls.SetInsecure(true)
+			}
+
+			connOpts = append(connOpts, conn.WithTLSConfig(tls))
+		}
+
 		if len(connOpts) > 0 {
 			c.serverOpts = append(c.serverOpts, server.WithMoreConnectionOptions(connOpts...))
 		}

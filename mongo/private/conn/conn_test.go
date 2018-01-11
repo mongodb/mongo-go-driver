@@ -10,12 +10,12 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
-
 	. "github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/stretchr/testify/require"
@@ -23,6 +23,20 @@ import (
 
 func createIntegrationTestConn(opts ...Option) (Connection, error) {
 	opts = append(opts, WithAppName("mongo-go-driver-test"))
+
+	caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE")
+	if len(caFile) != 0 {
+		tls := NewTLSConfig()
+		err := tls.AddCaCertFromFile(caFile)
+		if err != nil {
+			return nil, err
+		}
+
+		tls.SetInsecure(true)
+
+		opts = append(opts, WithTLSConfig(tls))
+	}
+
 	c, err := New(context.Background(), model.Addr(*host), opts...)
 
 	if err != nil {

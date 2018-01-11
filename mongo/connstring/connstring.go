@@ -55,8 +55,13 @@ type ConnString struct {
 	ReplicaSet              string
 	ServerSelectionTimeout  time.Duration
 	SocketTimeout           time.Duration
+	SSL                     bool
+	SSLInsecure             bool
+	SSLCaFile               string
+	SSLCaFileSet            bool
 	Username                string
-	WTimeout                time.Duration
+
+	WTimeout time.Duration
 
 	Options        map[string][]string
 	UnknownOptions map[string][]string
@@ -400,6 +405,28 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.SocketTimeout = time.Duration(n) * time.Millisecond
+	case "ssl":
+		switch value {
+		case "true":
+			p.SSL = true
+		case "false":
+			p.SSL = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+	case "sslinsecure":
+		switch value {
+		case "true":
+			p.SSLInsecure = true
+		case "false":
+			p.SSLInsecure = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+	case "sslcertificateauthorityfile":
+		p.SSL = true
+		p.SSLCaFile = value
+		p.SSLCaFileSet = true
 	case "wtimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {

@@ -37,6 +37,7 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 		if runtime.GOOS == "windows" && filename == "two-txt-records" {
 			t.Skip("Skipping to avoid windows multiple TXT record lookup bug")
 		}
+
 		cs, err := connstring.Parse(test.URI)
 		if test.Error {
 			require.Error(t, err)
@@ -52,10 +53,15 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 
 		testhelpers.VerifyConnStringOptions(t, cs, test.Options)
 
+		if cs.SSL && os.Getenv("SSL") == "ssl" {
+			cs.SSLCaFile = os.Getenv("MONGO_GO_DRIVER_CA_FILE")
+			cs.SSLCaFileSet = true
+		} else if cs.SSL || os.Getenv("SSL") == "ssl" {
+			t.Skip()
+		}
+
 		// make a cluster from the options
-		c, err := cluster.New(
-			cluster.WithConnString(cs),
-		)
+		c, err := cluster.New(cluster.WithConnString(cs))
 
 		require.NoError(t, err)
 		for _, host := range test.Hosts {

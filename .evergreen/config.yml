@@ -196,6 +196,8 @@ functions:
             mv $i.new $i
           done
 
+          cp ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
+
 
   make-files-executable:
     - command: shell.exec
@@ -233,6 +235,11 @@ functions:
         working_dir: src/github.com/10gen/mongo-go-driver
         script: |
           ${PREPARE_SHELL}
+
+          if [ ${SSL} = "ssl" ]; then
+              export MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
+          fi
+
           AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} make evg-test
 
   run-enterprise-auth-tests:
@@ -332,6 +339,20 @@ tasks:
             AUTH: "noauth"
             SSL: "nossl"
 
+    - name: test-standalone-noauth-ssl
+      tags: ["test", "standalone"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "ssl"
+
     - name: test-standalone-auth-nossl
       tags: ["test", "standalone"]
       commands:
@@ -345,6 +366,20 @@ tasks:
             TOPOLOGY: "server"
             AUTH: "auth"
             SSL: "nossl"
+
+    - name: test-standalone-auth-ssl
+      tags: ["test", "standalone"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
 
     - name: test-replicaset-noauth-nossl
       tags: ["test", "replicaset"]
@@ -360,6 +395,20 @@ tasks:
             AUTH: "noauth"
             SSL: "nossl"
 
+    - name: test-replicaset-noauth-ssl
+      tags: ["test", "replicaset"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "noauth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "noauth"
+            SSL: "ssl"
+
     - name: test-replicaset-auth-nossl
       tags: ["test", "replicaset"]
       commands:
@@ -373,6 +422,20 @@ tasks:
             TOPOLOGY: "replica_set"
             AUTH: "auth"
             SSL: "nossl"
+
+    - name: test-replicaset-auth-ssl
+      tags: ["test", "replicaset"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "auth"
+            SSL: "ssl"
 
     - name: test-sharded-noauth-nossl
       tags: ["test", "sharded"]
@@ -388,6 +451,20 @@ tasks:
             AUTH: "noauth"
             SSL: "nossl"
 
+    - name: test-sharded-noauth-ssl
+      tags: ["test", "sharded"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "ssl"
+
     - name: test-sharded-auth-nossl
       tags: ["test", "sharded"]
       commands:
@@ -401,6 +478,20 @@ tasks:
             TOPOLOGY: "sharded_cluster"
             AUTH: "auth"
             SSL: "nossl"
+
+    - name: test-sharded-auth-ssl
+      tags: ["test", "sharded"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "ssl"
 
     - name: test-enterprise-auth-plain
       tags: ["test", "enterprise-auth"]

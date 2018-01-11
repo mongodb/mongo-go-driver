@@ -7,6 +7,11 @@
 package conn
 
 import (
+	"context"
+	"crypto/tls"
+	"errors"
+	"net"
+	"strings"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
@@ -16,7 +21,7 @@ func newConfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		codec:          msg.NewWireProtocolCodec(),
 		connectTimeout: 30 * time.Second,
-		dialer:         dial,
+		dialer:         dialWithoutTLS,
 		idleTimeout:    10 * time.Minute,
 		lifeTimeout:    30 * time.Minute,
 	}
@@ -121,6 +126,51 @@ func WithReadTimeout(timeout time.Duration) Option {
 func WithWriteTimeout(timeout time.Duration) Option {
 	return func(c *config) error {
 		c.writeTimeout = timeout
+		return nil
+	}
+}
+
+// WithTLSConfig configures the SSL options for a connection.
+func WithTLSConfig(tlsConfig *TLSConfig) Option {
+	return func(c *config) error {
+		c.dialer = func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error) {
+			conn, err := dialer.DialContext(ctx, network, address)
+			if err != nil {
+				return nil, err
+			}
+
+			if !tlsConfig.InsecureSkipVerify {
+				colonPos := strings.LastIndex(address, ":")
+				if colonPos == -1 {
+					colonPos = len(address)
+				}
+
+				hostname := address[:colonPos]
+				tlsConfig.ServerName = hostname
+			}
+
+			client := tls.Client(conn, &tlsConfig.Config)
+
+			errChan := make(chan error, 1)
+			go func() {
+				errChan <- client.Handshake()
+			}()
+
+			for {
+				select {
+				case err := <-errChan:
+					if err == nil {
+						return client, nil
+					}
+
+					return nil, err
+
+				case <-ctx.Done():
+					return nil, errors.New("server connection cancelled/timeout during TLS handshake")
+				}
+			}
+		}
+
 		return nil
 	}
 }
