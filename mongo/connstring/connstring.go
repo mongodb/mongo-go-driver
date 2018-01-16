@@ -189,6 +189,8 @@ func (p *parser) parse(original string) error {
 			}
 
 		}
+
+		p.SSL = true
 	}
 
 	for _, host := range parsedHosts {

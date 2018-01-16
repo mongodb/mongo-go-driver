@@ -32,6 +32,36 @@ type seedlistTestCase struct {
 	Options map[string]interface{}
 }
 
+func setSSLSettings(t *testing.T, cs *connstring.ConnString, options map[string]interface{}) {
+	var testCaseSSL bool
+	if ssl, found := options["ssl"]; found && ssl.(bool) {
+		// The options specify "ss: true".
+		testCaseSSL = true
+	} else if !found {
+		// No "ssl" option is specified.
+		return
+	}
+
+	envSSL := os.Getenv("SSL") == "ssl"
+
+	// Skip non-SSL tests if the server is running with SSL.
+	if !testCaseSSL && envSSL {
+		t.Skip()
+	}
+
+	// Skip SSL tests if the server is running without SSL.
+	if testCaseSSL && !envSSL {
+		t.Skip()
+	}
+
+	// If SSL tests are running, set the CA file.
+	if testCaseSSL && envSSL {
+		cs.SSLInsecure = true
+		cs.SSLCaFile = os.Getenv("MONGO_GO_DRIVER_CA_FILE")
+		cs.SSLCaFileSet = true
+	}
+}
+
 func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 	t.Run(filename, func(t *testing.T) {
 		if runtime.GOOS == "windows" && filename == "two-txt-records" {
@@ -51,19 +81,12 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 
 		require.Equal(t, hosts, seeds)
 
-		testhelpers.VerifyConnStringOptions(t, cs, test.Options)
-
-		if cs.SSL && os.Getenv("SSL") == "ssl" {
-			cs.SSLCaFile = os.Getenv("MONGO_GO_DRIVER_CA_FILE")
-			cs.SSLCaFileSet = true
-		} else if cs.SSL || os.Getenv("SSL") == "ssl" {
-			t.Skip()
-		}
+		setSSLSettings(t, &cs, test.Options)
 
 		// make a cluster from the options
 		c, err := cluster.New(cluster.WithConnString(cs))
-
 		require.NoError(t, err)
+
 		for _, host := range test.Hosts {
 			_, err := getServerByAddress(host, c)
 			require.NoError(t, err)
