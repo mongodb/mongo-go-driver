@@ -10,9 +10,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,10 +26,13 @@ func TestListIndexesWithInvalidDatabaseName(t *testing.T) {
 	require.Nil(t, err)
 
 	indexes := []string{}
-	var next bson.M
+	var next = bson.NewDocument(1)
 
-	for cursor.Next(context.Background(), &next) {
-		indexes = append(indexes, next["name"].(string))
+	for cursor.Next(context.Background(), next) {
+		elem, err := next.Lookup("name")
+		require.NoError(t, err)
+		require.Equal(t, elem.Value().Type(), bson.TypeString)
+		indexes = append(indexes, elem.Value().StringValue())
 	}
 
 	require.Equal(t, 0, len(indexes))
@@ -45,10 +48,13 @@ func TestListIndexesWithInvalidCollectionName(t *testing.T) {
 	require.Nil(t, err)
 
 	indexes := []string{}
-	var next bson.M
+	var next = bson.NewDocument(1)
 
 	for cursor.Next(context.Background(), &next) {
-		indexes = append(indexes, next["name"].(string))
+		elem, err := next.Lookup("name")
+		require.NoError(t, err)
+		require.Equal(t, elem.Value().Type(), bson.TypeString)
+		indexes = append(indexes, elem.Value().StringValue())
 	}
 
 	require.Equal(t, 0, len(indexes))
@@ -70,11 +76,19 @@ func TestListIndexes(t *testing.T) {
 	require.Nil(t, err)
 
 	indexes := []string{}
-	var next bson.M
+	var next = make(bson.Reader, 1024)
 
-	for cursor.Next(context.Background(), &next) {
-		indexes = append(indexes, next["name"].(string))
+	for cursor.Next(context.Background(), next) {
+		name, err := next.Lookup("name")
+		require.NoError(t, err)
+		if name.Value().Type() != bson.TypeString {
+			t.Errorf("Expected String but got %s", name.Value().Type())
+			t.FailNow()
+		}
+		indexes = append(indexes, name.Value().StringValue())
 	}
+	err = cursor.Err()
+	require.NoError(t, err)
 
 	expected := []string{"_id_", "a", "b", "c", "d_e"}
 	require.Equal(t, 5, len(indexes))
@@ -100,11 +114,19 @@ func TestListIndexesMultipleBatches(t *testing.T) {
 	require.Nil(t, err)
 
 	indexes := []string{}
-	var next bson.M
+	var next = make(bson.Reader, 1024)
 
-	for cursor.Next(context.Background(), &next) {
-		indexes = append(indexes, next["name"].(string))
+	for cursor.Next(context.Background(), next) {
+		name, err := next.Lookup("name")
+		require.NoError(t, err)
+		if name.Value().Type() != bson.TypeString {
+			t.Errorf("Expected String but got %s", name.Value().Type())
+			t.FailNow()
+		}
+		indexes = append(indexes, name.Value().StringValue())
 	}
+	err = cursor.Err()
+	require.NoError(t, err)
 
 	expected := []string{"_id_", "a", "b", "c"}
 	require.Equal(t, 4, len(indexes))

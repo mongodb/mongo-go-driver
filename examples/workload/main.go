@@ -17,7 +17,7 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
 
 	"github.com/10gen/mongo-go-driver/mongo"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
@@ -73,31 +73,32 @@ func main() {
 
 func prep(ctx context.Context, c *cluster.Cluster) error {
 
-	var docs []bson.D
+	var docs = bson.NewArray(1000)
 	for i := 0; i < 1000; i++ {
-		docs = append(docs, bson.D{{"_id", i}})
+		docs.Append(bson.AC.DocumentFromElements(bson.C.Int32("_id", int32(i))))
 	}
 
 	ns := ops.ParseNamespace(*ns)
-	deleteCommand := bson.D{
-		{"delete", ns.Collection},
-		{"deletes", []bson.D{
-			bson.D{
-				{"q", bson.M{}},
-				{"limit", 0},
-			},
-		}},
-	}
+	deleteCommand := bson.NewDocument(2).Append(
+		bson.C.String("delete", ns.Collection),
+		bson.C.ArrayFromElements(
+			"deletes",
+			bson.AC.DocumentFromElements(
+				bson.C.SubDocument("q", bson.NewDocument(0)),
+				bson.C.Int32("limit", 0),
+			),
+		),
+	)
 	deleteRequest := msg.NewCommand(
 		msg.NextRequestID(),
 		ns.DB,
 		false,
 		deleteCommand,
 	)
-	insertCommand := bson.D{
-		{"insert", ns.Collection},
-		{"documents", docs},
-	}
+	insertCommand := bson.NewDocument(2).Append(
+		bson.C.String("insert", ns.Collection),
+		bson.C.Array("documents", docs),
+	)
 	insertRequest := msg.NewCommand(
 		msg.NextRequestID(),
 		ns.DB,
@@ -116,7 +117,8 @@ func prep(ctx context.Context, c *cluster.Cluster) error {
 	}
 	defer connection.Close()
 
-	return conn.ExecuteCommands(ctx, connection, []msg.Request{deleteRequest, insertRequest}, []interface{}{&bson.D{}, &bson.D{}})
+	_, err = conn.ExecuteCommands(ctx, connection, []msg.Request{deleteRequest, insertRequest}, []interface{}{nil, nil})
+	return err
 }
 
 func work(ctx context.Context, idx int, c *cluster.Cluster) {
@@ -136,9 +138,11 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 				continue
 			}
 
-			pipeline := []bson.D{
-				bson.D{{"$limit", limit}},
-			}
+			pipeline := bson.NewArray(1).Append(
+				bson.AC.DocumentFromElements(
+					bson.C.Int32("$limit", int32(limit)),
+				),
+			)
 
 			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, nil, pipeline, mongo.BatchSize(200))
 			if err != nil {
@@ -147,8 +151,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 			}
 
 			count := 0
-			var result bson.D
-			for cursor.Next(ctx, &result) {
+			for cursor.Next(ctx, nil) {
 				count++
 			}
 			if cursor.Err() != nil {

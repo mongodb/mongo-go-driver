@@ -10,9 +10,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,9 +21,17 @@ func TestCursorWithInvalidNamespace(t *testing.T) {
 	testutil.Integration(t)
 
 	s := getServer(t)
-	_, err := NewCursor(&firstBatchCursorResult{
-		NS: "foo",
-	}, 0, s)
+	var rdr bson.Reader
+	var err error
+	rdr, err = bson.NewDocument(1).Append(
+		bson.C.SubDocumentFromElements(
+			"cursor",
+			bson.C.String("ns", "foo"),
+		),
+	).MarshalBSON()
+	require.NoError(t, err)
+
+	_, err = NewCursor(rdr, 0, s)
 	require.NotNil(t, err)
 }
 
@@ -36,7 +44,7 @@ func TestCursorEmpty(t *testing.T) {
 	cursorResult := find(t, s, 0)
 
 	subject, _ := NewCursor(cursorResult, 0, s)
-	hasNext := subject.Next(context.Background(), &bson.D{})
+	hasNext := subject.Next(context.Background(), nil)
 	require.False(t, hasNext, "Empty cursor should not have next")
 }
 
@@ -44,27 +52,38 @@ func TestCursorSingleBatch(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
-	documents := []bson.D{
-		{bson.NewDocElem("_id", 1)},
-		{bson.NewDocElem("_id", 2)},
+	documents := []*bson.Document{
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 1)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 2)),
 	}
 	testutil.AutoInsertDocs(t, documents...)
 
+	readers := make([]bson.Reader, 0, len(documents))
+	for _, doc := range documents {
+		r, err := doc.MarshalBSON()
+		require.NoError(t, err)
+		readers = append(readers, r)
+	}
 	s := getServer(t)
 	cursorResult := find(t, s, 0)
 	subject, _ := NewCursor(cursorResult, 0, s)
-	var next bson.D
 	var hasNext bool
+	var err error
+	var next = make(bson.Reader, 1024)
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.True(t, hasNext, "Should have result")
-	require.Equal(t, documents[0], next, "Documents should be equal")
+	err = subject.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[0], next[:len(readers[0])], "Documents should be equal")
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.True(t, hasNext, "Should have result")
-	require.Equal(t, documents[1], next, "Documents should be equal")
+	err = subject.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[1], next[:len(readers[1])], "Documents should be equal")
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.False(t, hasNext, "Should be exhausted")
 }
 
@@ -72,42 +91,60 @@ func TestCursorMultipleBatches(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
-	documents := []bson.D{
-		{bson.NewDocElem("_id", 1)},
-		{bson.NewDocElem("_id", 2)},
-		{bson.NewDocElem("_id", 3)},
-		{bson.NewDocElem("_id", 4)},
-		{bson.NewDocElem("_id", 5)},
+	documents := []*bson.Document{
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 1)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 2)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 3)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 4)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 5)),
 	}
 	testutil.AutoInsertDocs(t, documents...)
+
+	readers := make([]bson.Reader, 0, len(documents))
+	for _, doc := range documents {
+		r, err := doc.MarshalBSON()
+		require.NoError(t, err)
+		readers = append(readers, r)
+	}
 
 	s := getServer(t)
 	cursorResult := find(t, s, 2)
 	subject, _ := NewCursor(cursorResult, 2, s)
-	var next bson.D
 	var hasNext bool
+	var err error
+	var next = make(bson.Reader, 1024)
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.True(t, hasNext, "Should have result")
-	require.Equal(t, documents[0], next, "Documents should be equal")
+	err = subject.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[0], next[:len(readers[0])], "Documents should be equal")
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.True(t, hasNext, "Should have result")
-	require.Equal(t, documents[1], next, "Documents should be equal")
+	err = subject.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[1], next[:len(readers[1])], "Documents should be equal")
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.True(t, hasNext, "Should have result")
-	require.Equal(t, documents[2], next, "Documents should be equal")
+	err = subject.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[2], next[:len(readers[2])], "Documents should be equal")
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.True(t, hasNext, "Should have result")
-	require.Equal(t, documents[3], next, "Documents should be equal")
+	err = subject.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[3], next[:len(readers[3])], "Documents should be equal")
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.True(t, hasNext, "Should have result")
-	require.Equal(t, documents[4], next, "Documents should be equal")
+	err = subject.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[4], next[:len(readers[4])], "Documents should be equal")
 
-	hasNext = subject.Next(context.Background(), &next)
+	hasNext = subject.Next(context.Background(), nil)
 	require.False(t, hasNext, "Should be exhausted")
 }
 
@@ -115,12 +152,12 @@ func TestCursorClose(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
-	documents := []bson.D{
-		{bson.NewDocElem("_id", 1)},
-		{bson.NewDocElem("_id", 2)},
-		{bson.NewDocElem("_id", 3)},
-		{bson.NewDocElem("_id", 4)},
-		{bson.NewDocElem("_id", 5)},
+	documents := []*bson.Document{
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 1)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 2)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 3)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 4)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 5)),
 	}
 	testutil.AutoInsertDocs(t, documents...)
 
@@ -140,21 +177,23 @@ func TestCursorError(t *testing.T) {
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
 	testutil.AutoInsertDocs(t,
-		bson.D{bson.NewDocElem("_id", 1)},
-		bson.D{bson.NewDocElem("_id", 2)},
-		bson.D{bson.NewDocElem("_id", 3)},
-		bson.D{bson.NewDocElem("_id", 4)},
-		bson.D{bson.NewDocElem("_id", 5)},
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 1)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 2)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 3)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 4)),
+		bson.NewDocument(1).Append(bson.C.Int32("_id", 5)),
 	)
 
 	s := getServer(t)
 	cursorResult := find(t, s, 2)
 	subject, _ := NewCursor(cursorResult, 2, s)
-	var next bson.D
 	var hasNext bool
+	var err error
+	var next = make(bson.Reader, 2)
 
 	// unmarshalling into a non-pointer struct should fail
-	hasNext = subject.Next(context.Background(), next)
-	require.Error(t, subject.Err())
-	require.False(t, hasNext, "Should not have result")
+	hasNext = subject.Next(context.Background(), nil)
+	require.True(t, hasNext)
+	err = subject.Decode(next)
+	require.Error(t, err)
 }

@@ -7,25 +7,26 @@
 package mongo
 
 import (
+	"bytes"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDeleteResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
-	doc := bson.D{
-		bson.NewDocElem("n", 2),
-		bson.NewDocElem("ok", 1),
-	}
+	doc := bson.NewDocument(1).Append(
+		bson.C.Int64("n", 2),
+		bson.C.Int64("ok", 1),
+	)
 
-	bytes, err := bson.Marshal(doc)
+	b, err := doc.MarshalBSON()
 	require.Nil(t, err)
 
 	var result DeleteResult
-	err = bson.Unmarshal(bytes, &result)
+	err = bson.NewDecoder(bytes.NewReader(b)).Decode(&result)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(2))
 }
@@ -34,89 +35,42 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 	t.Parallel()
 
 	result := DeleteResult{DeletedCount: 1}
-	bytes, err := bson.Marshal(result)
+	var buf bytes.Buffer
+	err := bson.NewEncoder(&buf).Encode(result)
 	require.Nil(t, err)
 
-	var doc bson.M
-	err = bson.Unmarshal(bytes, &doc)
-	require.Nil(t, err)
-	require.Equal(t, len(doc), 1)
-	require.Equal(t, doc["n"], int64(1))
-}
-
-func TestUpdateServerResponse_unmarshalInto(t *testing.T) {
-	t.Parallel()
-
-	doc := bson.D{
-		bson.NewDocElem("n", 1),
-		bson.NewDocElem("nModified", 2),
-		bson.NewDocElem("upserted", [...]interface{}{
-			bson.D{
-				bson.NewDocElem("index", 0),
-				bson.NewDocElem("_id", 3),
-			},
-		}),
-	}
-
-	bytes, err := bson.Marshal(doc)
+	doc, err := bson.ReadDocument(buf.Bytes())
 	require.Nil(t, err)
 
-	var result updateServerResponse
-	err = bson.Unmarshal(bytes, &result)
-	require.Nil(t, err)
-	require.Equal(t, result.N, int64(1))
-	require.Equal(t, result.NModified, int64(2))
-	require.Equal(t, len(result.Upserted), 1)
-	require.Equal(t, result.Upserted[0].ID, 3)
-}
-
-func TestUpdateServerResponse_marshalFrom(t *testing.T) {
-	t.Parallel()
-
-	result := updateServerResponse{
-		N:         1,
-		NModified: 2,
-		Upserted:  []docID{{ID: 3}},
-	}
-	bytes, err := bson.Marshal(result)
-	require.Nil(t, err)
-
-	var doc bson.D
-	err = bson.Unmarshal(bytes, &doc)
-	require.Nil(t, err)
-
-	expected := bson.D{
-		bson.NewDocElem("n", int64(1)),
-		bson.NewDocElem("nModified", int64(2)),
-		bson.NewDocElem("upserted", []interface{}{
-			bson.D{bson.NewDocElem("_id", 3)},
-		}),
-	}
-
-	require.Equal(t, doc, expected)
+	require.Equal(t, doc.Len(), 1)
+	e, err := doc.Lookup("n")
+	require.NoError(t, err)
+	require.Equal(t, e.Value().Type(), bson.TypeInt64)
+	require.Equal(t, e.Value().Int64(), int64(1))
 }
 
 func TestUpdateOneResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
-	doc := bson.D{
-		bson.NewDocElem("n", 1),
-		bson.NewDocElem("nModified", 2),
-		bson.NewDocElem("upserted", [...]interface{}{
-			bson.D{
-				bson.NewDocElem("index", 0),
-				bson.NewDocElem("_id", 3),
-			},
-		}),
-	}
+	doc := bson.NewDocument(3).Append(
+		bson.C.Int32("n", 1),
+		bson.C.Int32("nModified", 2),
+		bson.C.ArrayFromElements(
+			"upserted",
+			bson.AC.DocumentFromElements(
+				bson.C.Int32("index", 0),
+				bson.C.Int32("_id", 3),
+			),
+		),
+	)
 
-	bytes, err := bson.Marshal(doc)
+	b, err := doc.MarshalBSON()
 	require.Nil(t, err)
 
 	var result UpdateResult
-	err = bson.Unmarshal(bytes, &result)
+	err = bson.NewDecoder(bytes.NewReader(b)).Decode(&result)
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(2))
-	require.Equal(t, result.UpsertedID, 3)
+	require.Equal(t, int(result.UpsertedID.(int32)), 3)
 }
