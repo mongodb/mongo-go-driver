@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
 
 	"encoding/json"
 
@@ -26,7 +26,7 @@ func TestWireProtocolDecodeReply(t *testing.T) {
 	tests := []struct {
 		bytes    []byte
 		expected *Reply
-		docs     []bson.D
+		docs     []*bson.Document
 	}{
 		{
 			[]byte{0x31, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 8, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 0, 0xD, 0, 0, 0, 8, 0x68, 0x6f, 0x77, 0x64, 0x79, 0, 1, 0},
@@ -39,8 +39,8 @@ func TestWireProtocolDecodeReply(t *testing.T) {
 				NumberReturned: 1,
 				DocumentsBytes: []byte{0xD, 0, 0, 0, 8, 0x68, 0x6f, 0x77, 0x64, 0x79, 0, 1, 0},
 			},
-			[]bson.D{
-				{bson.NewDocElem("howdy", true)},
+			[]*bson.Document{
+				bson.NewDocument(1).Append(bson.C.Boolean("howdy", true)),
 			},
 		},
 	}
@@ -61,13 +61,23 @@ func TestWireProtocolDecodeReply(t *testing.T) {
 		}
 
 		actualIter := msg.(*Reply).Iter()
-		var result bson.D
 		j := 0
-		for actualIter.Next(&result) {
-			expectedBytes, _ = json.Marshal(test.docs[j])
-			actualBytes, _ = json.Marshal(result)
-			if string(expectedBytes) != string(actualBytes) {
-				t.Errorf("msg #%d document #%d is not the same as expected\n  expected: %s\n  actual  : %s", i, j, string(expectedBytes), string(actualBytes))
+	loop:
+		for {
+			got, err := actualIter.DecodeBytes()
+			switch {
+			case err != nil:
+				t.Errorf("unexpected error while decoding bytes: %v", err)
+				break loop
+			case got == nil:
+				break loop
+			}
+			want, innerErr := test.docs[j].MarshalBSON()
+			if innerErr != nil {
+				t.Errorf("unexpected error from marshaling document to bytes: %v", err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Errorf("msg #%d document #%d is not the same as expected\ngot: %v\nwant:%v\n", i, j, got, want)
 			}
 			j++
 		}
@@ -96,7 +106,7 @@ func TestWireProtocolEncodeQuery(t *testing.T) {
 				FullCollectionName: "test.foo",
 				NumberToSkip:       2,
 				NumberToReturn:     1000,
-				Query:              bson.D{bson.NewDocElem("howdy", true)},
+				Query:              bson.NewDocument(1).Append(bson.C.Boolean("howdy", true)),
 			},
 			"32 00 00 00 01 00 00 00 00 00 00 00 d4 07 00 00 14 00 00 00 74 65 73 74 2e 66 6f 6f 00 02 00 00 00 e8 03 00 00 0d 00 00 00 08 68 6f 77 64 79 00 01 00",
 		},
@@ -104,8 +114,8 @@ func TestWireProtocolEncodeQuery(t *testing.T) {
 			&Query{
 				ReqID:                2,
 				FullCollectionName:   "test.foo",
-				Query:                bson.D{bson.NewDocElem("howdy", true)},
-				ReturnFieldsSelector: bson.D{bson.NewDocElem("one", 1), bson.NewDocElem("two", 1)},
+				Query:                bson.NewDocument(1).Append(bson.C.Boolean("howdy", true)),
+				ReturnFieldsSelector: bson.NewDocument(2).Append(bson.C.Int32("one", 1), bson.C.Int32("two", 1)),
 			},
 			"49 00 00 00 02 00 00 00 00 00 00 00 d4 07 00 00 00 00 00 00 74 65 73 74 2e 66 6f 6f 00 00 00 00 00 00 00 00 00 0d 00 00 00 08 68 6f 77 64 79 00 01 00 17 00 00 00 10 6f 6e 65 00 01 00 00 00 10 74 77 6f 00 01 00 00 00 00",
 		},

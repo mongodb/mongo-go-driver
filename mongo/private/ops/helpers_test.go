@@ -10,7 +10,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
@@ -18,6 +17,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	. "github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,12 +34,12 @@ func getServer(t *testing.T) *SelectedServer {
 	}
 }
 
-func find(t *testing.T, s Server, batchSize int32) CursorResult {
-	findCommand := bson.D{
-		bson.NewDocElem("find", testutil.ColName(t)),
-	}
+func find(t *testing.T, s Server, batchSize int32) bson.Reader {
+	findCommand := bson.NewDocument(1).Append(
+		bson.C.String("find", testutil.ColName(t)),
+	)
 	if batchSize != 0 {
-		findCommand = append(findCommand, bson.NewDocElem("batchSize", batchSize))
+		findCommand.Append(bson.C.Int32("batchSize", batchSize))
 	}
 	request := msg.NewCommand(
 		msg.NextRequestID(),
@@ -52,33 +52,8 @@ func find(t *testing.T, s Server, batchSize int32) CursorResult {
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, c)
 
-	var result cursorReturningResult
-
-	err = conn.ExecuteCommand(context.Background(), c, request, &result)
+	rdr, err := conn.ExecuteCommand(context.Background(), c, request, nil)
 	require.NoError(t, err)
 
-	return &result.Cursor
-}
-
-type cursorReturningResult struct {
-	Cursor firstBatchCursorResult `bson:"cursor"`
-}
-
-type firstBatchCursorResult struct {
-	FirstBatch []bson.Raw `bson:"firstBatch"`
-	NS         string     `bson:"ns"`
-	ID         int64      `bson:"id"`
-}
-
-func (cursorResult *firstBatchCursorResult) Namespace() Namespace {
-	namespace := ParseNamespace(cursorResult.NS)
-	return namespace
-}
-
-func (cursorResult *firstBatchCursorResult) InitialBatch() []bson.Raw {
-	return cursorResult.FirstBatch
-}
-
-func (cursorResult *firstBatchCursorResult) CursorID() int64 {
-	return cursorResult.ID
+	return rdr
 }

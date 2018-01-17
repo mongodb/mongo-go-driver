@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
 )
 
 var (
@@ -28,7 +28,7 @@ var (
 // CommandFailureError is an error with a failure response as a document.
 type CommandFailureError struct {
 	Msg      string
-	Response bson.D
+	Response bson.Reader
 }
 
 func (e *CommandFailureError) Error() string {

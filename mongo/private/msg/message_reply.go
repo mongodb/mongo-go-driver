@@ -6,7 +6,11 @@
 
 package msg
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/skriptble/wilson/bson"
+)
 
 // Reply is a message received from the server.
 type Reply struct {
@@ -94,6 +98,34 @@ func (i *ReplyIter) Next(result interface{}) bool {
 
 	i.pos += n
 	return true
+}
+
+// TODO(skriptble): This method is pretty gross and is a mesh of Next and
+// Decode. When we're fixing up this part of the library we should fix this.
+func (i *ReplyIter) DecodeBytes() (bson.Reader, error) {
+	if i.pos >= len(i.documentsBytes) {
+		return nil, nil
+	}
+	n, err := i.partitioner(i.documentsBytes[i.pos:])
+	if err != nil {
+		return nil, err
+	}
+
+	if len(i.documentsBytes)-i.pos < n {
+		return nil, fmt.Errorf("needed %d bytes to read document, but only had %d", n, len(i.documentsBytes)-i.pos)
+	}
+
+	// Making a copy since we essentially do that when we unmarshal.
+	r := make(bson.Reader, n)
+	copy(r, i.documentsBytes[i.pos:i.pos+n])
+
+	_, err = r.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	i.pos += n
+	return r, nil
 }
 
 // Err indicates if there was an error unmarshalling the last document

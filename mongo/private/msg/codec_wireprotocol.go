@@ -7,10 +7,12 @@
 package msg
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
+	"github.com/skriptble/wilson/bson/builder"
 )
 
 // NewWireProtocolCodec creates a MessageReadWriter for the binary message format.
@@ -103,7 +105,7 @@ func (c *wireProtocolCodec) decode(b []byte) (Message, error) {
 			ReqID:        requestID,
 			RespTo:       responseTo,
 			partitioner:  bsonDocumentPartitioner,
-			unmarshaller: bson.Unmarshal,
+			unmarshaller: unmarshal,
 		}
 		replyMessage.ResponseFlags = ReplyFlags(readInt32(b, 16))
 		replyMessage.CursorID = readInt64(b, 20)
@@ -134,9 +136,41 @@ func addMarshalled(b []byte, data interface{}) ([]byte, error) {
 		return append(b, 5, 0, 0, 0, 0), nil
 	}
 
-	dataBytes, err := bson.Marshal(data)
-	if err != nil {
-		return nil, err
+	var dataBytes []byte
+	var err error
+
+	switch t := data.(type) {
+	// NOTE: bson.Document is covered by bson.Marshaler
+	case bson.Marshaler:
+		dataBytes, err = t.MarshalBSON()
+		if err != nil {
+			return nil, err
+		}
+	case bson.Reader:
+		_, err = t.Validate()
+		if err != nil {
+			return nil, err
+		}
+		dataBytes = t
+	case builder.DocumentBuilder:
+		dataBytes = make([]byte, t.RequiredBytes())
+		_, err = t.WriteDocument(dataBytes)
+		if err != nil {
+			return nil, err
+		}
+	case []byte:
+		_, err = bson.Reader(t).Validate()
+		if err != nil {
+			return nil, err
+		}
+		dataBytes = t
+	default:
+		var buf bytes.Buffer
+		err = bson.NewEncoder(&buf).Encode(data)
+		if err != nil {
+			return nil, err
+		}
+		dataBytes = buf.Bytes()
 	}
 
 	return append(b, dataBytes...), nil
