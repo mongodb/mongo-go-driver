@@ -9,7 +9,7 @@ package msg
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Query is a message sent to the server.
@@ -42,16 +42,25 @@ const (
 )
 
 // AddMeta wraps the query with meta data.
-func AddMeta(r Request, meta map[string]interface{}) {
+func AddMeta(r Request, meta map[string]*bson.Document) {
 	if len(meta) > 0 {
 		switch typedR := r.(type) {
 		case *Query:
-			doc := bson.D{
-				{Name: "$query", Value: typedR.Query},
+			// TODO(skriptble): To change this to the new BSON library we'll
+			// need an element encoder and a value encoder. These types can be
+			// used to take an interface{} and turn it into a *bson.Element or
+			// *bson.Value.
+			enc := bson.NewDocumentEncoder()
+			query, err := enc.EncodeDocument(typedR.Query)
+			if err != nil {
+				panic(fmt.Errorf("Could not transform document to *bson.Document: %v", err))
 			}
+			doc := bson.NewDocument(1 + uint(len(meta))).Append(
+				bson.C.SubDocument("$query", query),
+			)
 
 			for k, v := range meta {
-				doc = append(doc, bson.DocElem{Name: k, Value: v})
+				doc.Append(bson.C.SubDocument(k, v))
 			}
 
 			typedR.Query = doc

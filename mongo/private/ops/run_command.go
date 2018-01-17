@@ -8,11 +8,13 @@ package ops
 
 import (
 	"context"
+
+	"github.com/skriptble/wilson/bson"
 )
 
 // RunCommand runs a command on the database.
 func RunCommand(ctx context.Context, s *SelectedServer, db string, command interface{},
-	result interface{}) error {
+	result interface{}) (bson.Reader, error) {
 
 	return runMustUsePrimary(ctx, s, db, command, result)
 }
