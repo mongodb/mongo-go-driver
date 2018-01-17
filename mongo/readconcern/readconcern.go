@@ -6,6 +6,8 @@
 
 package readconcern
 
+import "github.com/skriptble/wilson/bson"
+
 // ReadConcern for replica sets and replica set shards determines which data to return from a query.
 type ReadConcern struct {
 	level string
@@ -47,4 +49,9 @@ func New(options ...Option) *ReadConcern {
 	}
 
 	return concern
+}
+
+func (rc *ReadConcern) MarshalBSONElement() (*bson.Element, error) {
+	elem := bson.C.String("readConcern", rc.level)
+	return elem, nil
 }
