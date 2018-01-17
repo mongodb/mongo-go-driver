@@ -2,18 +2,13 @@ package options
 
 // InsertOneOption is for internal use.
 type InsertOneOption interface {
+	InsertOneOptioner
+
 	InsertOneName() string
 	InsertOneValue() interface{}
 }
 
-// bypassDocumentValidation
-
-// InsertOneName is for internal use.
-func (opt *OptBypassDocumentValidation) InsertOneName() string {
-	return "bypassDocumentValidation"
-}
-
-// InsertOneValue is for internal use.
-func (opt *OptBypassDocumentValidation) InsertOneValue() interface{} {
-	return *opt
+type InsertOneOptioner interface {
+	Optioner
+	insertOneOption()
 }

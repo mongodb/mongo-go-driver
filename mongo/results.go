@@ -7,7 +7,10 @@
 package mongo
 
 import (
-	"github.com/10gen/mongo-go-driver/bson"
+	"bytes"
+	"fmt"
+
+	"github.com/skriptble/wilson/bson"
 )
 
 // InsertOneResult is a result of an InsertOne operation.
@@ -44,25 +47,53 @@ type docID struct {
 	ID interface{} "_id"
 }
 
-type updateServerResponse struct {
-	N         int64
-	NModified int64 "nModified"
-	Upserted  []docID
-}
-
-// SetBSON is used by the BSON library to deserialize raw BSON into an UpdateOneResult.
-func (result *UpdateResult) SetBSON(raw bson.Raw) error {
-	var response updateServerResponse
-	err := bson.Unmarshal(raw.Data, &response)
+func (result *UpdateResult) UnmarshalBSON(b []byte) error {
+	itr, err := bson.Reader(b).Iterator()
 	if err != nil {
 		return err
 	}
 
-	result.MatchedCount = response.N
-	result.ModifiedCount = response.NModified
-
-	if len(response.Upserted) > 0 {
-		result.UpsertedID = response.Upserted[0].ID
+	for itr.Next() {
+		elem := itr.Element()
+		switch elem.Key() {
+		case "n":
+			switch elem.Value().Type() {
+			case bson.TypeInt32:
+				result.MatchedCount = int64(elem.Value().Int32())
+			case bson.TypeInt64:
+				result.MatchedCount = elem.Value().Int64()
+			default:
+				return fmt.Errorf("Received invalid type for n, should be Int32 or Int64, received %s", elem.Value().Type())
+			}
+		case "nModified":
+			switch elem.Value().Type() {
+			case bson.TypeInt32:
+				result.ModifiedCount = int64(elem.Value().Int32())
+			case bson.TypeInt64:
+				result.ModifiedCount = elem.Value().Int64()
+			default:
+				return fmt.Errorf("Received invalid type for nModified, should be Int32 or Int64, received %s", elem.Value().Type())
+			}
+		case "upserted":
+			switch elem.Value().Type() {
+			case bson.TypeArray:
+				e, err := elem.Value().ReaderArray().ElementAt(0)
+				if err != nil {
+					break
+				}
+				if e.Value().Type() != bson.TypeEmbeddedDocument {
+					break
+				}
+				var d docID
+				err = bson.NewDecoder(bytes.NewReader(e.Value().ReaderDocument())).Decode(&d)
+				if err != nil {
+					return err
+				}
+				result.UpsertedID = d.ID
+			default:
+				return fmt.Errorf("Received invalid type for upserted, should be Array, received %s", elem.Value().Type())
+			}
+		}
 	}
 
 	return nil

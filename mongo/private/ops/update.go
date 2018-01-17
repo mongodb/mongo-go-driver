@@ -9,52 +9,72 @@ package ops
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Update executes an update command with a given set of update documents and options.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func Update(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
-	updateDocs []bson.D, result interface{}, options ...options.UpdateOption) error {
+	updateDocs []*bson.Document, result interface{}, opt ...options.UpdateOption) error {
 
 	if err := ns.validate(); err != nil {
 		return err
 	}
 
-	command := bson.D{
-		{Name: "update", Value: ns.Collection},
-	}
+	command := bson.NewDocument(bson.C.String("update", ns.Collection))
+	// command := oldbson.D{
+	// 	{Name: "update", Value: ns.Collection},
+	// }
 
-	for _, option := range options {
-		switch name := option.UpdateName(); name {
-		// upsert, multi, and collation are specified in each update documents
-		case "upsert":
-			fallthrough
-		case "multi":
-			fallthrough
-		case "collation":
-			for i, doc := range updateDocs {
-				doc.AppendElem(name, option.UpdateValue())
-				updateDocs[i] = doc
+	arr := bson.NewArray()
+	for _, doc := range updateDocs {
+		arr.Append(bson.AC.Document(doc))
+	}
+	command.Append(bson.C.Array("updates", arr))
+
+	for _, option := range opt {
+		switch option.(type) {
+		case options.OptUpsert, options.OptCollation:
+			for _, doc := range updateDocs {
+				option.Option(doc)
 			}
-
-		// other options are specified in the top-level command document
 		default:
-			command.AppendElem(name, option.UpdateValue())
+			option.Option(command)
 		}
+		// switch name := option.UpdateName(); name {
+		// // upsert, multi, and collation are specified in each update documents
+		// case "upsert":
+		// 	fallthrough
+		// case "multi":
+		// 	fallthrough
+		// case "collation":
+		// 	for i, doc := range updateDocs {
+		// 		doc.AppendElem(name, option.UpdateValue())
+		// 		updateDocs[i] = doc
+		// 	}
+		//
+		// // other options are specified in the top-level command document
+		// default:
+		// 	command.AppendElem(name, option.UpdateValue())
+		// }
 	}
 
-	command.AppendElem("updates", updateDocs)
+	// command.AppendElem("updates", updateDocs)
 
 	if writeConcern != nil {
-		command.AppendElem("writeConcern", writeConcern)
+		elem, err := writeConcern.MarshalBSONElement()
+		if err != nil {
+			return err
+		}
+		command.Append(elem)
+		// command.AppendElem("writeConcern", writeConcern)
 	}
 
-	err := runMustUsePrimary(ctx, s, ns.DB, command, result)
+	_, err := runMustUsePrimary(ctx, s, ns.DB, command, result)
 	if err != nil {
 		return internal.WrapError(err, "failed to execute update")
 	}

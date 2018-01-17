@@ -17,12 +17,12 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
 	"github.com/stretchr/testify/require"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 func TestStop(t *testing.T) {
@@ -103,8 +103,12 @@ func (c *fakeMonitorConn) Write(_ context.Context, msgs ...msg.Request) error {
 		var reply *msg.Reply
 		switch typedM := m.(type) {
 		case *msg.Query:
-			doc := typedM.Query.(bson.D)
-			switch doc[0].Name {
+			doc := typedM.Query.(*bson.Document)
+			elem, err := doc.ElementAt(0)
+			if err != nil {
+				return err
+			}
+			switch elem.Key() {
 			case "ismaster":
 				reply = msgtest.CreateCommandReply(
 					internal.IsMasterResult{
@@ -120,7 +124,7 @@ func (c *fakeMonitorConn) Write(_ context.Context, msgs ...msg.Request) error {
 					},
 				)
 			default:
-				return fmt.Errorf("unknown response to %s", doc[0].Name)
+				return fmt.Errorf("unknown response to %s", elem.Key())
 			}
 		}
 		reply.RespTo = m.RequestID()

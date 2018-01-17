@@ -9,47 +9,53 @@ package ops
 import (
 	"context"
 
-	"time"
-
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Count counts how many documents in a collection match a given query.
 func Count(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	query interface{}, options ...options.CountOption) (int, error) {
+	query *bson.Document, opts ...options.CountOption) (int, error) {
 
 	if err := ns.validate(); err != nil {
 		return 0, err
 	}
 
-	command := bson.D{
-		{Name: "count", Value: ns.Collection},
-		{Name: "query", Value: query},
-	}
+	command := bson.NewDocument()
+	command.Append(bson.C.String("count", ns.Collection), bson.C.SubDocument("query", query))
+	// command := oldbson.D{
+	// 	{Name: "count", Value: ns.Collection},
+	// 	{Name: "query", Value: query},
+	// }
 
-	for _, option := range options {
-		switch name := option.CountName(); name {
-		case "maxTimeMS":
-			command.AppendElem(
-				name,
-				int64(option.CountValue().(time.Duration)/time.Millisecond),
-			)
-		default:
-			command.AppendElem(name, option.CountValue())
-
-		}
+	for _, option := range opts {
+		option.Option(command)
+		// switch name := option.CountName(); name {
+		// case "maxTimeMS":
+		// 	command.AppendElem(
+		// 		name,
+		// 		int64(option.CountValue().(time.Duration)/time.Millisecond),
+		// 	)
+		// default:
+		// 	command.AppendElem(name, option.CountValue())
+		//
+		// }
 	}
 
 	if readConcern != nil {
-		command.AppendElem("readConcern", readConcern)
+		elem, err := readConcern.MarshalBSONElement()
+		if err != nil {
+			return 0, err
+		}
+		command.Append(elem)
+		// command.AppendElem("readConcern", readConcern)
 	}
 
 	result := struct{ N int }{}
 
-	err := runMayUseSecondary(ctx, s, ns.DB, command, &result)
+	_, err := runMayUseSecondary(ctx, s, ns.DB, command, &result)
 	if err != nil {
 		return 0, internal.WrapError(err, "failed to execute count")
 	}

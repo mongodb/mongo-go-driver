@@ -10,9 +10,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,16 +58,18 @@ func TestClient_TLSConnection(t *testing.T) {
 	c := createTestClient(t)
 	db := c.Database("test")
 
-	var result bson.M
-	err := db.RunCommand(nil, bson.M{"serverStatus": 1}, &result)
+	result, err := db.RunCommand(nil, bson.NewDocument(bson.C.Int32("serverStatus", 1)), nil)
 	require.NoError(t, err)
 
-	security, ok := result["security"].(bson.M)
-	require.True(t, ok)
+	security, err := result.Lookup("security")
+	require.Nil(t, err)
 
-	_, found := security["SSLServerSubjectName"]
-	require.True(t, found)
+	require.Equal(t, security.Value().Type(), bson.TypeEmbeddedDocument)
 
-	_, found = security["SSLServerHasCertificateAuthority"]
-	require.True(t, found)
+	_, found := security.Value().ReaderDocument().Lookup("SSLServerSubjectName")
+	require.Nil(t, found)
+
+	_, found = security.Value().ReaderDocument().Lookup("SSLServerHasCertificateAuthority")
+	require.Nil(t, found)
+
 }

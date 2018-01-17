@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
@@ -180,11 +180,11 @@ func (m *Monitor) describeServer(ctx context.Context) (*internal.IsMasterResult,
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{{Name: "ismaster", Value: 1}},
+		bson.NewDocument(bson.C.Int32("ismaster", 1)),
 	)
 
 	var isMasterResult internal.IsMasterResult
-	err := conn.ExecuteCommand(ctx, m.conn, isMasterReq, &isMasterResult)
+	_, err := conn.ExecuteCommand(ctx, m.conn, isMasterReq, &isMasterResult)
 	if err != nil {
 		return nil, err
 	}

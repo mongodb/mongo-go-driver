@@ -9,14 +9,15 @@ package mongo
 import (
 	"context"
 	"errors"
+	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Collection performs operations on a given collection.
@@ -70,6 +71,9 @@ func (coll *Collection) getReadableServer(ctx context.Context) (*ops.SelectedSer
 // a custom context to this method, or nil to default to context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
+//
+// TODO(skriptble): Determine if we should unwrap the value for the
+// InsertOneResult or just return the bson.Element or a bson.Value.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	options ...options.InsertOption) (*InsertOneResult, error) {
 
@@ -77,7 +81,12 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		ctx = context.Background()
 	}
 
-	doc, insertedID, err := getOrInsertID(document)
+	doc, err := transformDocument(document)
+	if err != nil {
+		return nil, err
+	}
+
+	insertedID, err := ensureID(doc)
 	if err != nil {
 		return nil, err
 	}
@@ -87,15 +96,14 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		return nil, err
 	}
 
-	var d bson.D
 	insert := func() error {
 		return ops.Insert(
 			ctx,
 			s,
 			coll.namespace(),
 			coll.writeConcern,
-			[]interface{}{doc},
-			&d,
+			[]*bson.Document{doc},
+			nil,
 			options...,
 		)
 	}
@@ -130,15 +138,20 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	result := make([]interface{}, len(documents))
+	docs := make([]*bson.Document, len(documents))
 
 	for i, doc := range documents {
-		docWithID, insertedID, err := getOrInsertID(doc)
+		bdoc, err := transformDocument(doc)
+		if err != nil {
+			return nil, err
+		}
+		insertedID, err := ensureID(bdoc)
 		if err != nil {
 			return nil, err
 		}
 
-		documents[i] = docWithID
-		result[int64(i)] = insertedID
+		docs[i] = bdoc
+		result[i] = insertedID
 	}
 
 	// TODO GODRIVER-27: write concern
@@ -148,15 +161,14 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		return nil, err
 	}
 
-	var d bson.D
 	insert := func() error {
 		return ops.Insert(
 			ctx,
 			s,
 			coll.namespace(),
 			coll.writeConcern,
-			documents,
-			&d,
+			docs,
+			nil,
 			options...,
 		)
 	}
@@ -186,10 +198,15 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	deleteDocs := []bson.D{{
-		{Name: "q", Value: filter},
-		{Name: "limit", Value: 1},
-	}}
+	f, err := transformDocument(filter)
+	if err != nil {
+		return nil, err
+	}
+	deleteDocs := []*bson.Document{
+		bson.NewDocument(
+			bson.C.SubDocument("q", f),
+			bson.C.Int32("limit", 1)),
+	}
 
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
@@ -235,10 +252,11 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	deleteDocs := []bson.D{{
-		{Name: "q", Value: filter},
-		{Name: "limit", Value: 0},
-	}}
+	f, err := transformDocument(filter)
+	if err != nil {
+		return nil, err
+	}
+	deleteDocs := []*bson.Document{bson.NewDocument(bson.C.SubDocument("q", f), bson.C.Int32("limit", 0))}
 
 	// TODO GODRIVER-27: write concern
 
@@ -282,18 +300,32 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface
 		ctx = context.Background()
 	}
 
-	updateDocs := []bson.D{{
-		{Name: "q", Value: filter},
-		{Name: "u", Value: update},
-		{Name: "multi", Value: false},
-	}}
+	f, err := transformDocument(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := transformDocument(update)
+	if err != nil {
+		return nil, err
+	}
+
+	updateDocs := []*bson.Document{
+		bson.NewDocument(
+			bson.C.SubDocument("q", f), bson.C.SubDocument("u", u), bson.C.Boolean("multi", false)),
+	}
+	// updateDocs := []oldbson.D{{
+	// 	{Name: "q", Value: filter},
+	// 	{Name: "u", Value: update},
+	// 	{Name: "multi", Value: false},
+	// }}
 
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var result UpdateResult
+	var result UpdateResult = UpdateResult{}
 	doUpdate := func() error {
 		return ops.Update(
 			ctx,
@@ -331,11 +363,21 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		ctx = context.Background()
 	}
 
-	if err := ensureDollarKey(update); err != nil {
+	f, err := transformDocument(filter)
+	if err != nil {
 		return nil, err
 	}
 
-	return coll.updateOrReplaceOne(ctx, filter, update, options...)
+	u, err := transformDocument(update)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ensureDollarKey2(u); err != nil {
+		return nil, err
+	}
+
+	return coll.updateOrReplaceOne(ctx, f, u, options...)
 }
 
 // UpdateMany updates multiple documents in the collection. A user can supply
@@ -349,15 +391,29 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		ctx = context.Background()
 	}
 
-	if err := ensureDollarKey(update); err != nil {
+	f, err := transformDocument(filter)
+	if err != nil {
 		return nil, err
 	}
 
-	updateDocs := []bson.D{{
-		{Name: "q", Value: filter},
-		{Name: "u", Value: update},
-		{Name: "multi", Value: true},
-	}}
+	u, err := transformDocument(update)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := ensureDollarKey2(u); err != nil {
+		return nil, err
+	}
+
+	updateDocs := []*bson.Document{
+		bson.NewDocument(
+			bson.C.SubDocument("q", f), bson.C.SubDocument("u", u), bson.C.Boolean("multi", true)),
+	}
+	// updateDocs := []oldbson.D{{
+	// 	{Name: "q", Value: filter},
+	// 	{Name: "u", Value: update},
+	// 	{Name: "multi", Value: true},
+	// }}
 
 	// TODO GODRIVER-27: write concern
 
@@ -404,23 +460,40 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	bytes, err := bson.Marshal(replacement)
+	f, err := transformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO GODRIVER-111: Roundtrip is inefficient.
-	var doc bson.D
-	err = bson.Unmarshal(bytes, &doc)
+	r, err := transformDocument(replacement)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(doc) > 0 && doc[0].Name[0] == '$' {
+	elem, err := r.ElementAt(0)
+	if err != nil && err != bson.ErrOutOfBounds {
+		return nil, err
+	}
+	if strings.HasPrefix(elem.Key(), "$") {
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
 	}
-
-	return coll.updateOrReplaceOne(ctx, filter, replacement, options...)
+	// bytes, err := oldbson.Marshal(replacement)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// // TODO GODRIVER-111: Roundtrip is inefficient.
+	// var doc oldbson.D
+	// err = oldbson.Unmarshal(bytes, &doc)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// if len(doc) > 0 && doc[0].Name[0] == '$' {
+	// 	return nil, errors.New("replacement document cannot contains keys beginning with '$")
+	// }
+	//
+	return coll.updateOrReplaceOne(ctx, f, r, options...)
 }
 
 // Aggregate runs an aggregation framework pipeline. A user can supply a custom context to
@@ -436,13 +509,26 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		ctx = context.Background()
 	}
 
+	var pipelineArr *bson.Array
+	switch t := pipeline.(type) {
+	case *bson.Array:
+		pipelineArr = t
+	default:
+		p, err := transformDocument(pipeline)
+		if err != nil {
+			return nil, err
+		}
+
+		pipelineArr = bson.ArrayFromDocument(p)
+	}
+
 	// TODO GODRIVER-95: Check for $out and use readable server/read preference if not found
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	cursor, err := ops.Aggregate(ctx, s, coll.namespace(), coll.readConcern, pipeline, options...)
+	cursor, err := ops.Aggregate(ctx, s, coll.namespace(), coll.readConcern, pipelineArr, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -461,12 +547,17 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
+	f, err := transformDocument(filter)
+	if err != nil {
+		return 0, err
+	}
+
 	s, err := coll.getReadableServer(ctx)
 	if err != nil {
 		return 0, err
 	}
 
-	count, err := ops.Count(ctx, s, coll.namespace(), coll.readConcern, filter, options...)
+	count, err := ops.Count(ctx, s, coll.namespace(), coll.readConcern, f, options...)
 	if err != nil {
 		return 0, err
 	}
@@ -486,6 +577,15 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		ctx = context.Background()
 	}
 
+	var f *bson.Document
+	var err error
+	if filter != nil {
+		f, err = transformDocument(filter)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	s, err := coll.getReadableServer(ctx)
 
 	if err != nil {
@@ -498,7 +598,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		coll.namespace(),
 		coll.readConcern,
 		fieldName,
-		filter,
+		f,
 		options...,
 	)
 
@@ -520,12 +620,21 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
+	var f *bson.Document
+	var err error
+	if filter != nil {
+		f, err = transformDocument(filter)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	s, err := coll.getReadableServer(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	cursor, err := ops.Find(ctx, s, coll.namespace(), coll.readConcern, filter, options...)
+	cursor, err := ops.Find(ctx, s, coll.namespace(), coll.readConcern, f, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -547,7 +656,16 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{}, result 
 
 	options = append(options, Limit(1))
 
-	cursor, err := coll.Find(ctx, filter, options...)
+	var f *bson.Document
+	var err error
+	if filter != nil {
+		f, err = transformDocument(filter)
+		if err != nil {
+			return false, err
+		}
+	}
+
+	cursor, err := coll.Find(ctx, f, options...)
 	if err != nil {
 		return false, err
 	}
@@ -574,6 +692,15 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
+	var f *bson.Document
+	var err error
+	if filter != nil {
+		f, err = transformDocument(filter)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
 		return false, err
@@ -585,7 +712,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 			s,
 			coll.namespace(),
 			coll.writeConcern,
-			filter,
+			f,
 			result,
 			opts...,
 		)
@@ -613,21 +740,40 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		ctx = context.Background()
 	}
 
-	bytes, err := bson.Marshal(replacement)
+	f, err := transformDocument(filter)
 	if err != nil {
 		return false, err
 	}
 
-	// TODO GODRIVER-111: Roundtrip is inefficient.
-	var doc bson.D
-	err = bson.Unmarshal(bytes, &doc)
+	r, err := transformDocument(replacement)
 	if err != nil {
 		return false, err
 	}
 
-	if len(doc) > 0 && doc[0].Name[0] == '$' {
+	elem, err := r.ElementAt(0)
+	if err != nil && err != bson.ErrOutOfBounds {
+		return false, err
+	}
+
+	if strings.HasPrefix(elem.Key(), "$") {
 		return false, errors.New("replacement document cannot contains keys beginning with '$")
 	}
+
+	// bytes, err := oldbson.Marshal(replacement)
+	// if err != nil {
+	// 	return false, err
+	// }
+	//
+	// // TODO GODRIVER-111: Roundtrip is inefficient.
+	// var doc oldbson.D
+	// err = oldbson.Unmarshal(bytes, &doc)
+	// if err != nil {
+	// 	return false, err
+	// }
+	//
+	// if len(doc) > 0 && doc[0].Name[0] == '$' {
+	// 	return false, errors.New("replacement document cannot contains keys beginning with '$")
+	// }
 
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
@@ -640,8 +786,8 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 			s,
 			coll.namespace(),
 			coll.writeConcern,
-			filter,
-			replacement,
+			f,
+			r,
 			result,
 			opts...,
 		)
@@ -669,21 +815,40 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
-	bytes, err := bson.Marshal(update)
+	f, err := transformDocument(filter)
 	if err != nil {
 		return false, err
 	}
 
-	// TODO GODRIVER-111: Roundtrip is inefficient.
-	var doc bson.D
-	err = bson.Unmarshal(bytes, &doc)
+	u, err := transformDocument(update)
 	if err != nil {
 		return false, err
 	}
 
-	if len(doc) > 0 && doc[0].Name[0] != '$' {
+	elem, err := u.ElementAt(0)
+	if err != nil && err != bson.ErrOutOfBounds {
+		return false, err
+	}
+
+	if !strings.HasPrefix(elem.Key(), "$") {
 		return false, errors.New("update document must contain key beginning with '$")
 	}
+
+	// bytes, err := oldbson.Marshal(update)
+	// if err != nil {
+	// 	return false, err
+	// }
+	//
+	// // TODO GODRIVER-111: Roundtrip is inefficient.
+	// var doc oldbson.D
+	// err = oldbson.Unmarshal(bytes, &doc)
+	// if err != nil {
+	// 	return false, err
+	// }
+	//
+	// if len(doc) > 0 && doc[0].Name[0] != '$' {
+	// 	return false, errors.New("update document must contain key beginning with '$")
+	// }
 
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
@@ -696,8 +861,8 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 			s,
 			coll.namespace(),
 			coll.writeConcern,
-			filter,
-			update,
+			f,
+			u,
 			result,
 			opts...,
 		)

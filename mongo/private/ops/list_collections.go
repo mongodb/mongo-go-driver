@@ -9,6 +9,8 @@ package ops
 import (
 	"context"
 	"time"
+
+	"github.com/skriptble/wilson/bson"
 )
 
 // ListCollectionsOptions are the options for listing collections.
@@ -27,25 +29,23 @@ func ListCollections(ctx context.Context, s *SelectedServer, db string, options 
 		return nil, err
 	}
 
-	listCollectionsCommand := struct {
-		ListCollections int32          `bson:"listCollections"`
-		Filter          interface{}    `bson:"filter,omitempty"`
-		MaxTimeMS       int64          `bson:"maxTimeMS,omitempty"`
-		Cursor          *cursorRequest `bson:"cursor"`
-	}{
-		ListCollections: 1,
-		Filter:          options.Filter,
-		MaxTimeMS:       int64(options.MaxTime / time.Millisecond),
-		Cursor: &cursorRequest{
-			BatchSize: options.BatchSize,
-		},
+	listCollectionsCommand := bson.NewDocument(
+		bson.C.Int32("listCollections", 1),
+		bson.C.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)),
+		bson.C.SubDocumentFromElements("cursor", bson.C.Int32("batchSize", options.BatchSize)))
+
+	if options.Filter != nil {
+		doc, err := bson.NewDocumentEncoder().EncodeDocument(options.Filter)
+		if err != nil {
+			return nil, err
+		}
+		listCollectionsCommand.Append(bson.C.SubDocument("filter", doc))
 	}
 
-	var result cursorReturningResult
-	err := runMustUsePrimary(ctx, s, db, listCollectionsCommand, &result)
+	rdr, err := runMustUsePrimary(ctx, s, db, listCollectionsCommand, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewCursor(&result.Cursor, options.BatchSize, s)
+	return NewCursor(rdr, options.BatchSize, s)
 }
