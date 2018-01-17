@@ -2,59 +2,64 @@ package ops
 
 import (
 	"context"
-	"time"
+	"errors"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // FindOneAndDelete modifies and returns a single document.
 func FindOneAndDelete(ctx context.Context, s *SelectedServer, ns Namespace,
-	writeConcern *writeconcern.WriteConcern, query interface{}, result interface{},
-	opts ...options.FindOneAndDeleteOption) (bool, error) {
+	writeConcern *writeconcern.WriteConcern, query *bson.Document,
+	opts ...options.FindOneAndDeleteOptioner) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
-		return false, err
+		return nil, err
 	}
 
-	command := bson.D{
-		{Name: "findAndModify", Value: ns.Collection},
-		{Name: "query", Value: query},
-		{Name: "remove", Value: true},
-	}
+	command := bson.NewDocument()
+	command.Append(
+		bson.C.String("findAndModify", ns.Collection),
+		bson.C.SubDocument("query", query),
+		bson.C.Boolean("remove", true),
+	)
 
 	for _, option := range opts {
-		switch name := option.FindOneAndDeleteName(); name {
-		case "maxTimeMS":
-			command.AppendElem(
-				name,
-				int64(option.FindOneAndDeleteValue().(time.Duration)/time.Millisecond),
-			)
-		default:
-			command.AppendElem(name, option.FindOneAndDeleteValue())
+		if option == nil {
+			continue
 		}
+		option.Option(command)
 	}
 
 	if writeConcern != nil {
-		command.AppendElem("writeConcern", writeConcern)
+		elem, err := writeConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+		command.Append(elem)
 	}
 
-	returned := struct{ Value *bson.Raw }{}
-
-	err := runMustUsePrimary(ctx, s, ns.DB, command, &returned)
+	rdr, err := runMustUsePrimary(ctx, s, ns.DB, command)
 	if err != nil {
-		return false, internal.WrapError(err, "failed to execute count")
+		return nil, internal.WrapError(err, "failed to execute count")
 	}
 
-	if returned.Value == nil {
-		return false, nil
+	val, err := rdr.Lookup("value")
+	switch {
+	case err == bson.ErrElementNotFound:
+		return nil, errors.New("Invalid response from server, no value field")
+	case err != nil:
+		return nil, err
 	}
 
-	if result == nil {
-		return true, nil
+	switch val.Value().Type() {
+	case bson.TypeNull:
+		return &singleResultCursor{}, nil
+	case bson.TypeEmbeddedDocument:
+		return &singleResultCursor{rdr: val.Value().ReaderDocument()}, nil
+	default:
+		return nil, errors.New("Invalid response from server, value field is not a document")
 	}
-
-	return true, returned.Value.Unmarshal(result)
 }

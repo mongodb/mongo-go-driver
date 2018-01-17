@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	. "github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -73,7 +73,7 @@ func TestConn_ReadWrite(t *testing.T) {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{bson.NewDocElem("ismaster", 1)},
+		bson.NewDocument(bson.C.Int32("ismaster", 1)),
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -130,7 +130,7 @@ func TestConnection_Write_cancel(t *testing.T) {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{bson.NewDocElem("ismaster", 1)},
+		bson.NewDocument(bson.C.Int32("ismaster", 1)),
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -155,7 +155,7 @@ func TestConnection_Write_timeout(t *testing.T) {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{bson.NewDocElem("ismaster", 1)},
+		bson.NewDocument(bson.C.Int32("ismaster", 1)),
 	)
 
 	err = subject.Write(&timeoutContext{}, isMasterRequest)
@@ -177,7 +177,7 @@ func TestConnection_Write_after_connection_is_dead(t *testing.T) {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{bson.NewDocElem("ismaster", 1)},
+		bson.NewDocument(bson.C.Int32("ismaster", 1)),
 	)
 
 	err = subject.Write(&timeoutContext{}, isMasterRequest)

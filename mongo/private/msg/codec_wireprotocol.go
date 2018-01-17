@@ -7,10 +7,12 @@
 package msg
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
+	"github.com/skriptble/wilson/bson/builder"
 )
 
 // NewWireProtocolCodec creates a MessageReadWriter for the binary message format.
@@ -100,16 +102,16 @@ func (c *wireProtocolCodec) decode(b []byte) (Message, error) {
 	switch opcode(op) {
 	case replyOpcode:
 		replyMessage := &Reply{
-			ReqID:        requestID,
-			RespTo:       responseTo,
-			partitioner:  bsonDocumentPartitioner,
-			unmarshaller: bson.Unmarshal,
+			ReqID:  requestID,
+			RespTo: responseTo,
 		}
 		replyMessage.ResponseFlags = ReplyFlags(readInt32(b, 16))
 		replyMessage.CursorID = readInt64(b, 20)
 		replyMessage.StartingFrom = readInt32(b, 28)
 		replyMessage.NumberReturned = readInt32(b, 32)
-		replyMessage.DocumentsBytes = b[36:] // TODO: need to copy out the bytes?
+		// We don't copy the bytes here since we'll copy the document is
+		// retrieved.
+		replyMessage.DocumentsBytes = b[36:]
 		return replyMessage, nil
 	}
 
@@ -134,9 +136,41 @@ func addMarshalled(b []byte, data interface{}) ([]byte, error) {
 		return append(b, 5, 0, 0, 0, 0), nil
 	}
 
-	dataBytes, err := bson.Marshal(data)
-	if err != nil {
-		return nil, err
+	var dataBytes []byte
+	var err error
+
+	switch t := data.(type) {
+	// NOTE: bson.Document is covered by bson.Marshaler
+	case bson.Marshaler:
+		dataBytes, err = t.MarshalBSON()
+		if err != nil {
+			return nil, err
+		}
+	case bson.Reader:
+		_, err = t.Validate()
+		if err != nil {
+			return nil, err
+		}
+		dataBytes = t
+	case builder.DocumentBuilder:
+		dataBytes = make([]byte, t.RequiredBytes())
+		_, err = t.WriteDocument(dataBytes)
+		if err != nil {
+			return nil, err
+		}
+	case []byte:
+		_, err = bson.Reader(t).Validate()
+		if err != nil {
+			return nil, err
+		}
+		dataBytes = t
+	default:
+		var buf bytes.Buffer
+		err = bson.NewEncoder(&buf).Encode(data)
+		if err != nil {
+			return nil, err
+		}
+		dataBytes = buf.Bytes()
 	}
 
 	return append(b, dataBytes...), nil
@@ -172,13 +206,4 @@ func readInt64(b []byte, pos int32) int64 {
 		(int64(b[pos+5]) << 40) |
 		(int64(b[pos+6]) << 48) |
 		(int64(b[pos+7]) << 56)
-}
-
-func bsonDocumentPartitioner(bytes []byte) (int, error) {
-	if len(bytes) < 4 {
-		return 0, fmt.Errorf("int32 requires 4 bytes but only %d available", len(bytes))
-	}
-
-	n := readInt32(bytes, 0)
-	return int(n), nil
 }

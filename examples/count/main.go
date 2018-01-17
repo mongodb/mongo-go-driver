@@ -13,11 +13,12 @@ import (
 
 	"flag"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/connstring"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/skriptble/wilson/bson"
+	"github.com/skriptble/wilson/bson/extjson"
 )
 
 var uri = flag.String("uri", "mongodb://localhost:27017", "the mongodb uri to use")
@@ -57,19 +58,22 @@ func main() {
 		dbname = "test"
 	}
 
-	var result bson.D
-	err = ops.Run(
+	rdr, err := ops.Run(
 		ctx,
 		&ops.SelectedServer{
 			Server:   s,
 			ReadPref: readpref.Primary(),
 		},
 		dbname,
-		bson.D{{"count", *col}},
-		&result)
+		bson.NewDocument(bson.C.String("count", *col)),
+	)
 	if err != nil {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}
 
+	result, err := extjson.BsonToExtJson(true, rdr)
+	if err != nil {
+		log.Fatalf("failed to convert BSON to extended JSON: %s", err)
+	}
 	log.Println(result)
 }

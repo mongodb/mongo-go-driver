@@ -11,28 +11,29 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
 // AutoCreateIndex creates an index in the test cluster.
 func AutoCreateIndex(t *testing.T, keys []string) {
-	indexes := bson.M{}
+	indexes := bson.NewDocument()
 	for _, k := range keys {
-		indexes[k] = 1
+		indexes.Append(bson.C.Int32(k, 1))
 	}
 	name := strings.Join(keys, "_")
-	indexes = bson.M{"key": indexes, "name": name}
+	indexes = bson.NewDocument(
+		bson.C.SubDocument("key", indexes),
+		bson.C.String("name", name))
 
-	createIndexCommand := bson.D{
-		bson.NewDocElem("createIndexes", ColName(t)),
-		bson.NewDocElem("indexes", []bson.M{indexes}),
-	}
+	createIndexCommand := bson.NewDocument(
+		bson.C.String("createIndexes", ColName(t)),
+		bson.C.ArrayFromElements("indexes", bson.AC.Document(indexes)))
 
 	request := msg.NewCommand(
 		msg.NextRequestID(),
@@ -47,7 +48,7 @@ func AutoCreateIndex(t *testing.T, keys []string) {
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, c)
 
-	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
+	_, err = conn.ExecuteCommand(context.Background(), c, request)
 	require.NoError(t, err)
 }
 
@@ -64,16 +65,15 @@ func DropCollection(t *testing.T, dbname, colname string) {
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, c)
 
-	err = conn.ExecuteCommand(
+	_, err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(
 			msg.NextRequestID(),
 			dbname,
 			false,
-			bson.D{bson.NewDocElem("drop", colname)},
+			bson.NewDocument(bson.C.String("drop", colname)),
 		),
-		&bson.D{},
 	)
 	if err != nil && !strings.HasSuffix(err.Error(), "ns not found") {
 		t.Fatal(err)
@@ -88,31 +88,33 @@ func autoDropDB(t *testing.T, clstr *cluster.Cluster) {
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, c)
 
-	err = conn.ExecuteCommand(
+	_, err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(
 			msg.NextRequestID(),
 			DBName(t),
 			false,
-			bson.D{bson.NewDocElem("dropDatabase", 1)},
+			bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
 		),
-		&bson.D{},
 	)
 	require.NoError(t, err)
 }
 
 // AutoInsertDocs inserts the docs into the test cluster.
-func AutoInsertDocs(t *testing.T, docs ...bson.D) {
+func AutoInsertDocs(t *testing.T, docs ...*bson.Document) {
 	InsertDocs(t, DBName(t), ColName(t), docs...)
 }
 
 // InsertDocs inserts the docs into the test cluster.
-func InsertDocs(t *testing.T, dbname, colname string, docs ...bson.D) {
-	insertCommand := bson.D{
-		bson.NewDocElem("insert", colname),
-		bson.NewDocElem("documents", docs),
+func InsertDocs(t *testing.T, dbname, colname string, docs ...*bson.Document) {
+	arrDocs := make([]*bson.Value, 0, len(docs))
+	for _, doc := range docs {
+		arrDocs = append(arrDocs, bson.AC.Document(doc))
 	}
+	insertCommand := bson.NewDocument(
+		bson.C.String("insert", colname),
+		bson.C.ArrayFromElements("documents", arrDocs...))
 
 	request := msg.NewCommand(
 		msg.NextRequestID(),
@@ -128,7 +130,7 @@ func InsertDocs(t *testing.T, dbname, colname string, docs ...bson.D) {
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, c)
 
-	err = conn.ExecuteCommand(context.Background(), c, request, &bson.D{})
+	_, err = conn.ExecuteCommand(context.Background(), c, request)
 	require.NoError(t, err)
 }
 
@@ -138,20 +140,19 @@ func EnableMaxTimeFailPoint(t *testing.T, s cluster.Server) error {
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, c)
 
-	return conn.ExecuteCommand(
+	_, err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(
 			msg.NextRequestID(),
 			"admin",
 			false,
-			bson.D{
-				bson.NewDocElem("configureFailPoint", "maxTimeAlwaysTimeOut"),
-				bson.NewDocElem("mode", "alwaysOn"),
-			},
+			bson.NewDocument(
+				bson.C.String("configureFailPoint", "maxTimeAlwaysTimeOut"),
+				bson.C.String("mode", "alwaysOn")),
 		),
-		&bson.D{},
 	)
+	return err
 }
 
 // DisableMaxTimeFailPoint turns off the max time fail point in the test cluster.
@@ -160,18 +161,16 @@ func DisableMaxTimeFailPoint(t *testing.T, s cluster.Server) {
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, c)
 
-	err = conn.ExecuteCommand(
+	_, err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(msg.NextRequestID(),
 			"admin",
 			false,
-			bson.D{
-				bson.NewDocElem("configureFailPoint", "maxTimeAlwaysTimeOut"),
-				bson.NewDocElem("mode", "off"),
-			},
+			bson.NewDocument(
+				bson.C.String("configureFailPoint", "maxTimeAlwaysTimeOut"),
+				bson.C.String("mode", "off")),
 		),
-		&bson.D{},
 	)
 	require.NoError(t, err)
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// FindJSONFilesInDir finds the JSON files in a directory.
 func FindJSONFilesInDir(t *testing.T, dir string) []string {
 	files := make([]string, 0)
 
@@ -38,10 +39,12 @@ func FindJSONFilesInDir(t *testing.T, dir string) []string {
 	return files
 }
 
+// RequireNoErrorOnClose ensures there is not an error when calling Close.
 func RequireNoErrorOnClose(t *testing.T, c io.Closer) {
 	require.NoError(t, c.Close())
 }
 
+// VerifyConnStringOptions verifies the options on the connection string.
 func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map[string]interface{}) {
 	// Check that all options are present.
 	for key, value := range options {

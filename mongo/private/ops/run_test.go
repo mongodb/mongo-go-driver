@@ -10,9 +10,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,29 +23,44 @@ func TestRun(t *testing.T) {
 	server := getServer(t)
 
 	ctx := context.Background()
-	result := bson.M{}
+	var result *bson.Document
 
-	err := Run(
+	rdr, err := Run(
 		ctx,
 		server,
 		"admin",
-		bson.D{bson.NewDocElem("getnonce", 1)},
-		result,
+		bson.NewDocument(bson.C.Int32("getnonce", 1)),
 	)
 	require.NoError(t, err)
-	require.Equal(t, float64(1), result["ok"])
-	require.NotEqual(t, "", result["nonce"], "MongoDB returned empty nonce")
 
-	result = bson.M{}
-	err = Run(
+	result, err = bson.ReadDocument(rdr)
+	require.NoError(t, err)
+
+	elem, err := result.Lookup("ok")
+	require.NoError(t, err)
+	require.Equal(t, elem.Value().Type(), bson.TypeDouble)
+	require.Equal(t, float64(1), elem.Value().Double())
+
+	elem, err = result.Lookup("nonce")
+	require.NoError(t, err)
+	require.Equal(t, elem.Value().Type(), bson.TypeString)
+	require.NotEqual(t, "", elem.Value().StringValue(), "MongoDB returned empty nonce")
+
+	result.Reset()
+	rdr, err = Run(
 		ctx,
 		server,
 		"admin",
-		bson.D{bson.NewDocElem("ping", 1)},
-		result,
+		bson.NewDocument(bson.C.Int32("ping", 1)),
 	)
-
 	require.NoError(t, err)
-	require.Equal(t, float64(1), result["ok"], "Unable to ping MongoDB")
+
+	result, err = bson.ReadDocument(rdr)
+	require.NoError(t, err)
+
+	elem, err = result.Lookup("ok")
+	require.NoError(t, err)
+	require.Equal(t, elem.Value().Type(), bson.TypeDouble)
+	require.Equal(t, float64(1), elem.Value().Double(), "Unable to ping MongoDB")
 
 }

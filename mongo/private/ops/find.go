@@ -9,83 +9,63 @@ package ops
 import (
 	"context"
 
-	"time"
-
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Find executes a query.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func Find(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	filter interface{}, findOptions ...options.FindOption) (Cursor, error) {
+	filter *bson.Document, findOptions ...options.FindOptioner) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
 	}
 
-	command := bson.D{
-		{Name: "find", Value: ns.Collection},
-	}
+	command := bson.NewDocument()
+	command.Append(bson.C.String("find", ns.Collection))
 
 	if filter != nil {
-		command.AppendElem("filter", filter)
+		command.Append(bson.C.SubDocument("filter", filter))
 	}
 
-	limit := int64(0)
-	batchSize := int32(0)
+	var limit int64
+	var batchSize int32
 
 	for _, option := range findOptions {
-		switch name := option.FindName(); name {
-		// upsert, multi, and collation are specified in each update documents
-		case "cursorType":
-			value := option.FindValue()
-			if value == options.Tailable {
-				command.AppendElem("tailable", true)
-			}
-
-			if value == options.TailableAwait {
-				command.AppendElem("tailable", true)
-				command.AppendElem("awaitData", true)
-			}
-
-		case "maxTimeMS":
-			command.AppendElem(
-				name,
-				int64(option.FindValue().(time.Duration)/time.Millisecond),
-			)
-
-		// other options are specified in the top-level command document
+		switch t := option.(type) {
+		case nil:
+			continue
+		case options.OptLimit:
+			limit = int64(t)
+			option.Option(command)
+		case options.OptBatchSize:
+			batchSize = int32(t)
+			option.Option(command)
 		default:
-			if name == "limit" {
-				limit = int64(option.FindValue().(options.OptLimit))
-			}
-
-			if name == "batchSize" {
-				batchSize = int32(option.FindValue().(options.OptBatchSize))
-			}
-
-			command.AppendElem(name, option.FindValue())
+			option.Option(command)
 		}
 	}
 
 	if limit != 0 && batchSize != 0 && limit <= int64(batchSize) {
-		command.AppendElem("singleBatch", true)
+		command.Append(bson.C.Boolean("singleBatch", true))
 	}
 
 	if readConcern != nil {
-		command.AppendElem("readConcern", readConcern)
+		elem, err := readConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+		command.Append(elem)
 	}
 
-	var result cursorReturningResult
-
-	err := runMayUseSecondary(ctx, s, ns.DB, command, &result)
+	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)
 	if err != nil {
 		return nil, internal.WrapError(err, "failed to execute update")
 	}
 
-	return NewCursor(&result.Cursor, batchSize, s)
+	return NewCursor(rdr, batchSize, s)
 }

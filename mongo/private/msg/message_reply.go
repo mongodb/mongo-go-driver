@@ -6,7 +6,11 @@
 
 package msg
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/skriptble/wilson/bson"
+)
 
 // Reply is a message received from the server.
 type Reply struct {
@@ -17,9 +21,6 @@ type Reply struct {
 	StartingFrom   int32
 	NumberReturned int32
 	DocumentsBytes []byte
-
-	unmarshaller documentUnmarshaller
-	partitioner  documentPartitioner
 }
 
 // ResponseTo gets the request id the message was in response to.
@@ -43,8 +44,6 @@ const (
 // returned by the server.
 func (m *Reply) Iter() *ReplyIter {
 	return &ReplyIter{
-		unmarshaller:   m.unmarshaller,
-		partitioner:    m.partitioner,
 		documentsBytes: m.DocumentsBytes,
 	}
 }
@@ -52,48 +51,39 @@ func (m *Reply) Iter() *ReplyIter {
 // ReplyIter iterates over the documents returned
 // in a Reply.
 type ReplyIter struct {
-	unmarshaller   documentUnmarshaller
-	partitioner    documentPartitioner
 	documentsBytes []byte
 	pos            int
 
 	err error
 }
 
-// One reads a single document from the iterator.
-func (i *ReplyIter) One(result interface{}) (bool, error) {
-	if !i.Next(result) {
-		return false, i.err
-	}
-
-	return true, nil
-}
-
-// Next marshals the next document into the provided result and returns
-// a value indicating whether or not it was successful.
-func (i *ReplyIter) Next(result interface{}) bool {
+// NextBytes reads the next document and returns it as a bson.Reader.
+func (i *ReplyIter) NextBytes() (bson.Reader, error) {
 	if i.pos >= len(i.documentsBytes) {
-		return false
+		return nil, nil
 	}
-	n, err := i.partitioner(i.documentsBytes[i.pos:])
-	if err != nil {
-		i.err = err
-		return false
+
+	if i.pos+4 >= len(i.documentsBytes) {
+		return nil, fmt.Errorf("malformed document, only %d bytes available for reading but need at least 4", len(i.documentsBytes)-i.pos)
 	}
+
+	n := int(readInt32(i.documentsBytes, int32(i.pos)))
 
 	if len(i.documentsBytes)-i.pos < n {
-		i.err = fmt.Errorf("needed %d bytes to read document, but only had %d", n, len(i.documentsBytes)-i.pos)
-		return false
+		return nil, fmt.Errorf("needed %d bytes to read document, but only had %d", n, len(i.documentsBytes)-i.pos)
 	}
 
-	err = i.unmarshaller(i.documentsBytes[i.pos:i.pos+n], result)
+	// Making a copy since we essentially do that when we unmarshal.
+	r := make(bson.Reader, n)
+	copy(r, i.documentsBytes[i.pos:i.pos+n])
+
+	_, err := r.Validate()
 	if err != nil {
-		i.err = err
-		return false
+		return nil, err
 	}
 
 	i.pos += n
-	return true
+	return r, nil
 }
 
 // Err indicates if there was an error unmarshalling the last document
