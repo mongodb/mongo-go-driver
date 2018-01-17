@@ -10,13 +10,14 @@ import (
 	"context"
 	"errors"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Collection performs operations on a given collection.
@@ -70,10 +71,18 @@ func (coll *Collection) getReadableServer(ctx context.Context) (*ops.SelectedSer
 // context to this method.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
+//
+// TODO(skriptble): Determine if we should unwrap the value for the
+// InsertOneResult or just return the bson.Element or a bson.Value.
 func (coll *Collection) InsertOneContext(ctx context.Context, document interface{},
 	options ...options.InsertOption) (*InsertOneResult, error) {
 
-	doc, insertedID, err := getOrInsertID(document)
+	doc, err := transformDocument(document)
+	if err != nil {
+		return nil, err
+	}
+
+	insertedID, err := ensureID(doc)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +92,7 @@ func (coll *Collection) InsertOneContext(ctx context.Context, document interface
 		return nil, err
 	}
 
-	var d bson.D
+	var d oldbson.D
 	insert := func() error {
 		return ops.Insert(
 			ctx,
@@ -122,15 +131,20 @@ func (coll *Collection) InsertManyContext(ctx context.Context, documents []inter
 	options ...options.InsertOption) (*InsertManyResult, error) {
 
 	result := make([]interface{}, len(documents))
+	docs := make([]*bson.Document, len(documents))
 
 	for i, doc := range documents {
-		docWithID, insertedID, err := getOrInsertID(doc)
+		bdoc, err := transformDocument(doc)
+		if err != nil {
+			return nil, err
+		}
+		insertedID, err := ensureID(bdoc)
 		if err != nil {
 			return nil, err
 		}
 
-		documents[i] = docWithID
-		result[int64(i)] = insertedID
+		docs[i] = bdoc
+		result[i] = insertedID
 	}
 
 	// TODO GODRIVER-27: write concern
@@ -140,7 +154,7 @@ func (coll *Collection) InsertManyContext(ctx context.Context, documents []inter
 		return nil, err
 	}
 
-	var d bson.D
+	var d oldbson.D
 	insert := func() error {
 		return ops.Insert(
 			ctx,
@@ -174,10 +188,11 @@ func (coll *Collection) InsertManyContext(ctx context.Context, documents []inter
 func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{},
 	options ...options.DeleteOption) (*DeleteResult, error) {
 
-	deleteDocs := []bson.D{{
-		{Name: "q", Value: filter},
-		{Name: "limit", Value: 1},
-	}}
+	f, err := transformDocument(filter)
+	if err != nil {
+		return nil, err
+	}
+	deleteDocs := []*bson.Document{bson.NewDocument(2).Append(bson.C.SubDocument("q", f), bson.C.Int32("limit", 1))}
 
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
@@ -218,10 +233,11 @@ func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{}
 func (coll *Collection) DeleteManyContext(ctx context.Context, filter interface{},
 	options ...options.DeleteOption) (*DeleteResult, error) {
 
-	deleteDocs := []bson.D{{
-		{Name: "q", Value: filter},
-		{Name: "limit", Value: 0},
-	}}
+	f, err := transformDocument(filter)
+	if err != nil {
+		return nil, err
+	}
+	deleteDocs := []*bson.Document{bson.NewDocument(2).Append(bson.C.SubDocument("q", f), bson.C.Int32("limit", 0))}
 
 	// TODO GODRIVER-27: write concern
 
@@ -261,7 +277,7 @@ func (coll *Collection) DeleteManyContext(ctx context.Context, filter interface{
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface{},
 	update interface{}, options ...options.UpdateOption) (*UpdateResult, error) {
 
-	updateDocs := []bson.D{{
+	updateDocs := []oldbson.D{{
 		{Name: "q", Value: filter},
 		{Name: "u", Value: update},
 		{Name: "multi", Value: false},
@@ -324,7 +340,7 @@ func (coll *Collection) UpdateManyContext(ctx context.Context, filter interface{
 		return nil, err
 	}
 
-	updateDocs := []bson.D{{
+	updateDocs := []oldbson.D{{
 		{Name: "q", Value: filter},
 		{Name: "u", Value: update},
 		{Name: "multi", Value: true},
@@ -371,14 +387,14 @@ func (coll *Collection) UpdateManyContext(ctx context.Context, filter interface{
 func (coll *Collection) ReplaceOneContext(ctx context.Context, filter interface{},
 	replacement interface{}, options ...options.UpdateOption) (*UpdateResult, error) {
 
-	bytes, err := bson.Marshal(replacement)
+	bytes, err := oldbson.Marshal(replacement)
 	if err != nil {
 		return nil, err
 	}
 
 	// TODO GODRIVER-111: Roundtrip is inefficient.
-	var doc bson.D
-	err = bson.Unmarshal(bytes, &doc)
+	var doc oldbson.D
+	err = oldbson.Unmarshal(bytes, &doc)
 	if err != nil {
 		return nil, err
 	}
@@ -548,14 +564,14 @@ func (coll *Collection) FindOneAndDeleteContext(ctx context.Context, filter inte
 func (coll *Collection) FindOneAndReplaceContext(ctx context.Context, filter interface{},
 	replacement interface{}, result interface{}, opts ...options.FindOneAndReplaceOption) (bool, error) {
 
-	bytes, err := bson.Marshal(replacement)
+	bytes, err := oldbson.Marshal(replacement)
 	if err != nil {
 		return false, err
 	}
 
 	// TODO GODRIVER-111: Roundtrip is inefficient.
-	var doc bson.D
-	err = bson.Unmarshal(bytes, &doc)
+	var doc oldbson.D
+	err = oldbson.Unmarshal(bytes, &doc)
 	if err != nil {
 		return false, err
 	}
@@ -599,14 +615,14 @@ func (coll *Collection) FindOneAndReplaceContext(ctx context.Context, filter int
 func (coll *Collection) FindOneAndUpdateContext(ctx context.Context, filter interface{},
 	update interface{}, result interface{}, opts ...options.FindOneAndUpdateOption) (bool, error) {
 
-	bytes, err := bson.Marshal(update)
+	bytes, err := oldbson.Marshal(update)
 	if err != nil {
 		return false, err
 	}
 
 	// TODO GODRIVER-111: Roundtrip is inefficient.
-	var doc bson.D
-	err = bson.Unmarshal(bytes, &doc)
+	var doc oldbson.D
+	err = oldbson.Unmarshal(bytes, &doc)
 	if err != nil {
 		return false, err
 	}
