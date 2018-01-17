@@ -10,10 +10,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Aggregate performs an aggregation.
@@ -22,39 +22,56 @@ import (
 // TODO GODRIVER-95: Deal with $out and corresponding behavior (read preference primary, write
 // concern, etc.)
 func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	pipeline interface{}, opts ...options.AggregateOption) (Cursor, error) {
+	pipeline *bson.Array, opts ...options.AggregateOption) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
 	}
 
-	command := bson.D{
-		{Name: "aggregate", Value: ns.Collection},
-		{Name: "pipeline", Value: pipeline},
-	}
+	command := bson.NewDocument(2 + uint(len(opts)))
+	command.Append(bson.C.String("aggregate", ns.Collection), bson.C.Array("pipeline", pipeline))
+	// command := oldbson.D{
+	// 	{Name: "aggregate", Value: ns.Collection},
+	// 	{Name: "pipeline", Value: pipeline},
+	// }
 
-	cursorArg := bson.D{}
-	batchSize := int32(0)
+	// cursorArg := oldbson.D{}
+	// batchSize := int32(0)
+	var batchSize int32
+	cursor := bson.NewDocument(1)
+	command.Append(bson.C.SubDocument("cursor", cursor))
 
 	for _, option := range opts {
-		switch name := option.AggregateName(); name {
-		case "batchSize":
-			batchSize = int32(option.AggregateValue().(options.OptBatchSize))
-			cursorArg.AppendElem("batchSize", batchSize)
-		case "maxTimeMS":
-			command.AppendElem(
-				name,
-				int64(option.AggregateValue().(time.Duration)/time.Millisecond),
-			)
+		switch t := option.(type) {
+		case options.OptBatchSize:
+			batchSize = int32(t)
+			option.Option(cursor)
 		default:
-			command.AppendElem(name, option.AggregateValue())
+			option.Option(command)
 		}
+		// switch name := option.AggregateName(); name {
+		// case "batchSize":
+		// 	batchSize = int32(option.AggregateValue().(options.OptBatchSize))
+		// 	cursorArg.AppendElem("batchSize", batchSize)
+		// case "maxTimeMS":
+		// 	command.AppendElem(
+		// 		name,
+		// 		int64(option.AggregateValue().(time.Duration)/time.Millisecond),
+		// 	)
+		// default:
+		// 	command.AppendElem(name, option.AggregateValue())
+		// }
 	}
 
-	command.AppendElem("cursor", cursorArg)
+	// command.AppendElem("cursor", cursorArg)
 
 	if readConcern != nil {
-		command.AppendElem("readConcern", readConcern)
+		elem, err := readConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+		command.Append(elem)
+		// command.AppendElem("readConcern", readConcern)
 	}
 
 	var result cursorReturningResult
