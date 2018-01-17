@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 )
 
@@ -32,7 +32,7 @@ func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabases
 	}
 
 	var result struct {
-		Databases []bson.Raw `bson:"databases"`
+		Databases []oldbson.Raw `bson:"databases"`
 	}
 	err := runMustUsePrimary(ctx, s, "admin", listDatabasesCommand, &result)
 	if err != nil {
@@ -46,14 +46,14 @@ func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabases
 }
 
 type listDatabasesCursor struct {
-	databases []bson.Raw
+	databases []oldbson.Raw
 	current   int
 	err       error
 }
 
 func (cursor *listDatabasesCursor) Next(_ context.Context, result interface{}) bool {
 	if cursor.current < len(cursor.databases) {
-		err := bson.Unmarshal(cursor.databases[cursor.current].Data, result)
+		err := oldbson.Unmarshal(cursor.databases[cursor.current].Data, result)
 		if err != nil {
 			cursor.err = internal.WrapError(err, "unable to parse listDatabases result")
 			return false

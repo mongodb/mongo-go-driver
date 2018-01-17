@@ -18,7 +18,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
 )
 
 var globalClientConnectionID int32
@@ -296,13 +296,10 @@ func (c *connImpl) bumpIdleDeadline() {
 	}
 }
 
-func (c *connImpl) describeServer(ctx context.Context, clientDoc bson.M) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
-	isMasterCmd := bson.D{{Name: "ismaster", Value: 1}}
+func (c *connImpl) describeServer(ctx context.Context, clientDoc *bson.Document) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
+	isMasterCmd := bson.NewDocument(1).Append(bson.C.Int32("ismaster", 1))
 	if clientDoc != nil {
-		isMasterCmd = append(isMasterCmd, bson.DocElem{
-			Name:  "client",
-			Value: clientDoc,
-		})
+		isMasterCmd.Append(bson.C.SubDocument("client", clientDoc))
 	}
 
 	isMasterReq := msg.NewCommand(
@@ -315,7 +312,7 @@ func (c *connImpl) describeServer(ctx context.Context, clientDoc bson.M) (*inter
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{{Name: "buildInfo", Value: 1}},
+		bson.NewDocument(1).Append(bson.C.Int32("buildInfo", 1)),
 	)
 
 	var isMasterResult internal.IsMasterResult
@@ -339,7 +336,7 @@ func (c *connImpl) initialize(ctx context.Context, appName string) error {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.D{{Name: "getLastError", Value: 1}},
+		bson.NewDocument(1).Append(bson.C.Int32("getLastError", 1)),
 	)
 
 	c.model = &model.Conn{
@@ -368,21 +365,26 @@ func (c *connImpl) wrapError(inner error, message string) error {
 	}
 }
 
-func createClientDoc(appName string) bson.M {
-	clientDoc := bson.M{
-		"driver": bson.M{
-			"name":    "mongo-go-driver",
-			"version": internal.Version,
-		},
-		"os": bson.M{
-			"type":         runtime.GOOS,
-			"architecture": runtime.GOARCH,
-		},
-		"platform": runtime.Version(),
-	}
+func createClientDoc(appName string) *bson.Document {
+	doc := bson.NewDocument(4).Append(
+		bson.C.SubDocumentFromElements(
+			"driver",
+			bson.C.String("name", "mongo-go-driver"),
+			bson.C.String("version", internal.Version),
+		),
+		bson.C.SubDocumentFromElements(
+			"os",
+			bson.C.String("type", runtime.GOOS),
+			bson.C.String("architecture", runtime.GOARCH),
+		),
+		bson.C.String("platform", runtime.Version()),
+	)
 	if appName != "" {
-		clientDoc["application"] = bson.M{"name": appName}
+		doc.Append(bson.C.SubDocumentFromElements(
+			"application",
+			bson.C.String("name", appName),
+		))
 	}
 
-	return clientDoc
+	return doc
 }

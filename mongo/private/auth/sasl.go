@@ -9,11 +9,11 @@ package auth
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 // SaslClient is the client piece of a sasl conversation.
@@ -54,11 +54,11 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 		msg.NextRequestID(),
 		db,
 		true,
-		bson.D{
-			{Name: "saslStart", Value: 1},
-			{Name: "mechanism", Value: mech},
-			{Name: "payload", Value: payload},
-		},
+		bson.NewDocument(3).Append(
+			bson.C.Int32("saslStart", 1),
+			bson.C.String("mechanism", mech),
+			bson.C.Binary("payload", payload),
+		),
 	)
 
 	type saslResponse struct {
@@ -98,11 +98,11 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 			msg.NextRequestID(),
 			db,
 			true,
-			bson.D{
-				{Name: "saslContinue", Value: 1},
-				{Name: "conversationId", Value: cid},
-				{Name: "payload", Value: payload},
-			},
+			bson.NewDocument(3).Append(
+				bson.C.Int32("saslContinue", 1),
+				bson.C.Int32("conversationId", int32(cid)),
+				bson.C.Binary("payload", payload),
+			),
 		)
 
 		err = conn.ExecuteCommand(ctx, c, saslContinueRequest, &saslResp)

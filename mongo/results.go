@@ -7,7 +7,7 @@
 package mongo
 
 import (
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 )
 
 // InsertOneResult is a result of an InsertOne operation.
@@ -51,9 +51,9 @@ type updateServerResponse struct {
 }
 
 // SetBSON is used by the BSON library to deserialize raw BSON into an UpdateOneResult.
-func (result *UpdateResult) SetBSON(raw bson.Raw) error {
+func (result *UpdateResult) SetBSON(raw oldbson.Raw) error {
 	var response updateServerResponse
-	err := bson.Unmarshal(raw.Data, &response)
+	err := oldbson.Unmarshal(raw.Data, &response)
 	if err != nil {
 		return err
 	}

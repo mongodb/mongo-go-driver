@@ -9,7 +9,7 @@ package ops
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
@@ -80,7 +80,7 @@ type cursorImpl struct {
 	namespace    Namespace
 	batchSize    int32
 	current      int
-	currentBatch []bson.Raw
+	currentBatch []oldbson.Raw
 	cursorID     int64
 	err          error
 	server       Server
@@ -138,7 +138,7 @@ func (c *cursorImpl) Close(ctx context.Context) error {
 		return c.err
 	}
 
-	err = conn.ExecuteCommand(ctx, connection, killCursorsRequest, &bson.D{})
+	err = conn.ExecuteCommand(ctx, connection, killCursorsRequest, &oldbson.D{})
 	if err != nil {
 		c.err = internal.MultiError(
 			c.err,
@@ -202,9 +202,9 @@ func (c *cursorImpl) getMore(ctx context.Context) {
 	var response struct {
 		OK     bool `bson:"ok"`
 		Cursor struct {
-			NextBatch []bson.Raw `bson:"nextBatch"`
-			NS        string     `bson:"ns"`
-			ID        int64      `bson:"id"`
+			NextBatch []oldbson.Raw `bson:"nextBatch"`
+			NS        string        `bson:"ns"`
+			ID        int64         `bson:"id"`
 		} `bson:"cursor"`
 	}
 

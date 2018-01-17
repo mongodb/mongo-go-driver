@@ -10,7 +10,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson"
 )
 
 // WriteConcern describes the level of acknowledgement requested from MongoDB for write operations
@@ -80,7 +81,7 @@ func (wc *WriteConcern) GetBSON() (interface{}, error) {
 		return nil, errors.New("a write concern cannot have both w=0 and j=true")
 	}
 
-	doc := make(bson.M)
+	doc := make(oldbson.M)
 
 	if wc.w != nil {
 		doc["w"] = wc.w
@@ -95,6 +96,33 @@ func (wc *WriteConcern) GetBSON() (interface{}, error) {
 	}
 
 	return doc, nil
+}
+
+func (wc *WriteConcern) MarshalBSONElement() (*bson.Element, error) {
+	if !wc.IsValid() {
+		return nil, errors.New("a write concern cannot have both w=0 and j=true")
+	}
+
+	var elems []*bson.Element
+
+	if wc.w != nil {
+		switch t := wc.w.(type) {
+		case int:
+			elems = append(elems, bson.C.Int32("w", int32(t)))
+		case string:
+			elems = append(elems, bson.C.String("w", t))
+		}
+	}
+
+	if wc.j {
+		elems = append(elems, bson.C.Boolean("j", wc.j))
+	}
+
+	if wc.wTimeout != 0 {
+		elems = append(elems, bson.C.Int64("wtimeout", int64(wc.wTimeout/time.Millisecond)))
+	}
+
+	return bson.C.SubDocumentFromElements("writeConcern", elems...), nil
 }
 
 // Acknowledged indicates whether or not a write with the given write concern will be acknowledged.

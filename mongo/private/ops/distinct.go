@@ -9,46 +9,53 @@ package ops
 import (
 	"context"
 
-	"time"
-
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Distinct returns the distinct values for a specified field across a single collection.
 func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	field string, query interface{}, options ...options.DistinctOption) ([]interface{}, error) {
+	field string, query *bson.Document, opts ...options.DistinctOption) ([]interface{}, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
 	}
 
-	command := bson.D{
-		{Name: "distinct", Value: ns.Collection},
-		{Name: "key", Value: field},
-	}
+	command := bson.NewDocument(2 + uint(len(opts)))
+	command.Append(bson.C.String("distinct", ns.Collection), bson.C.String("key", field))
+	// command := oldbson.D{
+	// 	{Name: "distinct", Value: ns.Collection},
+	// 	{Name: "key", Value: field},
+	// }
 
 	if query != nil {
-		command.AppendElem("query", query)
+		command.Append(bson.C.SubDocument("query", query))
+		// command.AppendElem("query", query)
 	}
 
-	for _, option := range options {
-		switch name := option.DistinctName(); name {
-		case "maxTimeMS":
-			command.AppendElem(
-				name,
-				int64(option.DistinctValue().(time.Duration)/time.Millisecond),
-			)
-		default:
-			command.AppendElem(name, option.DistinctValue())
-
-		}
+	for _, option := range opts {
+		option.Option(command)
+		// switch name := option.DistinctName(); name {
+		// case "maxTimeMS":
+		// 	command.AppendElem(
+		// 		name,
+		// 		int64(option.DistinctValue().(time.Duration)/time.Millisecond),
+		// 	)
+		// default:
+		// 	command.AppendElem(name, option.DistinctValue())
+		//
+		// }
 	}
 
 	if readConcern != nil {
-		command.AppendElem("readConcern", readConcern)
+		elem, err := readConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+		command.Append(elem)
+		// command.AppendElem("readConcern", readConcern)
 	}
 
 	result := struct{ Values []interface{} }{}

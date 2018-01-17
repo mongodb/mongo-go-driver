@@ -13,10 +13,11 @@ import (
 
 	"io"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 // MONGODBCR is the mechanism name for MONGODB-CR.
@@ -54,7 +55,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 		msg.NextRequestID(),
 		db,
 		true,
-		bson.D{{Name: "getnonce", Value: 1}},
+		bson.NewDocument(1).Append(bson.C.Int32("getnonce", 1)),
 	)
 	var getNonceResult struct {
 		Nonce string `bson:"nonce"`
@@ -69,14 +70,14 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 		msg.NextRequestID(),
 		db,
 		true,
-		bson.D{
-			{Name: "authenticate", Value: 1},
-			{Name: "user", Value: a.Username},
-			{Name: "nonce", Value: getNonceResult.Nonce},
-			{Name: "key", Value: a.createKey(getNonceResult.Nonce)},
-		},
+		bson.NewDocument(4).Append(
+			bson.C.Int32("authenticate", 1),
+			bson.C.String("user", a.Username),
+			bson.C.String("nonce", getNonceResult.Nonce),
+			bson.C.String("key", a.createKey(getNonceResult.Nonce)),
+		),
 	)
-	err = conn.ExecuteCommand(ctx, c, authRequest, &bson.D{})
+	err = conn.ExecuteCommand(ctx, c, authRequest, &oldbson.D{})
 	if err != nil {
 		return newError(err, MONGODBCR)
 	}

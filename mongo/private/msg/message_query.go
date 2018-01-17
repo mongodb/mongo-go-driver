@@ -9,7 +9,7 @@ package msg
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 )
 
 // Query is a message sent to the server.
@@ -46,12 +46,16 @@ func AddMeta(r Request, meta map[string]interface{}) {
 	if len(meta) > 0 {
 		switch typedR := r.(type) {
 		case *Query:
-			doc := bson.D{
+			// TODO(skriptble): To change this to the new BSON library we'll
+			// need an element encoder and a value encoder. These types can be
+			// used to take an interface{} and turn it into a *bson.Element or
+			// *bson.Value.
+			doc := oldbson.D{
 				{Name: "$query", Value: typedR.Query},
 			}
 
 			for k, v := range meta {
-				doc = append(doc, bson.DocElem{Name: k, Value: v})
+				doc = append(doc, oldbson.DocElem{Name: k, Value: v})
 			}
 
 			typedR.Query = doc
