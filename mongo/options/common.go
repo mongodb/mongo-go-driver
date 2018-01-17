@@ -6,17 +6,53 @@
 
 package options
 
+import "github.com/skriptble/wilson/bson"
+
 // CollationOptions allows users to specify language-specific rules for string comparison, such as
 // rules for lettercase and accent marks.
 type CollationOptions struct {
-	Locale          string ",omitempty"
-	CaseLevel       bool   ",omitempty"
-	CaseFirst       string ",omitempty"
-	Strength        int    ",omitempty"
-	NumericOrdering bool   ",omitempty"
-	Alternate       string ",omitempty"
-	MaxVariable     string ",omitempty"
-	Backwards       bool   ",omitempty"
+	Locale          string `bson:",omitempty"`
+	CaseLevel       bool   `bson:",omitempty"`
+	CaseFirst       string `bson:",omitempty"`
+	Strength        int    `bson:",omitempty"`
+	NumericOrdering bool   `bson:",omitempty"`
+	Alternate       string `bson:",omitempty"`
+	MaxVariable     string `bson:",omitempty"`
+	Backwards       bool   `bson:",omitempty"`
+}
+
+func (co *CollationOptions) toDocument() *bson.Document {
+	doc := bson.NewDocument()
+	if co.Locale != "" {
+		doc.Append(bson.C.String("locale", co.Locale))
+	}
+	if co.CaseLevel {
+		doc.Append(bson.C.Boolean("caseLevel", true))
+	}
+	if co.CaseFirst != "" {
+		doc.Append(bson.C.String("caseFirst", co.CaseFirst))
+	}
+	if co.Strength != 0 {
+		doc.Append(bson.C.Int32("strength", int32(co.Strength)))
+	}
+	if co.NumericOrdering {
+		doc.Append(bson.C.Boolean("numericOrdering", true))
+	}
+	if co.Alternate != "" {
+		doc.Append(bson.C.String("alternate", co.Alternate))
+	}
+	if co.MaxVariable != "" {
+		doc.Append(bson.C.String("maxVariable", co.MaxVariable))
+	}
+	if co.Backwards {
+		doc.Append(bson.C.Boolean("backwards", true))
+	}
+	return doc
+}
+
+// MarshalBSONDocument implements the bson.DocumentMarshaler interface.
+func (co *CollationOptions) MarshalBSONDocument() (*bson.Document, error) {
+	return co.toDocument(), nil
 }
 
 // CursorType specifies whether a cursor should close when the last data is retrieved. See

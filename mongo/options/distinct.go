@@ -8,30 +8,15 @@ package options
 
 // DistinctOption is for internal use.
 type DistinctOption interface {
+	DistinctOptioner
+
 	DistinctName() string
 	DistinctValue() interface{}
 }
 
-// collation
-
-// DistinctName is for internal use.
-func (opt *OptCollation) DistinctName() string {
-	return "collation"
-}
-
-// DistinctValue is for internal use.
-func (opt *OptCollation) DistinctValue() interface{} {
-	return opt.Collation
-}
-
-// maxTimeMS
-
-// DistinctName is for internal use.
-func (opt *OptMaxTime) DistinctName() string {
-	return "maxTimeMS"
-}
-
-// DistinctValue is for internal use.
-func (opt *OptMaxTime) DistinctValue() interface{} {
-	return *opt
+// DistinctOptioner is the interface implemented by types that can be used as
+// Options for Distinct commands.
+type DistinctOptioner interface {
+	Optioner
+	distinctOption()
 }

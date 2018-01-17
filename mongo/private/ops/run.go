@@ -12,14 +12,15 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Run executes an arbitrary command against the given database.
-func Run(ctx context.Context, s *SelectedServer, db string, command interface{}, result interface{}) error {
-	return runMayUseSecondary(ctx, s, db, command, result)
+func Run(ctx context.Context, s *SelectedServer, db string, command interface{}) (bson.Reader, error) {
+	return runMayUseSecondary(ctx, s, db, command)
 }
 
-func runMustUsePrimary(ctx context.Context, s *SelectedServer, db string, command interface{}, result interface{}) error {
+func runMustUsePrimary(ctx context.Context, s *SelectedServer, db string, command interface{}) (bson.Reader, error) {
 
 	request := msg.NewCommand(
 		msg.NextRequestID(),
@@ -30,27 +31,14 @@ func runMustUsePrimary(ctx context.Context, s *SelectedServer, db string, comman
 
 	c, err := s.Connection(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	defer c.Close()
 
-	errChan := make(chan error, 1)
-	go func() {
-		defer func() {
-			// Ignore any error that occurs since we're in a different goroutine.
-			_ = c.Close()
-		}()
-		errChan <- conn.ExecuteCommand(context.Background(), c, request, result)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err = <-errChan:
-		return err
-	}
+	return conn.ExecuteCommand(ctx, c, request)
 }
 
-func runMayUseSecondary(ctx context.Context, s *SelectedServer, db string, command interface{}, result interface{}) error {
+func runMayUseSecondary(ctx context.Context, s *SelectedServer, db string, command interface{}) (bson.Reader, error) {
 	request := msg.NewCommand(
 		msg.NextRequestID(),
 		db,
@@ -60,28 +48,15 @@ func runMayUseSecondary(ctx context.Context, s *SelectedServer, db string, comma
 
 	c, err := s.Connection(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	errChan := make(chan error, 1)
-	go func() {
-		defer func() {
-			// Ignore any error that occurs since we're in a different goroutine.
-			_ = c.Close()
-		}()
+	defer c.Close()
 
-		if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
-			msg.AddMeta(request, map[string]interface{}{
-				"$readPreference": rpMeta,
-			})
-		}
-
-		errChan <- conn.ExecuteCommand(context.Background(), c, request, result)
-	}()
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err = <-errChan:
-		return err
+	if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
+		msg.AddMeta(request, map[string]*bson.Document{
+			"$readPreference": rpMeta,
+		})
 	}
+
+	return conn.ExecuteCommand(ctx, c, request)
 }

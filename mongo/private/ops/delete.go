@@ -9,47 +9,54 @@ package ops
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Delete executes an delete command with a given set of delete documents and options.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
 func Delete(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
-	deleteDocs []bson.D, result interface{}, options ...options.DeleteOption) error {
+	deleteDocs []*bson.Document, opts ...options.DeleteOption) (bson.Reader, error) {
 
 	if err := ns.validate(); err != nil {
-		return err
+		return nil, err
 	}
 
-	command := bson.D{
-		{Name: "delete", Value: ns.Collection},
-	}
+	command := bson.NewDocument(bson.C.String("delete", ns.Collection))
 
-	for _, option := range options {
-		switch name := option.DeleteName(); name {
-		case "collation":
-			for i := range deleteDocs {
-				deleteDocs[i].AppendElem("collation", option.DeleteValue())
+	arr := bson.NewArray()
+	for _, doc := range deleteDocs {
+		arr.Append(bson.AC.Document(doc))
+	}
+	command.Append(bson.C.Array("deletes", arr))
+
+	for _, option := range opts {
+		switch option.(type) {
+		case nil:
+		case options.OptCollation:
+			for _, doc := range deleteDocs {
+				option.Option(doc)
 			}
 		default:
-			command.AppendElem(option.DeleteName(), option.DeleteValue())
+			option.Option(command)
 		}
 	}
 
-	command.AppendElem("deletes", deleteDocs)
-
 	if writeConcern != nil {
-		command.AppendElem("writeConcern", writeConcern)
+		elem, err := writeConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+		command.Append(elem)
 	}
 
-	err := runMustUsePrimary(ctx, s, ns.DB, command, result)
+	rdr, err := runMustUsePrimary(ctx, s, ns.DB, command)
 	if err != nil {
-		return internal.WrapError(err, "failed to execute delete")
+		return nil, internal.WrapError(err, "failed to execute delete")
 	}
 
-	return nil
+	return rdr, nil
 }

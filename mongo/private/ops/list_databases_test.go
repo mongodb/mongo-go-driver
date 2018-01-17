@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,16 +21,22 @@ func TestListDatabases(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
-	testutil.AutoInsertDocs(t, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.AutoInsertDocs(t, bson.NewDocument(bson.C.Int32("_id", 1)))
 
 	s := getServer(t)
 	cursor, err := ListDatabases(context.Background(), s, ListDatabasesOptions{})
 	require.NoError(t, err)
 
-	var next bson.M
+	var next = bson.NewDocument()
 	var found bool
-	for cursor.Next(context.Background(), &next) {
-		if next["name"] == testutil.DBName(t) {
+	for cursor.Next(context.Background()) {
+		err = cursor.Decode(next)
+		require.NoError(t, err)
+
+		elem, err := next.Lookup("name")
+		require.NoError(t, err)
+		require.Equal(t, elem.Value().Type(), bson.TypeString)
+		if elem.Value().StringValue() == testutil.DBName(t) {
 			found = true
 			break
 		}

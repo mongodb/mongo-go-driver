@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"reflect"
 
 	"encoding/base64"
@@ -21,6 +19,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"
 	. "github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 func TestPlainAuthenticator_Fails(t *testing.T) {
@@ -31,13 +30,12 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := msgtest.CreateCommandReply(bson.D{
-		bson.NewDocElem("ok", 1),
-		bson.NewDocElem("conversationId", 1),
-		bson.NewDocElem("payload", []byte{}),
-		bson.NewDocElem("code", 143),
-		bson.NewDocElem("done", true),
-	})
+	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
+		bson.C.Int32("ok", 1),
+		bson.C.Int32("conversationId", 1),
+		bson.C.Binary("payload", []byte{}),
+		bson.C.Int32("code", 143),
+		bson.C.Boolean("done", true)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
@@ -62,18 +60,16 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := msgtest.CreateCommandReply(bson.D{
-		bson.NewDocElem("ok", 1),
-		bson.NewDocElem("conversationId", 1),
-		bson.NewDocElem("payload", []byte{}),
-		bson.NewDocElem("done", false),
-	})
-	saslContinueReply := msgtest.CreateCommandReply(bson.D{
-		bson.NewDocElem("ok", 1),
-		bson.NewDocElem("conversationId", 1),
-		bson.NewDocElem("payload", []byte{}),
-		bson.NewDocElem("done", true),
-	})
+	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
+		bson.C.Int32("ok", 1),
+		bson.C.Int32("conversationId", 1),
+		bson.C.Binary("payload", []byte{}),
+		bson.C.Boolean("done", false)))
+	saslContinueReply := msgtest.CreateCommandReply(bson.NewDocument(
+		bson.C.Int32("ok", 1),
+		bson.C.Int32("conversationId", 1),
+		bson.C.Binary("payload", []byte{}),
+		bson.C.Boolean("done", true)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
@@ -98,12 +94,11 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := msgtest.CreateCommandReply(bson.D{
-		bson.NewDocElem("ok", 1),
-		bson.NewDocElem("conversationId", 1),
-		bson.NewDocElem("payload", []byte{}),
-		bson.NewDocElem("done", true),
-	})
+	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
+		bson.C.Int32("ok", 1),
+		bson.C.Int32("conversationId", 1),
+		bson.C.Binary("payload", []byte{}),
+		bson.C.Boolean("done", true)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
@@ -120,11 +115,11 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 
 	saslStartRequest := conn.Sent[0].(*msg.Query)
 	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
-	expectedCmd := bson.D{
-		bson.NewDocElem("saslStart", 1),
-		bson.NewDocElem("mechanism", "PLAIN"),
-		bson.NewDocElem("payload", payload),
-	}
+	expectedCmd := bson.NewDocument(
+		bson.C.Int32("saslStart", 1),
+		bson.C.String("mechanism", "PLAIN"),
+		bson.C.Binary("payload", payload))
+
 	if !reflect.DeepEqual(saslStartRequest.Query, expectedCmd) {
 		t.Fatalf("saslStart command was incorrect: %v", saslStartRequest.Query)
 	}

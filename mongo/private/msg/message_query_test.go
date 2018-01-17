@@ -9,41 +9,34 @@ package msg_test
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	. "github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWrapWithMeta(t *testing.T) {
-	req := NewCommand(10, "admin", true, bson.M{"a": 1}).(*Query)
+	req := NewCommand(10, "admin", true, bson.NewDocument(bson.C.Int32("a", 1))).(*Query)
 
-	buf, err := bson.Marshal(req.Query)
-	require.NoError(t, err)
-	var actual bson.D
-	err = bson.Unmarshal(buf, &actual)
-	require.NoError(t, err)
-	expected := bson.D{
-		bson.NewDocElem("a", 1),
-	}
-	require.Equal(t, expected, actual)
-
-	AddMeta(req, map[string]interface{}{
-		"$readPreference": bson.M{
-			"mode": "secondary",
-		},
+	AddMeta(req, map[string]*bson.Document{
+		"$readPreference": bson.NewDocument(
+			bson.C.String("mode", "secondary")),
 	})
 
-	buf, err = bson.Marshal(req.Query)
-	require.NoError(t, err)
-	err = bson.Unmarshal(buf, &actual)
-	require.NoError(t, err)
-	expected = bson.D{
-		bson.NewDocElem("$query",
-			bson.D{bson.NewDocElem("a", 1)},
+	expected, err := bson.NewDocument(
+		bson.C.SubDocumentFromElements(
+			"$query",
+			bson.C.Int32("a", 1),
 		),
-		bson.NewDocElem("$readPreference",
-			bson.D{bson.NewDocElem("mode", "secondary")},
-		),
+		bson.C.SubDocumentFromElements("$readPreference", bson.C.String("mode", "secondary"))).
+		MarshalBSON()
+	if err != nil {
+		t.Errorf("Unexpected error while marshaling to bytes: %v", err)
 	}
+
+	actual, err := req.Query.(*bson.Document).MarshalBSON()
+	if err != nil {
+		t.Errorf("Unexpected error while marshaling to bytes: %v", err)
+	}
+
 	require.Equal(t, expected, actual)
 }

@@ -9,39 +9,51 @@ package ops
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Insert executes an insert command for the given set of  documents.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
+//
+// TODO(skriptble): docs should be []*bson.Document.
 func Insert(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
-	docs []interface{}, result interface{}, options ...options.InsertOption) error {
+	docs []*bson.Document, options ...options.InsertOption) (rdr bson.Reader, err error) {
 
 	if err := ns.validate(); err != nil {
-		return err
+		return nil, err
 	}
 
-	command := bson.D{
-		{Name: "insert", Value: ns.Collection},
-		{Name: "documents", Value: docs},
+	command := bson.NewDocument()
+	command.Append(bson.C.String("insert", ns.Collection))
+	vals := make([]*bson.Value, 0, len(docs))
+	for _, doc := range docs {
+		vals = append(vals, bson.AC.Document(doc))
 	}
+	command.Append(bson.C.ArrayFromElements("documents", vals...))
 
 	for _, option := range options {
-		command.AppendElem(option.InsertName(), option.InsertValue())
+		if option == nil {
+			continue
+		}
+		option.Option(command)
 	}
 
 	if writeConcern != nil {
-		command.AppendElem("writeConcern", writeConcern)
+		elem, err := writeConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+		command.Append(elem)
 	}
 
-	err := runMustUsePrimary(ctx, s, ns.DB, command, result)
+	rdr, err = runMustUsePrimary(ctx, s, ns.DB, command)
 	if err != nil {
-		return internal.WrapError(err, "failed to execute insert")
+		return nil, internal.WrapError(err, "failed to execute insert")
 	}
 
-	return nil
+	return rdr, err
 }
