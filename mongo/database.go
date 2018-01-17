@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Database performs operations on a given database.
@@ -65,7 +66,7 @@ func (db *Database) Collection(name string) *Collection {
 
 // RunCommand runs a command on the database. A user can supply a custom
 // context to this method, or nil to default to context.Background().
-func (db *Database) RunCommand(ctx context.Context, command interface{}, result interface{}) error {
+func (db *Database) RunCommand(ctx context.Context, command interface{}) (bson.Reader, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -73,8 +74,8 @@ func (db *Database) RunCommand(ctx context.Context, command interface{}, result 
 
 	s, err := db.client.selectServer(ctx, readpref.Selector(readpref.Primary()), readpref.Primary())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return ops.RunCommand(ctx, s, db.Name(), command, result)
+	return ops.RunCommand(ctx, s, db.Name(), command)
 }

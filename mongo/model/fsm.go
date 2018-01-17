@@ -7,9 +7,10 @@
 package model
 
 import (
+	"bytes"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson/objectid"
 )
 
 var supportedWireVersions = NewRange(2, 6)
@@ -25,7 +26,7 @@ type FSM struct {
 	Cluster
 	SetName string
 
-	maxElectionID bson.ObjectId
+	maxElectionID objectid.ObjectID
 	maxSetVersion uint32
 }
 
@@ -175,8 +176,8 @@ func (fsm *FSM) updateRSFromPrimary(s *Server) {
 		return
 	}
 
-	if s.SetVersion != 0 && s.ElectionID != "" {
-		if fsm.maxSetVersion > s.SetVersion || fsm.maxElectionID > s.ElectionID {
+	if s.SetVersion != 0 && !bytes.Equal(s.ElectionID[:], objectid.NilObjectID[:]) {
+		if fsm.maxSetVersion > s.SetVersion || bytes.Compare(fsm.maxElectionID[:], s.ElectionID[:]) == 1 {
 			fsm.replaceServer(&Server{
 				Addr:      s.Addr,
 				LastError: fmt.Errorf("was a primary, but its set version or election id is stale"),

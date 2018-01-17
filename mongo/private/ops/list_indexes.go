@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/skriptble/wilson/bson"
 )
 
 // ListIndexesOptions are the options for listing indexes.
@@ -21,16 +22,12 @@ type ListIndexesOptions struct {
 // ListIndexes lists the indexes on the given namespace.
 func ListIndexes(ctx context.Context, s *SelectedServer, ns Namespace, options ListIndexesOptions) (Cursor, error) {
 
-	listIndexesCommand := struct {
-		ListIndexes string `bson:"listIndexes"`
-	}{
-		ListIndexes: ns.Collection,
-	}
-	var result cursorReturningResult
-	err := runMustUsePrimary(ctx, s, ns.DB, listIndexesCommand, &result)
+	listIndexesCommand := bson.NewDocument(bson.C.String("listIndexes", ns.Collection))
+
+	rdr, err := runMustUsePrimary(ctx, s, ns.DB, listIndexesCommand)
 	switch err {
 	case nil:
-		return NewCursor(&result.Cursor, options.BatchSize, s)
+		return NewCursor(rdr, options.BatchSize, s)
 	default:
 		if conn.IsNsNotFound(err) {
 			return NewExhaustedCursor()

@@ -7,10 +7,11 @@
 package mongo
 
 import (
+	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,9 +40,16 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	var result bson.M
-	err := db.RunCommand(nil, bson.D{{Name: "ismaster", Value: 1}}, &result)
+	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.C.Int32("ismaster", 1)))
 	require.NoError(t, err)
-	require.Equal(t, result["ismaster"], true)
-	require.Equal(t, result["ok"], 1.0)
+
+	isMaster, err := result.Lookup("ismaster")
+	require.NoError(t, err)
+	require.Equal(t, isMaster.Value().Type(), bson.TypeBoolean)
+	require.Equal(t, isMaster.Value().Boolean(), true)
+
+	ok, err := result.Lookup("ok")
+	require.NoError(t, err)
+	require.Equal(t, ok.Value().Type(), bson.TypeDouble)
+	require.Equal(t, ok.Value().Double(), 1.0)
 }

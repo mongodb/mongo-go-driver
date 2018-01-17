@@ -8,51 +8,61 @@ package ops
 
 import (
 	"context"
+	"errors"
 
-	"time"
-
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Count counts how many documents in a collection match a given query.
 func Count(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	query interface{}, options ...options.CountOption) (int, error) {
+	query *bson.Document, opts ...options.CountOptioner) (int, error) {
 
 	if err := ns.validate(); err != nil {
 		return 0, err
 	}
 
-	command := bson.D{
-		{Name: "count", Value: ns.Collection},
-		{Name: "query", Value: query},
-	}
+	command := bson.NewDocument()
+	command.Append(bson.C.String("count", ns.Collection), bson.C.SubDocument("query", query))
 
-	for _, option := range options {
-		switch name := option.CountName(); name {
-		case "maxTimeMS":
-			command.AppendElem(
-				name,
-				int64(option.CountValue().(time.Duration)/time.Millisecond),
-			)
-		default:
-			command.AppendElem(name, option.CountValue())
-
+	for _, option := range opts {
+		if option == nil {
+			continue
 		}
+		option.Option(command)
 	}
 
 	if readConcern != nil {
-		command.AppendElem("readConcern", readConcern)
+		elem, err := readConcern.MarshalBSONElement()
+		if err != nil {
+			return 0, err
+		}
+		command.Append(elem)
 	}
 
-	result := struct{ N int }{}
-
-	err := runMayUseSecondary(ctx, s, ns.DB, command, &result)
+	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)
 	if err != nil {
 		return 0, internal.WrapError(err, "failed to execute count")
 	}
 
-	return result.N, nil
+	val, err := rdr.Lookup("n")
+	switch {
+	case err == bson.ErrElementNotFound:
+		return 0, errors.New("Invalid response from server, no n field")
+	case err != nil:
+		return 0, err
+	}
+
+	switch val.Value().Type() {
+	case bson.TypeDouble:
+		return int(val.Value().Double()), nil
+	case bson.TypeInt32:
+		return int(val.Value().Int32()), nil
+	case bson.TypeInt64:
+		return int(val.Value().Int64()), nil
+	default:
+		return 0, errors.New("Invalid response from server, value field is not a number")
+	}
 }

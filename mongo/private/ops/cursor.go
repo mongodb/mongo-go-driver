@@ -7,12 +7,15 @@
 package ops
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 // NewExhaustedCursor creates a new exhausted cursor.
@@ -22,9 +25,11 @@ func NewExhaustedCursor() (Cursor, error) {
 
 type exhaustedCursorImpl struct{}
 
-func (e *exhaustedCursorImpl) Next(_ context.Context, _ interface{}) bool {
+func (e *exhaustedCursorImpl) Next(context.Context) bool {
 	return false
 }
+
+func (e *exhaustedCursorImpl) Decode(interface{}) error { return nil }
 
 func (e *exhaustedCursorImpl) Err() error {
 	return nil
@@ -35,20 +40,52 @@ func (e *exhaustedCursorImpl) Close(_ context.Context) error {
 }
 
 // NewCursor creates a new cursor from the given cursor result.
-func NewCursor(cursorResult CursorResult, batchSize int32, server Server) (Cursor, error) {
-	namespace := cursorResult.Namespace()
-	if err := namespace.validate(); err != nil {
+func NewCursor(cursorResult bson.Reader, batchSize int32, server Server) (Cursor, error) {
+	cur, err := cursorResult.Lookup("cursor")
+	if err != nil {
 		return nil, err
 	}
+	if cur.Value().Type() != bson.TypeEmbeddedDocument {
+		return nil, fmt.Errorf("cursor should be an embedded document but is a BSON %s", cur.Value().Type())
+	}
 
-	return &cursorImpl{
-		namespace:    cursorResult.Namespace(),
-		batchSize:    batchSize,
-		current:      0,
-		currentBatch: cursorResult.InitialBatch(),
-		cursorID:     cursorResult.CursorID(),
-		server:       server,
-	}, nil
+	itr, err := cur.Value().ReaderDocument().Iterator()
+	if err != nil {
+		return nil, err
+	}
+	var elem *bson.Element
+	impl := &cursorImpl{
+		current:   -1,
+		batchSize: batchSize,
+		server:    server,
+	}
+	for itr.Next() {
+		elem = itr.Element()
+		switch elem.Key() {
+		case "firstBatch":
+			if elem.Value().Type() != bson.TypeArray {
+				return nil, fmt.Errorf("firstBatch should be an array but is a BSON %s", elem.Value().Type())
+			}
+			impl.currentBatch2 = elem.Value().MutableArray()
+		case "ns":
+			if elem.Value().Type() != bson.TypeString {
+				return nil, fmt.Errorf("namespace should be a string but is a BSON %s", elem.Value().Type())
+			}
+			namespace := ParseNamespace(elem.Value().StringValue())
+			err = namespace.validate()
+			if err != nil {
+				return nil, err
+			}
+			impl.namespace = namespace
+		case "id":
+			if elem.Value().Type() != bson.TypeInt64 {
+				return nil, fmt.Errorf("id should be an int64 but is a BSON %s", elem.Value().Type())
+			}
+			impl.cursorID = elem.Value().Int64()
+		}
+	}
+
+	return impl, nil
 }
 
 // Cursor instances iterate a stream of documents. Each document is
@@ -66,7 +103,9 @@ func NewCursor(cursorResult CursorResult, batchSize int32, server Server) (Curso
 type Cursor interface {
 	// Get the next result from the cursor.
 	// Returns true if there were no errors and there is a next result.
-	Next(context.Context, interface{}) bool
+	Next(context.Context) bool
+
+	Decode(interface{}) error
 
 	// Returns the error status of the cursor
 	Err() error
@@ -77,22 +116,20 @@ type Cursor interface {
 }
 
 type cursorImpl struct {
-	namespace    Namespace
-	batchSize    int32
-	current      int
-	currentBatch []bson.Raw
-	cursorID     int64
-	err          error
-	server       Server
+	namespace     Namespace
+	batchSize     int32
+	current       int
+	currentBatch2 *bson.Array
+	cursorID      int64
+	err           error
+	server        Server
 }
 
-func (c *cursorImpl) Next(ctx context.Context, result interface{}) bool {
-	found := c.getNextFromCurrentBatch(result)
-	if found {
+func (c *cursorImpl) Next(ctx context.Context) bool {
+	// TODO(skriptble): This is really messy, needs to be redesigned.
+	c.current++
+	if c.current < c.currentBatch2.Len() {
 		return true
-	}
-	if c.err != nil {
-		return false
 	}
 
 	c.getMore(ctx)
@@ -100,7 +137,22 @@ func (c *cursorImpl) Next(ctx context.Context, result interface{}) bool {
 		return false
 	}
 
-	return c.getNextFromCurrentBatch(result)
+	if c.currentBatch2.Len() == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (c *cursorImpl) Decode(v interface{}) error {
+	br, err := c.currentBatch2.Lookup(uint(c.current))
+	if err != nil {
+		return err
+	}
+	if br.Type() != bson.TypeEmbeddedDocument {
+		return errors.New("Non-Document in batch of documents for cursor")
+	}
+	return bson.NewDecoder(bytes.NewReader(br.ReaderDocument())).Decode(v)
 }
 
 func (c *cursorImpl) Err() error {
@@ -108,19 +160,13 @@ func (c *cursorImpl) Err() error {
 }
 
 func (c *cursorImpl) Close(ctx context.Context) error {
-	c.currentBatch = nil
-
 	if c.cursorID == 0 {
 		return c.err
 	}
 
-	killCursorsCommand := struct {
-		Collection string  `bson:"killCursors"`
-		Cursors    []int64 `bson:"cursors"`
-	}{
-		Collection: c.namespace.Collection,
-		Cursors:    []int64{c.cursorID},
-	}
+	killCursorsCommand := bson.NewDocument(
+		bson.C.String("killCursors", c.namespace.Collection),
+		bson.C.ArrayFromElements("cursors", bson.AC.Int64(c.cursorID)))
 
 	killCursorsRequest := msg.NewCommand(
 		msg.NextRequestID(),
@@ -138,7 +184,7 @@ func (c *cursorImpl) Close(ctx context.Context) error {
 		return c.err
 	}
 
-	err = conn.ExecuteCommand(ctx, connection, killCursorsRequest, &bson.D{})
+	_, err = conn.ExecuteCommand(ctx, connection, killCursorsRequest)
 	if err != nil {
 		c.err = internal.MultiError(
 			c.err,
@@ -160,37 +206,20 @@ func (c *cursorImpl) Close(ctx context.Context) error {
 	return c.err
 }
 
-func (c *cursorImpl) getNextFromCurrentBatch(out interface{}) bool {
-	if c.current < len(c.currentBatch) {
-		err := c.currentBatch[c.current].Unmarshal(out)
-		if err != nil {
-			c.err = err
-			return false
-		}
-		c.current++
-		return true
-	}
-	return false
-}
-
 func (c *cursorImpl) getMore(ctx context.Context) {
-	c.currentBatch = nil
+	c.currentBatch2.Reset()
 	c.current = 0
 
 	if c.cursorID == 0 {
 		return
 	}
 
-	getMoreCommand := struct {
-		CursorID   int64  `bson:"getMore"`
-		Collection string `bson:"collection"`
-		BatchSize  int32  `bson:"batchSize,omitempty"`
-	}{
-		CursorID:   c.cursorID,
-		Collection: c.namespace.Collection,
-	}
+	getMoreCommand := bson.NewDocument(
+		bson.C.Int64("getMore", c.cursorID),
+		bson.C.String("collection", c.namespace.Collection))
+
 	if c.batchSize != 0 {
-		getMoreCommand.BatchSize = c.batchSize
+		getMoreCommand.Append(bson.C.Int32("batchSize", c.batchSize))
 	}
 	getMoreRequest := msg.NewCommand(
 		msg.NextRequestID(),
@@ -199,22 +228,13 @@ func (c *cursorImpl) getMore(ctx context.Context) {
 		getMoreCommand,
 	)
 
-	var response struct {
-		OK     bool `bson:"ok"`
-		Cursor struct {
-			NextBatch []bson.Raw `bson:"nextBatch"`
-			NS        string     `bson:"ns"`
-			ID        int64      `bson:"id"`
-		} `bson:"cursor"`
-	}
-
 	connection, err := c.server.Connection(ctx)
 	if err != nil {
 		c.err = internal.WrapErrorf(err, "unable to get a connection to get the next batch for cursor %d", c.cursorID)
 		return
 	}
 
-	err = conn.ExecuteCommand(ctx, connection, getMoreRequest, &response)
+	response, err := conn.ExecuteCommand(ctx, connection, getMoreRequest)
 	if err != nil {
 		c.err = internal.WrapErrorf(err, "unable get the next batch for cursor %d", c.cursorID)
 		return
@@ -226,6 +246,29 @@ func (c *cursorImpl) getMore(ctx context.Context) {
 		return
 	}
 
-	c.cursorID = response.Cursor.ID
-	c.currentBatch = response.Cursor.NextBatch
+	// cursor id
+	idVal, err := response.Lookup("cursor", "id")
+	if err != nil {
+		c.err = internal.WrapError(err, "unable to find cursor ID in response")
+		return
+	}
+	if idVal.Value().Type() != bson.TypeInt64 {
+		err = fmt.Errorf("BSON Type %s is not %s", idVal.Value().Type(), bson.TypeInt64)
+		c.err = internal.WrapErrorf(err, "cursorID of incorrect type in response")
+		return
+	}
+	c.cursorID = idVal.Value().Int64()
+
+	// cursor nextBatch
+	nextBatchVal, err := response.Lookup("cursor", "nextBatch")
+	if err != nil {
+		c.err = internal.WrapError(err, "unable to find nextBatch in response")
+		return
+	}
+	if nextBatchVal.Value().Type() != bson.TypeArray {
+		err = fmt.Errorf("BSON Type %s is not %s", nextBatchVal.Value().Type(), bson.TypeArray)
+		c.err = internal.WrapError(err, "nextBatch of incorrect type in response")
+		return
+	}
+	c.currentBatch2 = nextBatchVal.Value().MutableArray()
 }

@@ -10,8 +10,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"reflect"
 
 	"strings"
@@ -20,6 +18,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"
 	. "github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
@@ -31,12 +30,11 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	getNonceReply := msgtest.CreateCommandReply(bson.D{
-		bson.NewDocElem("ok", 1),
-		bson.NewDocElem("nonce", "2375531c32080ae8"),
-	})
+	getNonceReply := msgtest.CreateCommandReply(bson.NewDocument(
+		bson.C.Int32("ok", 1),
+		bson.C.String("nonce", "2375531c32080ae8")))
 
-	authenticateReply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 0)})
+	authenticateReply := msgtest.CreateCommandReply(bson.NewDocument(bson.C.Int32("ok", 0)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
@@ -62,12 +60,11 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	getNonceReply := msgtest.CreateCommandReply(bson.D{
-		bson.NewDocElem("ok", 1),
-		bson.NewDocElem("nonce", "2375531c32080ae8"),
-	})
+	getNonceReply := msgtest.CreateCommandReply(bson.NewDocument(
+		bson.C.Int32("ok", 1),
+		bson.C.String("nonce", "2375531c32080ae8")))
 
-	authenticateReply := msgtest.CreateCommandReply(bson.D{bson.NewDocElem("ok", 1)})
+	authenticateReply := msgtest.CreateCommandReply(bson.NewDocument(bson.C.Int32("ok", 1)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
@@ -83,17 +80,16 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	getNonceRequest := conn.Sent[0].(*msg.Query)
-	if !reflect.DeepEqual(getNonceRequest.Query, bson.D{bson.NewDocElem("getnonce", 1)}) {
+	if !reflect.DeepEqual(getNonceRequest.Query, bson.NewDocument(bson.C.Int32("getnonce", 1))) {
 		t.Fatalf("getnonce command was incorrect: %v", getNonceRequest.Query)
 	}
 
 	authenticateRequest := conn.Sent[1].(*msg.Query)
-	expectedAuthenticateDoc := bson.D{
-		bson.NewDocElem("authenticate", 1),
-		bson.NewDocElem("user", "user"),
-		bson.NewDocElem("nonce", "2375531c32080ae8"),
-		bson.NewDocElem("key", "21742f26431831d5cfca035a08c5bdf6"),
-	}
+	expectedAuthenticateDoc := bson.NewDocument(
+		bson.C.Int32("authenticate", 1),
+		bson.C.String("user", "user"),
+		bson.C.String("nonce", "2375531c32080ae8"),
+		bson.C.String("key", "21742f26431831d5cfca035a08c5bdf6"))
 
 	if !reflect.DeepEqual(authenticateRequest.Query, expectedAuthenticateDoc) {
 		t.Fatalf("authenticate command was incorrect: %v", authenticateRequest.Query)

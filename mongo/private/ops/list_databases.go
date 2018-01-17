@@ -7,11 +7,13 @@
 package ops
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/internal"
+	"github.com/skriptble/wilson/bson"
 )
 
 // ListDatabasesOptions are the options for listing databases.
@@ -23,46 +25,57 @@ type ListDatabasesOptions struct {
 // ListDatabases lists the databases with the given options
 func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabasesOptions) (Cursor, error) {
 
-	listDatabasesCommand := struct {
-		ListDatabases int32 `bson:"listDatabases"`
-		MaxTimeMS     int64 `bson:"maxTimeMS,omitempty"`
-	}{
-		ListDatabases: 1,
-		MaxTimeMS:     int64(options.MaxTime / time.Millisecond),
+	listDatabasesCommand := bson.NewDocument(
+		bson.C.Int32("listDatabases", 1))
+
+	if options.MaxTime != 0 {
+		listDatabasesCommand.Append(bson.C.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)))
 	}
 
-	var result struct {
-		Databases []bson.Raw `bson:"databases"`
-	}
-	err := runMustUsePrimary(ctx, s, "admin", listDatabasesCommand, &result)
+	rdr, err := runMustUsePrimary(ctx, s, "admin", listDatabasesCommand)
 	if err != nil {
 		return nil, err
 	}
 
+	dbs, err := rdr.Lookup("databases")
+	if err != nil {
+		return nil, err
+	}
+	if dbs.Value().Type() != bson.TypeArray {
+		return nil, fmt.Errorf("returned databases element of wrong type. Should be Array but is %s", dbs.Value().Type())
+	}
+
 	return &listDatabasesCursor{
-		databases: result.Databases,
-		current:   0,
+		databases: dbs.Value().MutableArray(),
+		current:   -1,
 	}, nil
 }
 
 type listDatabasesCursor struct {
-	databases []bson.Raw
+	databases *bson.Array
 	current   int
 	err       error
 }
 
-func (cursor *listDatabasesCursor) Next(_ context.Context, result interface{}) bool {
-	if cursor.current < len(cursor.databases) {
-		err := bson.Unmarshal(cursor.databases[cursor.current].Data, result)
-		if err != nil {
-			cursor.err = internal.WrapError(err, "unable to parse listDatabases result")
-			return false
-		}
-
-		cursor.current++
+func (cursor *listDatabasesCursor) Next(_ context.Context) bool {
+	cursor.current++
+	if cursor.current < cursor.databases.Len() {
 		return true
 	}
 	return false
+}
+
+func (cursor *listDatabasesCursor) Decode(v interface{}) error {
+	br, err := cursor.databases.Lookup(uint(cursor.current))
+	if err != nil {
+		return err
+	}
+	if br.Type() != bson.TypeEmbeddedDocument {
+		return errors.New("Non-Document in batch of documents for cursor")
+	}
+	dec := bson.NewDecoder(bytes.NewReader(br.ReaderDocument()))
+	err = dec.Decode(v)
+	return err
 }
 
 // Err returns the error status of the cursor.

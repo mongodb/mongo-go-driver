@@ -9,22 +9,26 @@ package msgtest
 import (
 	"bytes"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/skriptble/wilson/bson"
 )
 
 // CreateCommandReply creates a msg.Reply from the BSON response from the server.
 func CreateCommandReply(cmd interface{}) *msg.Reply {
-	doc, _ := bson.Marshal(cmd)
+	var buf bytes.Buffer
+	err := bson.NewEncoder(&buf).Encode(cmd)
+	if err != nil {
+		panic(err)
+	}
 	reply := &msg.Reply{
 		NumberReturned: 1,
-		DocumentsBytes: doc,
+		DocumentsBytes: buf.Bytes(),
 	}
 
 	// encode it, then decode it to handle the internal workings of msg.Reply
 	codec := msg.NewWireProtocolCodec()
 	var b bytes.Buffer
-	err := codec.Encode(&b, reply)
+	err = codec.Encode(&b, reply)
 	if err != nil {
 		panic(err)
 	}

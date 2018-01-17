@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +27,7 @@ func TestAggregateWithInvalidNamespace(t *testing.T) {
 		getServer(t),
 		Namespace{},
 		nil,
-		[]bson.D{},
+		bson.NewArray(),
 	)
 	require.Error(t, err)
 }
@@ -35,44 +35,60 @@ func TestAggregateWithInvalidNamespace(t *testing.T) {
 func TestAggregateWithMultipleBatches(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
-	documents := []bson.D{
-		{bson.NewDocElem("_id", 1)},
-		{bson.NewDocElem("_id", 2)},
-		{bson.NewDocElem("_id", 3)},
-		{bson.NewDocElem("_id", 4)},
-		{bson.NewDocElem("_id", 5)},
+	documents := []*bson.Document{
+		bson.NewDocument(bson.C.Int32("_id", 1)),
+		bson.NewDocument(bson.C.Int32("_id", 2)),
+		bson.NewDocument(bson.C.Int32("_id", 3)),
+		bson.NewDocument(bson.C.Int32("_id", 4)),
+		bson.NewDocument(bson.C.Int32("_id", 5)),
 	}
 	testutil.AutoInsertDocs(t, documents...)
+
+	readers := make([]bson.Reader, 0, len(documents))
+	for _, doc := range documents {
+		r, err := doc.MarshalBSON()
+		require.NoError(t, err)
+		readers = append(readers, r)
+	}
 
 	server := getServer(t)
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	cursor, err := Aggregate(context.Background(), server, namespace, nil,
-		[]bson.D{
-			{
-				bson.NewDocElem("$match", bson.D{
-					bson.NewDocElem("_id", bson.D{bson.NewDocElem("$gt", 2)}),
-				}),
-			},
-			{
-				bson.NewDocElem("$sort", bson.D{bson.NewDocElem("_id", -1)}),
-			},
-		},
+		bson.NewArray(
+			bson.AC.Document(
+				bson.NewDocument(
+					bson.C.SubDocument("$match", bson.NewDocument(
+						bson.C.SubDocument("_id", bson.NewDocument(bson.C.Int32("$gt", 2)))),
+					)),
+			),
+			bson.AC.Document(bson.NewDocument(bson.C.SubDocument("$sort", bson.NewDocument(bson.C.Int32("_id", -1)))))),
+
 		mongo.BatchSize(2),
 	)
 	require.NoError(t, err)
 
-	var next bson.D
+	var hasNext bool
+	var next = make(bson.Reader, 1024)
 
-	cursor.Next(context.Background(), &next)
-	require.Equal(t, documents[4], next)
+	hasNext = cursor.Next(context.Background())
+	require.True(t, hasNext)
+	err = cursor.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[4], next[:len(readers[4])])
 
-	cursor.Next(context.Background(), &next)
-	require.Equal(t, documents[3], next)
+	cursor.Next(context.Background())
+	require.True(t, hasNext)
+	err = cursor.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[3], next[:len(readers[3])])
 
-	cursor.Next(context.Background(), &next)
-	require.Equal(t, documents[2], next)
+	cursor.Next(context.Background())
+	require.True(t, hasNext)
+	err = cursor.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[2], next[:len(readers[2])])
 
-	hasNext := cursor.Next(context.Background(), &next)
+	hasNext = cursor.Next(context.Background())
 	require.False(t, hasNext)
 }
 
@@ -82,14 +98,14 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoInsertDocs(t,
-		bson.D{bson.NewDocElem("_id", 1)},
-		bson.D{bson.NewDocElem("_id", 2)},
+		bson.NewDocument(bson.C.Int32("_id", 1)),
+		bson.NewDocument(bson.C.Int32("_id", 2)),
 	)
 
 	server := getServer(t)
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	_, err := Aggregate(context.Background(), server, namespace, nil,
-		[]bson.D{},
+		bson.NewArray(),
 		mongo.AllowDiskUse(true),
 	)
 	require.NoError(t, err)
@@ -109,7 +125,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	_, err := Aggregate(context.Background(), s, namespace, nil,
-		[]bson.D{},
+		bson.NewArray(),
 		mongo.MaxTime(time.Millisecond),
 	)
 	require.Error(t, err)
@@ -126,7 +142,7 @@ func TestLegacyAggregateWithInvalidNamespace(t *testing.T) {
 		context.Background(),
 		getServer(t),
 		Namespace{},
-		[]bson.D{},
+		bson.NewArray(),
 		AggregationOptions{})
 	require.Error(t, err)
 }
@@ -134,44 +150,68 @@ func TestLegacyAggregateWithInvalidNamespace(t *testing.T) {
 func TestLegacyAggregateWithMultipleBatches(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
-	documents := []bson.D{
-		{bson.NewDocElem("_id", 1)},
-		{bson.NewDocElem("_id", 2)},
-		{bson.NewDocElem("_id", 3)},
-		{bson.NewDocElem("_id", 4)},
-		{bson.NewDocElem("_id", 5)},
+	documents := []*bson.Document{
+		bson.NewDocument(bson.C.Int32("_id", 1)),
+		bson.NewDocument(bson.C.Int32("_id", 2)),
+		bson.NewDocument(bson.C.Int32("_id", 3)),
+		bson.NewDocument(bson.C.Int32("_id", 4)),
+		bson.NewDocument(bson.C.Int32("_id", 5)),
 	}
 	testutil.AutoInsertDocs(t, documents...)
+
+	readers := make([]bson.Reader, 0, len(documents))
+	for _, doc := range documents {
+		r, err := doc.MarshalBSON()
+		require.NoError(t, err)
+		readers = append(readers, r)
+	}
 
 	server := getServer(t)
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	cursor, err := LegacyAggregate(context.Background(), server, namespace,
-		[]bson.D{
-			{
-				bson.NewDocElem("$match", bson.D{
-					bson.NewDocElem("_id", bson.D{bson.NewDocElem("$gt", 2)}),
-				}),
-			},
-			{
-				bson.NewDocElem("$sort", bson.D{bson.NewDocElem("_id", -1)}),
-			},
-		},
+		bson.NewArray(
+			bson.AC.DocumentFromElements(
+				bson.C.SubDocumentFromElements(
+					"$match",
+					bson.C.SubDocumentFromElements(
+						"_id",
+						bson.C.Int32("$gt", 2),
+					),
+				),
+			),
+			bson.AC.DocumentFromElements(
+				bson.C.SubDocumentFromElements(
+					"$sort",
+					bson.C.Int32("_id", -1),
+				),
+			)),
+
 		AggregationOptions{
 			BatchSize: 2})
 	require.NoError(t, err)
 
-	var next bson.D
+	var hasNext bool
+	var next = make(bson.Reader, 1024)
 
-	cursor.Next(context.Background(), &next)
-	require.Equal(t, documents[4], next)
+	hasNext = cursor.Next(context.Background())
+	require.True(t, hasNext)
+	err = cursor.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[4], next[:len(readers[4])])
 
-	cursor.Next(context.Background(), &next)
-	require.Equal(t, documents[3], next)
+	hasNext = cursor.Next(context.Background())
+	require.True(t, hasNext)
+	err = cursor.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[3], next[:len(readers[3])])
 
-	cursor.Next(context.Background(), &next)
-	require.Equal(t, documents[2], next)
+	hasNext = cursor.Next(context.Background())
+	require.True(t, hasNext)
+	err = cursor.Decode(next)
+	require.NoError(t, err)
+	require.Equal(t, readers[2], next[:len(readers[2])])
 
-	hasNext := cursor.Next(context.Background(), &next)
+	hasNext = cursor.Next(context.Background())
 	require.False(t, hasNext)
 }
 
@@ -181,14 +221,14 @@ func TestLegacyAggregateWithAllowDiskUse(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoInsertDocs(t,
-		bson.D{bson.NewDocElem("_id", 1)},
-		bson.D{bson.NewDocElem("_id", 2)},
+		bson.NewDocument(bson.C.Int32("_id", 1)),
+		bson.NewDocument(bson.C.Int32("_id", 2)),
 	)
 
 	server := getServer(t)
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	_, err := LegacyAggregate(context.Background(), server, namespace,
-		[]bson.D{},
+		bson.NewArray(),
 		AggregationOptions{
 			AllowDiskUse: true})
 	require.NoError(t, err)
@@ -208,7 +248,7 @@ func TestLegacyAggregateWithMaxTimeMS(t *testing.T) {
 
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	_, err := LegacyAggregate(context.Background(), s, namespace,
-		[]bson.D{},
+		bson.NewArray(),
 		AggregationOptions{
 			MaxTime: time.Millisecond})
 	require.Error(t, err)

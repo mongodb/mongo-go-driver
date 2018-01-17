@@ -7,55 +7,55 @@
 package ops
 
 import (
+	"bytes"
 	"context"
 
-	"time"
-
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
+	"github.com/skriptble/wilson/bson"
 )
 
 // Distinct returns the distinct values for a specified field across a single collection.
 func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	field string, query interface{}, options ...options.DistinctOption) ([]interface{}, error) {
+	field string, query *bson.Document, opts ...options.DistinctOptioner) ([]interface{}, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
 	}
 
-	command := bson.D{
-		{Name: "distinct", Value: ns.Collection},
-		{Name: "key", Value: field},
-	}
+	command := bson.NewDocument()
+	command.Append(bson.C.String("distinct", ns.Collection), bson.C.String("key", field))
 
 	if query != nil {
-		command.AppendElem("query", query)
+		command.Append(bson.C.SubDocument("query", query))
 	}
 
-	for _, option := range options {
-		switch name := option.DistinctName(); name {
-		case "maxTimeMS":
-			command.AppendElem(
-				name,
-				int64(option.DistinctValue().(time.Duration)/time.Millisecond),
-			)
-		default:
-			command.AppendElem(name, option.DistinctValue())
-
+	for _, option := range opts {
+		if option == nil {
+			continue
 		}
+		option.Option(command)
 	}
 
 	if readConcern != nil {
-		command.AppendElem("readConcern", readConcern)
+		elem, err := readConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+		command.Append(elem)
 	}
 
 	result := struct{ Values []interface{} }{}
 
-	err := runMayUseSecondary(ctx, s, ns.DB, command, &result)
+	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)
 	if err != nil {
 		return nil, internal.WrapError(err, "failed to execute count")
+	}
+
+	err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&result)
+	if err != nil {
+		return nil, err
 	}
 
 	return result.Values, nil
