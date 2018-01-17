@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,17 +37,23 @@ func TestListCollections(t *testing.T) {
 	testutil.DropCollection(t, dbname, collectionNameOne)
 	testutil.DropCollection(t, dbname, collectionNameTwo)
 	testutil.DropCollection(t, dbname, collectionNameThree)
-	testutil.InsertDocs(t, dbname, collectionNameOne, bson.D{bson.NewDocElem("_id", 1)})
-	testutil.InsertDocs(t, dbname, collectionNameTwo, bson.D{bson.NewDocElem("_id", 1)})
-	testutil.InsertDocs(t, dbname, collectionNameThree, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.InsertDocs(t, dbname, collectionNameOne, bson.NewDocument(1).Append(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameTwo, bson.NewDocument(1).Append(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameThree, bson.NewDocument(1).Append(bson.C.Int32("_id", 1)))
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{})
 	require.NoError(t, err)
 	names := []string{}
-	var next bson.M
-	for cursor.Next(context.Background(), &next) {
-		names = append(names, next["name"].(string))
+	var next = make(bson.Reader, 1024)
+	for cursor.Next(context.Background(), next) {
+		name, err := next.Lookup("name")
+		require.NoError(t, err)
+		if name.Value().Type() != bson.TypeString {
+			t.Errorf("Expected String but got %s", name.Value().Type())
+			t.FailNow()
+		}
+		names = append(names, name.Value().StringValue())
 	}
 
 	require.Contains(t, names, collectionNameOne)
@@ -65,22 +71,30 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	testutil.DropCollection(t, dbname, collectionNameOne)
 	testutil.DropCollection(t, dbname, collectionNameTwo)
 	testutil.DropCollection(t, dbname, collectionNameThree)
-	testutil.InsertDocs(t, dbname, collectionNameOne, bson.D{bson.NewDocElem("_id", 1)})
-	testutil.InsertDocs(t, dbname, collectionNameTwo, bson.D{bson.NewDocElem("_id", 1)})
-	testutil.InsertDocs(t, dbname, collectionNameThree, bson.D{bson.NewDocElem("_id", 1)})
+	testutil.InsertDocs(t, dbname, collectionNameOne, bson.NewDocument(1).Append(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameTwo, bson.NewDocument(1).Append(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameThree, bson.NewDocument(1).Append(bson.C.Int32("_id", 1)))
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{
-		Filter:    bson.D{bson.NewDocElem("name", bson.RegEx{Pattern: fmt.Sprintf("^%s.*", collectionNameOne)})},
+		Filter:    bson.NewDocument(1).Append(bson.C.Regex("name", fmt.Sprintf("^%s.*", collectionNameOne), "")),
 		BatchSize: 2})
 	require.NoError(t, err)
 
 	names := []string{}
-	var next bson.M
+	var next = make(bson.Reader, 1024)
 
-	for cursor.Next(context.Background(), &next) {
-		names = append(names, next["name"].(string))
+	for cursor.Next(context.Background(), next) {
+		name, err := next.Lookup("name")
+		require.NoError(t, err)
+		if name.Value().Type() != bson.TypeString {
+			t.Errorf("Expected String but got %s", name.Value().Type())
+			t.FailNow()
+		}
+		names = append(names, name.Value().StringValue())
 	}
+	err = cursor.Err()
+	require.NoError(t, err)
 
 	require.Equal(t, 3, len(names))
 	require.Contains(t, names, collectionNameOne)

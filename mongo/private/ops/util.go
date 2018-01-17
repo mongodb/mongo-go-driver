@@ -7,9 +7,9 @@
 package ops
 
 import (
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/skriptble/wilson/bson"
 )
 
 func slaveOk(selectedServer *SelectedServer) bool {
@@ -25,7 +25,7 @@ func slaveOk(selectedServer *SelectedServer) bool {
 	return selectedServer.ReadPref.Mode() != readpref.PrimaryMode
 }
 
-func readPrefMeta(rp *readpref.ReadPref, kind model.ServerKind) interface{} {
+func readPrefMeta(rp *readpref.ReadPref, kind model.ServerKind) *bson.Document {
 	if kind != model.Mongos || rp == nil {
 		return nil
 	}
@@ -37,37 +37,38 @@ func readPrefMeta(rp *readpref.ReadPref, kind model.ServerKind) interface{} {
 		}
 	}
 
-	var doc struct {
-		Mode                string   `bson:"mode,omitempty"`
-		Tags                []bson.D `bson:"tags,omitempty"`
-		MaxStalenessSeconds uint32   `bson:"maxStalenessSeconds,omitempty"`
-	}
+	doc := bson.NewDocument(3)
 
 	switch rp.Mode() {
 	case readpref.PrimaryMode:
-		doc.Mode = "primary"
+		doc.Append(bson.C.String("mode", "primary"))
 	case readpref.PrimaryPreferredMode:
-		doc.Mode = "primaryPreferred"
+		doc.Append(bson.C.String("mode", "primaryPreferred"))
 	case readpref.SecondaryPreferredMode:
-		doc.Mode = "secondaryPreferred"
+		doc.Append(bson.C.String("mode", "secondaryPreferred"))
 	case readpref.SecondaryMode:
-		doc.Mode = "secondary"
+		doc.Append(bson.C.String("mode", "secondary"))
 	case readpref.NearestMode:
-		doc.Mode = "nearest"
+		doc.Append(bson.C.String("mode", "nearest"))
 	}
 
+	sets := make([]*bson.Value, 0, len(rp.TagSets()))
 	for _, ts := range rp.TagSets() {
-		set := bson.D{}
+		if len(ts) == 0 {
+			continue
+		}
+		set := bson.NewDocument(uint(len(ts)))
 		for _, t := range ts {
-			set = append(set, bson.DocElem{Name: t.Name, Value: t.Value})
+			set.Append(bson.C.String(t.Name, t.Value))
 		}
-		if len(set) > 0 {
-			doc.Tags = append(doc.Tags, set)
-		}
+		sets = append(sets, bson.AC.Document(set))
+	}
+	if len(sets) > 0 {
+		doc.Append(bson.C.ArrayFromElements("tags", sets...))
 	}
 
 	if d, ok := rp.MaxStaleness(); ok {
-		doc.MaxStalenessSeconds = uint32(d.Seconds())
+		doc.Append(bson.C.Int32("maxStalenessSeconds", int32(d.Seconds())))
 	}
 
 	return doc

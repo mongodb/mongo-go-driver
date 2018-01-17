@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/mongo/internal"
-
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/skriptble/wilson/bson/objectid"
 )
 
 // UnsetRTT is the unset value for a round trip time.
@@ -25,7 +24,7 @@ type Server struct {
 	AverageRTT        time.Duration
 	AverageRTTSet     bool
 	CanonicalAddr     Addr
-	ElectionID        bson.ObjectId
+	ElectionID        objectid.ObjectID
 	GitVersion        string
 	HeartbeatInterval time.Duration
 	LastError         error
