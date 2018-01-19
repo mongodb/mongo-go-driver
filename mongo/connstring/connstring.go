@@ -190,6 +190,7 @@ func (p *parser) parse(original string) error {
 
 		}
 
+		// SSL is enabled by default for SRV, but can be manually disabled with "ssl=false".
 		p.SSL = true
 	}
 

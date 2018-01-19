@@ -42,20 +42,11 @@ func RequireNoErrorOnClose(t *testing.T, c io.Closer) {
 	require.NoError(t, c.Close())
 }
 
-// TODO GODRIVER-139: Remove when SSL parsing is added to the connection string
-var ignoredConnStringOptions = map[string]struct{}{
-	"ssl": {},
-}
-
 func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map[string]interface{}) {
 	// Check that all options are present.
 	for key, value := range options {
 
 		key = strings.ToLower(key)
-		// TODO GODRIVER-139: Remove when SSL parsing is added to the connection string
-		if _, ok := ignoredConnStringOptions[key]; ok {
-			continue
-		}
 		switch key {
 		case "appname":
 			require.Equal(t, value, cs.AppName)
@@ -90,6 +81,8 @@ func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map
 			require.Equal(t, value, cs.ReplicaSet)
 		case "serverselectiontimeoutms":
 			require.Equal(t, value, float64(cs.ServerSelectionTimeout/time.Millisecond))
+		case "ssl":
+			require.Equal(t, value, cs.SSL)
 		case "sockettimeoutms":
 			require.Equal(t, value, float64(cs.SocketTimeout/time.Millisecond))
 		case "wtimeoutms":

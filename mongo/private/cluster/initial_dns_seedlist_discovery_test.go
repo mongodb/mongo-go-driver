@@ -32,11 +32,20 @@ type seedlistTestCase struct {
 	Options map[string]interface{}
 }
 
+// Because the Go driver tests can be run either against a server with SSL enabled or without, a
+// number of configurations have to be checked to ensure that the SRV tests are run properly.
+//
+// First, the "ssl" option in the JSON test description has to be checked. If this option is not
+// present, we assume that the test will assert an error, so we proceed with the test as normal.
+// If the option is false, then we skip the test if the server is running with SSL enabled.
+// If the option is true, then we skip the test if the server is running without SSL enabled; if
+// the server is running with SSL enabled, then we manually set the necessary SSL options in the
+// connection string.
 func setSSLSettings(t *testing.T, cs *connstring.ConnString, options map[string]interface{}) {
-	var testCaseSSL bool
+	var testCaseExpectsSSL bool
 	if ssl, found := options["ssl"]; found && ssl.(bool) {
-		// The options specify "ss: true".
-		testCaseSSL = true
+		// The options specify "ssl: true".
+		testCaseExpectsSSL = true
 	} else if !found {
 		// No "ssl" option is specified.
 		return
@@ -45,20 +54,18 @@ func setSSLSettings(t *testing.T, cs *connstring.ConnString, options map[string]
 	envSSL := os.Getenv("SSL") == "ssl"
 
 	// Skip non-SSL tests if the server is running with SSL.
-	if !testCaseSSL && envSSL {
+	if !testCaseExpectsSSL && envSSL {
 		t.Skip()
 	}
 
 	// Skip SSL tests if the server is running without SSL.
-	if testCaseSSL && !envSSL {
+	if testCaseExpectsSSL && !envSSL {
 		t.Skip()
 	}
 
 	// If SSL tests are running, set the CA file.
-	if testCaseSSL && envSSL {
+	if testCaseExpectsSSL && envSSL {
 		cs.SSLInsecure = true
-		cs.SSLCaFile = os.Getenv("MONGO_GO_DRIVER_CA_FILE")
-		cs.SSLCaFileSet = true
 	}
 }
 
@@ -80,7 +87,7 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 		hosts := buildSet(cs.Hosts)
 
 		require.Equal(t, hosts, seeds)
-
+		testhelpers.VerifyConnStringOptions(t, cs, test.Options)
 		setSSLSettings(t, &cs, test.Options)
 
 		// make a cluster from the options
