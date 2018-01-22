@@ -63,13 +63,13 @@ func (db *Database) Collection(name string) *Collection {
 	return newCollection(db, name)
 }
 
-// RunCommand runs a command on the database.
-func (db *Database) RunCommand(command interface{}, result interface{}) error {
-	return db.RunCommandWithContext(context.Background(), command, result)
-}
+// RunCommand runs a command on the database. A user can supply a custom context to this method.
+func (db *Database) RunCommand(ctx context.Context, command interface{}, result interface{}) error {
 
-// RunCommandWithContext runs a command on the database. A user can supply a custom context to this method.
-func (db *Database) RunCommandWithContext(ctx context.Context, command interface{}, result interface{}) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	s, err := db.client.selectServer(ctx, readpref.Selector(readpref.Primary()), readpref.Primary())
 	if err != nil {
 		return err
