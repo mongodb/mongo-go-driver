@@ -40,7 +40,7 @@ func TestDatabase_RunCommand(t *testing.T) {
 	db := createTestDatabase(t, nil)
 
 	var result bson.M
-	err := db.RunCommand(bson.D{{Name: "ismaster", Value: 1}}, &result)
+	err := db.RunCommand(nil, bson.D{{Name: "ismaster", Value: 1}}, &result)
 	require.NoError(t, err)
 	require.Equal(t, result["ismaster"], true)
 	require.Equal(t, result["ok"], 1.0)

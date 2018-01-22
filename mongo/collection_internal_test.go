@@ -37,19 +37,19 @@ func initCollection(t *testing.T, coll *Collection) {
 
 	var err error
 
-	_, err = coll.InsertOne(doc1)
+	_, err = coll.InsertOne(nil, doc1)
 	require.Nil(t, err)
 
-	_, err = coll.InsertOne(doc2)
+	_, err = coll.InsertOne(nil, doc2)
 	require.Nil(t, err)
 
-	_, err = coll.InsertOne(doc3)
+	_, err = coll.InsertOne(nil, doc3)
 	require.Nil(t, err)
 
-	_, err = coll.InsertOne(doc4)
+	_, err = coll.InsertOne(nil, doc4)
 	require.Nil(t, err)
 
-	_, err = coll.InsertOne(doc5)
+	_, err = coll.InsertOne(nil, doc5)
 	require.Nil(t, err)
 }
 
@@ -89,7 +89,7 @@ func TestCollection_InsertOne(t *testing.T) {
 	}
 	coll := createTestCollection(t, nil, nil)
 
-	result, err := coll.InsertOne(doc)
+	result, err := coll.InsertOne(nil, doc)
 	require.Nil(t, err)
 	require.Equal(t, result.InsertedID, id)
 }
@@ -114,7 +114,7 @@ func TestCollection_InsertMany(t *testing.T) {
 	}
 	coll := createTestCollection(t, nil, nil)
 
-	result, err := coll.InsertMany(docs)
+	result, err := coll.InsertMany(nil, docs)
 	require.Nil(t, err)
 
 	require.Len(t, result.InsertedIDs, 3)
@@ -135,7 +135,7 @@ func TestCollection_DeleteOne_found(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.D{{Name: "x", Value: 1}}
-	result, err := coll.DeleteOne(filter)
+	result, err := coll.DeleteOne(nil, filter)
 	require.Nil(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, result.DeletedCount, int64(1))
@@ -152,7 +152,7 @@ func TestCollection_DeleteOne_notFound(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.D{{Name: "x", Value: 0}}
-	result, err := coll.DeleteOne(filter)
+	result, err := coll.DeleteOne(nil, filter)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -168,7 +168,7 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.D{{Name: "x", Value: 0}}
-	result, err := coll.DeleteOne(filter, Collation(&options.CollationOptions{Locale: "en_US"}))
+	result, err := coll.DeleteOne(nil, filter, Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -188,7 +188,7 @@ func TestCollection_DeleteMany_found(t *testing.T) {
 			bson.NewDocElem("$gte", 3),
 		}),
 	}
-	result, err := coll.DeleteMany(filter)
+	result, err := coll.DeleteMany(nil, filter)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(3))
 }
@@ -208,7 +208,7 @@ func TestCollection_DeleteMany_notFound(t *testing.T) {
 			bson.NewDocElem("$lt", 1),
 		}),
 	}
-	result, err := coll.DeleteMany(filter)
+	result, err := coll.DeleteMany(nil, filter)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -228,7 +228,7 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 			bson.NewDocElem("$lt", 1),
 		}),
 	}
-	result, err := coll.DeleteMany(filter, Collation(&options.CollationOptions{Locale: "en_US"}))
+	result, err := coll.DeleteMany(nil, filter, Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -250,7 +250,7 @@ func TestCollection_UpdateOne_found(t *testing.T) {
 		},
 	}
 
-	result, err := coll.UpdateOne(filter, update)
+	result, err := coll.UpdateOne(nil, filter, update)
 	require.Nil(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, result.MatchedCount, int64(1))
@@ -275,7 +275,7 @@ func TestCollection_UpdateOne_notFound(t *testing.T) {
 		},
 	}
 
-	result, err := coll.UpdateOne(filter, update)
+	result, err := coll.UpdateOne(nil, filter, update)
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -299,7 +299,7 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 		},
 	}
 
-	result, err := coll.UpdateOne(filter, update, Upsert(true))
+	result, err := coll.UpdateOne(nil, filter, update, Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -327,7 +327,7 @@ func TestCollection_UpdateMany_found(t *testing.T) {
 		},
 	}
 
-	result, err := coll.UpdateMany(filter, update)
+	result, err := coll.UpdateMany(nil, filter, update)
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(3))
 	require.Equal(t, result.ModifiedCount, int64(3))
@@ -355,7 +355,7 @@ func TestCollection_UpdateMany_notFound(t *testing.T) {
 		},
 	}
 
-	result, err := coll.UpdateMany(filter, update)
+	result, err := coll.UpdateMany(nil, filter, update)
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -383,7 +383,7 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 		},
 	}
 
-	result, err := coll.UpdateMany(filter, update, Upsert(true))
+	result, err := coll.UpdateMany(nil, filter, update, Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -403,7 +403,7 @@ func TestCollection_ReplaceOne_found(t *testing.T) {
 	filter := bson.D{{Name: "x", Value: 1}}
 	replacement := bson.D{{Name: "y", Value: 1}}
 
-	result, err := coll.ReplaceOne(filter, replacement)
+	result, err := coll.ReplaceOne(nil, filter, replacement)
 	require.Nil(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, result.MatchedCount, int64(1))
@@ -424,7 +424,7 @@ func TestCollection_ReplaceOne_notFound(t *testing.T) {
 	filter := bson.D{{Name: "x", Value: 0}}
 	replacement := bson.D{{Name: "y", Value: 1}}
 
-	result, err := coll.ReplaceOne(filter, replacement)
+	result, err := coll.ReplaceOne(nil, filter, replacement)
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -444,7 +444,7 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	filter := bson.D{{Name: "x", Value: 0}}
 	replacement := bson.D{{Name: "y", Value: 1}}
 
-	result, err := coll.ReplaceOne(filter, replacement, Upsert(true))
+	result, err := coll.ReplaceOne(nil, filter, replacement, Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -481,7 +481,7 @@ func TestCollection_Aggregate(t *testing.T) {
 			}),
 		},
 	}
-	cursor, err := coll.Aggregate(pipeline)
+	cursor, err := coll.Aggregate(nil, pipeline)
 	require.Nil(t, err)
 
 	for i := 2; i < 5; i++ {
@@ -522,7 +522,7 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 			}),
 		},
 	}
-	cursor, err := coll.Aggregate(pipeline, AllowDiskUse(true))
+	cursor, err := coll.Aggregate(nil, pipeline, AllowDiskUse(true))
 	require.Nil(t, err)
 
 	for i := 2; i < 5; i++ {
@@ -543,7 +543,7 @@ func TestCollection_Count(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.Count(nil)
+	count, err := coll.Count(nil, nil)
 	require.Nil(t, err)
 	require.Equal(t, count, int64(5))
 }
@@ -563,7 +563,7 @@ func TestCollection_Count_withFilter(t *testing.T) {
 			bson.NewDocElem("$gt", 2),
 		}),
 	}
-	count, err := coll.Count(filter)
+	count, err := coll.Count(nil, filter)
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -578,7 +578,7 @@ func TestCollection_Count_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.Count(nil, Limit(3))
+	count, err := coll.Count(nil, nil, Limit(3))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -593,7 +593,7 @@ func TestCollection_Distinct(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	results, err := coll.Distinct("x", nil)
+	results, err := coll.Distinct(nil, "x", nil)
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{1, 2, 3, 4, 5})
 }
@@ -613,7 +613,7 @@ func TestCollection_Distinct_withFilter(t *testing.T) {
 			bson.NewDocElem("$gt", 2),
 		}),
 	}
-	results, err := coll.Distinct("x", filter)
+	results, err := coll.Distinct(nil, "x", filter)
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{3, 4, 5})
 }
@@ -628,7 +628,7 @@ func TestCollection_Distinct_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	results, err := coll.Distinct("x", nil, Collation(&options.CollationOptions{Locale: "en_US"}))
+	results, err := coll.Distinct(nil, "x", nil, Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{1, 2, 3, 4, 5})
 }
@@ -643,7 +643,7 @@ func TestCollection_Find_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	cursor, err := coll.Find(
+	cursor, err := coll.Find(nil,
 		nil,
 		Sort(bson.D{bson.NewDocElem("x", 1)}),
 	)
@@ -674,7 +674,7 @@ func TestCollection_Find_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	cursor, err := coll.Find(bson.D{bson.NewDocElem("x", 6)})
+	cursor, err := coll.Find(nil, bson.D{bson.NewDocElem("x", 6)})
 	require.Nil(t, err)
 
 	var doc bson.M
@@ -693,7 +693,7 @@ func TestCollection_FindOne_found(t *testing.T) {
 
 	filter := bson.D{bson.NewDocElem("x", 1)}
 	var result bson.M
-	found, err := coll.FindOne(
+	found, err := coll.FindOne(nil,
 		filter,
 		&result,
 	)
@@ -718,7 +718,7 @@ func TestCollection_FindOne_found_withOption(t *testing.T) {
 
 	filter := bson.D{bson.NewDocElem("x", 1)}
 	var result bson.M
-	found, err := coll.FindOne(
+	found, err := coll.FindOne(nil,
 		filter,
 		&result,
 		Comment("here's a query for ya"),
@@ -744,7 +744,7 @@ func TestCollection_FindOne_notFound(t *testing.T) {
 
 	filter := bson.D{bson.NewDocElem("x", 6)}
 	var result bson.M
-	found, err := coll.FindOne(filter, &result)
+	found, err := coll.FindOne(nil, filter, &result)
 	require.Nil(t, err)
 	require.False(t, found)
 }
@@ -762,7 +762,7 @@ func TestCollection_FindOneAndDelete_found(t *testing.T) {
 	filter := bson.D{bson.NewDocElem("x", 3)}
 
 	var result bson.M
-	found, err := coll.FindOneAndDelete(filter, &result)
+	found, err := coll.FindOneAndDelete(nil, filter, &result)
 	require.NoError(t, err)
 	require.True(t, found)
 
@@ -783,7 +783,7 @@ func TestCollection_FindOneAndDelete_found_ignoreResult(t *testing.T) {
 
 	filter := bson.D{bson.NewDocElem("x", 3)}
 
-	found, err := coll.FindOneAndDelete(filter, nil)
+	found, err := coll.FindOneAndDelete(nil, filter, nil)
 	require.NoError(t, err)
 	require.True(t, found)
 }
@@ -801,7 +801,7 @@ func TestCollection_FindOneAndDelete_notFound(t *testing.T) {
 	filter := bson.D{bson.NewDocElem("x", 6)}
 
 	var result bson.M
-	found, err := coll.FindOneAndDelete(filter, &result)
+	found, err := coll.FindOneAndDelete(nil, filter, &result)
 	require.NoError(t, err)
 	require.False(t, found)
 }
@@ -818,7 +818,7 @@ func TestCollection_FindOneAndDelete_notFound_ignoreResult(t *testing.T) {
 
 	filter := bson.D{bson.NewDocElem("x", 6)}
 
-	found, err := coll.FindOneAndDelete(filter, nil)
+	found, err := coll.FindOneAndDelete(nil, filter, nil)
 	require.NoError(t, err)
 	require.False(t, found)
 }
@@ -837,7 +837,7 @@ func TestCollection_FindOneAndReplace_found(t *testing.T) {
 	replacement := bson.D{bson.NewDocElem("y", 3)}
 
 	var result bson.M
-	found, err := coll.FindOneAndReplace(filter, replacement, &result)
+	found, err := coll.FindOneAndReplace(nil, filter, replacement, &result)
 	require.NoError(t, err)
 	require.True(t, found)
 
@@ -859,7 +859,7 @@ func TestCollection_FindOneAndReplace_found_ignoreResult(t *testing.T) {
 	filter := bson.D{bson.NewDocElem("x", 3)}
 	replacement := bson.D{bson.NewDocElem("y", 3)}
 
-	found, err := coll.FindOneAndReplace(filter, replacement, nil)
+	found, err := coll.FindOneAndReplace(nil, filter, replacement, nil)
 	require.NoError(t, err)
 	require.True(t, found)
 }
@@ -878,7 +878,7 @@ func TestCollection_FindOneAndReplace_notFound(t *testing.T) {
 	replacement := bson.D{bson.NewDocElem("y", 6)}
 
 	var result bson.M
-	found, err := coll.FindOneAndReplace(filter, replacement, &result)
+	found, err := coll.FindOneAndReplace(nil, filter, replacement, &result)
 	require.NoError(t, err)
 	require.False(t, found)
 }
@@ -896,7 +896,7 @@ func TestCollection_FindOneAndReplace_notFound_ignoreResult(t *testing.T) {
 	filter := bson.D{bson.NewDocElem("x", 6)}
 	replacement := bson.D{bson.NewDocElem("y", 6)}
 
-	found, err := coll.FindOneAndReplace(filter, replacement, nil)
+	found, err := coll.FindOneAndReplace(nil, filter, replacement, nil)
 	require.NoError(t, err)
 	require.False(t, found)
 }
@@ -918,7 +918,7 @@ func TestCollection_FindOneAndUpdate_found(t *testing.T) {
 		}),
 	}
 	var result bson.M
-	found, err := coll.FindOneAndUpdate(filter, update, &result)
+	found, err := coll.FindOneAndUpdate(nil, filter, update, &result)
 	require.NoError(t, err)
 	require.True(t, found)
 
@@ -944,7 +944,7 @@ func TestCollection_FindOneAndUpdate_found_ignoreResult(t *testing.T) {
 		}),
 	}
 
-	found, err := coll.FindOneAndUpdate(filter, update, nil)
+	found, err := coll.FindOneAndUpdate(nil, filter, update, nil)
 	require.NoError(t, err)
 	require.True(t, found)
 }
@@ -967,7 +967,7 @@ func TestCollection_FindOneAndUpdate_notFound(t *testing.T) {
 	}
 
 	var result bson.M
-	found, err := coll.FindOneAndUpdate(filter, update, &result)
+	found, err := coll.FindOneAndUpdate(nil, filter, update, &result)
 	require.NoError(t, err)
 	require.False(t, found)
 }
@@ -989,7 +989,7 @@ func TestCollection_FindOneAndUpdate_notFound_ignoreResult(t *testing.T) {
 		}),
 	}
 
-	found, err := coll.FindOneAndUpdate(filter, update, nil)
+	found, err := coll.FindOneAndUpdate(nil, filter, update, nil)
 	require.NoError(t, err)
 	require.False(t, found)
 }

@@ -66,12 +66,16 @@ func (coll *Collection) getReadableServer(ctx context.Context) (*ops.SelectedSer
 	return coll.client.selectServer(ctx, coll.readSelector, coll.readPreference)
 }
 
-// InsertOneContext inserts a single document into the collection. A user can supply a custom
-// context to this method.
+// InsertOne inserts a single document into the collection. A user can supply
+// a custom context to this method, or nil to default to context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) InsertOneContext(ctx context.Context, document interface{},
+func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	options ...options.InsertOption) (*InsertOneResult, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	doc, insertedID, err := getOrInsertID(document)
 	if err != nil {
@@ -110,7 +114,7 @@ func (coll *Collection) InsertOneContext(ctx context.Context, document interface
 	return &InsertOneResult{InsertedID: insertedID}, nil
 }
 
-// InsertManyContext inserts the provided documents. A user can supply a custom context to this
+// InsertMany inserts the provided documents. A user can supply a custom context to this
 // method.
 //
 // Currently, batching is not implemented for this operation. Because of this, extremely large
@@ -118,8 +122,12 @@ func (coll *Collection) InsertOneContext(ctx context.Context, document interface
 // operation will fail.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) InsertManyContext(ctx context.Context, documents []interface{},
+func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	options ...options.InsertOption) (*InsertManyResult, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	result := make([]interface{}, len(documents))
 
@@ -167,12 +175,16 @@ func (coll *Collection) InsertManyContext(ctx context.Context, documents []inter
 	return &InsertManyResult{InsertedIDs: result}, nil
 }
 
-// DeleteOneContext deletes a single document from the collection. A user can supply a custom
-// context to this method.
+// DeleteOne deletes a single document from the collection. A user can supply
+// a custom context to this method, or nil to default to context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{},
+func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	options ...options.DeleteOption) (*DeleteResult, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	deleteDocs := []bson.D{{
 		{Name: "q", Value: filter},
@@ -211,12 +223,17 @@ func (coll *Collection) DeleteOneContext(ctx context.Context, filter interface{}
 	return &result, nil
 }
 
-// DeleteManyContext deletes multiple documents from the collection. A user can supply a custom
-// context to this method.
+// DeleteMany deletes multiple documents from the collection. A user can
+// supply a custom context to this method, or nil to default to
+// context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) DeleteManyContext(ctx context.Context, filter interface{},
+func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	options ...options.DeleteOption) (*DeleteResult, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	deleteDocs := []bson.D{{
 		{Name: "q", Value: filter},
@@ -261,6 +278,10 @@ func (coll *Collection) DeleteManyContext(ctx context.Context, filter interface{
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface{},
 	update interface{}, options ...options.UpdateOption) (*UpdateResult, error) {
 
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	updateDocs := []bson.D{{
 		{Name: "q", Value: filter},
 		{Name: "u", Value: update},
@@ -299,12 +320,16 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter interface
 	return &result, nil
 }
 
-// UpdateOneContext updates a single document in the collection. A user can supply a custom
-// context to this method.
+// UpdateOne updates a single document in the collection. A user can supply a
+// custom context to this method, or nil to default to context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) UpdateOneContext(ctx context.Context, filter interface{}, update interface{},
+func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
 	options ...options.UpdateOption) (*UpdateResult, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	if err := ensureDollarKey(update); err != nil {
 		return nil, err
@@ -313,12 +338,16 @@ func (coll *Collection) UpdateOneContext(ctx context.Context, filter interface{}
 	return coll.updateOrReplaceOne(ctx, filter, update, options...)
 }
 
-// UpdateManyContext updates multiple documents in the collection. A user can supply a custom
-// context to this method.
+// UpdateMany updates multiple documents in the collection. A user can supply
+// a custom context to this method, or nil to default to context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) UpdateManyContext(ctx context.Context, filter interface{}, update interface{},
+func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
 	options ...options.UpdateOption) (*UpdateResult, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	if err := ensureDollarKey(update); err != nil {
 		return nil, err
@@ -364,12 +393,16 @@ func (coll *Collection) UpdateManyContext(ctx context.Context, filter interface{
 	return &result, nil
 }
 
-// ReplaceOneContext replaces a single document in the collection. A user can supply a custom
-// context to this method.
+// ReplaceOne replaces a single document in the collection. A user can supply
+// a custom context to this method, or nil to default to context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) ReplaceOneContext(ctx context.Context, filter interface{},
+func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 	replacement interface{}, options ...options.UpdateOption) (*UpdateResult, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	bytes, err := bson.Marshal(replacement)
 	if err != nil {
@@ -390,14 +423,18 @@ func (coll *Collection) ReplaceOneContext(ctx context.Context, filter interface{
 	return coll.updateOrReplaceOne(ctx, filter, replacement, options...)
 }
 
-// AggregateContext runs an aggregation framework pipeline. A user can supply a custom context to
+// Aggregate runs an aggregation framework pipeline. A user can supply a custom context to
 // this method.
 //
 // See https://docs.mongodb.com/manual/aggregation/.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) AggregateContext(ctx context.Context, pipeline interface{},
+func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	options ...options.AggregateOption) (Cursor, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	// TODO GODRIVER-95: Check for $out and use readable server/read preference if not found
 	s, err := coll.getWriteableServer(ctx)
@@ -413,12 +450,16 @@ func (coll *Collection) AggregateContext(ctx context.Context, pipeline interface
 	return cursor, nil
 }
 
-// CountContext gets the number of documents matching the filter. A user can supply a custom
-// context to this method.
+// Count gets the number of documents matching the filter. A user can supply a
+// custom context to this method, or nil to default to context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) CountContext(ctx context.Context, filter interface{},
+func (coll *Collection) Count(ctx context.Context, filter interface{},
 	options ...options.CountOption) (int64, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	s, err := coll.getReadableServer(ctx)
 	if err != nil {
@@ -433,12 +474,17 @@ func (coll *Collection) CountContext(ctx context.Context, filter interface{},
 	return int64(count), nil
 }
 
-// DistinctContext finds the distinct values for a specified field across a single collection. A user
-// can supply a custom context to this method.
+// Distinct finds the distinct values for a specified field across a single
+// collection. A user can supply a custom context to this method, or nil to
+// default to context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) DistinctContext(ctx context.Context, fieldName string, filter interface{},
+func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
 	options ...options.DistinctOption) ([]interface{}, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	s, err := coll.getReadableServer(ctx)
 
@@ -463,12 +509,16 @@ func (coll *Collection) DistinctContext(ctx context.Context, fieldName string, f
 	return values, nil
 }
 
-// FindContext finds the documents matching a model. A user can supply a custom context to this
+// Find finds the documents matching a model. A user can supply a custom context to this
 // method.
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) FindContext(ctx context.Context, filter interface{},
+func (coll *Collection) Find(ctx context.Context, filter interface{},
 	options ...options.FindOption) (Cursor, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	s, err := coll.getReadableServer(ctx)
 	if err != nil {
@@ -483,16 +533,21 @@ func (coll *Collection) FindContext(ctx context.Context, filter interface{},
 	return cursor, nil
 }
 
-// FindOneContext returns up to one document that matches the model. A user can supply a custom
-// context to this method.
+// FindOne returns up to one document that matches the model. A user can
+// supply a custom context to this method, or nil to default to
+// context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) FindOneContext(ctx context.Context, filter interface{}, result interface{},
+func (coll *Collection) FindOne(ctx context.Context, filter interface{}, result interface{},
 	options ...options.FindOption) (bool, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	options = append(options, Limit(1))
 
-	cursor, err := coll.FindContext(ctx, filter, options...)
+	cursor, err := coll.Find(ctx, filter, options...)
 	if err != nil {
 		return false, err
 	}
@@ -505,14 +560,19 @@ func (coll *Collection) FindOneContext(ctx context.Context, filter interface{}, 
 	return found, nil
 }
 
-// FindOneAndDeleteContext find a single document and deletes it, returning the original in result.
-// The document to return may be nil.
+// FindOneAndDelete find a single document and deletes it, returning the
+// original in result.  The document to return may be nil.
 //
-// A user can supply a custom context to this method.
+// A user can supply a custom context to this method, or nil to default to
+// context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) FindOneAndDeleteContext(ctx context.Context, filter interface{},
+func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
 	result interface{}, opts ...options.FindOneAndDeleteOption) (bool, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
@@ -539,14 +599,19 @@ func (coll *Collection) FindOneAndDeleteContext(ctx context.Context, filter inte
 	return findOneAndDelete()
 }
 
-// FindOneAndReplaceContext finds a single document and replaces it, returning either the original
-// or the replaced document. The document to return may be nil.
+// FindOneAndReplace finds a single document and replaces it, returning either
+// the original or the replaced document. The document to return may be nil.
 //
-// A user can supply a custom context to this method.
+// A user can supply a custom context to this method, or nil to default to
+// context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) FindOneAndReplaceContext(ctx context.Context, filter interface{},
+func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
 	replacement interface{}, result interface{}, opts ...options.FindOneAndReplaceOption) (bool, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	bytes, err := bson.Marshal(replacement)
 	if err != nil {
@@ -590,14 +655,19 @@ func (coll *Collection) FindOneAndReplaceContext(ctx context.Context, filter int
 	return findOneAndReplace()
 }
 
-// FindOneAndUpdateContext finds a single document and updates it, returning either the original
-// or the updated. The document to return may be nil.
+// FindOneAndUpdate finds a single document and updates it, returning either
+// the original or the updated. The document to return may be nil.
 //
-// A user can supply a custom context to this method.
+// A user can supply a custom context to this method, or nil to default to
+// context.Background().
 //
 // TODO GODRIVER-76: Document which types for interface{} are valid.
-func (coll *Collection) FindOneAndUpdateContext(ctx context.Context, filter interface{},
+func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
 	update interface{}, result interface{}, opts ...options.FindOneAndUpdateOption) (bool, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	bytes, err := bson.Marshal(update)
 	if err != nil {
