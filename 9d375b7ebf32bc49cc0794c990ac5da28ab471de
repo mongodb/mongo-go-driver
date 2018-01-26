@@ -1,0 +1,147 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b7eae162_37dc55d8",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 208,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-01-26T18:28:12Z",
+      "side": 1,
+      "message": "Style nit: could we change this (and similar code in other places) to something like this?\n\n```\n[]*bson.Document{\n    bson.NewDocument(2).Append(\n        bson.C.SubDocument(\"q\", f), \n        bson.C.Int32(\"limit\", 1),\n    ),\n}\n```\n\nAs one line, it\u0027s hard to quickly parse that there\u0027s one document with two keys; I think separating everything to new lines makes it much easier to read",
+      "range": {
+        "startLine": 208,
+        "startChar": 32,
+        "endLine": 208,
+        "endChar": 112
+      },
+      "revId": "9d375b7ebf32bc49cc0794c990ac5da28ab471de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7119440c_0212e57f",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-01-26T18:28:12Z",
+      "side": 1,
+      "message": "Is this called `ensureDollarKey2` to avoid name collisions with the old version?",
+      "range": {
+        "startLine": 63,
+        "startChar": 21,
+        "endLine": 63,
+        "endChar": 22
+      },
+      "revId": "9d375b7ebf32bc49cc0794c990ac5da28ab471de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1d7685d2_2704a475",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-01-26T18:28:12Z",
+      "side": 1,
+      "message": "Given that we have a Document type with efficient lookup now, I think it might be better to do `doc.Lookup(\"_id\")`",
+      "range": {
+        "startLine": 64,
+        "startChar": 18,
+        "endLine": 64,
+        "endChar": 27
+      },
+      "revId": "9d375b7ebf32bc49cc0794c990ac5da28ab471de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "429bfeed_72f701a3",
+        "filename": "mongo/options/aggregate.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-01-26T18:28:12Z",
+      "side": 1,
+      "message": "I don\u0027t think I understand what\u0027s going on in this file (or the similar changes to the other option interface files). Are we planning to keep both of these interfaces, or is this a temporary measure for while the rewrite is ongoing?\n\nI also had thought that we were switching out having name/value methods for a single method that takes a pointer to a *Document. Is that still coming?",
+      "revId": "9d375b7ebf32bc49cc0794c990ac5da28ab471de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e0b03a4c_d9f6d4a6",
+        "filename": "mongo/options/internals.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-01-26T18:28:12Z",
+      "side": 1,
+      "message": "Will we still need this file, or are we planning on just deleting it?",
+      "revId": "9d375b7ebf32bc49cc0794c990ac5da28ab471de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a347b746_8891def5",
+        "filename": "mongo/options/options.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-01-26T18:28:12Z",
+      "side": 1,
+      "message": "What\u0027s the purpose of this block?",
+      "revId": "9d375b7ebf32bc49cc0794c990ac5da28ab471de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c768ce4d_5d15a9ed",
+        "filename": "mongo/private/auth/mongodbcr.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-01-26T18:28:12Z",
+      "side": 1,
+      "message": "From seeing how many places we\u0027re manually passing in the size of a document, I\u0027m wondering if it would be a good idea to make a `NewDocumentFromElements()` constructor, which could just call `len()` on the variadic arguments and pass it to `NewDocument`.",
+      "range": {
+        "startLine": 73,
+        "startChar": 7,
+        "endLine": 73,
+        "endChar": 21
+      },
+      "revId": "9d375b7ebf32bc49cc0794c990ac5da28ab471de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
