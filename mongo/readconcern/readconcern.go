@@ -53,6 +53,11 @@ func New(options ...Option) *ReadConcern {
 
 // MarshalBSONElement implements the bson.ElementMarshaler interface.
 func (rc *ReadConcern) MarshalBSONElement() (*bson.Element, error) {
-	elem := bson.C.String("readConcern", rc.level)
-	return elem, nil
+	doc := bson.NewDocument()
+
+	if len(rc.level) > 0 {
+		doc.Append(bson.C.String("level", rc.level))
+	}
+
+	return bson.C.SubDocument("readConcern", doc), nil
 }

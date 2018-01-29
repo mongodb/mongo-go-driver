@@ -1,0 +1,33 @@
+{
+  "tests": [
+    {
+      "description": "Default",
+      "valid": true,
+      "readConcern": {},
+      "readConcernDocument": {},
+      "isServerDefault": true
+    },
+    {
+      "description": "Majority",
+      "valid": true,
+      "readConcern": {
+        "level": "majority"
+      },
+      "readConcernDocument": {
+        "level": "majority"
+      },
+      "isServerDefault": false
+    },
+    {
+      "description": "Local",
+      "valid": true,
+      "readConcern": {
+        "level": "local"
+      },
+      "readConcernDocument": {
+        "level": "local"
+      },
+      "isServerDefault": false
+    }
+  ]
+}

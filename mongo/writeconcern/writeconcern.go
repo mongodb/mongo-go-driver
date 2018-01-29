@@ -13,6 +13,15 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
+// ErrInconsistent indicates that an inconsistent write concern was specified.
+var ErrInconsistent = errors.New("a write concern cannot have both w=0 and j=true")
+
+// ErrNegativeW indicates that a negative integer `w` field was specified.
+var ErrNegativeW = errors.New("write concern `w` field cannot be a negative number")
+
+// ErrNegativeWTimeout indicates that a negative WTimeout was specified.
+var ErrNegativeWTimeout = errors.New("write concern `wtimeout` field cannot be negative")
+
 // WriteConcern describes the level of acknowledgement requested from MongoDB for write operations
 // to a standalone mongod or to replica sets or to sharded clusters.
 type WriteConcern struct {
@@ -74,10 +83,10 @@ func WTimeout(d time.Duration) Option {
 	}
 }
 
-// MarshalBSONElement implements the bson.ElementMarshaler interface.
+// MarshalBSONElement marshals the write concern into a *bson.Element.
 func (wc *WriteConcern) MarshalBSONElement() (*bson.Element, error) {
 	if !wc.IsValid() {
-		return nil, errors.New("a write concern cannot have both w=0 and j=true")
+		return nil, ErrInconsistent
 	}
 
 	var elems []*bson.Element
@@ -85,6 +94,10 @@ func (wc *WriteConcern) MarshalBSONElement() (*bson.Element, error) {
 	if wc.w != nil {
 		switch t := wc.w.(type) {
 		case int:
+			if t < 0 {
+				return nil, ErrNegativeW
+			}
+
 			elems = append(elems, bson.C.Int32("w", int32(t)))
 		case string:
 			elems = append(elems, bson.C.String("w", t))
@@ -93,6 +106,10 @@ func (wc *WriteConcern) MarshalBSONElement() (*bson.Element, error) {
 
 	if wc.j {
 		elems = append(elems, bson.C.Boolean("j", wc.j))
+	}
+
+	if wc.wTimeout < 0 {
+		return nil, ErrNegativeWTimeout
 	}
 
 	if wc.wTimeout != 0 {

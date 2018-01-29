@@ -9,6 +9,7 @@ package testhelpers
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"path"
 	"strings"
 	"time"
@@ -66,6 +67,9 @@ func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map
 			require.Equal(t, value, float64(cs.ConnectTimeout/time.Millisecond))
 		case "heartbeatfrequencyms":
 			require.Equal(t, value, float64(cs.HeartbeatInterval/time.Millisecond))
+		case "journal":
+			require.True(t, cs.JSet)
+			require.Equal(t, value, cs.J)
 		case "maxidletimems":
 			require.Equal(t, value, cs.MaxConnIdleTime)
 		case "maxconnlifetimems":
@@ -88,6 +92,14 @@ func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map
 			require.Equal(t, value, cs.SSL)
 		case "sockettimeoutms":
 			require.Equal(t, value, float64(cs.SocketTimeout/time.Millisecond))
+		case "w":
+			if cs.WNumberSet {
+				valueInt := GetIntFromInterface(value)
+				require.NotNil(t, valueInt)
+				require.Equal(t, *valueInt, int64(cs.WNumber))
+			} else {
+				require.Equal(t, value, cs.WString)
+			}
 		case "wtimeoutms":
 			require.Equal(t, value, float64(cs.WTimeout/time.Millisecond))
 		default:
@@ -107,4 +119,38 @@ func mapInterfaceToString(m map[string]interface{}) map[string]string {
 	}
 
 	return out
+}
+
+// GetIntFromInterface attempts to convert an empty interface value to an integer.
+//
+// Returns nil if it is not possible.
+func GetIntFromInterface(i interface{}) *int64 {
+	var out int64
+
+	switch v := i.(type) {
+	case int:
+		out = int64(v)
+	case int32:
+		out = int64(v)
+	case int64:
+		out = v
+	case float32:
+		f := float64(v)
+		if math.Floor(f) != f || f > float64(math.MaxInt64) {
+			break
+		}
+
+		out = int64(f)
+
+	case float64:
+		if math.Floor(v) != v || v > float64(math.MaxInt64) {
+			break
+		}
+
+		out = int64(v)
+	default:
+		return nil
+	}
+
+	return &out
 }

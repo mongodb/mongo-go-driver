@@ -53,9 +53,58 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 		connString:     cs,
 		localThreshold: defaultLocalThreshold,
 		readPreference: readpref.Primary(),
+		readConcern:    readConcernFromConnString(&cs),
+		writeConcern:   writeConcernFromConnString(&cs),
 	}
 
 	return client, nil
+}
+
+func readConcernFromConnString(cs *connstring.ConnString) *readconcern.ReadConcern {
+	if len(cs.ReadConcernLevel) == 0 {
+		return nil
+	}
+
+	rc := &readconcern.ReadConcern{}
+	readconcern.Level(cs.ReadConcernLevel)(rc)
+
+	return rc
+}
+
+func writeConcernFromConnString(cs *connstring.ConnString) *writeconcern.WriteConcern {
+	var wc *writeconcern.WriteConcern
+
+	if len(cs.WString) > 0 {
+		if wc == nil {
+			wc = writeconcern.New()
+		}
+
+		writeconcern.WTagSet(cs.WString)(wc)
+	} else if cs.WNumberSet {
+		if wc == nil {
+			wc = writeconcern.New()
+		}
+
+		writeconcern.W(cs.WNumber)(wc)
+	}
+
+	if cs.JSet {
+		if wc == nil {
+			wc = writeconcern.New()
+		}
+
+		writeconcern.J(cs.J)(wc)
+	}
+
+	if cs.WTimeoutSet {
+		if wc == nil {
+			wc = writeconcern.New()
+		}
+
+		writeconcern.WTimeout(cs.WTimeout)(wc)
+	}
+
+	return wc
 }
 
 // Database returns a handle for a given database.
