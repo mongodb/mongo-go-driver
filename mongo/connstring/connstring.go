@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/mongo/internal"
+	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
 )
 
 // Parse parses the provided uri and returns a URI object.
@@ -41,6 +42,8 @@ type ConnString struct {
 	Database                string
 	HeartbeatInterval       time.Duration
 	Hosts                   []string
+	J                       bool
+	JSet                    bool
 	LocalThreshold          time.Duration
 	MaxConnIdleTime         time.Duration
 	MaxConnLifeTime         time.Duration
@@ -50,6 +53,7 @@ type ConnString struct {
 	MaxIdleConnsPerHostSet  bool
 	Password                string
 	PasswordSet             bool
+	ReadConcernLevel        string
 	ReadPreference          string
 	ReadPreferenceTagSets   []map[string]string
 	ReplicaSet              string
@@ -59,9 +63,13 @@ type ConnString struct {
 	SSLInsecure             bool
 	SSLCaFile               string
 	SSLCaFileSet            bool
+	WString                 string
+	WNumber                 int
+	WNumberSet              bool
 	Username                string
 
-	WTimeout time.Duration
+	WTimeout    time.Duration
+	WTimeoutSet bool
 
 	Options        map[string][]string
 	UnknownOptions map[string][]string
@@ -83,8 +91,6 @@ const (
 
 type parser struct {
 	ConnString
-
-	haveWTimeoutMS bool
 }
 
 func (p *parser) parse(original string) error {
@@ -224,6 +230,11 @@ func (p *parser) parse(original string) error {
 		}
 	}
 
+	// Check for invalid write concern (i.e. w=0 and j=true)
+	if p.WNumberSet && p.WNumber == 0 && p.JSet && p.J {
+		return writeconcern.ErrInconsistent
+	}
+
 	return nil
 }
 
@@ -340,6 +351,17 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.HeartbeatInterval = time.Duration(n) * time.Millisecond
+	case "journal":
+		switch value {
+		case "true":
+			p.J = true
+		case "false":
+			p.J = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+
+		p.JSet = true
 	case "localthresholdms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
@@ -381,6 +403,8 @@ func (p *parser) addOption(pair string) error {
 		p.MaxConnsPerHostSet = true
 		p.MaxIdleConnsPerHost = uint16(n)
 		p.MaxIdleConnsPerHostSet = true
+	case "readconcernlevel":
+		p.ReadConcernLevel = value
 	case "readpreference":
 		p.ReadPreference = value
 	case "readpreferencetags":
@@ -430,15 +454,28 @@ func (p *parser) addOption(pair string) error {
 		p.SSL = true
 		p.SSLCaFile = value
 		p.SSLCaFileSet = true
+	case "w":
+		if w, err := strconv.Atoi(value); err == nil {
+			if w < 0 {
+				return fmt.Errorf("invalid value for %s: %s", key, value)
+			}
+
+			p.WNumber = w
+			p.WNumberSet = true
+			break
+		}
+
+		p.WString = value
+
 	case "wtimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.WTimeout = time.Duration(n) * time.Millisecond
-		p.haveWTimeoutMS = true
+		p.WTimeoutSet = true
 	case "wtimeout":
-		if p.haveWTimeoutMS {
+		if p.WTimeoutSet {
 			// use wtimeoutMS if it exists
 			break
 		}
