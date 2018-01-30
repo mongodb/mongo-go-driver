@@ -51,6 +51,6 @@ func TestSemaphore_Release(t *testing.T) {
 		wg.Done()
 	}()
 
-	s.Release()
+	require.NoError(t, s.Release())
 	wg.Wait()
 }

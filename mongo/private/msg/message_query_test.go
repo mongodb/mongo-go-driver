@@ -17,7 +17,7 @@ import (
 func TestWrapWithMeta(t *testing.T) {
 	req := NewCommand(10, "admin", true, bson.NewDocument(bson.C.Int32("a", 1))).(*Query)
 
-	AddMeta(req, map[string]*bson.Document{
+	err := AddMeta(req, map[string]*bson.Document{
 		"$readPreference": bson.NewDocument(
 			bson.C.String("mode", "secondary")),
 	})
