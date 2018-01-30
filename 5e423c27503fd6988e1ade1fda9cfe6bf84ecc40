@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3e44f690_69e88f5d",
+        "filename": "mongo/model/tag.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-01-30T19:41:53Z",
+      "side": 0,
+      "message": "Rather than panicking here or generating an error at runtime for an invalid number of parameters, I think it\u0027s better to just manually construct the TagSet (which can be done with a slice literal).",
+      "revId": "5e423c27503fd6988e1ade1fda9cfe6bf84ecc40",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
