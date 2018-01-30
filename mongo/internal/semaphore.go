@@ -6,7 +6,10 @@
 
 package internal
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // NewSemaphore creates a new semaphore.
 func NewSemaphore(slots uint64) *Semaphore {
@@ -43,10 +46,12 @@ func (s *Semaphore) Wait(ctx context.Context) error {
 }
 
 // Release releases a resource back into the pool.
-func (s *Semaphore) Release() {
+func (s *Semaphore) Release() error {
 	select {
 	case s.permits <- struct{}{}:
 	default:
-		panic("internal.Semaphore.Release: attempt to release more resources than are available")
+		return errors.New("internal.Semaphore.Release: attempt to release more resources than are available")
 	}
+
+	return nil
 }

@@ -36,7 +36,8 @@ func CappedProvider(max uint64, provider Provider) Provider {
 
 		c, err := provider(ctx)
 		if err != nil {
-			permits.Release()
+			// Since we already have an error, we don't return any error from releasing the semaphore.
+			_ = permits.Release()
 			return nil, err
 		}
 		return &cappedProviderConn{c, permits}, nil
@@ -49,6 +50,9 @@ type cappedProviderConn struct {
 }
 
 func (c *cappedProviderConn) Close() error {
-	c.permits.Release()
+	if err := c.permits.Release(); err != nil {
+		return err
+	}
+
 	return c.Connection.Close()
 }

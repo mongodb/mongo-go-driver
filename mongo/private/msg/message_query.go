@@ -42,7 +42,7 @@ const (
 )
 
 // AddMeta wraps the query with meta data.
-func AddMeta(r Request, meta map[string]*bson.Document) {
+func AddMeta(r Request, meta map[string]*bson.Document) error {
 	if len(meta) > 0 {
 		switch typedR := r.(type) {
 		case *Query:
@@ -64,7 +64,9 @@ func AddMeta(r Request, meta map[string]*bson.Document) {
 
 			typedR.Query = doc
 		default:
-			panic(fmt.Sprintf("cannot wrap request(%T) with meta", r))
+			return fmt.Errorf("cannot wrap request(%T) with meta", r)
 		}
 	}
+
+	return nil
 }

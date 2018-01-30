@@ -21,7 +21,7 @@ var readPrefTestPrimary = &model.Server{
 	LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 	Kind:              model.RSPrimary,
-	Tags:              model.NewTagSet("a", "1"),
+	Tags:              model.TagSet{model.Tag{Name: "a", Value: "1"}},
 	Version:           model.Version{Parts: []uint8{3, 4, 0}},
 }
 var readPrefTestSecondary1 = &model.Server{
@@ -30,7 +30,7 @@ var readPrefTestSecondary1 = &model.Server{
 	LastWriteTime:     time.Date(2017, 2, 11, 13, 58, 0, 0, time.UTC),
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 	Kind:              model.RSSecondary,
-	Tags:              model.NewTagSet("a", "1"),
+	Tags:              model.TagSet{model.Tag{Name: "a", Value: "1"}},
 	Version:           model.Version{Parts: []uint8{3, 4, 0}},
 }
 var readPrefTestSecondary2 = &model.Server{
@@ -39,7 +39,7 @@ var readPrefTestSecondary2 = &model.Server{
 	LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 	Kind:              model.RSSecondary,
-	Tags:              model.NewTagSet("a", "2"),
+	Tags:              model.TagSet{model.Tag{Name: "a", Value: "2"}},
 	Version:           model.Version{Parts: []uint8{3, 4, 0}},
 }
 var readPrefTestCluster = &model.Cluster{

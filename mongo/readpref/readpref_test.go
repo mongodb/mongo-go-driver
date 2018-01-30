@@ -46,7 +46,7 @@ func TestPrimaryPreferred_with_options(t *testing.T) {
 	ms, set := subject.MaxStaleness()
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
-	require.Equal([]model.TagSet{model.NewTagSet("a", "1")}, subject.TagSets())
+	require.Equal([]model.TagSet{{model.Tag{Name: "a", Value: "1"}}}, subject.TagSets())
 }
 
 func TestSecondaryPreferred(t *testing.T) {
@@ -70,7 +70,7 @@ func TestSecondaryPreferred_with_options(t *testing.T) {
 	ms, set := subject.MaxStaleness()
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
-	require.Equal([]model.TagSet{model.NewTagSet("a", "1")}, subject.TagSets())
+	require.Equal([]model.TagSet{{model.Tag{Name: "a", Value: "1"}}}, subject.TagSets())
 }
 
 func TestSecondary(t *testing.T) {
@@ -94,7 +94,7 @@ func TestSecondary_with_options(t *testing.T) {
 	ms, set := subject.MaxStaleness()
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
-	require.Equal([]model.TagSet{model.NewTagSet("a", "1")}, subject.TagSets())
+	require.Equal([]model.TagSet{{model.Tag{Name: "a", Value: "1"}}}, subject.TagSets())
 }
 
 func TestNearest(t *testing.T) {
@@ -118,5 +118,5 @@ func TestNearest_with_options(t *testing.T) {
 	ms, set := subject.MaxStaleness()
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
-	require.Equal([]model.TagSet{model.NewTagSet("a", "1")}, subject.TagSets())
+	require.Equal([]model.TagSet{{model.Tag{Name: "a", Value: "1"}}}, subject.TagSets())
 }
