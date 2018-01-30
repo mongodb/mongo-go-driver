@@ -27,11 +27,12 @@ func TestWrapWithMeta(t *testing.T) {
 	}
 	require.Equal(t, expected, actual)
 
-	AddMeta(req, map[string]interface{}{
+	err = AddMeta(req, map[string]interface{}{
 		"$readPreference": bson.M{
 			"mode": "secondary",
 		},
 	})
+	require.NoError(t, err)
 
 	buf, err = bson.Marshal(req.Query)
 	require.NoError(t, err)

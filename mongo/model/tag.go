@@ -12,19 +12,6 @@ type Tag struct {
 	Value string
 }
 
-// NewTagSet creates a new tag set by taking the entries in pairs.
-func NewTagSet(tags ...string) TagSet {
-	if len(tags)%2 != 0 {
-		panic("desc.NewTagSet: argument count is odd")
-	}
-
-	var set TagSet
-	for i := 0; i < len(tags); i += 2 {
-		set = append(set, Tag{Name: tags[i], Value: tags[i+1]})
-	}
-	return set
-}
-
 // NewTagSetFromMap creates a new tag set from a map.
 func NewTagSetFromMap(m map[string]string) TagSet {
 	var set TagSet

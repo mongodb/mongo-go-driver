@@ -7,10 +7,14 @@
 package readpref
 
 import (
+	"errors"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/mongo/model"
 )
+
+// ErrInvalidTagSet indicates that an invalid set of tags was specified.
+var ErrInvalidTagSet = errors.New("an even number of tags must be specified")
 
 // Option configures a read preference
 type Option func(*ReadPref) error
@@ -29,7 +33,19 @@ func WithMaxStaleness(ms time.Duration) Option {
 // a server. The last call to WithTags or WithTagSets
 // overrides all previous calls to either method.
 func WithTags(tags ...string) Option {
-	return WithTagSets(model.NewTagSet(tags...))
+	return func(rp *ReadPref) error {
+		if len(tags)%2 != 0 {
+			return ErrInvalidTagSet
+		}
+
+		tagset := make(model.TagSet, 0)
+
+		for i := 0; i < len(tags)/2; i++ {
+			tagset = append(tagset, model.Tag{Name: tags[i], Value: tags[i+1]})
+		}
+
+		return WithTagSets(tagset)(rp)
+	}
 }
 
 // WithTagSets sets the tag sets used to match

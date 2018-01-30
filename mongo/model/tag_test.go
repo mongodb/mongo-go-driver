@@ -16,7 +16,7 @@ import (
 func TestTagSets_NewTagSet(t *testing.T) {
 	t.Parallel()
 
-	ts := NewTagSet("a", "1")
+	ts := TagSet{Tag{Name: "a", Value: "1"}}
 
 	require.True(t, ts.Contains("a", "1"))
 	require.False(t, ts.Contains("1", "a"))
@@ -58,19 +58,22 @@ func TestTagSets_NewTagSetsFromMaps(t *testing.T) {
 func TestTagSets_ContainsAll(t *testing.T) {
 	t.Parallel()
 
-	ts := NewTagSet("a", "1", "b", "2")
+	ts := TagSet{
+		Tag{Name: "a", Value: "1"},
+		Tag{Name: "b", Value: "2"},
+	}
 
-	test := NewTagSet("a", "1")
+	test := TagSet{Tag{Name: "a", Value: "1"}}
 	require.True(t, ts.ContainsAll(test))
-	test = NewTagSet("a", "1", "b", "2")
+	test = TagSet{Tag{Name: "a", Value: "1"}, Tag{Name: "b", Value: "2"}}
 	require.True(t, ts.ContainsAll(test))
-	test = NewTagSet("a", "1", "b", "2")
+	test = TagSet{Tag{Name: "a", Value: "1"}, Tag{Name: "b", Value: "2"}}
 	require.True(t, ts.ContainsAll(test))
 
-	test = NewTagSet("a", "2", "b", "1")
+	test = TagSet{Tag{Name: "a", Value: "2"}, Tag{Name: "b", Value: "1"}}
 	require.False(t, ts.ContainsAll(test))
-	test = NewTagSet("a", "1", "b", "1")
+	test = TagSet{Tag{Name: "a", Value: "1"}, Tag{Name: "b", Value: "1"}}
 	require.False(t, ts.ContainsAll(test))
-	test = NewTagSet("a", "2", "b", "2")
+	test = TagSet{Tag{Name: "a", Value: "2"}, Tag{Name: "b", Value: "2"}}
 	require.False(t, ts.ContainsAll(test))
 }

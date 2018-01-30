@@ -70,9 +70,12 @@ func runMayUseSecondary(ctx context.Context, s *SelectedServer, db string, comma
 		}()
 
 		if rpMeta := readPrefMeta(s.ReadPref, c.Model().Kind); rpMeta != nil {
-			msg.AddMeta(request, map[string]interface{}{
+			err := msg.AddMeta(request, map[string]interface{}{
 				"$readPreference": rpMeta,
 			})
+			if err != nil {
+				errChan <- err
+			}
 		}
 
 		errChan <- conn.ExecuteCommand(context.Background(), c, request, result)

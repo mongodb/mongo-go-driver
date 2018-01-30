@@ -8,12 +8,12 @@ package conn
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-
-	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // ExecuteCommand executes the message on the channel.
@@ -24,7 +24,7 @@ func ExecuteCommand(ctx context.Context, c Connection, request msg.Request, out 
 // ExecuteCommands executes the messages on the connection.
 func ExecuteCommands(ctx context.Context, c Connection, requests []msg.Request, out []interface{}) error {
 	if len(requests) != len(out) {
-		panic("invalid arguments. 'out' length must equal 'msgs' length")
+		return errors.New("invalid arguments. 'out' length must equal 'msgs' length")
 	}
 
 	err := c.Write(ctx, requests...)
