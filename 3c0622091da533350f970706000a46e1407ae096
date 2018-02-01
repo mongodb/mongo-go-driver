@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "6dfd867b_7e43b984",
+        "filename": "mongo/database.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-01T19:06:52Z",
+      "side": 1,
+      "message": "I\u0027m going to remove all the result parameters in a future patch.",
+      "parentUuid": "2d7e87fc_70f9d514",
+      "range": {
+        "startLine": 69,
+        "startChar": 73,
+        "endLine": 69,
+        "endChar": 91
+      },
+      "revId": "3c0622091da533350f970706000a46e1407ae096",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ed1abc80_f5ec5a60",
         "filename": "mongo/private/ops/cursor.go",
         "patchSetId": 6
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "ae740026_2b8bb5b6",
+        "filename": "mongo/private/ops/cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-01T19:06:52Z",
+      "side": 1,
+      "message": "Yes, I kept it mostly for compatibility.",
+      "parentUuid": "ed1abc80_f5ec5a60",
+      "range": {
+        "startLine": 128,
+        "startChar": 47,
+        "endLine": 128,
+        "endChar": 65
+      },
+      "revId": "3c0622091da533350f970706000a46e1407ae096",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "414c88bd_525afaf4",
         "filename": "mongo/private/ops/results.go",
         "patchSetId": 6
@@ -59,6 +107,24 @@
       "writtenOn": "2018-02-01T17:23:14Z",
       "side": 1,
       "message": "Presumably we can remove this file as well",
+      "revId": "3c0622091da533350f970706000a46e1407ae096",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7d43c689_be1a40bc",
+        "filename": "mongo/private/ops/results.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-01T19:06:52Z",
+      "side": 1,
+      "message": "Yup.",
+      "parentUuid": "414c88bd_525afaf4",
       "revId": "3c0622091da533350f970706000a46e1407ae096",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
