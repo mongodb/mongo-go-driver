@@ -22,6 +22,30 @@
       "revId": "9b4dcab75c771c034140a174d66bc13a860bcfd0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1f9b3bc2_1bc77dd0",
+        "filename": "mongo/private/msg/message_query.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-01T16:57:49Z",
+      "side": 1,
+      "message": "I\u0027m fine with deferring merging this patch until the BSON library lands and then fixing the merge conflict once we\u0027re ready to merge this.",
+      "parentUuid": "d4a98584_f6608b12",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 64,
+        "endChar": 1
+      },
+      "revId": "9b4dcab75c771c034140a174d66bc13a860bcfd0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
