@@ -167,6 +167,30 @@
     },
     {
       "key": {
+        "uuid": "f456d954_6bbb4f5d",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-01T17:23:14Z",
+      "side": 1,
+      "message": "Ah, right. My mistake.",
+      "parentUuid": "dbb08568_c9880316",
+      "range": {
+        "startLine": 64,
+        "startChar": 18,
+        "endLine": 64,
+        "endChar": 27
+      },
+      "revId": "9d375b7ebf32bc49cc0794c990ac5da28ab471de",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "429bfeed_72f701a3",
         "filename": "mongo/options/aggregate.go",
         "patchSetId": 4
