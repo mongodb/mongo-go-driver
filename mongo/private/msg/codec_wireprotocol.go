@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/skriptble/wilson/bson"
-	"github.com/skriptble/wilson/bson/builder"
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/bson/builder"
 )
 
 // NewWireProtocolCodec creates a MessageReadWriter for the binary message format.

@@ -14,11 +14,11 @@ import (
 
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/conntest"
 	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"
 	. "github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/skriptble/wilson/bson"
 )
 
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {

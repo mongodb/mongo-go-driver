@@ -10,10 +10,10 @@ import (
 	"bytes"
 	"context"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
-	"github.com/skriptble/wilson/bson"
 )
 
 // Distinct returns the distinct values for a specified field across a single collection.

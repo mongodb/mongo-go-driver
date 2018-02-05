@@ -6,7 +6,7 @@
 
 package readconcern
 
-import "github.com/skriptble/wilson/bson"
+import "github.com/10gen/mongo-go-driver/bson"
 
 // ReadConcern for replica sets and replica set shards determines which data to return from a query.
 type ReadConcern struct {

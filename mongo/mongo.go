@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/skriptble/wilson/bson"
-	"github.com/skriptble/wilson/bson/objectid"
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/bson/objectid"
 )
 
 func transformDocument(document interface{}) (*bson.Document, error) {

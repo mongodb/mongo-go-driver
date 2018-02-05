@@ -9,8 +9,8 @@ package ops
 import (
 	"context"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/skriptble/wilson/bson"
 )
 
 // ListIndexesOptions are the options for listing indexes.

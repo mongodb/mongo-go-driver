@@ -12,9 +12,9 @@ import (
 
 	"github.com/10gen/mongo-go-driver/mongo/model"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/skriptble/wilson/bson"
 )
 
 // SaslClient is the client piece of a sasl conversation.

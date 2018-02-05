@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/bson/objectid"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	"github.com/10gen/mongo-go-driver/mongo/options"
-	"github.com/skriptble/wilson/bson"
-	"github.com/skriptble/wilson/bson/objectid"
 	"github.com/stretchr/testify/require"
 )
 

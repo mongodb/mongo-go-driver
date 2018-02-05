@@ -3,7 +3,7 @@ package options
 import (
 	"time"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // Optioner is the interface implemented by types that can be used as options

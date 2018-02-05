@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal/testutil"
 	. "github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 

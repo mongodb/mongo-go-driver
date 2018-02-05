@@ -9,7 +9,7 @@ package ops
 import (
 	"context"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // RunCommand runs a command on the database.

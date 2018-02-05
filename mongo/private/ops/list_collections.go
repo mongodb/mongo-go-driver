@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // ListCollectionsOptions are the options for listing collections.

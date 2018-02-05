@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
-	"github.com/skriptble/wilson/bson"
 )
 
 // FindOneAndReplace modifies and returns a single document.

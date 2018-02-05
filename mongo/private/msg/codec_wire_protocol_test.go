@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 
 	"encoding/json"
 
