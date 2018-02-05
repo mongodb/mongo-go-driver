@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "824a00c0_5931a97a",
+        "filename": "bson/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-05T20:47:01Z",
+      "side": 1,
+      "message": "I think there were errors in here at some point. Will remove it.",
+      "parentUuid": "b22e35a8_a092d024",
+      "revId": "db9932e85d30796624e68e5d46486eda2d003259",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dad725f4_a994832b",
         "filename": "bson/extjson/builder_test.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2018-02-05T20:34:25Z",
       "side": 1,
       "message": "It looks like there a few places like this where we have random empty lines in our std imports (which breaks the sorting). I\u0027ve made note of all of them for fix in a later patch (no need to fix in this patch)",
+      "revId": "db9932e85d30796624e68e5d46486eda2d003259",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a356800d_fd498770",
+        "filename": "bson/extjson/builder_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-05T20:47:01Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "dad725f4_a994832b",
       "revId": "db9932e85d30796624e68e5d46486eda2d003259",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -64,6 +100,24 @@
       "writtenOn": "2018-02-05T20:34:25Z",
       "side": 1,
       "message": "I assume this file can be deleted, unless we want to move the stuff from bson.go about types into here.",
+      "revId": "db9932e85d30796624e68e5d46486eda2d003259",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f098f3ae_dc265f19",
+        "filename": "bson/types.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-05T20:47:01Z",
+      "side": 1,
+      "message": "I\u0027ll move the types into here.",
+      "parentUuid": "f2279bae_f0c38f91",
       "revId": "db9932e85d30796624e68e5d46486eda2d003259",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
