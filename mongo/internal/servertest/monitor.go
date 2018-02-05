@@ -12,13 +12,13 @@ import (
 	"net"
 	"sync"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
-	"github.com/skriptble/wilson/bson"
 )
 
 // NewFakeMonitor creates a fake monitor.

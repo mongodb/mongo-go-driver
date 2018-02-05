@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 type singleResultCursor struct {

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/mongo-go-driver/mongo/internal/conntest"
 	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"

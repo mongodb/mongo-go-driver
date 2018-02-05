@@ -17,12 +17,12 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
 	"github.com/stretchr/testify/require"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/skriptble/wilson/bson"
 )
 
 func TestStop(t *testing.T) {

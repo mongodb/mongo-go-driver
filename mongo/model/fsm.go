@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/skriptble/wilson/bson/objectid"
+	"github.com/10gen/mongo-go-driver/bson/objectid"
 )
 
 var supportedWireVersions = NewRange(2, 6)
