@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "45d9877c_0a57866f",
+        "filename": "mongo/private/ops/count.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-05T18:52:27Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4fd22601_e851c345",
+      "range": {
+        "startLine": 21,
+        "startChar": 55,
+        "endLine": 21,
+        "endChar": 58
+      },
+      "revId": "c39c1af470ee7ee5a4a48a1b45c6ae2329836964",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b4031382_4164c947",
         "filename": "mongo/private/ops/cursor.go",
         "patchSetId": 12
