@@ -8,7 +8,6 @@ package auth_test
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -186,7 +185,6 @@ func TestScramSHA1Authenticator_No_salt(t *testing.T) {
 
 	err := authenticator.Auth(context.Background(), conn)
 	require.Error(t, err)
-	fmt.Println(err)
 
 	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid salt"
 	require.True(t, strings.HasPrefix(err.Error(), errPrefix))

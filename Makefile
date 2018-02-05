@@ -85,7 +85,7 @@ update-notices:
 
 .PHONY: vet
 vet:
-	go tool vet -composites=false -structtags=false -unusedstringmethods="Error" $(PKGS)
+	go tool vet -cgocall=false -composites=false -structtags=false -unusedstringmethods="Error" $(PKGS)
 
 
 # Evergreen specific targets
