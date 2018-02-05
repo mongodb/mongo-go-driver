@@ -9,6 +9,30 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
+			"checksumSHA1": "NBTjO+I9dQxJ3Hx61utfenJ4ctk=",
+			"path": "github.com/google/go-cmp/cmp",
+			"revision": "3af367b6b30c263d47e8895973edcca9a49cf029",
+			"revisionTime": "2018-02-02T21:19:42Z"
+		},
+		{
+			"checksumSHA1": "oLBV7th4sxzxzmf1b91NVVbdOfI=",
+			"path": "github.com/google/go-cmp/cmp/internal/diff",
+			"revision": "3af367b6b30c263d47e8895973edcca9a49cf029",
+			"revisionTime": "2018-02-02T21:19:42Z"
+		},
+		{
+			"checksumSHA1": "kYtvRhMjM0X4bvEjR3pqEHLw1qo=",
+			"path": "github.com/google/go-cmp/cmp/internal/function",
+			"revision": "3af367b6b30c263d47e8895973edcca9a49cf029",
+			"revisionTime": "2018-02-02T21:19:42Z"
+		},
+		{
+			"checksumSHA1": "u8N4n7/rhyUgsVYUiHG2IvCo3kA=",
+			"path": "github.com/google/go-cmp/cmp/internal/value",
+			"revision": "3af367b6b30c263d47e8895973edcca9a49cf029",
+			"revisionTime": "2018-02-02T21:19:42Z"
+		},
+		{
 			"checksumSHA1": "ZbvybRLthm+bve1duASQ5ghFl6Y=",
 			"path": "github.com/kr/pretty",
 			"revision": "cfb55aafdaf3ec08f0db22699ab822c50091b1c4",
