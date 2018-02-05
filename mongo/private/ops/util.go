@@ -7,9 +7,9 @@
 package ops
 
 import (
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
-	"github.com/skriptble/wilson/bson"
 )
 
 func slaveOk(selectedServer *SelectedServer) bool {

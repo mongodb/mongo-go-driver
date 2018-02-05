@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	. "github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/skriptble/wilson/bson"
 	"github.com/stretchr/testify/require"
 )
 

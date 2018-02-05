@@ -9,10 +9,10 @@ package ops
 import (
 	"context"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/skriptble/wilson/bson"
 )
 
 // Run executes an arbitrary command against the given database.

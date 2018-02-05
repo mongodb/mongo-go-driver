@@ -3,7 +3,7 @@ package msg
 import (
 	"bytes"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 func unmarshal(b []byte, v interface{}) error {

@@ -10,7 +10,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 // WriteConcern describes the level of acknowledgement requested from MongoDB for write operations

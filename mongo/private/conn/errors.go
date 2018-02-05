@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 var (

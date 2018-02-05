@@ -19,7 +19,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 
-	"github.com/skriptble/wilson/bson"
+	"github.com/10gen/mongo-go-driver/bson"
 )
 
 var globalClientConnectionID int32

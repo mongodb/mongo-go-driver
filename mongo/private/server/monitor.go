@@ -13,11 +13,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/skriptble/wilson/bson"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
