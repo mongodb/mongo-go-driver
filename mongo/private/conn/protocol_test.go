@@ -22,7 +22,6 @@ import (
 )
 
 func validateExecuteCommandError(t *testing.T, err error, errPrefix string, writeCount int) {
-	t.Helper()
 	if err == nil {
 		t.Fatalf("expected an err but did not get one")
 	}
