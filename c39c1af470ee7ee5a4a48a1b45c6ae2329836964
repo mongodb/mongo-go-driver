@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "8d39cffd_4620f42b",
+        "filename": "mongo/collection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 698,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-05T17:32:58Z",
+      "side": 1,
+      "message": "The main problem is that write concern is set so far away it can be difficult to determine if this operation will be acknowledged or not. Since we want the default to be an acknowledged write, we should return a signal that indicates that that default has not occurred.",
+      "parentUuid": "595f2675_c4c81272",
+      "range": {
+        "startLine": 698,
+        "startChar": 5,
+        "endLine": 698,
+        "endChar": 22
+      },
+      "revId": "c39c1af470ee7ee5a4a48a1b45c6ae2329836964",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "150a893b_907daaa8",
         "filename": "mongo/private/ops/count.go",
         "patchSetId": 12
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "4fd22601_e851c345",
+        "filename": "mongo/private/ops/count.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-05T17:32:58Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "150a893b_907daaa8",
+      "range": {
+        "startLine": 21,
+        "startChar": 55,
+        "endLine": 21,
+        "endChar": 58
+      },
+      "revId": "c39c1af470ee7ee5a4a48a1b45c6ae2329836964",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b4031382_4164c947",
         "filename": "mongo/private/ops/cursor.go",
         "patchSetId": 12
@@ -59,6 +107,30 @@
       "writtenOn": "2018-02-05T17:27:08Z",
       "side": 1,
       "message": "This can be named to just `currentBatch` now",
+      "range": {
+        "startLine": 122,
+        "startChar": 1,
+        "endLine": 122,
+        "endChar": 14
+      },
+      "revId": "c39c1af470ee7ee5a4a48a1b45c6ae2329836964",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c0d29abc_18d0c691",
+        "filename": "mongo/private/ops/cursor.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-05T17:32:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b4031382_4164c947",
       "range": {
         "startLine": 122,
         "startChar": 1,
