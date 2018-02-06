@@ -191,7 +191,7 @@ func TestExecuteCommand_QueryFailure_flag_with_document(t *testing.T) {
 
 	_, err := ExecuteCommand(context.Background(), conn, &msg.Query{})
 
-	validateExecuteCommandError(t, err, "command failure: [13 0 0 0 8 101 114 114 111 114 0 1 0]", 1)
+	validateExecuteCommandError(t, err, `command failure: bson.Reader{bson.Element{[boolean]"error": true}}`, 1)
 }
 
 func TestExecuteCommand_No_command_response(t *testing.T) {

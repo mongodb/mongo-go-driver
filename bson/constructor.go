@@ -1,6 +1,11 @@
 package bson
 
 import (
+	"errors"
+	"fmt"
+	"math"
+	"reflect"
+
 	"github.com/10gen/mongo-go-driver/bson/decimal"
 	"github.com/10gen/mongo-go-driver/bson/elements"
 	"github.com/10gen/mongo-go-driver/bson/objectid"
@@ -17,6 +22,139 @@ type Constructor struct{}
 
 // ArrayConstructor is used as a namespace for document element constructor functions.
 type ArrayConstructor struct{}
+
+// Interface will attempt to turn the provided key and value into an Element.
+// For common types, type casting is used, if the type is more complex, such as
+// a map or struct, reflection is used. If the value cannot be converted either
+// by typecasting or through reflection, a null Element is constructed with the
+// key. This method will never return a nil *Element. If an error turning the
+// value into an Element is desired, use the InterfaceErr method.
+func (Constructor) Interface(key string, value interface{}) *Element {
+	var elem *Element
+	switch t := value.(type) {
+	case bool:
+		elem = C.Boolean(key, t)
+	case int8:
+		elem = C.Int32(key, int32(t))
+	case int16:
+		elem = C.Int32(key, int32(t))
+	case int32:
+		elem = C.Int32(key, int32(t))
+	case int:
+		if t < math.MaxInt32 {
+			elem = C.Int32(key, int32(t))
+		}
+		elem = C.Int64(key, int64(t))
+	case int64:
+		if t < math.MaxInt32 {
+			elem = C.Int32(key, int32(t))
+		}
+		elem = C.Int64(key, int64(t))
+	case uint8:
+		elem = C.Int32(key, int32(t))
+	case uint16:
+		elem = C.Int32(key, int32(t))
+	case uint:
+		switch {
+		case t < math.MaxInt32:
+			elem = C.Int32(key, int32(t))
+		case t > math.MaxInt64:
+			elem = C.Null(key)
+		default:
+			elem = C.Int64(key, int64(t))
+		}
+	case uint32:
+		if t < math.MaxInt32 {
+			elem = C.Int32(key, int32(t))
+		}
+		elem = C.Int64(key, int64(t))
+	case uint64:
+		switch {
+		case t < math.MaxInt32:
+			elem = C.Int32(key, int32(t))
+		case t > math.MaxInt64:
+			elem = C.Null(key)
+		default:
+			elem = C.Int64(key, int64(t))
+		}
+	case float32:
+		elem = C.Double(key, float64(t))
+	case float64:
+		elem = C.Double(key, t)
+	case string:
+		elem = C.String(key, t)
+	case *Element:
+		elem = t
+	case *Document:
+		elem = C.SubDocument(key, t)
+	case Reader:
+		elem = C.SubDocumentFromReader(key, t)
+	case *Value:
+		elem = convertValueToElem(key, t)
+		if elem == nil {
+			elem = C.Null(key)
+		}
+	default:
+		var err error
+		enc := new(encoder)
+		val := reflect.ValueOf(value)
+		val = enc.underlyingVal(val)
+
+		elem, err = enc.elemFromValue(key, val, true)
+		if err != nil {
+			elem = C.Null(key)
+		}
+	}
+
+	return elem
+}
+
+// InterfaceErr does what Interface does, but returns an error when it cannot
+// properly convert a value into an *Element. See Interface for details.
+func (c Constructor) InterfaceErr(key string, value interface{}) (*Element, error) {
+	var elem *Element
+	var err error
+	switch t := value.(type) {
+	case bool, int8, int16, int32, int, int64, uint8, uint16,
+		uint32, float32, float64, string, *Element, *Document, Reader:
+		elem = c.Interface(key, value)
+	case uint:
+		switch {
+		case t < math.MaxInt32:
+			elem = C.Int32(key, int32(t))
+		case t > math.MaxInt64:
+			err = fmt.Errorf("BSON only has signed integer types and %d overflows an int64", t)
+		default:
+			elem = C.Int64(key, int64(t))
+		}
+	case uint64:
+		switch {
+		case t < math.MaxInt32:
+			elem = C.Int32(key, int32(t))
+		case t > math.MaxInt64:
+			err = fmt.Errorf("BSON only has signed integer types and %d overflows an int64", t)
+		default:
+			elem = C.Int64(key, int64(t))
+		}
+	case *Value:
+		elem = convertValueToElem(key, t)
+		if elem == nil {
+			err = errors.New("invalid *Value provided, cannot convert to *Element")
+		}
+	default:
+		enc := new(encoder)
+		val := reflect.ValueOf(value)
+		val = enc.underlyingVal(val)
+
+		elem, err = enc.elemFromValue(key, val, true)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return elem, nil
+}
 
 // Double creates a double element with the given key and value.
 func (Constructor) Double(key string, f float64) *Element {
