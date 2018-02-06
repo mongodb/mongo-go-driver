@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "84b8896b_b0e28ff7",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 462,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-06T21:03:30Z",
+      "side": 1,
+      "message": "Is it worth adding 8-bit (and 16, for that matter) for all of the types while we\u0027re at it, or should we defer that until later (if at all)?",
+      "range": {
+        "startLine": 462,
+        "startChar": 2,
+        "endLine": 462,
+        "endChar": 6
+      },
+      "revId": "f121855967cbde2eb5eda14f08df866133a8920c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
