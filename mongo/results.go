@@ -14,7 +14,8 @@ import (
 )
 
 // InsertOneResult is a result of an InsertOne operation.
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+//
+// InsertedID will be a Go type that corresponds to a BSON type.
 type InsertOneResult struct {
 	// The identifier that was inserted.
 	InsertedID interface{}
@@ -33,7 +34,8 @@ type DeleteResult struct {
 }
 
 // UpdateResult is a result of an update operation.
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+//
+// UpsertedID will be a Go type that corresponds to a BSON type.
 type UpdateResult struct {
 	// The number of documents that matched the filter.
 	MatchedCount int64

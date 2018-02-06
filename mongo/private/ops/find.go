@@ -16,8 +16,6 @@ import (
 )
 
 // Find executes a query.
-//
-// TODO GODRIVER-76: Document which types for interface{} are valid.
 func Find(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
 	filter *bson.Document, findOptions ...options.FindOptioner) (Cursor, error) {
 

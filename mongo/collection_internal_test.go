@@ -630,9 +630,11 @@ func TestCollection_Find_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
+	sort, err := Sort(bson.NewDocument(bson.C.Int32("x", 1)))
+	require.NoError(t, err)
 	cursor, err := coll.Find(context.Background(),
 		nil,
-		Sort(bson.NewDocument(bson.C.Int32("x", 1))),
+		sort,
 	)
 	require.Nil(t, err)
 

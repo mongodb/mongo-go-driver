@@ -202,9 +202,7 @@ func (opt OptAllowPartialResults) Option(d *bson.Document) {
 func (opt OptAllowPartialResults) findOption() {}
 
 // OptArrayFilters is for internal use.
-//
-// TODO(skriptble): This type should be []*bson.Document.
-type OptArrayFilters []interface{}
+type OptArrayFilters []*bson.Document
 
 // FindOneAndUpdateName is for internal use.
 func (opt OptArrayFilters) FindOneAndUpdateName() string {
@@ -230,11 +228,7 @@ func (opt OptArrayFilters) UpdateValue() interface{} {
 func (opt OptArrayFilters) Option(d *bson.Document) {
 	arr := bson.NewArray()
 	for _, af := range opt {
-		doc, ok := af.(*bson.Document)
-		if !ok {
-			continue
-		}
-		arr.Append(bson.AC.Document(doc))
+		arr.Append(bson.AC.Document(af))
 	}
 	d.Append(bson.C.Array("arrayFilters", arr))
 }
@@ -581,9 +575,7 @@ func (OptLimit) countOption() {}
 func (OptLimit) findOption()  {}
 
 // OptMax is for internal use.
-//
-// TODO(skriptble): Max should be *bson.Document.
-type OptMax struct{ Max interface{} }
+type OptMax struct{ Max *bson.Document }
 
 // FindName is for internal use.
 func (opt OptMax) FindName() string {
@@ -597,11 +589,7 @@ func (opt OptMax) FindValue() interface{} {
 
 // Option implements the Optioner interface.
 func (opt OptMax) Option(d *bson.Document) {
-	doc, ok := (opt).Max.(*bson.Document)
-	if !ok {
-		return
-	}
-	d.Append(bson.C.SubDocument("max", doc))
+	d.Append(bson.C.SubDocument("max", opt.Max))
 }
 
 func (OptMax) findOption() {}
@@ -733,9 +721,7 @@ func (OptMaxTime) findOneAndReplaceOption() {}
 func (OptMaxTime) findOneAndUpdateOption()  {}
 
 // OptMin is for internal use.
-//
-// TODO(skriptble): Min should be *bson.Document.
-type OptMin struct{ Min interface{} }
+type OptMin struct{ Min *bson.Document }
 
 // FindName is for internal use.
 func (opt OptMin) FindName() string {
@@ -749,11 +735,7 @@ func (opt OptMin) FindValue() interface{} {
 
 // Option implements the Optioner interface.
 func (opt OptMin) Option(d *bson.Document) {
-	doc, ok := (opt).Min.(*bson.Document)
-	if !ok {
-		return
-	}
-	d.Append(bson.C.SubDocument("min", doc))
+	d.Append(bson.C.SubDocument("min", opt.Min))
 }
 
 func (OptMin) findOption() {}
@@ -830,10 +812,8 @@ func (OptOrdered) insertManyOption() {}
 func (OptOrdered) insertOption()     {}
 
 // OptProjection is for internal use.
-//
-// TODO(skriptble): Projection should be *bson.Document.
 type OptProjection struct {
-	Projection interface{}
+	Projection *bson.Document
 	find       bool
 }
 
@@ -883,11 +863,7 @@ func (opt OptProjection) Option(d *bson.Document) {
 	if opt.find {
 		key = "projection"
 	}
-	doc, ok := (opt).Projection.(*bson.Document)
-	if !ok {
-		return
-	}
-	d.Append(bson.C.SubDocument(key, doc))
+	d.Append(bson.C.SubDocument(key, opt.Projection))
 }
 
 func (OptProjection) findOption()              {}
@@ -1018,9 +994,7 @@ func (opt OptSnapshot) Option(d *bson.Document) {
 func (OptSnapshot) findOption() {}
 
 // OptSort is for internal use.
-//
-// TODO(skriptble): Sort should be *bson.Document.
-type OptSort struct{ Sort interface{} }
+type OptSort struct{ Sort *bson.Document }
 
 // FindName is for internal use.
 func (opt OptSort) FindName() string {
@@ -1064,11 +1038,7 @@ func (opt OptSort) FindOneAndUpdateValue() interface{} {
 
 // Option implements the Optioner interface.
 func (opt OptSort) Option(d *bson.Document) {
-	doc, ok := (opt).Sort.(*bson.Document)
-	if !ok {
-		return
-	}
-	d.Append(bson.C.SubDocument("sort", doc))
+	d.Append(bson.C.SubDocument("sort", opt.Sort))
 }
 
 func (OptSort) findOption()              {}

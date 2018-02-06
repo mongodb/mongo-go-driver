@@ -9,6 +9,7 @@ package mongo
 import (
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 )
 
@@ -42,10 +43,20 @@ func AllowPartialResults(b bool) options.OptAllowPartialResults {
 
 // ArrayFilters specifies to which array elements an update should apply.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
-func ArrayFilters(filters ...interface{}) options.OptArrayFilters {
-	opt := options.OptArrayFilters(filters)
-	return opt
+// This function uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
+func ArrayFilters(filters ...interface{}) (options.OptArrayFilters, error) {
+	docs := make([]*bson.Document, 0, len(filters))
+	for _, f := range filters {
+		d, err := TransformDocument(f)
+		if err != nil {
+			return nil, err
+		}
+		docs = append(docs, d)
+	}
+	opt := options.OptArrayFilters(docs)
+	return opt, nil
 }
 
 // BatchSize specifies the number of documents to return per batch.
@@ -85,10 +96,21 @@ func CursorType(cursorType options.CursorType) options.OptCursorType {
 
 // Hint specifies the index to use.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
-func Hint(hint interface{}) options.OptHint {
+// The hint parameter must be either a string or a document. If it is a
+// document, this function uses TransformDocument to turn the document into a
+// *bson.Document. See TransformDocument for the list of valid types.
+func Hint(hint interface{}) (options.OptHint, error) {
+	switch hint.(type) {
+	case string:
+	default:
+		var err error
+		hint, err = TransformDocument(hint)
+		if err != nil {
+			return options.OptHint{}, err
+		}
+	}
 	opt := options.OptHint{Hint: hint}
-	return opt
+	return opt, nil
 }
 
 // Limit specifies the maximum number of documents to return.
@@ -99,10 +121,16 @@ func Limit(i int64) options.OptLimit {
 
 // Max specifies the exclusive upper bound for a specific index.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
-func Max(max interface{}) options.OptMax {
-	opt := options.OptMax{Max: max}
-	return opt
+// This function uses TransformDocument to turn the max parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// max.
+func Max(max interface{}) (options.OptMax, error) {
+	doc, err := TransformDocument(max)
+	if err != nil {
+		return options.OptMax{}, err
+	}
+	opt := options.OptMax{Max: doc}
+	return opt, nil
 }
 
 // MaxAwaitTime specifies the maximum amount of time for the server to wait on new documents to
@@ -126,10 +154,16 @@ func MaxTime(duration time.Duration) options.OptMaxTime {
 
 // Min specifies the inclusive lower bound for a specific index.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
-func Min(min interface{}) options.OptMin {
-	opt := options.OptMin{Min: min}
-	return opt
+// This function uses TransformDocument to turn the min parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// min.
+func Min(min interface{}) (options.OptMin, error) {
+	doc, err := TransformDocument(min)
+	if err != nil {
+		return options.OptMin{}, err
+	}
+	opt := options.OptMin{Min: doc}
+	return opt, nil
 }
 
 // NoCursorTimeout specifies whether to prevent the server from timing out idle cursors after an
@@ -153,10 +187,16 @@ func Ordered(b bool) options.OptOrdered {
 
 // Projection limits the fields to return for all matching documents.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
-func Projection(projection interface{}) options.OptProjection {
-	opt := options.OptProjection{Projection: projection}
-	return opt
+// This function uses TransformDocument to turn the projection parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// projection.
+func Projection(projection interface{}) (options.OptProjection, error) {
+	doc, err := TransformDocument(projection)
+	if err != nil {
+		return options.OptProjection{}, nil
+	}
+	opt := options.OptProjection{Projection: doc}
+	return opt, nil
 }
 
 // ReturnDocument specifies whether a findAndUpdate should return the document as it was before the
@@ -193,10 +233,16 @@ func Snapshot(b bool) options.OptSnapshot {
 
 // Sort specifies order in which to return matching documents.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
-func Sort(sort interface{}) options.OptSort {
-	opt := options.OptSort{Sort: sort}
-	return opt
+// This function uses TransformDocument to turn the sort parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// sort.
+func Sort(sort interface{}) (options.OptSort, error) {
+	doc, err := TransformDocument(sort)
+	if err != nil {
+		return options.OptSort{}, err
+	}
+	opt := options.OptSort{Sort: doc}
+	return opt, nil
 }
 
 // Upsert specifies that a new document should be inserted if no document matches the update
