@@ -3,6 +3,7 @@ package bson
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"sort"
 
@@ -326,6 +327,19 @@ func (d *Document) ElementAt(index uint) (*Element, error) {
 	return d.elems[index], nil
 }
 
+// MustElementAt is the same as ElementAt but panics if the index is
+// out of bounds.
+//
+// TODO(skriptble): Should this be the default behavior? Similar to an slice,
+// if the users attempts to access an index out of bounds it panics.
+func (d *Document) MustElementAt(index uint) *Element {
+	elem, err := d.ElementAt(index)
+	if err != nil {
+		panic(err)
+	}
+	return elem
+}
+
 // Iterator creates an Iterator for this document and returns it.
 func (d *Document) Iterator() *Iterator {
 	return newIterator(d)
@@ -584,4 +598,19 @@ func (d *Document) Equal(d2 *Document) bool {
 		}
 	}
 	return true
+}
+
+// String implements the fmt.Stringer interface.
+func (d *Document) String() string {
+	var buf bytes.Buffer
+	buf.Write([]byte("bson.Document{"))
+	for idx, elem := range d.elems {
+		if idx > 0 {
+			buf.Write([]byte(", "))
+		}
+		fmt.Fprintf(&buf, "%s", elem)
+	}
+	buf.WriteByte('}')
+
+	return buf.String()
 }
