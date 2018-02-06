@@ -22,6 +22,30 @@
       "revId": "f121855967cbde2eb5eda14f08df866133a8920c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "354428c8_438eea8d",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 462,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-06T21:14:14Z",
+      "side": 1,
+      "message": "We should probably do it, but let\u0027s do it for the second alpha. Can you make a ticket for that?",
+      "parentUuid": "84b8896b_b0e28ff7",
+      "range": {
+        "startLine": 462,
+        "startChar": 2,
+        "endLine": 462,
+        "endChar": 6
+      },
+      "revId": "f121855967cbde2eb5eda14f08df866133a8920c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
