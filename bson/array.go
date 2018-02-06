@@ -1,6 +1,8 @@
 package bson
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 	"strconv"
 
@@ -190,6 +192,21 @@ func (a *Array) WriteTo(w io.Writer) (int64, error) {
 	}
 	n, err := w.Write(b)
 	return int64(n), err
+}
+
+// String implements the fmt.Stringer interface.
+func (a *Array) String() string {
+	var buf bytes.Buffer
+	buf.Write([]byte("bson.Array["))
+	for idx, elem := range d.elems {
+		if idx > 0 {
+			buf.Write([]byte(", "))
+		}
+		fmt.Fprintf(&buf, "%s", elem)
+	}
+	buf.WriteByte(']')
+
+	return buf.String()
 }
 
 // WriteArray will serialize this array to the provided writer beginning
