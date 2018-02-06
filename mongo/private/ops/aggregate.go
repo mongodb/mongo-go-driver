@@ -14,14 +14,15 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/internal"
 	"github.com/10gen/mongo-go-driver/mongo/options"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
+	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
 )
 
 // Aggregate performs an aggregation.
 //
-// TODO GODRIVER-95: Deal with $out and corresponding behavior (read preference primary, write
-// concern, etc.)
+// This method takes both a read and a write concern. The caller should set
+// the appropriate parameter based on whether there is a $out in the pipeline.
 func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	pipeline *bson.Array, opts ...options.AggregateOptioner) (Cursor, error) {
+	writeConcern *writeconcern.WriteConcern, pipeline *bson.Array, opts ...options.AggregateOptioner) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -48,6 +49,14 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern
 
 	if readConcern != nil {
 		elem, err := readConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+		command.Append(elem)
+	}
+
+	if writeConcern != nil {
+		elem, err := writeConcern.MarshalBSONElement()
 		if err != nil {
 			return nil, err
 		}
