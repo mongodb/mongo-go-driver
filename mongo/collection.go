@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -518,13 +519,47 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		pipelineArr = bson.ArrayFromDocument(p)
 	}
 
+	var dollarOut bool
+	for i := 0; i < pipelineArr.Len(); i++ {
+		val, err := pipelineArr.Lookup(uint(i))
+		if err != nil {
+			return nil, err
+		}
+		if val.Type() != bson.TypeEmbeddedDocument {
+			return nil, errors.New("pipeline contains non-document element")
+		}
+		doc := val.MutableDocument()
+		if doc.Len() != 1 {
+			return nil, fmt.Errorf("pipeline document of incorrect length %d", doc.Len())
+		}
+
+		elem, err := doc.ElementAt(0)
+		if err != nil {
+			return nil, err
+		}
+		if elem.Key() == "$out" {
+			dollarOut = true
+		}
+	}
 	// TODO GODRIVER-95: Check for $out and use readable server/read preference if not found
-	s, err := coll.getWriteableServer(ctx)
-	if err != nil {
-		return nil, err
+	var cursor Cursor
+	var err error
+	if dollarOut {
+		var s *ops.SelectedServer
+		s, err = coll.getWriteableServer(ctx)
+		if err != nil {
+			return nil, err
+		}
+		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), nil, coll.writeConcern, pipelineArr, options...)
+	} else {
+		var s *ops.SelectedServer
+		s, err = coll.getReadableServer(ctx)
+		if err != nil {
+			return nil, err
+		}
+		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), coll.readConcern, nil, pipelineArr, options...)
 	}
 
-	cursor, err := ops.Aggregate(ctx, s, coll.namespace(), coll.readConcern, pipelineArr, options...)
 	if err != nil {
 		return nil, err
 	}
