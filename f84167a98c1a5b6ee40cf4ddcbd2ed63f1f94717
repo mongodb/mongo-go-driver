@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "f1f7afa6_449962e0",
+        "filename": "bson/array.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-06T22:20:57Z",
+      "side": 1,
+      "message": "Just forgot the implement this one. Will do that.",
+      "parentUuid": "01a677c1_bd8e3301",
+      "range": {
+        "startLine": 195,
+        "startChar": 0,
+        "endLine": 195,
+        "endChar": 4
+      },
+      "revId": "f84167a98c1a5b6ee40cf4ddcbd2ed63f1f94717",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0cd1c309_ceda916d",
         "filename": "bson/decode.go",
         "patchSetId": 4
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "444fc1b2_291d8ffc",
+        "filename": "bson/decode.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 425,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-06T22:20:57Z",
+      "side": 1,
+      "message": "I think there were a few patches bouncing around that had various stages of Javascript vs JavaScript. Can change it back.",
+      "parentUuid": "0cd1c309_ceda916d",
+      "range": {
+        "startLine": 425,
+        "startChar": 26,
+        "endLine": 425,
+        "endChar": 36
+      },
+      "revId": "f84167a98c1a5b6ee40cf4ddcbd2ed63f1f94717",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "341dbb04_3e7ea79c",
         "filename": "mongo/private/conn/protocol_test.go",
         "patchSetId": 4
@@ -59,6 +107,30 @@
       "writtenOn": "2018-02-06T22:11:25Z",
       "side": 1,
       "message": "I\u0027m a little skeptical about having our tests check the exact error messages, but I guess this can be fixed when we do the overhaul of all our error types.",
+      "range": {
+        "startLine": 194,
+        "startChar": 1,
+        "endLine": 194,
+        "endChar": 28
+      },
+      "revId": "f84167a98c1a5b6ee40cf4ddcbd2ed63f1f94717",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d5c4b389_97548607",
+        "filename": "mongo/private/conn/protocol_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 194,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-06T22:20:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "341dbb04_3e7ea79c",
       "range": {
         "startLine": 194,
         "startChar": 1,
