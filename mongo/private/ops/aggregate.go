@@ -18,7 +18,6 @@ import (
 
 // Aggregate performs an aggregation.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
 // TODO GODRIVER-95: Deal with $out and corresponding behavior (read preference primary, write
 // concern, etc.)
 func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,

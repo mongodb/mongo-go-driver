@@ -16,8 +16,6 @@ import (
 )
 
 // Delete executes an delete command with a given set of delete documents and options.
-//
-// TODO GODRIVER-76: Document which types for interface{} are valid.
 func Delete(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
 	deleteDocs []*bson.Document, opts ...options.DeleteOptioner) (bson.Reader, error) {
 

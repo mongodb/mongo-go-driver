@@ -71,7 +71,9 @@ func (coll *Collection) getReadableServer(ctx context.Context) (*ops.SelectedSer
 // InsertOne inserts a single document into the collection. A user can supply
 // a custom context to this method, or nil to default to context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 //
 // TODO(skriptble): Determine if we should unwrap the value for the
 // InsertOneResult or just return the bson.Element or a bson.Value.
@@ -82,7 +84,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		ctx = context.Background()
 	}
 
-	doc, err := transformDocument(document)
+	doc, err := TransformDocument(document)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +131,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // sets of documents will not fit into a single BSON document to be sent to the server, so the
 // operation will fail.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	options ...options.InsertOptioner) (*InsertManyResult, error) {
 
@@ -141,7 +145,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	docs := make([]*bson.Document, len(documents))
 
 	for i, doc := range documents {
-		bdoc, err := transformDocument(doc)
+		bdoc, err := TransformDocument(doc)
 		if err != nil {
 			return nil, err
 		}
@@ -189,7 +193,9 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 // DeleteOne deletes a single document from the collection. A user can supply
 // a custom context to this method, or nil to default to context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	options ...options.DeleteOptioner) (*DeleteResult, error) {
 
@@ -197,7 +203,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +252,9 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 // supply a custom context to this method, or nil to default to
 // context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	options ...options.DeleteOptioner) (*DeleteResult, error) {
 
@@ -254,7 +262,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
@@ -297,7 +305,6 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	return &result, nil
 }
 
-// TODO GODRIVER-76: Document which types for interface{} are valid.
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 	update *bson.Document, options ...options.UpdateOptioner) (*UpdateResult, error) {
 
@@ -351,7 +358,9 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 // UpdateOne updates a single document in the collection. A user can supply a
 // custom context to this method, or nil to default to context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
 	options ...options.UpdateOptioner) (*UpdateResult, error) {
 
@@ -359,12 +368,12 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := transformDocument(update)
+	u, err := TransformDocument(update)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +388,9 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // UpdateMany updates multiple documents in the collection. A user can supply
 // a custom context to this method, or nil to default to context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
 	options ...options.UpdateOptioner) (*UpdateResult, error) {
 
@@ -387,12 +398,12 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := transformDocument(update)
+	u, err := TransformDocument(update)
 	if err != nil {
 		return nil, err
 	}
@@ -449,7 +460,9 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 // ReplaceOne replaces a single document in the collection. A user can supply
 // a custom context to this method, or nil to default to context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 	replacement interface{}, options ...options.UpdateOptioner) (*UpdateResult, error) {
 
@@ -457,12 +470,12 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := transformDocument(replacement)
+	r, err := TransformDocument(replacement)
 	if err != nil {
 		return nil, err
 	}
@@ -482,7 +495,9 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 //
 // See https://docs.mongodb.com/manual/aggregation/.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	options ...options.AggregateOptioner) (Cursor, error) {
 
@@ -495,7 +510,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	case *bson.Array:
 		pipelineArr = t
 	default:
-		p, err := transformDocument(pipeline)
+		p, err := TransformDocument(pipeline)
 		if err != nil {
 			return nil, err
 		}
@@ -520,7 +535,9 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 // Count gets the number of documents matching the filter. A user can supply a
 // custom context to this method, or nil to default to context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) Count(ctx context.Context, filter interface{},
 	options ...options.CountOptioner) (int64, error) {
 
@@ -528,7 +545,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return 0, err
 	}
@@ -550,7 +567,9 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 // collection. A user can supply a custom context to this method, or nil to
 // default to context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
 	options ...options.DistinctOptioner) ([]interface{}, error) {
 
@@ -561,7 +580,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	var f *bson.Document
 	var err error
 	if filter != nil {
-		f, err = transformDocument(filter)
+		f, err = TransformDocument(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -593,7 +612,9 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // Find finds the documents matching a model. A user can supply a custom context to this
 // method.
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
 	options ...options.FindOptioner) (Cursor, error) {
 
@@ -604,7 +625,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	var f *bson.Document
 	var err error
 	if filter != nil {
-		f, err = transformDocument(filter)
+		f, err = TransformDocument(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -627,7 +648,9 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 // supply a custom context to this method, or nil to default to
 // context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	options ...options.FindOptioner) *DocumentResult {
 
@@ -640,7 +663,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	var f *bson.Document
 	var err error
 	if filter != nil {
-		f, err = transformDocument(filter)
+		f, err = TransformDocument(filter)
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
@@ -660,7 +683,9 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 // A user can supply a custom context to this method, or nil to default to
 // context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
 	opts ...options.FindOneAndDeleteOptioner) *DocumentResult {
 
@@ -671,7 +696,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	var f *bson.Document
 	var err error
 	if filter != nil {
-		f, err = transformDocument(filter)
+		f, err = TransformDocument(filter)
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
@@ -710,7 +735,9 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 // A user can supply a custom context to this method, or nil to default to
 // context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...options.FindOneAndReplaceOptioner) *DocumentResult {
 
@@ -718,12 +745,12 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
-	r, err := transformDocument(replacement)
+	r, err := TransformDocument(replacement)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -771,7 +798,9 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 // A user can supply a custom context to this method, or nil to default to
 // context.Background().
 //
-// TODO GODRIVER-76: Document which types for interface{} are valid.
+// This method uses TransformDocument to turn the document parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// document.
 func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
 	update interface{}, opts ...options.FindOneAndUpdateOptioner) *DocumentResult {
 
@@ -779,12 +808,12 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
-	u, err := transformDocument(update)
+	u, err := TransformDocument(update)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
