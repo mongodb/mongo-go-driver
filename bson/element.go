@@ -2,7 +2,9 @@ package bson
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/10gen/mongo-go-driver/bson/elements"
 )
@@ -291,6 +293,26 @@ func (e *Element) MarshalBSON() ([]byte, error) {
 	return b, nil
 }
 
+// String implements the fmt.Stringer interface.
+func (e *Element) String() string {
+	val := e.Value().Interface()
+	if s, ok := val.(string); ok {
+		val = strconv.Quote(s)
+	}
+	return fmt.Sprintf(`bson.Element{[%s]"%s": %v}`, e.Value().Type(), e.Key(), val)
+}
+
+func (e *Element) equal(e2 *Element) bool {
+	if e == nil && e2 == nil {
+		return true
+	}
+	if e == nil || e2 == nil {
+		return false
+	}
+
+	return e.value.equal(e2.value)
+}
+
 func elemsFromValues(values []*Value) []*Element {
 	elems := make([]*Element, len(values))
 
@@ -303,4 +325,28 @@ func elemsFromValues(values []*Value) []*Element {
 	}
 
 	return elems
+}
+
+func convertValueToElem(key string, v *Value) *Element {
+	if v == nil || v.offset == 0 || v.data == nil {
+		return nil
+	}
+
+	vSize, err := v.valueSize()
+	if err != nil {
+		return nil
+	}
+
+	keyLen := len(key)
+	d := make([]byte, 2+len(key)+int(vSize))
+
+	d[0] = v.data[v.start]
+	copy(d[1:keyLen+1], key)
+	d[keyLen+1] = 0x00
+	copy(d[keyLen+2:], v.data[v.offset:])
+
+	elem := newElement(0, uint32(keyLen+2))
+	elem.value.data = d
+
+	return elem
 }

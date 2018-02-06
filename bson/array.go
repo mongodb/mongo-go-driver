@@ -192,6 +192,10 @@ func (a *Array) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
+func (a *Array) String() string {
+	return ""
+}
+
 // WriteArray will serialize this array to the provided writer beginning
 // at the provided start position.
 func (a *Array) WriteArray(start uint, writer []byte) (int64, error) {
