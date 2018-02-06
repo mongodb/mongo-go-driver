@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "01a677c1_bd8e3301",
+        "filename": "bson/array.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-06T22:11:25Z",
+      "side": 1,
+      "message": "Is the sole purpose of this function to implement the Stringer interface? I\u0027m not sure I understand why this is useful if it doesn\u0027t actually return any useful information",
+      "range": {
+        "startLine": 195,
+        "startChar": 0,
+        "endLine": 195,
+        "endChar": 4
+      },
+      "revId": "f84167a98c1a5b6ee40cf4ddcbd2ed63f1f94717",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0cd1c309_ceda916d",
+        "filename": "bson/decode.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 425,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-06T22:11:25Z",
+      "side": 1,
+      "message": "I know this is a small nit, but JavaScript is spelled with a capital \"S\", so I\u0027m not sure why we would purposely capitalize it wrong. If the \"D\" in \"ID\" counts as a separate word for the purpose of camel case, then the \"Script\" should too.",
+      "range": {
+        "startLine": 425,
+        "startChar": 26,
+        "endLine": 425,
+        "endChar": 36
+      },
+      "revId": "f84167a98c1a5b6ee40cf4ddcbd2ed63f1f94717",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "341dbb04_3e7ea79c",
+        "filename": "mongo/private/conn/protocol_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 194,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-06T22:11:25Z",
+      "side": 1,
+      "message": "I\u0027m a little skeptical about having our tests check the exact error messages, but I guess this can be fixed when we do the overhaul of all our error types.",
+      "range": {
+        "startLine": 194,
+        "startChar": 1,
+        "endLine": 194,
+        "endChar": 28
+      },
+      "revId": "f84167a98c1a5b6ee40cf4ddcbd2ed63f1f94717",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
