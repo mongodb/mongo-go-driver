@@ -164,6 +164,10 @@ func (r Reader) Keys(recursive bool) (Keys, error) {
 	return r.recursiveKeys(recursive)
 }
 
+func (r Reader) String() string {
+	return ""
+}
+
 // recursiveKeys implements the logic for the Keys method. This is a separate
 // function to facilitate recursive calls.
 func (r Reader) recursiveKeys(recursive bool, prefix ...string) (Keys, error) {

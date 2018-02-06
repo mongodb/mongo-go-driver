@@ -3,6 +3,7 @@ package bson
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"sort"
 
@@ -326,6 +327,19 @@ func (d *Document) ElementAt(index uint) (*Element, error) {
 	return d.elems[index], nil
 }
 
+// MustElementAt is the same as ElementAt but panics if the index is
+// out of bounds.
+//
+// TODO(skriptble): Should this be the default behavior? Similar to an slice,
+// if the users attempts to access an index out of bounds it panics.
+func (d *Document) MustElementAt(index uint) *Element {
+	elem, err := d.ElementAt(index)
+	if err != nil {
+		panic(err)
+	}
+	return elem
+}
+
 // Iterator creates an Iterator for this document and returns it.
 func (d *Document) Iterator() *Iterator {
 	return newIterator(d)
@@ -550,4 +564,52 @@ func (d *Document) ReadFrom(r io.Reader) (int64, error) {
 func (d *Document) keyFromIndex(idx int) []byte {
 	haystack := d.elems[d.index[idx]]
 	return haystack.value.data[haystack.value.start+1 : haystack.value.offset]
+}
+
+// Equal compares this document to another, returning true if they are equal.
+func (d *Document) Equal(d2 *Document) bool {
+	if d == nil && d2 == nil {
+		return true
+	}
+
+	if d == nil || d2 == nil {
+		return false
+	}
+
+	if (len(d.elems) != len(d2.elems)) || (len(d.index) != len(d2.index)) {
+		return false
+	}
+	for index := range d.elems {
+		b1, err := d.elems[index].MarshalBSON()
+		if err != nil {
+			return false
+		}
+		b2, err := d2.elems[index].MarshalBSON()
+		if err != nil {
+			return false
+		}
+
+		if !bytes.Equal(b1, b2) {
+			return false
+		}
+
+		if d.index[index] != d2.index[index] {
+			return false
+		}
+	}
+	return true
+}
+
+func (d *Document) String() string {
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for idx, elem := range d.elems {
+		if idx > 0 {
+			buf.Write([]byte(", "))
+		}
+		fmt.Fprintf(&buf, "%s", elem)
+	}
+	buf.WriteByte(']')
+
+	return buf.String()
 }

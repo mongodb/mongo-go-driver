@@ -1,6 +1,10 @@
 package bson
 
-import "github.com/10gen/mongo-go-driver/bson/objectid"
+import (
+	"fmt"
+
+   "github.com/10gen/mongo-go-driver/bson/objectid"
+)
 
 // Binary represents a BSON binary value.
 type Binary struct {
@@ -20,10 +24,18 @@ type Regex struct {
 	Options string
 }
 
+func (r Regex) String() string {
+	return fmt.Sprintf(`{"pattern": "%s", "options": "%s"}`, r.Pattern, r.Options)
+}
+
 // DBPointer represents a BSON dbpointer value.
 type DBPointer struct {
 	DB      string
 	Pointer objectid.ObjectID
+}
+
+func (d DBPointer) String() string {
+	return fmt.Sprintf(`{"db": "%s", "pointer": "%s"}`, d.DB, d.Pointer)
 }
 
 // JavaScriptCode represents a BSON JavaScript code value.
@@ -36,6 +48,10 @@ type Symbol string
 type CodeWithScope struct {
 	Code  string
 	Scope *Document
+}
+
+func (cws CodeWithScope) String() string {
+	return fmt.Sprintf(`{"code": "%s", "scope": %s}`, cws.Code, cws.Scope)
 }
 
 // Timestamp represents a BSON timestamp value.
