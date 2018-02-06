@@ -1,7 +1,9 @@
 package bson
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 )
@@ -162,6 +164,24 @@ func (r Reader) Iterator() (*ReaderIterator, error) {
 // The keys will be return in order.
 func (r Reader) Keys(recursive bool) (Keys, error) {
 	return r.recursiveKeys(recursive)
+}
+
+// String implements the fmt.Stringer interface.
+func (r Reader) String() string {
+	var buf bytes.Buffer
+	buf.Write([]byte("bson.Reader{"))
+	idx := 0
+	_, _ = r.readElements(func(elem *Element) error {
+		if idx > 0 {
+			buf.Write([]byte(", "))
+		}
+		fmt.Fprintf(&buf, "%s", elem)
+		idx++
+		return nil
+	})
+	buf.WriteByte('}')
+
+	return buf.String()
 }
 
 // recursiveKeys implements the logic for the Keys method. This is a separate

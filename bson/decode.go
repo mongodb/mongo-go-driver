@@ -422,7 +422,7 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			return val, nil
 		}
 
-		val = reflect.ValueOf(v.JavaScript())
+		val = reflect.ValueOf(v.Javascript())
 	case 0xE:
 		if containerType != tSymbol && containerType != tString && containerType != tEmpty {
 			return val, nil
@@ -434,7 +434,7 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			return val, nil
 		}
 
-		code, scope := v.MutableJavaScriptWithScope()
+		code, scope := v.MutableJavascriptWithScope()
 		val = reflect.ValueOf(CodeWithScope{Code: code, Scope: scope})
 	case 0x10:
 		i := v.Int32()

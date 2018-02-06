@@ -133,6 +133,7 @@ func TestElement(t *testing.T) {
 		})
 	})
 	t.Run("Validate", testValidateValue)
+	t.Run("convertValueToElem", testConvertValueToElem)
 	t.Run("MarshalBSON", func(t *testing.T) {
 		t.Run("Nil Value", func(t *testing.T) {
 			testCases := []struct {
@@ -1310,7 +1311,7 @@ func TestElement(t *testing.T) {
 						}
 					}()
 
-					val := tc.elem.value.JavaScript()
+					val := tc.elem.value.Javascript()
 					if val != tc.val {
 						t.Errorf("Did not return correct value. got %s; want %s", val, tc.val)
 					}
@@ -1668,6 +1669,30 @@ func TestElement(t *testing.T) {
 			})
 		}
 	})
+}
+
+func testConvertValueToElem(t *testing.T) {
+	testCases := []struct {
+		name string
+		key  string
+		val  *Value
+		elem *Element
+	}{
+		{"nil", "", nil, nil},
+		{"double", "foo", AC.Double(3.14159), C.Double("foo", 3.14159)},
+		{"int64", "foo", AC.Int64(1234567890), C.Int64("foo", 1234567890)},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := convertValueToElem(tc.key, tc.val)
+			want := tc.elem
+
+			if !got.equal(want) {
+				t.Errorf("Expected elements to be equal but they are not. got %v; want %v", got, want)
+			}
+		})
+	}
 }
 
 func testValidateValue(t *testing.T) {
