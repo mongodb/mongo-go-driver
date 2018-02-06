@@ -82,7 +82,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		ctx = context.Background()
 	}
 
-	doc, err := transformDocument(document)
+	doc, err := TransformDocument(document)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	docs := make([]*bson.Document, len(documents))
 
 	for i, doc := range documents {
-		bdoc, err := transformDocument(doc)
+		bdoc, err := TransformDocument(doc)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +197,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
@@ -359,12 +359,12 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := transformDocument(update)
+	u, err := TransformDocument(update)
 	if err != nil {
 		return nil, err
 	}
@@ -387,12 +387,12 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := transformDocument(update)
+	u, err := TransformDocument(update)
 	if err != nil {
 		return nil, err
 	}
@@ -457,12 +457,12 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := transformDocument(replacement)
+	r, err := TransformDocument(replacement)
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +495,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	case *bson.Array:
 		pipelineArr = t
 	default:
-		p, err := transformDocument(pipeline)
+		p, err := TransformDocument(pipeline)
 		if err != nil {
 			return nil, err
 		}
@@ -528,7 +528,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return 0, err
 	}
@@ -561,7 +561,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	var f *bson.Document
 	var err error
 	if filter != nil {
-		f, err = transformDocument(filter)
+		f, err = TransformDocument(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -604,7 +604,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	var f *bson.Document
 	var err error
 	if filter != nil {
-		f, err = transformDocument(filter)
+		f, err = TransformDocument(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -640,7 +640,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	var f *bson.Document
 	var err error
 	if filter != nil {
-		f, err = transformDocument(filter)
+		f, err = TransformDocument(filter)
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
@@ -671,7 +671,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	var f *bson.Document
 	var err error
 	if filter != nil {
-		f, err = transformDocument(filter)
+		f, err = TransformDocument(filter)
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
@@ -718,12 +718,12 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
-	r, err := transformDocument(replacement)
+	r, err := TransformDocument(replacement)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -779,12 +779,12 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(filter)
+	f, err := TransformDocument(filter)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
-	u, err := transformDocument(update)
+	u, err := TransformDocument(update)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
