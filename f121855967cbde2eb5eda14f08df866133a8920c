@@ -46,6 +46,30 @@
       "revId": "f121855967cbde2eb5eda14f08df866133a8920c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "90f79188_5f9e1aee",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 462,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-06T21:40:53Z",
+      "side": 1,
+      "message": "Filed GODRIVER-218.",
+      "parentUuid": "354428c8_438eea8d",
+      "range": {
+        "startLine": 462,
+        "startChar": 2,
+        "endLine": 462,
+        "endChar": 6
+      },
+      "revId": "f121855967cbde2eb5eda14f08df866133a8920c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
