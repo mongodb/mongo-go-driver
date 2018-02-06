@@ -36,6 +36,7 @@ var tTimestamp = reflect.TypeOf(Timestamp{})
 var tUint = reflect.TypeOf(uint(0))
 var tUint32 = reflect.TypeOf(uint32(0))
 var tUint64 = reflect.TypeOf(uint64(0))
+var tUint8 = reflect.TypeOf(uint8(0))
 
 var tEmpty = reflect.TypeOf((*interface{})(nil)).Elem()
 
@@ -458,6 +459,12 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			}
 
 			val = reflect.ValueOf(uint(i))
+		case tUint8:
+			if i < 0 {
+				return val, nil
+			}
+
+			val = reflect.ValueOf(uint8(i))
 		case tEmpty, tInt32, tInt64, tInt, tFloat32, tFloat64:
 			val = reflect.ValueOf(i).Convert(containerType)
 		default:
