@@ -53,7 +53,9 @@ func (id *ObjectID) Hex() string {
 func (id *ObjectID) UnmarshalJSON(b []byte) error {
 	var err error
 	switch len(b) {
-	case 64:
+	case 12:
+		copy(id[:], b)
+	default:
 		// Extended JSON
 		m := make(map[string]string)
 		err := json.Unmarshal(b, &m)
@@ -64,15 +66,17 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 		if !ok {
 			return errors.New("not an extended JSON ObjectID")
 		}
+
+		if len(str) != 24 {
+			return fmt.Errorf("cannot unmarshal into an ObjectID, the length must be 12 but it is %d", len(str))
+		}
+
 		_, err = hex.Decode(id[:], []byte(str))
 		if err != nil {
 			return err
 		}
-	case 12:
-		copy(id[:], b)
-	default:
-		err = fmt.Errorf("cannot unmarshal into an ObjectID, the length must be 12 but it is %d", len(b))
 	}
+
 	return err
 }
 
