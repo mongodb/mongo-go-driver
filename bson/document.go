@@ -551,3 +551,37 @@ func (d *Document) keyFromIndex(idx int) []byte {
 	haystack := d.elems[d.index[idx]]
 	return haystack.value.data[haystack.value.start+1 : haystack.value.offset]
 }
+
+// Equal compares this document to another, returning true if they are equal.
+func (d *Document) Equal(d2 *Document) bool {
+	if d == nil && d2 == nil {
+		return true
+	}
+
+	if d == nil || d2 == nil {
+		return false
+	}
+
+	if (len(d.elems) != len(d2.elems)) || (len(d.index) != len(d2.index)) {
+		return false
+	}
+	for index := range d.elems {
+		b1, err := d.elems[index].MarshalBSON()
+		if err != nil {
+			return false
+		}
+		b2, err := d2.elems[index].MarshalBSON()
+		if err != nil {
+			return false
+		}
+
+		if !bytes.Equal(b1, b2) {
+			return false
+		}
+
+		if d.index[index] != d2.index[index] {
+			return false
+		}
+	}
+	return true
+}

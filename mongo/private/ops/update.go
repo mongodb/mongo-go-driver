@@ -16,8 +16,6 @@ import (
 )
 
 // Update executes an update command with a given set of update documents and options.
-//
-// TODO GODRIVER-76: Document which types for interface{} are valid.
 func Update(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
 	updateDocs []*bson.Document, opt ...options.UpdateOptioner) (bson.Reader, error) {
 
