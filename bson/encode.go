@@ -255,7 +255,7 @@ func (e *encoder) encodeMap(val reflect.Value) ([]*Element, error) {
 		}
 		rval = e.underlyingVal(rval)
 
-		elem, err := e.elemFromValue(key, rval, true)
+		elem, err := e.elemFromValue(key, rval, false)
 		if err != nil {
 			return nil, err
 		}
@@ -281,7 +281,7 @@ func (e *encoder) encodeSlice(val reflect.Value) ([]*Element, error) {
 			continue
 		}
 		sval = e.underlyingVal(sval)
-		elem, err := e.elemFromValue(key, sval, true)
+		elem, err := e.elemFromValue(key, sval, false)
 		if err != nil {
 			return nil, err
 		}

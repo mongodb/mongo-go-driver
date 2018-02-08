@@ -42,6 +42,11 @@ func TransformDocument(document interface{}) (*bson.Document, error) {
 		if reflect.ValueOf(document).Kind() == reflect.Struct || kind == reflect.Struct {
 			return bson.NewDocumentEncoder().EncodeDocument(document)
 		}
+		if reflect.ValueOf(document).Kind() == reflect.Map &&
+			reflect.TypeOf(document).Key().Kind() == reflect.String {
+			return bson.NewDocumentEncoder().EncodeDocument(document)
+		}
+
 		return nil, fmt.Errorf("cannot transform type %s to a *bson.Document", reflect.TypeOf(document))
 	}
 }

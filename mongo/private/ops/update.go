@@ -35,7 +35,7 @@ func Update(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *
 		switch option.(type) {
 		case nil:
 			continue
-		case options.OptUpsert, options.OptCollation:
+		case options.OptUpsert, options.OptCollation, options.OptArrayFilters:
 			for _, doc := range updateDocs {
 				option.Option(doc)
 			}

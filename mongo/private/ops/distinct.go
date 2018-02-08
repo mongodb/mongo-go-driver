@@ -50,7 +50,7 @@ func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, readConcern 
 
 	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)
 	if err != nil {
-		return nil, internal.WrapError(err, "failed to execute count")
+		return nil, internal.WrapError(err, "failed to execute distinct")
 	}
 
 	err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&result)

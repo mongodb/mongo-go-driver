@@ -43,13 +43,13 @@ func FindOneAndUpdate(ctx context.Context, s *SelectedServer, ns Namespace,
 
 	rdr, err := runMustUsePrimary(ctx, s, ns.DB, command)
 	if err != nil {
-		return nil, internal.WrapError(err, "failed to execute count")
+		return nil, internal.WrapError(err, "failed to execute find_one_and_update")
 	}
 
 	val, err := rdr.Lookup("value")
 	switch {
 	case err == bson.ErrElementNotFound:
-		return nil, errors.New("Invalid response from server, no value field")
+		return nil, errors.New("invalid response from server, no value field")
 	case err != nil:
 		return nil, err
 	}
@@ -60,6 +60,6 @@ func FindOneAndUpdate(ctx context.Context, s *SelectedServer, ns Namespace,
 	case bson.TypeEmbeddedDocument:
 		return &singleResultCursor{rdr: val.Value().ReaderDocument()}, nil
 	default:
-		return nil, errors.New("Invalid response from server, value field is not a document")
+		return nil, errors.New("invalid response from server, value field is not a document")
 	}
 }
