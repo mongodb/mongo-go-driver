@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b9207ad5_dc22a67e",
+        "filename": "mongo/private/msg/code_unmarshaler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-08T19:10:01Z",
+      "side": 0,
+      "message": "Was this an accidental change? I\u0027m not sure how it relates to the copyright notice",
+      "revId": "bfe2933d83d60425aaa925f5bc983f56e0bdb9ee",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}

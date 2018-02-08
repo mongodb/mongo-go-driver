@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fa5b6684_594562e5",
+        "filename": "bson/objectid/objectid.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-08T19:10:01Z",
+      "side": 1,
+      "message": "This file already had a header, so revert the changes here",
+      "revId": "94b396b1d5c400fe9280c0cca6e85f27db1da155",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
