@@ -22,7 +22,7 @@ import (
 // This method takes both a read and a write concern. The caller should set
 // the appropriate parameter based on whether there is a $out in the pipeline.
 func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	writeConcern *writeconcern.WriteConcern, pipeline *bson.Array, opts ...options.AggregateOptioner) (Cursor, error) {
+	writeConcern *writeconcern.WriteConcern, pipeline *bson.Array, hasDollarOut bool, opts ...options.AggregateOptioner) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -41,6 +41,11 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern
 			continue
 		case options.OptBatchSize:
 			batchSize = int32(t)
+
+			if hasDollarOut && batchSize == 0 {
+				break
+			}
+
 			option.Option(cursor)
 		default:
 			option.Option(command)

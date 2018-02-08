@@ -353,6 +353,10 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		return nil, err
 	}
 
+	if result.UpsertedID != nil {
+		result.MatchedCount--
+	}
+
 	return &result, nil
 }
 
@@ -455,6 +459,10 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		return nil, err
 	}
 
+	if result.UpsertedID != nil {
+		result.MatchedCount--
+	}
+
 	return &result, nil
 }
 
@@ -465,7 +473,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 // parameter into a *bson.Document. See TransformDocument for the list of
 // valid types for filter and replacement.
 func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
-	replacement interface{}, options ...options.UpdateOptioner) (*UpdateResult, error) {
+	replacement interface{}, opts ...options.ReplaceOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -488,7 +496,13 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 	if strings.HasPrefix(elem.Key(), "$") {
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
 	}
-	return coll.updateOrReplaceOne(ctx, f, r, options...)
+
+	updateOptions := make([]options.UpdateOptioner, 0, len(opts))
+	for _, opt := range opts {
+		updateOptions = append(updateOptions, opt)
+	}
+
+	return coll.updateOrReplaceOne(ctx, f, r, updateOptions...)
 }
 
 // Aggregate runs an aggregation framework pipeline. A user can supply a custom context to
@@ -510,6 +524,23 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	switch t := pipeline.(type) {
 	case *bson.Array:
 		pipelineArr = t
+	case []*bson.Document:
+		pipelineArr = bson.NewArray()
+
+		for _, doc := range t {
+			pipelineArr.Append(bson.AC.Document(doc))
+		}
+	case []interface{}:
+		pipelineArr = bson.NewArray()
+
+		for _, val := range t {
+			doc, err := TransformDocument(val)
+			if err != nil {
+				return nil, err
+			}
+
+			pipelineArr.Append(bson.AC.Document(doc))
+		}
 	default:
 		p, err := TransformDocument(pipeline)
 		if err != nil {
@@ -550,14 +581,14 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		if err != nil {
 			return nil, err
 		}
-		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), nil, coll.writeConcern, pipelineArr, options...)
+		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), nil, coll.writeConcern, pipelineArr, true, options...)
 	} else {
 		var s *ops.SelectedServer
 		s, err = coll.getReadableServer(ctx)
 		if err != nil {
 			return nil, err
 		}
-		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), coll.readConcern, nil, pipelineArr, options...)
+		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), coll.readConcern, nil, pipelineArr, false, options...)
 	}
 
 	if err != nil {
