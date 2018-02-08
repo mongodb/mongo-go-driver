@@ -63,6 +63,10 @@ update-bson-corpus-tests:
 update-connection-string-tests:
 	etc/update-spec-tests.sh connection-string
 
+.PHONY: update-crud-tests
+update-crud-tests:
+	etc/update-spec-tests.sh crud
+
 .PHONY: update-initial-dns-seedlist-discovery-tests
 update-initial-dns-seedlist-discovery-tests:
 	etc/update-spec-tests.sh initial-dns-seedlist-discovery
