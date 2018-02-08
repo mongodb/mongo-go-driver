@@ -281,7 +281,7 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 
 	result, err := coll.UpdateOne(context.Background(), filter, update, Upsert(true))
 	require.Nil(t, err)
-	require.Equal(t, result.MatchedCount, int64(1))
+	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
 }
@@ -350,7 +350,7 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 
 	result, err := coll.UpdateMany(context.Background(), filter, update, Upsert(true))
 	require.Nil(t, err)
-	require.Equal(t, result.MatchedCount, int64(1))
+	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
 }
@@ -411,7 +411,7 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 
 	result, err := coll.ReplaceOne(context.Background(), filter, replacement, Upsert(true))
 	require.Nil(t, err)
-	require.Equal(t, result.MatchedCount, int64(1))
+	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
 }

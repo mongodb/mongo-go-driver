@@ -43,6 +43,8 @@ func Find(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *rea
 		case options.OptBatchSize:
 			batchSize = int32(t)
 			option.Option(command)
+		case options.OptProjection:
+			t.IsFind().Option(command)
 		default:
 			option.Option(command)
 		}
@@ -62,7 +64,7 @@ func Find(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *rea
 
 	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)
 	if err != nil {
-		return nil, internal.WrapError(err, "failed to execute update")
+		return nil, internal.WrapError(err, "failed to execute find")
 	}
 
 	return NewCursor(rdr, batchSize, s)
