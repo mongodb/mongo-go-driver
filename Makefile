@@ -1,5 +1,5 @@
-#BSON_PKGS = $(shell ./etc/find_pkgs.sh ./bson)
-#BSON_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./bson _test)
+BSON_PKGS = $(shell ./etc/find_pkgs.sh ./bson)
+BSON_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./bson _test)
 YAMGO_PKGS = $(shell ./etc/find_pkgs.sh ./mongo)
 YAMGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./mongo _test)
 PKGS = $(BSON_PKGS) $(YAMGO_PKGS)
@@ -37,7 +37,7 @@ lint-add-whitelist:
 
 .PHONY: errcheck
 errcheck:
-	errcheck -exclude .errcheck-excludes ./mongo/...
+	errcheck -exclude .errcheck-excludes ./bson/... ./mongo/...
 
 .PHONY: test
 test:
