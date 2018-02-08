@@ -16,6 +16,24 @@
       "revId": "94b396b1d5c400fe9280c0cca6e85f27db1da155",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9c8f945d_be01d65b",
+        "filename": "bson/objectid/objectid.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-08T19:12:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fa5b6684_594562e5",
+      "revId": "94b396b1d5c400fe9280c0cca6e85f27db1da155",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

@@ -16,6 +16,24 @@
       "revId": "bfe2933d83d60425aaa925f5bc983f56e0bdb9ee",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9049cd59_2dfc7ce5",
+        "filename": "mongo/private/msg/code_unmarshaler.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-08T19:12:02Z",
+      "side": 0,
+      "message": "Instead of adding a copyright notice, I just deleted the file since we don\u0027t need this function.",
+      "parentUuid": "b9207ad5_dc22a67e",
+      "revId": "bfe2933d83d60425aaa925f5bc983f56e0bdb9ee",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
