@@ -29,50 +29,87 @@ var ErrTooSmall = errors.New("element: The provided slice is too small")
 
 // These variables are used as namespaces for methods pertaining to encoding individual BSON types.
 var (
-	Double        double
-	String        str
-	Document      document
-	Array         array
-	Binary        bin
-	ObjectID      objectid
-	Boolean       boolean
-	DateTime      datetime
-	Regex         regex
-	DBPointer     dbpointer
-	JavaScript    javascript
-	Symbol        symbol
-	CodeWithScope codewithscope
-	Int32         i32
-	Timestamp     timestamp
-	Int64         i64
-	Decimal128    decimal128
-	CString       cstring
-	Byte          bsonbyte
+	Double        DoubleNS
+	String        StringNS
+	Document      DocumentNS
+	Array         ArrayNS
+	Binary        BinNS
+	ObjectID      ObjectIDNS
+	Boolean       BooleanNS
+	DateTime      DatetimeNS
+	Regex         RegexNS
+	DBPointer     DBPointerNS
+	JavaScript    JavaScriptNS
+	Symbol        SymbolNS
+	CodeWithScope CodeWithScopeNS
+	Int32         Int32NS
+	Timestamp     TimestampNS
+	Int64         Int64NS
+	Decimal128    Decimal128NS
+	CString       CStringNS
+	Byte          BSONByteNS
 )
 
-type double struct{}
-type str struct{}
-type document struct{}
-type array struct{}
-type bin struct{}
-type objectid struct{}
-type boolean struct{}
-type datetime struct{}
-type regex struct{}
-type dbpointer struct{}
-type javascript struct{}
-type symbol struct{}
-type codewithscope struct{}
-type i32 struct{}
-type timestamp struct{}
-type i64 struct{}
-type decimal128 struct{}
-type cstring struct{}
-type bsonbyte struct{}
+// DoubleNS is a namespace for encoding BSON Double elements.
+type DoubleNS struct{}
 
-// Encodes a float64 into a BSON double element and serializes the bytes to the
+// StringNS is a namespace for encoding BSON String elements.
+type StringNS struct{}
+
+// DocumentNS is a namespace for encoding BSON Document elements.
+type DocumentNS struct{}
+
+// ArrayNS is a namespace for encoding BSON Array elements.
+type ArrayNS struct{}
+
+// BinNS is a namespace for encoding BSON Binary elements.
+type BinNS struct{}
+
+// ObjectIDNS is a namespace for encoding BSON ObjectID elements.
+type ObjectIDNS struct{}
+
+// BooleanNS is a namespace for encoding BSON Boolean elements.
+type BooleanNS struct{}
+
+// DatetimeNS is a namespace for encoding BSON Datetime elements.
+type DatetimeNS struct{}
+
+// RegexNS is a namespace for encoding BSON Regex elements.
+type RegexNS struct{}
+
+// DBPointerNS is a namespace for encoding BSON DBPointer elements.
+type DBPointerNS struct{}
+
+// JavaScriptNS is a namespace for encoding BSON JavaScript elements.
+type JavaScriptNS struct{}
+
+// SymbolNS is a namespace for encoding BSON Symbol elements.
+type SymbolNS struct{}
+
+// CodeWithScopeNS is a namespace for encoding BSON CodeWithScope elements.
+type CodeWithScopeNS struct{}
+
+// Int32NS is a namespace for encoding BSON Int32 elements.
+type Int32NS struct{}
+
+// TimestampNS is a namespace for encoding Timestamp Double elements.
+type TimestampNS struct{}
+
+// Int64NS is a namespace for encoding BSON Int64 elements.
+type Int64NS struct{}
+
+// Decimal128NS is a namespace for encoding BSON Decimal128 elements.
+type Decimal128NS struct{}
+
+// CStringNS is a namespace for encoding BSON CString elements.
+type CStringNS struct{}
+
+// BSONByteNS is a namespace for encoding a single byte.
+type BSONByteNS struct{}
+
+// Encode encodes a float64 into a BSON double element and serializes the bytes to the
 // provided writer.
-func (double) Encode(start uint, writer []byte, f float64) (int, error) {
+func (DoubleNS) Encode(start uint, writer []byte, f float64) (int, error) {
 	if len(writer) < int(start+8) {
 		return 0, ErrTooSmall
 	}
@@ -83,7 +120,9 @@ func (double) Encode(start uint, writer []byte, f float64) (int, error) {
 	return 8, nil
 }
 
-func (double) Element(start uint, writer []byte, key string, f float64) (int, error) {
+// Element encodes a float64 and a key into a BSON double element and serializes the bytes to the
+// provided writer.
+func (DoubleNS) Element(start uint, writer []byte, key string, f float64) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x01')
@@ -109,7 +148,9 @@ func (double) Element(start uint, writer []byte, key string, f float64) (int, er
 	return total, nil
 }
 
-func (str) Encode(start uint, writer []byte, s string) (int, error) {
+// Encode encodes a string into a BSON string element and serializes the bytes to the
+// provided writer.
+func (StringNS) Encode(start uint, writer []byte, s string) (int, error) {
 	var total int
 
 	written, err := Int32.Encode(start, writer, int32(len(s))+1)
@@ -124,7 +165,9 @@ func (str) Encode(start uint, writer []byte, s string) (int, error) {
 	return total, nil
 }
 
-func (str) Element(start uint, writer []byte, key string, s string) (int, error) {
+// Element encodes a string and a key into a BSON string element and serializes the bytes to the
+// provided writer.
+func (StringNS) Element(start uint, writer []byte, key string, s string) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x02')
@@ -150,11 +193,15 @@ func (str) Element(start uint, writer []byte, key string, s string) (int, error)
 	return total, nil
 }
 
-func (document) Encode(start uint, writer []byte, doc []byte) (int, error) {
+// Encode encodes a Document into a BSON document element and serializes the bytes to the
+// provided writer.
+func (DocumentNS) Encode(start uint, writer []byte, doc []byte) (int, error) {
 	return encodeByteSlice(start, writer, doc)
 }
 
-func (document) Element(start uint, writer []byte, key string, doc []byte) (int, error) {
+// Element encodes a Document and a key into a BSON document element and serializes the bytes to the
+// provided writer.
+func (DocumentNS) Element(start uint, writer []byte, key string, doc []byte) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x03')
@@ -180,11 +227,15 @@ func (document) Element(start uint, writer []byte, key string, doc []byte) (int,
 	return total, nil
 }
 
-func (array) Encode(start uint, writer []byte, arr []byte) (int, error) {
+// Encode encodes an array into a BSON array element and serializes the bytes to the
+// provided writer.
+func (ArrayNS) Encode(start uint, writer []byte, arr []byte) (int, error) {
 	return Document.Encode(start, writer, arr)
 }
 
-func (array) Element(start uint, writer []byte, key string, arr []byte) (int, error) {
+// Element encodes an array and a key into a BSON array element and serializes the bytes to the
+// provided writer.
+func (ArrayNS) Element(start uint, writer []byte, key string, arr []byte) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x04')
@@ -210,7 +261,9 @@ func (array) Element(start uint, writer []byte, key string, arr []byte) (int, er
 	return total, nil
 }
 
-func (bin) Encode(start uint, writer []byte, b []byte, btype byte) (int, error) {
+// Encode encodes a []byte into a BSON binary element and serializes the bytes to the
+// provided writer.
+func (BinNS) Encode(start uint, writer []byte, b []byte, btype byte) (int, error) {
 	if btype == 2 {
 		return Binary.encodeSubtype2(start, writer, b)
 	}
@@ -238,7 +291,7 @@ func (bin) Encode(start uint, writer []byte, b []byte, btype byte) (int, error) 
 	return total, nil
 }
 
-func (bin) encodeSubtype2(start uint, writer []byte, b []byte) (int, error) {
+func (BinNS) encodeSubtype2(start uint, writer []byte, b []byte) (int, error) {
 	var total int
 
 	if len(writer) < int(start)+9+len(b) {
@@ -269,7 +322,9 @@ func (bin) encodeSubtype2(start uint, writer []byte, b []byte) (int, error) {
 	return total, nil
 }
 
-func (bin) Element(start uint, writer []byte, key string, b []byte, btype byte) (int, error) {
+// Element encodes a []byte and a key into a BSON binary element and serializes the bytes to the
+// provided writer.
+func (BinNS) Element(start uint, writer []byte, key string, b []byte, btype byte) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x05')
@@ -295,11 +350,15 @@ func (bin) Element(start uint, writer []byte, key string, b []byte, btype byte) 
 	return total, nil
 }
 
-func (objectid) Encode(start uint, writer []byte, oid [12]byte) (int, error) {
+// Encode encodes an ObjectID into a BSON ObjectID element and serializes the bytes to the
+// provided writer.
+func (ObjectIDNS) Encode(start uint, writer []byte, oid [12]byte) (int, error) {
 	return encodeByteSlice(start, writer, oid[:])
 }
 
-func (objectid) Element(start uint, writer []byte, key string, oid [12]byte) (int, error) {
+// Element encodes a ObjectID and a key into a BSON ObjectID element and serializes the bytes to the
+// provided writer.
+func (ObjectIDNS) Element(start uint, writer []byte, key string, oid [12]byte) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x07')
@@ -326,7 +385,9 @@ func (objectid) Element(start uint, writer []byte, key string, oid [12]byte) (in
 	return total, nil
 }
 
-func (boolean) Encode(start uint, writer []byte, b bool) (int, error) {
+// Encode encodes a boolean into a BSON boolean element and serializes the bytes to the
+// provided writer.
+func (BooleanNS) Encode(start uint, writer []byte, b bool) (int, error) {
 	if len(writer) < int(start)+1 {
 		return 0, ErrTooSmall
 	}
@@ -340,7 +401,9 @@ func (boolean) Encode(start uint, writer []byte, b bool) (int, error) {
 	return 1, nil
 }
 
-func (boolean) Element(start uint, writer []byte, key string, b bool) (int, error) {
+// Element encodes a boolean and a key into a BSON boolean element and serializes the bytes to the
+// provided writer.
+func (BooleanNS) Element(start uint, writer []byte, key string, b bool) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x08')
@@ -367,11 +430,15 @@ func (boolean) Element(start uint, writer []byte, key string, b bool) (int, erro
 	return total, nil
 }
 
-func (datetime) Encode(start uint, writer []byte, dt int64) (int, error) {
+// Encode encodes a Datetime into a BSON Datetime element and serializes the bytes to the
+// provided writer.
+func (DatetimeNS) Encode(start uint, writer []byte, dt int64) (int, error) {
 	return Int64.Encode(start, writer, dt)
 }
 
-func (datetime) Element(start uint, writer []byte, key string, dt int64) (int, error) {
+// Element encodes a Datetime and a key into a BSON Datetime element and serializes the bytes to the
+// provided writer.
+func (DatetimeNS) Element(start uint, writer []byte, key string, dt int64) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x09')
@@ -398,7 +465,9 @@ func (datetime) Element(start uint, writer []byte, key string, dt int64) (int, e
 	return total, nil
 }
 
-func (regex) Encode(start uint, writer []byte, pattern, options string) (int, error) {
+// Encode encodes a regex into a BSON regex element and serializes the bytes to the
+// provided writer.
+func (RegexNS) Encode(start uint, writer []byte, pattern, options string) (int, error) {
 	var total int
 
 	written, err := CString.Encode(start, writer, pattern)
@@ -413,7 +482,9 @@ func (regex) Encode(start uint, writer []byte, pattern, options string) (int, er
 	return total, err
 }
 
-func (regex) Element(start uint, writer []byte, key string, pattern, options string) (int, error) {
+// Element encodes a regex and a key into a BSON regex element and serializes the bytes to the
+// provided writer.
+func (RegexNS) Element(start uint, writer []byte, key string, pattern, options string) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x0B')
@@ -447,7 +518,9 @@ func (regex) Element(start uint, writer []byte, key string, pattern, options str
 	return total, nil
 }
 
-func (dbpointer) Encode(start uint, writer []byte, ns string, oid [12]byte) (int, error) {
+// Encode encodes a DBPointer into a BSON DBPointer element and serializes the bytes to the
+// provided writer.
+func (DBPointerNS) Encode(start uint, writer []byte, ns string, oid [12]byte) (int, error) {
 	var total int
 
 	written, err := String.Encode(start, writer, ns)
@@ -462,7 +535,9 @@ func (dbpointer) Encode(start uint, writer []byte, ns string, oid [12]byte) (int
 	return total, err
 }
 
-func (dbpointer) Element(start uint, writer []byte, key string, ns string, oid [12]byte) (int, error) {
+// Element encodes a DBPointer and a key into a BSON DBPointer element and serializes the bytes to the
+// provided writer.
+func (DBPointerNS) Element(start uint, writer []byte, key string, ns string, oid [12]byte) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x0C')
@@ -490,11 +565,15 @@ func (dbpointer) Element(start uint, writer []byte, key string, ns string, oid [
 
 }
 
-func (javascript) Encode(start uint, writer []byte, code string) (int, error) {
+// Encode encodes a JavaScript string into a BSON JavaScript element and serializes the bytes to the
+// provided writer.
+func (JavaScriptNS) Encode(start uint, writer []byte, code string) (int, error) {
 	return String.Encode(start, writer, code)
 }
 
-func (javascript) Element(start uint, writer []byte, key string, code string) (int, error) {
+// Element encodes a JavaScript string and a key into a BSON JavaScript element and serializes the bytes to the
+// provided writer.
+func (JavaScriptNS) Element(start uint, writer []byte, key string, code string) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x0D')
@@ -521,11 +600,15 @@ func (javascript) Element(start uint, writer []byte, key string, code string) (i
 	return total, nil
 }
 
-func (symbol) Encode(start uint, writer []byte, symbol string) (int, error) {
+// Encode encodes a symbol into a BSON symbol element and serializes the bytes to the
+// provided writer.
+func (SymbolNS) Encode(start uint, writer []byte, symbol string) (int, error) {
 	return String.Encode(start, writer, symbol)
 }
 
-func (symbol) Element(start uint, writer []byte, key string, symbol string) (int, error) {
+// Element encodes a symbol and a key into a BSON symbol element and serializes the bytes to the
+// provided writer.
+func (SymbolNS) Element(start uint, writer []byte, key string, symbol string) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x0E')
@@ -552,7 +635,9 @@ func (symbol) Element(start uint, writer []byte, key string, symbol string) (int
 	return total, nil
 }
 
-func (codewithscope) Encode(start uint, writer []byte, code string, doc []byte) (int, error) {
+// Encode encodes a code and scope doc into a BSON CodeWithScope element and serializes the bytes to the
+// provided writer.
+func (CodeWithScopeNS) Encode(start uint, writer []byte, code string, doc []byte) (int, error) {
 	var total int
 
 	// Length of CodeWithScope is 4 + 4 + len(code) + 1 + len(doc)
@@ -576,7 +661,9 @@ func (codewithscope) Encode(start uint, writer []byte, code string, doc []byte) 
 	return total, err
 }
 
-func (codewithscope) Element(start uint, writer []byte, key string, code string, scope []byte) (int, error) {
+// Element encodes a code and scope doc and a key into a BSON CodeWithScope element and serializes the bytes to the
+// provided writer.
+func (CodeWithScopeNS) Element(start uint, writer []byte, key string, code string, scope []byte) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x0F')
@@ -603,7 +690,9 @@ func (codewithscope) Element(start uint, writer []byte, key string, code string,
 	return total, nil
 }
 
-func (i32) Encode(start uint, writer []byte, i int32) (int, error) {
+// Encode encodes an int32 into a BSON int32 element and serializes the bytes to the
+// provided writer.
+func (Int32NS) Encode(start uint, writer []byte, i int32) (int, error) {
 	if len(writer) < int(start)+4 {
 		return 0, ErrTooSmall
 	}
@@ -614,7 +703,9 @@ func (i32) Encode(start uint, writer []byte, i int32) (int, error) {
 
 }
 
-func (i32) Element(start uint, writer []byte, key string, i int32) (int, error) {
+// Element encodes an int32 and a key into a BSON int32 element and serializes the bytes to the
+// provided writer.
+func (Int32NS) Element(start uint, writer []byte, key string, i int32) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x10')
@@ -640,7 +731,9 @@ func (i32) Element(start uint, writer []byte, key string, i int32) (int, error) 
 	return total, nil
 }
 
-func (timestamp) Encode(start uint, writer []byte, t uint32, i uint32) (int, error) {
+// Encode encodes a timestamp into a BSON timestamp element and serializes the bytes to the
+// provided writer.
+func (TimestampNS) Encode(start uint, writer []byte, t uint32, i uint32) (int, error) {
 	var total int
 
 	n, err := encodeUint32(start, writer, i)
@@ -657,7 +750,9 @@ func (timestamp) Encode(start uint, writer []byte, t uint32, i uint32) (int, err
 	return total, err
 }
 
-func (timestamp) Element(start uint, writer []byte, key string, t uint32, i uint32) (int, error) {
+// Element encodes a timestamp and a key into a BSON timestamp element and serializes the bytes to the
+// provided writer.
+func (TimestampNS) Element(start uint, writer []byte, key string, t uint32, i uint32) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x11')
@@ -683,13 +778,17 @@ func (timestamp) Element(start uint, writer []byte, key string, t uint32, i uint
 	return total, nil
 }
 
-func (i64) Encode(start uint, writer []byte, i int64) (int, error) {
+// Encode encodes a int64 into a BSON int64 element and serializes the bytes to the
+// provided writer.
+func (Int64NS) Encode(start uint, writer []byte, i int64) (int, error) {
 	u := signed64ToUnsigned(i)
 
 	return encodeUint64(start, writer, u)
 }
 
-func (i64) Element(start uint, writer []byte, key string, i int64) (int, error) {
+// Element encodes a int64 and a key into a BSON int64 element and serializes the bytes to the
+// provided writer.
+func (Int64NS) Element(start uint, writer []byte, key string, i int64) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x12')
@@ -715,7 +814,9 @@ func (i64) Element(start uint, writer []byte, key string, i int64) (int, error) 
 	return total, nil
 }
 
-func (decimal128) Encode(start uint, writer []byte, d decimal.Decimal128) (int, error) {
+// Encode encodes a decimal128 into a BSON decimal128 element and serializes the bytes to the
+// provided writer.
+func (Decimal128NS) Encode(start uint, writer []byte, d decimal.Decimal128) (int, error) {
 	var total int
 	high, low := d.GetBytes()
 
@@ -731,7 +832,9 @@ func (decimal128) Encode(start uint, writer []byte, d decimal.Decimal128) (int, 
 	return total, err
 }
 
-func (decimal128) Element(start uint, writer []byte, key string, d decimal.Decimal128) (int, error) {
+// Element encodes a decimal128 and a key into a BSON decimal128 element and serializes the bytes to the
+// provided writer.
+func (Decimal128NS) Element(start uint, writer []byte, key string, d decimal.Decimal128) (int, error) {
 	var total int
 
 	n, err := Byte.Encode(start, writer, '\x13')
@@ -757,7 +860,9 @@ func (decimal128) Element(start uint, writer []byte, key string, d decimal.Decim
 	return total, nil
 }
 
-func (cstring) Encode(start uint, writer []byte, str string) (int, error) {
+// Encode encodes a C-style string into a BSON CString element and serializes the bytes to the
+// provided writer.
+func (CStringNS) Encode(start uint, writer []byte, str string) (int, error) {
 	if len(writer) < int(start+1)+len(str) {
 		return 0, ErrTooSmall
 	}
@@ -769,7 +874,9 @@ func (cstring) Encode(start uint, writer []byte, str string) (int, error) {
 	return written + 1, nil
 }
 
-func (bsonbyte) Encode(start uint, writer []byte, t byte) (int, error) {
+// Encode encodes a C-style string into a BSON CString element and serializes the bytes to the
+// provided writer.
+func (BSONByteNS) Encode(start uint, writer []byte, t byte) (int, error) {
 	if len(writer) < int(start+1) {
 		return 0, ErrTooSmall
 	}
