@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7ab745d0_fc198006",
+        "filename": "mongo/private/auth/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-09T15:48:50Z",
+      "side": 1,
+      "message": "Are we planning on adding documentation for how to use this package (and the others under private) are actually used or are we going to have some internal documentation for that?",
+      "range": {
+        "startLine": 23,
+        "startChar": 0,
+        "endLine": 23,
+        "endChar": 12
+      },
+      "revId": "294a2b776d63b26b5fb84d9d8f7a44b960342718",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
