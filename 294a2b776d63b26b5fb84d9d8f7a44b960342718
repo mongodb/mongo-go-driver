@@ -1,0 +1,7 @@
+Verified+1: Kris Brandow <kris.brandow@gmail.com>
+Code-Review+2: Kris Brandow <kris.brandow@gmail.com>
+Submitted-by: David Golden <david@mongodb.com>
+Submitted-at: Fri, 09 Feb 2018 11:00:25 -0500
+Reviewed-on: https://review.gerrithub.io/399099
+Project: 10gen/mongo-go-driver
+Branch: refs/heads/master
