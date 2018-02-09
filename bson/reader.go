@@ -44,6 +44,9 @@ func NewFromIOReader(r io.Reader) (Reader, error) {
 	}
 
 	length := readi32(lengthBytes[:])
+	if length < 0 {
+		return nil, ErrInvalidLength
+	}
 	reader := make([]byte, length)
 
 	copy(reader, lengthBytes[:])
@@ -237,7 +240,7 @@ func (r Reader) readElements(f func(e *Element) error) (uint32, error) {
 	// slice without reslicing if we have pos as a parameter and use that to
 	// get the length of the document.
 	givenLength := readi32(r[0:4])
-	if len(r) < int(givenLength) {
+	if len(r) < int(givenLength) || givenLength < 0 {
 		return 0, ErrInvalidLength
 	}
 	var pos uint32 = 4
