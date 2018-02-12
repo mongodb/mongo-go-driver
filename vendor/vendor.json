@@ -77,5 +77,5 @@
 			"revisionTime": "2016-09-28T15:37:09Z"
 		}
 	],
-	"rootPath": "github.com/10gen/mongo-go-driver"
+	"rootPath": "github.com/mongodb/mongo-go-driver"
 }
