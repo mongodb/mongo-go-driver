@@ -18,7 +18,7 @@ import (
 const validateMaxDepthDefault = 2048
 
 // ErrUninitializedElement is returned whenever any method is invoked on an uninitialized Element.
-var ErrUninitializedElement = errors.New("wilson/ast/compact: Method call on uninitialized Element")
+var ErrUninitializedElement = errors.New("bson/ast/compact: Method call on uninitialized Element")
 
 // ErrTooSmall indicates that a slice provided to write into is not large enough to fit the data.
 var ErrTooSmall = errors.New("too small")

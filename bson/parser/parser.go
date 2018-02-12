@@ -19,13 +19,13 @@ import (
 
 // ErrCorruptDocument is returned when the parser reaches a corrupt point
 // within a BSON document.
-var ErrCorruptDocument = errors.New("wilson/parser: corrupted document")
+var ErrCorruptDocument = errors.New("bson/parser: corrupted document")
 
 // ErrUnknownSubtype is returned when the subtype of a binary node is undefined.
-var ErrUnknownSubtype = errors.New("wilson/parser: unknown binary subtype")
+var ErrUnknownSubtype = errors.New("bson/parser: unknown binary subtype")
 
 // ErrNilReader is returned when a nil reader is passed to NewBSONParser.
-var ErrNilReader = errors.New("wilson/parser: nil or invalid reader provided")
+var ErrNilReader = errors.New("bson/parser: nil or invalid reader provided")
 
 // Parser is a BSON parser.
 type Parser struct {
