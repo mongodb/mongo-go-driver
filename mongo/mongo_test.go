@@ -11,8 +11,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 func TestTransformDocument(t *testing.T) {

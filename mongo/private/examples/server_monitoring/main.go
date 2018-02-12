@@ -10,10 +10,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/kr/pretty"
 	"github.com/mongodb/mongo-go-driver/mongo/model"
 	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 	"github.com/mongodb/mongo-go-driver/mongo/private/server"
-	"github.com/kr/pretty"
 )
 
 func main() {

@@ -9,8 +9,8 @@ package main
 import (
 	"log"
 
-	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
 	"github.com/kr/pretty"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
 )
 
 func main() {

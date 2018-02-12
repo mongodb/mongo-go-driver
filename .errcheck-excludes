@@ -1,1 +1,1 @@
-(github.com/10gen/mongo-go-driver/mongo/private/conn.Connection).Close
+(github.com/mongodb/mongo-go-driver/mongo/private/conn.Connection).Close
