@@ -28,13 +28,13 @@ functions:
     # Executes git clone and applies the submitted patch, if any
     - command: git.get_project
       params:
-        directory: src/github.com/10gen/mongo-go-driver         
+        directory: src/github.com/mongodb/mongo-go-driver
     # Deprecated. Should be removed. But still needed for certain agents (ZAP)
     - command: git.apply_patch
     # Make an evergreen expansion file with dynamic values
     - command: shell.exec
       params:
-        working_dir: src/github.com/10gen/mongo-go-driver
+        working_dir: src/github.com/mongodb/mongo-go-driver
         script: |
            if [ "Windows_NT" = "$OS" ]; then
               export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
@@ -88,7 +88,7 @@ functions:
     # Load the expansion file to make an evergreen variable with the current unique version
     - command: expansions.update
       params:
-        file: src/github.com/10gen/mongo-go-driver/expansion.yml
+        file: src/github.com/mongodb/mongo-go-driver/expansion.yml
 
 
   prepare-resources:
@@ -106,7 +106,7 @@ functions:
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
       params:
-        working_dir: src/github.com/10gen/mongo-go-driver
+        working_dir: src/github.com/mongodb/mongo-go-driver
         script: |
            ${PREPARE_SHELL}
            # any go tools that we need
@@ -212,17 +212,17 @@ functions:
   install-dependencies:
     type: test
     params:
-      working_dir: src/github.com/10gen/mongo-go-driver
+      working_dir: src/github.com/mongodb/mongo-go-driver
       script: |
         ${PREPARE_SHELL}
         file="${PROJECT_DIRECTORY}/.evergreen/install-dependencies.sh"
         [ -f ${file} ] && sh ${file} || echo "${file} not available, skipping"
-  
+
 
   run-make:
     - command: shell.exec
       params:
-        working_dir: src/github.com/10gen/mongo-go-driver
+        working_dir: src/github.com/mongodb/mongo-go-driver
         script: |
           ${PREPARE_SHELL}
           make ${targets} BUILD_TAGS="-tags gssapi"
@@ -232,7 +232,7 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/github.com/10gen/mongo-go-driver
+        working_dir: src/github.com/mongodb/mongo-go-driver
         script: |
           ${PREPARE_SHELL}
 
@@ -247,7 +247,7 @@ functions:
       type: test
       params:
         silent: true
-        working_dir: src/github.com/10gen/mongo-go-driver
+        working_dir: src/github.com/mongodb/mongo-go-driver
         script: |
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
@@ -263,7 +263,7 @@ functions:
       type: test
       params:
         silent: true
-        working_dir: src/github.com/10gen/mongo-go-driver
+        working_dir: src/github.com/mongodb/mongo-go-driver
         script: |
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
@@ -292,7 +292,7 @@ pre:
 post:
   - command: gotest.parse_files
     params:
-      files: ["src/github.com/10gen/mongo-go-driver/test.suite"]
+      files: ["src/github.com/mongodb/mongo-go-driver/test.suite"]
   - func: upload-mo-artifacts
   - func: cleanup
 
