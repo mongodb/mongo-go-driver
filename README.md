@@ -1,6 +1,6 @@
 # mongo-go-driver
 
-MongoDB Driver for golang.
+MongoDB Driver for Go.
 
 -------------------------
 - [Bugs/Feature Reporting](#bugs-feature-reporting)
@@ -16,10 +16,10 @@ New Features and bugs can be reported on jira: https://jira.mongodb.org/browse/G
 -------------------------
 ## Testing / Development
 
-To run driver tests, make sure a MongoDB server instance is running at localhost:27017. Using make, you can run `make` (on windows, run `nmake`). 
-This will generate tests from the specifications, run coverage, run go-lint, run go-vet, and build the examples.
+To run driver tests, make sure a MongoDB server instance is running at localhost:27017. Using make, you can run `make` (on windows, run `nmake`).
+This will run coverage, run go-lint, run go-vet, and build the examples.
 
-The MongoDB Go Driver is not feature complete, so any help is appreciated. Check out the [project page](https://jira.mongodb.org/browse/GODRIVER) 
+The MongoDB Go Driver is not feature complete, so any help is appreciated. Check out the [project page](https://jira.mongodb.org/browse/GODRIVER)
 for tickets that need completing. See our [contribution guidelines](CONTRIBUTING.md) for details.
 
 -------------------------
