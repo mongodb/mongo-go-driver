@@ -67,7 +67,7 @@ func main() {
 
 	<-done
 	log.Println("interupt received: shutting down")
-	c.Close()
+	_ = c.Close()
 	log.Println("finished")
 }
 
@@ -155,11 +155,11 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 				count++
 			}
 			if cursor.Err() != nil {
-				cursor.Close(ctx)
+				_ = cursor.Close(ctx)
 				log.Printf("%d-failed iterating aggregate results: %s", idx, cursor.Err())
 				return
 			}
-			cursor.Close(ctx)
+			_ = cursor.Close(ctx)
 
 			log.Printf("%d-iterated %d docs", idx, count)
 		}

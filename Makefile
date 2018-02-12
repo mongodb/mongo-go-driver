@@ -99,4 +99,4 @@ evg-test:
 
 .PHONY: evg-test-auth
 evg-test-auth:
-	go run -tags gssapi ./examples/count/main.go -uri $(MONGODB_URI)
+	go run -tags gssapi ./mongo/private/examples/count/main.go -uri $(MONGODB_URI)
