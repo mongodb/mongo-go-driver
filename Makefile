@@ -5,7 +5,7 @@ YAMGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./mongo _test)
 PKGS = $(BSON_PKGS) $(YAMGO_PKGS)
 TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
 
-TEST_TIMEOUT = 60
+TEST_TIMEOUT = 300
 
 .PHONY: default
 default: test-cover test-race check-fmt vet build-examples lint errcheck
