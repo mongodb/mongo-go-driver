@@ -9,8 +9,8 @@ package feature_test
 import (
 	"testing"
 
-	. "github.com/10gen/mongo-go-driver/mongo/internal/feature"
-	"github.com/10gen/mongo-go-driver/mongo/model"
+	. "github.com/mongodb/mongo-go-driver/mongo/internal/feature"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
 	"github.com/stretchr/testify/require"
 )
 

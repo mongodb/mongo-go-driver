@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // ListDatabasesOptions are the options for listing databases.

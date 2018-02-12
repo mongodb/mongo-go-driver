@@ -9,7 +9,7 @@ package feature
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
 )
 
 // MaxStaleness returns an error if the given server version

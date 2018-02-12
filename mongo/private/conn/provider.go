@@ -9,8 +9,8 @@ package conn
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/mongo/internal"
-	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/internal"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
 )
 
 // Provider gets a connection.

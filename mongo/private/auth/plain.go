@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 )
 
 // PLAIN is the mechanism name for PLAIN.

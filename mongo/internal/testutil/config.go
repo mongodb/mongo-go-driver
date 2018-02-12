@@ -14,8 +14,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/connstring"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
 )
 
 var connectionString connstring.ConnString

@@ -13,8 +13,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson/decimal"
-	"github.com/10gen/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/decimal"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 // Value represents a BSON value. It can be obtained as part of a bson.Element or created for use

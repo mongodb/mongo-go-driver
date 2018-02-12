@@ -22,7 +22,7 @@ import (
 
 	"encoding/base64"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 )
 
 // SCRAMSHA1 is the mechanism name for SCRAM-SHA-1.

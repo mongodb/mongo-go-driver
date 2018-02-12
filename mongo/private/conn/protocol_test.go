@@ -13,12 +13,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
 
-	"github.com/10gen/mongo-go-driver/mongo/internal/conntest"
-	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"
-	. "github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/conntest"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/msgtest"
+	. "github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
 )
 
 func validateExecuteCommandError(t *testing.T, err error, errPrefix string, writeCount int) {

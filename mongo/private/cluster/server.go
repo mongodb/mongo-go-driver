@@ -9,8 +9,8 @@ package cluster
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 )
 
 // Server represents a logical connection to a server.

@@ -9,8 +9,8 @@ package mongo
 import (
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 )
 
 // In order to facilitate users not having to supply a default value (e.g. nil or an uninitialized

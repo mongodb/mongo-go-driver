@@ -17,7 +17,7 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/10gen/mongo-go-driver/bson/internal/jsonpretty"
+	"github.com/mongodb/mongo-go-driver/bson/internal/jsonpretty"
 	"github.com/stretchr/testify/require"
 )
 

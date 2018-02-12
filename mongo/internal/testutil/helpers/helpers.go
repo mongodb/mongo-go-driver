@@ -18,7 +18,7 @@ import (
 
 	"io"
 
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
+	"github.com/mongodb/mongo-go-driver/mongo/connstring"
 	"github.com/stretchr/testify/require"
 )
 

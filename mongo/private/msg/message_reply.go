@@ -9,7 +9,7 @@ package msg
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // Reply is a message received from the server.

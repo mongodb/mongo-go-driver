@@ -9,8 +9,8 @@ package msg_test
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	. "github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/bson"
+	. "github.com/mongodb/mongo-go-driver/mongo/private/msg"
 	"github.com/stretchr/testify/require"
 )
 

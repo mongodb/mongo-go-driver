@@ -9,7 +9,7 @@ package bson
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 // Binary represents a BSON binary value.

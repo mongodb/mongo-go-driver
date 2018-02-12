@@ -13,8 +13,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 // TransformDocument handles transforming a document of an allowable type into

@@ -13,12 +13,12 @@ import (
 
 	"flag"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/bson/extjson"
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/extjson"
+	"github.com/mongodb/mongo-go-driver/mongo/connstring"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 )
 
 var uri = flag.String("uri", "mongodb://localhost:27017", "the mongodb uri to use")

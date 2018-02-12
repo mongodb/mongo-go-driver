@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	. "github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
+	. "github.com/mongodb/mongo-go-driver/mongo/private/cluster"
 	"github.com/stretchr/testify/require"
 )
 

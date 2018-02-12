@@ -13,13 +13,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/options"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/mongo-go-driver/mongo/readconcern"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
-	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // Collection performs operations on a given collection.

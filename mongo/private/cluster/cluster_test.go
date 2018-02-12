@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
 	"github.com/stretchr/testify/require"
 )
 

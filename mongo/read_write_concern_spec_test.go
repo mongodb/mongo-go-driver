@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
-	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
-	"github.com/10gen/mongo-go-driver/mongo/readconcern"
-	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/connstring"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/stretchr/testify/require"
 )
 

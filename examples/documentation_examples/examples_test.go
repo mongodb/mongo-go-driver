@@ -12,8 +12,8 @@ package documentation_examples_test
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/examples/documentation_examples"
-	"github.com/10gen/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-go-driver/examples/documentation_examples"
+	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/stretchr/testify/require"
 )
 

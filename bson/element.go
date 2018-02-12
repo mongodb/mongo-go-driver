@@ -12,7 +12,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/10gen/mongo-go-driver/bson/elements"
+	"github.com/mongodb/mongo-go-driver/bson/elements"
 )
 
 const validateMaxDepthDefault = 2048

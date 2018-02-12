@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // InsertOneResult is a result of an InsertOne operation.

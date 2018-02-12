@@ -10,7 +10,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
 )
 
 // ErrInvalidTagSet indicates that an invalid set of tags was specified.

@@ -17,14 +17,14 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
 
-	"github.com/10gen/mongo-go-driver/mongo"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 )
 
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")

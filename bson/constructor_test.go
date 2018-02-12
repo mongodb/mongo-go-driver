@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson/decimal"
+	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/stretchr/testify/require"
 )
 

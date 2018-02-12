@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/mongo/internal/conntest"
-	"github.com/10gen/mongo-go-driver/mongo/internal/servertest"
-	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	. "github.com/10gen/mongo-go-driver/mongo/private/server"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/conntest"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/servertest"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
+	. "github.com/mongodb/mongo-go-driver/mongo/private/server"
 	"github.com/stretchr/testify/require"
 )
 

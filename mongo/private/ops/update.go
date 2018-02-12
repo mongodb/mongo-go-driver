@@ -9,10 +9,10 @@ package ops
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/internal"
-	"github.com/10gen/mongo-go-driver/mongo/options"
-	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/internal"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // Update executes an update command with a given set of update documents and options.

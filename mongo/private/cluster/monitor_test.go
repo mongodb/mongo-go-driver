@@ -13,16 +13,16 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/server"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/server"
 	"github.com/stretchr/testify/require"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/internal"
-	"github.com/10gen/mongo-go-driver/mongo/internal/msgtest"
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/internal"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/msgtest"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
 )
 
 func TestStop(t *testing.T) {

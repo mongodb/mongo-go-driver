@@ -9,7 +9,7 @@ package msg
 import (
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // Query is a message sent to the server.

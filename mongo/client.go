@@ -10,12 +10,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/mongo-go-driver/mongo/readconcern"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
-	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/connstring"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond

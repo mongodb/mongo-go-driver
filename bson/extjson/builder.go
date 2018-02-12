@@ -13,8 +13,8 @@ import (
 
 	"strconv"
 
-	"github.com/10gen/mongo-go-driver/bson/builder"
-	"github.com/10gen/mongo-go-driver/bson/internal/jsonparser"
+	"github.com/mongodb/mongo-go-driver/bson/builder"
+	"github.com/mongodb/mongo-go-driver/bson/internal/jsonparser"
 )
 
 type docElementParser func([]byte, []byte, jsonparser.ValueType, int) error

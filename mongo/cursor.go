@@ -6,7 +6,7 @@
 
 package mongo
 
-import "github.com/10gen/mongo-go-driver/mongo/private/ops"
+import "github.com/mongodb/mongo-go-driver/mongo/private/ops"
 
 // Cursor instances iterate a stream of documents. Each document is
 // decoded into the result according to the rules of the bson package.

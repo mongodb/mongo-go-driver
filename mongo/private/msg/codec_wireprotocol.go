@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/bson/builder"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/builder"
 )
 
 // NewWireProtocolCodec creates a MessageReadWriter for the binary message format.

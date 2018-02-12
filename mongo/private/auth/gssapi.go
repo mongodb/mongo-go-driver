@@ -13,8 +13,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/mongo/internal/auth/gssapi"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/auth/gssapi"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.

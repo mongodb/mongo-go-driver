@@ -9,9 +9,9 @@ package conn_test
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/mongo/internal/conntest"
-	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
-	. "github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/conntest"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil/helpers"
+	. "github.com/mongodb/mongo-go-driver/mongo/private/conn"
 	"github.com/stretchr/testify/require"
 )
 

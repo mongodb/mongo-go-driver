@@ -13,7 +13,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/10gen/mongo-go-driver/bson/elements"
+	"github.com/mongodb/mongo-go-driver/bson/elements"
 )
 
 // ErrInvalidReadOnlyDocument indicates that the underlying bytes of a bson.Reader are invalid.

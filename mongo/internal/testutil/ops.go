@@ -11,12 +11,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/stretchr/testify/require"
 )
 

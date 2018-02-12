@@ -9,7 +9,7 @@ package model_test
 import (
 	"testing"
 
-	. "github.com/10gen/mongo-go-driver/mongo/model"
+	. "github.com/mongodb/mongo-go-driver/mongo/model"
 )
 
 func TestRange_Includes(t *testing.T) {

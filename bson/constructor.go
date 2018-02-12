@@ -12,9 +12,9 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/10gen/mongo-go-driver/bson/decimal"
-	"github.com/10gen/mongo-go-driver/bson/elements"
-	"github.com/10gen/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/decimal"
+	"github.com/mongodb/mongo-go-driver/bson/elements"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 // C is a convenience variable provided for access to the Constructor methods.

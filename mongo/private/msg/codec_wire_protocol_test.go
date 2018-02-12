@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
 
 	"encoding/json"
 
-	. "github.com/10gen/mongo-go-driver/mongo/private/msg"
+	. "github.com/mongodb/mongo-go-driver/mongo/private/msg"
 )
 
 func TestWireProtocolDecodeReply(t *testing.T) {

@@ -15,10 +15,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
-	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/connstring"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
 	"github.com/stretchr/testify/require"
 )
 

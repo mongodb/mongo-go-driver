@@ -11,7 +11,7 @@ import (
 
 	"bytes"
 
-	"github.com/10gen/mongo-go-driver/bson/extjson"
+	"github.com/mongodb/mongo-go-driver/bson/extjson"
 )
 
 func Test_ParseObjectToBuilder(t *testing.T) {

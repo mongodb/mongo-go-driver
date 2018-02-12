@@ -10,8 +10,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/server"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/private/server"
 )
 
 type monitor interface {

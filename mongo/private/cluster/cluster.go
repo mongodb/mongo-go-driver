@@ -12,11 +12,11 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/mongo/internal"
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/mongo-go-driver/mongo/private/server"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/internal"
+	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/private/server"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 )
 
 // ErrClusterClosed occurs on an attempt to use a closed

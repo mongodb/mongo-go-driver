@@ -9,8 +9,8 @@ package msgtest
 import (
 	"bytes"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
 )
 
 // CreateCommandReply creates a msg.Reply from the BSON response from the server.

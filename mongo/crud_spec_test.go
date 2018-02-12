@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/bson/extjson"
-	"github.com/10gen/mongo-go-driver/mongo/internal/testutil/helpers"
-	"github.com/10gen/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/extjson"
+	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/stretchr/testify/require"
 )
 

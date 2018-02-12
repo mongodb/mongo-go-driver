@@ -11,7 +11,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/google/go-cmp/cmp"
 )
 

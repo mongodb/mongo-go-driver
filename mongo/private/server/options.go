@@ -9,7 +9,7 @@ package server
 import (
 	"time"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 )
 
 func newConfig(opts ...Option) (*config, error) {
