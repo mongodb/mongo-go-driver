@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0e15dc79_12523ebf",
+        "filename": "examples/documentation_examples/examples.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-12T19:54:42Z",
+      "side": 1,
+      "message": "In the future we might want to alter these names so they can be examples that show up in GoDoc.",
+      "range": {
+        "startLine": 55,
+        "startChar": 5,
+        "endLine": 55,
+        "endChar": 19
+      },
+      "revId": "4407c1cfa83ed9b9ea05444472abc50c1c30acdd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
