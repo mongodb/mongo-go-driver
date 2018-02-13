@@ -12,12 +12,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // Update executes an update command with a given set of update documents and options.
-func Update(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
-	updateDocs []*bson.Document, opt ...options.UpdateOptioner) (bson.Reader, error) {
+func Update(ctx context.Context, s *SelectedServer, ns Namespace, updateDocs []*bson.Document,
+	opt ...options.UpdateOptioner) (bson.Reader, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -42,14 +41,6 @@ func Update(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *
 		default:
 			option.Option(command)
 		}
-	}
-
-	if writeConcern != nil {
-		elem, err := writeConcern.MarshalBSONElement()
-		if err != nil {
-			return nil, err
-		}
-		command.Append(elem)
 	}
 
 	rdr, err := runMustUsePrimary(ctx, s, ns.DB, command)

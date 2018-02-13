@@ -11,6 +11,8 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // In order to facilitate users not having to supply a default value (e.g. nil or an uninitialized
@@ -199,6 +201,17 @@ func Projection(projection interface{}) (options.OptProjection, error) {
 	return opt, nil
 }
 
+// ReadConcern for replica sets and replica set shards determines which data to return from a query.
+func ReadConcern(readConcern *readconcern.ReadConcern) (options.OptReadConcern, error) {
+	elem, err := readConcern.MarshalBSONElement()
+	if err != nil {
+		return options.OptReadConcern{}, err
+	}
+
+	opt := options.OptReadConcern{ReadConcern: elem}
+	return opt, nil
+}
+
 // ReturnDocument specifies whether a findAndUpdate should return the document as it was before the
 // update or as it is after.
 func ReturnDocument(returnDocument options.ReturnDocument) options.OptReturnDocument {
@@ -250,4 +263,16 @@ func Sort(sort interface{}) (options.OptSort, error) {
 func Upsert(b bool) options.OptUpsert {
 	opt := options.OptUpsert(b)
 	return opt
+}
+
+// WriteConcern describes the level of acknowledgement requested from MongoDB for write operations
+// to a standalone mongod or to replica sets or to sharded clusters.func WriteConcern(writeConcern writeconcern.WriteConcern) (options.OptWriteConcern, error) {
+func WriteConcern(writeConcern *writeconcern.WriteConcern) (options.OptWriteConcern, error) {
+	elem, err := writeConcern.MarshalBSONElement()
+	if err != nil {
+		return options.OptWriteConcern{}, err
+	}
+
+	opt := options.OptWriteConcern{WriteConcern: elem, Acknowledged: writeConcern.Acknowledged()}
+	return opt, nil
 }

@@ -13,12 +13,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 )
 
 // Distinct returns the distinct values for a specified field across a single collection.
-func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	field string, query *bson.Document, opts ...options.DistinctOptioner) ([]interface{}, error) {
+func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, field string,
+	query *bson.Document, opts ...options.DistinctOptioner) ([]interface{}, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -36,14 +35,6 @@ func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, readConcern 
 			continue
 		}
 		option.Option(command)
-	}
-
-	if readConcern != nil {
-		elem, err := readConcern.MarshalBSONElement()
-		if err != nil {
-			return nil, err
-		}
-		command.Append(elem)
 	}
 
 	result := struct{ Values []interface{} }{}

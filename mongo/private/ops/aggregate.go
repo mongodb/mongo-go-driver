@@ -13,16 +13,14 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // Aggregate performs an aggregation.
 //
 // This method takes both a read and a write concern. The caller should set
 // the appropriate parameter based on whether there is a $out in the pipeline.
-func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	writeConcern *writeconcern.WriteConcern, pipeline *bson.Array, hasDollarOut bool, opts ...options.AggregateOptioner) (Cursor, error) {
+func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline *bson.Array,
+	hasDollarOut bool, opts ...options.AggregateOptioner) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -50,22 +48,6 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, readConcern
 		default:
 			option.Option(command)
 		}
-	}
-
-	if readConcern != nil {
-		elem, err := readConcern.MarshalBSONElement()
-		if err != nil {
-			return nil, err
-		}
-		command.Append(elem)
-	}
-
-	if writeConcern != nil {
-		elem, err := writeConcern.MarshalBSONElement()
-		if err != nil {
-			return nil, err
-		}
-		command.Append(elem)
 	}
 
 	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)

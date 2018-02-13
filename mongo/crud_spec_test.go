@@ -228,6 +228,7 @@ func deleteManyTest(t *testing.T, coll *Collection, test *testCase) {
 
 		var expected DeleteResult
 		err = json.NewDecoder(bytes.NewBuffer(expectedBytes)).Decode(&expected)
+		require.NoError(t, err)
 
 		require.Equal(t, expected.DeletedCount, actual.DeletedCount)
 
@@ -253,6 +254,7 @@ func deleteOneTest(t *testing.T, coll *Collection, test *testCase) {
 
 		var expected DeleteResult
 		err = json.NewDecoder(bytes.NewBuffer(expectedBytes)).Decode(&expected)
+		require.NoError(t, err)
 
 		require.Equal(t, expected.DeletedCount, actual.DeletedCount)
 
