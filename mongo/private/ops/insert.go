@@ -12,12 +12,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // Insert executes an insert command for the given set of  documents.
-func Insert(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
-	docs []*bson.Document, options ...options.InsertOptioner) (rdr bson.Reader, err error) {
+func Insert(ctx context.Context, s *SelectedServer, ns Namespace, docs []*bson.Document,
+	options ...options.InsertOptioner) (rdr bson.Reader, err error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -36,14 +35,6 @@ func Insert(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *
 			continue
 		}
 		option.Option(command)
-	}
-
-	if writeConcern != nil {
-		elem, err := writeConcern.MarshalBSONElement()
-		if err != nil {
-			return nil, err
-		}
-		command.Append(elem)
 	}
 
 	rdr, err = runMustUsePrimary(ctx, s, ns.DB, command)

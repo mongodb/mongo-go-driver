@@ -79,7 +79,7 @@ func (coll *Collection) getReadableServer(ctx context.Context) (*ops.SelectedSer
 // TODO(skriptble): Determine if we should unwrap the value for the
 // InsertOneResult or just return the bson.Element or a bson.Value.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	options ...options.InsertOptioner) (*InsertOneResult, error) {
+	opts ...options.InsertOneOptioner) (*InsertOneResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -100,18 +100,40 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		return nil, err
 	}
 
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, wc)
+	}
+
+	newOptions := make([]options.InsertOptioner, 0, len(opts))
+	for _, opt := range opts {
+		newOptions = append(newOptions, opt)
+	}
+
 	insert := func() (bson.Reader, error) {
 		return ops.Insert(
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			[]*bson.Document{doc},
-			options...,
+			newOptions...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		go func() { _, _ = insert() }()
 		return nil, nil
 	}
@@ -136,7 +158,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // documents.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
-	options ...options.InsertOptioner) (*InsertManyResult, error) {
+	opts ...options.InsertManyOptioner) (*InsertManyResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -159,11 +181,23 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		result[i] = insertedID
 	}
 
-	// TODO GODRIVER-27: write concern
-
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, wc)
+	}
+
+	newOptions := make([]options.InsertOptioner, 0, len(opts))
+	for _, opt := range opts {
+		newOptions = append(newOptions, opt)
 	}
 
 	insert := func() (bson.Reader, error) {
@@ -171,13 +205,21 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			docs,
-			options...,
+			newOptions...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		go func() { _, _ = insert() }()
 		return nil, nil
 	}
@@ -198,7 +240,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
-	options ...options.DeleteOptioner) (*DeleteResult, error) {
+	opts ...options.DeleteOptioner) (*DeleteResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -219,19 +261,36 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, wc)
+	}
+
 	var result DeleteResult
 	doDelete := func() (bson.Reader, error) {
 		return ops.Delete(
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			deleteDocs,
-			options...,
+			opts...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		go func() { _, _ = doDelete() }()
 		return nil, nil
 	}
@@ -257,7 +316,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
-	options ...options.DeleteOptioner) (*DeleteResult, error) {
+	opts ...options.DeleteOptioner) (*DeleteResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -269,11 +328,18 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	}
 	deleteDocs := []*bson.Document{bson.NewDocument(bson.C.SubDocument("q", f), bson.C.Int32("limit", 0))}
 
-	// TODO GODRIVER-27: write concern
-
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, wc)
 	}
 
 	var result DeleteResult
@@ -282,13 +348,21 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			deleteDocs,
-			options...,
+			opts...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		go func() { _, _ = doDelete() }()
 		return nil, nil
 	}
@@ -307,7 +381,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
-	update *bson.Document, options ...options.UpdateOptioner) (*UpdateResult, error) {
+	update *bson.Document, opts ...options.UpdateOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -326,19 +400,36 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		return nil, err
 	}
 
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, wc)
+	}
+
 	var result UpdateResult
 	doUpdate := func() (bson.Reader, error) {
 		return ops.Update(
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			updateDocs,
-			options...,
+			opts...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		go func() { _, _ = doUpdate() }()
 		return nil, nil
 	}
@@ -397,7 +488,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // into a *bson.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
-	options ...options.UpdateOptioner) (*UpdateResult, error) {
+	opts ...options.UpdateOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -425,11 +516,18 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		),
 	}
 
-	// TODO GODRIVER-27: write concern
-
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, wc)
 	}
 
 	var result UpdateResult
@@ -438,13 +536,21 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			updateDocs,
-			options...,
+			opts...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		go func() { _, _ = doUpdate() }()
 		return nil, nil
 	}
@@ -581,14 +687,34 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		if err != nil {
 			return nil, err
 		}
-		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), nil, coll.writeConcern, pipelineArr, true, options...)
+
+		if coll.writeConcern != nil {
+			wc, err := WriteConcern(coll.writeConcern)
+			if err != nil {
+				return nil, err
+			}
+
+			options = append(options, wc)
+		}
+
+		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), pipelineArr, true, options...)
 	} else {
 		var s *ops.SelectedServer
 		s, err = coll.getReadableServer(ctx)
 		if err != nil {
 			return nil, err
 		}
-		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), coll.readConcern, nil, pipelineArr, false, options...)
+
+		if coll.readConcern != nil {
+			rc, err := ReadConcern(coll.readConcern)
+			if err != nil {
+				return nil, err
+			}
+
+			options = append(options, rc)
+		}
+
+		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), pipelineArr, false, options...)
 	}
 
 	if err != nil {
@@ -621,7 +747,16 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
-	count, err := ops.Count(ctx, s, coll.namespace(), coll.readConcern, f, options...)
+	if coll.readConcern != nil {
+		rc, err := ReadConcern(coll.readConcern)
+		if err != nil {
+			return 0, err
+		}
+
+		options = append(options, rc)
+	}
+
+	count, err := ops.Count(ctx, s, coll.namespace(), f, options...)
 	if err != nil {
 		return 0, err
 	}
@@ -658,11 +793,19 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		return nil, err
 	}
 
+	if coll.readConcern != nil {
+		rc, err := ReadConcern(coll.readConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		options = append(options, rc)
+	}
+
 	values, err := ops.Distinct(
 		ctx,
 		s,
 		coll.namespace(),
-		coll.readConcern,
 		fieldName,
 		f,
 		options...,
@@ -702,7 +845,16 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	cursor, err := ops.Find(ctx, s, coll.namespace(), coll.readConcern, f, options...)
+	if coll.readConcern != nil {
+		rc, err := ReadConcern(coll.readConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		options = append(options, rc)
+	}
+
+	cursor, err := ops.Find(ctx, s, coll.namespace(), f, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -733,6 +885,15 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
+	}
+
+	if coll.readConcern != nil {
+		rc, err := ReadConcern(coll.readConcern)
+		if err != nil {
+			return &DocumentResult{err: err}
+		}
+
+		options = append(options, rc)
 	}
 
 	cursor, err := coll.Find(ctx, f, options...)
@@ -773,18 +934,35 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		return &DocumentResult{err: err}
 	}
 
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return &DocumentResult{err: err}
+		}
+
+		opts = append(opts, wc)
+	}
+
 	findOneAndDelete := func() (Cursor, error) {
 		return ops.FindOneAndDelete(
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			f,
 			opts...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		// TODO(skriptble): This is probably wrong. We should be returning
 		// ErrUnacknowledged but we don't have that yet  ¯\_(ツ)_/¯
 		go func() { _, _ = findOneAndDelete() }()
@@ -835,19 +1013,36 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		return &DocumentResult{err: err}
 	}
 
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return &DocumentResult{err: err}
+		}
+
+		opts = append(opts, wc)
+	}
+
 	findOneAndReplace := func() (Cursor, error) {
 		return ops.FindOneAndReplace(
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			f,
 			r,
 			opts...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		// TODO(skriptble): This is probably wrong. We should be returning
 		// ErrUnacknowledged but we don't have that yet  ¯\_(ツ)_/¯
 		go func() { _, _ = findOneAndReplace() }()
@@ -898,19 +1093,36 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &DocumentResult{err: err}
 	}
 
+	if coll.writeConcern != nil {
+		wc, err := WriteConcern(coll.writeConcern)
+		if err != nil {
+			return &DocumentResult{err: err}
+		}
+
+		opts = append(opts, wc)
+	}
+
 	findOneAndUpdate := func() (Cursor, error) {
 		return ops.FindOneAndUpdate(
 			ctx,
 			s,
 			coll.namespace(),
-			coll.writeConcern,
 			f,
 			u,
 			opts...,
 		)
 	}
 
-	if !coll.writeConcern.Acknowledged() {
+	acknowledged := true
+
+	for _, opt := range opts {
+		if wc, ok := opt.(options.OptWriteConcern); ok {
+			acknowledged = wc.Acknowledged
+			break
+		}
+	}
+
+	if !acknowledged {
 		// TODO(skriptble): This is probably wrong. We should be returning
 		// ErrUnacknowledged but we don't have that yet  ¯\_(ツ)_/¯
 		go func() { _, _ = findOneAndUpdate() }()
