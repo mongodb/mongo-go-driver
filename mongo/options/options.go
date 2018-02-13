@@ -109,6 +109,13 @@ type FindOneAndReplaceOptioner interface {
 	findOneAndReplaceOption()
 }
 
+// ChangeStreamOptioner is the interface  implemented by types that can be used as Options for
+// change stream operations.
+type ChangeStreamOptioner interface {
+	Optioner
+	changeStreamOption()
+}
+
 var (
 	_ AggregateOptioner         = (*OptAllowDiskUse)(nil)
 	_ AggregateOptioner         = (*OptBatchSize)(nil)
@@ -189,6 +196,12 @@ var (
 	_ UpdateOptioner            = (*OptBypassDocumentValidation)(nil)
 	_ UpdateOptioner            = (*OptCollation)(nil)
 	_ UpdateOptioner            = (*OptWriteConcern)(nil)
+	_ ChangeStreamOptioner      = (*OptBatchSize)(nil)
+	_ ChangeStreamOptioner      = (*OptCollation)(nil)
+	_ ChangeStreamOptioner      = (*OptFullDocument)(nil)
+	_ ChangeStreamOptioner      = (*OptMaxAwaitTime)(nil)
+	_ ChangeStreamOptioner      = (*OptReadConcern)(nil)
+	_ ChangeStreamOptioner      = (*OptResumeAfter)(nil)
 )
 
 // OptAllowDiskUse is for internal use.
@@ -234,8 +247,9 @@ func (opt OptBatchSize) Option(d *bson.Document) {
 	d.Append(bson.C.Int32("batchSize", int32(opt)))
 }
 
-func (OptBatchSize) aggregateOption() {}
-func (OptBatchSize) findOption()      {}
+func (OptBatchSize) aggregateOption()    {}
+func (OptBatchSize) changeStreamOption() {}
+func (OptBatchSize) findOption()         {}
 
 // OptBypassDocumentValidation is for internal use.
 type OptBypassDocumentValidation bool
@@ -263,6 +277,7 @@ func (opt OptCollation) Option(d *bson.Document) {
 }
 
 func (OptCollation) aggregateOption()         {}
+func (OptCollation) changeStreamOption()      {}
 func (OptCollation) countOption()             {}
 func (OptCollation) deleteOption()            {}
 func (OptCollation) distinctOption()          {}
@@ -298,6 +313,16 @@ func (opt OptCursorType) Option(d *bson.Document) {
 }
 
 func (OptCursorType) findOption() {}
+
+// OptFullDocument is for internal use.
+type OptFullDocument string
+
+// Option implements the Optioner interface.
+func (opt OptFullDocument) Option(d *bson.Document) {
+	d.Append(bson.C.String("fullDocument", string(opt)))
+}
+
+func (OptFullDocument) changeStreamOption() {}
 
 // OptHint is for internal use.
 type OptHint struct{ Hint interface{} }
@@ -344,7 +369,8 @@ func (opt OptMaxAwaitTime) Option(d *bson.Document) {
 	d.Append(bson.C.Int64("maxAwaitTimeMS", int64(time.Duration(opt)/time.Millisecond)))
 }
 
-func (OptMaxAwaitTime) findOption() {}
+func (OptMaxAwaitTime) changeStreamOption() {}
+func (OptMaxAwaitTime) findOption()         {}
 
 // OptMaxScan is for internal use.
 type OptMaxScan int64
@@ -450,10 +476,23 @@ func (opt OptReadConcern) Option(d *bson.Document) {
 	}
 }
 
-func (OptReadConcern) aggregateOption() {}
-func (OptReadConcern) countOption()     {}
-func (OptReadConcern) distinctOption()  {}
-func (OptReadConcern) findOption()      {}
+func (OptReadConcern) aggregateOption()    {}
+func (OptReadConcern) changeStreamOption() {}
+func (OptReadConcern) countOption()        {}
+func (OptReadConcern) distinctOption()     {}
+func (OptReadConcern) findOption()         {}
+
+// OptResumeAfter is for internal use.
+type OptResumeAfter struct{ ResumeAfter *bson.Document }
+
+// Option implements the Optioner interface.
+func (opt OptResumeAfter) Option(d *bson.Document) {
+	if opt.ResumeAfter != nil {
+		d.Append(bson.C.SubDocument("resumeAfter", opt.ResumeAfter))
+	}
+}
+
+func (OptResumeAfter) changeStreamOption() {}
 
 // OptReturnDocument is for internal use.
 type OptReturnDocument ReturnDocument

@@ -25,6 +25,10 @@ func NewExhaustedCursor() (Cursor, error) {
 
 type exhaustedCursorImpl struct{}
 
+func (e *exhaustedCursorImpl) ID() int64 {
+	return -1
+}
+
 func (e *exhaustedCursorImpl) Next(context.Context) bool {
 	return false
 }
@@ -101,6 +105,9 @@ func NewCursor(cursorResult bson.Reader, batchSize int32, server Server) (Cursor
 //		}
 //		err := cursor.Close(ctx)
 type Cursor interface {
+	// Get the ID of the cursor.
+	ID() int64
+
 	// Get the next result from the cursor.
 	// Returns true if there were no errors and there is a next result.
 	Next(context.Context) bool
@@ -123,6 +130,10 @@ type cursorImpl struct {
 	cursorID     int64
 	err          error
 	server       Server
+}
+
+func (c *cursorImpl) ID() int64 {
+	return c.cursorID
 }
 
 func (c *cursorImpl) Next(ctx context.Context) bool {

@@ -626,34 +626,9 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		ctx = context.Background()
 	}
 
-	var pipelineArr *bson.Array
-	switch t := pipeline.(type) {
-	case *bson.Array:
-		pipelineArr = t
-	case []*bson.Document:
-		pipelineArr = bson.NewArray()
-
-		for _, doc := range t {
-			pipelineArr.Append(bson.AC.Document(doc))
-		}
-	case []interface{}:
-		pipelineArr = bson.NewArray()
-
-		for _, val := range t {
-			doc, err := TransformDocument(val)
-			if err != nil {
-				return nil, err
-			}
-
-			pipelineArr.Append(bson.AC.Document(doc))
-		}
-	default:
-		p, err := TransformDocument(pipeline)
-		if err != nil {
-			return nil, err
-		}
-
-		pipelineArr = bson.ArrayFromDocument(p)
+	pipelineArr, err := transformAggregatePipeline(pipeline)
+	if err != nil {
+		return nil, err
 	}
 
 	var dollarOut bool
@@ -680,7 +655,6 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	}
 
 	var cursor Cursor
-	var err error
 	if dollarOut {
 		var s *ops.SelectedServer
 		s, err = coll.getWriteableServer(ctx)
@@ -723,16 +697,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 			return nil, err
 		}
 
-		if coll.readConcern != nil {
-			rc, err := ReadConcern(coll.readConcern)
-			if err != nil {
-				return nil, err
-			}
-
-			opts = append(opts, rc)
-		}
-
-		cursor, err = ops.Aggregate(ctx, s, coll.namespace(), pipelineArr, false, opts...)
+		cursor, err = coll.aggregateWithServer(ctx, s, pipelineArr, opts...)
 	}
 
 	if err != nil {
@@ -740,6 +705,20 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	}
 
 	return cursor, nil
+}
+
+func (coll *Collection) aggregateWithServer(ctx context.Context, server *ops.SelectedServer,
+	pipeline *bson.Array, opts ...options.AggregateOptioner) (Cursor, error) {
+	if coll.readConcern != nil {
+		rc, err := ReadConcern(coll.readConcern)
+		if err != nil {
+			return nil, err
+		}
+
+		opts = append(opts, rc)
+	}
+
+	return ops.Aggregate(ctx, server, coll.namespace(), pipeline, false, opts...)
 }
 
 // Count gets the number of documents matching the filter. A user can supply a
@@ -1149,4 +1128,12 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 
 	cur, err := findOneAndUpdate()
 	return &DocumentResult{cur: cur, err: err}
+}
+
+// Watch returns a change stream cursor used to receive notifications of changes to the collection.
+// This method is preferred to running a raw aggregation with a $changeStream stage because it
+// supports resumability in the case of some errors.
+func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
+	opts ...options.ChangeStreamOptioner) (Cursor, error) {
+	return newChangeStream(ctx, coll, pipeline, opts...)
 }

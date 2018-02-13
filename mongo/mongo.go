@@ -84,3 +84,37 @@ func ensureDollarKey(doc *bson.Document) error {
 	}
 	return nil
 }
+
+func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
+	var pipelineArr *bson.Array
+	switch t := pipeline.(type) {
+	case *bson.Array:
+		pipelineArr = t
+	case []*bson.Document:
+		pipelineArr = bson.NewArray()
+
+		for _, doc := range t {
+			pipelineArr.Append(bson.AC.Document(doc))
+		}
+	case []interface{}:
+		pipelineArr = bson.NewArray()
+
+		for _, val := range t {
+			doc, err := TransformDocument(val)
+			if err != nil {
+				return nil, err
+			}
+
+			pipelineArr.Append(bson.AC.Document(doc))
+		}
+	default:
+		p, err := TransformDocument(pipeline)
+		if err != nil {
+			return nil, err
+		}
+
+		pipelineArr = bson.ArrayFromDocument(p)
+	}
+
+	return pipelineArr, nil
+}
