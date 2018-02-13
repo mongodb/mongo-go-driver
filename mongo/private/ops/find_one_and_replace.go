@@ -13,13 +13,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // FindOneAndReplace modifies and returns a single document.
-func FindOneAndReplace(ctx context.Context, s *SelectedServer, ns Namespace,
-	writeConcern *writeconcern.WriteConcern, query *bson.Document, replacement *bson.Document,
-	opts ...options.FindOneAndReplaceOptioner) (Cursor, error) {
+func FindOneAndReplace(ctx context.Context, s *SelectedServer, ns Namespace, query *bson.Document,
+	replacement *bson.Document, opts ...options.FindOneAndReplaceOptioner) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -37,14 +35,6 @@ func FindOneAndReplace(ctx context.Context, s *SelectedServer, ns Namespace,
 			continue
 		}
 		option.Option(command)
-	}
-
-	if writeConcern != nil {
-		elem, err := writeConcern.MarshalBSONElement()
-		if err != nil {
-			return nil, err
-		}
-		command.Append(elem)
 	}
 
 	rdr, err := runMustUsePrimary(ctx, s, ns.DB, command)
