@@ -12,12 +12,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // Delete executes an delete command with a given set of delete documents and options.
-func Delete(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *writeconcern.WriteConcern,
-	deleteDocs []*bson.Document, opts ...options.DeleteOptioner) (bson.Reader, error) {
+func Delete(ctx context.Context, s *SelectedServer, ns Namespace, deleteDocs []*bson.Document,
+	opts ...options.DeleteOptioner) (bson.Reader, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -41,14 +40,6 @@ func Delete(ctx context.Context, s *SelectedServer, ns Namespace, writeConcern *
 		default:
 			option.Option(command)
 		}
-	}
-
-	if writeConcern != nil {
-		elem, err := writeConcern.MarshalBSONElement()
-		if err != nil {
-			return nil, err
-		}
-		command.Append(elem)
 	}
 
 	rdr, err := runMustUsePrimary(ctx, s, ns.DB, command)

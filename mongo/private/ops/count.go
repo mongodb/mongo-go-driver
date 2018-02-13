@@ -13,12 +13,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 )
 
 // Count counts how many documents in a collection match a given query.
-func Count(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	query *bson.Document, opts ...options.CountOptioner) (int64, error) {
+func Count(ctx context.Context, s *SelectedServer, ns Namespace, query *bson.Document,
+	opts ...options.CountOptioner) (int64, error) {
 
 	if err := ns.validate(); err != nil {
 		return 0, err
@@ -32,14 +31,6 @@ func Count(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *re
 			continue
 		}
 		option.Option(command)
-	}
-
-	if readConcern != nil {
-		elem, err := readConcern.MarshalBSONElement()
-		if err != nil {
-			return 0, err
-		}
-		command.Append(elem)
 	}
 
 	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)

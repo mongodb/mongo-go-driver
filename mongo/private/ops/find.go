@@ -12,12 +12,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 )
 
 // Find executes a query.
-func Find(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *readconcern.ReadConcern,
-	filter *bson.Document, findOptions ...options.FindOptioner) (Cursor, error) {
+func Find(ctx context.Context, s *SelectedServer, ns Namespace, filter *bson.Document,
+	findOptions ...options.FindOptioner) (Cursor, error) {
 
 	if err := ns.validate(); err != nil {
 		return nil, err
@@ -52,14 +51,6 @@ func Find(ctx context.Context, s *SelectedServer, ns Namespace, readConcern *rea
 
 	if limit != 0 && batchSize != 0 && limit <= int64(batchSize) {
 		command.Append(bson.C.Boolean("singleBatch", true))
-	}
-
-	if readConcern != nil {
-		elem, err := readConcern.MarshalBSONElement()
-		if err != nil {
-			return nil, err
-		}
-		command.Append(elem)
 	}
 
 	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)
