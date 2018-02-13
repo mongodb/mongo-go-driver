@@ -29,6 +29,8 @@ func TestListDatabases(t *testing.T) {
 
 	var next = bson.NewDocument()
 	var found bool
+	dbs := make([]string, 0)
+
 	for cursor.Next(context.Background()) {
 		err = cursor.Decode(next)
 		require.NoError(t, err)
@@ -36,12 +38,14 @@ func TestListDatabases(t *testing.T) {
 		elem, err := next.Lookup("name")
 		require.NoError(t, err)
 		require.Equal(t, elem.Value().Type(), bson.TypeString)
+		dbs = append(dbs, elem.Value().StringValue())
+
 		if elem.Value().StringValue() == testutil.DBName(t) {
 			found = true
 			break
 		}
 	}
-	require.True(t, found, "Expected to have listed at least database named %v", testutil.DBName(t))
+	require.True(t, found, "Expected to have listed at least database named %v, instead got %#v", testutil.DBName(t), dbs)
 	require.NoError(t, cursor.Err())
 	require.NoError(t, cursor.Close(context.Background()))
 }
