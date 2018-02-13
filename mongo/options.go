@@ -96,6 +96,16 @@ func CursorType(cursorType options.CursorType) options.OptCursorType {
 	return opt
 }
 
+// FullDocument indicates which changes should be returned in a change stream notification.
+//
+// If fullDocument is "updateLookup", then the change notification for partial updates will include
+// both a delta describing the changes to the document as well as a copy of the entire document
+// that was changed from some time after the change occurred.
+func FullDocument(fullDocument string) options.OptFullDocument {
+	opt := options.OptFullDocument(fullDocument)
+	return opt
+}
+
 // Hint specifies the index to use.
 //
 // The hint parameter must be either a string or a document. If it is a
@@ -210,6 +220,12 @@ func ReadConcern(readConcern *readconcern.ReadConcern) (options.OptReadConcern, 
 
 	opt := options.OptReadConcern{ReadConcern: elem}
 	return opt, nil
+}
+
+// ResumeAfter specifies the logical starting point for a new change stream.
+func ResumeAfter(token *bson.Document) options.OptResumeAfter {
+	opt := options.OptResumeAfter{ResumeAfter: token}
+	return opt
 }
 
 // ReturnDocument specifies whether a findAndUpdate should return the document as it was before the

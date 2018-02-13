@@ -18,6 +18,10 @@ type singleResultCursor struct {
 	rdr bson.Reader
 }
 
+func (s *singleResultCursor) ID() int64 {
+	return -1
+}
+
 // Next implements the Cursor interface.
 func (s *singleResultCursor) Next(context.Context) bool {
 	if len(s.rdr) == 0 {

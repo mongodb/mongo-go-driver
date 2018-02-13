@@ -57,6 +57,10 @@ type listDatabasesCursor struct {
 	err       error
 }
 
+func (cursor *listDatabasesCursor) ID() int64 {
+	return -1
+}
+
 func (cursor *listDatabasesCursor) Next(_ context.Context) bool {
 	cursor.current++
 	if cursor.current < cursor.databases.Len() {
