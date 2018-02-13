@@ -44,7 +44,7 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 		bson.NewDocument(bson.C.Int32("_id", 4)),
 		bson.NewDocument(bson.C.Int32("_id", 5)),
 	}
-	testutil.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, nil, documents...)
 
 	readers := make([]bson.Reader, 0, len(documents))
 	for _, doc := range documents {
@@ -100,6 +100,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoInsertDocs(t,
+		nil,
 		bson.NewDocument(bson.C.Int32("_id", 1)),
 		bson.NewDocument(bson.C.Int32("_id", 2)),
 	)
@@ -161,7 +162,7 @@ func TestLegacyAggregateWithMultipleBatches(t *testing.T) {
 		bson.NewDocument(bson.C.Int32("_id", 4)),
 		bson.NewDocument(bson.C.Int32("_id", 5)),
 	}
-	testutil.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, nil, documents...)
 
 	readers := make([]bson.Reader, 0, len(documents))
 	for _, doc := range documents {
@@ -225,6 +226,7 @@ func TestLegacyAggregateWithAllowDiskUse(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoInsertDocs(t,
+		nil,
 		bson.NewDocument(bson.C.Int32("_id", 1)),
 		bson.NewDocument(bson.C.Int32("_id", 2)),
 	)

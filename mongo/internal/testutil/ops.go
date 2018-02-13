@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/stretchr/testify/require"
 )
 
@@ -102,12 +103,12 @@ func autoDropDB(t *testing.T, clstr *cluster.Cluster) {
 }
 
 // AutoInsertDocs inserts the docs into the test cluster.
-func AutoInsertDocs(t *testing.T, docs ...*bson.Document) {
-	InsertDocs(t, DBName(t), ColName(t), docs...)
+func AutoInsertDocs(t *testing.T, writeConcern *writeconcern.WriteConcern, docs ...*bson.Document) {
+	InsertDocs(t, DBName(t), ColName(t), writeConcern, docs...)
 }
 
 // InsertDocs inserts the docs into the test cluster.
-func InsertDocs(t *testing.T, dbname, colname string, docs ...*bson.Document) {
+func InsertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern.WriteConcern, docs ...*bson.Document) {
 	arrDocs := make([]*bson.Value, 0, len(docs))
 	for _, doc := range docs {
 		arrDocs = append(arrDocs, bson.AC.Document(doc))
@@ -115,6 +116,13 @@ func InsertDocs(t *testing.T, dbname, colname string, docs ...*bson.Document) {
 	insertCommand := bson.NewDocument(
 		bson.C.String("insert", colname),
 		bson.C.ArrayFromElements("documents", arrDocs...))
+
+	if writeConcern != nil {
+		wc, err := writeConcern.MarshalBSONElement()
+		require.NoError(t, err)
+
+		insertCommand.Append(wc)
+	}
 
 	request := msg.NewCommand(
 		msg.NextRequestID(),

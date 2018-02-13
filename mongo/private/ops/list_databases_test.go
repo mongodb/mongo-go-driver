@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil"
 	. "github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +22,7 @@ func TestListDatabases(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
-	testutil.AutoInsertDocs(t, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.AutoInsertDocs(t, writeconcern.New(writeconcern.WMajority()), bson.NewDocument(bson.C.Int32("_id", 1)))
 
 	s := getServer(t)
 	cursor, err := ListDatabases(context.Background(), s, ListDatabasesOptions{})

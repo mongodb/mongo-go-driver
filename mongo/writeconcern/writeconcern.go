@@ -54,7 +54,7 @@ func W(w int) Option {
 
 // WMajority requests acknowledgement that write operations propagate to the majority of mongod
 // instances.
-func WMajority(w int) Option {
+func WMajority() Option {
 	return func(concern *WriteConcern) {
 		concern.w = "majority"
 	}

@@ -37,9 +37,9 @@ func TestListCollections(t *testing.T) {
 	testutil.DropCollection(t, dbname, collectionNameOne)
 	testutil.DropCollection(t, dbname, collectionNameTwo)
 	testutil.DropCollection(t, dbname, collectionNameThree)
-	testutil.InsertDocs(t, dbname, collectionNameOne, bson.NewDocument(bson.C.Int32("_id", 1)))
-	testutil.InsertDocs(t, dbname, collectionNameTwo, bson.NewDocument(bson.C.Int32("_id", 1)))
-	testutil.InsertDocs(t, dbname, collectionNameThree, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameOne, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameTwo, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameThree, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{})
@@ -74,9 +74,9 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	testutil.DropCollection(t, dbname, collectionNameOne)
 	testutil.DropCollection(t, dbname, collectionNameTwo)
 	testutil.DropCollection(t, dbname, collectionNameThree)
-	testutil.InsertDocs(t, dbname, collectionNameOne, bson.NewDocument(bson.C.Int32("_id", 1)))
-	testutil.InsertDocs(t, dbname, collectionNameTwo, bson.NewDocument(bson.C.Int32("_id", 1)))
-	testutil.InsertDocs(t, dbname, collectionNameThree, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameOne, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameTwo, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameThree, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{

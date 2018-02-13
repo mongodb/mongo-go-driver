@@ -56,7 +56,7 @@ func TestCursorSingleBatch(t *testing.T) {
 		bson.NewDocument(bson.C.Int32("_id", 1)),
 		bson.NewDocument(bson.C.Int32("_id", 2)),
 	}
-	testutil.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, nil, documents...)
 
 	readers := make([]bson.Reader, 0, len(documents))
 	for _, doc := range documents {
@@ -98,7 +98,7 @@ func TestCursorMultipleBatches(t *testing.T) {
 		bson.NewDocument(bson.C.Int32("_id", 4)),
 		bson.NewDocument(bson.C.Int32("_id", 5)),
 	}
-	testutil.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, nil, documents...)
 
 	readers := make([]bson.Reader, 0, len(documents))
 	for _, doc := range documents {
@@ -159,7 +159,7 @@ func TestCursorClose(t *testing.T) {
 		bson.NewDocument(bson.C.Int32("_id", 4)),
 		bson.NewDocument(bson.C.Int32("_id", 5)),
 	}
-	testutil.AutoInsertDocs(t, documents...)
+	testutil.AutoInsertDocs(t, nil, documents...)
 
 	s := getServer(t)
 	cursorResult := find(t, s, 2)
@@ -177,6 +177,7 @@ func TestCursorError(t *testing.T) {
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
 	testutil.AutoInsertDocs(t,
+		nil,
 		bson.NewDocument(bson.C.Int32("_id", 1)),
 		bson.NewDocument(bson.C.Int32("_id", 2)),
 		bson.NewDocument(bson.C.Int32("_id", 3)),
