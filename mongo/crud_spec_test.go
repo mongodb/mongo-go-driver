@@ -50,6 +50,49 @@ const crudTestsDir = "../data/crud"
 const readTestsDir = "read"
 const writeTestsDir = "write"
 
+// compareVersions compares two version number strings (i.e. positive integers separated by
+// periods). Comparisons are done to the lesser precision of the two versions. For example, 3.2 is
+// considered equal to 3.2.11, whereas 3.2.0 is considered less than 3.2.11.
+//
+// Returns a positive int if version1 is greater than version2, a negative int if version1 is less
+// than version2, and 0 if version1 is equal to version2.
+func compareVersions(t *testing.T, v1 string, v2 string) int {
+	n1 := strings.Split(v1, ".")
+	n2 := strings.Split(v2, ".")
+
+	for i := 0; i < int(math.Min(float64(len(n1)), float64(len(n2)))); i++ {
+		i1, err := strconv.Atoi(n1[i])
+		require.NoError(t, err)
+
+		i2, err := strconv.Atoi(n2[i])
+		require.NoError(t, err)
+
+		difference := i1 - i2
+		if difference != 0 {
+			return difference
+		}
+	}
+
+	return 0
+}
+
+func getServerVersion(db *Database) (string, error) {
+	serverStatus, err := db.RunCommand(
+		context.Background(),
+		bson.NewDocument(bson.C.Int32("serverStatus", 1)),
+	)
+	if err != nil {
+		return "", err
+	}
+
+	version, err := serverStatus.Lookup("version")
+	if err != nil {
+		return "", err
+	}
+
+	return version.Value().StringValue(), nil
+}
+
 // Test case for all CRUD spec tests.
 func TestCRUDSpec(t *testing.T) {
 	dbName := "crud-spec-tests"
@@ -804,43 +847,9 @@ func updateOneTest(t *testing.T, coll *Collection, test *testCase) {
 	})
 }
 
-// Compares to version number strings (i.e. positive integers separated by periods). Comparisons are
-// done to the lesser precision of the two versions. For example, 3.2 is considered equal to 3.2.11,
-// whereas 3.2.0 is considered less than 3.2.11.
-//
-// Returns a positive int if version1 is greater than version2, a negative int if version1
-// is less than version2, and 0 if version1 is equal to version2.
-func compareVersions(t *testing.T, v1 string, v2 string) int {
-	n1 := strings.Split(v1, ".")
-	n2 := strings.Split(v2, ".")
-
-	for i := 0; i < int(math.Min(float64(len(n1)), float64(len(n2)))); i++ {
-		i1, err := strconv.Atoi(n1[i])
-		require.NoError(t, err)
-
-		i2, err := strconv.Atoi(n2[i])
-		require.NoError(t, err)
-
-		difference := i1 - i2
-		if difference != 0 {
-			return difference
-		}
-	}
-
-	return 0
-}
-
 func shouldSkip(t *testing.T, test *testFile, db *Database) bool {
-	serverStatus, err := db.RunCommand(
-		context.Background(),
-		bson.NewDocument(bson.C.Int32("serverStatus", 1)),
-	)
+	versionStr, err := getServerVersion(db)
 	require.NoError(t, err)
-
-	version, err := serverStatus.Lookup("version")
-	require.NoError(t, err)
-
-	versionStr := version.Value().StringValue()
 
 	if len(test.MinServerVersion) > 0 && compareVersions(t, test.MinServerVersion, versionStr) > 0 {
 		return true
