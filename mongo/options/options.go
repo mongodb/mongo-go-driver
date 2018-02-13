@@ -77,14 +77,14 @@ type AggregateOptioner interface {
 // InsertOneOptioner is the interface implemented by types that can be used as
 // Options for InsertOne commands.
 type InsertOneOptioner interface {
-	Optioner
+	InsertOptioner
 	insertOneOption()
 }
 
 // InsertManyOptioner is the interface implemented by types that can be used as
 // Options for InsertMany commands.
 type InsertManyOptioner interface {
-	Optioner
+	InsertOptioner
 	insertManyOption()
 }
 
