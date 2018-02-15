@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a9a9e3ad_6e962293",
+        "filename": "mongo/crud_spec_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-15T20:53:27Z",
+      "side": 1,
+      "message": "This functionality was needed for the change stream tests, so I factored it out from the the CRUD spec tests into a function.",
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
