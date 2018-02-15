@@ -2,6 +2,190 @@
   "comments": [
     {
       "key": {
+        "uuid": "31f5a445_7b24b5bb",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "This error name feels very verbose.",
+      "range": {
+        "startLine": 29,
+        "startChar": 6,
+        "endLine": 29,
+        "endChar": 24
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d5e06543_b9469163",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "This will probably have to change with the new design of operations and commands.",
+      "range": {
+        "startLine": 102,
+        "startChar": 16,
+        "endLine": 102,
+        "endChar": 41
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "40a6ca20_e60762e6",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "Let\u0027s add a DecodeBytes method here. I know we won\u0027t use it yet, but since we\u0027re creating a new Cursor type we might as well add it.\n\nDecodeBytes(bson.Reader, error)",
+      "range": {
+        "startLine": 129,
+        "startChar": 24,
+        "endLine": 129,
+        "endChar": 30
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "21126607_ad1904e7",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "Side note: Maybe when we add bson.Marshal and bson.Unmarshal we should also add bson.MarshalDocument?",
+      "range": {
+        "startLine": 135,
+        "startChar": 13,
+        "endLine": 135,
+        "endChar": 53
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bd65c7bc_91885281",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "Does the user need to know what the specific error form doc.Lookup is?",
+      "range": {
+        "startLine": 143,
+        "startChar": 90,
+        "endLine": 143,
+        "endChar": 100
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "00898034_dfedfa8b",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "Side note: When we build out a new testing framework, we should ensure that it has the ability to only run certain tests on specific versions of the database. Can you leave a TODO note here for that?",
+      "range": {
+        "startLine": 22,
+        "startChar": 5,
+        "endLine": 22,
+        "endChar": 18
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7ec7e4c5_b8304825",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "It seems like this helps justify the need for a stronger testing framework so we don\u0027t necessarily have to do these checks in each test manually.",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 2
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8e09044e_116483ef",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1135,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "We should add a comment specifying what pipeline can be.",
+      "range": {
+        "startLine": 1133,
+        "startChar": 0,
+        "endLine": 1135,
+        "endChar": 52
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a9a9e3ad_6e962293",
         "filename": "mongo/crud_spec_test.go",
         "patchSetId": 3
@@ -16,6 +200,29 @@
       "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "84483de0_28bed9f4",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-15T22:18:02Z",
+      "side": 1,
+      "message": "Are we using this for both Aggregate and Watch? If so we might want to make this public like TransformDocument and use this function to document what the valid types for pipeline are.",
+      "range": {
+        "startLine": 88,
+        "startChar": 5,
+        "endLine": 88,
+        "endChar": 31
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
