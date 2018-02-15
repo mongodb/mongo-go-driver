@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "46075c77_9d2dd6bb",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-15T22:33:51Z",
+      "side": 1,
+      "message": "What would you suggest naming it? Keep in mind that this isn\u0027t actually an error (or user facing), but just a constant used to check if the server error is resumable.",
+      "parentUuid": "31f5a445_7b24b5bb",
+      "range": {
+        "startLine": 29,
+        "startChar": 6,
+        "endLine": 29,
+        "endChar": 24
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d5e06543_b9469163",
         "filename": "mongo/change_stream.go",
         "patchSetId": 3
@@ -36,6 +60,30 @@
       "writtenOn": "2018-02-15T22:18:02Z",
       "side": 1,
       "message": "This will probably have to change with the new design of operations and commands.",
+      "range": {
+        "startLine": 102,
+        "startChar": 16,
+        "endLine": 102,
+        "endChar": 41
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "32183be5_96ea6f54",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-15T22:33:51Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d5e06543_b9469163",
       "range": {
         "startLine": 102,
         "startChar": 16,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "90a88fac_dcdc4952",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-15T22:33:51Z",
+      "side": 1,
+      "message": "Put in TODO below blocking on GODRIVER-231 as discussed offline.",
+      "parentUuid": "40a6ca20_e60762e6",
+      "range": {
+        "startLine": 129,
+        "startChar": 24,
+        "endLine": 129,
+        "endChar": 30
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "21126607_ad1904e7",
         "filename": "mongo/change_stream.go",
         "patchSetId": 3
@@ -82,6 +154,30 @@
       "writtenOn": "2018-02-15T22:18:02Z",
       "side": 1,
       "message": "Side note: Maybe when we add bson.Marshal and bson.Unmarshal we should also add bson.MarshalDocument?",
+      "range": {
+        "startLine": 135,
+        "startChar": 13,
+        "endLine": 135,
+        "endChar": 53
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2e22d527_21bd5c6d",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-15T22:33:51Z",
+      "side": 1,
+      "message": "Seem like a good idea to me",
+      "parentUuid": "21126607_ad1904e7",
       "range": {
         "startLine": 135,
         "startChar": 13,
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "d436ff11_5edf13bf",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-15T22:33:51Z",
+      "side": 1,
+      "message": "I was mainly trying to avoid assuming what type of error Lookup might return at some point in the future, but I\u0027m realizing now that using the suggested error message from the spec already is just a more specific ErrNotFound message.\n\n\nRemoved the Lookup error from the message.",
+      "parentUuid": "bd65c7bc_91885281",
+      "range": {
+        "startLine": 143,
+        "startChar": 90,
+        "endLine": 143,
+        "endChar": 100
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "00898034_dfedfa8b",
         "filename": "mongo/change_stream_test.go",
         "patchSetId": 3
@@ -140,6 +260,30 @@
     },
     {
       "key": {
+        "uuid": "a25bebe9_f01ea57b",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-15T22:33:51Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "00898034_dfedfa8b",
+      "range": {
+        "startLine": 22,
+        "startChar": 5,
+        "endLine": 22,
+        "endChar": 18
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7ec7e4c5_b8304825",
         "filename": "mongo/change_stream_test.go",
         "patchSetId": 3
@@ -151,6 +295,30 @@
       "writtenOn": "2018-02-15T22:18:02Z",
       "side": 1,
       "message": "It seems like this helps justify the need for a stronger testing framework so we don\u0027t necessarily have to do these checks in each test manually.",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 2
+      },
+      "revId": "86fd708a4ef6ef56324a050f1c403687af8cbab0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8d461f48_623bd090",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-15T22:33:51Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7ec7e4c5_b8304825",
       "range": {
         "startLine": 39,
         "startChar": 0,
