@@ -101,7 +101,7 @@ func (a *Array) Set(index uint, value *Value) *Array {
 		panic(ErrOutOfBounds)
 	}
 
-	a.doc.elems = append(append(a.doc.elems[:index], &Element{value}), a.doc.elems[index:]...)
+	a.doc.elems[0] = &Element{value}
 
 	return a
 }
