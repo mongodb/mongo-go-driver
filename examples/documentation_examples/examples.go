@@ -1165,7 +1165,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 44
 
-		projection, err := mongo.Projection(bson.NewDocument(
+		projection, err := mongo.Opt.Projection(bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 		))
@@ -1204,7 +1204,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 45
 
-		projection, err := mongo.Projection(bson.NewDocument(
+		projection, err := mongo.Opt.Projection(bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("_id", 0),
@@ -1244,7 +1244,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 46
 
-		projection, err := mongo.Projection(bson.NewDocument(
+		projection, err := mongo.Opt.Projection(bson.NewDocument(
 			bson.EC.Int32("status", 0),
 			bson.EC.Int32("instock", 0),
 		))
@@ -1283,7 +1283,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 47
 
-		projection, err := mongo.Projection(bson.NewDocument(
+		projection, err := mongo.Opt.Projection(bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("size.uom", 1),
@@ -1328,7 +1328,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 48
 
-		projection, err := mongo.Projection(bson.NewDocument(
+		projection, err := mongo.Opt.Projection(bson.NewDocument(
 			bson.EC.Int32("size.uom", 0),
 		))
 		require.NoError(t, err)
@@ -1371,7 +1371,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 49
 
-		projection, err := mongo.Projection(bson.NewDocument(
+		projection, err := mongo.Opt.Projection(bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("instock.qty", 1),
@@ -1428,7 +1428,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 50
 
-		projection, err := mongo.Projection(bson.NewDocument(
+		projection, err := mongo.Opt.Projection(bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 			bson.EC.SubDocumentFromElements("instock",
