@@ -163,7 +163,7 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(bson.EC.Int32("x", 0))
-	result, err := coll.DeleteOne(context.Background(), filter, Collation(&options.CollationOptions{Locale: "en_US"}))
+	result, err := coll.DeleteOne(context.Background(), filter, Opt.Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -217,7 +217,7 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 	filter := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$lt", 1)))
 
-	result, err := coll.DeleteMany(context.Background(), filter, Collation(&options.CollationOptions{Locale: "en_US"}))
+	result, err := coll.DeleteMany(context.Background(), filter, Opt.Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -279,7 +279,7 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 	update := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
-	result, err := coll.UpdateOne(context.Background(), filter, update, Upsert(true))
+	result, err := coll.UpdateOne(context.Background(), filter, update, Opt.Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -348,7 +348,7 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 	update := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
-	result, err := coll.UpdateMany(context.Background(), filter, update, Upsert(true))
+	result, err := coll.UpdateMany(context.Background(), filter, update, Opt.Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -409,7 +409,7 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 	replacement := bson.NewDocument(bson.EC.Int32("y", 1))
 
-	result, err := coll.ReplaceOne(context.Background(), filter, replacement, Upsert(true))
+	result, err := coll.ReplaceOne(context.Background(), filter, replacement, Opt.Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -504,7 +504,7 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 			),
 		))
 
-	cursor, err := coll.Aggregate(context.Background(), pipeline, AllowDiskUse(true))
+	cursor, err := coll.Aggregate(context.Background(), pipeline, Opt.AllowDiskUse(true))
 	require.Nil(t, err)
 
 	for i := 2; i < 5; i++ {
@@ -567,7 +567,7 @@ func TestCollection_Count_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.Count(context.Background(), nil, Limit(3))
+	count, err := coll.Count(context.Background(), nil, Opt.Limit(3))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -615,7 +615,7 @@ func TestCollection_Distinct_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	results, err := coll.Distinct(context.Background(), "x", nil, Collation(&options.CollationOptions{Locale: "en_US"}))
+	results, err := coll.Distinct(context.Background(), "x", nil, Opt.Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)})
 }
@@ -630,7 +630,7 @@ func TestCollection_Find_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	sort, err := Sort(bson.NewDocument(bson.EC.Int32("x", 1)))
+	sort, err := Opt.Sort(bson.NewDocument(bson.EC.Int32("x", 1)))
 	require.NoError(t, err)
 	cursor, err := coll.Find(context.Background(),
 		nil,
@@ -721,7 +721,7 @@ func TestCollection_FindOne_found_withOption(t *testing.T) {
 	var result = bson.NewDocument()
 	err := coll.FindOne(context.Background(),
 		filter,
-		Comment("here's a query for ya"),
+		Opt.Comment("here's a query for ya"),
 	).Decode(result)
 	require.Nil(t, err)
 	require.Equal(t, result.Len(), 2)

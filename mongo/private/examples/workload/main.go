@@ -144,7 +144,7 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 				),
 			)
 
-			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, pipeline, false, mongo.BatchSize(200))
+			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, pipeline, false, mongo.Opt.BatchSize(200))
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue

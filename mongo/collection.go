@@ -101,7 +101,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -187,7 +187,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -262,7 +262,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -334,7 +334,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -401,7 +401,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -522,7 +522,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -663,7 +663,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		}
 
 		if coll.writeConcern != nil {
-			wc, err := WriteConcern(coll.writeConcern)
+			wc, err := Opt.WriteConcern(coll.writeConcern)
 			if err != nil {
 				return nil, err
 			}
@@ -710,7 +710,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 func (coll *Collection) aggregateWithServer(ctx context.Context, server *ops.SelectedServer,
 	pipeline *bson.Array, opts ...options.AggregateOptioner) (Cursor, error) {
 	if coll.readConcern != nil {
-		rc, err := ReadConcern(coll.readConcern)
+		rc, err := Opt.ReadConcern(coll.readConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -745,7 +745,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 	}
 
 	if coll.readConcern != nil {
-		rc, err := ReadConcern(coll.readConcern)
+		rc, err := Opt.ReadConcern(coll.readConcern)
 		if err != nil {
 			return 0, err
 		}
@@ -791,7 +791,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	}
 
 	if coll.readConcern != nil {
-		rc, err := ReadConcern(coll.readConcern)
+		rc, err := Opt.ReadConcern(coll.readConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -843,7 +843,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	}
 
 	if coll.readConcern != nil {
-		rc, err := ReadConcern(coll.readConcern)
+		rc, err := Opt.ReadConcern(coll.readConcern)
 		if err != nil {
 			return nil, err
 		}
@@ -873,7 +873,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	options = append(options, Limit(1))
+	options = append(options, Opt.Limit(1))
 
 	var f *bson.Document
 	var err error
@@ -885,7 +885,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	}
 
 	if coll.readConcern != nil {
-		rc, err := ReadConcern(coll.readConcern)
+		rc, err := Opt.ReadConcern(coll.readConcern)
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
@@ -932,7 +932,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
@@ -1011,7 +1011,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
@@ -1091,7 +1091,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 
 	if coll.writeConcern != nil {
-		wc, err := WriteConcern(coll.writeConcern)
+		wc, err := Opt.WriteConcern(coll.writeConcern)
 		if err != nil {
 			return &DocumentResult{err: err}
 		}
