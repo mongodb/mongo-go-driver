@@ -64,7 +64,7 @@ func ensureID(d *bson.Document) (interface{}, error) {
 	switch {
 	case err == bson.ErrElementNotFound:
 		oid := objectid.New()
-		d.Append(bson.C.ObjectID("_id", oid))
+		d.Append(bson.EC.ObjectID("_id", oid))
 		id = oid
 	case err != nil:
 		return nil, err

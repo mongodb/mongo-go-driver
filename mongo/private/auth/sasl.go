@@ -56,9 +56,9 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 		db,
 		true,
 		bson.NewDocument(
-			bson.C.Int32("saslStart", 1),
-			bson.C.String("mechanism", mech),
-			bson.C.Binary("payload", payload)),
+			bson.EC.Int32("saslStart", 1),
+			bson.EC.String("mechanism", mech),
+			bson.EC.Binary("payload", payload)),
 	)
 
 	type saslResponse struct {
@@ -104,9 +104,9 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 			db,
 			true,
 			bson.NewDocument(
-				bson.C.Int32("saslContinue", 1),
-				bson.C.Int32("conversationId", int32(cid)),
-				bson.C.Binary("payload", payload)),
+				bson.EC.Int32("saslContinue", 1),
+				bson.EC.Int32("conversationId", int32(cid)),
+				bson.EC.Binary("payload", payload)),
 		)
 
 		rdr, err = conn.ExecuteCommand(ctx, c, saslContinueRequest)

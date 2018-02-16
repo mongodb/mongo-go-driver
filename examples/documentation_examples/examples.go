@@ -55,7 +55,7 @@ func containsKey(keys bson.Keys, key string, prefix []string) bool {
 func InsertExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -67,15 +67,15 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 		result, err := coll.InsertOne(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("item", "canvas"),
-				bson.C.Int32("qty", 100),
-				bson.C.ArrayFromElements("tags",
-					bson.AC.String("cotton"),
+				bson.EC.String("item", "canvas"),
+				bson.EC.Int32("qty", 100),
+				bson.EC.ArrayFromElements("tags",
+					bson.VC.String("cotton"),
 				),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 28),
-					bson.C.Double("w", 35.5),
-					bson.C.String("uom", "cm"),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 28),
+					bson.EC.Double("w", 35.5),
+					bson.EC.String("uom", "cm"),
 				),
 			))
 
@@ -90,7 +90,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 
 		cursor, err := coll.Find(
 			context.Background(),
-			bson.NewDocument(bson.C.String("item", "canvas")),
+			bson.NewDocument(bson.EC.String("item", "canvas")),
 		)
 
 		// End Example 2
@@ -107,41 +107,41 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 			context.Background(),
 			[]interface{}{
 				bson.NewDocument(
-					bson.C.String("item", "journal"),
-					bson.C.Int32("qty", 25),
-					bson.C.ArrayFromElements("tags",
-						bson.AC.String("blank"),
-						bson.AC.String("red"),
+					bson.EC.String("item", "journal"),
+					bson.EC.Int32("qty", 25),
+					bson.EC.ArrayFromElements("tags",
+						bson.VC.String("blank"),
+						bson.VC.String("red"),
 					),
-					bson.C.SubDocumentFromElements("size",
-						bson.C.Int32("h", 14),
-						bson.C.Int32("w", 21),
-						bson.C.String("uom", "cm"),
-					),
-				),
-				bson.NewDocument(
-					bson.C.String("item", "mat"),
-					bson.C.Int32("qty", 25),
-					bson.C.ArrayFromElements("tags",
-						bson.AC.String("gray"),
-					),
-					bson.C.SubDocumentFromElements("size",
-						bson.C.Double("h", 27.9),
-						bson.C.Double("w", 35.5),
-						bson.C.String("uom", "cm"),
+					bson.EC.SubDocumentFromElements("size",
+						bson.EC.Int32("h", 14),
+						bson.EC.Int32("w", 21),
+						bson.EC.String("uom", "cm"),
 					),
 				),
 				bson.NewDocument(
-					bson.C.String("item", "mousepad"),
-					bson.C.Int32("qty", 25),
-					bson.C.ArrayFromElements("tags",
-						bson.AC.String("gel"),
-						bson.AC.String("blue"),
+					bson.EC.String("item", "mat"),
+					bson.EC.Int32("qty", 25),
+					bson.EC.ArrayFromElements("tags",
+						bson.VC.String("gray"),
 					),
-					bson.C.SubDocumentFromElements("size",
-						bson.C.Int32("h", 19),
-						bson.C.Double("w", 22.85),
-						bson.C.String("uom", "cm"),
+					bson.EC.SubDocumentFromElements("size",
+						bson.EC.Double("h", 27.9),
+						bson.EC.Double("w", 35.5),
+						bson.EC.String("uom", "cm"),
+					),
+				),
+				bson.NewDocument(
+					bson.EC.String("item", "mousepad"),
+					bson.EC.Int32("qty", 25),
+					bson.EC.ArrayFromElements("tags",
+						bson.VC.String("gel"),
+						bson.VC.String("blue"),
+					),
+					bson.EC.SubDocumentFromElements("size",
+						bson.EC.Int32("h", 19),
+						bson.EC.Double("w", 22.85),
+						bson.EC.String("uom", "cm"),
 					),
 				),
 			})
@@ -156,7 +156,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -167,54 +167,54 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		docs := []interface{}{
 			bson.NewDocument(
-				bson.C.String("item", "journal"),
-				bson.C.Int32("qty", 25),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 14),
-					bson.C.Int32("w", 21),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "journal"),
+				bson.EC.Int32("qty", 25),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 14),
+					bson.EC.Int32("w", 21),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "notebook"),
-				bson.C.Int32("qty", 50),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Int32("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "notebook"),
+				bson.EC.Int32("qty", 50),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Int32("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
-				bson.C.Int32("qty", 100),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Int32("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "paper"),
+				bson.EC.Int32("qty", 100),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Int32("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "planner"),
-				bson.C.Int32("qty", 75),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 22.85),
-					bson.C.Int32("w", 30),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "planner"),
+				bson.EC.Int32("qty", 75),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 22.85),
+					bson.EC.Int32("w", 30),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "postcard"),
-				bson.C.Int32("qty", 45),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 10),
-					bson.C.Double("w", 15.25),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "postcard"),
+				bson.EC.Int32("qty", 45),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 10),
+					bson.EC.Double("w", 15.25),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 		}
 
@@ -245,7 +245,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		cursor, err := coll.Find(
 			context.Background(),
-			bson.NewDocument(bson.C.String("status", "D")),
+			bson.NewDocument(bson.EC.String("status", "D")),
 		)
 
 		// End Example 9
@@ -260,10 +260,10 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("status",
-					bson.C.ArrayFromElements("$in",
-						bson.AC.String("A"),
-						bson.AC.String("D"),
+				bson.EC.SubDocumentFromElements("status",
+					bson.EC.ArrayFromElements("$in",
+						bson.VC.String("A"),
+						bson.VC.String("D"),
 					),
 				),
 			))
@@ -280,9 +280,9 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
-				bson.C.SubDocumentFromElements("qty",
-					bson.C.Int32("$lt", 30),
+				bson.EC.String("status", "A"),
+				bson.EC.SubDocumentFromElements("qty",
+					bson.EC.Int32("$lt", 30),
 				),
 			))
 
@@ -298,13 +298,13 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.ArrayFromElements("$or",
-					bson.AC.DocumentFromElements(
-						bson.C.String("status", "A"),
+				bson.EC.ArrayFromElements("$or",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("status", "A"),
 					),
-					bson.AC.DocumentFromElements(
-						bson.C.SubDocumentFromElements("qty",
-							bson.C.Int32("$lt", 30),
+					bson.VC.DocumentFromElements(
+						bson.EC.SubDocumentFromElements("qty",
+							bson.EC.Int32("$lt", 30),
 						),
 					),
 				),
@@ -322,15 +322,15 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
-				bson.C.ArrayFromElements("$or",
-					bson.AC.DocumentFromElements(
-						bson.C.SubDocumentFromElements("qty",
-							bson.C.Int32("$lt", 30),
+				bson.EC.String("status", "A"),
+				bson.EC.ArrayFromElements("$or",
+					bson.VC.DocumentFromElements(
+						bson.EC.SubDocumentFromElements("qty",
+							bson.EC.Int32("$lt", 30),
 						),
 					),
-					bson.AC.DocumentFromElements(
-						bson.C.Regex("item", "^p", ""),
+					bson.VC.DocumentFromElements(
+						bson.EC.Regex("item", "^p", ""),
 					),
 				),
 			))
@@ -346,7 +346,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -357,54 +357,54 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		docs := []interface{}{
 			bson.NewDocument(
-				bson.C.String("item", "journal"),
-				bson.C.Int32("qty", 25),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 14),
-					bson.C.Int32("w", 21),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "journal"),
+				bson.EC.Int32("qty", 25),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 14),
+					bson.EC.Int32("w", 21),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "notebook"),
-				bson.C.Int32("qty", 50),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Int32("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "notebook"),
+				bson.EC.Int32("qty", 50),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Int32("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
-				bson.C.Int32("qty", 100),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Int32("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "paper"),
+				bson.EC.Int32("qty", 100),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Int32("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "planner"),
-				bson.C.Int32("qty", 75),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 22.85),
-					bson.C.Int32("w", 30),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "planner"),
+				bson.EC.Int32("qty", 75),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 22.85),
+					bson.EC.Int32("w", 30),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "postcard"),
-				bson.C.Int32("qty", 45),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 10),
-					bson.C.Double("w", 15.25),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "postcard"),
+				bson.EC.Int32("qty", 45),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 10),
+					bson.EC.Double("w", 15.25),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 		}
 
@@ -422,10 +422,10 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 14),
-					bson.C.Int32("w", 21),
-					bson.C.String("uom", "cm"),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 14),
+					bson.EC.Int32("w", 21),
+					bson.EC.String("uom", "cm"),
 				),
 			))
 
@@ -441,10 +441,10 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("w", 21),
-					bson.C.Int32("h", 14),
-					bson.C.String("uom", "cm"),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("w", 21),
+					bson.EC.Int32("h", 14),
+					bson.EC.String("uom", "cm"),
 				),
 			))
 
@@ -460,7 +460,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("size.uom", "in"),
+				bson.EC.String("size.uom", "in"),
 			))
 
 		// End Example 17
@@ -475,8 +475,8 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("size.h",
-					bson.C.Int32("$lt", 15),
+				bson.EC.SubDocumentFromElements("size.h",
+					bson.EC.Int32("$lt", 15),
 				),
 			))
 
@@ -492,11 +492,11 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("size.h",
-					bson.C.Int32("$lt", 15),
+				bson.EC.SubDocumentFromElements("size.h",
+					bson.EC.Int32("$lt", 15),
 				),
-				bson.C.String("size.uom", "in"),
-				bson.C.String("status", "D"),
+				bson.EC.String("size.uom", "in"),
+				bson.EC.String("status", "D"),
 			))
 
 		// End Example 19
@@ -510,7 +510,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -521,63 +521,63 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		docs := []interface{}{
 			bson.NewDocument(
-				bson.C.String("item", "journal"),
-				bson.C.Int32("qty", 25),
-				bson.C.ArrayFromElements("tags",
-					bson.AC.String("blank"),
-					bson.AC.String("red"),
+				bson.EC.String("item", "journal"),
+				bson.EC.Int32("qty", 25),
+				bson.EC.ArrayFromElements("tags",
+					bson.VC.String("blank"),
+					bson.VC.String("red"),
 				),
-				bson.C.ArrayFromElements("dim_cm",
-					bson.AC.Int32(14),
-					bson.AC.Int32(21),
-				),
-			),
-			bson.NewDocument(
-				bson.C.String("item", "notebook"),
-				bson.C.Int32("qty", 50),
-				bson.C.ArrayFromElements("tags",
-					bson.AC.String("red"),
-					bson.AC.String("blank"),
-				),
-				bson.C.ArrayFromElements("dim_cm",
-					bson.AC.Int32(14),
-					bson.AC.Int32(21),
+				bson.EC.ArrayFromElements("dim_cm",
+					bson.VC.Int32(14),
+					bson.VC.Int32(21),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
-				bson.C.Int32("qty", 100),
-				bson.C.ArrayFromElements("tags",
-					bson.AC.String("red"),
-					bson.AC.String("blank"),
-					bson.AC.String("plain"),
+				bson.EC.String("item", "notebook"),
+				bson.EC.Int32("qty", 50),
+				bson.EC.ArrayFromElements("tags",
+					bson.VC.String("red"),
+					bson.VC.String("blank"),
 				),
-				bson.C.ArrayFromElements("dim_cm",
-					bson.AC.Int32(14),
-					bson.AC.Int32(21),
-				),
-			),
-			bson.NewDocument(
-				bson.C.String("item", "planner"),
-				bson.C.Int32("qty", 75),
-				bson.C.ArrayFromElements("tags",
-					bson.AC.String("blank"),
-					bson.AC.String("red"),
-				),
-				bson.C.ArrayFromElements("dim_cm",
-					bson.AC.Double(22.85),
-					bson.AC.Int32(30),
+				bson.EC.ArrayFromElements("dim_cm",
+					bson.VC.Int32(14),
+					bson.VC.Int32(21),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "postcard"),
-				bson.C.Int32("qty", 45),
-				bson.C.ArrayFromElements("tags",
-					bson.AC.String("blue"),
+				bson.EC.String("item", "paper"),
+				bson.EC.Int32("qty", 100),
+				bson.EC.ArrayFromElements("tags",
+					bson.VC.String("red"),
+					bson.VC.String("blank"),
+					bson.VC.String("plain"),
 				),
-				bson.C.ArrayFromElements("dim_cm",
-					bson.AC.Int32(10),
-					bson.AC.Double(15.25),
+				bson.EC.ArrayFromElements("dim_cm",
+					bson.VC.Int32(14),
+					bson.VC.Int32(21),
+				),
+			),
+			bson.NewDocument(
+				bson.EC.String("item", "planner"),
+				bson.EC.Int32("qty", 75),
+				bson.EC.ArrayFromElements("tags",
+					bson.VC.String("blank"),
+					bson.VC.String("red"),
+				),
+				bson.EC.ArrayFromElements("dim_cm",
+					bson.VC.Double(22.85),
+					bson.VC.Int32(30),
+				),
+			),
+			bson.NewDocument(
+				bson.EC.String("item", "postcard"),
+				bson.EC.Int32("qty", 45),
+				bson.EC.ArrayFromElements("tags",
+					bson.VC.String("blue"),
+				),
+				bson.EC.ArrayFromElements("dim_cm",
+					bson.VC.Int32(10),
+					bson.VC.Double(15.25),
 				),
 			),
 		}
@@ -596,9 +596,9 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.ArrayFromElements("tags",
-					bson.AC.String("red"),
-					bson.AC.String("blank"),
+				bson.EC.ArrayFromElements("tags",
+					bson.VC.String("red"),
+					bson.VC.String("blank"),
 				),
 			))
 
@@ -614,10 +614,10 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("tags",
-					bson.C.ArrayFromElements("$all",
-						bson.AC.String("red"),
-						bson.AC.String("blank"),
+				bson.EC.SubDocumentFromElements("tags",
+					bson.EC.ArrayFromElements("$all",
+						bson.VC.String("red"),
+						bson.VC.String("blank"),
 					),
 				),
 			))
@@ -634,7 +634,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("tags", "red"),
+				bson.EC.String("tags", "red"),
 			))
 
 		// End Example 23
@@ -649,8 +649,8 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("dim_cm",
-					bson.C.Int32("$gt", 25),
+				bson.EC.SubDocumentFromElements("dim_cm",
+					bson.EC.Int32("$gt", 25),
 				),
 			))
 
@@ -666,9 +666,9 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("dim_cm",
-					bson.C.Int32("$gt", 15),
-					bson.C.Int32("$lt", 20),
+				bson.EC.SubDocumentFromElements("dim_cm",
+					bson.EC.Int32("$gt", 15),
+					bson.EC.Int32("$lt", 20),
 				),
 			))
 
@@ -684,10 +684,10 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("dim_cm",
-					bson.C.SubDocumentFromElements("$elemMatch",
-						bson.C.Int32("$gt", 22),
-						bson.C.Int32("$lt", 30),
+				bson.EC.SubDocumentFromElements("dim_cm",
+					bson.EC.SubDocumentFromElements("$elemMatch",
+						bson.EC.Int32("$gt", 22),
+						bson.EC.Int32("$lt", 30),
 					),
 				),
 			))
@@ -704,8 +704,8 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("dim_cm.1",
-					bson.C.Int32("$gt", 25),
+				bson.EC.SubDocumentFromElements("dim_cm.1",
+					bson.EC.Int32("$gt", 25),
 				),
 			))
 
@@ -721,8 +721,8 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("tags",
-					bson.C.Int32("$size", 3),
+				bson.EC.SubDocumentFromElements("tags",
+					bson.EC.Int32("$size", 3),
 				),
 			))
 
@@ -737,7 +737,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -748,63 +748,63 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		docs := []interface{}{
 			bson.NewDocument(
-				bson.C.String("item", "journal"),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "A"),
-						bson.C.Int32("qty", 5),
+				bson.EC.String("item", "journal"),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "A"),
+						bson.EC.Int32("qty", 5),
 					),
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "C"),
-						bson.C.Int32("qty", 15),
-					),
-				),
-			),
-			bson.NewDocument(
-				bson.C.String("item", "notebook"),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "C"),
-						bson.C.Int32("qty", 5),
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "C"),
+						bson.EC.Int32("qty", 15),
 					),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "A"),
-						bson.C.Int32("qty", 60),
-					),
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "B"),
-						bson.C.Int32("qty", 15),
+				bson.EC.String("item", "notebook"),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "C"),
+						bson.EC.Int32("qty", 5),
 					),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "planner"),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "A"),
-						bson.C.Int32("qty", 40),
+				bson.EC.String("item", "paper"),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "A"),
+						bson.EC.Int32("qty", 60),
 					),
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "B"),
-						bson.C.Int32("qty", 5),
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "B"),
+						bson.EC.Int32("qty", 15),
 					),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "postcard"),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "B"),
-						bson.C.Int32("qty", 15),
+				bson.EC.String("item", "planner"),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "A"),
+						bson.EC.Int32("qty", 40),
 					),
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "C"),
-						bson.C.Int32("qty", 35),
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "B"),
+						bson.EC.Int32("qty", 5),
+					),
+				),
+			),
+			bson.NewDocument(
+				bson.EC.String("item", "postcard"),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "B"),
+						bson.EC.Int32("qty", 15),
+					),
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "C"),
+						bson.EC.Int32("qty", 35),
 					),
 				),
 			),
@@ -824,9 +824,9 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("instock",
-					bson.C.String("warehouse", "A"),
-					bson.C.Int32("qty", 5),
+				bson.EC.SubDocumentFromElements("instock",
+					bson.EC.String("warehouse", "A"),
+					bson.EC.Int32("qty", 5),
 				),
 			))
 
@@ -842,9 +842,9 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("instock",
-					bson.C.Int32("qty", 5),
-					bson.C.String("warehouse", "A"),
+				bson.EC.SubDocumentFromElements("instock",
+					bson.EC.Int32("qty", 5),
+					bson.EC.String("warehouse", "A"),
 				),
 			))
 
@@ -860,8 +860,8 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("instock.0.qty",
-					bson.C.Int32("$lte", 20),
+				bson.EC.SubDocumentFromElements("instock.0.qty",
+					bson.EC.Int32("$lte", 20),
 				),
 			))
 
@@ -877,8 +877,8 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("instock.qty",
-					bson.C.Int32("$lte", 20),
+				bson.EC.SubDocumentFromElements("instock.qty",
+					bson.EC.Int32("$lte", 20),
 				),
 			))
 
@@ -894,10 +894,10 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("instock",
-					bson.C.SubDocumentFromElements("$elemMatch",
-						bson.C.Int32("qty", 5),
-						bson.C.String("warehouse", "A"),
+				bson.EC.SubDocumentFromElements("instock",
+					bson.EC.SubDocumentFromElements("$elemMatch",
+						bson.EC.Int32("qty", 5),
+						bson.EC.String("warehouse", "A"),
 					),
 				),
 			))
@@ -914,11 +914,11 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("instock",
-					bson.C.SubDocumentFromElements("$elemMatch",
-						bson.C.SubDocumentFromElements("qty",
-							bson.C.Int32("$gt", 10),
-							bson.C.Int32("$lte", 20),
+				bson.EC.SubDocumentFromElements("instock",
+					bson.EC.SubDocumentFromElements("$elemMatch",
+						bson.EC.SubDocumentFromElements("qty",
+							bson.EC.Int32("$gt", 10),
+							bson.EC.Int32("$lte", 20),
 						),
 					),
 				),
@@ -936,9 +936,9 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("instock.qty",
-					bson.C.Int32("$gt", 10),
-					bson.C.Int32("$lte", 20),
+				bson.EC.SubDocumentFromElements("instock.qty",
+					bson.EC.Int32("$gt", 10),
+					bson.EC.Int32("$lte", 20),
 				),
 			))
 
@@ -954,8 +954,8 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.Int32("instock.qty", 5),
-				bson.C.String("instock.warehouse", "A"),
+				bson.EC.Int32("instock.qty", 5),
+				bson.EC.String("instock.warehouse", "A"),
 			))
 
 		// End Example 37
@@ -968,7 +968,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -979,11 +979,11 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		docs := []interface{}{
 			bson.NewDocument(
-				bson.C.Int32("_id", 1),
-				bson.C.Null("item"),
+				bson.EC.Int32("_id", 1),
+				bson.EC.Null("item"),
 			),
 			bson.NewDocument(
-				bson.C.Int32("_id", 2),
+				bson.EC.Int32("_id", 2),
 			),
 		}
 
@@ -1001,7 +1001,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.Null("item"),
+				bson.EC.Null("item"),
 			))
 
 		// End Example 39
@@ -1016,8 +1016,8 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("item",
-					bson.C.Int32("$type", 10),
+				bson.EC.SubDocumentFromElements("item",
+					bson.EC.Int32("$type", 10),
 				),
 			))
 
@@ -1033,8 +1033,8 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("item",
-					bson.C.Boolean("$exists", false),
+				bson.EC.SubDocumentFromElements("item",
+					bson.EC.Boolean("$exists", false),
 				),
 			))
 
@@ -1048,7 +1048,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -1059,81 +1059,81 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		docs := []interface{}{
 			bson.NewDocument(
-				bson.C.String("item", "journal"),
-				bson.C.String("status", "A"),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 14),
-					bson.C.Int32("w", 21),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "journal"),
+				bson.EC.String("status", "A"),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 14),
+					bson.EC.Int32("w", 21),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "A"),
-						bson.C.Int32("qty", 5),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "A"),
+						bson.EC.Int32("qty", 5),
 					),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "notebook"),
-				bson.C.String("status", "A"),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Double("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "notebook"),
+				bson.EC.String("status", "A"),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Double("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "C"),
-						bson.C.Int32("qty", 5),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "EC"),
+						bson.EC.Int32("qty", 5),
 					),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
-				bson.C.String("status", "D"),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Double("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "paper"),
+				bson.EC.String("status", "D"),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Double("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "A"),
-						bson.C.Int32("qty", 60),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "A"),
+						bson.EC.Int32("qty", 60),
 					),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "planner"),
-				bson.C.String("status", "D"),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 22.85),
-					bson.C.Int32("w", 30),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "planner"),
+				bson.EC.String("status", "D"),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 22.85),
+					bson.EC.Int32("w", 30),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "A"),
-						bson.C.Int32("qty", 40),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "A"),
+						bson.EC.Int32("qty", 40),
 					),
 				),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "postcard"),
-				bson.C.String("status", "A"),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 10),
-					bson.C.Double("w", 15.25),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "postcard"),
+				bson.EC.String("status", "A"),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 10),
+					bson.EC.Double("w", 15.25),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "B"),
-						bson.C.Int32("qty", 15),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "B"),
+						bson.EC.Int32("qty", 15),
 					),
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "C"),
-						bson.C.Int32("qty", 35),
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "EC"),
+						bson.EC.Int32("qty", 35),
 					),
 				),
 			),
@@ -1153,7 +1153,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			))
 
 		// End Example 43
@@ -1166,15 +1166,15 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 44
 
 		projection, err := mongo.Projection(bson.NewDocument(
-			bson.C.Int32("item", 1),
-			bson.C.Int32("status", 1),
+			bson.EC.Int32("item", 1),
+			bson.EC.Int32("status", 1),
 		))
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			projection,
 		)
@@ -1205,16 +1205,16 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 45
 
 		projection, err := mongo.Projection(bson.NewDocument(
-			bson.C.Int32("item", 1),
-			bson.C.Int32("status", 1),
-			bson.C.Int32("_id", 0),
+			bson.EC.Int32("item", 1),
+			bson.EC.Int32("status", 1),
+			bson.EC.Int32("_id", 0),
 		))
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			projection,
 		)
@@ -1245,15 +1245,15 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 46
 
 		projection, err := mongo.Projection(bson.NewDocument(
-			bson.C.Int32("status", 0),
-			bson.C.Int32("instock", 0),
+			bson.EC.Int32("status", 0),
+			bson.EC.Int32("instock", 0),
 		))
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			projection,
 		)
@@ -1284,16 +1284,16 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 47
 
 		projection, err := mongo.Projection(bson.NewDocument(
-			bson.C.Int32("item", 1),
-			bson.C.Int32("status", 1),
-			bson.C.Int32("size.uom", 1),
+			bson.EC.Int32("item", 1),
+			bson.EC.Int32("status", 1),
+			bson.EC.Int32("size.uom", 1),
 		))
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			projection,
 		)
@@ -1329,14 +1329,14 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 48
 
 		projection, err := mongo.Projection(bson.NewDocument(
-			bson.C.Int32("size.uom", 0),
+			bson.EC.Int32("size.uom", 0),
 		))
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			projection,
 		)
@@ -1372,16 +1372,16 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 49
 
 		projection, err := mongo.Projection(bson.NewDocument(
-			bson.C.Int32("item", 1),
-			bson.C.Int32("status", 1),
-			bson.C.Int32("instock.qty", 1),
+			bson.EC.Int32("item", 1),
+			bson.EC.Int32("status", 1),
+			bson.EC.Int32("instock.qty", 1),
 		))
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			projection,
 		)
@@ -1429,10 +1429,10 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 50
 
 		projection, err := mongo.Projection(bson.NewDocument(
-			bson.C.Int32("item", 1),
-			bson.C.Int32("status", 1),
-			bson.C.SubDocumentFromElements("instock",
-				bson.C.Int32("$slice", -1),
+			bson.EC.Int32("item", 1),
+			bson.EC.Int32("status", 1),
+			bson.EC.SubDocumentFromElements("instock",
+				bson.EC.Int32("$slice", -1),
 			),
 		))
 		require.NoError(t, err)
@@ -1440,7 +1440,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			projection,
 		)
@@ -1475,7 +1475,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 func UpdateExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -1486,104 +1486,104 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		docs := []interface{}{
 			bson.NewDocument(
-				bson.C.String("item", "canvas"),
-				bson.C.Int32("qty", 100),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 28),
-					bson.C.Double("w", 35.5),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "canvas"),
+				bson.EC.Int32("qty", 100),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 28),
+					bson.EC.Double("w", 35.5),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "journal"),
-				bson.C.Int32("qty", 25),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 14),
-					bson.C.Int32("w", 21),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "journal"),
+				bson.EC.Int32("qty", 25),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 14),
+					bson.EC.Int32("w", 21),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "mat"),
-				bson.C.Int32("qty", 85),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 27.9),
-					bson.C.Double("w", 35.5),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "mat"),
+				bson.EC.Int32("qty", 85),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 27.9),
+					bson.EC.Double("w", 35.5),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "mousepad"),
-				bson.C.Int32("qty", 25),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 19),
-					bson.C.Double("w", 22.85),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "mousepad"),
+				bson.EC.Int32("qty", 25),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 19),
+					bson.EC.Double("w", 22.85),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "P"),
+				bson.EC.String("status", "P"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "notebook"),
-				bson.C.Int32("qty", 50),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Int32("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "notebook"),
+				bson.EC.Int32("qty", 50),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Int32("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "P"),
+				bson.EC.String("status", "P"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
-				bson.C.Int32("qty", 100),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Int32("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "paper"),
+				bson.EC.Int32("qty", 100),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Int32("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "planner"),
-				bson.C.Int32("qty", 75),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 22.85),
-					bson.C.Int32("w", 30),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "planner"),
+				bson.EC.Int32("qty", 75),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 22.85),
+					bson.EC.Int32("w", 30),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "postcard"),
-				bson.C.Int32("qty", 45),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 10),
-					bson.C.Double("w", 15.25),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "postcard"),
+				bson.EC.Int32("qty", 45),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 10),
+					bson.EC.Double("w", 15.25),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "sketchbook"),
-				bson.C.Int32("qty", 80),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 14),
-					bson.C.Int32("w", 21),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "sketchbook"),
+				bson.EC.Int32("qty", 80),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 14),
+					bson.EC.Int32("w", 21),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "sketch pad"),
-				bson.C.Int32("qty", 95),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 22.85),
-					bson.C.Double("w", 30.5),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "sketch pad"),
+				bson.EC.Int32("qty", 95),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 22.85),
+					bson.EC.Double("w", 30.5),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 		}
 
@@ -1601,15 +1601,15 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		result, err := coll.UpdateOne(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
+				bson.EC.String("item", "paper"),
 			),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("$set",
-					bson.C.String("size.uom", "cm"),
-					bson.C.String("status", "P"),
+				bson.EC.SubDocumentFromElements("$set",
+					bson.EC.String("size.uom", "cm"),
+					bson.EC.String("status", "P"),
 				),
-				bson.C.SubDocumentFromElements("$currentDate",
-					bson.C.Boolean("lastModified", true),
+				bson.EC.SubDocumentFromElements("$currentDate",
+					bson.EC.Boolean("lastModified", true),
 				),
 			),
 		)
@@ -1623,7 +1623,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
+				bson.EC.String("item", "paper"),
 			))
 
 		require.NoError(t, err)
@@ -1655,17 +1655,17 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		result, err := coll.UpdateMany(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("qty",
-					bson.C.Int32("$lt", 50),
+				bson.EC.SubDocumentFromElements("qty",
+					bson.EC.Int32("$lt", 50),
 				),
 			),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("$set",
-					bson.C.String("size.uom", "cm"),
-					bson.C.String("status", "P"),
+				bson.EC.SubDocumentFromElements("$set",
+					bson.EC.String("size.uom", "cm"),
+					bson.EC.String("status", "P"),
 				),
-				bson.C.SubDocumentFromElements("$currentDate",
-					bson.C.Boolean("lastModified", true),
+				bson.EC.SubDocumentFromElements("$currentDate",
+					bson.EC.Boolean("lastModified", true),
 				),
 			),
 		)
@@ -1679,8 +1679,8 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.SubDocumentFromElements("qty",
-					bson.C.Int32("$lt", 50),
+				bson.EC.SubDocumentFromElements("qty",
+					bson.EC.Int32("$lt", 50),
 				),
 			))
 
@@ -1713,18 +1713,18 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		result, err := coll.ReplaceOne(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
+				bson.EC.String("item", "paper"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
-				bson.C.ArrayFromElements("instock",
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "A"),
-						bson.C.Int32("qty", 60),
+				bson.EC.String("item", "paper"),
+				bson.EC.ArrayFromElements("instock",
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "A"),
+						bson.EC.Int32("qty", 60),
 					),
-					bson.AC.DocumentFromElements(
-						bson.C.String("warehouse", "B"),
-						bson.C.Int32("qty", 40),
+					bson.VC.DocumentFromElements(
+						bson.EC.String("warehouse", "B"),
+						bson.EC.Int32("qty", 40),
 					),
 				),
 			),
@@ -1739,7 +1739,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
+				bson.EC.String("item", "paper"),
 			))
 
 		require.NoError(t, err)
@@ -1771,7 +1771,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 func DeleteExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 	)
 	require.NoError(t, err)
 
@@ -1781,54 +1781,54 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 		// Start Example 55
 		docs := []interface{}{
 			bson.NewDocument(
-				bson.C.String("item", "journal"),
-				bson.C.Int32("qty", 25),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 14),
-					bson.C.Int32("w", 21),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "journal"),
+				bson.EC.Int32("qty", 25),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 14),
+					bson.EC.Int32("w", 21),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "notebook"),
-				bson.C.Int32("qty", 50),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Int32("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "notebook"),
+				bson.EC.Int32("qty", 50),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Int32("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "P"),
+				bson.EC.String("status", "P"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "paper"),
-				bson.C.Int32("qty", 100),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 8.5),
-					bson.C.Int32("w", 11),
-					bson.C.String("uom", "in"),
+				bson.EC.String("item", "paper"),
+				bson.EC.Int32("qty", 100),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 8.5),
+					bson.EC.Int32("w", 11),
+					bson.EC.String("uom", "in"),
 				),
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "planner"),
-				bson.C.Int32("qty", 75),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Double("h", 22.85),
-					bson.C.Int32("w", 30),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "planner"),
+				bson.EC.Int32("qty", 75),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Double("h", 22.85),
+					bson.EC.Int32("w", 30),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 			bson.NewDocument(
-				bson.C.String("item", "postcard"),
-				bson.C.Int32("qty", 45),
-				bson.C.SubDocumentFromElements("size",
-					bson.C.Int32("h", 10),
-					bson.C.Double("w", 15.25),
-					bson.C.String("uom", "cm"),
+				bson.EC.String("item", "postcard"),
+				bson.EC.Int32("qty", 45),
+				bson.EC.SubDocumentFromElements("size",
+					bson.EC.Int32("h", 10),
+					bson.EC.Double("w", 15.25),
+					bson.EC.String("uom", "cm"),
 				),
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 		}
 
@@ -1846,7 +1846,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 		result, err := coll.DeleteMany(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "A"),
+				bson.EC.String("status", "A"),
 			),
 		)
 
@@ -1862,7 +1862,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 		result, err := coll.DeleteOne(
 			context.Background(),
 			bson.NewDocument(
-				bson.C.String("status", "D"),
+				bson.EC.String("status", "D"),
 			),
 		)
 

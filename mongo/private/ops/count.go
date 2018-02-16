@@ -24,7 +24,7 @@ func Count(ctx context.Context, s *SelectedServer, ns Namespace, query *bson.Doc
 	}
 
 	command := bson.NewDocument()
-	command.Append(bson.C.String("count", ns.Collection), bson.C.SubDocument("query", query))
+	command.Append(bson.EC.String("count", ns.Collection), bson.EC.SubDocument("query", query))
 
 	for _, option := range opts {
 		if option == nil {

@@ -41,15 +41,15 @@ func readPrefMeta(rp *readpref.ReadPref, kind model.ServerKind) *bson.Document {
 
 	switch rp.Mode() {
 	case readpref.PrimaryMode:
-		doc.Append(bson.C.String("mode", "primary"))
+		doc.Append(bson.EC.String("mode", "primary"))
 	case readpref.PrimaryPreferredMode:
-		doc.Append(bson.C.String("mode", "primaryPreferred"))
+		doc.Append(bson.EC.String("mode", "primaryPreferred"))
 	case readpref.SecondaryPreferredMode:
-		doc.Append(bson.C.String("mode", "secondaryPreferred"))
+		doc.Append(bson.EC.String("mode", "secondaryPreferred"))
 	case readpref.SecondaryMode:
-		doc.Append(bson.C.String("mode", "secondary"))
+		doc.Append(bson.EC.String("mode", "secondary"))
 	case readpref.NearestMode:
-		doc.Append(bson.C.String("mode", "nearest"))
+		doc.Append(bson.EC.String("mode", "nearest"))
 	}
 
 	sets := make([]*bson.Value, 0, len(rp.TagSets()))
@@ -59,16 +59,16 @@ func readPrefMeta(rp *readpref.ReadPref, kind model.ServerKind) *bson.Document {
 		}
 		set := bson.NewDocument()
 		for _, t := range ts {
-			set.Append(bson.C.String(t.Name, t.Value))
+			set.Append(bson.EC.String(t.Name, t.Value))
 		}
-		sets = append(sets, bson.AC.Document(set))
+		sets = append(sets, bson.VC.Document(set))
 	}
 	if len(sets) > 0 {
-		doc.Append(bson.C.ArrayFromElements("tags", sets...))
+		doc.Append(bson.EC.ArrayFromElements("tags", sets...))
 	}
 
 	if d, ok := rp.MaxStaleness(); ok {
-		doc.Append(bson.C.Int32("maxStalenessSeconds", int32(d.Seconds())))
+		doc.Append(bson.EC.Int32("maxStalenessSeconds", int32(d.Seconds())))
 	}
 
 	return doc

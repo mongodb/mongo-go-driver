@@ -24,9 +24,9 @@ func TestCursorWithInvalidNamespace(t *testing.T) {
 	var rdr bson.Reader
 	var err error
 	rdr, err = bson.NewDocument(
-		bson.C.SubDocumentFromElements(
+		bson.EC.SubDocumentFromElements(
 			"cursor",
-			bson.C.String("ns", "foo"),
+			bson.EC.String("ns", "foo"),
 		)).
 		MarshalBSON()
 	require.NoError(t, err)
@@ -53,8 +53,8 @@ func TestCursorSingleBatch(t *testing.T) {
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
 	documents := []*bson.Document{
-		bson.NewDocument(bson.C.Int32("_id", 1)),
-		bson.NewDocument(bson.C.Int32("_id", 2)),
+		bson.NewDocument(bson.EC.Int32("_id", 1)),
+		bson.NewDocument(bson.EC.Int32("_id", 2)),
 	}
 	testutil.AutoInsertDocs(t, nil, documents...)
 
@@ -92,11 +92,11 @@ func TestCursorMultipleBatches(t *testing.T) {
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
 	documents := []*bson.Document{
-		bson.NewDocument(bson.C.Int32("_id", 1)),
-		bson.NewDocument(bson.C.Int32("_id", 2)),
-		bson.NewDocument(bson.C.Int32("_id", 3)),
-		bson.NewDocument(bson.C.Int32("_id", 4)),
-		bson.NewDocument(bson.C.Int32("_id", 5)),
+		bson.NewDocument(bson.EC.Int32("_id", 1)),
+		bson.NewDocument(bson.EC.Int32("_id", 2)),
+		bson.NewDocument(bson.EC.Int32("_id", 3)),
+		bson.NewDocument(bson.EC.Int32("_id", 4)),
+		bson.NewDocument(bson.EC.Int32("_id", 5)),
 	}
 	testutil.AutoInsertDocs(t, nil, documents...)
 
@@ -153,11 +153,11 @@ func TestCursorClose(t *testing.T) {
 	testutil.Integration(t)
 	testutil.AutoDropCollection(t)
 	documents := []*bson.Document{
-		bson.NewDocument(bson.C.Int32("_id", 1)),
-		bson.NewDocument(bson.C.Int32("_id", 2)),
-		bson.NewDocument(bson.C.Int32("_id", 3)),
-		bson.NewDocument(bson.C.Int32("_id", 4)),
-		bson.NewDocument(bson.C.Int32("_id", 5)),
+		bson.NewDocument(bson.EC.Int32("_id", 1)),
+		bson.NewDocument(bson.EC.Int32("_id", 2)),
+		bson.NewDocument(bson.EC.Int32("_id", 3)),
+		bson.NewDocument(bson.EC.Int32("_id", 4)),
+		bson.NewDocument(bson.EC.Int32("_id", 5)),
 	}
 	testutil.AutoInsertDocs(t, nil, documents...)
 
@@ -178,11 +178,11 @@ func TestCursorError(t *testing.T) {
 	testutil.AutoDropCollection(t)
 	testutil.AutoInsertDocs(t,
 		nil,
-		bson.NewDocument(bson.C.Int32("_id", 1)),
-		bson.NewDocument(bson.C.Int32("_id", 2)),
-		bson.NewDocument(bson.C.Int32("_id", 3)),
-		bson.NewDocument(bson.C.Int32("_id", 4)),
-		bson.NewDocument(bson.C.Int32("_id", 5)),
+		bson.NewDocument(bson.EC.Int32("_id", 1)),
+		bson.NewDocument(bson.EC.Int32("_id", 2)),
+		bson.NewDocument(bson.EC.Int32("_id", 3)),
+		bson.NewDocument(bson.EC.Int32("_id", 4)),
+		bson.NewDocument(bson.EC.Int32("_id", 5)),
 	)
 
 	s := getServer(t)

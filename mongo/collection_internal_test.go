@@ -30,11 +30,11 @@ func createTestCollection(t *testing.T, dbName *string, collName *string) *Colle
 }
 
 func initCollection(t *testing.T, coll *Collection) {
-	doc1 := bson.NewDocument(bson.C.Int32("x", 1))
-	doc2 := bson.NewDocument(bson.C.Int32("x", 2))
-	doc3 := bson.NewDocument(bson.C.Int32("x", 3))
-	doc4 := bson.NewDocument(bson.C.Int32("x", 4))
-	doc5 := bson.NewDocument(bson.C.Int32("x", 5))
+	doc1 := bson.NewDocument(bson.EC.Int32("x", 1))
+	doc2 := bson.NewDocument(bson.EC.Int32("x", 2))
+	doc3 := bson.NewDocument(bson.EC.Int32("x", 3))
+	doc4 := bson.NewDocument(bson.EC.Int32("x", 4))
+	doc5 := bson.NewDocument(bson.EC.Int32("x", 5))
 
 	var err error
 
@@ -84,8 +84,8 @@ func TestCollection_InsertOne(t *testing.T) {
 	t.Parallel()
 
 	id := objectid.New()
-	want := bson.C.ObjectID("_id", id)
-	doc := bson.NewDocument(want, bson.C.Int32("x", 1))
+	want := bson.EC.ObjectID("_id", id)
+	doc := bson.NewDocument(want, bson.EC.Int32("x", 1))
 	coll := createTestCollection(t, nil, nil)
 
 	result, err := coll.InsertOne(context.Background(), doc)
@@ -100,11 +100,11 @@ func TestCollection_InsertMany(t *testing.T) {
 
 	t.Parallel()
 
-	want1 := bson.C.Int32("_id", 11)
-	want2 := bson.C.Int32("_id", 12)
+	want1 := bson.EC.Int32("_id", 11)
+	want2 := bson.EC.Int32("_id", 12)
 	docs := []interface{}{
 		bson.NewDocument(want1),
-		bson.NewDocument(bson.C.Int32("x", 6)),
+		bson.NewDocument(bson.EC.Int32("x", 6)),
 		bson.NewDocument(want2),
 	}
 	coll := createTestCollection(t, nil, nil)
@@ -129,7 +129,7 @@ func TestCollection_DeleteOne_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 1))
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
 	result, err := coll.DeleteOne(context.Background(), filter)
 	require.Nil(t, err)
 	require.NotNil(t, result)
@@ -146,7 +146,7 @@ func TestCollection_DeleteOne_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 0))
+	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 	result, err := coll.DeleteOne(context.Background(), filter)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
@@ -162,7 +162,7 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 0))
+	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 	result, err := coll.DeleteOne(context.Background(), filter, Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
@@ -179,7 +179,7 @@ func TestCollection_DeleteMany_found(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(
-		bson.C.SubDocumentFromElements("x", bson.C.Int32("$gte", 3)))
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$gte", 3)))
 
 	result, err := coll.DeleteMany(context.Background(), filter)
 	require.Nil(t, err)
@@ -197,7 +197,7 @@ func TestCollection_DeleteMany_notFound(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(
-		bson.C.SubDocumentFromElements("x", bson.C.Int32("$lt", 1)))
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$lt", 1)))
 
 	result, err := coll.DeleteMany(context.Background(), filter)
 	require.Nil(t, err)
@@ -215,7 +215,7 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(
-		bson.C.SubDocumentFromElements("x", bson.C.Int32("$lt", 1)))
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$lt", 1)))
 
 	result, err := coll.DeleteMany(context.Background(), filter, Collation(&options.CollationOptions{Locale: "en_US"}))
 	require.Nil(t, err)
@@ -232,9 +232,9 @@ func TestCollection_UpdateOne_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 1))
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$inc", bson.C.Int32("x", 1)))
+		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
 	result, err := coll.UpdateOne(context.Background(), filter, update)
 	require.Nil(t, err)
@@ -254,9 +254,9 @@ func TestCollection_UpdateOne_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 0))
+	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$inc", bson.C.Int32("x", 1)))
+		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
 	result, err := coll.UpdateOne(context.Background(), filter, update)
 	require.Nil(t, err)
@@ -275,9 +275,9 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 0))
+	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$inc", bson.C.Int32("x", 1)))
+		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
 	result, err := coll.UpdateOne(context.Background(), filter, update, Upsert(true))
 	require.Nil(t, err)
@@ -297,10 +297,10 @@ func TestCollection_UpdateMany_found(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(
-		bson.C.SubDocumentFromElements("x", bson.C.Int32("$gte", 3)))
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$gte", 3)))
 
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$inc", bson.C.Int32("x", 1)))
+		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
 	result, err := coll.UpdateMany(context.Background(), filter, update)
 	require.Nil(t, err)
@@ -320,10 +320,10 @@ func TestCollection_UpdateMany_notFound(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(
-		bson.C.SubDocumentFromElements("x", bson.C.Int32("$lt", 1)))
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$lt", 1)))
 
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$inc", bson.C.Int32("x", 1)))
+		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
 	result, err := coll.UpdateMany(context.Background(), filter, update)
 	require.Nil(t, err)
@@ -343,10 +343,10 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(
-		bson.C.SubDocumentFromElements("x", bson.C.Int32("$lt", 1)))
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$lt", 1)))
 
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$inc", bson.C.Int32("x", 1)))
+		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
 	result, err := coll.UpdateMany(context.Background(), filter, update, Upsert(true))
 	require.Nil(t, err)
@@ -365,8 +365,8 @@ func TestCollection_ReplaceOne_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 1))
-	replacement := bson.NewDocument(bson.C.Int32("y", 1))
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
+	replacement := bson.NewDocument(bson.EC.Int32("y", 1))
 
 	result, err := coll.ReplaceOne(context.Background(), filter, replacement)
 	require.Nil(t, err)
@@ -386,8 +386,8 @@ func TestCollection_ReplaceOne_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 0))
-	replacement := bson.NewDocument(bson.C.Int32("y", 1))
+	filter := bson.NewDocument(bson.EC.Int32("x", 0))
+	replacement := bson.NewDocument(bson.EC.Int32("y", 1))
 
 	result, err := coll.ReplaceOne(context.Background(), filter, replacement)
 	require.Nil(t, err)
@@ -406,8 +406,8 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 0))
-	replacement := bson.NewDocument(bson.C.Int32("y", 1))
+	filter := bson.NewDocument(bson.EC.Int32("x", 0))
+	replacement := bson.NewDocument(bson.EC.Int32("y", 1))
 
 	result, err := coll.ReplaceOne(context.Background(), filter, replacement, Upsert(true))
 	require.Nil(t, err)
@@ -427,26 +427,26 @@ func TestCollection_Aggregate(t *testing.T) {
 	initCollection(t, coll)
 
 	pipeline := bson.NewArray(
-		bson.AC.DocumentFromElements(
-			bson.C.SubDocumentFromElements(
+		bson.VC.DocumentFromElements(
+			bson.EC.SubDocumentFromElements(
 				"$match",
-				bson.C.SubDocumentFromElements(
+				bson.EC.SubDocumentFromElements(
 					"x",
-					bson.C.Int32("$gte", 2),
+					bson.EC.Int32("$gte", 2),
 				),
 			),
 		),
-		bson.AC.DocumentFromElements(
-			bson.C.SubDocumentFromElements(
+		bson.VC.DocumentFromElements(
+			bson.EC.SubDocumentFromElements(
 				"$project",
-				bson.C.Int32("_id", 0),
-				bson.C.Int32("x", 1),
+				bson.EC.Int32("_id", 0),
+				bson.EC.Int32("x", 1),
 			),
 		),
-		bson.AC.DocumentFromElements(
-			bson.C.SubDocumentFromElements(
+		bson.VC.DocumentFromElements(
+			bson.EC.SubDocumentFromElements(
 				"$sort",
-				bson.C.Int32("x", 1),
+				bson.EC.Int32("x", 1),
 			),
 		))
 
@@ -481,26 +481,26 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 	initCollection(t, coll)
 
 	pipeline := bson.NewArray(
-		bson.AC.DocumentFromElements(
-			bson.C.SubDocumentFromElements(
+		bson.VC.DocumentFromElements(
+			bson.EC.SubDocumentFromElements(
 				"$match",
-				bson.C.SubDocumentFromElements(
+				bson.EC.SubDocumentFromElements(
 					"x",
-					bson.C.Int32("$gte", 2),
+					bson.EC.Int32("$gte", 2),
 				),
 			),
 		),
-		bson.AC.DocumentFromElements(
-			bson.C.SubDocumentFromElements(
+		bson.VC.DocumentFromElements(
+			bson.EC.SubDocumentFromElements(
 				"$project",
-				bson.C.Int32("_id", 0),
-				bson.C.Int32("x", 1),
+				bson.EC.Int32("_id", 0),
+				bson.EC.Int32("x", 1),
 			),
 		),
-		bson.AC.DocumentFromElements(
-			bson.C.SubDocumentFromElements(
+		bson.VC.DocumentFromElements(
+			bson.EC.SubDocumentFromElements(
 				"$sort",
-				bson.C.Int32("x", 1),
+				bson.EC.Int32("x", 1),
 			),
 		))
 
@@ -550,7 +550,7 @@ func TestCollection_Count_withFilter(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(
-		bson.C.SubDocumentFromElements("x", bson.C.Int32("$gt", 2)))
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$gt", 2)))
 
 	count, err := coll.Count(context.Background(), filter)
 	require.Nil(t, err)
@@ -598,7 +598,7 @@ func TestCollection_Distinct_withFilter(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(
-		bson.C.SubDocumentFromElements("x", bson.C.Int32("$gt", 2)))
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$gt", 2)))
 
 	results, err := coll.Distinct(context.Background(), "x", filter)
 	require.Nil(t, err)
@@ -630,7 +630,7 @@ func TestCollection_Find_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	sort, err := Sort(bson.NewDocument(bson.C.Int32("x", 1)))
+	sort, err := Sort(bson.NewDocument(bson.EC.Int32("x", 1)))
 	require.NoError(t, err)
 	cursor, err := coll.Find(context.Background(),
 		nil,
@@ -670,7 +670,7 @@ func TestCollection_Find_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	cursor, err := coll.Find(context.Background(), bson.NewDocument(bson.C.Int32("x", 6)))
+	cursor, err := coll.Find(context.Background(), bson.NewDocument(bson.EC.Int32("x", 6)))
 	require.Nil(t, err)
 
 	require.False(t, cursor.Next(context.Background()))
@@ -686,7 +686,7 @@ func TestCollection_FindOne_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 1))
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
 	var result = bson.NewDocument()
 	err := coll.FindOne(context.Background(),
 		filter,
@@ -717,7 +717,7 @@ func TestCollection_FindOne_found_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 1))
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
 	var result = bson.NewDocument()
 	err := coll.FindOne(context.Background(),
 		filter,
@@ -748,7 +748,7 @@ func TestCollection_FindOne_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 6))
+	filter := bson.NewDocument(bson.EC.Int32("x", 6))
 	err := coll.FindOne(context.Background(), filter).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
 }
@@ -763,7 +763,7 @@ func TestCollection_FindOneAndDelete_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 3))
+	filter := bson.NewDocument(bson.EC.Int32("x", 3))
 
 	var result = bson.NewDocument()
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(result)
@@ -785,7 +785,7 @@ func TestCollection_FindOneAndDelete_found_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 3))
+	filter := bson.NewDocument(bson.EC.Int32("x", 3))
 
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
 	require.NoError(t, err)
@@ -801,7 +801,7 @@ func TestCollection_FindOneAndDelete_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 6))
+	filter := bson.NewDocument(bson.EC.Int32("x", 6))
 
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -817,7 +817,7 @@ func TestCollection_FindOneAndDelete_notFound_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 6))
+	filter := bson.NewDocument(bson.EC.Int32("x", 6))
 
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -833,8 +833,8 @@ func TestCollection_FindOneAndReplace_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 3))
-	replacement := bson.NewDocument(bson.C.Int32("y", 3))
+	filter := bson.NewDocument(bson.EC.Int32("x", 3))
+	replacement := bson.NewDocument(bson.EC.Int32("y", 3))
 
 	var result = bson.NewDocument()
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(result)
@@ -856,8 +856,8 @@ func TestCollection_FindOneAndReplace_found_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 3))
-	replacement := bson.NewDocument(bson.C.Int32("y", 3))
+	filter := bson.NewDocument(bson.EC.Int32("x", 3))
+	replacement := bson.NewDocument(bson.EC.Int32("y", 3))
 
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
 	require.NoError(t, err)
@@ -873,8 +873,8 @@ func TestCollection_FindOneAndReplace_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 6))
-	replacement := bson.NewDocument(bson.C.Int32("y", 6))
+	filter := bson.NewDocument(bson.EC.Int32("x", 6))
+	replacement := bson.NewDocument(bson.EC.Int32("y", 6))
 
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -890,8 +890,8 @@ func TestCollection_FindOneAndReplace_notFound_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 6))
-	replacement := bson.NewDocument(bson.C.Int32("y", 6))
+	filter := bson.NewDocument(bson.EC.Int32("x", 6))
+	replacement := bson.NewDocument(bson.EC.Int32("y", 6))
 
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -907,9 +907,9 @@ func TestCollection_FindOneAndUpdate_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 3))
+	filter := bson.NewDocument(bson.EC.Int32("x", 3))
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$set", bson.C.Int32("x", 6)))
+		bson.EC.SubDocumentFromElements("$set", bson.EC.Int32("x", 6)))
 
 	var result = bson.NewDocument()
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(result)
@@ -931,9 +931,9 @@ func TestCollection_FindOneAndUpdate_found_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 3))
+	filter := bson.NewDocument(bson.EC.Int32("x", 3))
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$set", bson.C.Int32("x", 6)))
+		bson.EC.SubDocumentFromElements("$set", bson.EC.Int32("x", 6)))
 
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
 	require.NoError(t, err)
@@ -949,9 +949,9 @@ func TestCollection_FindOneAndUpdate_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 6))
+	filter := bson.NewDocument(bson.EC.Int32("x", 6))
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$set", bson.C.Int32("x", 6)))
+		bson.EC.SubDocumentFromElements("$set", bson.EC.Int32("x", 6)))
 
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -967,9 +967,9 @@ func TestCollection_FindOneAndUpdate_notFound_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.NewDocument(bson.C.Int32("x", 6))
+	filter := bson.NewDocument(bson.EC.Int32("x", 6))
 	update := bson.NewDocument(
-		bson.C.SubDocumentFromElements("$set", bson.C.Int32("x", 6)))
+		bson.EC.SubDocumentFromElements("$set", bson.EC.Int32("x", 6)))
 
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)

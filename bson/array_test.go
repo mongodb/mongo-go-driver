@@ -158,14 +158,14 @@ func TestArray(t *testing.T) {
 		}{
 			{
 				"first",
-				NewArray(AC.Null()),
+				NewArray(VC.Null()),
 				0,
 				&Value{start: 0, offset: 2, data: []byte{0xa, 0x0}},
 				nil,
 			},
 			{
 				"not-found",
-				NewArray(AC.Null()),
+				NewArray(VC.Null()),
 				1,
 				nil,
 				ErrOutOfBounds,
@@ -201,13 +201,13 @@ func TestArray(t *testing.T) {
 		}{
 			{
 				"first",
-				NewArray(AC.Null()),
+				NewArray(VC.Null()),
 				0,
 				&Value{start: 0, offset: 2},
 			},
 			{
 				"not-found",
-				NewArray(AC.Null()),
+				NewArray(VC.Null()),
 				1,
 				nil,
 			},
@@ -230,7 +230,7 @@ var tapag testArrayPrependAppendGenerator
 
 func (testArrayPrependAppendGenerator) oneOne() [][]*Value {
 	return [][]*Value{
-		{AC.Double(3.14159)},
+		{VC.Double(3.14159)},
 	}
 }
 
@@ -260,8 +260,8 @@ func (testArrayPrependAppendGenerator) oneOneBytes(index uint) []byte {
 
 func (testArrayPrependAppendGenerator) twoOne() [][]*Value {
 	return [][]*Value{
-		{AC.Double(1.234)},
-		{AC.Double(5.678)},
+		{VC.Double(1.234)},
+		{VC.Double(5.678)},
 	}
 }
 
@@ -341,18 +341,18 @@ func ExampleArray() {
 	f := func(appName string) *Array {
 		arr := NewArray()
 		arr.Append(
-			AC.DocumentFromElements(
-				C.String("name", "mongo-go-driver"),
-				C.String("version", internalVersion),
+			VC.DocumentFromElements(
+				EC.String("name", "mongo-go-driver"),
+				EC.String("version", internalVersion),
 			),
-			AC.DocumentFromElements(
-				C.String("type", "darwin"),
-				C.String("architecture", "amd64"),
+			VC.DocumentFromElements(
+				EC.String("type", "darwin"),
+				EC.String("architecture", "amd64"),
 			),
-			AC.String("go1.9.2"),
+			VC.String("go1.9.2"),
 		)
 		if appName != "" {
-			arr.Append(AC.DocumentFromElements(C.String("name", appName)))
+			arr.Append(VC.DocumentFromElements(EC.String("name", appName)))
 		}
 
 		return arr

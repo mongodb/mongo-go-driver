@@ -22,7 +22,7 @@ type ListIndexesOptions struct {
 // ListIndexes lists the indexes on the given namespace.
 func ListIndexes(ctx context.Context, s *SelectedServer, ns Namespace, options ListIndexesOptions) (Cursor, error) {
 
-	listIndexesCommand := bson.NewDocument(bson.C.String("listIndexes", ns.Collection))
+	listIndexesCommand := bson.NewDocument(bson.EC.String("listIndexes", ns.Collection))
 
 	rdr, err := runMustUsePrimary(ctx, s, ns.DB, listIndexesCommand)
 	switch err {

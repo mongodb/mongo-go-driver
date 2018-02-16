@@ -22,13 +22,13 @@ func Delete(ctx context.Context, s *SelectedServer, ns Namespace, deleteDocs []*
 		return nil, err
 	}
 
-	command := bson.NewDocument(bson.C.String("delete", ns.Collection))
+	command := bson.NewDocument(bson.EC.String("delete", ns.Collection))
 
 	arr := bson.NewArray()
 	for _, doc := range deleteDocs {
-		arr.Append(bson.AC.Document(doc))
+		arr.Append(bson.VC.Document(doc))
 	}
-	command.Append(bson.C.Array("deletes", arr))
+	command.Append(bson.EC.Array("deletes", arr))
 
 	for _, option := range opts {
 		switch option.(type) {

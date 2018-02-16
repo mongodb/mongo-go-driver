@@ -24,28 +24,28 @@ type CollationOptions struct {
 func (co *CollationOptions) toDocument() *bson.Document {
 	doc := bson.NewDocument()
 	if co.Locale != "" {
-		doc.Append(bson.C.String("locale", co.Locale))
+		doc.Append(bson.EC.String("locale", co.Locale))
 	}
 	if co.CaseLevel {
-		doc.Append(bson.C.Boolean("caseLevel", true))
+		doc.Append(bson.EC.Boolean("caseLevel", true))
 	}
 	if co.CaseFirst != "" {
-		doc.Append(bson.C.String("caseFirst", co.CaseFirst))
+		doc.Append(bson.EC.String("caseFirst", co.CaseFirst))
 	}
 	if co.Strength != 0 {
-		doc.Append(bson.C.Int32("strength", int32(co.Strength)))
+		doc.Append(bson.EC.Int32("strength", int32(co.Strength)))
 	}
 	if co.NumericOrdering {
-		doc.Append(bson.C.Boolean("numericOrdering", true))
+		doc.Append(bson.EC.Boolean("numericOrdering", true))
 	}
 	if co.Alternate != "" {
-		doc.Append(bson.C.String("alternate", co.Alternate))
+		doc.Append(bson.EC.String("alternate", co.Alternate))
 	}
 	if co.MaxVariable != "" {
-		doc.Append(bson.C.String("maxVariable", co.MaxVariable))
+		doc.Append(bson.EC.String("maxVariable", co.MaxVariable))
 	}
 	if co.Backwards {
-		doc.Append(bson.C.Boolean("backwards", true))
+		doc.Append(bson.EC.Boolean("backwards", true))
 	}
 	return doc
 }

@@ -55,7 +55,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 		msg.NextRequestID(),
 		db,
 		true,
-		bson.NewDocument(bson.C.Int32("getnonce", 1)),
+		bson.NewDocument(bson.EC.Int32("getnonce", 1)),
 	)
 	var getNonceResult struct {
 		Nonce string `bson:"nonce"`
@@ -76,10 +76,10 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 		db,
 		true,
 		bson.NewDocument(
-			bson.C.Int32("authenticate", 1),
-			bson.C.String("user", a.Username),
-			bson.C.String("nonce", getNonceResult.Nonce),
-			bson.C.String("key", a.createKey(getNonceResult.Nonce))),
+			bson.EC.Int32("authenticate", 1),
+			bson.EC.String("user", a.Username),
+			bson.EC.String("nonce", getNonceResult.Nonce),
+			bson.EC.String("key", a.createKey(getNonceResult.Nonce))),
 	)
 	_, err = conn.ExecuteCommand(ctx, c, authRequest)
 	if err != nil {

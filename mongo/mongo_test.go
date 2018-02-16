@@ -24,26 +24,26 @@ func TestTransformDocument(t *testing.T) {
 	}{
 		{
 			"bson.Marshaler",
-			bMarsh{bson.NewDocument(bson.C.String("foo", "bar"))},
-			bson.NewDocument(bson.C.String("foo", "bar")),
+			bMarsh{bson.NewDocument(bson.EC.String("foo", "bar"))},
+			bson.NewDocument(bson.EC.String("foo", "bar")),
 			nil,
 		},
 		{
 			"bson.DocumentMarshaler",
-			dMarsh{bson.NewDocument(bson.C.String("foo", "bar"))},
-			bson.NewDocument(bson.C.String("foo", "bar")),
+			dMarsh{bson.NewDocument(bson.EC.String("foo", "bar"))},
+			bson.NewDocument(bson.EC.String("foo", "bar")),
 			nil,
 		},
 		{
 			"reflection",
 			reflectStruct{Foo: "bar"},
-			bson.NewDocument(bson.C.String("foo", "bar")),
+			bson.NewDocument(bson.EC.String("foo", "bar")),
 			nil,
 		},
 		{
 			"reflection pointer",
 			&reflectStruct{Foo: "bar"},
-			bson.NewDocument(bson.C.String("foo", "bar")),
+			bson.NewDocument(bson.EC.String("foo", "bar")),
 			nil,
 		},
 		{

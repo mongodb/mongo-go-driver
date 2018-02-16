@@ -254,7 +254,7 @@ func TestElement(t *testing.T) {
 		})
 
 		t.Run("Embedded Document", func(t *testing.T) {
-			subdoc := NewDocument(C.String("bar", "baz"))
+			subdoc := NewDocument(EC.String("bar", "baz"))
 
 			testCases := []struct {
 				name          string
@@ -1685,8 +1685,8 @@ func testConvertValueToElem(t *testing.T) {
 		elem *Element
 	}{
 		{"nil", "", nil, nil},
-		{"double", "foo", AC.Double(3.14159), C.Double("foo", 3.14159)},
-		{"int64", "foo", AC.Int64(1234567890), C.Int64("foo", 1234567890)},
+		{"double", "foo", VC.Double(3.14159), EC.Double("foo", 3.14159)},
+		{"int64", "foo", VC.Int64(1234567890), EC.Int64("foo", 1234567890)},
 	}
 
 	for _, tc := range testCases {
@@ -1856,7 +1856,7 @@ func testValidateValue(t *testing.T) {
 			{"ArrayWithDocument/success",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x04, 0x00},
-					d: NewArray(AC.Null()).doc,
+					d: NewArray(VC.Null()).doc,
 				}}, false, 8, nil,
 			},
 		}

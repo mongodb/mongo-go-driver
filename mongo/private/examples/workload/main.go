@@ -75,17 +75,17 @@ func prep(ctx context.Context, c *cluster.Cluster) error {
 
 	var docs = bson.NewArray()
 	for i := 0; i < 1000; i++ {
-		docs.Append(bson.AC.DocumentFromElements(bson.C.Int32("_id", int32(i))))
+		docs.Append(bson.VC.DocumentFromElements(bson.EC.Int32("_id", int32(i))))
 	}
 
 	ns := ops.ParseNamespace(*ns)
 	deleteCommand := bson.NewDocument(
-		bson.C.String("delete", ns.Collection),
-		bson.C.ArrayFromElements(
+		bson.EC.String("delete", ns.Collection),
+		bson.EC.ArrayFromElements(
 			"deletes",
-			bson.AC.DocumentFromElements(
-				bson.C.SubDocument("q", bson.NewDocument()),
-				bson.C.Int32("limit", 0),
+			bson.VC.DocumentFromElements(
+				bson.EC.SubDocument("q", bson.NewDocument()),
+				bson.EC.Int32("limit", 0),
 			),
 		),
 	)
@@ -96,8 +96,8 @@ func prep(ctx context.Context, c *cluster.Cluster) error {
 		deleteCommand,
 	)
 	insertCommand := bson.NewDocument(
-		bson.C.String("insert", ns.Collection),
-		bson.C.Array("documents", docs),
+		bson.EC.String("insert", ns.Collection),
+		bson.EC.Array("documents", docs),
 	)
 	insertRequest := msg.NewCommand(
 		msg.NextRequestID(),
@@ -139,8 +139,8 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 			}
 
 			pipeline := bson.NewArray(
-				bson.AC.DocumentFromElements(
-					bson.C.Int32("$limit", int32(limit)),
+				bson.VC.DocumentFromElements(
+					bson.EC.Int32("$limit", int32(limit)),
 				),
 			)
 

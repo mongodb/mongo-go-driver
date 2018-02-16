@@ -30,16 +30,16 @@ func ListCollections(ctx context.Context, s *SelectedServer, db string, options 
 	}
 
 	listCollectionsCommand := bson.NewDocument(
-		bson.C.Int32("listCollections", 1),
-		bson.C.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)),
-		bson.C.SubDocumentFromElements("cursor", bson.C.Int32("batchSize", options.BatchSize)))
+		bson.EC.Int32("listCollections", 1),
+		bson.EC.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)),
+		bson.EC.SubDocumentFromElements("cursor", bson.EC.Int32("batchSize", options.BatchSize)))
 
 	if options.Filter != nil {
 		doc, err := bson.NewDocumentEncoder().EncodeDocument(options.Filter)
 		if err != nil {
 			return nil, err
 		}
-		listCollectionsCommand.Append(bson.C.SubDocument("filter", doc))
+		listCollectionsCommand.Append(bson.EC.SubDocument("filter", doc))
 	}
 
 	rdr, err := runMustUsePrimary(ctx, s, db, listCollectionsCommand)

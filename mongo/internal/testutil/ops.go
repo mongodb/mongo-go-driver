@@ -25,16 +25,16 @@ import (
 func AutoCreateIndex(t *testing.T, keys []string) {
 	indexes := bson.NewDocument()
 	for _, k := range keys {
-		indexes.Append(bson.C.Int32(k, 1))
+		indexes.Append(bson.EC.Int32(k, 1))
 	}
 	name := strings.Join(keys, "_")
 	indexes = bson.NewDocument(
-		bson.C.SubDocument("key", indexes),
-		bson.C.String("name", name))
+		bson.EC.SubDocument("key", indexes),
+		bson.EC.String("name", name))
 
 	createIndexCommand := bson.NewDocument(
-		bson.C.String("createIndexes", ColName(t)),
-		bson.C.ArrayFromElements("indexes", bson.AC.Document(indexes)))
+		bson.EC.String("createIndexes", ColName(t)),
+		bson.EC.ArrayFromElements("indexes", bson.VC.Document(indexes)))
 
 	request := msg.NewCommand(
 		msg.NextRequestID(),
@@ -73,7 +73,7 @@ func DropCollection(t *testing.T, dbname, colname string) {
 			msg.NextRequestID(),
 			dbname,
 			false,
-			bson.NewDocument(bson.C.String("drop", colname)),
+			bson.NewDocument(bson.EC.String("drop", colname)),
 		),
 	)
 	if err != nil && !strings.HasSuffix(err.Error(), "ns not found") {
@@ -96,7 +96,7 @@ func autoDropDB(t *testing.T, clstr *cluster.Cluster) {
 			msg.NextRequestID(),
 			DBName(t),
 			false,
-			bson.NewDocument(bson.C.Int32("dropDatabase", 1)),
+			bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 		),
 	)
 	require.NoError(t, err)
@@ -111,11 +111,11 @@ func AutoInsertDocs(t *testing.T, writeConcern *writeconcern.WriteConcern, docs 
 func InsertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern.WriteConcern, docs ...*bson.Document) {
 	arrDocs := make([]*bson.Value, 0, len(docs))
 	for _, doc := range docs {
-		arrDocs = append(arrDocs, bson.AC.Document(doc))
+		arrDocs = append(arrDocs, bson.VC.Document(doc))
 	}
 	insertCommand := bson.NewDocument(
-		bson.C.String("insert", colname),
-		bson.C.ArrayFromElements("documents", arrDocs...))
+		bson.EC.String("insert", colname),
+		bson.EC.ArrayFromElements("documents", arrDocs...))
 
 	if writeConcern != nil {
 		wc, err := writeConcern.MarshalBSONElement()
@@ -156,8 +156,8 @@ func EnableMaxTimeFailPoint(t *testing.T, s cluster.Server) error {
 			"admin",
 			false,
 			bson.NewDocument(
-				bson.C.String("configureFailPoint", "maxTimeAlwaysTimeOut"),
-				bson.C.String("mode", "alwaysOn")),
+				bson.EC.String("configureFailPoint", "maxTimeAlwaysTimeOut"),
+				bson.EC.String("mode", "alwaysOn")),
 		),
 	)
 	return err
@@ -176,8 +176,8 @@ func DisableMaxTimeFailPoint(t *testing.T, s cluster.Server) {
 			"admin",
 			false,
 			bson.NewDocument(
-				bson.C.String("configureFailPoint", "maxTimeAlwaysTimeOut"),
-				bson.C.String("mode", "off")),
+				bson.EC.String("configureFailPoint", "maxTimeAlwaysTimeOut"),
+				bson.EC.String("mode", "off")),
 		),
 	)
 	require.NoError(t, err)

@@ -56,8 +56,8 @@ func (rc *ReadConcern) MarshalBSONElement() (*bson.Element, error) {
 	doc := bson.NewDocument()
 
 	if len(rc.level) > 0 {
-		doc.Append(bson.C.String("level", rc.level))
+		doc.Append(bson.EC.String("level", rc.level))
 	}
 
-	return bson.C.SubDocument("readConcern", doc), nil
+	return bson.EC.SubDocument("readConcern", doc), nil
 }

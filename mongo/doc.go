@@ -36,7 +36,7 @@
 // like a *sql.Row:
 //
 //    result := bson.NewDocument()
-//    filter := bson.NewDocument(bson.C.String("hello", "world"))
+//    filter := bson.NewDocument(bson.EC.String("hello", "world"))
 //    err := collection.FindOne(context.Background(), filter).Decode(result)
 //    if err != nil { log.Fatal(err) }
 //    // do something with result...

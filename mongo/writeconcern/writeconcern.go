@@ -98,14 +98,14 @@ func (wc *WriteConcern) MarshalBSONElement() (*bson.Element, error) {
 				return nil, ErrNegativeW
 			}
 
-			elems = append(elems, bson.C.Int32("w", int32(t)))
+			elems = append(elems, bson.EC.Int32("w", int32(t)))
 		case string:
-			elems = append(elems, bson.C.String("w", t))
+			elems = append(elems, bson.EC.String("w", t))
 		}
 	}
 
 	if wc.j {
-		elems = append(elems, bson.C.Boolean("j", wc.j))
+		elems = append(elems, bson.EC.Boolean("j", wc.j))
 	}
 
 	if wc.wTimeout < 0 {
@@ -113,10 +113,10 @@ func (wc *WriteConcern) MarshalBSONElement() (*bson.Element, error) {
 	}
 
 	if wc.wTimeout != 0 {
-		elems = append(elems, bson.C.Int64("wtimeout", int64(wc.wTimeout/time.Millisecond)))
+		elems = append(elems, bson.EC.Int64("wtimeout", int64(wc.wTimeout/time.Millisecond)))
 	}
 
-	return bson.C.SubDocumentFromElements("writeConcern", elems...), nil
+	return bson.EC.SubDocumentFromElements("writeConcern", elems...), nil
 }
 
 // Acknowledged indicates whether or not a write with the given write concern will be acknowledged.

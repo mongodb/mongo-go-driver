@@ -65,7 +65,7 @@ func main() {
 			ReadPref: readpref.Primary(),
 		},
 		dbname,
-		bson.NewDocument(bson.C.String("count", *col)),
+		bson.NewDocument(bson.EC.String("count", *col)),
 	)
 	if err != nil {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)

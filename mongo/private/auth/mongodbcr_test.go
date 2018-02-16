@@ -31,10 +31,10 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 	}
 
 	getNonceReply := msgtest.CreateCommandReply(bson.NewDocument(
-		bson.C.Int32("ok", 1),
-		bson.C.String("nonce", "2375531c32080ae8")))
+		bson.EC.Int32("ok", 1),
+		bson.EC.String("nonce", "2375531c32080ae8")))
 
-	authenticateReply := msgtest.CreateCommandReply(bson.NewDocument(bson.C.Int32("ok", 0)))
+	authenticateReply := msgtest.CreateCommandReply(bson.NewDocument(bson.EC.Int32("ok", 0)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
@@ -61,10 +61,10 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	getNonceReply := msgtest.CreateCommandReply(bson.NewDocument(
-		bson.C.Int32("ok", 1),
-		bson.C.String("nonce", "2375531c32080ae8")))
+		bson.EC.Int32("ok", 1),
+		bson.EC.String("nonce", "2375531c32080ae8")))
 
-	authenticateReply := msgtest.CreateCommandReply(bson.NewDocument(bson.C.Int32("ok", 1)))
+	authenticateReply := msgtest.CreateCommandReply(bson.NewDocument(bson.EC.Int32("ok", 1)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
@@ -80,16 +80,16 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	getNonceRequest := conn.Sent[0].(*msg.Query)
-	if !reflect.DeepEqual(getNonceRequest.Query, bson.NewDocument(bson.C.Int32("getnonce", 1))) {
+	if !reflect.DeepEqual(getNonceRequest.Query, bson.NewDocument(bson.EC.Int32("getnonce", 1))) {
 		t.Fatalf("getnonce command was incorrect: %v", getNonceRequest.Query)
 	}
 
 	authenticateRequest := conn.Sent[1].(*msg.Query)
 	expectedAuthenticateDoc := bson.NewDocument(
-		bson.C.Int32("authenticate", 1),
-		bson.C.String("user", "user"),
-		bson.C.String("nonce", "2375531c32080ae8"),
-		bson.C.String("key", "21742f26431831d5cfca035a08c5bdf6"))
+		bson.EC.Int32("authenticate", 1),
+		bson.EC.String("user", "user"),
+		bson.EC.String("nonce", "2375531c32080ae8"),
+		bson.EC.String("key", "21742f26431831d5cfca035a08c5bdf6"))
 
 	if !reflect.DeepEqual(authenticateRequest.Query, expectedAuthenticateDoc) {
 		t.Fatalf("authenticate command was incorrect: %v", authenticateRequest.Query)

@@ -23,10 +23,10 @@ func Find(ctx context.Context, s *SelectedServer, ns Namespace, filter *bson.Doc
 	}
 
 	command := bson.NewDocument()
-	command.Append(bson.C.String("find", ns.Collection))
+	command.Append(bson.EC.String("find", ns.Collection))
 
 	if filter != nil {
-		command.Append(bson.C.SubDocument("filter", filter))
+		command.Append(bson.EC.SubDocument("filter", filter))
 	}
 
 	var limit int64
@@ -50,7 +50,7 @@ func Find(ctx context.Context, s *SelectedServer, ns Namespace, filter *bson.Doc
 	}
 
 	if limit != 0 && batchSize != 0 && limit <= int64(batchSize) {
-		command.Append(bson.C.Boolean("singleBatch", true))
+		command.Append(bson.EC.Boolean("singleBatch", true))
 	}
 
 	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)

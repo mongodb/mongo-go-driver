@@ -26,10 +26,10 @@ type ListDatabasesOptions struct {
 func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabasesOptions) (Cursor, error) {
 
 	listDatabasesCommand := bson.NewDocument(
-		bson.C.Int32("listDatabases", 1))
+		bson.EC.Int32("listDatabases", 1))
 
 	if options.MaxTime != 0 {
-		listDatabasesCommand.Append(bson.C.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)))
+		listDatabasesCommand.Append(bson.EC.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)))
 	}
 
 	rdr, err := runMustUsePrimary(ctx, s, "admin", listDatabasesCommand)

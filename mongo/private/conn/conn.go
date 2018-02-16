@@ -298,9 +298,9 @@ func (c *connImpl) bumpIdleDeadline() {
 }
 
 func (c *connImpl) describeServer(ctx context.Context, clientDoc *bson.Document) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
-	isMasterCmd := bson.NewDocument(bson.C.Int32("ismaster", 1))
+	isMasterCmd := bson.NewDocument(bson.EC.Int32("ismaster", 1))
 	if clientDoc != nil {
-		isMasterCmd.Append(bson.C.SubDocument("client", clientDoc))
+		isMasterCmd.Append(bson.EC.SubDocument("client", clientDoc))
 	}
 
 	isMasterReq := msg.NewCommand(
@@ -313,7 +313,7 @@ func (c *connImpl) describeServer(ctx context.Context, clientDoc *bson.Document)
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.NewDocument(bson.C.Int32("buildInfo", 1)),
+		bson.NewDocument(bson.EC.Int32("buildInfo", 1)),
 	)
 
 	var isMasterResult internal.IsMasterResult
@@ -346,7 +346,7 @@ func (c *connImpl) initialize(ctx context.Context, appName string) error {
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.NewDocument(bson.C.Int32("getLastError", 1)),
+		bson.NewDocument(bson.EC.Int32("getLastError", 1)),
 	)
 
 	c.model = &model.Conn{
@@ -384,22 +384,22 @@ func (c *connImpl) wrapError(inner error, message string) error {
 
 func createClientDoc(appName string) *bson.Document {
 	doc := bson.NewDocument(
-		bson.C.SubDocumentFromElements(
+		bson.EC.SubDocumentFromElements(
 			"driver",
-			bson.C.String("name", "mongo-go-driver"),
-			bson.C.String("version", internal.Version),
+			bson.EC.String("name", "mongo-go-driver"),
+			bson.EC.String("version", internal.Version),
 		),
-		bson.C.SubDocumentFromElements(
+		bson.EC.SubDocumentFromElements(
 			"os",
-			bson.C.String("type", runtime.GOOS),
-			bson.C.String("architecture", runtime.GOARCH),
+			bson.EC.String("type", runtime.GOOS),
+			bson.EC.String("architecture", runtime.GOARCH),
 		),
-		bson.C.String("platform", runtime.Version()))
+		bson.EC.String("platform", runtime.Version()))
 
 	if appName != "" {
-		doc.Append(bson.C.SubDocumentFromElements(
+		doc.Append(bson.EC.SubDocumentFromElements(
 			"application",
-			bson.C.String("name", appName),
+			bson.EC.String("name", appName),
 		))
 	}
 

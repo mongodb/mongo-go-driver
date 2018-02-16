@@ -252,8 +252,8 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	}
 	deleteDocs := []*bson.Document{
 		bson.NewDocument(
-			bson.C.SubDocument("q", f),
-			bson.C.Int32("limit", 1)),
+			bson.EC.SubDocument("q", f),
+			bson.EC.Int32("limit", 1)),
 	}
 
 	s, err := coll.getWriteableServer(ctx)
@@ -326,7 +326,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	if err != nil {
 		return nil, err
 	}
-	deleteDocs := []*bson.Document{bson.NewDocument(bson.C.SubDocument("q", f), bson.C.Int32("limit", 0))}
+	deleteDocs := []*bson.Document{bson.NewDocument(bson.EC.SubDocument("q", f), bson.EC.Int32("limit", 0))}
 
 	s, err := coll.getWriteableServer(ctx)
 	if err != nil {
@@ -389,9 +389,9 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 
 	updateDocs := []*bson.Document{
 		bson.NewDocument(
-			bson.C.SubDocument("q", filter),
-			bson.C.SubDocument("u", update),
-			bson.C.Boolean("multi", false),
+			bson.EC.SubDocument("q", filter),
+			bson.EC.SubDocument("u", update),
+			bson.EC.Boolean("multi", false),
 		),
 	}
 
@@ -510,9 +510,9 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 
 	updateDocs := []*bson.Document{
 		bson.NewDocument(
-			bson.C.SubDocument("q", f),
-			bson.C.SubDocument("u", u),
-			bson.C.Boolean("multi", true),
+			bson.EC.SubDocument("q", f),
+			bson.EC.SubDocument("u", u),
+			bson.EC.Boolean("multi", true),
 		),
 	}
 
@@ -634,7 +634,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		pipelineArr = bson.NewArray()
 
 		for _, doc := range t {
-			pipelineArr.Append(bson.AC.Document(doc))
+			pipelineArr.Append(bson.VC.Document(doc))
 		}
 	case []interface{}:
 		pipelineArr = bson.NewArray()
@@ -645,7 +645,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 				return nil, err
 			}
 
-			pipelineArr.Append(bson.AC.Document(doc))
+			pipelineArr.Append(bson.VC.Document(doc))
 		}
 	default:
 		p, err := TransformDocument(pipeline)

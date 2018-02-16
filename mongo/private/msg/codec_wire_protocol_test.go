@@ -40,7 +40,7 @@ func TestWireProtocolDecodeReply(t *testing.T) {
 				DocumentsBytes: []byte{0xD, 0, 0, 0, 8, 0x68, 0x6f, 0x77, 0x64, 0x79, 0, 1, 0},
 			},
 			[]*bson.Document{
-				bson.NewDocument(bson.C.Boolean("howdy", true)),
+				bson.NewDocument(bson.EC.Boolean("howdy", true)),
 			},
 		},
 	}
@@ -106,7 +106,7 @@ func TestWireProtocolEncodeQuery(t *testing.T) {
 				FullCollectionName: "test.foo",
 				NumberToSkip:       2,
 				NumberToReturn:     1000,
-				Query:              bson.NewDocument(bson.C.Boolean("howdy", true)),
+				Query:              bson.NewDocument(bson.EC.Boolean("howdy", true)),
 			},
 			"32 00 00 00 01 00 00 00 00 00 00 00 d4 07 00 00 14 00 00 00 74 65 73 74 2e 66 6f 6f 00 02 00 00 00 e8 03 00 00 0d 00 00 00 08 68 6f 77 64 79 00 01 00",
 		},
@@ -114,8 +114,8 @@ func TestWireProtocolEncodeQuery(t *testing.T) {
 			&Query{
 				ReqID:                2,
 				FullCollectionName:   "test.foo",
-				Query:                bson.NewDocument(bson.C.Boolean("howdy", true)),
-				ReturnFieldsSelector: bson.NewDocument(bson.C.Int32("one", 1), bson.C.Int32("two", 1)),
+				Query:                bson.NewDocument(bson.EC.Boolean("howdy", true)),
+				ReturnFieldsSelector: bson.NewDocument(bson.EC.Int32("one", 1), bson.EC.Int32("two", 1)),
 			},
 			"49 00 00 00 02 00 00 00 00 00 00 00 d4 07 00 00 00 00 00 00 74 65 73 74 2e 66 6f 6f 00 00 00 00 00 00 00 00 00 0d 00 00 00 08 68 6f 77 64 79 00 01 00 17 00 00 00 10 6f 6e 65 00 01 00 00 00 10 74 77 6f 00 01 00 00 00 00",
 		},

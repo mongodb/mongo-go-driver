@@ -25,9 +25,9 @@ func FindOneAndReplace(ctx context.Context, s *SelectedServer, ns Namespace, que
 
 	command := bson.NewDocument()
 	command.Append(
-		bson.C.String("findAndModify", ns.Collection),
-		bson.C.SubDocument("query", query),
-		bson.C.SubDocument("update", replacement),
+		bson.EC.String("findAndModify", ns.Collection),
+		bson.EC.SubDocument("query", query),
+		bson.EC.SubDocument("update", replacement),
 	)
 
 	for _, option := range opts {

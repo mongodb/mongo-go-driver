@@ -23,12 +23,12 @@ func Insert(ctx context.Context, s *SelectedServer, ns Namespace, docs []*bson.D
 	}
 
 	command := bson.NewDocument()
-	command.Append(bson.C.String("insert", ns.Collection))
+	command.Append(bson.EC.String("insert", ns.Collection))
 	vals := make([]*bson.Value, 0, len(docs))
 	for _, doc := range docs {
-		vals = append(vals, bson.AC.Document(doc))
+		vals = append(vals, bson.VC.Document(doc))
 	}
-	command.Append(bson.C.ArrayFromElements("documents", vals...))
+	command.Append(bson.EC.ArrayFromElements("documents", vals...))
 
 	for _, option := range options {
 		if option == nil {

@@ -36,11 +36,11 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	documents := []*bson.Document{
-		bson.NewDocument(bson.C.Int32("_id", 1)),
-		bson.NewDocument(bson.C.Int32("_id", 2)),
-		bson.NewDocument(bson.C.Int32("_id", 3)),
-		bson.NewDocument(bson.C.Int32("_id", 4)),
-		bson.NewDocument(bson.C.Int32("_id", 5)),
+		bson.NewDocument(bson.EC.Int32("_id", 1)),
+		bson.NewDocument(bson.EC.Int32("_id", 2)),
+		bson.NewDocument(bson.EC.Int32("_id", 3)),
+		bson.NewDocument(bson.EC.Int32("_id", 4)),
+		bson.NewDocument(bson.EC.Int32("_id", 5)),
 	}
 	testutil.AutoInsertDocs(t, nil, documents...)
 
@@ -55,13 +55,13 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	cursor, err := Aggregate(context.Background(), server, namespace,
 		bson.NewArray(
-			bson.AC.Document(
+			bson.VC.Document(
 				bson.NewDocument(
-					bson.C.SubDocument("$match", bson.NewDocument(
-						bson.C.SubDocument("_id", bson.NewDocument(bson.C.Int32("$gt", 2)))),
+					bson.EC.SubDocument("$match", bson.NewDocument(
+						bson.EC.SubDocument("_id", bson.NewDocument(bson.EC.Int32("$gt", 2)))),
 					)),
 			),
-			bson.AC.Document(bson.NewDocument(bson.C.SubDocument("$sort", bson.NewDocument(bson.C.Int32("_id", -1)))))),
+			bson.VC.Document(bson.NewDocument(bson.EC.SubDocument("$sort", bson.NewDocument(bson.EC.Int32("_id", -1)))))),
 		false,
 		mongo.BatchSize(2),
 	)
@@ -99,8 +99,8 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	testutil.Integration(t)
 	testutil.AutoInsertDocs(t,
 		nil,
-		bson.NewDocument(bson.C.Int32("_id", 1)),
-		bson.NewDocument(bson.C.Int32("_id", 2)),
+		bson.NewDocument(bson.EC.Int32("_id", 1)),
+		bson.NewDocument(bson.EC.Int32("_id", 2)),
 	)
 
 	server := getServer(t)
@@ -154,11 +154,11 @@ func TestLegacyAggregateWithMultipleBatches(t *testing.T) {
 	t.Parallel()
 	testutil.Integration(t)
 	documents := []*bson.Document{
-		bson.NewDocument(bson.C.Int32("_id", 1)),
-		bson.NewDocument(bson.C.Int32("_id", 2)),
-		bson.NewDocument(bson.C.Int32("_id", 3)),
-		bson.NewDocument(bson.C.Int32("_id", 4)),
-		bson.NewDocument(bson.C.Int32("_id", 5)),
+		bson.NewDocument(bson.EC.Int32("_id", 1)),
+		bson.NewDocument(bson.EC.Int32("_id", 2)),
+		bson.NewDocument(bson.EC.Int32("_id", 3)),
+		bson.NewDocument(bson.EC.Int32("_id", 4)),
+		bson.NewDocument(bson.EC.Int32("_id", 5)),
 	}
 	testutil.AutoInsertDocs(t, nil, documents...)
 
@@ -173,19 +173,19 @@ func TestLegacyAggregateWithMultipleBatches(t *testing.T) {
 	namespace := Namespace{DB: testutil.DBName(t), Collection: testutil.ColName(t)}
 	cursor, err := LegacyAggregate(context.Background(), server, namespace,
 		bson.NewArray(
-			bson.AC.DocumentFromElements(
-				bson.C.SubDocumentFromElements(
+			bson.VC.DocumentFromElements(
+				bson.EC.SubDocumentFromElements(
 					"$match",
-					bson.C.SubDocumentFromElements(
+					bson.EC.SubDocumentFromElements(
 						"_id",
-						bson.C.Int32("$gt", 2),
+						bson.EC.Int32("$gt", 2),
 					),
 				),
 			),
-			bson.AC.DocumentFromElements(
-				bson.C.SubDocumentFromElements(
+			bson.VC.DocumentFromElements(
+				bson.EC.SubDocumentFromElements(
 					"$sort",
-					bson.C.Int32("_id", -1),
+					bson.EC.Int32("_id", -1),
 				),
 			)),
 
@@ -225,8 +225,8 @@ func TestLegacyAggregateWithAllowDiskUse(t *testing.T) {
 	testutil.Integration(t)
 	testutil.AutoInsertDocs(t,
 		nil,
-		bson.NewDocument(bson.C.Int32("_id", 1)),
-		bson.NewDocument(bson.C.Int32("_id", 2)),
+		bson.NewDocument(bson.EC.Int32("_id", 1)),
+		bson.NewDocument(bson.EC.Int32("_id", 2)),
 	)
 
 	server := getServer(t)
