@@ -63,7 +63,7 @@ func TestAggregateWithMultipleBatches(t *testing.T) {
 			),
 			bson.VC.Document(bson.NewDocument(bson.EC.SubDocument("$sort", bson.NewDocument(bson.EC.Int32("_id", -1)))))),
 		false,
-		mongo.BatchSize(2),
+		mongo.Opt.BatchSize(2),
 	)
 	require.NoError(t, err)
 
@@ -108,7 +108,7 @@ func TestAggregateWithAllowDiskUse(t *testing.T) {
 	_, err := Aggregate(context.Background(), server, namespace,
 		bson.NewArray(),
 		false,
-		mongo.AllowDiskUse(true),
+		mongo.Opt.AllowDiskUse(true),
 	)
 	require.NoError(t, err)
 }
@@ -129,7 +129,7 @@ func TestAggregateWithMaxTimeMS(t *testing.T) {
 	_, err := Aggregate(context.Background(), s, namespace,
 		bson.NewArray(),
 		false,
-		mongo.MaxTime(time.Millisecond),
+		mongo.Opt.MaxTime(time.Millisecond),
 	)
 	require.Error(t, err)
 

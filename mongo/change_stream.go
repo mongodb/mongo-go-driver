@@ -88,7 +88,7 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		}
 	}
 
-	resumeToken := ResumeAfter(cs.resumeToken)
+	resumeToken := Opt.ResumeAfter(cs.resumeToken)
 	found := false
 
 	for i, opt := range cs.options {

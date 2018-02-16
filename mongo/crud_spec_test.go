@@ -190,11 +190,11 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 		var opts []options.AggregateOptioner
 
 		if batchSize, found := test.Operation.Arguments["batchSize"]; found {
-			opts = append(opts, BatchSize(int32(batchSize.(float64))))
+			opts = append(opts, Opt.BatchSize(int32(batchSize.(float64))))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		out := false
@@ -229,15 +229,15 @@ func countTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.CountOptioner
 
 		if skip, found := test.Operation.Arguments["skip"]; found {
-			opts = append(opts, Skip(int64(skip.(float64))))
+			opts = append(opts, Opt.Skip(int64(skip.(float64))))
 		}
 
 		if limit, found := test.Operation.Arguments["limit"]; found {
-			opts = append(opts, Limit(int64(limit.(float64))))
+			opts = append(opts, Opt.Limit(int64(limit.(float64))))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actualCount, err := coll.Count(context.Background(), filter, opts...)
@@ -260,7 +260,7 @@ func deleteManyTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.DeleteOptioner
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.DeleteMany(context.Background(), filter, opts...)
@@ -286,7 +286,7 @@ func deleteOneTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.DeleteOptioner
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.DeleteOne(context.Background(), filter, opts...)
@@ -320,7 +320,7 @@ func distinctTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.DistinctOptioner
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.Distinct(context.Background(), fieldName, filter, opts...)
@@ -359,25 +359,25 @@ func findTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.FindOptioner
 
 		if sort, found := test.Operation.Arguments["sort"]; found {
-			sortOpt, err := Sort(sort.(map[string]interface{}))
+			sortOpt, err := Opt.Sort(sort.(map[string]interface{}))
 			require.NoError(t, err)
 			opts = append(opts, sortOpt)
 		}
 
 		if skip, found := test.Operation.Arguments["skip"]; found {
-			opts = append(opts, Skip(int64(skip.(float64))))
+			opts = append(opts, Opt.Skip(int64(skip.(float64))))
 		}
 
 		if limit, found := test.Operation.Arguments["limit"]; found {
-			opts = append(opts, Limit(int64(limit.(float64))))
+			opts = append(opts, Opt.Limit(int64(limit.(float64))))
 		}
 
 		if batchSize, found := test.Operation.Arguments["batchSize"]; found {
-			opts = append(opts, BatchSize(int32(batchSize.(float64))))
+			opts = append(opts, Opt.BatchSize(int32(batchSize.(float64))))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		cursor, err := coll.Find(context.Background(), filter, opts...)
@@ -394,20 +394,20 @@ func findOneAndDeleteTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.FindOneAndDeleteOptioner
 
 		if sort, found := test.Operation.Arguments["sort"]; found {
-			sortOpt, err := Sort(sort.(map[string]interface{}))
+			sortOpt, err := Opt.Sort(sort.(map[string]interface{}))
 			require.NoError(t, err)
 			opts = append(opts, sortOpt)
 		}
 
 		if projection, found := test.Operation.Arguments["projection"]; found {
-			projectionOpt, err := Projection(projection.(map[string]interface{}))
+			projectionOpt, err := Opt.Projection(projection.(map[string]interface{}))
 			require.NoError(t, err)
 
 			opts = append(opts, projectionOpt)
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actualResult := coll.FindOneAndDelete(context.Background(), filter, opts...)
@@ -460,7 +460,7 @@ func findOneAndReplaceTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.FindOneAndReplaceOptioner
 
 		if projection, found := test.Operation.Arguments["projection"]; found {
-			projectionOpt, err := Projection(projection.(map[string]interface{}))
+			projectionOpt, err := Opt.Projection(projection.(map[string]interface{}))
 			require.NoError(t, err)
 
 			opts = append(opts, projectionOpt)
@@ -469,24 +469,24 @@ func findOneAndReplaceTest(t *testing.T, coll *Collection, test *testCase) {
 		if returnDocument, found := test.Operation.Arguments["returnDocument"]; found {
 			switch returnDocument.(string) {
 			case "After":
-				opts = append(opts, ReturnDocument(options.After))
+				opts = append(opts, Opt.ReturnDocument(options.After))
 			case "Before":
-				opts = append(opts, ReturnDocument(options.Before))
+				opts = append(opts, Opt.ReturnDocument(options.Before))
 			}
 		}
 
 		if sort, found := test.Operation.Arguments["sort"]; found {
-			sortOpt, err := Sort(sort.(map[string]interface{}))
+			sortOpt, err := Opt.Sort(sort.(map[string]interface{}))
 			require.NoError(t, err)
 			opts = append(opts, sortOpt)
 		}
 
 		if upsert, found := test.Operation.Arguments["upsert"]; found {
-			opts = append(opts, Upsert(upsert.(bool)))
+			opts = append(opts, Opt.Upsert(upsert.(bool)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actualResult := coll.FindOneAndReplace(context.Background(), filter, replacement, opts...)
@@ -539,13 +539,13 @@ func findOneAndUpdateTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.FindOneAndUpdateOptioner
 
 		if arrayFilters, found := test.Operation.Arguments["arrayFilters"]; found {
-			arrayFiltersOpt, err := ArrayFilters(arrayFilters.([]interface{})...)
+			arrayFiltersOpt, err := Opt.ArrayFilters(arrayFilters.([]interface{})...)
 			require.NoError(t, err)
 			opts = append(opts, arrayFiltersOpt)
 		}
 
 		if projection, found := test.Operation.Arguments["projection"]; found {
-			projectionOpt, err := Projection(projection.(map[string]interface{}))
+			projectionOpt, err := Opt.Projection(projection.(map[string]interface{}))
 			require.NoError(t, err)
 
 			opts = append(opts, projectionOpt)
@@ -554,24 +554,24 @@ func findOneAndUpdateTest(t *testing.T, coll *Collection, test *testCase) {
 		if returnDocument, found := test.Operation.Arguments["returnDocument"]; found {
 			switch returnDocument.(string) {
 			case "After":
-				opts = append(opts, ReturnDocument(options.After))
+				opts = append(opts, Opt.ReturnDocument(options.After))
 			case "Before":
-				opts = append(opts, ReturnDocument(options.Before))
+				opts = append(opts, Opt.ReturnDocument(options.Before))
 			}
 		}
 
 		if sort, found := test.Operation.Arguments["sort"]; found {
-			sortOpt, err := Sort(sort.(map[string]interface{}))
+			sortOpt, err := Opt.Sort(sort.(map[string]interface{}))
 			require.NoError(t, err)
 			opts = append(opts, sortOpt)
 		}
 
 		if upsert, found := test.Operation.Arguments["upsert"]; found {
-			opts = append(opts, Upsert(upsert.(bool)))
+			opts = append(opts, Opt.Upsert(upsert.(bool)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actualResult := coll.FindOneAndUpdate(context.Background(), filter, update, opts...)
@@ -695,11 +695,11 @@ func replaceOneTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.ReplaceOptioner
 
 		if upsert, found := test.Operation.Arguments["upsert"]; found {
-			opts = append(opts, Upsert(upsert.(bool)))
+			opts = append(opts, Opt.Upsert(upsert.(bool)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.ReplaceOne(context.Background(), filter, replacement, opts...)
@@ -747,17 +747,17 @@ func updateManyTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.UpdateOptioner
 
 		if arrayFilters, found := test.Operation.Arguments["arrayFilters"]; found {
-			arrayFiltersOpt, err := ArrayFilters(arrayFilters.([]interface{})...)
+			arrayFiltersOpt, err := Opt.ArrayFilters(arrayFilters.([]interface{})...)
 			require.NoError(t, err)
 			opts = append(opts, arrayFiltersOpt)
 		}
 
 		if upsert, found := test.Operation.Arguments["upsert"]; found {
-			opts = append(opts, Upsert(upsert.(bool)))
+			opts = append(opts, Opt.Upsert(upsert.(bool)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.UpdateMany(context.Background(), filter, update, opts...)
@@ -805,17 +805,17 @@ func updateOneTest(t *testing.T, coll *Collection, test *testCase) {
 		var opts []options.UpdateOptioner
 
 		if arrayFilters, found := test.Operation.Arguments["arrayFilters"]; found {
-			arrayFiltersOpt, err := ArrayFilters(arrayFilters.([]interface{})...)
+			arrayFiltersOpt, err := Opt.ArrayFilters(arrayFilters.([]interface{})...)
 			require.NoError(t, err)
 			opts = append(opts, arrayFiltersOpt)
 		}
 
 		if upsert, found := test.Operation.Arguments["upsert"]; found {
-			opts = append(opts, Upsert(upsert.(bool)))
+			opts = append(opts, Opt.Upsert(upsert.(bool)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.UpdateOne(context.Background(), filter, update, opts...)
