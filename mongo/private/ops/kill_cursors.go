@@ -23,13 +23,13 @@ func KillCursors(ctx context.Context, s *SelectedServer, ns Namespace,
 
 	cursorsArr := bson.NewArray()
 	for _, cursor := range cursors {
-		cursorsArr.Append(bson.AC.Int64(cursor))
+		cursorsArr.Append(bson.VC.Int64(cursor))
 	}
 
 	command := bson.NewDocument()
 	command.Append(
-		bson.C.String("killCursors", ns.Collection),
-		bson.C.Array("cursors", cursorsArr),
+		bson.EC.String("killCursors", ns.Collection),
+		bson.EC.Array("cursors", cursorsArr),
 	)
 
 	rdr, err := runMayUseSecondary(ctx, s, ns.DB, command)

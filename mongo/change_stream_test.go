@@ -49,7 +49,7 @@ func TestChangeStream_firstStage(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Int32("x", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
@@ -81,7 +81,7 @@ func TestChangeStream_noCustomStandaloneError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Int32("x", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
 	require.NoError(t, err)
 
 	_, err = coll.Watch(context.Background(), nil)
@@ -104,14 +104,14 @@ func TestChangeStream_trackResumeToken(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Int32("y", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("y", 1)))
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
 	require.NoError(t, err)
 
 	for i := 1; i <= 4; i++ {
-		_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Interface("x", i)))
+		_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Interface("x", i)))
 		require.NoError(t, err)
 	}
 
@@ -143,18 +143,18 @@ func TestChangeStream_errorMissingResponseToken(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Int32("y", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("y", 1)))
 	require.NoError(t, err)
 
 	// Project out the response token
 	changes, err := coll.Watch(context.Background(), []*bson.Document{
 		bson.NewDocument(
-			bson.C.SubDocumentFromElements("$project",
-				bson.C.Int32("_id", 0))),
+			bson.EC.SubDocumentFromElements("$project",
+				bson.EC.Int32("_id", 0))),
 	})
 	require.NoError(t, err)
 
-	_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Int32("x", 1)))
+	_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
 	require.NoError(t, err)
 
 	getNextChange(changes)
@@ -176,7 +176,7 @@ func TestChangeStream_resumableError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Int32("y", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("y", 1)))
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
@@ -223,7 +223,7 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Int32("y", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("y", 1)))
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
@@ -238,7 +238,7 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	require.False(t, changes.Next(context.Background()))
 	require.NoError(t, changes.Err())
 
-	_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.C.Int32("x", 1)))
+	_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
 	require.NoError(t, err)
 
 	getNextChange(changes)

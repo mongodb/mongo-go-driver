@@ -40,7 +40,7 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.C.Int32("ismaster", 1)))
+	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("ismaster", 1)))
 	require.NoError(t, err)
 
 	isMaster, err := result.Lookup("ismaster")

@@ -59,7 +59,7 @@ func TestClient_TLSConnection(t *testing.T) {
 	c := createTestClient(t)
 	db := c.Database("test")
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.C.Int32("serverStatus", 1)))
+	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("serverStatus", 1)))
 	require.NoError(t, err)
 
 	security, err := result.Lookup("security")

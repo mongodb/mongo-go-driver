@@ -181,7 +181,7 @@ func (m *Monitor) describeServer(ctx context.Context) (*internal.IsMasterResult,
 		msg.NextRequestID(),
 		"admin",
 		true,
-		bson.NewDocument(bson.C.Int32("ismaster", 1)),
+		bson.NewDocument(bson.EC.Int32("ismaster", 1)),
 	)
 
 	var isMasterResult internal.IsMasterResult

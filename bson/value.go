@@ -18,7 +18,7 @@ import (
 )
 
 // Value represents a BSON value. It can be obtained as part of a bson.Element or created for use
-// in a bson.Array with the bson.AC constructors.
+// in a bson.Array with the bson.VC constructors.
 type Value struct {
 	// NOTE: For subdocuments, arrays, and code with scope, the data slice of
 	// bytes may contain just the key, or the key and the code in the case of

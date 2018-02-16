@@ -176,8 +176,8 @@ func (c *cursorImpl) Close(ctx context.Context) error {
 	}
 
 	killCursorsCommand := bson.NewDocument(
-		bson.C.String("killCursors", c.namespace.Collection),
-		bson.C.ArrayFromElements("cursors", bson.AC.Int64(c.cursorID)))
+		bson.EC.String("killCursors", c.namespace.Collection),
+		bson.EC.ArrayFromElements("cursors", bson.VC.Int64(c.cursorID)))
 
 	killCursorsRequest := msg.NewCommand(
 		msg.NextRequestID(),
@@ -226,11 +226,11 @@ func (c *cursorImpl) getMore(ctx context.Context) {
 	}
 
 	getMoreCommand := bson.NewDocument(
-		bson.C.Int64("getMore", c.cursorID),
-		bson.C.String("collection", c.namespace.Collection))
+		bson.EC.Int64("getMore", c.cursorID),
+		bson.EC.String("collection", c.namespace.Collection))
 
 	if c.batchSize != 0 {
-		getMoreCommand.Append(bson.C.Int32("batchSize", c.batchSize))
+		getMoreCommand.Append(bson.EC.Int32("batchSize", c.batchSize))
 	}
 	getMoreRequest := msg.NewCommand(
 		msg.NextRequestID(),

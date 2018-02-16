@@ -29,7 +29,7 @@ func TestRun(t *testing.T) {
 		ctx,
 		server,
 		"admin",
-		bson.NewDocument(bson.C.Int32("getnonce", 1)),
+		bson.NewDocument(bson.EC.Int32("getnonce", 1)),
 	)
 	require.NoError(t, err)
 
@@ -51,7 +51,7 @@ func TestRun(t *testing.T) {
 		ctx,
 		server,
 		"admin",
-		bson.NewDocument(bson.C.Int32("ping", 1)),
+		bson.NewDocument(bson.EC.Int32("ping", 1)),
 	)
 	require.NoError(t, err)
 

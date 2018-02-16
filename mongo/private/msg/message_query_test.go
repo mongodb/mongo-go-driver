@@ -15,19 +15,19 @@ import (
 )
 
 func TestWrapWithMeta(t *testing.T) {
-	req := NewCommand(10, "admin", true, bson.NewDocument(bson.C.Int32("a", 1))).(*Query)
+	req := NewCommand(10, "admin", true, bson.NewDocument(bson.EC.Int32("a", 1))).(*Query)
 
 	err := AddMeta(req, map[string]*bson.Document{
 		"$readPreference": bson.NewDocument(
-			bson.C.String("mode", "secondary")),
+			bson.EC.String("mode", "secondary")),
 	})
 
 	expected, err := bson.NewDocument(
-		bson.C.SubDocumentFromElements(
+		bson.EC.SubDocumentFromElements(
 			"$query",
-			bson.C.Int32("a", 1),
+			bson.EC.Int32("a", 1),
 		),
-		bson.C.SubDocumentFromElements("$readPreference", bson.C.String("mode", "secondary"))).
+		bson.EC.SubDocumentFromElements("$readPreference", bson.EC.String("mode", "secondary"))).
 		MarshalBSON()
 	if err != nil {
 		t.Errorf("Unexpected error while marshaling to bytes: %v", err)

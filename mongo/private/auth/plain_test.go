@@ -31,11 +31,11 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	}
 
 	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
-		bson.C.Int32("ok", 1),
-		bson.C.Int32("conversationId", 1),
-		bson.C.Binary("payload", []byte{}),
-		bson.C.Int32("code", 143),
-		bson.C.Boolean("done", true)))
+		bson.EC.Int32("ok", 1),
+		bson.EC.Int32("conversationId", 1),
+		bson.EC.Binary("payload", []byte{}),
+		bson.EC.Int32("code", 143),
+		bson.EC.Boolean("done", true)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
@@ -61,15 +61,15 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	}
 
 	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
-		bson.C.Int32("ok", 1),
-		bson.C.Int32("conversationId", 1),
-		bson.C.Binary("payload", []byte{}),
-		bson.C.Boolean("done", false)))
+		bson.EC.Int32("ok", 1),
+		bson.EC.Int32("conversationId", 1),
+		bson.EC.Binary("payload", []byte{}),
+		bson.EC.Boolean("done", false)))
 	saslContinueReply := msgtest.CreateCommandReply(bson.NewDocument(
-		bson.C.Int32("ok", 1),
-		bson.C.Int32("conversationId", 1),
-		bson.C.Binary("payload", []byte{}),
-		bson.C.Boolean("done", true)))
+		bson.EC.Int32("ok", 1),
+		bson.EC.Int32("conversationId", 1),
+		bson.EC.Binary("payload", []byte{}),
+		bson.EC.Boolean("done", true)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
@@ -95,10 +95,10 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
-		bson.C.Int32("ok", 1),
-		bson.C.Int32("conversationId", 1),
-		bson.C.Binary("payload", []byte{}),
-		bson.C.Boolean("done", true)))
+		bson.EC.Int32("ok", 1),
+		bson.EC.Int32("conversationId", 1),
+		bson.EC.Binary("payload", []byte{}),
+		bson.EC.Boolean("done", true)))
 
 	conn := &conntest.MockConnection{
 		ResponseQ: []*msg.Reply{saslStartReply},
@@ -116,9 +116,9 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	saslStartRequest := conn.Sent[0].(*msg.Query)
 	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
 	expectedCmd := bson.NewDocument(
-		bson.C.Int32("saslStart", 1),
-		bson.C.String("mechanism", "PLAIN"),
-		bson.C.Binary("payload", payload))
+		bson.EC.Int32("saslStart", 1),
+		bson.EC.String("mechanism", "PLAIN"),
+		bson.EC.Binary("payload", payload))
 
 	if !reflect.DeepEqual(saslStartRequest.Query, expectedCmd) {
 		t.Fatalf("saslStart command was incorrect: %v", saslStartRequest.Query)

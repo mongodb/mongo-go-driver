@@ -326,13 +326,13 @@ func TestReader(t *testing.T) {
 		}{
 			{"first",
 				Reader{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				0, fromElement(C.Null("x"))},
+				0, fromElement(EC.Null("x"))},
 			{"second",
 				Reader{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				1, fromElement(C.Null("y"))},
+				1, fromElement(EC.Null("y"))},
 			{"third",
 				Reader{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
-				2, fromElement(C.Null("z"))},
+				2, fromElement(EC.Null("z"))},
 		}
 
 		for _, tc := range testCases {
@@ -402,7 +402,7 @@ func TestReader(t *testing.T) {
 					0x0,
 				},
 				nil,
-				[]*Element{C.String("foo", "bar")},
+				[]*Element{EC.String("foo", "bar")},
 				nil,
 			},
 			{
@@ -429,7 +429,7 @@ func TestReader(t *testing.T) {
 					0x0,
 				},
 				nil,
-				[]*Element{C.String("foo", "bar"), C.Null("baz")},
+				[]*Element{EC.String("foo", "bar"), EC.Null("baz")},
 				nil,
 			},
 		}

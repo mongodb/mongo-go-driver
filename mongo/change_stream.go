@@ -17,6 +17,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
 )
 
+// ErrMissingResumeToken indicates that a change stream notification from the server did not
+// contain a resume token.
 var ErrMissingResumeToken = errors.New("cannot provide resume functionality when the resume token is missing")
 
 type changeStream struct {
@@ -46,9 +48,9 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 	}
 
 	pipelineArr.Prepend(
-		bson.AC.Document(
+		bson.VC.Document(
 			bson.NewDocument(
-				bson.C.SubDocument("$changeStream", changeStreamOptions))))
+				bson.EC.SubDocument("$changeStream", changeStreamOptions))))
 
 	cursor, err := coll.Aggregate(ctx, pipelineArr)
 	if err != nil {
@@ -115,9 +117,9 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		opt.Option(changeStreamOptions)
 	}
 
-	cs.pipeline.Set(0, bson.AC.Document(
+	cs.pipeline.Set(0, bson.VC.Document(
 		bson.NewDocument(
-			bson.C.SubDocument("$changeStream", changeStreamOptions))))
+			bson.EC.SubDocument("$changeStream", changeStreamOptions))))
 
 	cs.cursor, cs.err = cs.coll.aggregateWithServer(ctx, server, cs.pipeline)
 

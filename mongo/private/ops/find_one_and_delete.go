@@ -25,9 +25,9 @@ func FindOneAndDelete(ctx context.Context, s *SelectedServer, ns Namespace, quer
 
 	command := bson.NewDocument()
 	command.Append(
-		bson.C.String("findAndModify", ns.Collection),
-		bson.C.SubDocument("query", query),
-		bson.C.Boolean("remove", true),
+		bson.EC.String("findAndModify", ns.Collection),
+		bson.EC.SubDocument("query", query),
+		bson.EC.Boolean("remove", true),
 	)
 
 	for _, option := range opts {

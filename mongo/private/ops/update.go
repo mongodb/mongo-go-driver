@@ -22,13 +22,13 @@ func Update(ctx context.Context, s *SelectedServer, ns Namespace, updateDocs []*
 		return nil, err
 	}
 
-	command := bson.NewDocument(bson.C.String("update", ns.Collection))
+	command := bson.NewDocument(bson.EC.String("update", ns.Collection))
 
 	arr := bson.NewArray()
 	for _, doc := range updateDocs {
-		arr.Append(bson.AC.Document(doc))
+		arr.Append(bson.VC.Document(doc))
 	}
-	command.Append(bson.C.Array("updates", arr))
+	command.Append(bson.EC.Array("updates", arr))
 
 	for _, option := range opt {
 		switch option.(type) {

@@ -298,21 +298,21 @@ func TestDocument(t *testing.T) {
 		}{
 			{
 				"first",
-				(&Document{}).Append(C.Double("x", 3.14)),
-				C.Double("x", 3.14159),
-				(&Document{}).Append(C.Double("x", 3.14159)),
+				(&Document{}).Append(EC.Double("x", 3.14)),
+				EC.Double("x", 3.14159),
+				(&Document{}).Append(EC.Double("x", 3.14159)),
 			},
-			{"second", (&Document{}).Append(C.Double("x", 3.14159), C.String("y", "z")),
-				C.Double("y", 1.2345),
-				(&Document{}).Append(C.Double("x", 3.14159), C.Double("y", 1.2345)),
+			{"second", (&Document{}).Append(EC.Double("x", 3.14159), EC.String("y", "z")),
+				EC.Double("y", 1.2345),
+				(&Document{}).Append(EC.Double("x", 3.14159), EC.Double("y", 1.2345)),
 			},
-			{"concat", (&Document{}).Append(C.Null("x")),
-				C.Null("y"),
-				(&Document{}).Append(C.Null("x"), C.Null("y")),
+			{"concat", (&Document{}).Append(EC.Null("x")),
+				EC.Null("y"),
+				(&Document{}).Append(EC.Null("x"), EC.Null("y")),
 			},
-			{"concat-in-middle", (&Document{}).Append(C.Null("w"), C.Null("y"), C.Null("z")),
-				C.Null("x"),
-				(&Document{}).Append(C.Null("w"), C.Null("y"), C.Null("z"), C.Null("x")),
+			{"concat-in-middle", (&Document{}).Append(EC.Null("w"), EC.Null("y"), EC.Null("z")),
+				EC.Null("x"),
+				(&Document{}).Append(EC.Null("w"), EC.Null("y"), EC.Null("z"), EC.Null("x")),
 			},
 		}
 
@@ -340,18 +340,18 @@ func TestDocument(t *testing.T) {
 			want *Element
 			err  error
 		}{
-			{"first", (&Document{}).Append(C.Null("x")), []string{"x"},
+			{"first", (&Document{}).Append(EC.Null("x")), []string{"x"},
 				&Element{&Value{start: 0, offset: 3}}, nil,
 			},
-			{"depth-one", (&Document{}).Append(C.SubDocumentFromElements("x", C.Null("y"))),
+			{"depth-one", (&Document{}).Append(EC.SubDocumentFromElements("x", EC.Null("y"))),
 				[]string{"x", "y"},
 				&Element{&Value{start: 0, offset: 3}}, nil,
 			},
-			{"invalid-depth-traversal", (&Document{}).Append(C.Null("x")),
+			{"invalid-depth-traversal", (&Document{}).Append(EC.Null("x")),
 				[]string{"x", "y"},
 				nil, ErrInvalidDepthTraversal,
 			},
-			{"not-found", (&Document{}).Append(C.Null("x")),
+			{"not-found", (&Document{}).Append(EC.Null("x")),
 				[]string{"y"},
 				nil, ErrElementNotFound,
 			},
@@ -384,18 +384,18 @@ func TestDocument(t *testing.T) {
 			key  []string
 			want *Element
 		}{
-			{"first", (&Document{}).Append(C.Null("x")), []string{"x"},
+			{"first", (&Document{}).Append(EC.Null("x")), []string{"x"},
 				&Element{&Value{start: 0, offset: 3}},
 			},
-			{"depth-one", (&Document{}).Append(C.SubDocumentFromElements("x", C.Null("y"))),
+			{"depth-one", (&Document{}).Append(EC.SubDocumentFromElements("x", EC.Null("y"))),
 				[]string{"x", "y"},
 				&Element{&Value{start: 0, offset: 3}},
 			},
-			{"invalid-depth-traversal", (&Document{}).Append(C.Null("x")),
+			{"invalid-depth-traversal", (&Document{}).Append(EC.Null("x")),
 				[]string{"x", "y"},
 				nil,
 			},
-			{"not-found", (&Document{}).Append(C.Null("x")),
+			{"not-found", (&Document{}).Append(EC.Null("x")),
 				[]string{"y"},
 				nil,
 			},
@@ -412,7 +412,7 @@ func TestDocument(t *testing.T) {
 	})
 	t.Run("ElementAt", func(t *testing.T) {
 		t.Run("Out of bounds", func(t *testing.T) {
-			d := NewDocument(C.Null("x"), C.Null("y"), C.Null("z"))
+			d := NewDocument(EC.Null("x"), EC.Null("y"), EC.Null("z"))
 			_, err := d.ElementAt(3)
 			if err != ErrOutOfBounds {
 				t.Errorf("Out of bounds should be returned when accessing element beyond end of document. got %#v; want %#v", err, ErrOutOfBounds)
@@ -424,9 +424,9 @@ func TestDocument(t *testing.T) {
 			index uint
 			want  *Element
 		}{
-			{"first", []*Element{C.Null("x"), C.Null("y"), C.Null("z")}, 0, C.Null("x")},
-			{"second", []*Element{C.Null("x"), C.Null("y"), C.Null("z")}, 1, C.Null("y")},
-			{"third", []*Element{C.Null("x"), C.Null("y"), C.Null("z")}, 2, C.Null("z")},
+			{"first", []*Element{EC.Null("x"), EC.Null("y"), EC.Null("z")}, 0, EC.Null("x")},
+			{"second", []*Element{EC.Null("x"), EC.Null("y"), EC.Null("z")}, 1, EC.Null("y")},
+			{"third", []*Element{EC.Null("x"), EC.Null("y"), EC.Null("z")}, 2, EC.Null("z")},
 		}
 
 		for _, tc := range testCases {
@@ -443,7 +443,7 @@ func TestDocument(t *testing.T) {
 		}
 	})
 	t.Run("Iterator", func(t *testing.T) {
-		elems := []*Element{C.String("foo", "bar"), C.Int32("baz", 1), C.Null("bing")}
+		elems := []*Element{EC.String("foo", "bar"), EC.Int32("baz", 1), EC.Null("bing")}
 		d := NewDocument(elems...)
 
 		iter := d.Iterator()
@@ -487,19 +487,19 @@ func TestDocument(t *testing.T) {
 				"concat single doc",
 				NewDocument(),
 				[]interface{}{
-					NewDocument(C.String("foo", "bar")),
+					NewDocument(EC.String("foo", "bar")),
 				},
-				NewDocument(C.String("foo", "bar")),
+				NewDocument(EC.String("foo", "bar")),
 				nil,
 			},
 			{
 				"concat multiple docs",
 				NewDocument(),
 				[]interface{}{
-					NewDocument(C.String("foo", "bar")),
-					NewDocument(C.Int32("baz", 3), C.Null("bang")),
+					NewDocument(EC.String("foo", "bar")),
+					NewDocument(EC.Int32("baz", 3), EC.Null("bang")),
 				},
-				NewDocument(C.String("foo", "bar"), C.Int32("baz", 3), C.Null("bang")),
+				NewDocument(EC.String("foo", "bar"), EC.Int32("baz", 3), EC.Null("bang")),
 				nil,
 			},
 			{
@@ -523,7 +523,7 @@ func TestDocument(t *testing.T) {
 						0x0,
 					},
 				},
-				NewDocument(C.String("foo", "bar")),
+				NewDocument(EC.String("foo", "bar")),
 				nil,
 			},
 			{
@@ -566,7 +566,7 @@ func TestDocument(t *testing.T) {
 						0x0,
 					},
 				},
-				NewDocument(C.String("foo", "bar"), C.Int32("baz", 3), C.Null("bang")),
+				NewDocument(EC.String("foo", "bar"), EC.Int32("baz", 3), EC.Null("bang")),
 				nil,
 			},
 			{
@@ -590,7 +590,7 @@ func TestDocument(t *testing.T) {
 						0x0,
 					}),
 				},
-				NewDocument(C.String("foo", "bar")),
+				NewDocument(EC.String("foo", "bar")),
 				nil,
 			},
 			{
@@ -633,14 +633,14 @@ func TestDocument(t *testing.T) {
 						0x0,
 					}),
 				},
-				NewDocument(C.String("foo", "bar"), C.Int32("baz", 3), C.Null("bang")),
+				NewDocument(EC.String("foo", "bar"), EC.Int32("baz", 3), EC.Null("bang")),
 				nil,
 			},
 			{
 				"concat mixed",
 				NewDocument(),
 				[]interface{}{
-					NewDocument(C.String("foo", "bar")),
+					NewDocument(EC.String("foo", "bar")),
 					[]byte{
 						// length
 						0xe, 0x0, 0x0, 0x0,
@@ -668,7 +668,7 @@ func TestDocument(t *testing.T) {
 						0x0,
 					}),
 				},
-				NewDocument(C.String("foo", "bar"), C.Int32("baz", 3), C.Null("bang")),
+				NewDocument(EC.String("foo", "bar"), EC.Int32("baz", 3), EC.Null("bang")),
 				nil,
 			},
 		}
@@ -687,7 +687,7 @@ func TestDocument(t *testing.T) {
 
 	})
 	t.Run("Reset", func(t *testing.T) {
-		d := NewDocument(C.Null("a"), C.Null("b"), C.Null("c"), C.Null("a"), C.Null("e"))
+		d := NewDocument(EC.Null("a"), EC.Null("b"), EC.Null("c"), EC.Null("a"), EC.Null("e"))
 		gotSlc := d.elems
 		d.Reset()
 		wantSlc := make([]*Element, 5)
@@ -731,7 +731,7 @@ func TestDocument(t *testing.T) {
 	})
 	t.Run("WriteDocument", func(t *testing.T) {
 		t.Run("invalid-document", func(t *testing.T) {
-			d := NewDocument(C.Double("", 3.14159))
+			d := NewDocument(EC.Double("", 3.14159))
 			d.elems[0].value.data = d.elems[0].value.data[:3]
 			b := make([]byte, 15)
 			_, err := d.WriteDocument(0, b)
@@ -740,7 +740,7 @@ func TestDocument(t *testing.T) {
 			}
 		})
 		t.Run("[]byte-too-small", func(t *testing.T) {
-			d := NewDocument(C.Double("", 3.14159))
+			d := NewDocument(EC.Double("", 3.14159))
 			b := make([]byte, 5)
 			_, err := d.WriteDocument(0, b)
 			if err != ErrTooSmall {
@@ -748,7 +748,7 @@ func TestDocument(t *testing.T) {
 			}
 		})
 		t.Run("invalid-writer", func(t *testing.T) {
-			d := NewDocument(C.Double("", 3.14159))
+			d := NewDocument(EC.Double("", 3.14159))
 			var buf bytes.Buffer
 			_, err := d.WriteDocument(0, buf)
 			if err != ErrInvalidWriter {
@@ -796,7 +796,7 @@ func TestDocument(t *testing.T) {
 					'\x0A', 'x', '\x00', '\x0A', 'y', '\x00', '\x0A', 'z', '\x00', '\x0A', 'w', '\x00',
 					'\x00',
 				},
-				NewDocument(C.Null("x"), C.Null("y"), C.Null("z"), C.Null("w")),
+				NewDocument(EC.Null("x"), EC.Null("y"), EC.Null("z"), EC.Null("w")),
 				nil,
 			},
 		}
@@ -883,15 +883,15 @@ func testDocumentKeys(t *testing.T) {
 		err       error
 		recursive bool
 	}{
-		{"one", (&Document{}).Append(C.String("foo", "")), Keys{{Name: "foo"}}, nil, false},
-		{"two", (&Document{}).Append(C.Null("x"), C.Null("y")), Keys{{Name: "x"}, {Name: "y"}}, nil, false},
-		{"one-flat", (&Document{}).Append(C.SubDocumentFromElements("foo", C.Null("a"), C.Null("b"))),
+		{"one", (&Document{}).Append(EC.String("foo", "")), Keys{{Name: "foo"}}, nil, false},
+		{"two", (&Document{}).Append(EC.Null("x"), EC.Null("y")), Keys{{Name: "x"}, {Name: "y"}}, nil, false},
+		{"one-flat", (&Document{}).Append(EC.SubDocumentFromElements("foo", EC.Null("a"), EC.Null("b"))),
 			Keys{{Name: "foo"}}, nil, false,
 		},
-		{"one-recursive", (&Document{}).Append(C.SubDocumentFromElements("foo", C.Null("a"), C.Null("b"))),
+		{"one-recursive", (&Document{}).Append(EC.SubDocumentFromElements("foo", EC.Null("a"), EC.Null("b"))),
 			Keys{{Name: "foo"}, {Prefix: []string{"foo"}, Name: "a"}, {Prefix: []string{"foo"}, Name: "b"}}, nil, true,
 		},
-		// {"one-array-recursive", (&Document{}).Append(c.ArrayFromElements("foo", AC.Null(())),
+		// {"one-array-recursive", (&Document{}).Append(c.ArrayFromElements("foo", VC.Null(())),
 		// 	Keys{{Name: "foo"}, {Prefix: []string{"foo"}, Name: "1"}, {Prefix: []string{"foo"}, Name: "2"}}, nil, true,
 		// },
 		// {"invalid-subdocument",
@@ -935,7 +935,7 @@ type testPrependAppendGenerator struct{}
 
 func (testPrependAppendGenerator) oneOne() [][]*Element {
 	return [][]*Element{
-		{C.Double("foobar", 3.14159)},
+		{EC.Double("foobar", 3.14159)},
 	}
 }
 
@@ -971,8 +971,8 @@ func (testPrependAppendGenerator) oneOnePrependBytes() []byte {
 
 func (testPrependAppendGenerator) twoOne() [][]*Element {
 	return [][]*Element{
-		{C.Double("foo", 1.234)},
-		{C.Double("foo", 5.678)},
+		{EC.Double("foo", 1.234)},
+		{EC.Double("foo", 5.678)},
 	}
 }
 
@@ -1007,18 +1007,18 @@ func ExampleDocument() {
 
 	f := func(appName string) *Document {
 		doc := NewDocument(
-			C.SubDocumentFromElements("driver",
-				C.String("name", "mongo-go-driver"),
-				C.String("version", internalVersion),
+			EC.SubDocumentFromElements("driver",
+				EC.String("name", "mongo-go-driver"),
+				EC.String("version", internalVersion),
 			),
-			C.SubDocumentFromElements("os",
-				C.String("type", "darwin"),
-				C.String("architecture", "amd64"),
+			EC.SubDocumentFromElements("os",
+				EC.String("type", "darwin"),
+				EC.String("architecture", "amd64"),
 			),
-			C.String("platform", "go1.9.2"),
+			EC.String("platform", "go1.9.2"),
 		)
 		if appName != "" {
-			doc.Append(C.SubDocumentFromElements("application", C.String("name", appName)))
+			doc.Append(EC.SubDocumentFromElements("application", EC.String("name", appName)))
 		}
 
 		return doc
@@ -1037,15 +1037,15 @@ func BenchmarkDocument(b *testing.B) {
 	internalVersion := "1234567"
 	for i := 0; i < b.N; i++ {
 		doc := NewDocument(
-			C.SubDocumentFromElements("driver",
-				C.String("name", "mongo-go-driver"),
-				C.String("version", internalVersion),
+			EC.SubDocumentFromElements("driver",
+				EC.String("name", "mongo-go-driver"),
+				EC.String("version", internalVersion),
 			),
-			C.SubDocumentFromElements("os",
-				C.String("type", "darwin"),
-				C.String("architecture", "amd64"),
+			EC.SubDocumentFromElements("os",
+				EC.String("type", "darwin"),
+				EC.String("architecture", "amd64"),
 			),
-			C.String("platform", "go1.9.2"),
+			EC.String("platform", "go1.9.2"),
 		)
 		_, _ = doc.MarshalBSON()
 	}

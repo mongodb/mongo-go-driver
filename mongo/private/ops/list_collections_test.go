@@ -37,9 +37,9 @@ func TestListCollections(t *testing.T) {
 	testutil.DropCollection(t, dbname, collectionNameOne)
 	testutil.DropCollection(t, dbname, collectionNameTwo)
 	testutil.DropCollection(t, dbname, collectionNameThree)
-	testutil.InsertDocs(t, dbname, collectionNameOne, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
-	testutil.InsertDocs(t, dbname, collectionNameTwo, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
-	testutil.InsertDocs(t, dbname, collectionNameThree, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameOne, nil, bson.NewDocument(bson.EC.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameTwo, nil, bson.NewDocument(bson.EC.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameThree, nil, bson.NewDocument(bson.EC.Int32("_id", 1)))
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{})
@@ -74,13 +74,13 @@ func TestListCollectionsMultipleBatches(t *testing.T) {
 	testutil.DropCollection(t, dbname, collectionNameOne)
 	testutil.DropCollection(t, dbname, collectionNameTwo)
 	testutil.DropCollection(t, dbname, collectionNameThree)
-	testutil.InsertDocs(t, dbname, collectionNameOne, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
-	testutil.InsertDocs(t, dbname, collectionNameTwo, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
-	testutil.InsertDocs(t, dbname, collectionNameThree, nil, bson.NewDocument(bson.C.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameOne, nil, bson.NewDocument(bson.EC.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameTwo, nil, bson.NewDocument(bson.EC.Int32("_id", 1)))
+	testutil.InsertDocs(t, dbname, collectionNameThree, nil, bson.NewDocument(bson.EC.Int32("_id", 1)))
 
 	s := getServer(t)
 	cursor, err := ListCollections(context.Background(), s, dbname, ListCollectionsOptions{
-		Filter:    bson.NewDocument(bson.C.Regex("name", fmt.Sprintf("^%s.*", collectionNameOne), "")),
+		Filter:    bson.NewDocument(bson.EC.Regex("name", fmt.Sprintf("^%s.*", collectionNameOne), "")),
 		BatchSize: 2})
 	require.NoError(t, err)
 

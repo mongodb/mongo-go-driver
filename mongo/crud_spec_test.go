@@ -79,7 +79,7 @@ func compareVersions(t *testing.T, v1 string, v2 string) int {
 func getServerVersion(db *Database) (string, error) {
 	serverStatus, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.C.Int32("serverStatus", 1)),
+		bson.NewDocument(bson.EC.Int32("serverStatus", 1)),
 	)
 	if err != nil {
 		return "", err
@@ -135,13 +135,13 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 
 		_, _ = db.RunCommand(
 			context.Background(),
-			bson.NewDocument(bson.C.String("drop", collName)),
+			bson.NewDocument(bson.EC.String("drop", collName)),
 		)
 
 		if test.Outcome.Collection != nil && len(test.Outcome.Collection.Name) > 0 {
 			_, _ = db.RunCommand(
 				context.Background(),
-				bson.NewDocument(bson.C.String("drop", test.Outcome.Collection.Name)),
+				bson.NewDocument(bson.EC.String("drop", test.Outcome.Collection.Name)),
 			)
 		}
 

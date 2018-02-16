@@ -27,11 +27,11 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline *b
 	}
 
 	command := bson.NewDocument()
-	command.Append(bson.C.String("aggregate", ns.Collection), bson.C.Array("pipeline", pipeline))
+	command.Append(bson.EC.String("aggregate", ns.Collection), bson.EC.Array("pipeline", pipeline))
 
 	var batchSize int32
 	cursor := bson.NewDocument()
-	command.Append(bson.C.SubDocument("cursor", cursor))
+	command.Append(bson.EC.SubDocument("cursor", cursor))
 
 	for _, option := range opts {
 		switch t := option.(type) {
@@ -77,15 +77,15 @@ func LegacyAggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipel
 	}
 
 	aggregateCommand := bson.NewDocument(
-		bson.C.String("aggregate", ns.Collection),
-		bson.C.Array("pipeline", pipeline),
-		bson.C.SubDocumentFromElements("cursor", bson.C.Int32("batchSize", options.BatchSize)))
+		bson.EC.String("aggregate", ns.Collection),
+		bson.EC.Array("pipeline", pipeline),
+		bson.EC.SubDocumentFromElements("cursor", bson.EC.Int32("batchSize", options.BatchSize)))
 
 	if options.AllowDiskUse {
-		aggregateCommand.Append(bson.C.Boolean("allowDiskUse", true))
+		aggregateCommand.Append(bson.EC.Boolean("allowDiskUse", true))
 	}
 	if options.MaxTime != 0 {
-		aggregateCommand.Append(bson.C.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)))
+		aggregateCommand.Append(bson.EC.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)))
 	}
 
 	rdr, err := runMayUseSecondary(ctx, s, ns.DB, aggregateCommand)

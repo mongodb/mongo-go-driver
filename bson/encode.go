@@ -253,10 +253,10 @@ func (e *encoder) encodeMap(val reflect.Value) ([]*Element, error) {
 			elems = append(elems, t)
 			continue
 		case *Document:
-			elems = append(elems, C.SubDocument(key, t))
+			elems = append(elems, EC.SubDocument(key, t))
 			continue
 		case Reader:
-			elems = append(elems, C.SubDocumentFromReader(key, t))
+			elems = append(elems, EC.SubDocumentFromReader(key, t))
 			continue
 		}
 		rval = e.underlyingVal(rval)
@@ -280,10 +280,10 @@ func (e *encoder) encodeSlice(val reflect.Value) ([]*Element, error) {
 			elems = append(elems, t)
 			continue
 		case *Document:
-			elems = append(elems, C.SubDocument(key, t))
+			elems = append(elems, EC.SubDocument(key, t))
 			continue
 		case Reader:
-			elems = append(elems, C.SubDocumentFromReader(key, t))
+			elems = append(elems, EC.SubDocumentFromReader(key, t))
 			continue
 		}
 		sval = e.underlyingVal(sval)
@@ -308,10 +308,10 @@ func (e *encoder) encodeSliceAsArray(rval reflect.Value, minsize bool) ([]*Value
 			vals = append(vals, t)
 			continue
 		case *Document:
-			vals = append(vals, AC.Document(t))
+			vals = append(vals, VC.Document(t))
 			continue
 		case Reader:
-			vals = append(vals, AC.DocumentFromReader(t))
+			vals = append(vals, VC.DocumentFromReader(t))
 			continue
 		}
 
@@ -366,10 +366,10 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 			elems = append(elems, t)
 			continue
 		case *Document:
-			elems = append(elems, C.SubDocument(key, t))
+			elems = append(elems, EC.SubDocument(key, t))
 			continue
 		case Reader:
-			elems = append(elems, C.SubDocumentFromReader(key, t))
+			elems = append(elems, EC.SubDocumentFromReader(key, t))
 			continue
 		}
 		field = e.underlyingVal(field)
@@ -432,69 +432,69 @@ func (e *encoder) elemFromValue(key string, val reflect.Value, minsize bool) (*E
 	var elem *Element
 	switch val.Kind() {
 	case reflect.Bool:
-		elem = C.Boolean(key, val.Bool())
+		elem = EC.Boolean(key, val.Bool())
 	case reflect.Int8, reflect.Int16, reflect.Int32:
-		elem = C.Int32(key, int32(val.Int()))
+		elem = EC.Int32(key, int32(val.Int()))
 	case reflect.Int, reflect.Int64:
 		i := val.Int()
 		if minsize && i < math.MaxInt32 {
-			elem = C.Int32(key, int32(val.Int()))
+			elem = EC.Int32(key, int32(val.Int()))
 			break
 		}
-		elem = C.Int64(key, val.Int())
+		elem = EC.Int64(key, val.Int())
 	case reflect.Uint8, reflect.Uint16:
 		i := val.Uint()
-		elem = C.Int32(key, int32(i))
+		elem = EC.Int32(key, int32(i))
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		i := val.Uint()
 		switch {
 		case i < math.MaxInt32 && minsize:
-			elem = C.Int32(key, int32(i))
+			elem = EC.Int32(key, int32(i))
 		case i < math.MaxInt64:
-			elem = C.Int64(key, int64(i))
+			elem = EC.Int64(key, int64(i))
 		default:
 			return nil, fmt.Errorf("BSON only has signed integer types and %d overflows an int64", i)
 		}
 	case reflect.Float32, reflect.Float64:
-		elem = C.Double(key, val.Float())
+		elem = EC.Double(key, val.Float())
 	case reflect.String:
-		elem = C.String(key, val.String())
+		elem = EC.String(key, val.String())
 	case reflect.Map:
 		mapElems, err := e.encodeMap(val)
 		if err != nil {
 			return nil, err
 		}
-		elem = C.SubDocumentFromElements(key, mapElems...)
+		elem = EC.SubDocumentFromElements(key, mapElems...)
 	case reflect.Slice:
 		if val.Type() == tByteSlice {
-			elem = C.Binary(key, val.Slice(0, val.Len()).Interface().([]byte))
+			elem = EC.Binary(key, val.Slice(0, val.Len()).Interface().([]byte))
 			break
 		}
 		sliceElems, err := e.encodeSliceAsArray(val, minsize)
 		if err != nil {
 			return nil, err
 		}
-		elem = C.ArrayFromElements(key, sliceElems...)
+		elem = EC.ArrayFromElements(key, sliceElems...)
 	case reflect.Array:
 		if val.Kind() == reflect.Array && val.Type().Elem() == tByte {
 			b := make([]byte, val.Len())
 			for i := 0; i < val.Len(); i++ {
 				b[i] = byte(val.Index(i).Uint())
 			}
-			elem = C.Binary(key, b)
+			elem = EC.Binary(key, b)
 			break
 		}
 		arrayElems, err := e.encodeSliceAsArray(val, minsize)
 		if err != nil {
 			return nil, err
 		}
-		elem = C.ArrayFromElements(key, arrayElems...)
+		elem = EC.ArrayFromElements(key, arrayElems...)
 	case reflect.Struct:
 		structElems, err := e.encodeStruct(val)
 		if err != nil {
 			return nil, err
 		}
-		elem = C.SubDocumentFromElements(key, structElems...)
+		elem = EC.SubDocumentFromElements(key, structElems...)
 	default:
 		return nil, fmt.Errorf("Unsupported value type %s", val.Kind())
 	}
@@ -505,69 +505,69 @@ func (e *encoder) valueFromValue(val reflect.Value, minsize bool) (*Value, error
 	var elem *Value
 	switch val.Kind() {
 	case reflect.Bool:
-		elem = AC.Boolean(val.Bool())
+		elem = VC.Boolean(val.Bool())
 	case reflect.Int8, reflect.Int16, reflect.Int32:
-		elem = AC.Int32(int32(val.Int()))
+		elem = VC.Int32(int32(val.Int()))
 	case reflect.Int, reflect.Int64:
 		i := val.Int()
 		if minsize && i < math.MaxInt32 {
-			elem = AC.Int32(int32(val.Int()))
+			elem = VC.Int32(int32(val.Int()))
 			break
 		}
-		elem = AC.Int64(val.Int())
+		elem = VC.Int64(val.Int())
 	case reflect.Uint8, reflect.Uint16:
 		i := val.Uint()
-		elem = AC.Int32(int32(i))
+		elem = VC.Int32(int32(i))
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		i := val.Uint()
 		switch {
 		case i < math.MaxInt32 && minsize:
-			elem = AC.Int32(int32(i))
+			elem = VC.Int32(int32(i))
 		case i < math.MaxInt64:
-			elem = AC.Int64(int64(i))
+			elem = VC.Int64(int64(i))
 		default:
 			return nil, fmt.Errorf("BSON only has signed integer types and %d overflows an int64", i)
 		}
 	case reflect.Float32, reflect.Float64:
-		elem = AC.Double(val.Float())
+		elem = VC.Double(val.Float())
 	case reflect.String:
-		elem = AC.String(val.String())
+		elem = VC.String(val.String())
 	case reflect.Map:
 		mapElems, err := e.encodeMap(val)
 		if err != nil {
 			return nil, err
 		}
-		elem = AC.DocumentFromElements(mapElems...)
+		elem = VC.DocumentFromElements(mapElems...)
 	case reflect.Slice:
 		if val.Type() == tByteSlice {
-			elem = AC.Binary(val.Slice(0, val.Len()).Interface().([]byte))
+			elem = VC.Binary(val.Slice(0, val.Len()).Interface().([]byte))
 			break
 		}
 		sliceElems, err := e.encodeSliceAsArray(val, minsize)
 		if err != nil {
 			return nil, err
 		}
-		elem = AC.ArrayFromValues(sliceElems...)
+		elem = VC.ArrayFromValues(sliceElems...)
 	case reflect.Array:
 		if val.Kind() == reflect.Array && val.Type().Elem() == tByte {
 			b := make([]byte, val.Len())
 			for i := 0; i < val.Len(); i++ {
 				b[i] = byte(val.Index(i).Uint())
 			}
-			elem = AC.Binary(b)
+			elem = VC.Binary(b)
 			break
 		}
 		arrayElems, err := e.encodeSliceAsArray(val, minsize)
 		if err != nil {
 			return nil, err
 		}
-		elem = AC.ArrayFromValues(arrayElems...)
+		elem = VC.ArrayFromValues(arrayElems...)
 	case reflect.Struct:
 		structElems, err := e.encodeStruct(val)
 		if err != nil {
 			return nil, err
 		}
-		elem = AC.DocumentFromElements(structElems...)
+		elem = VC.DocumentFromElements(structElems...)
 	default:
 		return nil, fmt.Errorf("Unsupported value type %s", val.Kind())
 	}

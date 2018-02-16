@@ -209,7 +209,7 @@ type OptAllowDiskUse bool
 
 // Option implements the Optioner interface.
 func (opt OptAllowDiskUse) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("allowDiskUse", bool(opt)))
+	d.Append(bson.EC.Boolean("allowDiskUse", bool(opt)))
 }
 
 func (opt OptAllowDiskUse) aggregateOption() {}
@@ -219,7 +219,7 @@ type OptAllowPartialResults bool
 
 // Option implements the Optioner interface.
 func (opt OptAllowPartialResults) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("allowPartialResults", bool(opt)))
+	d.Append(bson.EC.Boolean("allowPartialResults", bool(opt)))
 }
 
 func (opt OptAllowPartialResults) findOption() {}
@@ -231,9 +231,9 @@ type OptArrayFilters []*bson.Document
 func (opt OptArrayFilters) Option(d *bson.Document) {
 	arr := bson.NewArray()
 	for _, af := range opt {
-		arr.Append(bson.AC.Document(af))
+		arr.Append(bson.VC.Document(af))
 	}
-	d.Append(bson.C.Array("arrayFilters", arr))
+	d.Append(bson.EC.Array("arrayFilters", arr))
 }
 
 func (OptArrayFilters) findOneAndUpdateOption() {}
@@ -244,7 +244,7 @@ type OptBatchSize int32
 
 // Option implements the Optioner interface.
 func (opt OptBatchSize) Option(d *bson.Document) {
-	d.Append(bson.C.Int32("batchSize", int32(opt)))
+	d.Append(bson.EC.Int32("batchSize", int32(opt)))
 }
 
 func (OptBatchSize) aggregateOption()    {}
@@ -256,7 +256,7 @@ type OptBypassDocumentValidation bool
 
 // Option implements the Optioner interface.
 func (opt OptBypassDocumentValidation) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("bypassDocumentValidation", bool(opt)))
+	d.Append(bson.EC.Boolean("bypassDocumentValidation", bool(opt)))
 }
 
 func (OptBypassDocumentValidation) aggregateOption()         {}
@@ -273,7 +273,7 @@ type OptCollation struct{ Collation *CollationOptions }
 
 // Option implements the Optioner interface.
 func (opt OptCollation) Option(d *bson.Document) {
-	d.Append(bson.C.SubDocument("collation", opt.Collation.toDocument()))
+	d.Append(bson.EC.SubDocument("collation", opt.Collation.toDocument()))
 }
 
 func (OptCollation) aggregateOption()         {}
@@ -293,7 +293,7 @@ type OptComment string
 
 // Option implements the Optioner interface.
 func (opt OptComment) Option(d *bson.Document) {
-	d.Append(bson.C.String("comment", string(opt)))
+	d.Append(bson.EC.String("comment", string(opt)))
 }
 
 func (OptComment) aggregateOption() {}
@@ -306,9 +306,9 @@ type OptCursorType CursorType
 func (opt OptCursorType) Option(d *bson.Document) {
 	switch CursorType(opt) {
 	case Tailable:
-		d.Append(bson.C.Boolean("tailable", true))
+		d.Append(bson.EC.Boolean("tailable", true))
 	case TailableAwait:
-		d.Append(bson.C.Boolean("tailable", true), bson.C.Boolean("awaitData", true))
+		d.Append(bson.EC.Boolean("tailable", true), bson.EC.Boolean("awaitData", true))
 	}
 }
 
@@ -319,7 +319,7 @@ type OptFullDocument string
 
 // Option implements the Optioner interface.
 func (opt OptFullDocument) Option(d *bson.Document) {
-	d.Append(bson.C.String("fullDocument", string(opt)))
+	d.Append(bson.EC.String("fullDocument", string(opt)))
 }
 
 func (OptFullDocument) changeStreamOption() {}
@@ -331,9 +331,9 @@ type OptHint struct{ Hint interface{} }
 func (opt OptHint) Option(d *bson.Document) {
 	switch t := (opt).Hint.(type) {
 	case string:
-		d.Append(bson.C.String("hint", t))
+		d.Append(bson.EC.String("hint", t))
 	case *bson.Document:
-		d.Append(bson.C.SubDocument("hint", t))
+		d.Append(bson.EC.SubDocument("hint", t))
 	}
 }
 
@@ -345,7 +345,7 @@ type OptLimit int64
 
 // Option implements the Optioner interface.
 func (opt OptLimit) Option(d *bson.Document) {
-	d.Append(bson.C.Int64("limit", int64(opt)))
+	d.Append(bson.EC.Int64("limit", int64(opt)))
 }
 
 func (OptLimit) countOption() {}
@@ -356,7 +356,7 @@ type OptMax struct{ Max *bson.Document }
 
 // Option implements the Optioner interface.
 func (opt OptMax) Option(d *bson.Document) {
-	d.Append(bson.C.SubDocument("max", opt.Max))
+	d.Append(bson.EC.SubDocument("max", opt.Max))
 }
 
 func (OptMax) findOption() {}
@@ -366,7 +366,7 @@ type OptMaxAwaitTime time.Duration
 
 // Option implements the Optioner interface.
 func (opt OptMaxAwaitTime) Option(d *bson.Document) {
-	d.Append(bson.C.Int64("maxAwaitTimeMS", int64(time.Duration(opt)/time.Millisecond)))
+	d.Append(bson.EC.Int64("maxAwaitTimeMS", int64(time.Duration(opt)/time.Millisecond)))
 }
 
 func (OptMaxAwaitTime) changeStreamOption() {}
@@ -377,7 +377,7 @@ type OptMaxScan int64
 
 // Option implements the Optioner interface.
 func (opt OptMaxScan) Option(d *bson.Document) {
-	d.Append(bson.C.Int64("maxScan", int64(opt)))
+	d.Append(bson.EC.Int64("maxScan", int64(opt)))
 }
 
 func (OptMaxScan) findOption() {}
@@ -387,7 +387,7 @@ type OptMaxTime time.Duration
 
 // Option implements the Optioner interface.
 func (opt OptMaxTime) Option(d *bson.Document) {
-	d.Append(bson.C.Int64("maxTimeMS", int64(time.Duration(opt)/time.Millisecond)))
+	d.Append(bson.EC.Int64("maxTimeMS", int64(time.Duration(opt)/time.Millisecond)))
 }
 
 func (OptMaxTime) aggregateOption()         {}
@@ -403,7 +403,7 @@ type OptMin struct{ Min *bson.Document }
 
 // Option implements the Optioner interface.
 func (opt OptMin) Option(d *bson.Document) {
-	d.Append(bson.C.SubDocument("min", opt.Min))
+	d.Append(bson.EC.SubDocument("min", opt.Min))
 }
 
 func (OptMin) findOption() {}
@@ -413,7 +413,7 @@ type OptNoCursorTimeout bool
 
 // Option implements the Optioner interface.
 func (opt OptNoCursorTimeout) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("noCursorTimeout", bool(opt)))
+	d.Append(bson.EC.Boolean("noCursorTimeout", bool(opt)))
 }
 
 func (OptNoCursorTimeout) findOption() {}
@@ -423,7 +423,7 @@ type OptOplogReplay bool
 
 // Option implements the Optioner interface.
 func (opt OptOplogReplay) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("oplogReplay", bool(opt)))
+	d.Append(bson.EC.Boolean("oplogReplay", bool(opt)))
 }
 
 func (OptOplogReplay) findOption() {}
@@ -433,7 +433,7 @@ type OptOrdered bool
 
 // Option implements the Optioner interface.
 func (opt OptOrdered) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("ordered", bool(opt)))
+	d.Append(bson.EC.Boolean("ordered", bool(opt)))
 }
 
 func (OptOrdered) insertManyOption() {}
@@ -451,7 +451,7 @@ func (opt OptProjection) Option(d *bson.Document) {
 	if opt.find {
 		key = "projection"
 	}
-	d.Append(bson.C.SubDocument(key, opt.Projection))
+	d.Append(bson.EC.SubDocument(key, opt.Projection))
 }
 
 // IsFind is for internal use.
@@ -488,7 +488,7 @@ type OptResumeAfter struct{ ResumeAfter *bson.Document }
 // Option implements the Optioner interface.
 func (opt OptResumeAfter) Option(d *bson.Document) {
 	if opt.ResumeAfter != nil {
-		d.Append(bson.C.SubDocument("resumeAfter", opt.ResumeAfter))
+		d.Append(bson.EC.SubDocument("resumeAfter", opt.ResumeAfter))
 	}
 }
 
@@ -499,7 +499,7 @@ type OptReturnDocument ReturnDocument
 
 // Option implements the Optioner interface.
 func (opt OptReturnDocument) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("new", ReturnDocument(opt) == After))
+	d.Append(bson.EC.Boolean("new", ReturnDocument(opt) == After))
 }
 
 func (OptReturnDocument) findOneAndReplaceOption() {}
@@ -510,7 +510,7 @@ type OptReturnKey bool
 
 // Option implements the Optioner interface.
 func (opt OptReturnKey) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("returnKey", bool(opt)))
+	d.Append(bson.EC.Boolean("returnKey", bool(opt)))
 }
 
 func (OptReturnKey) findOption() {}
@@ -520,7 +520,7 @@ type OptShowRecordID bool
 
 // Option implements the Optioner interface.
 func (opt OptShowRecordID) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("showRecordId", bool(opt)))
+	d.Append(bson.EC.Boolean("showRecordId", bool(opt)))
 }
 
 func (OptShowRecordID) findOption() {}
@@ -530,7 +530,7 @@ type OptSkip int64
 
 // Option implements the Optioner interface.
 func (opt OptSkip) Option(d *bson.Document) {
-	d.Append(bson.C.Int64("skip", int64(opt)))
+	d.Append(bson.EC.Int64("skip", int64(opt)))
 }
 
 func (OptSkip) countOption() {}
@@ -541,7 +541,7 @@ type OptSnapshot bool
 
 // Option implements the Optioner interface.
 func (opt OptSnapshot) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("snapshot", bool(opt)))
+	d.Append(bson.EC.Boolean("snapshot", bool(opt)))
 }
 
 func (OptSnapshot) findOption() {}
@@ -551,7 +551,7 @@ type OptSort struct{ Sort *bson.Document }
 
 // Option implements the Optioner interface.
 func (opt OptSort) Option(d *bson.Document) {
-	d.Append(bson.C.SubDocument("sort", opt.Sort))
+	d.Append(bson.EC.SubDocument("sort", opt.Sort))
 }
 
 func (OptSort) findOption()              {}
@@ -564,7 +564,7 @@ type OptUpsert bool
 
 // Option implements the Optioner interface.
 func (opt OptUpsert) Option(d *bson.Document) {
-	d.Append(bson.C.Boolean("upsert", bool(opt)))
+	d.Append(bson.EC.Boolean("upsert", bool(opt)))
 }
 
 func (OptUpsert) findOneAndReplaceOption() {}

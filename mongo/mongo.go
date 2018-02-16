@@ -64,7 +64,7 @@ func ensureID(d *bson.Document) (interface{}, error) {
 	switch {
 	case err == bson.ErrElementNotFound:
 		oid := objectid.New()
-		d.Append(bson.C.ObjectID("_id", oid))
+		d.Append(bson.EC.ObjectID("_id", oid))
 		id = oid
 	case err != nil:
 		return nil, err
@@ -94,7 +94,7 @@ func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
 		pipelineArr = bson.NewArray()
 
 		for _, doc := range t {
-			pipelineArr.Append(bson.AC.Document(doc))
+			pipelineArr.Append(bson.VC.Document(doc))
 		}
 	case []interface{}:
 		pipelineArr = bson.NewArray()
@@ -105,7 +105,7 @@ func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
 				return nil, err
 			}
 
-			pipelineArr.Append(bson.AC.Document(doc))
+			pipelineArr.Append(bson.VC.Document(doc))
 		}
 	default:
 		p, err := TransformDocument(pipeline)

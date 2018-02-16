@@ -18,8 +18,8 @@ func TestDeleteResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
 	doc := bson.NewDocument(
-		bson.C.Int64("n", 2),
-		bson.C.Int64("ok", 1))
+		bson.EC.Int64("n", 2),
+		bson.EC.Int64("ok", 1))
 
 	b, err := doc.MarshalBSON()
 	require.Nil(t, err)
@@ -52,13 +52,13 @@ func TestUpdateOneResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
 	doc := bson.NewDocument(
-		bson.C.Int32("n", 1),
-		bson.C.Int32("nModified", 2),
-		bson.C.ArrayFromElements(
+		bson.EC.Int32("n", 1),
+		bson.EC.Int32("nModified", 2),
+		bson.EC.ArrayFromElements(
 			"upserted",
-			bson.AC.DocumentFromElements(
-				bson.C.Int32("index", 0),
-				bson.C.Int32("_id", 3),
+			bson.VC.DocumentFromElements(
+				bson.EC.Int32("index", 0),
+				bson.EC.Int32("_id", 3),
 			),
 		))
 

@@ -24,10 +24,10 @@ func Distinct(ctx context.Context, s *SelectedServer, ns Namespace, field string
 	}
 
 	command := bson.NewDocument()
-	command.Append(bson.C.String("distinct", ns.Collection), bson.C.String("key", field))
+	command.Append(bson.EC.String("distinct", ns.Collection), bson.EC.String("key", field))
 
 	if query != nil {
-		command.Append(bson.C.SubDocument("query", query))
+		command.Append(bson.EC.SubDocument("query", query))
 	}
 
 	for _, option := range opts {

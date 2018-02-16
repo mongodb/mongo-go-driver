@@ -17,17 +17,17 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
-// C is a convenience variable provided for access to the Constructor methods.
-var C Constructor
+// EC is a convenience variable provided for access to the ElementConstructor methods.
+var EC ElementConstructor
 
-// AC is a convenience variable provided for access to the ArrayConstructor methods.
-var AC ArrayConstructor
+// VC is a convenience variable provided for access to the ValueConstructor methods.
+var VC ValueConstructor
 
-// Constructor is used as a namespace for document element constructor functions.
-type Constructor struct{}
+// ElementConstructor is used as a namespace for document element constructor functions.
+type ElementConstructor struct{}
 
-// ArrayConstructor is used as a namespace for document element constructor functions.
-type ArrayConstructor struct{}
+// ValueConstructor is used as a namespace for document element constructor functions.
+type ValueConstructor struct{}
 
 // Interface will attempt to turn the provided key and value into an Element.
 // For common types, type casting is used, if the type is more complex, such as
@@ -35,70 +35,70 @@ type ArrayConstructor struct{}
 // by typecasting or through reflection, a null Element is constructed with the
 // key. This method will never return a nil *Element. If an error turning the
 // value into an Element is desired, use the InterfaceErr method.
-func (Constructor) Interface(key string, value interface{}) *Element {
+func (ElementConstructor) Interface(key string, value interface{}) *Element {
 	var elem *Element
 	switch t := value.(type) {
 	case bool:
-		elem = C.Boolean(key, t)
+		elem = EC.Boolean(key, t)
 	case int8:
-		elem = C.Int32(key, int32(t))
+		elem = EC.Int32(key, int32(t))
 	case int16:
-		elem = C.Int32(key, int32(t))
+		elem = EC.Int32(key, int32(t))
 	case int32:
-		elem = C.Int32(key, int32(t))
+		elem = EC.Int32(key, int32(t))
 	case int:
 		if t < math.MaxInt32 {
-			elem = C.Int32(key, int32(t))
+			elem = EC.Int32(key, int32(t))
 		}
-		elem = C.Int64(key, int64(t))
+		elem = EC.Int64(key, int64(t))
 	case int64:
 		if t < math.MaxInt32 {
-			elem = C.Int32(key, int32(t))
+			elem = EC.Int32(key, int32(t))
 		}
-		elem = C.Int64(key, int64(t))
+		elem = EC.Int64(key, int64(t))
 	case uint8:
-		elem = C.Int32(key, int32(t))
+		elem = EC.Int32(key, int32(t))
 	case uint16:
-		elem = C.Int32(key, int32(t))
+		elem = EC.Int32(key, int32(t))
 	case uint:
 		switch {
 		case t < math.MaxInt32:
-			elem = C.Int32(key, int32(t))
+			elem = EC.Int32(key, int32(t))
 		case t > math.MaxInt64:
-			elem = C.Null(key)
+			elem = EC.Null(key)
 		default:
-			elem = C.Int64(key, int64(t))
+			elem = EC.Int64(key, int64(t))
 		}
 	case uint32:
 		if t < math.MaxInt32 {
-			elem = C.Int32(key, int32(t))
+			elem = EC.Int32(key, int32(t))
 		}
-		elem = C.Int64(key, int64(t))
+		elem = EC.Int64(key, int64(t))
 	case uint64:
 		switch {
 		case t < math.MaxInt32:
-			elem = C.Int32(key, int32(t))
+			elem = EC.Int32(key, int32(t))
 		case t > math.MaxInt64:
-			elem = C.Null(key)
+			elem = EC.Null(key)
 		default:
-			elem = C.Int64(key, int64(t))
+			elem = EC.Int64(key, int64(t))
 		}
 	case float32:
-		elem = C.Double(key, float64(t))
+		elem = EC.Double(key, float64(t))
 	case float64:
-		elem = C.Double(key, t)
+		elem = EC.Double(key, t)
 	case string:
-		elem = C.String(key, t)
+		elem = EC.String(key, t)
 	case *Element:
 		elem = t
 	case *Document:
-		elem = C.SubDocument(key, t)
+		elem = EC.SubDocument(key, t)
 	case Reader:
-		elem = C.SubDocumentFromReader(key, t)
+		elem = EC.SubDocumentFromReader(key, t)
 	case *Value:
 		elem = convertValueToElem(key, t)
 		if elem == nil {
-			elem = C.Null(key)
+			elem = EC.Null(key)
 		}
 	default:
 		var err error
@@ -108,7 +108,7 @@ func (Constructor) Interface(key string, value interface{}) *Element {
 
 		elem, err = enc.elemFromValue(key, val, true)
 		if err != nil {
-			elem = C.Null(key)
+			elem = EC.Null(key)
 		}
 	}
 
@@ -117,7 +117,7 @@ func (Constructor) Interface(key string, value interface{}) *Element {
 
 // InterfaceErr does what Interface does, but returns an error when it cannot
 // properly convert a value into an *Element. See Interface for details.
-func (c Constructor) InterfaceErr(key string, value interface{}) (*Element, error) {
+func (c ElementConstructor) InterfaceErr(key string, value interface{}) (*Element, error) {
 	var elem *Element
 	var err error
 	switch t := value.(type) {
@@ -127,20 +127,20 @@ func (c Constructor) InterfaceErr(key string, value interface{}) (*Element, erro
 	case uint:
 		switch {
 		case t < math.MaxInt32:
-			elem = C.Int32(key, int32(t))
+			elem = EC.Int32(key, int32(t))
 		case t > math.MaxInt64:
 			err = fmt.Errorf("BSON only has signed integer types and %d overflows an int64", t)
 		default:
-			elem = C.Int64(key, int64(t))
+			elem = EC.Int64(key, int64(t))
 		}
 	case uint64:
 		switch {
 		case t < math.MaxInt32:
-			elem = C.Int32(key, int32(t))
+			elem = EC.Int32(key, int32(t))
 		case t > math.MaxInt64:
 			err = fmt.Errorf("BSON only has signed integer types and %d overflows an int64", t)
 		default:
-			elem = C.Int64(key, int64(t))
+			elem = EC.Int64(key, int64(t))
 		}
 	case *Value:
 		elem = convertValueToElem(key, t)
@@ -163,7 +163,7 @@ func (c Constructor) InterfaceErr(key string, value interface{}) (*Element, erro
 }
 
 // Double creates a double element with the given key and value.
-func (Constructor) Double(key string, f float64) *Element {
+func (ElementConstructor) Double(key string, f float64) *Element {
 	b := make([]byte, 1+len(key)+1+8)
 	elem := newElement(0, 1+uint32(len(key))+1)
 	_, err := elements.Double.Element(0, b, key, f)
@@ -175,7 +175,7 @@ func (Constructor) Double(key string, f float64) *Element {
 }
 
 // String creates a string element with the given key and value.
-func (Constructor) String(key string, val string) *Element {
+func (ElementConstructor) String(key string, val string) *Element {
 	size := uint32(1 + len(key) + 1 + 4 + len(val) + 1)
 	b := make([]byte, size)
 	elem := newElement(0, 1+uint32(len(key))+1)
@@ -188,7 +188,7 @@ func (Constructor) String(key string, val string) *Element {
 }
 
 // SubDocument creates a subdocument element with the given key and value.
-func (Constructor) SubDocument(key string, d *Document) *Element {
+func (ElementConstructor) SubDocument(key string, d *Document) *Element {
 	size := uint32(1 + len(key) + 1)
 	b := make([]byte, size)
 	elem := newElement(0, size)
@@ -206,7 +206,7 @@ func (Constructor) SubDocument(key string, d *Document) *Element {
 }
 
 // SubDocumentFromReader creates a subdocument element with the given key and value.
-func (Constructor) SubDocumentFromReader(key string, r Reader) *Element {
+func (ElementConstructor) SubDocumentFromReader(key string, r Reader) *Element {
 	size := uint32(1 + len(key) + 1 + len(r))
 	b := make([]byte, size)
 	elem := newElement(0, uint32(1+len(key)+1))
@@ -227,12 +227,12 @@ func (Constructor) SubDocumentFromReader(key string, r Reader) *Element {
 
 // SubDocumentFromElements creates a subdocument element with the given key. The elements passed as
 // arguments will be used to create a new document as the value.
-func (c Constructor) SubDocumentFromElements(key string, elems ...*Element) *Element {
+func (c ElementConstructor) SubDocumentFromElements(key string, elems ...*Element) *Element {
 	return c.SubDocument(key, NewDocument(elems...))
 }
 
 // Array creates an array element with the given key and value.
-func (Constructor) Array(key string, a *Array) *Element {
+func (ElementConstructor) Array(key string, a *Array) *Element {
 	size := uint32(1 + len(key) + 1)
 	b := make([]byte, size)
 	elem := newElement(0, size)
@@ -251,18 +251,18 @@ func (Constructor) Array(key string, a *Array) *Element {
 
 // ArrayFromElements creates an element with the given key. The elements passed as
 // arguments will be used to create a new array as the value.
-func (c Constructor) ArrayFromElements(key string, values ...*Value) *Element {
+func (c ElementConstructor) ArrayFromElements(key string, values ...*Value) *Element {
 	return c.Array(key, NewArray(values...))
 }
 
 // Binary creates a binary element with the given key and value.
-func (c Constructor) Binary(key string, b []byte) *Element {
+func (c ElementConstructor) Binary(key string, b []byte) *Element {
 	return c.BinaryWithSubtype(key, b, 0)
 }
 
 // BinaryWithSubtype creates a binary element with the given key. It will create a new BSON binary value
 // with the given data and subtype.
-func (Constructor) BinaryWithSubtype(key string, b []byte, btype byte) *Element {
+func (ElementConstructor) BinaryWithSubtype(key string, b []byte, btype byte) *Element {
 	size := uint32(1 + len(key) + 1 + 4 + 1 + len(b))
 	if btype == 2 {
 		size += 4
@@ -280,7 +280,7 @@ func (Constructor) BinaryWithSubtype(key string, b []byte, btype byte) *Element 
 }
 
 // Undefined creates a undefined element with the given key.
-func (Constructor) Undefined(key string) *Element {
+func (ElementConstructor) Undefined(key string) *Element {
 	size := 1 + uint32(len(key)) + 1
 	b := make([]byte, size)
 	elem := newElement(0, size)
@@ -297,7 +297,7 @@ func (Constructor) Undefined(key string) *Element {
 }
 
 // ObjectID creates a objectid element with the given key and value.
-func (Constructor) ObjectID(key string, oid objectid.ObjectID) *Element {
+func (ElementConstructor) ObjectID(key string, oid objectid.ObjectID) *Element {
 	size := uint32(1 + len(key) + 1 + 12)
 	elem := newElement(0, 1+uint32(len(key))+1)
 	elem.value.data = make([]byte, size)
@@ -311,7 +311,7 @@ func (Constructor) ObjectID(key string, oid objectid.ObjectID) *Element {
 }
 
 // Boolean creates a boolean element with the given key and value.
-func (Constructor) Boolean(key string, b bool) *Element {
+func (ElementConstructor) Boolean(key string, b bool) *Element {
 	size := uint32(1 + len(key) + 1 + 1)
 	elem := newElement(0, 1+uint32(len(key))+1)
 	elem.value.data = make([]byte, size)
@@ -325,7 +325,7 @@ func (Constructor) Boolean(key string, b bool) *Element {
 }
 
 // DateTime creates a datetime element with the given key and value.
-func (Constructor) DateTime(key string, dt int64) *Element {
+func (ElementConstructor) DateTime(key string, dt int64) *Element {
 	size := uint32(1 + len(key) + 1 + 8)
 	elem := newElement(0, 1+uint32(len(key))+1)
 	elem.value.data = make([]byte, size)
@@ -339,7 +339,7 @@ func (Constructor) DateTime(key string, dt int64) *Element {
 }
 
 // Null creates a null element with the given key.
-func (Constructor) Null(key string) *Element {
+func (ElementConstructor) Null(key string) *Element {
 	size := uint32(1 + len(key) + 1)
 	b := make([]byte, size)
 	elem := newElement(0, uint32(1+len(key)+1))
@@ -356,7 +356,7 @@ func (Constructor) Null(key string) *Element {
 }
 
 // Regex creates a regex element with the given key and value.
-func (Constructor) Regex(key string, pattern, options string) *Element {
+func (ElementConstructor) Regex(key string, pattern, options string) *Element {
 	size := uint32(1 + len(key) + 1 + len(pattern) + 1 + len(options) + 1)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -370,7 +370,7 @@ func (Constructor) Regex(key string, pattern, options string) *Element {
 }
 
 // DBPointer creates a dbpointer element with the given key and value.
-func (Constructor) DBPointer(key string, ns string, oid objectid.ObjectID) *Element {
+func (ElementConstructor) DBPointer(key string, ns string, oid objectid.ObjectID) *Element {
 	size := uint32(1 + len(key) + 1 + 4 + len(ns) + 1 + 12)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -384,7 +384,7 @@ func (Constructor) DBPointer(key string, ns string, oid objectid.ObjectID) *Elem
 }
 
 // JavaScript creates a JavaScript code element with the given key and value.
-func (Constructor) JavaScript(key string, code string) *Element {
+func (ElementConstructor) JavaScript(key string, code string) *Element {
 	size := uint32(1 + len(key) + 1 + 4 + len(code) + 1)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -398,7 +398,7 @@ func (Constructor) JavaScript(key string, code string) *Element {
 }
 
 // Symbol creates a symbol element with the given key and value.
-func (Constructor) Symbol(key string, symbol string) *Element {
+func (ElementConstructor) Symbol(key string, symbol string) *Element {
 	size := uint32(1 + len(key) + 1 + 4 + len(symbol) + 1)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -412,7 +412,7 @@ func (Constructor) Symbol(key string, symbol string) *Element {
 }
 
 // CodeWithScope creates a JavaScript code with scope element with the given key and value.
-func (Constructor) CodeWithScope(key string, code string, scope *Document) *Element {
+func (ElementConstructor) CodeWithScope(key string, code string, scope *Document) *Element {
 	size := uint32(1 + len(key) + 1 + 4 + 4 + len(code) + 1)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -442,7 +442,7 @@ func (Constructor) CodeWithScope(key string, code string, scope *Document) *Elem
 }
 
 // Int32 creates a int32 element with the given key and value.
-func (Constructor) Int32(key string, i int32) *Element {
+func (ElementConstructor) Int32(key string, i int32) *Element {
 	size := uint32(1 + len(key) + 1 + 4)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -456,7 +456,7 @@ func (Constructor) Int32(key string, i int32) *Element {
 }
 
 // Timestamp creates a timestamp element with the given key and value.
-func (Constructor) Timestamp(key string, t uint32, i uint32) *Element {
+func (ElementConstructor) Timestamp(key string, t uint32, i uint32) *Element {
 	size := uint32(1 + len(key) + 1 + 8)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -470,7 +470,7 @@ func (Constructor) Timestamp(key string, t uint32, i uint32) *Element {
 }
 
 // Int64 creates a int64 element with the given key and value.
-func (Constructor) Int64(key string, i int64) *Element {
+func (ElementConstructor) Int64(key string, i int64) *Element {
 	size := uint32(1 + len(key) + 1 + 8)
 	elem := newElement(0, 1+uint32(len(key))+1)
 	elem.value.data = make([]byte, size)
@@ -484,7 +484,7 @@ func (Constructor) Int64(key string, i int64) *Element {
 }
 
 // Decimal128 creates a decimal element with the given key and value.
-func (Constructor) Decimal128(key string, d decimal.Decimal128) *Element {
+func (ElementConstructor) Decimal128(key string, d decimal.Decimal128) *Element {
 	size := uint32(1 + len(key) + 1 + 16)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -498,7 +498,7 @@ func (Constructor) Decimal128(key string, d decimal.Decimal128) *Element {
 }
 
 // MinKey creates a minkey element with the given key and value.
-func (Constructor) MinKey(key string) *Element {
+func (ElementConstructor) MinKey(key string) *Element {
 	size := uint32(1 + len(key) + 1)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -517,7 +517,7 @@ func (Constructor) MinKey(key string) *Element {
 }
 
 // MaxKey creates a maxkey element with the given key and value.
-func (Constructor) MaxKey(key string) *Element {
+func (ElementConstructor) MaxKey(key string) *Element {
 	size := uint32(1 + len(key) + 1)
 	elem := newElement(0, uint32(1+len(key)+1))
 	elem.value.data = make([]byte, size)
@@ -536,126 +536,126 @@ func (Constructor) MaxKey(key string) *Element {
 }
 
 // Double creates a double element with the given value.
-func (ArrayConstructor) Double(f float64) *Value {
-	return C.Double("", f).value
+func (ValueConstructor) Double(f float64) *Value {
+	return EC.Double("", f).value
 }
 
 // String creates a string element with the given value.
-func (ArrayConstructor) String(val string) *Value {
-	return C.String("", val).value
+func (ValueConstructor) String(val string) *Value {
+	return EC.String("", val).value
 }
 
 // Document creates a subdocument value from the argument.
-func (ArrayConstructor) Document(d *Document) *Value {
-	return C.SubDocument("", d).value
+func (ValueConstructor) Document(d *Document) *Value {
+	return EC.SubDocument("", d).value
 }
 
 // DocumentFromReader creates a subdocument element from the given value.
-func (ArrayConstructor) DocumentFromReader(r Reader) *Value {
-	return C.SubDocumentFromReader("", r).value
+func (ValueConstructor) DocumentFromReader(r Reader) *Value {
+	return EC.SubDocumentFromReader("", r).value
 }
 
 // DocumentFromElements creates a subdocument element from the given elements.
-func (ArrayConstructor) DocumentFromElements(elems ...*Element) *Value {
-	return C.SubDocumentFromElements("", elems...).value
+func (ValueConstructor) DocumentFromElements(elems ...*Element) *Value {
+	return EC.SubDocumentFromElements("", elems...).value
 }
 
 // Array creates an array value from the argument.
-func (ArrayConstructor) Array(a *Array) *Value {
-	return C.Array("", a).value
+func (ValueConstructor) Array(a *Array) *Value {
+	return EC.Array("", a).value
 }
 
 // ArrayFromValues creates an array element from the given the elements.
-func (ArrayConstructor) ArrayFromValues(values ...*Value) *Value {
-	return C.ArrayFromElements("", values...).value
+func (ValueConstructor) ArrayFromValues(values ...*Value) *Value {
+	return EC.ArrayFromElements("", values...).value
 }
 
 // Binary creates a binary value from the argument.
-func (ac ArrayConstructor) Binary(b []byte) *Value {
+func (ac ValueConstructor) Binary(b []byte) *Value {
 	return ac.BinaryWithSubtype(b, 0)
 }
 
 // BinaryWithSubtype creates a new binary element with the given data and subtype.
-func (ArrayConstructor) BinaryWithSubtype(b []byte, btype byte) *Value {
-	return C.BinaryWithSubtype("", b, btype).value
+func (ValueConstructor) BinaryWithSubtype(b []byte, btype byte) *Value {
+	return EC.BinaryWithSubtype("", b, btype).value
 }
 
 // Undefined creates a undefined element.
-func (ArrayConstructor) Undefined() *Value {
-	return C.Undefined("").value
+func (ValueConstructor) Undefined() *Value {
+	return EC.Undefined("").value
 }
 
 // ObjectID creates a objectid value from the argument.
-func (ArrayConstructor) ObjectID(oid objectid.ObjectID) *Value {
-	return C.ObjectID("", oid).value
+func (ValueConstructor) ObjectID(oid objectid.ObjectID) *Value {
+	return EC.ObjectID("", oid).value
 }
 
 // Boolean creates a boolean value from the argument.
-func (ArrayConstructor) Boolean(b bool) *Value {
-	return C.Boolean("", b).value
+func (ValueConstructor) Boolean(b bool) *Value {
+	return EC.Boolean("", b).value
 }
 
 // DateTime creates a datetime value from the argument.
-func (ArrayConstructor) DateTime(dt int64) *Value {
-	return C.DateTime("", dt).value
+func (ValueConstructor) DateTime(dt int64) *Value {
+	return EC.DateTime("", dt).value
 }
 
 // Null creates a null value from the argument.
-func (ArrayConstructor) Null() *Value {
-	return C.Null("").value
+func (ValueConstructor) Null() *Value {
+	return EC.Null("").value
 }
 
 // Regex creates a regex value from the arguments.
-func (ArrayConstructor) Regex(pattern, options string) *Value {
-	return C.Regex("", pattern, options).value
+func (ValueConstructor) Regex(pattern, options string) *Value {
+	return EC.Regex("", pattern, options).value
 }
 
 // DBPointer creates a dbpointer value from the arguments.
-func (ArrayConstructor) DBPointer(ns string, oid objectid.ObjectID) *Value {
-	return C.DBPointer("", ns, oid).value
+func (ValueConstructor) DBPointer(ns string, oid objectid.ObjectID) *Value {
+	return EC.DBPointer("", ns, oid).value
 }
 
 // JavaScript creates a JavaScript code value from the argument.
-func (ArrayConstructor) JavaScript(code string) *Value {
-	return C.JavaScript("", code).value
+func (ValueConstructor) JavaScript(code string) *Value {
+	return EC.JavaScript("", code).value
 }
 
 // Symbol creates a symbol value from the argument.
-func (ArrayConstructor) Symbol(symbol string) *Value {
-	return C.Symbol("", symbol).value
+func (ValueConstructor) Symbol(symbol string) *Value {
+	return EC.Symbol("", symbol).value
 }
 
 // CodeWithScope creates a JavaScript code with scope value from the arguments.
-func (ArrayConstructor) CodeWithScope(code string, scope *Document) *Value {
-	return C.CodeWithScope("", code, scope).value
+func (ValueConstructor) CodeWithScope(code string, scope *Document) *Value {
+	return EC.CodeWithScope("", code, scope).value
 }
 
 // Int32 creates a int32 value from the argument.
-func (ArrayConstructor) Int32(i int32) *Value {
-	return C.Int32("", i).value
+func (ValueConstructor) Int32(i int32) *Value {
+	return EC.Int32("", i).value
 }
 
 // Timestamp creates a timestamp value from the arguments.
-func (ArrayConstructor) Timestamp(t uint32, i uint32) *Value {
-	return C.Timestamp("", t, i).value
+func (ValueConstructor) Timestamp(t uint32, i uint32) *Value {
+	return EC.Timestamp("", t, i).value
 }
 
 // Int64 creates a int64 value from the argument.
-func (ArrayConstructor) Int64(i int64) *Value {
-	return C.Int64("", i).value
+func (ValueConstructor) Int64(i int64) *Value {
+	return EC.Int64("", i).value
 }
 
 // Decimal128 creates a decimal value from the argument.
-func (ArrayConstructor) Decimal128(d decimal.Decimal128) *Value {
-	return C.Decimal128("", d).value
+func (ValueConstructor) Decimal128(d decimal.Decimal128) *Value {
+	return EC.Decimal128("", d).value
 }
 
 // MinKey creates a minkey value from the argument.
-func (ArrayConstructor) MinKey() *Value {
-	return C.MinKey("").value
+func (ValueConstructor) MinKey() *Value {
+	return EC.MinKey("").value
 }
 
 // MaxKey creates a maxkey value from the argument.
-func (ArrayConstructor) MaxKey() *Value {
-	return C.MaxKey("").value
+func (ValueConstructor) MaxKey() *Value {
+	return EC.MaxKey("").value
 }

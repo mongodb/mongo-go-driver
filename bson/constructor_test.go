@@ -56,7 +56,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Double("foo", 3.14159)
+			actual := EC.Double("foo", 3.14159)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -74,7 +74,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.String("foo", "bar")
+			actual := EC.String("foo", "bar")
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -86,10 +86,10 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x66, 0x6f, 0x6f, 0x0,
 			}
-			d := NewDocument(C.String("bar", "baz"))
+			d := NewDocument(EC.String("bar", "baz"))
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: d}}
-			actual := C.SubDocument("foo", d)
+			actual := EC.SubDocument("foo", d)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -101,11 +101,11 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x66, 0x6f, 0x6f, 0x0,
 			}
-			e := C.String("bar", "baz")
+			e := EC.String("bar", "baz")
 			d := NewDocument(e)
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: d}}
-			actual := C.SubDocumentFromElements("foo", e)
+			actual := EC.SubDocumentFromElements("foo", e)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -127,7 +127,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf}}
-			actual := C.SubDocumentFromReader("foo", rdr)
+			actual := EC.SubDocumentFromReader("foo", rdr)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -139,10 +139,10 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x66, 0x6f, 0x6f, 0x0,
 			}
-			a := NewArray(AC.String("bar"), AC.Double(-2.7))
+			a := NewArray(VC.String("bar"), VC.Double(-2.7))
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: a.doc}}
-			actual := C.Array("foo", a)
+			actual := EC.Array("foo", a)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -154,12 +154,12 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x66, 0x6f, 0x6f, 0x0,
 			}
-			e1 := AC.String("bar")
-			e2 := AC.Double(-2.7)
+			e1 := VC.String("bar")
+			e2 := VC.Double(-2.7)
 			a := NewArray(e1, e2)
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: a.doc}}
-			actual := C.ArrayFromElements("foo", e1, e2)
+			actual := EC.ArrayFromElements("foo", e1, e2)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -179,7 +179,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Binary("foo", []byte{8, 6, 7, 5, 3, 0, 9})
+			actual := EC.Binary("foo", []byte{8, 6, 7, 5, 3, 0, 9})
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -201,7 +201,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.BinaryWithSubtype("foo", []byte{8, 6, 7, 5, 3, 0, 9}, 2)
+			actual := EC.BinaryWithSubtype("foo", []byte{8, 6, 7, 5, 3, 0, 9}, 2)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -215,7 +215,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Undefined("foo")
+			actual := EC.Undefined("foo")
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -231,7 +231,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.ObjectID(
+			actual := EC.ObjectID(
 				"foo",
 				[12]byte{0x5a, 0x15, 0xd0, 0xa4, 0xd5, 0xda, 0xa5, 0xf1, 0x0a, 0x5e, 0x10, 0x89},
 			)
@@ -250,7 +250,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Boolean("foo", false)
+			actual := EC.Boolean("foo", false)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -266,7 +266,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.DateTime("foo", 17)
+			actual := EC.DateTime("foo", 17)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -280,7 +280,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Null("foo")
+			actual := EC.Null("foo")
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -298,7 +298,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Regex("foo", "bar", "i")
+			actual := EC.Regex("foo", "bar", "i")
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -318,7 +318,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.DBPointer(
+			actual := EC.DBPointer(
 				"foo",
 				"bar",
 				[12]byte{0x5a, 0x15, 0xd0, 0xa4, 0xd5, 0xda, 0xa5, 0xf1, 0x0a, 0x5e, 0x10, 0x89},
@@ -340,7 +340,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.JavaScript("foo", "var bar = 3;")
+			actual := EC.JavaScript("foo", "var bar = 3;")
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -358,7 +358,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Symbol("foo", "bar")
+			actual := EC.Symbol("foo", "bar")
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -375,10 +375,10 @@ func TestConstructor(t *testing.T) {
 				// value - code
 				0x76, 0x61, 0x72, 0x20, 0x62, 0x61, 0x72, 0x20, 0x3d, 0x20, 0x78, 0x3b, 0x0,
 			}
-			scope := NewDocument(C.Null("x"))
+			scope := NewDocument(EC.Null("x"))
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: scope}}
-			actual := C.CodeWithScope("foo", "var bar = x;", scope)
+			actual := EC.CodeWithScope("foo", "var bar = x;", scope)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -394,7 +394,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Int32("foo", -27)
+			actual := EC.Int32("foo", -27)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -410,7 +410,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Timestamp("foo", 8, 17)
+			actual := EC.Timestamp("foo", 8, 17)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -426,7 +426,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Int64("foo", -27)
+			actual := EC.Int64("foo", -27)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -444,7 +444,7 @@ func TestConstructor(t *testing.T) {
 			d, _ := decimal.ParseDecimal128("-7.50")
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.Decimal128("foo", d)
+			actual := EC.Decimal128("foo", d)
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -458,7 +458,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.MinKey("foo")
+			actual := EC.MinKey("foo")
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -472,7 +472,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
-			actual := C.MaxKey("foo")
+			actual := EC.MaxKey("foo")
 
 			requireElementsEqual(t, expected, actual)
 		})
@@ -491,7 +491,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Double(3.14159)
+			actual := VC.Double(3.14159)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -509,7 +509,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.String("bar")
+			actual := VC.String("bar")
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -521,10 +521,10 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x0,
 			}
-			d := NewDocument(C.String("bar", "baz"))
+			d := NewDocument(EC.String("bar", "baz"))
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: d}
-			actual := AC.Document(d)
+			actual := VC.Document(d)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -536,11 +536,11 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x0,
 			}
-			e := C.String("bar", "baz")
+			e := EC.String("bar", "baz")
 			d := NewDocument(e)
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: d}
-			actual := AC.DocumentFromElements(e)
+			actual := VC.DocumentFromElements(e)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -566,7 +566,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf}
-			actual := AC.DocumentFromReader(rdr)
+			actual := VC.DocumentFromReader(rdr)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -578,10 +578,10 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x0,
 			}
-			a := NewArray(AC.String("bar"), AC.Double(-2.7))
+			a := NewArray(VC.String("bar"), VC.Double(-2.7))
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: a.doc}
-			actual := AC.Array(a)
+			actual := VC.Array(a)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -593,12 +593,12 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x0,
 			}
-			e1 := AC.String("bar")
-			e2 := AC.Double(-2.7)
+			e1 := VC.String("bar")
+			e2 := VC.Double(-2.7)
 			a := NewArray(e1, e2)
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: a.doc}
-			actual := AC.ArrayFromValues(e1, e2)
+			actual := VC.ArrayFromValues(e1, e2)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -618,7 +618,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Binary([]byte{8, 6, 7, 5, 3, 0, 9})
+			actual := VC.Binary([]byte{8, 6, 7, 5, 3, 0, 9})
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -640,7 +640,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.BinaryWithSubtype([]byte{8, 6, 7, 5, 3, 0, 9}, 2)
+			actual := VC.BinaryWithSubtype([]byte{8, 6, 7, 5, 3, 0, 9}, 2)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -654,7 +654,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Undefined()
+			actual := VC.Undefined()
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -670,7 +670,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.ObjectID(
+			actual := VC.ObjectID(
 
 				[12]byte{0x5a, 0x15, 0xd0, 0xa4, 0xd5, 0xda, 0xa5, 0xf1, 0x0a, 0x5e, 0x10, 0x89},
 			)
@@ -689,7 +689,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Boolean(false)
+			actual := VC.Boolean(false)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -705,7 +705,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.DateTime(17)
+			actual := VC.DateTime(17)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -719,7 +719,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Null()
+			actual := VC.Null()
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -737,7 +737,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Regex("bar", "i")
+			actual := VC.Regex("bar", "i")
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -757,7 +757,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.DBPointer(
+			actual := VC.DBPointer(
 
 				"bar",
 				[12]byte{0x5a, 0x15, 0xd0, 0xa4, 0xd5, 0xda, 0xa5, 0xf1, 0x0a, 0x5e, 0x10, 0x89},
@@ -779,7 +779,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.JavaScript("var bar = 3;")
+			actual := VC.JavaScript("var bar = 3;")
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -797,7 +797,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Symbol("bar")
+			actual := VC.Symbol("bar")
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -814,10 +814,10 @@ func TestConstructor(t *testing.T) {
 				// value - code
 				0x76, 0x61, 0x72, 0x20, 0x62, 0x61, 0x72, 0x20, 0x3d, 0x20, 0x78, 0x3b, 0x0,
 			}
-			scope := NewDocument(C.Null("x"))
+			scope := NewDocument(EC.Null("x"))
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: scope}
-			actual := AC.CodeWithScope("var bar = x;", scope)
+			actual := VC.CodeWithScope("var bar = x;", scope)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -833,7 +833,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Int32(-27)
+			actual := VC.Int32(-27)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -849,7 +849,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Timestamp(8, 17)
+			actual := VC.Timestamp(8, 17)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -865,7 +865,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Int64(-27)
+			actual := VC.Int64(-27)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -883,7 +883,7 @@ func TestConstructor(t *testing.T) {
 			d, _ := decimal.ParseDecimal128("-7.50")
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.Decimal128(d)
+			actual := VC.Decimal128(d)
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -897,7 +897,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.MinKey()
+			actual := VC.MinKey()
 
 			requireValuesEqual(t, expected, actual)
 		})
@@ -911,7 +911,7 @@ func TestConstructor(t *testing.T) {
 			}
 
 			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
-			actual := AC.MaxKey()
+			actual := VC.MaxKey()
 
 			requireValuesEqual(t, expected, actual)
 		})

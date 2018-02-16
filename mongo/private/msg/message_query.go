@@ -56,10 +56,10 @@ func AddMeta(r Request, meta map[string]*bson.Document) error {
 				panic(fmt.Errorf("Could not transform document to *bson.Document: %v", err))
 			}
 			doc := bson.NewDocument(
-				bson.C.SubDocument("$query", query))
+				bson.EC.SubDocument("$query", query))
 
 			for k, v := range meta {
-				doc.Append(bson.C.SubDocument(k, v))
+				doc.Append(bson.EC.SubDocument(k, v))
 			}
 
 			typedR.Query = doc
