@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bb49faca_4a4872e4",
+        "filename": "mongo/options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-16T21:11:24Z",
+      "side": 1,
+      "message": "Why are these pointer receivers?",
+      "range": {
+        "startLine": 25,
+        "startChar": 6,
+        "endLine": 25,
+        "endChar": 14
+      },
+      "revId": "732fd749523403ab24495a1a1fd8b33539fc7512",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
