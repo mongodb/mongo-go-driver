@@ -22,6 +22,30 @@
       "revId": "333a8d07e86f43105d9efcae6e6c78106d9c2b50",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "924c047c_ec33955f",
+        "filename": "mongo/options.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-20T17:42:07Z",
+      "side": 1,
+      "message": "Looks like a rogue search and replace, judging from the fact that there are weird issues with a couple of the other comments. Fixed.",
+      "parentUuid": "92dd2502_77712b82",
+      "range": {
+        "startLine": 276,
+        "startChar": 68,
+        "endLine": 276,
+        "endChar": 170
+      },
+      "revId": "333a8d07e86f43105d9efcae6e6c78106d9c2b50",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
