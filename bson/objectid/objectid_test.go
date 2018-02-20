@@ -6,9 +6,31 @@
 
 package objectid
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestNew(t *testing.T) {
 	// Ensure that objectid.New() doesn't panic.
 	New()
+}
+
+func TestFromHex_RoundTrip(t *testing.T) {
+	before := New()
+	after, err := FromHex(before.Hex())
+	require.NoError(t, err)
+
+	require.Equal(t, before, after)
+}
+
+func TestFromHex_InvalidHex(t *testing.T) {
+	_, err := FromHex("this is not a valid hex string!")
+	require.Error(t, err)
+}
+
+func TestFromHex_WrongLength(t *testing.T) {
+	_, err := FromHex("deadbeef")
+	require.Equal(t, ErrInvalidHex, err)
 }
