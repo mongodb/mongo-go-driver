@@ -135,6 +135,11 @@ func (r Reader) Lookup(key ...string) (*Element, error) {
 		}
 		return nil
 	})
+
+	if elem == nil && err == nil {
+		return nil, ErrElementNotFound
+	}
+
 	return elem, err
 }
 
