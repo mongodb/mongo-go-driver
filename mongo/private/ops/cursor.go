@@ -107,6 +107,8 @@ func NewCursor(cursorResult bson.Reader, batchSize int32, server Server) (Cursor
 //		}
 //		err := cursor.Close(ctx)
 type Cursor interface {
+	// NOTE: Whenever this changes, mongo.Cursor must be changed to match it.
+
 	// Get the ID of the cursor.
 	ID() int64
 
@@ -182,6 +184,7 @@ func (c *cursorImpl) Err() error {
 	return c.err
 }
 
+// TODO GODRIVER-256: Only return the underlying Close error.
 func (c *cursorImpl) Close(ctx context.Context) error {
 	if c.cursorID == 0 {
 		return c.err
