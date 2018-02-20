@@ -75,11 +75,7 @@ func ensureID(d *bson.Document) (interface{}, error) {
 }
 
 func ensureDollarKey(doc *bson.Document) error {
-	elem, err := doc.ElementAt(0)
-	if err != nil {
-		return err
-	}
-	if !strings.HasPrefix(elem.Key(), "$") {
+	if elem, ok := doc.ElementAtOK(0); !ok || !strings.HasPrefix(elem.Key(), "$") {
 		return errors.New("update document must contain key beginning with '$'")
 	}
 	return nil

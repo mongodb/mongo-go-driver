@@ -72,9 +72,9 @@ func (a *Array) Validate() (uint32, error) {
 
 // Lookup returns the value in the array at the given index or an error if it cannot be found.
 func (a *Array) Lookup(index uint) (*Value, error) {
-	v, err := a.doc.ElementAt(index)
-	if err != nil {
-		return nil, err
+	v, ok := a.doc.ElementAtOK(index)
+	if !ok {
+		return nil, ErrOutOfBounds
 	}
 
 	return v.value, nil

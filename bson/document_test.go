@@ -410,12 +410,12 @@ func TestDocument(t *testing.T) {
 			})
 		}
 	})
-	t.Run("ElementAt", func(t *testing.T) {
+	t.Run("ElementAtOK", func(t *testing.T) {
 		t.Run("Out of bounds", func(t *testing.T) {
 			d := NewDocument(EC.Null("x"), EC.Null("y"), EC.Null("z"))
-			_, err := d.ElementAt(3)
-			if err != ErrOutOfBounds {
-				t.Errorf("Out of bounds should be returned when accessing element beyond end of document. got %#v; want %#v", err, ErrOutOfBounds)
+			_, ok := d.ElementAtOK(3)
+			if ok {
+				t.Errorf("ok=false should be returned when accessing element beyond end of document. got %#v; want %#v", ok, false)
 			}
 		})
 		testCases := []struct {
@@ -432,9 +432,9 @@ func TestDocument(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				d := NewDocument(tc.elems...)
-				got, err := d.ElementAt(tc.index)
-				if err != nil {
-					t.Errorf("Unexpected error from ElementAt: %s", err)
+				got, ok := d.ElementAtOK(tc.index)
+				if !ok {
+					t.Errorf("ElementAtOK returned ok=false when true was expected")
 				}
 				if diff := cmp.Diff(got, tc.want, cmp.AllowUnexported(Element{}, Value{})); diff != "" {
 					t.Errorf("Documents differ: (-got +want)\n%s", diff)

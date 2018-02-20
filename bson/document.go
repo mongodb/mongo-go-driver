@@ -322,28 +322,22 @@ func (d *Document) Delete(key ...string) *Element {
 	return elem
 }
 
-// ElementAt retrieves the element at the given index in a Document.
+// ElementAt retrieves the element at the given index in a Document. It panics if the index is
+// out-of-bounds.
 //
 // TODO(skriptble): This method could be variadic and return the element at the
 // provided depth.
-func (d *Document) ElementAt(index uint) (*Element, error) {
-	if int(index) >= len(d.elems) {
-		return nil, ErrOutOfBounds
-	}
-	return d.elems[index], nil
+func (d *Document) ElementAt(index uint) *Element {
+	return d.elems[index]
 }
 
-// MustElementAt is the same as ElementAt but panics if the index is
-// out of bounds.
-//
-// TODO(skriptble): Should this be the default behavior? Similar to an slice,
-// if the users attempts to access an index out of bounds it panics.
-func (d *Document) MustElementAt(index uint) *Element {
-	elem, err := d.ElementAt(index)
-	if err != nil {
-		panic(err)
+// ElementAtOK is the same as ElementAt, but returns a boolean instead of panicking.
+func (d *Document) ElementAtOK(index uint) (*Element, bool) {
+	if index >= uint(len(d.elems)) {
+		return nil, false
 	}
-	return elem
+
+	return d.ElementAt(index), true
 }
 
 // Iterator creates an Iterator for this document and returns it.
