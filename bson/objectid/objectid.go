@@ -21,6 +21,9 @@ import (
 	"time"
 )
 
+// ErrInvalidHex indicates that a hex string cannot be converted to an ObjectID.
+var ErrInvalidHex = errors.New("the provided hex string is not a valid ObjectID")
+
 // ObjectID is the BSON ObjectID type.
 type ObjectID [12]byte
 
@@ -44,6 +47,24 @@ func New() ObjectID {
 // Hex returns the hex encoding of the ObjectID as a string.
 func (id *ObjectID) Hex() string {
 	return hex.EncodeToString(id[:])
+}
+
+// FromHex creates a new ObjectID from a hex string. It returns an error if the hex string is not a
+// valid ObjectID.
+func FromHex(s string) (ObjectID, error) {
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		return NilObjectID, err
+	}
+
+	if len(b) != 12 {
+		return NilObjectID, ErrInvalidHex
+	}
+
+	var oid [12]byte
+	copy(oid[:], b[:])
+
+	return oid, nil
 }
 
 // UnmarshalJSON populates the byte slice with the ObjectID. If the byte slice is 64 bytes long, it
