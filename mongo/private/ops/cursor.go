@@ -35,6 +35,8 @@ func (e *exhaustedCursorImpl) Next(context.Context) bool {
 
 func (e *exhaustedCursorImpl) Decode(interface{}) error { return nil }
 
+func (e *exhaustedCursorImpl) DecodeBytes() (bson.Reader, error) { return nil, nil }
+
 func (e *exhaustedCursorImpl) Err() error {
 	return nil
 }
@@ -114,6 +116,8 @@ type Cursor interface {
 
 	Decode(interface{}) error
 
+	DecodeBytes() (bson.Reader, error)
+
 	// Returns the error status of the cursor
 	Err() error
 
@@ -156,14 +160,22 @@ func (c *cursorImpl) Next(ctx context.Context) bool {
 }
 
 func (c *cursorImpl) Decode(v interface{}) error {
-	br, err := c.currentBatch.Lookup(uint(c.current))
+	br, err := c.DecodeBytes()
 	if err != nil {
 		return err
 	}
-	if br.Type() != bson.TypeEmbeddedDocument {
-		return errors.New("Non-Document in batch of documents for cursor")
+	return bson.NewDecoder(bytes.NewReader(br)).Decode(v)
+}
+
+func (c *cursorImpl) DecodeBytes() (bson.Reader, error) {
+	br, err := c.currentBatch.Lookup(uint(c.current))
+	if err != nil {
+		return nil, err
 	}
-	return bson.NewDecoder(bytes.NewReader(br.ReaderDocument())).Decode(v)
+	if br.Type() != bson.TypeEmbeddedDocument {
+		return nil, errors.New("Non-Document in batch of documents for cursor")
+	}
+	return br.ReaderDocument(), nil
 }
 
 func (c *cursorImpl) Err() error {

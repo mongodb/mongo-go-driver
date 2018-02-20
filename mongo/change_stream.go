@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"bytes"
 	"context"
 	"errors"
 
@@ -131,25 +132,30 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 }
 
 func (cs *changeStream) Decode(out interface{}) error {
-	err := cs.cursor.Decode(out)
+
+	br, err := cs.DecodeBytes()
 	if err != nil {
 		return err
 	}
 
-	doc, err := bson.NewDocumentEncoder().EncodeDocument(out)
+	return bson.NewDecoder(bytes.NewReader(br)).Decode(out)
+}
+
+func (cs *changeStream) DecodeBytes() (bson.Reader, error) {
+	br, err := cs.cursor.DecodeBytes()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	id, err := doc.Lookup("_id")
+	id, err := br.Lookup("_id")
 	if err != nil {
 		_ = cs.Close(context.Background())
-		return ErrMissingResumeToken
+		return nil, ErrMissingResumeToken
 	}
 
 	cs.resumeToken = id.Value().MutableDocument()
 
-	return nil
+	return br, nil
 }
 
 // TODO GODRIVER-231: Add DecodeBytes method.

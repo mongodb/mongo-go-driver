@@ -70,16 +70,25 @@ func (cursor *listDatabasesCursor) Next(_ context.Context) bool {
 }
 
 func (cursor *listDatabasesCursor) Decode(v interface{}) error {
-	br, err := cursor.databases.Lookup(uint(cursor.current))
+	br, err := cursor.DecodeBytes()
 	if err != nil {
 		return err
 	}
-	if br.Type() != bson.TypeEmbeddedDocument {
-		return errors.New("Non-Document in batch of documents for cursor")
-	}
-	dec := bson.NewDecoder(bytes.NewReader(br.ReaderDocument()))
+
+	dec := bson.NewDecoder(bytes.NewReader(br))
 	err = dec.Decode(v)
 	return err
+}
+
+func (cursor *listDatabasesCursor) DecodeBytes() (bson.Reader, error) {
+	br, err := cursor.databases.Lookup(uint(cursor.current))
+	if err != nil {
+		return nil, err
+	}
+	if br.Type() != bson.TypeEmbeddedDocument {
+		return nil, errors.New("Non-Document in batch of documents for cursor")
+	}
+	return br.ReaderDocument(), nil
 }
 
 // Err returns the error status of the cursor.

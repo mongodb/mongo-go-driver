@@ -86,6 +86,7 @@ func (e *encoder) Encode(v interface{}) error {
 		if err != nil {
 			return err
 		}
+
 		_, err = e.w.Write(b)
 		return err
 	case io.Reader:

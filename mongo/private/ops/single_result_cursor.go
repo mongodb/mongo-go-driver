@@ -33,15 +33,25 @@ func (s *singleResultCursor) Next(context.Context) bool {
 
 // Decode implements the Cursor interface.
 func (s *singleResultCursor) Decode(v interface{}) error {
+	br, err := s.DecodeBytes()
+	if err != nil {
+		return err
+	}
+
+	return bson.NewDecoder(bytes.NewReader(br)).Decode(v)
+}
+
+// DecodeBytes implements the Cursor interface.
+func (s *singleResultCursor) DecodeBytes() (bson.Reader, error) {
 	if s.err != nil {
-		return s.err
+		return nil, s.err
 	}
 
 	if len(s.rdr) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return bson.NewDecoder(bytes.NewReader(s.rdr)).Decode(v)
+	return s.rdr, nil
 }
 
 // Err implements the Cursor interface.
