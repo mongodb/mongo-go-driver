@@ -595,11 +595,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	elem, err := r.ElementAt(0)
-	if err != nil && err != bson.ErrOutOfBounds {
-		return nil, err
-	}
-	if strings.HasPrefix(elem.Key(), "$") {
+	if elem, ok := r.ElementAtOK(0); ok && strings.HasPrefix(elem.Key(), "$") {
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
 	}
 
@@ -645,11 +641,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 			return nil, fmt.Errorf("pipeline document of incorrect length %d", doc.Len())
 		}
 
-		elem, err := doc.ElementAt(0)
-		if err != nil {
-			return nil, err
-		}
-		if elem.Key() == "$out" {
+		if elem, ok := doc.ElementAtOK(0); ok && elem.Key() == "$out" {
 			dollarOut = true
 		}
 	}
@@ -996,12 +988,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		return &DocumentResult{err: err}
 	}
 
-	elem, err := r.ElementAt(0)
-	if err != nil && err != bson.ErrOutOfBounds {
-		return &DocumentResult{err: err}
-	}
-
-	if strings.HasPrefix(elem.Key(), "$") {
+	if elem, ok := r.ElementAtOK(0); ok && strings.HasPrefix(elem.Key(), "$") {
 		return &DocumentResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
 	}
 
@@ -1076,12 +1063,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &DocumentResult{err: err}
 	}
 
-	elem, err := u.ElementAt(0)
-	if err != nil && err != bson.ErrOutOfBounds {
-		return &DocumentResult{err: err}
-	}
-
-	if !strings.HasPrefix(elem.Key(), "$") {
+	if elem, ok := u.ElementAtOK(0); ok && !strings.HasPrefix(elem.Key(), "$") {
 		return &DocumentResult{err: errors.New("update document must contain key beginning with '$")}
 	}
 

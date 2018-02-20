@@ -8,6 +8,7 @@ package cluster_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -104,9 +105,9 @@ func (c *fakeMonitorConn) Write(_ context.Context, msgs ...msg.Request) error {
 		switch typedM := m.(type) {
 		case *msg.Query:
 			doc := typedM.Query.(*bson.Document)
-			elem, err := doc.ElementAt(0)
-			if err != nil {
-				return err
+			elem, ok := doc.ElementAtOK(0)
+			if !ok {
+				return errors.New("empty response received")
 			}
 			switch elem.Key() {
 			case "ismaster":
