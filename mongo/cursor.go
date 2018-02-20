@@ -6,7 +6,11 @@
 
 package mongo
 
-import "github.com/mongodb/mongo-go-driver/mongo/private/ops"
+import (
+	"context"
+
+	"github.com/mongodb/mongo-go-driver/bson"
+)
 
 // Cursor instances iterate a stream of documents. Each document is
 // decoded into the result according to the rules of the bson package.
@@ -20,4 +24,24 @@ import "github.com/mongodb/mongo-go-driver/mongo/private/ops"
 //			...
 //		}
 //		err := cursor.Close(ctx)
-type Cursor ops.Cursor
+type Cursor interface {
+	// NOTE: Whenever ops.Cursor changes, this must be changed to match it.
+
+	// Get the ID of the cursor.
+	ID() int64
+
+	// Get the next result from the cursor.
+	// Returns true if there were no errors and there is a next result.
+	Next(context.Context) bool
+
+	Decode(interface{}) error
+
+	DecodeBytes() (bson.Reader, error)
+
+	// Returns the error status of the cursor
+	Err() error
+
+	// Close the cursor.  Ordinarily this is a no-op as the server closes the cursor when it is exhausted.
+	// Returns the error status of this cursor so that clients do not have to call Err() separately
+	Close(context.Context) error
+}

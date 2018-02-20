@@ -107,6 +107,8 @@ func NewCursor(cursorResult bson.Reader, batchSize int32, server Server) (Cursor
 //		}
 //		err := cursor.Close(ctx)
 type Cursor interface {
+	// NOTE: Whenever this changes, mongo.Cursor must be changed to match it.
+
 	// Get the ID of the cursor.
 	ID() int64
 
