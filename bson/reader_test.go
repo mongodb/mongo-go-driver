@@ -39,9 +39,9 @@ func BenchmarkReaderValidate(b *testing.B) {
 func TestReader(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		t.Run("TooShort", func(t *testing.T) {
-			want := ErrTooSmall
+			want := NewErrTooSmall()
 			_, got := Reader{'\x00', '\x00'}.Validate()
-			if got != want {
+			if !want.Equals(got) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})
@@ -75,12 +75,12 @@ func TestReader(t *testing.T) {
 			}
 		})
 		t.Run("validateValue-error", func(t *testing.T) {
-			want := ErrTooSmall
+			want := NewErrTooSmall()
 			r := make(Reader, 11)
 			binary.LittleEndian.PutUint32(r[0:4], 11)
 			r[4], r[5], r[6], r[7], r[8], r[9], r[10] = '\x01', 'f', 'o', 'o', '\x00', '\x01', '\x02'
 			_, got := r.Validate()
-			if got != want {
+			if !want.Equals(got) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})
@@ -184,7 +184,7 @@ func TestReader(t *testing.T) {
 					'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
 					'\x0A', '2', '\x00', '\x00', '\x00',
 				},
-				nil, ErrTooSmall, true,
+				nil, NewErrTooSmall(), true,
 			},
 			{"invalid-array",
 				Reader{
@@ -194,16 +194,14 @@ func TestReader(t *testing.T) {
 					'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
 					'\x0A', '2', '\x00', '\x00', '\x00',
 				},
-				nil, ErrTooSmall, true,
+				nil, NewErrTooSmall(), true,
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				got, err := tc.r.Keys(tc.recursive)
-				if err != tc.err {
-					t.Errorf("Returned error does not match. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 				if !reflect.DeepEqual(got, tc.want) {
 					t.Errorf("Returned keys do not match expected keys. got %v; want %v", got, tc.want)
 				}
@@ -228,8 +226,8 @@ func TestReader(t *testing.T) {
 				'\x00',
 			}
 			_, err := rdr.Lookup("x", "y")
-			if err != ErrTooSmall {
-				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, ErrTooSmall)
+			if !NewErrTooSmall().Equals(err) {
+				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, NewErrTooSmall())
 			}
 		})
 		t.Run("corrupted-array", func(t *testing.T) {
@@ -242,8 +240,8 @@ func TestReader(t *testing.T) {
 				'\x00',
 			}
 			_, err := rdr.Lookup("x", "y")
-			if err != ErrTooSmall {
-				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, ErrTooSmall)
+			if !NewErrTooSmall().Equals(err) {
+				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, NewErrTooSmall())
 			}
 		})
 		t.Run("invalid-traversal", func(t *testing.T) {
@@ -358,14 +356,14 @@ func TestReader(t *testing.T) {
 			{
 				"nil reader",
 				nil,
-				ErrTooSmall,
+				NewErrTooSmall(),
 				nil,
 				nil,
 			},
 			{
 				"empty reader",
 				[]byte{},
-				ErrTooSmall,
+				NewErrTooSmall(),
 				nil,
 				nil,
 			},
@@ -437,7 +435,7 @@ func TestReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				itr, err := NewReaderIterator(tc.rdr)
-				require.Equal(t, err, tc.initErr)
+				requireErrEqual(t, err, tc.initErr)
 
 				if err != nil {
 					return

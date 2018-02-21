@@ -9,6 +9,12 @@
 			"revisionTime": "2016-10-29T20:57:26Z"
 		},
 		{
+			"checksumSHA1": "luu+ud4XYZhlCoNnSAwCJlbh0Bg=",
+			"path": "github.com/go-stack/stack",
+			"revision": "259ab82a6cad3992b4e21ff5cac294ccb06474bc",
+			"revisionTime": "2017-11-12T03:14:02Z"
+		},
+		{
 			"checksumSHA1": "NBTjO+I9dQxJ3Hx61utfenJ4ctk=",
 			"path": "github.com/google/go-cmp/cmp",
 			"revision": "3af367b6b30c263d47e8895973edcca9a49cf029",

@@ -19,7 +19,7 @@ type ReaderIterator struct {
 func NewReaderIterator(r Reader) (*ReaderIterator, error) {
 	itr := new(ReaderIterator)
 	if len(r) < 5 {
-		return nil, ErrTooSmall
+		return nil, NewErrTooSmall()
 	}
 	givenLength := readi32(r[0:4])
 	if len(r) < int(givenLength) {

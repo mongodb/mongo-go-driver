@@ -7,21 +7,67 @@
 package bson
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"strconv"
 
+	"github.com/go-stack/stack"
 	"github.com/mongodb/mongo-go-driver/bson/elements"
 )
 
 const validateMaxDepthDefault = 2048
 
+// ErrTooSmall indicates that a slice provided to write into is not large enough to fit the data.
+type ErrTooSmall struct {
+	Stack stack.CallStack
+}
+
+// NewErrTooSmall creates a new ErrTooSmall with the given message and the current stack.
+func NewErrTooSmall() ErrTooSmall {
+	return ErrTooSmall{Stack: stack.Trace().TrimRuntime()}
+}
+
+// Error implements the error interface.
+func (e ErrTooSmall) Error() string {
+	return "too small"
+}
+
+// ErrorStack returns a string representing the stack at the point where the error occurred.
+func (e ErrTooSmall) ErrorStack() string {
+	s := bytes.NewBufferString("too small: [")
+
+	for i, call := range e.Stack {
+		if i != 0 {
+			s.WriteString(", ")
+		}
+
+		// go vet doesn't like %k even though it's part of stack's API, so we move the format
+		// string so it doesn't complain. (We also can't make it a constant, or go vet still
+		// complains.)
+		callFormat := "%k.%n %v"
+
+		s.WriteString(fmt.Sprintf(callFormat, call, call, call))
+	}
+
+	s.WriteRune(']')
+
+	return s.String()
+}
+
+// Equals checks that err2
+func (e ErrTooSmall) Equals(err2 error) bool {
+	switch err2.(type) {
+	case ErrTooSmall:
+		return true
+	default:
+		return false
+	}
+}
+
 // ErrUninitializedElement is returned whenever any method is invoked on an uninitialized Element.
 var ErrUninitializedElement = errors.New("bson/ast/compact: Method call on uninitialized Element")
-
-// ErrTooSmall indicates that a slice provided to write into is not large enough to fit the data.
-var ErrTooSmall = errors.New("too small")
 
 // ErrInvalidWriter indicates that a type that can't be written into was passed to a writer method.
 var ErrInvalidWriter = errors.New("bson: invalid writer provided")
@@ -162,7 +208,7 @@ func (e *Element) writeElement(key bool, start uint, writer interface{}) (int64,
 	case []byte:
 		n, err := e.writeByteSlice(key, start, size, w)
 		if err != nil {
-			return 0, ErrTooSmall
+			return 0, NewErrTooSmall()
 		}
 		total += int64(n)
 	default:
@@ -186,7 +232,7 @@ func (e *Element) writeByteSlice(key bool, start uint, size uint32, b []byte) (i
 	}
 
 	if uint(len(b)) < needed {
-		return 0, ErrTooSmall
+		return 0, NewErrTooSmall()
 	}
 
 	var n int

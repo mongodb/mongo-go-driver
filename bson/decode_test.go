@@ -15,6 +15,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func requireErrEqual(t *testing.T, err1 error, err2 error) {
+	switch e := err1.(type) {
+	case ErrTooSmall:
+		require.True(t, e.Equals(err2))
+
+		return
+	}
+
+	switch e := err2.(type) {
+	case ErrTooSmall:
+		require.True(t, e.Equals(e))
+
+		return
+	}
+
+	require.Equal(t, err1, err2)
+}
+
 func TestDecoder(t *testing.T) {
 	t.Run("byte slice", func(t *testing.T) {
 		testCases := []struct {
@@ -29,14 +47,14 @@ func TestDecoder(t *testing.T) {
 				bytes.NewBuffer([]byte{0x5, 0x0, 0x0, 0x0, 0x0}),
 				nil,
 				nil,
-				ErrTooSmall,
+				NewErrTooSmall(),
 			},
 			{
 				"empty slice",
 				bytes.NewBuffer([]byte{0x5, 0x0, 0x0, 0x0}),
 				nil,
 				[]byte{},
-				ErrTooSmall,
+				NewErrTooSmall(),
 			},
 			{
 				"too small",
@@ -45,7 +63,7 @@ func TestDecoder(t *testing.T) {
 				}),
 				nil,
 				make([]byte, 0x4),
-				ErrTooSmall,
+				NewErrTooSmall(),
 			},
 			{
 				"empty doc",
@@ -110,7 +128,7 @@ func TestDecoder(t *testing.T) {
 				d := NewDecoder(tc.reader)
 
 				err := d.Decode(tc.actual)
-				require.Equal(t, tc.err, err)
+				requireErrEqual(t, tc.err, err)
 				if err != nil {
 					return
 				}
@@ -133,14 +151,14 @@ func TestDecoder(t *testing.T) {
 				bytes.NewBuffer([]byte{0x5, 0x0, 0x0, 0x0, 0x0}),
 				nil,
 				nil,
-				ErrTooSmall,
+				NewErrTooSmall(),
 			},
 			{
 				"empty slice",
 				bytes.NewBuffer([]byte{0x5, 0x0, 0x0, 0x0}),
 				nil,
 				[]byte{},
-				ErrTooSmall,
+				NewErrTooSmall(),
 			},
 			{
 				"too small",
@@ -149,7 +167,7 @@ func TestDecoder(t *testing.T) {
 				}),
 				nil,
 				make([]byte, 0x4),
-				ErrTooSmall,
+				NewErrTooSmall(),
 			},
 			{
 				"empty doc",
@@ -214,7 +232,7 @@ func TestDecoder(t *testing.T) {
 				d := NewDecoder(tc.reader)
 
 				err := d.Decode(tc.actual)
-				require.Equal(t, tc.err, err)
+				requireErrEqual(t, tc.err, err)
 				if err != nil {
 					return
 				}
@@ -297,7 +315,7 @@ func TestDecoder(t *testing.T) {
 				d := NewDecoder(tc.reader)
 
 				err := d.Decode(tc.actual)
-				require.Equal(t, tc.err, err)
+				requireErrEqual(t, tc.err, err)
 				if err != nil {
 					return
 				}
@@ -410,7 +428,7 @@ func TestDecoder(t *testing.T) {
 				d := NewDecoder(tc.reader)
 
 				err := d.Decode(tc.actual)
-				require.Equal(t, tc.err, err)
+				requireErrEqual(t, tc.err, err)
 				if err != nil {
 					return
 				}
@@ -525,7 +543,7 @@ func TestDecoder(t *testing.T) {
 				d := NewDecoder(tc.reader)
 
 				err := d.Decode(tc.actual)
-				require.Equal(t, tc.err, err)
+				requireErrEqual(t, tc.err, err)
 				if err != nil {
 					return
 				}
@@ -591,7 +609,7 @@ func TestDecoder(t *testing.T) {
 				d := NewDecoder(tc.reader)
 
 				err := d.Decode(tc.actual)
-				require.Equal(t, tc.err, err)
+				requireErrEqual(t, tc.err, err)
 				if err != nil {
 					return
 				}
@@ -770,7 +788,7 @@ func TestDecoder(t *testing.T) {
 				d := NewDecoder(tc.reader)
 
 				err := d.Decode(tc.actual)
-				require.Equal(t, tc.err, err)
+				requireErrEqual(t, tc.err, err)
 				if err != nil {
 					return
 				}
@@ -970,7 +988,7 @@ func TestDecoder(t *testing.T) {
 					d := NewDecoder(tc.reader)
 
 					err := d.Decode(tc.actual)
-					require.Equal(t, tc.err, err)
+					requireErrEqual(t, tc.err, err)
 					if err != nil {
 						return
 					}
@@ -1195,7 +1213,7 @@ func TestDecoder(t *testing.T) {
 					d := NewDecoder(tc.reader)
 
 					err := d.Decode(tc.actual)
-					require.Equal(t, tc.err, err)
+					requireErrEqual(t, tc.err, err)
 					if err != nil {
 						return
 					}
@@ -1498,7 +1516,7 @@ func TestDecoder(t *testing.T) {
 					d := NewDecoder(tc.reader)
 
 					err := d.Decode(tc.actual)
-					require.Equal(t, tc.err, err)
+					requireErrEqual(t, tc.err, err)
 					if err != nil {
 						return
 					}
@@ -1767,7 +1785,7 @@ func TestDecoder(t *testing.T) {
 				d := NewDecoder(tc.reader)
 
 				err := d.Decode(tc.actual)
-				require.Equal(t, tc.err, err)
+				requireErrEqual(t, tc.err, err)
 				if err != nil {
 					return
 				}
