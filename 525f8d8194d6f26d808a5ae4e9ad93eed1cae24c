@@ -140,6 +140,30 @@
       "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d8adbf54_ac771806",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-21T17:39:01Z",
+      "side": 1,
+      "message": "Change the documentation in both places and add a TODO to the implementation of the cursors that currently follow this to not do so when we reimplement them. I\u0027ve made a ticket to do the actual work: https://jira.mongodb.org/browse/GODRIVER-256.",
+      "parentUuid": "9a070e1d_6f6f6899",
+      "range": {
+        "startLine": 45,
+        "startChar": 4,
+        "endLine": 45,
+        "endChar": 96
+      },
+      "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
