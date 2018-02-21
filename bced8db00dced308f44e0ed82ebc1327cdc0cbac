@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ce62243a_52b14e5b",
+        "filename": "bson/objectid/objectid_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-21T18:10:03Z",
+      "side": 1,
+      "message": "Did you leave this here by accident?",
+      "range": {
+        "startLine": 25,
+        "startChar": 0,
+        "endLine": 26,
+        "endChar": 26
+      },
+      "revId": "bced8db00dced308f44e0ed82ebc1327cdc0cbac",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
