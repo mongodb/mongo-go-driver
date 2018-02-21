@@ -18,12 +18,12 @@
 // the document can be created in a single pass without the need to do any
 // lookups, the Builder type is might be more appropriate.
 //
-// The Builder type is used to create a BSON document. The type only allows the
-// iterative building of a document, so there is no way to verify the contents
-// outside of writing the document. If you have a Builder and need to
-// conditionally add a field, you can write the document to a byte slice and use
-// the Reader type to lookup the desired document, but in this case you should
-// probably use a Document instead.
+// The Builder type (in the "bson/builder" package) is used to create a BSON
+// document. The type only allows the iterative building of a document, so there
+// is no way to verify the contents outside of writing the document. If you have
+// a Builder and need to conditionally add a field, you can write the document
+// to a byte slice and use the Reader type to lookup the desired document, but
+// in this case you should probably use a Document instead.
 //
 // The Element type represents a BSON element and the Value type represents an
 // individual value for a BSON element.
