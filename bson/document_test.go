@@ -21,9 +21,9 @@ import (
 func TestDocument(t *testing.T) {
 	t.Run("NewDocument", func(t *testing.T) {
 		t.Run("TooShort", func(t *testing.T) {
-			want := ErrTooSmall
+			want := NewErrTooSmall()
 			_, got := ReadDocument([]byte{'\x00', '\x00'})
-			if got != want {
+			if !want.Equals(got) {
 				t.Errorf("Did not get expected error. got %#v; want %#v", got, want)
 			}
 		})
@@ -57,12 +57,12 @@ func TestDocument(t *testing.T) {
 			}
 		})
 		t.Run("validateValue-error", func(t *testing.T) {
-			want := ErrTooSmall
+			want := NewErrTooSmall()
 			b := make([]byte, 11)
 			binary.LittleEndian.PutUint32(b[0:4], 11)
 			b[4], b[5], b[6], b[7], b[8], b[9], b[10] = '\x01', 'f', 'o', 'o', '\x00', '\x01', '\x02'
 			_, got := ReadDocument(b)
-			if got != want {
+			if !want.Equals(got) {
 				t.Errorf("Did not get expected error. got %#v; want %#v", got, want)
 			}
 		})
@@ -735,16 +735,16 @@ func TestDocument(t *testing.T) {
 			d.elems[0].value.data = d.elems[0].value.data[:3]
 			b := make([]byte, 15)
 			_, err := d.WriteDocument(0, b)
-			if err != ErrTooSmall {
-				t.Errorf("Expected error not returned. got %s; want %s", err, ErrTooSmall)
+			if !NewErrTooSmall().Equals(err) {
+				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
 			}
 		})
 		t.Run("[]byte-too-small", func(t *testing.T) {
 			d := NewDocument(EC.Double("", 3.14159))
 			b := make([]byte, 5)
 			_, err := d.WriteDocument(0, b)
-			if err != ErrTooSmall {
-				t.Errorf("Expected error not returned. got %s; want %s", err, ErrTooSmall)
+			if !NewErrTooSmall().Equals(err) {
+				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
 			}
 		})
 		t.Run("invalid-writer", func(t *testing.T) {
@@ -752,7 +752,7 @@ func TestDocument(t *testing.T) {
 			var buf bytes.Buffer
 			_, err := d.WriteDocument(0, buf)
 			if err != ErrInvalidWriter {
-				t.Errorf("Expected error not returned. got %s; want %s", err, ErrTooSmall)
+				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
 			}
 		})
 
@@ -840,8 +840,8 @@ func TestDocument(t *testing.T) {
 				t.Errorf("Unexpected error while writing document to buffer: %s", err)
 			}
 			_, err = NewDocument().ReadFrom(&buf)
-			if err != ErrTooSmall {
-				t.Errorf("Expected error not returned. got %s; want %s", err, ErrTooSmall)
+			if !NewErrTooSmall().Equals(err) {
+				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
 			}
 		})
 		testCases := []struct {
@@ -902,7 +902,7 @@ func testDocumentKeys(t *testing.T) {
 		// 		'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
 		// 		'\x0A', '2', '\x00', '\x00', '\x00',
 		// 	},
-		// 	nil, ErrTooSmall, true,
+		// 	nil, NewErrTooSmall(), true,
 		// },
 		// {"invalid-array",
 		// 	Reader{
@@ -912,7 +912,7 @@ func testDocumentKeys(t *testing.T) {
 		// 		'\x0B', '\x00', '\x00', '\x00', '\x01', '1', '\x00',
 		// 		'\x0A', '2', '\x00', '\x00', '\x00',
 		// 	},
-		// 	nil, ErrTooSmall, true,
+		// 	nil, NewErrTooSmall(), true,
 		// },
 	}
 
