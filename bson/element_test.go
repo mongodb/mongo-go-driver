@@ -35,9 +35,9 @@ func TestElement(t *testing.T) {
 		})
 		t.Run("Validate error", func(t *testing.T) {
 			rdr := Element{&Value{start: 0, offset: 3, data: []byte{0x01, 'x', 0x00, 0x00}}}
-			want := ErrTooSmall
+			want := NewErrTooSmall()
 			_, got := rdr.Validate()
-			if got != want {
+			if !want.Equals(got) {
 				t.Errorf("Did not receive expected error. got %s; want %s", got, want)
 			}
 		})
@@ -126,12 +126,12 @@ func TestElement(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					want := ErrTooSmall
+					want := NewErrTooSmall()
 					size, got := tc.elem.value.valueSize()
 					if size != tc.size {
 						t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 					}
-					if got != want {
+					if !want.Equals(got) {
 						t.Errorf("Did not return correct error. got %v; want %v", got, want)
 					}
 				})
@@ -1714,7 +1714,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x01, 0x00, 0x00, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -1730,9 +1730,7 @@ func testValidateValue(t *testing.T) {
 			if size != tc.size {
 				t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 			}
-			if err != tc.err {
-				t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-			}
+			requireErrEqual(t, tc.err, err)
 		}
 	})
 	t.Run("String", func(t *testing.T) {
@@ -1748,14 +1746,14 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x02, 0x00, 0x00, 0x00},
 				}},
-				true, 0, ErrTooSmall,
+				true, 0, NewErrTooSmall(),
 			},
 			{"Too Small >4",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x02, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				}},
-				true, 4, ErrTooSmall,
+				true, 4, NewErrTooSmall(),
 			},
 			{"Invalid String Value",
 				&Element{&Value{
@@ -1779,9 +1777,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -1796,12 +1792,12 @@ func testValidateValue(t *testing.T) {
 			{"Document/too small <4",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x03, 0x00, 0x00, 0x00},
-				}}, true, 0, ErrTooSmall,
+				}}, true, 0, NewErrTooSmall(),
 			},
 			{"Document/too small >4",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x03, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-				}}, true, 4, ErrTooSmall,
+				}}, true, 4, NewErrTooSmall(),
 			},
 			{"Document/invalid document <5",
 				&Element{&Value{
@@ -1826,12 +1822,12 @@ func testValidateValue(t *testing.T) {
 			{"Array/too small <4",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x04, 0x00, 0x00, 0x00},
-				}}, true, 0, ErrTooSmall,
+				}}, true, 0, NewErrTooSmall(),
 			},
 			{"Array/too small >4",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x04, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-				}}, true, 4, ErrTooSmall,
+				}}, true, 4, NewErrTooSmall(),
 			},
 			{"Array/invalid document <5",
 				&Element{&Value{
@@ -1867,9 +1863,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 
@@ -1885,7 +1879,7 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x05, 0x00, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Invalid binary Subtype",
 				&Element{&Value{
@@ -1897,7 +1891,7 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x05, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00},
 				}},
-				5, ErrTooSmall,
+				5, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -1913,9 +1907,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -1957,7 +1949,7 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x07, 0x00, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -1976,9 +1968,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -1993,7 +1983,7 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x08, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Invalid binary Type",
 				&Element{&Value{
@@ -2021,9 +2011,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2038,7 +2026,7 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x09, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2057,9 +2045,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2140,13 +2126,13 @@ func testValidateValue(t *testing.T) {
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x0C, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Length Too Large",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x0C, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00},
 				}},
-				4, ErrTooSmall,
+				4, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2167,9 +2153,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2186,14 +2170,14 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x0D, 0x00, 0x00, 0x00},
 				}},
-				true, 0, ErrTooSmall,
+				true, 0, NewErrTooSmall(),
 			},
 			{"Too Small >4",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x0D, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				}},
-				true, 4, ErrTooSmall,
+				true, 4, NewErrTooSmall(),
 			},
 			{"Invalid String Value",
 				&Element{&Value{
@@ -2217,9 +2201,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2236,14 +2218,14 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x0E, 0x00, 0x00, 0x00},
 				}},
-				true, 0, ErrTooSmall,
+				true, 0, NewErrTooSmall(),
 			},
 			{"Too Small >4",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x0E, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				}},
-				true, 4, ErrTooSmall,
+				true, 4, NewErrTooSmall(),
 			},
 			{"Invalid String Value",
 				&Element{&Value{
@@ -2267,9 +2249,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2286,14 +2266,14 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x0F, 0x00, 0x00, 0x00},
 				}},
-				true, 0, ErrTooSmall,
+				true, 0, NewErrTooSmall(),
 			},
 			{"Too Small >4",
 				&Element{&Value{
 					start: 0, offset: 2,
 					data: []byte{0x0F, 0x00, 0xFF, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				}},
-				true, 4, ErrTooSmall,
+				true, 4, NewErrTooSmall(),
 			},
 			{"Shouldn't Deep Validate",
 				&Element{&Value{
@@ -2353,9 +2333,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2371,7 +2349,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x10, 0x00, 0x00, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2388,9 +2366,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2406,7 +2382,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x11, 0x00, 0x00, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2423,9 +2399,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2441,7 +2415,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x12, 0x00, 0x00, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2458,9 +2432,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})
@@ -2476,7 +2448,7 @@ func testValidateValue(t *testing.T) {
 					start: 0, offset: 2,
 					data: []byte{0x13, 0x00, 0x00, 0x00},
 				}},
-				0, ErrTooSmall,
+				0, NewErrTooSmall(),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2496,9 +2468,7 @@ func testValidateValue(t *testing.T) {
 				if size != tc.size {
 					t.Errorf("Did not return correct number of bytes read. got %d; want %d", size, tc.size)
 				}
-				if err != tc.err {
-					t.Errorf("Did not return correct error. got %v; want %v", err, tc.err)
-				}
+				requireErrEqual(t, tc.err, err)
 			})
 		}
 	})

@@ -136,7 +136,7 @@ func (d *Decoder) Decode(v interface{}) error {
 		}
 
 		if len(t) < int(length) {
-			return ErrTooSmall
+			return NewErrTooSmall()
 		}
 
 		_, err = io.ReadFull(d.pReader, t)
@@ -153,7 +153,7 @@ func (d *Decoder) Decode(v interface{}) error {
 		}
 
 		if len(t) < int(length) {
-			return ErrTooSmall
+			return NewErrTooSmall()
 		}
 
 		_, err = io.ReadAtLeast(d.pReader, t, int(length))
@@ -674,7 +674,7 @@ func (d *Decoder) decodeIntoElementSlice(sliceVal reflect.Value) error {
 	i := 0
 	for itr.Next() {
 		if i >= sliceLength {
-			return ErrTooSmall
+			return NewErrTooSmall()
 		}
 
 		elem := reflect.ValueOf(itr.Element().Clone())
