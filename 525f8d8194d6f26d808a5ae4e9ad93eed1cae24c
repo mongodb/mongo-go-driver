@@ -212,6 +212,30 @@
       "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "939d0abc_cd4defb2",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-21T18:10:00Z",
+      "side": 1,
+      "message": "As of patch three, the comment only says \"Close the cursor.\"",
+      "parentUuid": "842eb633_092b2c2d",
+      "range": {
+        "startLine": 45,
+        "startChar": 4,
+        "endLine": 45,
+        "endChar": 96
+      },
+      "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
