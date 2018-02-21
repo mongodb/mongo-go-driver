@@ -39,6 +39,13 @@ type Value struct {
 	d *Document
 }
 
+// Offset returns the offset to the beginning of the value in the underlying data. When called on
+// a value obtained from a Reader, it can be used to find the value manually within the Reader's
+// bytes.
+func (v *Value) Offset() uint32 {
+	return v.offset
+}
+
 // Interface returns the Go value of this Value as an empty interface.
 func (v *Value) Interface() interface{} {
 	if v == nil {
