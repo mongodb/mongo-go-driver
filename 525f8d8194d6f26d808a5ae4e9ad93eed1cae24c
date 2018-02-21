@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "59b02660_9aca6004",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-21T17:16:41Z",
+      "side": 1,
+      "message": "While we\u0027re updating the documentation for the Cursor interface, let\u0027s update this so that it matches the current way in which cursors are used.\n\nvar cur Cursor\nctx :\u003d context.Background()\ndefer cur.Close(ctx)\nfor cur.Next(ctx) {\n   elem :\u003d bson.NewDocument()\n   err :\u003d cur.Decode(elem)\n   if err !\u003d nil { log.Fatal(err) }\n   // do something with elem....\n}\nif err :\u003d cur.Err(); err !\u003d nil {\n    log.Fatal(err)\n}",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 26,
+        "endChar": 28
+      },
+      "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "66e321f5_0cac5038",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-21T17:16:41Z",
+      "side": 1,
+      "message": "I know that some cursors will be cursors on the server, but this interface does not represent a server cursor, so we probably shouldn\u0027t mention server specific features in its documentation.",
+      "range": {
+        "startLine": 44,
+        "startChar": 23,
+        "endLine": 44,
+        "endChar": 103
+      },
+      "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d01d1031_84f2c0ce",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-21T17:16:41Z",
+      "side": 1,
+      "message": "This should return the result of closing the cursor and not other errors to avoid confusion, e.g. users should always call cursor.Err after they\u0027ve exhausted cursor.Next.",
+      "range": {
+        "startLine": 45,
+        "startChar": 4,
+        "endLine": 45,
+        "endChar": 96
+      },
+      "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
