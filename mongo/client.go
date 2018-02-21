@@ -47,7 +47,7 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 		return nil, err
 	}
 
-	// TODO GODRIVER-92: Allow custom localThreshold
+	// TODO(GODRIVER-92): Allow custom localThreshold
 	client := &Client{
 		cluster:        clst,
 		connString:     cs,

@@ -19,7 +19,7 @@ func isServerError(err error) bool {
 	return ok
 }
 
-// TODO GODRIVER-251: Replace manual check with functionality of improved testing framework.
+// TODO(GODRIVER-251): Replace manual check with functionality of improved testing framework.
 func skipIfBelow36(t *testing.T) {
 	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
 	require.NoError(t, err)

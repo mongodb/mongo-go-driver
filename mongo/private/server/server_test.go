@@ -146,7 +146,7 @@ func TestServer_Connection_should_clear_pool_when_monitor_fails(t *testing.T) {
 
 	require.NoError(t, fake.SetKind(model.Unknown))
 
-	// TODO GODRIVER-19: Use command monitoring to wait for changes to apply instead of sleeping.
+	// TODO(GODRIVER-19): Use command monitoring to wait for changes to apply instead of sleeping.
 	time.Sleep(3 * time.Second)
 
 	_, err = s.Connection(context.Background())

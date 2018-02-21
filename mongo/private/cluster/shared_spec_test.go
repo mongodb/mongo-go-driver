@@ -49,7 +49,7 @@ type lastWriteDate struct {
 	LastWriteDate lastWriteDateInner `json:"lastWriteDate"`
 }
 
-// TODO GODRIVER-33: Use proper extended JSON parsing to eliminate the need for this struct.
+// TODO(GODRIVER-33): Use proper extended JSON parsing to eliminate the need for this struct.
 type lastWriteDateInner struct {
 	Value string `json:"$numberLong"`
 }

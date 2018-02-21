@@ -184,7 +184,7 @@ func (c *cursorImpl) Err() error {
 	return c.err
 }
 
-// TODO GODRIVER-256: Only return the underlying Close error.
+// TODO(GODRIVER-256): Only return the underlying Close error.
 func (c *cursorImpl) Close(ctx context.Context) error {
 	if c.cursorID == 0 {
 		return c.err
