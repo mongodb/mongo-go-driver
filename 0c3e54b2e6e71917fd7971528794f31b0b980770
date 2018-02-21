@@ -46,6 +46,30 @@
       "revId": "0c3e54b2e6e71917fd7971528794f31b0b980770",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cf711966_91a98048",
+        "filename": "mongo/private/ops/cursor.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-21T18:10:59Z",
+      "side": 1,
+      "message": "Yup that\u0027s fine.",
+      "parentUuid": "8d4c8e15_9fd8b9b6",
+      "range": {
+        "startLine": 187,
+        "startChar": 3,
+        "endLine": 187,
+        "endChar": 20
+      },
+      "revId": "0c3e54b2e6e71917fd7971528794f31b0b980770",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
