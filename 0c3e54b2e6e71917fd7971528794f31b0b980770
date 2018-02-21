@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0c34eb76_0387461a",
+        "filename": "mongo/private/ops/cursor.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-21T18:05:02Z",
+      "side": 1,
+      "message": "Just a small thing, following what the go/doc package can parse this should be formatted as:\n\n// TODO(GODRIVER-256): ...\n\nThis will ensure that if we decide to find all the TODOs in the codebase that we can use the builtin tools to do so. For reference: https://godoc.org/go/doc#Note.",
+      "range": {
+        "startLine": 187,
+        "startChar": 3,
+        "endLine": 187,
+        "endChar": 20
+      },
+      "revId": "0c3e54b2e6e71917fd7971528794f31b0b980770",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
