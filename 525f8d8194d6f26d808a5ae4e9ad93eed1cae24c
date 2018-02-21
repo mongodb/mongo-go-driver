@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "62346ed9_01d9c90c",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-21T17:27:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "59b02660_9aca6004",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 26,
+        "endChar": 28
+      },
+      "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "66e321f5_0cac5038",
         "filename": "mongo/cursor.go",
         "patchSetId": 1
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "71a3bf1d_2bc6fe0f",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-21T17:27:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "66e321f5_0cac5038",
+      "range": {
+        "startLine": 44,
+        "startChar": 23,
+        "endLine": 44,
+        "endChar": 103
+      },
+      "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d01d1031_84f2c0ce",
         "filename": "mongo/cursor.go",
         "patchSetId": 1
@@ -59,6 +107,30 @@
       "writtenOn": "2018-02-21T17:16:41Z",
       "side": 1,
       "message": "This should return the result of closing the cursor and not other errors to avoid confusion, e.g. users should always call cursor.Err after they\u0027ve exhausted cursor.Next.",
+      "range": {
+        "startLine": 45,
+        "startChar": 4,
+        "endLine": 45,
+        "endChar": 96
+      },
+      "revId": "525f8d8194d6f26d808a5ae4e9ad93eed1cae24c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9a070e1d_6f6f6899",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-21T17:27:03Z",
+      "side": 1,
+      "message": "This is copied from ops.Cursor\u0027s documentation. Are you suggesting that I change the documentation here, change the documentation both here and in ops, or actually change the implementation in the ops package?",
+      "parentUuid": "d01d1031_84f2c0ce",
       "range": {
         "startLine": 45,
         "startChar": 4,
