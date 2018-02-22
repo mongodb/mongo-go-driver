@@ -46,6 +46,30 @@
       "revId": "f7516cd56d5b17771251c8e64c760bed7b55279e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "418ba8a5_b9ad674d",
+        "filename": "bson/element.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T19:59:07Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "fdc9f400_af1f7ca8",
+      "range": {
+        "startLine": 59,
+        "startChar": 3,
+        "endLine": 59,
+        "endChar": 26
+      },
+      "revId": "f7516cd56d5b17771251c8e64c760bed7b55279e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
