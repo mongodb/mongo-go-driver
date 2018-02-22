@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "dea1ca37_4ce3f750",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T17:12:10Z",
+      "side": 1,
+      "message": "Any particular reason why we\u0027re making a slice here instead of just using the zero value?\n\nvar out bytes.Buffer\nerr :\u003d newEncoder(\u0026out).Encode(value)",
+      "range": {
+        "startLine": 15,
+        "startChar": 24,
+        "endLine": 15,
+        "endChar": 42
+      },
+      "revId": "2b9a818c5f1532c31ce4410f60bdf8a1742729e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "451dd06a_97b8ca06",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T17:12:10Z",
+      "side": 1,
+      "message": "Can we just use ReadDocument() here?",
+      "range": {
+        "startLine": 35,
+        "startChar": 8,
+        "endLine": 35,
+        "endChar": 53
+      },
+      "revId": "2b9a818c5f1532c31ce4410f60bdf8a1742729e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
