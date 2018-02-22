@@ -215,6 +215,30 @@
     },
     {
       "key": {
+        "uuid": "f1eda602_c2158de0",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:52:49Z",
+      "side": 1,
+      "message": "If you always wanted to use a specific TLS configuration across the board, doing so with the dialer directly instead of passing WithTLSConfig or WithDialer to the pool and down the chain is convenient.",
+      "parentUuid": "94749456_971a060f",
+      "range": {
+        "startLine": 37,
+        "startChar": 76,
+        "endLine": 38,
+        "endChar": 53
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d157aa1f_2334b0e0",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
@@ -274,6 +298,30 @@
       "side": 1,
       "message": "Okay, but what does it mean to \"replace the Opener type\"? Are we replacing a thing that is of type Opener, or are we replacing the type itself? It\u0027s not clear to me exactly what this comment is saying.",
       "parentUuid": "e090dd07_10d6c69b",
+      "range": {
+        "startLine": 43,
+        "startChar": 14,
+        "endLine": 43,
+        "endChar": 38
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ab62335e_1ef4133d",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:52:49Z",
+      "side": 1,
+      "message": "It replaces the type itself.",
+      "parentUuid": "fe1698be_94a81168",
       "range": {
         "startLine": 43,
         "startChar": 14,
@@ -416,6 +464,30 @@
       "side": 1,
       "message": "I understand that, but the comments aren\u0027t helping me understand how these are actually used.  Are they merely functionality that we\u0027re exposing for other applications to use, or are they used somewhere internally? I couldn\u0027t find any references to them anywhere else, hence my confusion.",
       "parentUuid": "9bb69b66_e5642c8a",
+      "range": {
+        "startLine": 66,
+        "startChar": 0,
+        "endLine": 84,
+        "endChar": 0
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6991e7f3_6f453f11",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:52:49Z",
+      "side": 1,
+      "message": "They are meant for others to use, similar to an http.Server and http.Handler.",
+      "parentUuid": "019a907c_0781da91",
       "range": {
         "startLine": 66,
         "startChar": 0,
@@ -635,6 +707,24 @@
       "side": 1,
       "message": "I was under the impression that we were explicitly not supporting below 2.6; are we planning to reduce this for the stuff under private and only enforce that above?",
       "parentUuid": "c054449e_d78c1e2d",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "952ed23f_e0fe9e0c",
+        "filename": "mongo/private/roots/wiremessage/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:52:49Z",
+      "side": 1,
+      "message": "Yes, the (public) driver will only support 3.0 and above, but the network library should speak the entire network protocol so it can replace things like mongonet and be used in tools like mongoreplay. We don\u0027t particularly know in what environment those might be used, e.g. some other drivers might still use OP_INSERT, OP_DELETE, and OP_UPDATE for unacknowledged operations.",
+      "parentUuid": "b8454ba8_b2dd22ed",
       "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
