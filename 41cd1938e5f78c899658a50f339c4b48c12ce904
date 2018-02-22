@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0f6c6bbb_a8108859",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T22:34:21Z",
+      "side": 1,
+      "message": "Should we actually panic here? Since we return a *Document, could we just create a new document and return it?",
+      "range": {
+        "startLine": 151,
+        "startChar": 2,
+        "endLine": 151,
+        "endChar": 23
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "71ad5dc1_1657cfdc",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 369,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T22:34:21Z",
+      "side": 1,
+      "message": "This shouldn\u0027t panic, we should figure something else out instead, perhaps just returning false?",
+      "range": {
+        "startLine": 369,
+        "startChar": 2,
+        "endLine": 369,
+        "endChar": 23
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "913a179c_2c401de3",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T22:34:21Z",
+      "side": 1,
+      "message": "Is this called from anywhere besides Concat? If it isn\u0027t then we are guaranteed to not have a nil Document here.",
+      "range": {
+        "startLine": 435,
+        "startChar": 0,
+        "endLine": 439,
+        "endChar": 2
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7534e70c_7b54de33",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T22:34:21Z",
+      "side": 1,
+      "message": "Is it confusing if a nil Document just writes an empty BSON document?",
+      "range": {
+        "startLine": 498,
+        "startChar": 2,
+        "endLine": 498,
+        "endChar": 26
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
