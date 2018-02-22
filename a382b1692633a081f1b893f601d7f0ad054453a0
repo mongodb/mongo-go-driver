@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "b8b84cf0_9d7a54d3",
+        "filename": "mongo/private/roots/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "Oh we will, this was just from when I had it in the design space.",
+      "parentUuid": "713abcdb_bb84d13c",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 45,
+        "endChar": 13
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4ad82da2_6b5bc24d",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2018-02-22T19:52:52Z",
       "side": 1,
       "message": "I don\u0027t know if I understand what this means; does it just mean that you can uniquely identify each connection?",
+      "range": {
+        "startLine": 4,
+        "startChar": 3,
+        "endLine": 4,
+        "endChar": 23
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b8285b60_a9b1f7cc",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "This was really referring to the old \"Mode\" type I had, but yes it also has things like an ID and probably some other metadata attached to it (maybe some authentication state?)",
+      "parentUuid": "4ad82da2_6b5bc24d",
       "range": {
         "startLine": 4,
         "startChar": 3,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "2d4759ac_8f6d96bb",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "This is just to centralize the default. I\u0027m not sure if anyone will actually use it, but I figured we could put it out there. If you see a problem with having it exposed I can make it private.",
+      "parentUuid": "86b39555_8b04f144",
+      "range": {
+        "startLine": 37,
+        "startChar": 76,
+        "endLine": 38,
+        "endChar": 53
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d157aa1f_2334b0e0",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
@@ -82,6 +154,30 @@
       "writtenOn": "2018-02-22T19:52:52Z",
       "side": 1,
       "message": "Not quite sure what this means either. Is \"the Opener type\" referring to a field of type Opener that\u0027s being replaced, or are we actually changing the type itself of something (and if so, what exactly does that mean in this context)?",
+      "range": {
+        "startLine": 43,
+        "startChar": 14,
+        "endLine": 43,
+        "endChar": 38
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e090dd07_10d6c69b",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "Opener as in this: https://github.com/mongodb/mongo-go-driver/blob/1c1456bfde845996800f0742df1ff9cf59c33207/mongo/private/conn/conn.go#L32",
+      "parentUuid": "d157aa1f_2334b0e0",
       "range": {
         "startLine": 43,
         "startChar": 14,
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "0947461a_daef459f",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "This is essentially a net.Listener but specifically for a connection.Connection, instead of a net.Connection. This is used when we\u0027re acting as a server (or a proxy).",
+      "parentUuid": "76a1af14_00b8947f",
+      "range": {
+        "startLine": 51,
+        "startChar": 1,
+        "endLine": 52,
+        "endChar": 44
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ccd63b73_585cb74a",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
@@ -128,6 +248,30 @@
       "writtenOn": "2018-02-22T19:52:52Z",
       "side": 1,
       "message": "The documentation for these is a little vague, so I\u0027m not seeing exactly how these are supposed to be used. More generally, how do all these pieces in this file fit together?",
+      "range": {
+        "startLine": 66,
+        "startChar": 0,
+        "endLine": 84,
+        "endChar": 0
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9bb69b66_e5642c8a",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "This library is meant to speak the wire protocol in both directions, so these types are for listening for connections, e.g. a driver or some other MongoDB client connecting to us.",
+      "parentUuid": "ccd63b73_585cb74a",
       "range": {
         "startLine": 66,
         "startChar": 0,
@@ -163,6 +307,30 @@
     },
     {
       "key": {
+        "uuid": "f224bc03_677e5a31",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "These are the results from the server, they\u0027ll likely be the same as the ones in the mongo package but they allow a separation of concerns, so the Collection methods will get these from the dispatch package\u0027s functions and then transform them into mongo.*Result types.",
+      "parentUuid": "4eb4e8ca_ff43b948",
+      "range": {
+        "startLine": 4,
+        "startChar": 5,
+        "endLine": 4,
+        "endChar": 11
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b2c85288_6399b98b",
         "filename": "mongo/private/roots/result/result.go",
         "patchSetId": 1
@@ -174,6 +342,30 @@
       "writtenOn": "2018-02-22T19:52:52Z",
       "side": 1,
       "message": "It\u0027s not clear to me what operation this is supposed to be used for.",
+      "range": {
+        "startLine": 5,
+        "startChar": 5,
+        "endLine": 5,
+        "endChar": 13
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aa636d85_687e718d",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "This is for a result that returns a single Document.",
+      "parentUuid": "b2c85288_6399b98b",
       "range": {
         "startLine": 5,
         "startChar": 5,
@@ -203,6 +395,24 @@
     },
     {
       "key": {
+        "uuid": "5c8f279e_93f7b01a",
+        "filename": "mongo/private/roots/wiremessage/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "Since we don\u0027t know what types of clients will be communicating with this library when used as a server or as a proxy, we need to support the full wire protocol.",
+      "parentUuid": "e1ccd146_c6a75d00",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f23415ae_bbc8c85e",
         "filename": "mongo/private/roots/wiremessage/insert.go",
         "patchSetId": 1
@@ -214,6 +424,24 @@
       "writtenOn": "2018-02-22T19:52:52Z",
       "side": 1,
       "message": "Ditto comment about not needing this.",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "526f3b2b_d3c371a5",
+        "filename": "mongo/private/roots/wiremessage/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "Same answer as above.",
+      "parentUuid": "f23415ae_bbc8c85e",
       "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -237,6 +465,24 @@
     },
     {
       "key": {
+        "uuid": "5486e11c_1e7b0f92",
+        "filename": "mongo/private/roots/wiremessage/update.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "Same answer as above.",
+      "parentUuid": "1cf7b655_bb5f3161",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ed96f831_dc326465",
         "filename": "mongo/private/roots/wiremessage/wiremessage.go",
         "patchSetId": 1
@@ -248,6 +494,24 @@
       "writtenOn": "2018-02-22T19:52:52Z",
       "side": 1,
       "message": "Ditto comment about not needing OpUpdate, OpInsert, or OpDelete.",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eb86b09d_ffb4ea83",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:11:47Z",
+      "side": 1,
+      "message": "Same answer as above.",
+      "parentUuid": "ed96f831_dc326465",
       "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
