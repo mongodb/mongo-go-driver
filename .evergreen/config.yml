@@ -130,7 +130,7 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: ${PROJECT_DIRECTORY}/mongodb-logs.tar.gz
+        local_file: /${PROJECT_DIRECTORY}/mongodb-logs.tar.gz
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
         bucket: mciuploads
         permissions: public-read
@@ -140,7 +140,7 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: ${DRIVERS_TOOLS}/.evergreen/orchestration/server.log
+        local_file: /${DRIVERS_TOOLS}/.evergreen/orchestration/server.log
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-orchestration.log
         bucket: mciuploads
         permissions: public-read
