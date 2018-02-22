@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "3e7d5fe0_05e7cb44",
+        "filename": "mongo/private/roots/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b8b84cf0_9d7a54d3",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 45,
+        "endChar": 13
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4ad82da2_6b5bc24d",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
@@ -96,6 +120,30 @@
     },
     {
       "key": {
+        "uuid": "69cffc8e_7d51a13d",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b8285b60_a9b1f7cc",
+      "range": {
+        "startLine": 4,
+        "startChar": 3,
+        "endLine": 4,
+        "endChar": 23
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "86b39555_8b04f144",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
@@ -131,6 +179,30 @@
       "side": 1,
       "message": "This is just to centralize the default. I\u0027m not sure if anyone will actually use it, but I figured we could put it out there. If you see a problem with having it exposed I can make it private.",
       "parentUuid": "86b39555_8b04f144",
+      "range": {
+        "startLine": 37,
+        "startChar": 76,
+        "endLine": 38,
+        "endChar": 53
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "94749456_971a060f",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "I don\u0027t have any fundamental opposition to it being exposed specifically, but in general I tend to prefer not exposing things unless there\u0027s a specific reason to. Mainly though, I was referring to the mutability rather than the publicity; I wasn\u0027t sure if there was some specific scenario where you were thinking that changing the default dialer would be useful.",
+      "parentUuid": "2d4759ac_8f6d96bb",
       "range": {
         "startLine": 37,
         "startChar": 76,
@@ -190,6 +262,30 @@
     },
     {
       "key": {
+        "uuid": "fe1698be_94a81168",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "Okay, but what does it mean to \"replace the Opener type\"? Are we replacing a thing that is of type Opener, or are we replacing the type itself? It\u0027s not clear to me exactly what this comment is saying.",
+      "parentUuid": "e090dd07_10d6c69b",
+      "range": {
+        "startLine": 43,
+        "startChar": 14,
+        "endLine": 43,
+        "endChar": 38
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "76a1af14_00b8947f",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
@@ -225,6 +321,30 @@
       "side": 1,
       "message": "This is essentially a net.Listener but specifically for a connection.Connection, instead of a net.Connection. This is used when we\u0027re acting as a server (or a proxy).",
       "parentUuid": "76a1af14_00b8947f",
+      "range": {
+        "startLine": 51,
+        "startChar": 1,
+        "endLine": 52,
+        "endChar": 44
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9dcf9163_abf05ce8",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "Ah, makes sense. Thanks!",
+      "parentUuid": "0947461a_daef459f",
       "range": {
         "startLine": 51,
         "startChar": 1,
@@ -284,6 +404,30 @@
     },
     {
       "key": {
+        "uuid": "019a907c_0781da91",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "I understand that, but the comments aren\u0027t helping me understand how these are actually used.  Are they merely functionality that we\u0027re exposing for other applications to use, or are they used somewhere internally? I couldn\u0027t find any references to them anywhere else, hence my confusion.",
+      "parentUuid": "9bb69b66_e5642c8a",
+      "range": {
+        "startLine": 66,
+        "startChar": 0,
+        "endLine": 84,
+        "endChar": 0
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4eb4e8ca_ff43b948",
         "filename": "mongo/private/roots/result/result.go",
         "patchSetId": 1
@@ -328,6 +472,30 @@
       "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3a259720_858fc01d",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f224bc03_677e5a31",
+      "range": {
+        "startLine": 4,
+        "startChar": 5,
+        "endLine": 4,
+        "endChar": 11
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -378,6 +546,30 @@
     },
     {
       "key": {
+        "uuid": "a6c8cac5_6027f85a",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "aa636d85_687e718d",
+      "range": {
+        "startLine": 5,
+        "startChar": 5,
+        "endLine": 5,
+        "endChar": 13
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e1ccd146_c6a75d00",
         "filename": "mongo/private/roots/wiremessage/delete.go",
         "patchSetId": 1
@@ -425,6 +617,24 @@
       "side": 1,
       "message": "Additionally, tools will need to be able to read these OpCodes, e.g. MongoReplay https://github.com/mongodb/mongo-tools/blob/217a4963272b01dbdc951f626eaccb4ec9d09f59/mongoreplay/insert_op.go#L20",
       "parentUuid": "5c8f279e_93f7b01a",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b8454ba8_b2dd22ed",
+        "filename": "mongo/private/roots/wiremessage/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T20:39:52Z",
+      "side": 1,
+      "message": "I was under the impression that we were explicitly not supporting below 2.6; are we planning to reduce this for the stuff under private and only enforce that above?",
+      "parentUuid": "c054449e_d78c1e2d",
       "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
