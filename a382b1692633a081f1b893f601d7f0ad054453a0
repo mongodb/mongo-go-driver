@@ -239,6 +239,30 @@
     },
     {
       "key": {
+        "uuid": "6126e81f_de9605e7",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T22:07:15Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f1eda602_c2158de0",
+      "range": {
+        "startLine": 37,
+        "startChar": 76,
+        "endLine": 38,
+        "endChar": 53
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d157aa1f_2334b0e0",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
@@ -322,6 +346,30 @@
       "side": 1,
       "message": "It replaces the type itself.",
       "parentUuid": "fe1698be_94a81168",
+      "range": {
+        "startLine": 43,
+        "startChar": 14,
+        "endLine": 43,
+        "endChar": 38
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fb2f62e9_c695f613",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T22:07:15Z",
+      "side": 1,
+      "message": "Ohhhhh, I\u0027ve been misreading this; I thought that the comment was saying that Configurer used programmatically to change the type of Opener, not that this is a new type we\u0027re using instead of Opener. Sorry for the confusion.",
+      "parentUuid": "ab62335e_1ef4133d",
       "range": {
         "startLine": 43,
         "startChar": 14,
@@ -728,6 +776,24 @@
       "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "945e299d_09f38a55",
+        "filename": "mongo/private/roots/wiremessage/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T22:07:15Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "952ed23f_e0fe9e0c",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
