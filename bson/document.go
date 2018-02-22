@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strconv"
 
 	"github.com/mongodb/mongo-go-driver/bson/elements"
 )
@@ -21,6 +22,10 @@ var ErrInvalidReadOnlyDocument = errors.New("invalid read-only document")
 
 // ErrInvalidKey indicates that the BSON representation of a key is missing a null terminator.
 var ErrInvalidKey = errors.New("invalid document key")
+
+// ErrInvalidArrayKey indicates that a key that isn't a positive integer was used to lookup an
+// element in an array.
+var ErrInvalidArrayKey = errors.New("invalid array key")
 
 // ErrInvalidLength indicates that a length in a binary representation of a BSON document is invalid.
 var ErrInvalidLength = errors.New("document length is invalid")
@@ -267,7 +272,18 @@ func (d *Document) Lookup(key ...string) (*Element, error) {
 		case '\x03':
 			elem, err = elem.value.MutableDocument().Lookup(key[1:]...)
 		case '\x04':
-			elem, err = elem.value.MutableArray().doc.Lookup(key[1:]...)
+			index, err := strconv.ParseUint(key[1], 10, 0)
+			if err != nil {
+				return nil, ErrInvalidArrayKey
+			}
+
+			val, err := elem.value.MutableArray().lookupTraverse(uint(index), key[2:]...)
+			if err != nil {
+				return nil, err
+			}
+
+			elem = &Element{value: val}
+
 		default:
 			// TODO(skriptble): This error message should be more clear, e.g.
 			// include information about what depth was reached, what the

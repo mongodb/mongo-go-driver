@@ -80,6 +80,41 @@ func (a *Array) Lookup(index uint) (*Value, error) {
 	return v.value, nil
 }
 
+func (a *Array) lookupTraverse(index uint, keys ...string) (*Value, error) {
+	value, err := a.Lookup(index)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(keys) == 0 {
+		return value, nil
+	}
+
+	switch value.Type() {
+	case TypeEmbeddedDocument:
+		element, err := value.MutableDocument().Lookup(keys...)
+		if err != nil {
+			return nil, err
+		}
+
+		return element.Value(), nil
+	case TypeArray:
+		index, err := strconv.ParseUint(keys[0], 10, 0)
+		if err != nil {
+			return nil, ErrInvalidArrayKey
+		}
+
+		val, err := value.MutableArray().lookupTraverse(uint(index), keys[1:]...)
+		if err != nil {
+			return nil, err
+		}
+
+		return val, nil
+	default:
+		return nil, ErrInvalidDepthTraversal
+	}
+}
+
 // Append adds the given values to the end of the array. It returns a reference to itself.
 func (a *Array) Append(values ...*Value) *Array {
 	a.doc.Append(elemsFromValues(values)...)

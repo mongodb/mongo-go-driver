@@ -355,6 +355,18 @@ func TestDocument(t *testing.T) {
 				[]string{"y"},
 				nil, ErrElementNotFound,
 			},
+			{"subarray",
+				NewDocument(
+					EC.ArrayFromElements("foo",
+						VC.DocumentFromElements(
+							EC.Int32("bar", 12),
+						),
+					),
+				),
+				[]string{"foo", "0", "bar"},
+				EC.Int32("bar", 12),
+				nil,
+			},
 		}
 
 		for _, tc := range testCases {
