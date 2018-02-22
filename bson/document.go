@@ -87,18 +87,30 @@ func ReadDocument(b []byte) (*Document, error) {
 
 // Len returns the number of elements in the document.
 func (d *Document) Len() int {
+	if d == nil {
+		panic(ErrNilDocument)
+	}
+
 	return len(d.elems)
 }
 
 // Keys returns all of the element keys for this document. If recursive is true,
 // this method will also return the keys of any subdocuments or arrays.
 func (d *Document) Keys(recursive bool) (Keys, error) {
+	if d == nil {
+		return nil, ErrNilDocument
+	}
+
 	return d.recursiveKeys(recursive)
 }
 
 // recursiveKeys handles the recursion case for retrieving all of a Document's
 // keys.
 func (d *Document) recursiveKeys(recursive bool, prefix ...string) (Keys, error) {
+	if d == nil {
+		return nil, ErrNilDocument
+	}
+
 	ks := make(Keys, 0, len(d.elems))
 	for _, elem := range d.elems {
 		key := elem.Key()
@@ -135,6 +147,10 @@ func (d *Document) recursiveKeys(recursive bool, prefix ...string) (Keys, error)
 // If a nil element is inserted and this method panics, it does not remove the
 // previously added elements.
 func (d *Document) Append(elems ...*Element) *Document {
+	if d == nil {
+		panic(ErrNilDocument)
+	}
+
 	for _, elem := range elems {
 		if elem == nil {
 			if d.IgnoreNilInsert {
@@ -167,6 +183,10 @@ func (d *Document) Append(elems ...*Element) *Document {
 // If a nil element is inserted and this method panics, it does not remove the
 // previously added elements.
 func (d *Document) Prepend(elems ...*Element) *Document {
+	if d == nil {
+		panic(ErrNilDocument)
+	}
+
 	// In order to insert the prepended elements in order we need to make space
 	// at the front of the elements slice.
 	d.elems = append(d.elems, elems...)
@@ -251,6 +271,10 @@ func (d *Document) Set(elem *Element) *Document {
 // Lookup searches the document and potentially subdocuments or arrays for the
 // provided key. Each key provided to this method represents a layer of depth.
 func (d *Document) Lookup(key ...string) (*Element, error) {
+	if d == nil {
+		return nil, ErrNilDocument
+	}
+
 	if len(key) == 0 {
 		return nil, ErrEmptyKey
 	}
@@ -294,6 +318,10 @@ func (d *Document) Lookup(key ...string) (*Element, error) {
 // TODO(skriptble): This method differs from Lookup when it comes to errors.
 // Should this method return errors to be consistent?
 func (d *Document) Delete(key ...string) *Element {
+	if d == nil {
+		panic(ErrNilDocument)
+	}
+
 	if len(key) == 0 {
 		return nil
 	}
@@ -328,11 +356,19 @@ func (d *Document) Delete(key ...string) *Element {
 // TODO(skriptble): This method could be variadic and return the element at the
 // provided depth.
 func (d *Document) ElementAt(index uint) *Element {
+	if d == nil {
+		panic(ErrNilDocument)
+	}
+
 	return d.elems[index]
 }
 
 // ElementAtOK is the same as ElementAt, but returns a boolean instead of panicking.
 func (d *Document) ElementAtOK(index uint) (*Element, bool) {
+	if d == nil {
+		return nil, false
+	}
+
 	if index >= uint(len(d.elems)) {
 		return nil, false
 	}
@@ -342,6 +378,10 @@ func (d *Document) ElementAtOK(index uint) (*Element, bool) {
 
 // Iterator creates an Iterator for this document and returns it.
 func (d *Document) Iterator() *Iterator {
+	if d == nil {
+		panic(ErrNilDocument)
+	}
+
 	return newIterator(d)
 }
 
@@ -354,6 +394,10 @@ func (d *Document) Iterator() *Iterator {
 //   - []byte
 //   - io.Reader
 func (d *Document) Concat(docs ...interface{}) error {
+	if d == nil {
+		return ErrNilDocument
+	}
+
 	for _, doc := range docs {
 		if doc == nil {
 			if d.IgnoreNilInsert {
@@ -402,6 +446,10 @@ func (d *Document) concatReader(r Reader) error {
 // Reset clears a document so it can be reused. This method clears references
 // to the underlying pointers to elements so they can be garbage collected.
 func (d *Document) Reset() {
+	if d == nil {
+		panic(ErrNilDocument)
+	}
+
 	for idx := range d.elems {
 		d.elems[idx] = nil
 	}
@@ -411,6 +459,10 @@ func (d *Document) Reset() {
 
 // Validate validates the document and returns its total size.
 func (d *Document) Validate() (uint32, error) {
+	if d == nil {
+		return 0, ErrNilDocument
+	}
+
 	// Header and Footer
 	var size uint32 = 4 + 1
 	for _, elem := range d.elems {
@@ -426,6 +478,10 @@ func (d *Document) Validate() (uint32, error) {
 // validates the document and returns its total size. This method has
 // bookkeeping parameters to prevent a stack overflow.
 func (d *Document) validate(currentDepth, maxDepth uint32) (uint32, error) {
+	if d == nil {
+		return 0, ErrNilDocument
+	}
+
 	return 0, nil
 }
 
@@ -434,6 +490,10 @@ func (d *Document) validate(currentDepth, maxDepth uint32) (uint32, error) {
 // TODO(skriptble): We can optimize this by having creating implementations of
 // writeByteSlice that write directly to an io.Writer instead.
 func (d *Document) WriteTo(w io.Writer) (int64, error) {
+	if d == nil {
+		return 0, ErrNilDocument
+	}
+
 	b, err := d.MarshalBSON()
 	if err != nil {
 		return 0, err
@@ -445,6 +505,10 @@ func (d *Document) WriteTo(w io.Writer) (int64, error) {
 // WriteDocument will serialize this document to the provided writer beginning
 // at the provided start position.
 func (d *Document) WriteDocument(start uint, writer interface{}) (int64, error) {
+	if d == nil {
+		return 0, ErrNilDocument
+	}
+
 	var total int64
 	var pos = start
 	size, err := d.Validate()
@@ -468,6 +532,10 @@ func (d *Document) WriteDocument(start uint, writer interface{}) (int64, error) 
 // writeByteSlice handles serializing this document to a slice of bytes starting
 // at the given start position.
 func (d *Document) writeByteSlice(start uint, size uint32, b []byte) (int64, error) {
+	if d == nil {
+		return 0, ErrNilDocument
+	}
+
 	var total int64
 	var pos = start
 	if len(b) < int(start)+int(size) {
@@ -499,6 +567,10 @@ func (d *Document) writeByteSlice(start uint, size uint32, b []byte) (int64, err
 
 // MarshalBSON implements the Marshaler interface.
 func (d *Document) MarshalBSON() ([]byte, error) {
+	if d == nil {
+		return nil, ErrNilDocument
+	}
+
 	size, err := d.Validate()
 
 	if err != nil {
@@ -514,6 +586,10 @@ func (d *Document) MarshalBSON() ([]byte, error) {
 
 // UnmarshalBSON implements the Unmarshaler interface.
 func (d *Document) UnmarshalBSON(b []byte) error {
+	if d == nil {
+		return ErrNilDocument
+	}
+
 	// Read byte array
 	//   - Create an Element for each element found
 	//   - Update the index with the key of the element
@@ -539,6 +615,10 @@ func (d *Document) UnmarshalBSON(b []byte) error {
 
 // ReadFrom will read one BSON document from the given io.Reader.
 func (d *Document) ReadFrom(r io.Reader) (int64, error) {
+	if d == nil {
+		return 0, ErrNilDocument
+	}
+
 	var total int64
 	sizeBuf := make([]byte, 4)
 	n, err := io.ReadFull(r, sizeBuf)
@@ -562,6 +642,10 @@ func (d *Document) ReadFrom(r io.Reader) (int64, error) {
 // position in the index property, not the elems property. This method is
 // mainly used when calling sort.Search.
 func (d *Document) keyFromIndex(idx int) []byte {
+	if d == nil {
+		panic(ErrNilDocument)
+	}
+
 	haystack := d.elems[d.index[idx]]
 	return haystack.value.data[haystack.value.start+1 : haystack.value.offset]
 }
@@ -602,6 +686,10 @@ func (d *Document) Equal(d2 *Document) bool {
 
 // String implements the fmt.Stringer interface.
 func (d *Document) String() string {
+	if d == nil {
+		return "<nil>"
+	}
+
 	var buf bytes.Buffer
 	buf.Write([]byte("bson.Document{"))
 	for idx, elem := range d.elems {
