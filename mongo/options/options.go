@@ -116,6 +116,27 @@ type ChangeStreamOptioner interface {
 	changeStreamOption()
 }
 
+// ListCollectionsOptioner is the interface implemented by types that can be used as
+// Options for ListCollections operations.
+type ListCollectionsOptioner interface {
+	Optioner
+	listCollectionsOption()
+}
+
+// ListDatabaseOptioner is the interface implemented by types that can be used as
+// Options for ListDatabase operations.
+type ListDatabasesOptioner interface {
+	Optioner
+	listDatabasesOption()
+}
+
+// ListIndexesOptioner is the interface implemented by types that can be used as
+// Options for ListIndexes operations.
+type ListIndexesOptioner interface {
+	Optioner
+	listIndexesOption()
+}
+
 var (
 	_ AggregateOptioner         = (*OptAllowDiskUse)(nil)
 	_ AggregateOptioner         = (*OptBatchSize)(nil)
