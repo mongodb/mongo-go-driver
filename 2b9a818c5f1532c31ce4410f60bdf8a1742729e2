@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5e1211e3_f815a272",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T17:38:48Z",
+      "side": 1,
+      "message": "I didn\u0027t realize that bytes.NewBuffer would work with `nil` passed in. Fixed.",
+      "parentUuid": "dea1ca37_4ce3f750",
+      "range": {
+        "startLine": 15,
+        "startChar": 24,
+        "endLine": 15,
+        "endChar": 42
+      },
+      "revId": "2b9a818c5f1532c31ce4410f60bdf8a1742729e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "451dd06a_97b8ca06",
         "filename": "bson/marshal.go",
         "patchSetId": 1
@@ -45,6 +69,30 @@
       "revId": "2b9a818c5f1532c31ce4410f60bdf8a1742729e2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ce8065df_9d9576ef",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T17:38:48Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "451dd06a_97b8ca06",
+      "range": {
+        "startLine": 35,
+        "startChar": 8,
+        "endLine": 35,
+        "endChar": 53
+      },
+      "revId": "2b9a818c5f1532c31ce4410f60bdf8a1742729e2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
