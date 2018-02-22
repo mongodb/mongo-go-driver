@@ -531,7 +531,10 @@ axes:
     values:
       - id: "windows-64"
         display_name: "Windows 64-bit"
-        run_on: windows-64-vs2015-small
+        run_on:
+          - windows-64-vs2015-compile
+          - windows-64-vs2015-test
+          - windows-64-vs2015-large
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
       - id: "ubuntu1404-64"
