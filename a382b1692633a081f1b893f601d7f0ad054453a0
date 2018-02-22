@@ -413,6 +413,24 @@
     },
     {
       "key": {
+        "uuid": "c054449e_d78c1e2d",
+        "filename": "mongo/private/roots/wiremessage/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T20:14:18Z",
+      "side": 1,
+      "message": "Additionally, tools will need to be able to read these OpCodes, e.g. MongoReplay https://github.com/mongodb/mongo-tools/blob/217a4963272b01dbdc951f626eaccb4ec9d09f59/mongoreplay/insert_op.go#L20",
+      "parentUuid": "5c8f279e_93f7b01a",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f23415ae_bbc8c85e",
         "filename": "mongo/private/roots/wiremessage/insert.go",
         "patchSetId": 1
