@@ -382,6 +382,30 @@
     },
     {
       "key": {
+        "uuid": "b4f4a373_dfcbda35",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-22T22:30:06Z",
+      "side": 1,
+      "message": "No problem.",
+      "parentUuid": "fb2f62e9_c695f613",
+      "range": {
+        "startLine": 43,
+        "startChar": 14,
+        "endLine": 43,
+        "endChar": 38
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "76a1af14_00b8947f",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 1
