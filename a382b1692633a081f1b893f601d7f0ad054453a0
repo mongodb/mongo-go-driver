@@ -1,0 +1,256 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "713abcdb_bb84d13c",
+        "filename": "mongo/private/roots/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "Is there a reason we don\u0027t want to just reuse the interface from the mongo package?",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 45,
+        "endChar": 13
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4ad82da2_6b5bc24d",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "I don\u0027t know if I understand what this means; does it just mean that you can uniquely identify each connection?",
+      "range": {
+        "startLine": 4,
+        "startChar": 3,
+        "endLine": 4,
+        "endChar": 23
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "86b39555_8b04f144",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "Is this for the BIC team, or will be using this functionality internally in some way?",
+      "range": {
+        "startLine": 37,
+        "startChar": 76,
+        "endLine": 38,
+        "endChar": 53
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d157aa1f_2334b0e0",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "Not quite sure what this means either. Is \"the Opener type\" referring to a field of type Opener that\u0027s being replaced, or are we actually changing the type itself of something (and if so, what exactly does that mean in this context)?",
+      "range": {
+        "startLine": 43,
+        "startChar": 14,
+        "endLine": 43,
+        "endChar": 38
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "76a1af14_00b8947f",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "I\u0027m having trouble parsing this comment; from the name I assume its used to get connections to read from the server from, but it\u0027s not clear to me from the documentation if this is correct.",
+      "range": {
+        "startLine": 51,
+        "startChar": 1,
+        "endLine": 52,
+        "endChar": 44
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ccd63b73_585cb74a",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "The documentation for these is a little vague, so I\u0027m not seeing exactly how these are supposed to be used. More generally, how do all these pieces in this file fit together?",
+      "range": {
+        "startLine": 66,
+        "startChar": 0,
+        "endLine": 84,
+        "endChar": 0
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4eb4e8ca_ff43b948",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "Will these structs contain the exact results from the server, or the info described in the CRUD spec?",
+      "range": {
+        "startLine": 4,
+        "startChar": 5,
+        "endLine": 4,
+        "endChar": 11
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b2c85288_6399b98b",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "It\u0027s not clear to me what operation this is supposed to be used for.",
+      "range": {
+        "startLine": 5,
+        "startChar": 5,
+        "endLine": 5,
+        "endChar": 13
+      },
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e1ccd146_c6a75d00",
+        "filename": "mongo/private/roots/wiremessage/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "We don\u0027t need this, since the delete command was introduced in 2.6.",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f23415ae_bbc8c85e",
+        "filename": "mongo/private/roots/wiremessage/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "Ditto comment about not needing this.",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1cf7b655_bb5f3161",
+        "filename": "mongo/private/roots/wiremessage/update.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 4,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "Ditto comment about not needing this.",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed96f831_dc326465",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-22T19:52:52Z",
+      "side": 1,
+      "message": "Ditto comment about not needing OpUpdate, OpInsert, or OpDelete.",
+      "revId": "a382b1692633a081f1b893f601d7f0ad054453a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
