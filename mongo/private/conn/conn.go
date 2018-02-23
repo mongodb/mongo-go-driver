@@ -298,7 +298,7 @@ func (c *connImpl) bumpIdleDeadline() {
 }
 
 func (c *connImpl) describeServer(ctx context.Context, clientDoc *bson.Document) (*internal.IsMasterResult, *internal.BuildInfoResult, error) {
-	isMasterCmd := bson.NewDocument(bson.EC.Int32("ismaster", 1))
+	isMasterCmd := bson.NewDocument(bson.EC.Int32("isMaster", 1))
 	if clientDoc != nil {
 		isMasterCmd.Append(bson.EC.SubDocument("client", clientDoc))
 	}
