@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "47835deb_97842b4e",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T17:26:44Z",
+      "side": 1,
+      "message": "Llet\u0027s leave it this way. These methods already panic by default when they are passed a nil *Element.",
+      "parentUuid": "353df7b8_954392d0",
+      "range": {
+        "startLine": 151,
+        "startChar": 2,
+        "endLine": 151,
+        "endChar": 23
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "71ad5dc1_1657cfdc",
         "filename": "bson/document.go",
         "patchSetId": 1
@@ -84,6 +108,30 @@
       "side": 1,
       "message": "Done",
       "parentUuid": "71ad5dc1_1657cfdc",
+      "range": {
+        "startLine": 369,
+        "startChar": 2,
+        "endLine": 369,
+        "endChar": 23
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0bb74e07_9af2c309",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 369,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T17:26:44Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c51b72ce_18631edf",
       "range": {
         "startLine": 369,
         "startChar": 2,
@@ -143,6 +191,30 @@
     },
     {
       "key": {
+        "uuid": "db514445_fbcb1e69",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T17:26:44Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a12956cc_8a9552ad",
+      "range": {
+        "startLine": 435,
+        "startChar": 0,
+        "endLine": 439,
+        "endChar": 2
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7534e70c_7b54de33",
         "filename": "bson/document.go",
         "patchSetId": 1
@@ -178,6 +250,30 @@
       "side": 1,
       "message": "Similar to what I said above, I think it depends on what we think users are trying to do. If we assume that a user won\u0027t actually call this on a nil Document on purpose, then just writing an empty BSON document will likely hide a mistake in their code. I\u0027m not convinced there\u0027s really much utility to allowing this to be called on a nil document, although I don\u0027t feel super strongly either way.",
       "parentUuid": "7534e70c_7b54de33",
+      "range": {
+        "startLine": 498,
+        "startChar": 2,
+        "endLine": 498,
+        "endChar": 26
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4264fc65_dd183557",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T17:26:44Z",
+      "side": 1,
+      "message": "Let\u0027s leave this one the way it is since it doesn\u0027t induce a panic.",
+      "parentUuid": "47bff218_89915051",
       "range": {
         "startLine": 498,
         "startChar": 2,
