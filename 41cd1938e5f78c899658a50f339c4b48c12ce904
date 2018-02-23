@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "353df7b8_954392d0",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-23T17:05:24Z",
+      "side": 1,
+      "message": "I guess the question is what we think the user is intending to do here. I was assuming that if a user called append on a nil document, it likely was by accident, and therefore we would want to fail loudly and quickly. I\u0027m open to other interpretations though.",
+      "parentUuid": "0f6c6bbb_a8108859",
+      "range": {
+        "startLine": 151,
+        "startChar": 2,
+        "endLine": 151,
+        "endChar": 23
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "71ad5dc1_1657cfdc",
         "filename": "bson/document.go",
         "patchSetId": 1
@@ -45,6 +69,30 @@
       "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c51b72ce_18631edf",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 369,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-23T17:05:24Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "71ad5dc1_1657cfdc",
+      "range": {
+        "startLine": 369,
+        "startChar": 2,
+        "endLine": 369,
+        "endChar": 23
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "a12956cc_8a9552ad",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 439,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-23T17:05:24Z",
+      "side": 1,
+      "message": "Nope, looks like it\u0027s just called in Concat. I\u0027ve removed the check here.",
+      "parentUuid": "913a179c_2c401de3",
+      "range": {
+        "startLine": 435,
+        "startChar": 0,
+        "endLine": 439,
+        "endChar": 2
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7534e70c_7b54de33",
         "filename": "bson/document.go",
         "patchSetId": 1
@@ -82,6 +154,30 @@
       "writtenOn": "2018-02-22T22:34:21Z",
       "side": 1,
       "message": "Is it confusing if a nil Document just writes an empty BSON document?",
+      "range": {
+        "startLine": 498,
+        "startChar": 2,
+        "endLine": 498,
+        "endChar": 26
+      },
+      "revId": "41cd1938e5f78c899658a50f339c4b48c12ce904",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "47bff218_89915051",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-02-23T17:05:24Z",
+      "side": 1,
+      "message": "Similar to what I said above, I think it depends on what we think users are trying to do. If we assume that a user won\u0027t actually call this on a nil Document on purpose, then just writing an empty BSON document will likely hide a mistake in their code. I\u0027m not convinced there\u0027s really much utility to allowing this to be called on a nil document, although I don\u0027t feel super strongly either way.",
+      "parentUuid": "7534e70c_7b54de33",
       "range": {
         "startLine": 498,
         "startChar": 2,
