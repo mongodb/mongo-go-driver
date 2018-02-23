@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "78a42b0e_2f985971",
+        "filename": "mongo/private/roots/wiremessage/compressed.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Ah, you\u0027re right.",
+      "parentUuid": "bff56a98_b3045511",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f6a4f475_13267a28",
         "filename": "mongo/private/roots/wiremessage/msg.go",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2018-02-23T22:13:22Z",
       "side": 1,
       "message": "This needs to have the kind byte as well.",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e2f58c4_d0f7fb80",
+        "filename": "mongo/private/roots/wiremessage/msg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Main thought behind this: SectionBody is always kind 0, so what use would putting a kind byte on here be? Same goes for DocumentSequence.",
+      "parentUuid": "f6a4f475_13267a28",
       "revId": "1c43621d87830735d598efb64c900ad8652d4883",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -76,6 +112,24 @@
     },
     {
       "key": {
+        "uuid": "30fef40f_7626ae23",
+        "filename": "mongo/private/roots/wiremessage/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "33c2b8ab_783fd952",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "673966fa_0edc6d2b",
         "filename": "mongo/private/roots/wiremessage/query.go",
         "patchSetId": 2
@@ -99,6 +153,30 @@
     },
     {
       "key": {
+        "uuid": "2cd51163_7d924fda",
+        "filename": "mongo/private/roots/wiremessage/query.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "I\u0027m not sure where exactly I picked up this idiom, but I read somewhere that stating that a method implements a particular interface for the type was an accepted way to document that fact. Would be open to changing the language though.",
+      "parentUuid": "673966fa_0edc6d2b",
+      "range": {
+        "startLine": 16,
+        "startChar": 22,
+        "endLine": 16,
+        "endChar": 32
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7767a635_716fbe23",
         "filename": "mongo/private/roots/wiremessage/query.go",
         "patchSetId": 2
@@ -110,6 +188,30 @@
       "writtenOn": "2018-02-23T22:13:22Z",
       "side": 1,
       "message": "Should these be namespaced somehow so they don\u0027t collide with flags from other messages?  \"QueryTailableCursor\", etc.",
+      "range": {
+        "startLine": 49,
+        "startChar": 9,
+        "endLine": 49,
+        "endChar": 18
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1e7a0889_43d58eb9",
+        "filename": "mongo/private/roots/wiremessage/query.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Discussed offline.",
+      "parentUuid": "7767a635_716fbe23",
       "range": {
         "startLine": 49,
         "startChar": 9,
@@ -162,6 +264,30 @@
     },
     {
       "key": {
+        "uuid": "3856b45a_4dcbcf08",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2e21bd54_c4ce7dee",
+      "range": {
+        "startLine": 27,
+        "startChar": 4,
+        "endLine": 27,
+        "endChar": 20
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "22f0e13c_031d3a5a",
         "filename": "mongo/private/roots/wiremessage/wiremessage.go",
         "patchSetId": 2
@@ -173,6 +299,24 @@
       "writtenOn": "2018-02-23T22:13:22Z",
       "side": 1,
       "message": "Do we need this?",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "852b825d_e6a7f909",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Not sure, the current library has this so I included it.",
+      "parentUuid": "22f0e13c_031d3a5a",
       "revId": "1c43621d87830735d598efb64c900ad8652d4883",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -196,6 +340,24 @@
     },
     {
       "key": {
+        "uuid": "598a6af5_843c0bb8",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7de93bb6_5916e59f",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "edea54cb_a317f3e8",
         "filename": "mongo/private/roots/wiremessage/wiremessage.go",
         "patchSetId": 2
@@ -213,6 +375,24 @@
     },
     {
       "key": {
+        "uuid": "6a0582b0_5381dd3d",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "edea54cb_a317f3e8",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "885d4c77_5da4337b",
         "filename": "mongo/private/roots/wiremessage/wiremessage.go",
         "patchSetId": 2
@@ -224,6 +404,24 @@
       "writtenOn": "2018-02-23T22:13:22Z",
       "side": 1,
       "message": "Unmarshaler?",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3316fa7b_04f2e0b3",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "The main reason I didn\u0027t put Unmarshaler here is because it requires a pointer receiver (which means it\u0027s much harder to guarantee it\u0027s on the stack), and in most cases one won\u0027t know what kind of wiremessage they have until they\u0027ve unmarshalled it, so it\u0027s sort of a chicken and the egg problem. All of the types in the package that implement WireMessage do implement the Unmarshaler though.",
+      "parentUuid": "885d4c77_5da4337b",
       "revId": "1c43621d87830735d598efb64c900ad8652d4883",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -253,6 +451,30 @@
     },
     {
       "key": {
+        "uuid": "f9bec9a9_82531a32",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Agreed this needs better wording. I\u0027ll try and think some up.",
+      "parentUuid": "8ba1117b_26aedd1e",
+      "range": {
+        "startLine": 101,
+        "startChar": 13,
+        "endLine": 101,
+        "endChar": 14
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "19f7a77d_0bee257e",
         "filename": "mongo/private/roots/wiremessage/wiremessage.go",
         "patchSetId": 2
@@ -264,6 +486,24 @@
       "writtenOn": "2018-02-23T22:13:22Z",
       "side": 1,
       "message": "I\u0027ve heard a general rule that consuming packages should define interfaces.  The interfaces above for WireMessage defines the abstract behavior of a WireMessage, which seems fine.  But the interfaces below seem to be about consumers -- I would think those would go in a different package relating to connections or other abstractions that read/write messages.",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bcca03e9_77fa60fc",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "The main reason I defined these here was because they seem scoped specifically to wire messages. Basically I modeled these off of the io package, which I saw as roughly equivalent to this. I suppose we could make a package for wiremessage I/O, e.g. wiremessageio, but that feels awkward. I think eventually we could add some useful types, that mirror some of the types in the io package like io.Pipe.",
+      "parentUuid": "19f7a77d_0bee257e",
       "revId": "1c43621d87830735d598efb64c900ad8652d4883",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
