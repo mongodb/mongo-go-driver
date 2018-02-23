@@ -859,13 +859,18 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	options ...options.FindOptioner) *DocumentResult {
+	opts ...options.FindOneOptioner) *DocumentResult {
+
+	findOpts := make([]options.FindOptioner, 0, len(opts))
+	for _, opt := range opts {
+		findOpts = append(findOpts, opt.(options.FindOptioner))
+	}
+
+	findOpts = append(findOpts, Opt.Limit(1))
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
-
-	options = append(options, Opt.Limit(1))
 
 	var f *bson.Document
 	var err error
@@ -882,10 +887,10 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 			return &DocumentResult{err: err}
 		}
 
-		options = append(options, rc)
+		opts = append(opts, rc)
 	}
 
-	cursor, err := coll.Find(ctx, f, options...)
+	cursor, err := coll.Find(ctx, f, findOpts...)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}

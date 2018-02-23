@@ -25,6 +25,13 @@ type FindOptioner interface {
 	findOption()
 }
 
+// FindOneOptioner is the interface implemented by types that can be used as
+// Options for FindOne operations.
+type FindOneOptioner interface {
+	Optioner
+	findOneOption()
+}
+
 // CountOptioner is the interface implemented by types that can be used as
 // Options for Count commands.
 type CountOptioner interface {
@@ -165,7 +172,6 @@ var (
 	_ FindOptioner              = (*OptComment)(nil)
 	_ FindOptioner              = (*OptHint)(nil)
 	_ FindOptioner              = (*OptLimit)(nil)
-	_ FindOptioner              = (*OptLimit)(nil)
 	_ FindOptioner              = (*OptMaxAwaitTime)(nil)
 	_ FindOptioner              = (*OptMaxScan)(nil)
 	_ FindOptioner              = (*OptMaxTime)(nil)
@@ -179,6 +185,25 @@ var (
 	_ FindOptioner              = (*OptSkip)(nil)
 	_ FindOptioner              = (*OptSnapshot)(nil)
 	_ FindOptioner              = (*OptSort)(nil)
+	_ FindOneOptioner           = (*OptAllowPartialResults)(nil)
+	_ FindOneOptioner           = (*OptBatchSize)(nil)
+	_ FindOneOptioner           = (*OptCollation)(nil)
+	_ FindOneOptioner           = OptCursorType(0)
+	_ FindOneOptioner           = (*OptComment)(nil)
+	_ FindOneOptioner           = (*OptHint)(nil)
+	_ FindOneOptioner           = (*OptMaxAwaitTime)(nil)
+	_ FindOneOptioner           = (*OptMaxScan)(nil)
+	_ FindOneOptioner           = (*OptMaxTime)(nil)
+	_ FindOneOptioner           = (*OptMin)(nil)
+	_ FindOneOptioner           = (*OptNoCursorTimeout)(nil)
+	_ FindOneOptioner           = (*OptOplogReplay)(nil)
+	_ FindOneOptioner           = (*OptProjection)(nil)
+	_ FindOneOptioner           = (*OptReadConcern)(nil)
+	_ FindOneOptioner           = (*OptReturnKey)(nil)
+	_ FindOneOptioner           = (*OptShowRecordID)(nil)
+	_ FindOneOptioner           = (*OptSkip)(nil)
+	_ FindOneOptioner           = (*OptSnapshot)(nil)
+	_ FindOneOptioner           = (*OptSort)(nil)
 	_ InsertManyOptioner        = (*OptBypassDocumentValidation)(nil)
 	_ InsertManyOptioner        = (*OptOrdered)(nil)
 	_ InsertManyOptioner        = (*OptWriteConcern)(nil)
@@ -222,7 +247,8 @@ func (opt OptAllowPartialResults) Option(d *bson.Document) {
 	d.Append(bson.EC.Boolean("allowPartialResults", bool(opt)))
 }
 
-func (opt OptAllowPartialResults) findOption() {}
+func (opt OptAllowPartialResults) findOption()    {}
+func (opt OptAllowPartialResults) findOneOption() {}
 
 // OptArrayFilters is for internal use.
 type OptArrayFilters []*bson.Document
@@ -250,6 +276,7 @@ func (opt OptBatchSize) Option(d *bson.Document) {
 func (OptBatchSize) aggregateOption()    {}
 func (OptBatchSize) changeStreamOption() {}
 func (OptBatchSize) findOption()         {}
+func (OptBatchSize) findOneOption()      {}
 
 // OptBypassDocumentValidation is for internal use.
 type OptBypassDocumentValidation bool
@@ -282,6 +309,7 @@ func (OptCollation) countOption()             {}
 func (OptCollation) deleteOption()            {}
 func (OptCollation) distinctOption()          {}
 func (OptCollation) findOption()              {}
+func (OptCollation) findOneOption()           {}
 func (OptCollation) findOneAndDeleteOption()  {}
 func (OptCollation) findOneAndReplaceOption() {}
 func (OptCollation) findOneAndUpdateOption()  {}
@@ -298,6 +326,7 @@ func (opt OptComment) Option(d *bson.Document) {
 
 func (OptComment) aggregateOption() {}
 func (OptComment) findOption()      {}
+func (OptComment) findOneOption()   {}
 
 // OptCursorType is for internal use.
 type OptCursorType CursorType
@@ -312,7 +341,8 @@ func (opt OptCursorType) Option(d *bson.Document) {
 	}
 }
 
-func (OptCursorType) findOption() {}
+func (OptCursorType) findOption()    {}
+func (OptCursorType) findOneOption() {}
 
 // OptFullDocument is for internal use.
 type OptFullDocument string
@@ -337,8 +367,9 @@ func (opt OptHint) Option(d *bson.Document) {
 	}
 }
 
-func (OptHint) countOption() {}
-func (OptHint) findOption()  {}
+func (OptHint) countOption()   {}
+func (OptHint) findOption()    {}
+func (OptHint) findOneOption() {}
 
 // OptLimit is for internal use.
 type OptLimit int64
@@ -359,7 +390,8 @@ func (opt OptMax) Option(d *bson.Document) {
 	d.Append(bson.EC.SubDocument("max", opt.Max))
 }
 
-func (OptMax) findOption() {}
+func (OptMax) findOption()    {}
+func (OptMax) findOneOption() {}
 
 // OptMaxAwaitTime is for internal use.
 type OptMaxAwaitTime time.Duration
@@ -371,6 +403,7 @@ func (opt OptMaxAwaitTime) Option(d *bson.Document) {
 
 func (OptMaxAwaitTime) changeStreamOption() {}
 func (OptMaxAwaitTime) findOption()         {}
+func (OptMaxAwaitTime) findOneOption()      {}
 
 // OptMaxScan is for internal use.
 type OptMaxScan int64
@@ -380,7 +413,8 @@ func (opt OptMaxScan) Option(d *bson.Document) {
 	d.Append(bson.EC.Int64("maxScan", int64(opt)))
 }
 
-func (OptMaxScan) findOption() {}
+func (OptMaxScan) findOption()    {}
+func (OptMaxScan) findOneOption() {}
 
 // OptMaxTime is for internal use.
 type OptMaxTime time.Duration
@@ -394,6 +428,7 @@ func (OptMaxTime) aggregateOption()         {}
 func (OptMaxTime) countOption()             {}
 func (OptMaxTime) distinctOption()          {}
 func (OptMaxTime) findOption()              {}
+func (OptMaxTime) findOneOption()           {}
 func (OptMaxTime) findOneAndDeleteOption()  {}
 func (OptMaxTime) findOneAndReplaceOption() {}
 func (OptMaxTime) findOneAndUpdateOption()  {}
@@ -406,7 +441,8 @@ func (opt OptMin) Option(d *bson.Document) {
 	d.Append(bson.EC.SubDocument("min", opt.Min))
 }
 
-func (OptMin) findOption() {}
+func (OptMin) findOption()    {}
+func (OptMin) findOneOption() {}
 
 // OptNoCursorTimeout is for internal use.
 type OptNoCursorTimeout bool
@@ -416,7 +452,8 @@ func (opt OptNoCursorTimeout) Option(d *bson.Document) {
 	d.Append(bson.EC.Boolean("noCursorTimeout", bool(opt)))
 }
 
-func (OptNoCursorTimeout) findOption() {}
+func (OptNoCursorTimeout) findOption()    {}
+func (OptNoCursorTimeout) findOneOption() {}
 
 // OptOplogReplay is for internal use.
 type OptOplogReplay bool
@@ -426,7 +463,8 @@ func (opt OptOplogReplay) Option(d *bson.Document) {
 	d.Append(bson.EC.Boolean("oplogReplay", bool(opt)))
 }
 
-func (OptOplogReplay) findOption() {}
+func (OptOplogReplay) findOption()    {}
+func (OptOplogReplay) findOneOption() {}
 
 // OptOrdered is for internal use.
 type OptOrdered bool
@@ -462,6 +500,7 @@ func (opt OptProjection) IsFind() OptProjection {
 }
 
 func (OptProjection) findOption()              {}
+func (OptProjection) findOneOption()           {}
 func (OptProjection) findOneAndDeleteOption()  {}
 func (OptProjection) findOneAndReplaceOption() {}
 func (OptProjection) findOneAndUpdateOption()  {}
@@ -481,6 +520,7 @@ func (OptReadConcern) changeStreamOption() {}
 func (OptReadConcern) countOption()        {}
 func (OptReadConcern) distinctOption()     {}
 func (OptReadConcern) findOption()         {}
+func (OptReadConcern) findOneOption()      {}
 
 // OptResumeAfter is for internal use.
 type OptResumeAfter struct{ ResumeAfter *bson.Document }
@@ -513,7 +553,8 @@ func (opt OptReturnKey) Option(d *bson.Document) {
 	d.Append(bson.EC.Boolean("returnKey", bool(opt)))
 }
 
-func (OptReturnKey) findOption() {}
+func (OptReturnKey) findOption()    {}
+func (OptReturnKey) findOneOption() {}
 
 // OptShowRecordID is for internal use.
 type OptShowRecordID bool
@@ -523,7 +564,8 @@ func (opt OptShowRecordID) Option(d *bson.Document) {
 	d.Append(bson.EC.Boolean("showRecordId", bool(opt)))
 }
 
-func (OptShowRecordID) findOption() {}
+func (OptShowRecordID) findOption()    {}
+func (OptShowRecordID) findOneOption() {}
 
 // OptSkip is for internal use.
 type OptSkip int64
@@ -533,8 +575,9 @@ func (opt OptSkip) Option(d *bson.Document) {
 	d.Append(bson.EC.Int64("skip", int64(opt)))
 }
 
-func (OptSkip) countOption() {}
-func (OptSkip) findOption()  {}
+func (OptSkip) countOption()   {}
+func (OptSkip) findOption()    {}
+func (OptSkip) findOneOption() {}
 
 // OptSnapshot is for internal use.
 type OptSnapshot bool
@@ -544,7 +587,8 @@ func (opt OptSnapshot) Option(d *bson.Document) {
 	d.Append(bson.EC.Boolean("snapshot", bool(opt)))
 }
 
-func (OptSnapshot) findOption() {}
+func (OptSnapshot) findOption()    {}
+func (OptSnapshot) findOneOption() {}
 
 // OptSort is for internal use.
 type OptSort struct{ Sort *bson.Document }
@@ -555,6 +599,7 @@ func (opt OptSort) Option(d *bson.Document) {
 }
 
 func (OptSort) findOption()              {}
+func (OptSort) findOneOption()           {}
 func (OptSort) findOneAndDeleteOption()  {}
 func (OptSort) findOneAndReplaceOption() {}
 func (OptSort) findOneAndUpdateOption()  {}
