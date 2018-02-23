@@ -1,0 +1,295 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bff56a98_b3045511",
+        "filename": "mongo/private/roots/wiremessage/compressed.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "This probably should have a type defined and enums for each of the compressor types.",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f6a4f475_13267a28",
+        "filename": "mongo/private/roots/wiremessage/msg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "This needs to have the kind byte as well.",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1d869e35_d03c8d60",
+        "filename": "mongo/private/roots/wiremessage/msg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "This needs to have the kind byte as well.",
+      "range": {
+        "startLine": 70,
+        "startChar": 4,
+        "endLine": 70,
+        "endChar": 5
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "33c2b8ab_783fd952",
+        "filename": "mongo/private/roots/wiremessage/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "Delete this file?",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "673966fa_0edc6d2b",
+        "filename": "mongo/private/roots/wiremessage/query.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "I find \"implements\" to be an odd word here.  How about \"is required by\"?",
+      "range": {
+        "startLine": 16,
+        "startChar": 22,
+        "endLine": 16,
+        "endChar": 32
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7767a635_716fbe23",
+        "filename": "mongo/private/roots/wiremessage/query.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "Should these be namespaced somehow so they don\u0027t collide with flags from other messages?  \"QueryTailableCursor\", etc.",
+      "range": {
+        "startLine": 49,
+        "startChar": 9,
+        "endLine": 49,
+        "endChar": 18
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ccdcba62_4d2fee7d",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "I think this description is out of date re Immutable/Mutable.",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2e21bd54_c4ce7dee",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "I\u0027d rather call this \"ErrUnknownOpCode\" and so on in the message.",
+      "range": {
+        "startLine": 27,
+        "startChar": 4,
+        "endLine": 27,
+        "endChar": 20
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "22f0e13c_031d3a5a",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "Do we need this?",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7de93bb6_5916e59f",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "Add `_ OpCode \u003d 1000` which was the legacy \"OP_MSG\" (yes, we reused the name). Unlikely we\u0027d ever see it, but I\u0027d prefer we aim to be complete for historical documentation purposes.  :-)  Also, worth commenting that skipped codes are legacy codes no longer used by mongodb.",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "edea54cb_a317f3e8",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "Comment out of date.",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "885d4c77_5da4337b",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "Unmarshaler?",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ba1117b_26aedd1e",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "What do you mean \"validate themselves *as* a ...message\"?  If this is applying to structs, then I\u0027d expect this to be about validating that the struct follows the rules for the wire protocol.",
+      "range": {
+        "startLine": 101,
+        "startChar": 13,
+        "endLine": 101,
+        "endChar": 14
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "19f7a77d_0bee257e",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "I\u0027ve heard a general rule that consuming packages should define interfaces.  The interfaces above for WireMessage defines the abstract behavior of a WireMessage, which seems fine.  But the interfaces below seem to be about consumers -- I would think those would go in a different package relating to connections or other abstractions that read/write messages.",
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8168ed67_7478198a",
+        "filename": "mongo/private/roots/wiremessage/wiremessage.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-23T22:13:22Z",
+      "side": 1,
+      "message": "This is a good example why I find it odd to have this interface defined here.  \"Closing\" has nothing to do with the abstraction of a wire protocol.  I think these need to be elsewhere.",
+      "range": {
+        "startLine": 152,
+        "startChar": 29,
+        "endLine": 152,
+        "endChar": 31
+      },
+      "revId": "1c43621d87830735d598efb64c900ad8652d4883",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
