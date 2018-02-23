@@ -48,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "328cb5ab_89813a64",
+        "filename": "mongo/private/roots/command/find_one_delete.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2c81c90d_f000bd01",
+      "range": {
+        "startLine": 10,
+        "startChar": 52,
+        "endLine": 10,
+        "endChar": 59
+      },
+      "revId": "4b0b95db83197ec1caa6befd36b1ac62c3506bfe",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "325c015f_3137ac53",
         "filename": "mongo/private/roots/command/ismaster.go",
         "patchSetId": 3
@@ -68,6 +92,30 @@
       "revId": "4b0b95db83197ec1caa6befd36b1ac62c3506bfe",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fcaf15be_66d9a81d",
+        "filename": "mongo/private/roots/command/ismaster.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-23T23:28:28Z",
+      "side": 1,
+      "message": "Fixed :-)",
+      "parentUuid": "325c015f_3137ac53",
+      "range": {
+        "startLine": 9,
+        "startChar": 27,
+        "endLine": 9,
+        "endChar": 35
+      },
+      "revId": "4b0b95db83197ec1caa6befd36b1ac62c3506bfe",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
