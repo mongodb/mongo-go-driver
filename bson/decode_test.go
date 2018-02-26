@@ -808,6 +808,58 @@ func TestDecoder(t *testing.T) {
 				err      error
 			}{
 				{
+					"negative into uint8",
+					bytes.NewBuffer([]byte{
+						// length
+						0xe, 0x0, 0x0, 0x0,
+
+						// type - int32
+						0x10,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - int32(-27)
+						0xe5, 0xff, 0xff, 0xff,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz uint8
+					}{
+						0,
+					},
+					&struct {
+						Baz uint8
+					}{},
+					nil,
+				},
+				{
+					"negative into uint16",
+					bytes.NewBuffer([]byte{
+						// length
+						0xe, 0x0, 0x0, 0x0,
+
+						// type - int32
+						0x10,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - int32(-27)
+						0xe5, 0xff, 0xff, 0xff,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz uint16
+					}{
+						0,
+					},
+					&struct {
+						Baz uint16
+					}{},
+					nil,
+				},
+				{
 					"negative into uint32",
 					bytes.NewBuffer([]byte{
 						// length
@@ -886,10 +938,62 @@ func TestDecoder(t *testing.T) {
 					nil,
 				},
 				{
+					"too high for int8",
+					bytes.NewBuffer([]byte{
+						// length
+						0xe, 0x0, 0x0, 0x0,
+
+						// type - int32
+						0x10,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - int32(2^24)
+						0x0, 0x0, 0x0, 0x1,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz int8
+					}{
+						0,
+					},
+					&struct {
+						Baz int8
+					}{},
+					nil,
+				},
+				{
+					"too high for int16",
+					bytes.NewBuffer([]byte{
+						// length
+						0xe, 0x0, 0x0, 0x0,
+
+						// type - int32
+						0x10,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - int32(2^24)
+						0x0, 0x0, 0x0, 0x1,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz int16
+					}{
+						0,
+					},
+					&struct {
+						Baz int16
+					}{},
+					nil,
+				},
+				{
 					"success",
 					bytes.NewBuffer([]byte{
 						// length
-						0x3d, 0x0, 0x0, 0x0,
+						0x59, 0x0, 0x0, 0x0,
 
 						// type - int32
 						0x10,
@@ -947,18 +1051,50 @@ func TestDecoder(t *testing.T) {
 						// value - int32(8)
 						0x8, 0x0, 0x0, 0x0,
 
+						// type - int32
+						0x10,
+						// key - "i"
+						0x69, 0x0,
+						// value - int32(9)
+						0x9, 0x0, 0x0, 0x0,
+
+						// type - int32
+						0x10,
+						// key - "j"
+						0x6a, 0x0,
+						// value - int32(10)
+						0xa, 0x0, 0x0, 0x0,
+
+						// type - int32
+						0x10,
+						// key - "k"
+						0x6b, 0x0,
+						// value - int32(11)
+						0xb, 0x0, 0x0, 0x0,
+
+						// type - int32
+						0x10,
+						// key - "l"
+						0x6c, 0x0,
+						// value - int32(12)
+						0xc, 0x0, 0x0, 0x0,
+
 						// null terminator
 						0x0,
 					}),
 					&struct {
-						A uint32
-						B uint64
-						C uint
-						D int32
-						E int64
-						F int
-						G float32
-						H float64
+						A uint8
+						B uint16
+						C uint32
+						D uint64
+						E uint
+						F int8
+						G int16
+						H int32
+						I int64
+						J int
+						K float32
+						L float64
 					}{
 						1,
 						2,
@@ -968,16 +1104,24 @@ func TestDecoder(t *testing.T) {
 						6,
 						7,
 						8,
+						9,
+						10,
+						11,
+						12,
 					},
 					&struct {
-						A uint32
-						B uint64
-						C uint
-						D int32
-						E int64
-						F int
-						G float32
-						H float64
+						A uint8
+						B uint16
+						C uint32
+						D uint64
+						E uint
+						F int8
+						G int16
+						H int32
+						I int64
+						J int
+						K float32
+						L float64
 					}{},
 					nil,
 				},
@@ -1006,6 +1150,58 @@ func TestDecoder(t *testing.T) {
 				actual   interface{}
 				err      error
 			}{
+				{
+					"negative into uint8",
+					bytes.NewBuffer([]byte{
+						// length
+						0x12, 0x0, 0x0, 0x0,
+
+						// type - int64
+						0x12,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - int64(-27)
+						0xe5, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz uint8
+					}{
+						0,
+					},
+					&struct {
+						Baz uint8
+					}{},
+					nil,
+				},
+				{
+					"negative into uint16",
+					bytes.NewBuffer([]byte{
+						// length
+						0x12, 0x0, 0x0, 0x0,
+
+						// type - int64
+						0x12,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - int64(-27)
+						0xe5, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz uint16
+					}{
+						0,
+					},
+					&struct {
+						Baz uint16
+					}{},
+					nil,
+				},
 				{
 					"negative into uint32",
 					bytes.NewBuffer([]byte{
@@ -1085,6 +1281,58 @@ func TestDecoder(t *testing.T) {
 					nil,
 				},
 				{
+					"too high for int8",
+					bytes.NewBuffer([]byte{
+						// length
+						0x12, 0x0, 0x0, 0x0,
+
+						// type - int64
+						0x12,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - int64(2^56)
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz int8
+					}{
+						0,
+					},
+					&struct {
+						Baz int8
+					}{},
+					nil,
+				},
+				{
+					"too high for int16",
+					bytes.NewBuffer([]byte{
+						// length
+						0x12, 0x0, 0x0, 0x0,
+
+						// type - int64
+						0x12,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - int64(2^56)
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz int16
+					}{
+						0,
+					},
+					&struct {
+						Baz int16
+					}{},
+					nil,
+				},
+				{
 					"too high for int32",
 					bytes.NewBuffer([]byte{
 						// length
@@ -1094,7 +1342,7 @@ func TestDecoder(t *testing.T) {
 						0x12,
 						// key - "baz"
 						0x62, 0x61, 0x7a, 0x0,
-						// value - int64(2^15)
+						// value - int64(2^56)
 						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1,
 
 						// null terminator
@@ -1114,7 +1362,7 @@ func TestDecoder(t *testing.T) {
 					"success",
 					bytes.NewBuffer([]byte{
 						// length
-						0x5d, 0x0, 0x0, 0x0,
+						0x89, 0x0, 0x0, 0x0,
 
 						// type - int64
 						0x12,
@@ -1172,18 +1420,50 @@ func TestDecoder(t *testing.T) {
 						// value - int64(8)
 						0x8, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
 
+						// type - int64
+						0x12,
+						// key - "i"
+						0x69, 0x0,
+						// value - int64(9)
+						0x9, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+
+						// type - int64
+						0x12,
+						// key - "j"
+						0x6a, 0x0,
+						// value - int64(10)
+						0xa, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+
+						// type - int64
+						0x12,
+						// key - "k"
+						0x6b, 0x0,
+						// value - int64(11)
+						0xb, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+
+						// type - int64
+						0x12,
+						// key - "l"
+						0x6c, 0x0,
+						// value - int64(12)
+						0xc, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+
 						// null terminator
 						0x0,
 					}),
 					&struct {
-						A uint32
-						B uint64
-						C uint
-						D int32
-						E int64
-						F int
-						G float32
-						H float64
+						A uint8
+						B uint16
+						C uint32
+						D uint64
+						E uint
+						F int8
+						G int16
+						H int32
+						I int64
+						J int
+						K float32
+						L float64
 					}{
 						1,
 						2,
@@ -1193,16 +1473,24 @@ func TestDecoder(t *testing.T) {
 						6,
 						7,
 						8,
+						9,
+						10,
+						11,
+						12,
 					},
 					&struct {
-						A uint32
-						B uint64
-						C uint
-						D int32
-						E int64
-						F int
-						G float32
-						H float64
+						A uint8
+						B uint16
+						C uint32
+						D uint64
+						E uint
+						F int8
+						G int16
+						H int32
+						I int64
+						J int
+						K float32
+						L float64
 					}{},
 					nil,
 				},
@@ -1231,6 +1519,58 @@ func TestDecoder(t *testing.T) {
 				actual   interface{}
 				err      error
 			}{
+				{
+					"fraction into uint8",
+					bytes.NewBuffer([]byte{
+						// length
+						0x12, 0x0, 0x0, 0x0,
+
+						// type - double
+						0x1,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - double(0.5)
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xe0, 0x3f,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz uint8
+					}{
+						0,
+					},
+					&struct {
+						Baz uint8
+					}{},
+					nil,
+				},
+				{
+					"fraction into uint16",
+					bytes.NewBuffer([]byte{
+						// length
+						0x12, 0x0, 0x0, 0x0,
+
+						// type - double
+						0x1,
+						// key - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+						// value - double(0.5)
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xe0, 0x3f,
+
+						// null terminator
+						0x0,
+					}),
+					&struct {
+						Baz uint16
+					}{
+						0,
+					},
+					&struct {
+						Baz uint16
+					}{},
+					nil,
+				},
 				{
 					"fraction into uint32",
 					bytes.NewBuffer([]byte{
@@ -1417,7 +1757,7 @@ func TestDecoder(t *testing.T) {
 					"success",
 					bytes.NewBuffer([]byte{
 						// length
-						0x5d, 0x0, 0x0, 0x0,
+						0x89, 0x0, 0x0, 0x0,
 
 						// type - double
 						0x1,
@@ -1475,18 +1815,50 @@ func TestDecoder(t *testing.T) {
 						// value - double(8.0)
 						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x20, 0x40,
 
+						// type - double
+						0x1,
+						// key - "i"
+						0x69, 0x0,
+						// value - double(9.0)
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x22, 0x40,
+
+						// type - double
+						0x1,
+						// key - "j"
+						0x6a, 0x0,
+						// value - double(10.0)
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x24, 0x40,
+
+						// type - double
+						0x1,
+						// key - "k"
+						0x6b, 0x0,
+						// value - double(11.0)
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x26, 0x40,
+
+						// type - double
+						0x1,
+						// key - "j"
+						0x6c, 0x0,
+						// value - double(12.0)
+						0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x28, 0x40,
+
 						// null terminator
 						0x0,
 					}),
 					&struct {
-						A uint32
-						B uint64
-						C uint
-						D int32
-						E int64
-						F int
-						G float32
-						H float64
+						A uint8
+						B uint16
+						C uint32
+						D uint64
+						E uint
+						F int8
+						G int16
+						H int32
+						I int64
+						J int
+						K float32
+						L float64
 					}{
 						1.0,
 						2.0,
@@ -1496,16 +1868,24 @@ func TestDecoder(t *testing.T) {
 						6.0,
 						7.0,
 						8.0,
+						9.0,
+						10.0,
+						11.0,
+						12.0,
 					},
 					&struct {
-						A uint32
-						B uint64
-						C uint
-						D int32
-						E int64
-						F int
-						G float32
-						H float64
+						A uint8
+						B uint16
+						C uint32
+						D uint64
+						E uint
+						F int8
+						G int16
+						H int32
+						I int64
+						J int
+						K float32
+						L float64
 					}{},
 					nil,
 				},
