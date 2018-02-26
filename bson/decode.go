@@ -29,6 +29,8 @@ var tDocument = reflect.TypeOf((*Document)(nil))
 var tFloat32 = reflect.TypeOf(float32(0))
 var tFloat64 = reflect.TypeOf(float64(0))
 var tInt = reflect.TypeOf(int(0))
+var tInt8 = reflect.TypeOf(int8(0))
+var tInt16 = reflect.TypeOf(int16(0))
 var tInt32 = reflect.TypeOf(int32(0))
 var tInt64 = reflect.TypeOf(int64(0))
 var tJavaScriptCode = reflect.TypeOf(JavaScriptCode(""))
@@ -40,9 +42,10 @@ var tSymbol = reflect.TypeOf(Symbol(""))
 var tTime = reflect.TypeOf(time.Time{})
 var tTimestamp = reflect.TypeOf(Timestamp{})
 var tUint = reflect.TypeOf(uint(0))
+var tUint8 = reflect.TypeOf(uint8(0))
+var tUint16 = reflect.TypeOf(uint16(0))
 var tUint32 = reflect.TypeOf(uint32(0))
 var tUint64 = reflect.TypeOf(uint64(0))
-var tUint8 = reflect.TypeOf(uint8(0))
 
 var tEmpty = reflect.TypeOf((*interface{})(nil)).Elem()
 
@@ -266,6 +269,14 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		f := v.Double()
 
 		switch containerType {
+		case tUint8:
+			if f > 0 && math.Floor(f) == f && f <= float64(math.MaxUint8) {
+				val = reflect.ValueOf(uint8(f))
+			}
+		case tUint16:
+			if f > 0 && math.Floor(f) == f && f <= float64(math.MaxUint16) {
+				val = reflect.ValueOf(uint16(f))
+			}
 		case tUint32:
 			if f > 0 && math.Floor(f) == f && f <= float64(math.MaxUint32) {
 				val = reflect.ValueOf(uint32(f))
@@ -282,6 +293,14 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			u := uint64(f)
 			if uint64(uint(u)) == u {
 				val = reflect.ValueOf(uint(f))
+			}
+		case tInt8:
+			if math.Floor(f) == f && f <= float64(math.MaxInt8) {
+				val = reflect.ValueOf(int8(f))
+			}
+		case tInt16:
+			if math.Floor(f) == f && f <= float64(math.MaxInt16) {
+				val = reflect.ValueOf(int16(f))
 			}
 		case tInt32:
 			if math.Floor(f) == f && f <= float64(math.MaxInt32) {
@@ -447,6 +466,26 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		i := v.Int32()
 
 		switch containerType {
+		case tInt8:
+			if i >= int32(math.MinInt8) && i <= int32(math.MaxInt8) {
+				val = reflect.ValueOf(int8(i))
+			}
+
+		case tInt16:
+			if i >= int32(math.MinInt16) && i <= int32(math.MaxInt16) {
+				val = reflect.ValueOf(int16(i))
+			}
+
+		case tUint8:
+			if i >= 0 && i <= int32(math.MaxUint8) {
+				val = reflect.ValueOf(uint8(i))
+			}
+
+		case tUint16:
+			if i >= 0 && i <= int32(math.MaxUint16) {
+				val = reflect.ValueOf(uint16(i))
+			}
+
 		case tUint32:
 			if i < 0 {
 				return val, nil
@@ -465,12 +504,7 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			}
 
 			val = reflect.ValueOf(uint(i))
-		case tUint8:
-			if i < 0 {
-				return val, nil
-			}
 
-			val = reflect.ValueOf(uint8(i))
 		case tEmpty, tInt32, tInt64, tInt, tFloat32, tFloat64:
 			val = reflect.ValueOf(i).Convert(containerType)
 		default:
@@ -488,6 +522,26 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		i := v.Int64()
 
 		switch containerType {
+		case tInt8:
+			if i >= int64(math.MinInt8) && i <= int64(math.MaxInt8) {
+				val = reflect.ValueOf(int8(i))
+			}
+
+		case tInt16:
+			if i >= int64(math.MinInt16) && i <= int64(math.MaxInt16) {
+				val = reflect.ValueOf(int16(i))
+			}
+
+		case tUint8:
+			if i >= 0 && i <= int64(math.MaxUint8) {
+				val = reflect.ValueOf(uint8(i))
+			}
+
+		case tUint16:
+			if i >= 0 && i <= int64(math.MaxUint16) {
+				val = reflect.ValueOf(uint16(i))
+			}
+
 		case tUint32:
 			if i >= 0 && i <= math.MaxUint32 {
 				val = reflect.ValueOf(uint32(i))
