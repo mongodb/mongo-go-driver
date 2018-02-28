@@ -17,6 +17,11 @@ func TestNew(t *testing.T) {
 	New()
 }
 
+func TestString(t *testing.T) {
+	id := New()
+	require.Contains(t, id.String(), id.Hex())
+}
+
 func TestFromHex_RoundTrip(t *testing.T) {
 	before := New()
 	after, err := FromHex(before.Hex())

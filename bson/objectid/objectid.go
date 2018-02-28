@@ -45,8 +45,12 @@ func New() ObjectID {
 }
 
 // Hex returns the hex encoding of the ObjectID as a string.
-func (id *ObjectID) Hex() string {
+func (id ObjectID) Hex() string {
 	return hex.EncodeToString(id[:])
+}
+
+func (id ObjectID) String() string {
+	return fmt.Sprintf("ObjectID(%q)", id.Hex())
 }
 
 // FromHex creates a new ObjectID from a hex string. It returns an error if the hex string is not a
