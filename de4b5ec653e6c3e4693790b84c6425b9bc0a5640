@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "a69a0258_bd296315",
+        "filename": "mongo/private/roots/command/aggregate.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Think about it in terms of JSON or some other serialization.  I think people would generally expect that if Encode(X) gives Y then Decode(Y) should give X.  That\u0027s not what we\u0027re doing here because those functions aren\u0027t designed to operate on the same WireMessage.  By calling it BuildRequest and ParseResponse, we make it more apparent that the messages produced/consumed are semantically different.",
+      "parentUuid": "a03bf819_0ca8b217",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8947b3dc_d52691ee",
         "filename": "mongo/private/roots/command/cursor.go",
         "patchSetId": 5
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "Cursor is here because it was in the ops package. Since it\u0027s an interface, I don\u0027t necessarily see the problem with defining it in two places, especially since it helps ensure a separation between mongo and private.",
       "parentUuid": "8947b3dc_d52691ee",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8b6827b3_af5dc895",
+        "filename": "mongo/private/roots/command/cursor.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Ack that it\u0027s where it is now.  I think that\u0027s part of the muddled nature of what we have now.  This might benefit from a F2F discussion.",
+      "parentUuid": "b6426823_f28c9a34",
       "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -107,6 +143,24 @@
     },
     {
       "key": {
+        "uuid": "ed72ac3f_a78329b5",
+        "filename": "mongo/private/roots/command/dispatch/dispatch.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "If you see them just as helpers, then we should move them into each command as a \"Dispatch\" method on the type.  Then we can have a \"dispatcher\" package at the private root and have it called by a command\u0027s Dispatch to take the topology and a command and return a wire message response (possibly retrying).\n\nExample:\n\n// This command dispatches a retryable write\nfunc (u Update) Dispatch(ctx context.Context, t topology.Topology, c command.Interface) (result.Update, error) {\n    wireMsgResponse, serverDescription, err :\u003d dispatcher.SendRetryableWrite(ctx, t, c)\n    if err !\u003d nil {\n       return nil, err\n    }\n    return c.ParseResponse(serverDescription, wireMsgResponse)\n}\n     \n// This command dispatches a read\nfunc (f Find) Dispatch(ctx context.Context, t topology.Topology, c command.Interface) (Cursor, error) {\n    wireMsgResponse, serverDescription, err :\u003d dispatcher.SendRead(ctx, t, c)\n    if err !\u003d nil {\n       return nil, err\n    }\n    return c.ParseResponse(serverDescription, wireMsgResponse)\n}",
+      "parentUuid": "80ab714d_096c15f0",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "44488bd4_324de9c3",
         "filename": "mongo/private/roots/command/ismaster.go",
         "patchSetId": 5
@@ -142,6 +196,24 @@
     },
     {
       "key": {
+        "uuid": "3894048e_b6e56f0e",
+        "filename": "mongo/private/roots/command/ismaster.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "30f594f1_4cfd1c97",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3006aef0_7c5a01c5",
         "filename": "mongo/private/roots/command/namespace.go",
         "patchSetId": 5
@@ -174,6 +246,24 @@
       "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c2390cc_8389d8f1",
+        "filename": "mongo/private/roots/command/namespace.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "702fd433_7e45cfdc",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -259,6 +349,30 @@
     },
     {
       "key": {
+        "uuid": "68dff06d_f81ef079",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "You\u0027ll need to walk me through this F2F, I think.  It\u0027s pretty far from Dave Cheney\u0027s functional options pattern.  I wasn\u0027t a big fan of the unique approach we had for dealing with reusable command options going into BSON docs instead of just being mutators of a configuration struct, but I think the database API forces us in that direction.  Here, we\u0027re working with normal Go structs for configuration options so this extra indirection seems unnecessarily complex and I\u0027d like to better understand why the normal pattern doesn\u0027t work.",
+      "parentUuid": "92fbbf61_9065bdbb",
+      "range": {
+        "startLine": 55,
+        "startChar": 5,
+        "endLine": 55,
+        "endChar": 16
+      },
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dbfd220a_8cc4d920",
         "filename": "mongo/private/roots/connection/listener.go",
         "patchSetId": 5
@@ -288,6 +402,24 @@
       "side": 1,
       "message": "I specifically asked if we wanted this library to be the mongo networking library for Go. You agreed. Have you changed your mind?",
       "parentUuid": "dbfd220a_8cc4d920",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a2bd0a29_23604e7e",
+        "filename": "mongo/private/roots/connection/listener.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Eventually, yes, we want the private libraries to replace the rest.  That\u0027s not, however, in the scope of work we need to do for the GA release of the driver.",
+      "parentUuid": "d53f71d6_fd041a54",
       "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -329,6 +461,24 @@
     },
     {
       "key": {
+        "uuid": "ac5fae13_76e3d997",
+        "filename": "mongo/private/roots/connection/proxy.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "32fdfddf_e81b8ca9",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5cc33c3e_cc7c4c45",
         "filename": "mongo/private/roots/connection/server.go",
         "patchSetId": 5
@@ -358,6 +508,24 @@
       "side": 1,
       "message": "Refer to Listener.",
       "parentUuid": "5cc33c3e_cc7c4c45",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b30aefea_b2b988f0",
+        "filename": "mongo/private/roots/connection/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "447f4000_0f83f140",
       "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -451,6 +619,24 @@
     },
     {
       "key": {
+        "uuid": "ad6eaa50_fd1678e6",
+        "filename": "mongo/private/roots/topology/topology.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Exactly.  atomic.Value lets you swap in one immutable value for another in a way that goroutines still reading the old immutable state can finish before it gets garbage collected.  See the \"ReadMostly\" example in the docs.  So readers can keep reading topology and server descriptions without locking while we construct a new one based on a new ismaster result, then we atomically swap in the new immutable topology structure when we\u0027re done constructing it.",
+      "parentUuid": "3fe84e0a_7ce2ebb9",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "84f39bc0_ccd09260",
         "filename": "mongo/private/roots/topology/topology.go",
         "patchSetId": 5
@@ -486,6 +672,24 @@
     },
     {
       "key": {
+        "uuid": "f2024f61_e2c9241f",
+        "filename": "mongo/private/roots/topology/topology.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "51b2f829_cee0cbc8",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a2a82487_60f0e30c",
         "filename": "mongo/private/roots/topology/topology.go",
         "patchSetId": 5
@@ -518,6 +722,24 @@
       "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d83dcfa7_066d204e",
+        "filename": "mongo/private/roots/topology/topology.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c742e77e_d9db5c38",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -568,6 +790,30 @@
     },
     {
       "key": {
+        "uuid": "868b7196_97694fd3",
+        "filename": "mongo/private/roots/topology/topology.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9351e389_500db367",
+      "range": {
+        "startLine": 91,
+        "startChar": 16,
+        "endLine": 91,
+        "endChar": 22
+      },
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5dccb07b_d05edfbe",
         "filename": "mongo/private/roots/topology/topology.go",
         "patchSetId": 5
@@ -597,6 +843,24 @@
       "side": 1,
       "message": "I didn\u0027t necessarily see why we needed an entirely different type, but I\u0027m open to the idea of having this be it\u0027s own struct type.",
       "parentUuid": "5dccb07b_d05edfbe",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "866ee284_9e9f5b2d",
+        "filename": "mongo/private/roots/topology/topology.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-02-28T22:20:10Z",
+      "side": 1,
+      "message": "I had to look up what was going on.  In the existing code, SelectedServer includes the read preference that was used to select the server for later use by other things.  There\u0027s no reason that the code that calls SelectServer can\u0027t construct such a thing itself, but that\u0027s not what the current code does. So either the type SelectedServer should go away or it should continue to be a struct with \"selected server plus metadata\".",
+      "parentUuid": "5ae3ca05_e415c54e",
       "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
