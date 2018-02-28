@@ -139,6 +139,30 @@
       "revId": "4b0b95db83197ec1caa6befd36b1ac62c3506bfe",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5b441804_d9c9635c",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-28T17:27:19Z",
+      "side": 1,
+      "message": "We discussed this in a meeting, this is the result package for private and these will be translated into mongo.*Result types when passed to users.",
+      "parentUuid": "9d4aa568_91e9191f",
+      "range": {
+        "startLine": 2,
+        "startChar": 8,
+        "endLine": 2,
+        "endChar": 14
+      },
+      "revId": "4b0b95db83197ec1caa6befd36b1ac62c3506bfe",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
