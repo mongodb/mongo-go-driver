@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "3a9fc32d_4a669afa",
+        "filename": "mongo/private/roots/command/aggregate.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-02-28T22:40:26Z",
+      "side": 1,
+      "message": "I think I can settle for EncodeRequest and DecodeResponse.",
+      "parentUuid": "a69a0258_bd296315",
+      "revId": "de4b5ec653e6c3e4693790b84c6425b9bc0a5640",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8947b3dc_d52691ee",
         "filename": "mongo/private/roots/command/cursor.go",
         "patchSetId": 5
