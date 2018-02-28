@@ -123,6 +123,11 @@ type ChangeStreamOptioner interface {
 	changeStreamOption()
 }
 
+type CursorOptioner interface {
+	Optioner
+	cursorOption()
+}
+
 var (
 	_ AggregateOptioner         = (*OptAllowDiskUse)(nil)
 	_ AggregateOptioner         = (*OptBatchSize)(nil)
@@ -398,9 +403,11 @@ type OptMaxAwaitTime time.Duration
 
 // Option implements the Optioner interface.
 func (opt OptMaxAwaitTime) Option(d *bson.Document) {
-	d.Append(bson.EC.Int64("maxAwaitTimeMS", int64(time.Duration(opt)/time.Millisecond)))
+	d.Append(bson.EC.Int64("maxTimeMS", int64(time.Duration(opt)/time.Millisecond)))
 }
 
+func (OptMaxAwaitTime) aggregateOption()    {}
+func (OptMaxAwaitTime) cursorOption()       {}
 func (OptMaxAwaitTime) changeStreamOption() {}
 func (OptMaxAwaitTime) findOption()         {}
 func (OptMaxAwaitTime) findOneOption()      {}

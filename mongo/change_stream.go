@@ -43,9 +43,15 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 	}
 
 	changeStreamOptions := bson.NewDocument()
+	aggOpts := []options.AggregateOptioner{}
 
 	for _, opt := range opts {
-		opt.Option(changeStreamOptions)
+		switch t := opt.(type) {
+		case options.OptMaxAwaitTime:
+			aggOpts = append(aggOpts, t)
+		default:
+			opt.Option(changeStreamOptions)
+		}
 	}
 
 	pipelineArr.Prepend(
@@ -53,7 +59,7 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 			bson.NewDocument(
 				bson.EC.SubDocument("$changeStream", changeStreamOptions))))
 
-	cursor, err := coll.Aggregate(ctx, pipelineArr)
+	cursor, err := coll.Aggregate(ctx, pipelineArr, aggOpts...)
 	if err != nil {
 		return nil, err
 	}

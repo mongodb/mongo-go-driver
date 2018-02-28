@@ -14,6 +14,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
 )
@@ -46,7 +47,7 @@ func (e *exhaustedCursorImpl) Close(_ context.Context) error {
 }
 
 // NewCursor creates a new cursor from the given cursor result.
-func NewCursor(cursorResult bson.Reader, batchSize int32, server Server) (Cursor, error) {
+func NewCursor(cursorResult bson.Reader, batchSize int32, server Server, opts ...options.CursorOptioner) (Cursor, error) {
 	cur, err := cursorResult.Lookup("cursor")
 	if err != nil {
 		return nil, err
@@ -61,9 +62,10 @@ func NewCursor(cursorResult bson.Reader, batchSize int32, server Server) (Cursor
 	}
 	var elem *bson.Element
 	impl := &cursorImpl{
-		current:   -1,
-		batchSize: batchSize,
-		server:    server,
+		current:     -1,
+		batchSize:   batchSize,
+		server:      server,
+		getMoreOpts: opts,
 	}
 	for itr.Next() {
 		elem = itr.Element()
@@ -136,6 +138,7 @@ type cursorImpl struct {
 	cursorID     int64
 	err          error
 	server       Server
+	getMoreOpts  []options.CursorOptioner
 }
 
 func (c *cursorImpl) ID() int64 {
@@ -247,6 +250,10 @@ func (c *cursorImpl) getMore(ctx context.Context) {
 	if c.batchSize != 0 {
 		getMoreCommand.Append(bson.EC.Int32("batchSize", c.batchSize))
 	}
+	for _, opt := range c.getMoreOpts {
+		opt.Option(getMoreCommand)
+	}
+
 	getMoreRequest := msg.NewCommand(
 		msg.NextRequestID(),
 		c.namespace.DB,

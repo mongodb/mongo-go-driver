@@ -32,6 +32,7 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline *b
 	var batchSize int32
 	cursor := bson.NewDocument()
 	command.Append(bson.EC.SubDocument("cursor", cursor))
+	cursorOpts := []options.CursorOptioner{}
 
 	for _, option := range opts {
 		switch t := option.(type) {
@@ -45,6 +46,8 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline *b
 			}
 
 			option.Option(cursor)
+		case options.OptMaxAwaitTime:
+			cursorOpts = append(cursorOpts, t)
 		default:
 			option.Option(command)
 		}
@@ -55,7 +58,7 @@ func Aggregate(ctx context.Context, s *SelectedServer, ns Namespace, pipeline *b
 		return nil, internal.WrapError(err, "failed to execute aggregate")
 	}
 
-	return NewCursor(rdr, batchSize, s)
+	return NewCursor(rdr, batchSize, s, cursorOpts...)
 }
 
 // AggregationOptions are the options for the aggregate command.
