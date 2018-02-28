@@ -49,7 +49,7 @@ func (id *ObjectID) Hex() string {
 	return hex.EncodeToString(id[:])
 }
 
-func (id ObjectID) String() string {
+func (id *ObjectID) String() string {
 	return fmt.Sprintf("ObjectId(%q)", id.Hex())
 }
 
