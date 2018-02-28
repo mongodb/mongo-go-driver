@@ -50,7 +50,7 @@ func (id *ObjectID) Hex() string {
 }
 
 func (id *ObjectID) String() string {
-	return fmt.Sprintf("ObjectId(%q)", id.Hex())
+	return fmt.Sprintf("ObjectID(%q)", id.Hex())
 }
 
 // FromHex creates a new ObjectID from a hex string. It returns an error if the hex string is not a
