@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "030c0ac9_ab9b428c",
+        "filename": "bson/encode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-02T21:11:03Z",
+      "side": 1,
+      "message": "Whoops, this needs to go on the Encoder interface definition since this isn\u0027t a public type.",
+      "range": {
+        "startLine": 71,
+        "startChar": 0,
+        "endLine": 82,
+        "endChar": 92
+      },
+      "revId": "852dc6299ce5378e1558dd4248b3a5cd3fe2e9a8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
