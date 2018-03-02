@@ -131,13 +131,15 @@ func WithWriteTimeout(timeout time.Duration) Option {
 }
 
 // WithTLSConfig configures the SSL options for a connection.
-func WithTLSConfig(tlsConfig *TLSConfig) Option {
+func WithTLSConfig(tlsDefault *TLSConfig) Option {
 	return func(c *config) error {
 		c.dialer = func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error) {
 			conn, err := dialer.DialContext(ctx, network, address)
 			if err != nil {
 				return nil, err
 			}
+
+			tlsConfig := tlsDefault.MakeConfig()
 
 			if !tlsConfig.InsecureSkipVerify {
 				colonPos := strings.LastIndex(address, ":")
@@ -149,7 +151,7 @@ func WithTLSConfig(tlsConfig *TLSConfig) Option {
 				tlsConfig.ServerName = hostname
 			}
 
-			client := tls.Client(conn, &tlsConfig.Config)
+			client := tls.Client(conn, tlsConfig)
 
 			errChan := make(chan error, 1)
 			go func() {
