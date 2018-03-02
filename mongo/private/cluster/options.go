@@ -7,6 +7,9 @@
 package cluster
 
 import (
+	"bytes"
+	"strings"
+
 	"github.com/mongodb/mongo-go-driver/mongo/connstring"
 	"github.com/mongodb/mongo-go-driver/mongo/private/auth"
 	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
@@ -100,7 +103,46 @@ func WithConnString(cs connstring.ConnString) Option {
 			c.replicaSetName = cs.ReplicaSet
 		}
 
-		if cs.Username != "" || cs.AuthMechanism == auth.GSSAPI {
+		var x509Username string
+		if cs.SSL {
+			tls := conn.NewTLSConfig()
+
+			if cs.SSLCaFileSet {
+				err := tls.AddCaCertFromFile(cs.SSLCaFile)
+				if err != nil {
+					return err
+				}
+			}
+
+			if cs.SSLInsecure {
+				tls.SetInsecure(true)
+			}
+
+			if cs.SSLClientCertificateKeyFileSet {
+				s, err := tls.AddClientCertFromFile(cs.SSLClientCertificateKeyFile)
+				if err != nil {
+					return err
+				}
+
+				// The Go x509 package gives the subject with the pairs in reverse order that we want.
+				pairs := strings.Split(s, ",")
+				b := bytes.NewBufferString("")
+
+				for i := len(pairs) - 1; i >= 0; i-- {
+					b.WriteString(pairs[i])
+
+					if i > 0 {
+						b.WriteString(",")
+					}
+				}
+
+				x509Username = b.String()
+			}
+
+			connOpts = append(connOpts, conn.WithTLSConfig(tls))
+		}
+
+		if cs.Username != "" || cs.AuthMechanism == auth.MongoDBX509 || cs.AuthMechanism == auth.GSSAPI {
 			cred := &auth.Cred{
 				Source:      "admin",
 				Username:    cs.Username,
@@ -113,6 +155,11 @@ func WithConnString(cs connstring.ConnString) Option {
 				cred.Source = cs.AuthSource
 			} else {
 				switch cs.AuthMechanism {
+				case auth.MongoDBX509:
+					if cred.Username == "" {
+						cred.Username = x509Username
+					}
+					fallthrough
 				case auth.GSSAPI, auth.PLAIN:
 					cred.Source = "$external"
 				default:
@@ -131,23 +178,6 @@ func WithConnString(cs connstring.ConnString) Option {
 					return auth.Opener(current, authenticator)
 				}),
 			)
-		}
-
-		if cs.SSL {
-			tls := conn.NewTLSConfig()
-
-			if cs.SSLCaFileSet {
-				err := tls.AddCaCertFromFile(cs.SSLCaFile)
-				if err != nil {
-					return err
-				}
-			}
-
-			if cs.SSLInsecure {
-				tls.SetInsecure(true)
-			}
-
-			connOpts = append(connOpts, conn.WithTLSConfig(tls))
 		}
 
 		if len(connOpts) > 0 {

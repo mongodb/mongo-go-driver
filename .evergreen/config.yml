@@ -181,6 +181,7 @@ functions:
       params:
         script: |
           ${PREPARE_SHELL}
+
           for filename in $(find ${DRIVERS_TOOLS} -name \*.json); do
             perl -p -i -e "s|ABSOLUTE_PATH_REPLACEMENT_TOKEN|${DRIVERS_TOOLS}|g" $filename
           done
@@ -195,8 +196,6 @@ functions:
             cat $i | tr -d '\r' > $i.new
             mv $i.new $i
           done
-
-          cp ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
 
 
   make-files-executable:
@@ -236,8 +235,17 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
+          cp ${PROJECT_DIRECTORY}/data/certificates/server.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/server.pem
+          cp ${PROJECT_DIRECTORY}/data/certificates/ca.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem
+          cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem
+          cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
+
           if [ ${SSL} = "ssl" ]; then
-              export MONGO_GO_DRIVER_CA_FILE="$DRIVERS_TOOLS/.evergreen/x509gen/ca.pem"
+              export MONGO_GO_DRIVER_CA_FILE="$PROJECT_DIRECTORY/data/certificates/ca.pem"
+
+              if [ "Windows_NT" == "$OS" ]; then # Magic variable in cygwin
+                  export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
+              fi
           fi
 
           AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} make evg-test
