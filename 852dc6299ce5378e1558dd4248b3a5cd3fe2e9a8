@@ -22,6 +22,30 @@
       "revId": "852dc6299ce5378e1558dd4248b3a5cd3fe2e9a8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b91d602e_a709d132",
+        "filename": "bson/encode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-02T21:55:18Z",
+      "side": 1,
+      "message": "Done, although we\u0027ll have to make sure to update the documentation if we add other implementers that behave differently.",
+      "parentUuid": "030c0ac9_ab9b428c",
+      "range": {
+        "startLine": 71,
+        "startChar": 0,
+        "endLine": 82,
+        "endChar": 92
+      },
+      "revId": "852dc6299ce5378e1558dd4248b3a5cd3fe2e9a8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
