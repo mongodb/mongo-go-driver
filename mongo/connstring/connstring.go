@@ -32,41 +32,43 @@ func Parse(s string) (ConnString, error) {
 
 // ConnString represents a connection string to mongodb.
 type ConnString struct {
-	Original                string
-	AppName                 string
-	AuthMechanism           string
-	AuthMechanismProperties map[string]string
-	AuthSource              string
-	Connect                 ConnectMode
-	ConnectTimeout          time.Duration
-	Database                string
-	HeartbeatInterval       time.Duration
-	Hosts                   []string
-	J                       bool
-	JSet                    bool
-	LocalThreshold          time.Duration
-	MaxConnIdleTime         time.Duration
-	MaxConnLifeTime         time.Duration
-	MaxConnsPerHost         uint16
-	MaxConnsPerHostSet      bool
-	MaxIdleConnsPerHost     uint16
-	MaxIdleConnsPerHostSet  bool
-	Password                string
-	PasswordSet             bool
-	ReadConcernLevel        string
-	ReadPreference          string
-	ReadPreferenceTagSets   []map[string]string
-	ReplicaSet              string
-	ServerSelectionTimeout  time.Duration
-	SocketTimeout           time.Duration
-	SSL                     bool
-	SSLInsecure             bool
-	SSLCaFile               string
-	SSLCaFileSet            bool
-	WString                 string
-	WNumber                 int
-	WNumberSet              bool
-	Username                string
+	Original                       string
+	AppName                        string
+	AuthMechanism                  string
+	AuthMechanismProperties        map[string]string
+	AuthSource                     string
+	Connect                        ConnectMode
+	ConnectTimeout                 time.Duration
+	Database                       string
+	HeartbeatInterval              time.Duration
+	Hosts                          []string
+	J                              bool
+	JSet                           bool
+	LocalThreshold                 time.Duration
+	MaxConnIdleTime                time.Duration
+	MaxConnLifeTime                time.Duration
+	MaxConnsPerHost                uint16
+	MaxConnsPerHostSet             bool
+	MaxIdleConnsPerHost            uint16
+	MaxIdleConnsPerHostSet         bool
+	Password                       string
+	PasswordSet                    bool
+	ReadConcernLevel               string
+	ReadPreference                 string
+	ReadPreferenceTagSets          []map[string]string
+	ReplicaSet                     string
+	ServerSelectionTimeout         time.Duration
+	SocketTimeout                  time.Duration
+	SSL                            bool
+	SSLClientCertificateKeyFile    string
+	SSLClientCertificateKeyFileSet bool
+	SSLInsecure                    bool
+	SSLCaFile                      string
+	SSLCaFileSet                   bool
+	WString                        string
+	WNumber                        int
+	WNumberSet                     bool
+	Username                       string
 
 	WTimeout    time.Duration
 	WTimeoutSet bool
@@ -441,6 +443,10 @@ func (p *parser) addOption(pair string) error {
 		default:
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
+	case "sslclientcertificatekeyfile":
+		p.SSL = true
+		p.SSLClientCertificateKeyFile = value
+		p.SSLClientCertificateKeyFileSet = true
 	case "sslinsecure":
 		switch value {
 		case "true":
