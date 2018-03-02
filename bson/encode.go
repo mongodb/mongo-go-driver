@@ -68,6 +68,18 @@ func NewDocumentEncoder() DocumentEncoder {
 }
 
 // Encode encodes a value from an io.Writer into the given value.
+//
+// The value can be any one of the following types:
+//
+//   - bson.Marshaler
+//   - io.Reader
+//   - []byte
+//   - bson.Reader
+//   - any map with string keys
+//   - a struct (possibly with tags)
+//
+// In the case of a map or struct, Encode will interpret the value as a BSON document with the map
+// keys or struct field names as the keys and the map values or struct fields as the values.
 func (e *encoder) Encode(v interface{}) error {
 	var err error
 
@@ -128,6 +140,8 @@ func (e *encoder) Encode(v interface{}) error {
 
 // EncodeDocument encodes a value from an io.Writer into the given value and returns the document
 // it represents.
+//
+// EncodeDocument accepts the same types as Encoder.Encode.
 func (e *encoder) EncodeDocument(v interface{}) (*Document, error) {
 	var err error
 
