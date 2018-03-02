@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "009247df_809d58c4",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 126,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-02T21:08:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0f4acb20_b1495a83",
+      "range": {
+        "startLine": 121,
+        "startChar": 0,
+        "endLine": 126,
+        "endChar": 34
+      },
+      "revId": "deae511d92970c39a6d9f43cb4ca35763987cf90",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5d493f29_df4b57c4",
         "filename": "bson/encode.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2018-03-02T20:43:49Z",
       "side": 1,
       "message": "Same goes for this list.",
+      "range": {
+        "startLine": 74,
+        "startChar": 0,
+        "endLine": 79,
+        "endChar": 34
+      },
+      "revId": "deae511d92970c39a6d9f43cb4ca35763987cf90",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "57bf03df_4d532900",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-02T21:08:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5d493f29_df4b57c4",
       "range": {
         "startLine": 74,
         "startChar": 0,
