@@ -24,6 +24,7 @@ func TestCreateAuthenticator(t *testing.T) {
 		{name: "SCRAM-SHA-1", auther: &ScramSHA1Authenticator{}},
 		{name: "MONGODB-CR", auther: &MongoDBCRAuthenticator{}},
 		{name: "PLAIN", auther: &PlainAuthenticator{}},
+		{name: "MONGODB-X509", auther: &MongoDBX509Authenticator{}},
 	}
 
 	for _, test := range tests {

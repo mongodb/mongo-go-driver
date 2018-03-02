@@ -25,6 +25,7 @@ func init() {
 	RegisterAuthenticatorFactory(MONGODBCR, newMongoDBCRAuthenticator)
 	RegisterAuthenticatorFactory(PLAIN, newPlainAuthenticator)
 	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
+	RegisterAuthenticatorFactory(MongoDBX509, newMongoDBX509Authenticator)
 }
 
 // CreateAuthenticator creates an authenticator.
@@ -82,7 +83,7 @@ func newError(err error, mech string) error {
 	}
 }
 
-// Error is an error that occured during authentication.
+// Error is an error that occurred during authentication.
 type Error struct {
 	message string
 	inner   error
