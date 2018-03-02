@@ -115,6 +115,18 @@ func NewDecoder(r io.Reader) *Decoder {
 }
 
 // Decode decodes the BSON document from the underlying io.Reader into the given value.
+//
+// The value can be any one of the following types:
+//
+// * bson.Unmarshaler
+// * io.Writer
+// * []byte
+// * bson.Reader
+// * any map with string keys
+// * a struct (possibly with tags)
+//
+// In the case of a map or struct, Decode will treat the value as a BSON document with the map keys
+// or struct field names as the keys and the map values or struct fields as the values.
 func (d *Decoder) Decode(v interface{}) error {
 	switch t := v.(type) {
 	case Unmarshaler:
