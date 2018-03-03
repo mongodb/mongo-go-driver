@@ -399,6 +399,7 @@ func convertValueToElem(key string, v *Value) *Element {
 
 	elem := newElement(0, uint32(keyLen+2))
 	elem.value.data = d
+	elem.value.d = v.d
 
 	return elem
 }

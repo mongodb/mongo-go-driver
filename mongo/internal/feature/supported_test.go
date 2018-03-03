@@ -10,27 +10,27 @@ import (
 	"testing"
 
 	. "github.com/mongodb/mongo-go-driver/mongo/internal/feature"
-	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMaxStaleness(t *testing.T) {
-	wireVersionSupported := model.NewRange(0, 5)
-	wireVersionUnsupported := model.NewRange(0, 4)
+	wireVersionSupported := description.NewVersionRange(0, 5)
+	wireVersionUnsupported := description.NewVersionRange(0, 4)
 
 	tests := []struct {
-		version  model.Version
-		wire     *model.Range
+		version  description.Version
+		wire     *description.VersionRange
 		expected bool
 	}{
-		{model.Version{Parts: []uint8{2, 4, 0}}, nil, false},
-		{model.Version{Parts: []uint8{3, 3, 99}}, nil, false},
-		{model.Version{Parts: []uint8{3, 4, 0}}, nil, true},
-		{model.Version{Parts: []uint8{3, 4, 1}}, nil, true},
-		{model.Version{Parts: []uint8{2, 4, 0}}, &wireVersionSupported, false},
-		{model.Version{Parts: []uint8{2, 4, 0}}, &wireVersionUnsupported, false},
-		{model.Version{Parts: []uint8{3, 4, 1}}, &wireVersionSupported, true},
-		{model.Version{Parts: []uint8{3, 4, 1}}, &wireVersionUnsupported, false},
+		{description.Version{Parts: []uint8{2, 4, 0}}, nil, false},
+		{description.Version{Parts: []uint8{3, 3, 99}}, nil, false},
+		{description.Version{Parts: []uint8{3, 4, 0}}, nil, true},
+		{description.Version{Parts: []uint8{3, 4, 1}}, nil, true},
+		{description.Version{Parts: []uint8{2, 4, 0}}, &wireVersionSupported, false},
+		{description.Version{Parts: []uint8{2, 4, 0}}, &wireVersionUnsupported, false},
+		{description.Version{Parts: []uint8{3, 4, 1}}, &wireVersionSupported, true},
+		{description.Version{Parts: []uint8{3, 4, 1}}, &wireVersionUnsupported, false},
 	}
 
 	for _, test := range tests {

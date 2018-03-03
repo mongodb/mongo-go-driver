@@ -10,8 +10,9 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
-	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
 // MongoDBX509 is the mechanism name for MongoDBX509.
@@ -27,24 +28,19 @@ type MongoDBX509Authenticator struct {
 }
 
 // Auth implements the Authenticator interface.
-func (a *MongoDBX509Authenticator) Auth(ctx context.Context, c conn.Connection) error {
+func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
 	authRequestDoc := bson.NewDocument(
 		bson.EC.Int32("authenticate", 1),
 		bson.EC.String("mechanism", MongoDBX509),
 	)
 
-	if !c.Model().Version.AtLeast(3, 4) {
+	if !desc.Version.AtLeast(3, 4) {
 		authRequestDoc.Append(bson.EC.String("user", a.User))
 	}
 
-	authRequest := msg.NewCommand(
-		msg.NextRequestID(),
-		"$external",
-		true,
-		authRequestDoc,
-	)
-
-	_, err := conn.ExecuteCommand(ctx, c, authRequest)
+	authCmd := command.Command{DB: "$external", Command: authRequestDoc}
+	ssdesc := description.SelectedServer{Server: desc}
+	_, err := authCmd.RoundTrip(ctx, ssdesc, rw)
 	if err != nil {
 		return err
 	}
