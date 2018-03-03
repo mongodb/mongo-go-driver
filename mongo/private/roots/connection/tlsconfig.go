@@ -15,3 +15,7 @@ func (*TLSConfig) SetInsecure(allow bool) { return }
 // AddCACertFromFile adds a root CA certificate to the configuration given a path
 // to the containing file.
 func (*TLSConfig) AddCACertFromFile(file string) error { return nil }
+
+// Clone returns a shallow clone of c. It is safe to clone a Config that is being
+// used concurrently by a TLS client or server.
+func (c *TLSConfig) Clone() *TLSConfig { return &TLSConfig{*(c.Config.Clone())} }
