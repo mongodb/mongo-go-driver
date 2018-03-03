@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/result"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
@@ -22,11 +23,11 @@ type Delete struct {
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (d *Delete) Encode(topology.ServerDescription) (wiremessage.WireMessage, error) { return nil, nil }
+func (d *Delete) Encode(description.Server) (wiremessage.WireMessage, error) { return nil, nil }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (d *Delete) Decode(topology.ServerDescription, wiremessage.WireMessage) *Delete {
+func (d *Delete) Decode(description.Server, wiremessage.WireMessage) *Delete {
 	return nil
 }
 
@@ -43,6 +44,6 @@ func (d *Delete) Dispatch(context.Context, topology.Topology) (result.Delete, er
 }
 
 // RoundTrip handles the execution of this command using the provided connection.
-func (d *Delete) RoundTrip(context.Context, topology.ServerDescription, connection.Connection) (result.Delete, error) {
+func (d *Delete) RoundTrip(context.Context, description.Server, connection.Connection) (result.Delete, error) {
 	return result.Delete{}, nil
 }

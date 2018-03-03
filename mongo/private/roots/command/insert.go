@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
@@ -23,11 +24,11 @@ type Insert struct {
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (i *Insert) Encode(topology.ServerDescription) (wiremessage.WireMessage, error) { return nil, nil }
+func (i *Insert) Encode(description.Server) (wiremessage.WireMessage, error) { return nil, nil }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (i *Insert) Decode(topology.ServerDescription, wiremessage.WireMessage) *Insert { return nil }
+func (i *Insert) Decode(description.Server, wiremessage.WireMessage) *Insert { return nil }
 
 // Result returns the result of a decoded wire message and server description.
 func (i *Insert) Result() error { return nil }
@@ -37,6 +38,6 @@ func (i *Insert) Result() error { return nil }
 func (i *Insert) Dispatch(context.Context, topology.Topology) error { return nil }
 
 // RoundTrip handles the execution of this command using the provided connection.
-func (i *Insert) RoundTrip(context.Context, topology.ServerDescription, connection.Connection) error {
+func (i *Insert) RoundTrip(context.Context, description.Server, connection.Connection) error {
 	return nil
 }

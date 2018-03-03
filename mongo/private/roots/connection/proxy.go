@@ -9,6 +9,8 @@ import "github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 // not be forwarded onto the server. If there is not an error the returned message
 // will be passed onto the server. If both the return message and the error are nil,
 // the original wiremessage will be passed onto the server.
+//
+// TODO(GODRIVER-268): Implement this.
 type Proxy struct {
 	Processor wiremessage.Transformer
 	Pool      Pool

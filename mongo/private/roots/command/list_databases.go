@@ -3,8 +3,9 @@ package command
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
@@ -17,13 +18,13 @@ type ListDatabases struct {
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (ld *ListDatabases) Encode(topology.ServerDescription) (wiremessage.WireMessage, error) {
+func (ld *ListDatabases) Encode(description.Server) (wiremessage.WireMessage, error) {
 	return nil, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (ld *ListDatabases) Decode(topology.ServerDescription, wiremessage.WireMessage) *ListDatabases {
+func (ld *ListDatabases) Decode(description.Server, wiremessage.WireMessage) *ListDatabases {
 	return nil
 }
 
@@ -40,6 +41,6 @@ func (ld *ListDatabases) Dispatch(context.Context, topology.Topology) (Cursor, e
 }
 
 // RoundTrip handles the execution of this command using the provided connection.
-func (ld *ListDatabases) RoundTrip(context.Context, topology.ServerDescription, connection.Connection) (Cursor, error) {
+func (ld *ListDatabases) RoundTrip(context.Context, description.Server, connection.Connection) (Cursor, error) {
 	return nil, nil
 }

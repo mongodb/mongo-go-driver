@@ -5,6 +5,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
@@ -18,13 +19,13 @@ type Command struct {
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (c *Command) Encode(topology.ServerDescription) (wiremessage.WireMessage, error) {
+func (c *Command) Encode(description.Server) (wiremessage.WireMessage, error) {
 	return nil, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (c *Command) Decode(topology.ServerDescription, wiremessage.WireMessage) *Command {
+func (c *Command) Decode(description.Server, wiremessage.WireMessage) *Command {
 	return nil
 }
 
@@ -41,6 +42,6 @@ func (c *Command) Dispatch(context.Context, topology.Topology) (bson.Reader, err
 }
 
 // RoundTrip handles the execution of this command using the provided connection.
-func (c *Command) RoundTrip(context.Context, topology.ServerDescription, connection.Connection) (bson.Reader, error) {
+func (c *Command) RoundTrip(context.Context, description.Server, connection.Connection) (bson.Reader, error) {
 	return nil, nil
 }
