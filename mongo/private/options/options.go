@@ -144,6 +144,13 @@ type ListIndexesOptioner interface {
 	listIndexesOption()
 }
 
+// CursorOptioner is the interface implemented by types that can be used as
+// Options for Cursor operations.
+type CursorOptioner interface {
+	Optioner
+	cursorOption()
+}
+
 var (
 	_ AggregateOptioner         = (*OptAllowDiskUse)(nil)
 	_ AggregateOptioner         = (*OptBatchSize)(nil)
@@ -159,6 +166,7 @@ var (
 	_ CountOptioner             = (*OptMaxTime)(nil)
 	_ CountOptioner             = (*OptReadConcern)(nil)
 	_ CountOptioner             = (*OptSkip)(nil)
+	_ CursorOptioner            = OptBatchSize(0)
 	_ DeleteOptioner            = (*OptCollation)(nil)
 	_ DeleteOptioner            = (*OptWriteConcern)(nil)
 	_ DistinctOptioner          = (*OptCollation)(nil)
@@ -233,6 +241,7 @@ var (
 	_ InsertOptioner            = (*OptBypassDocumentValidation)(nil)
 	_ InsertOptioner            = (*OptOrdered)(nil)
 	_ InsertOptioner            = (*OptWriteConcern)(nil)
+	_ ListIndexesOptioner       = OptBatchSize(0)
 	_ ReplaceOptioner           = (*OptBypassDocumentValidation)(nil)
 	_ ReplaceOptioner           = (*OptCollation)(nil)
 	_ ReplaceOptioner           = (*OptUpsert)(nil)
@@ -298,6 +307,8 @@ func (OptBatchSize) aggregateOption()    {}
 func (OptBatchSize) changeStreamOption() {}
 func (OptBatchSize) findOption()         {}
 func (OptBatchSize) findOneOption()      {}
+func (OptBatchSize) listIndexesOption()  {}
+func (OptBatchSize) cursorOption()       {}
 
 // OptBypassDocumentValidation is for internal use.
 type OptBypassDocumentValidation bool
