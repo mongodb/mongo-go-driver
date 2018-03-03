@@ -10,8 +10,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/mongo/model"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/addr"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
 // AuthenticatorFactory constructs an authenticator.
@@ -42,38 +45,75 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 	authFactories[name] = factory
 }
 
-// Opener returns a connection opener that will open and authenticate the connection.
-func Opener(opener conn.Opener, authenticator Authenticator) conn.Opener {
-	return func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
-		return NewConnection(ctx, authenticator, opener, addr, opts...)
-	}
-}
+// // Opener returns a connection opener that will open and authenticate the connection.
+// func Opener(opener conn.Opener, authenticator Authenticator) conn.Opener {
+// 	return func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+// 		return NewConnection(ctx, authenticator, opener, addr, opts...)
+// 	}
+// }
+//
+// // NewConnection opens a connection and authenticates it.
+// func NewConnection(ctx context.Context, authenticator Authenticator, opener conn.Opener, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+// 	conn, err := opener(ctx, addr, opts...)
+// 	if err != nil {
+// 		if conn != nil {
+// 			// Ignore any error that occurs since we're already returning a different one.
+// 			_ = conn.Close()
+// 		}
+// 		return nil, err
+// 	}
+//
+// 	err = authenticator.Auth(ctx, conn)
+// 	if err != nil {
+// 		// Ignore any error that occurs since we're already returning a different one.
+// 		_ = conn.Close()
+// 		return nil, err
+// 	}
+//
+// 	return conn, nil
+// }
 
-// NewConnection opens a connection and authenticates it.
-func NewConnection(ctx context.Context, authenticator Authenticator, opener conn.Opener, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
-	conn, err := opener(ctx, addr, opts...)
-	if err != nil {
-		if conn != nil {
-			// Ignore any error that occurs since we're already returning a different one.
-			_ = conn.Close()
+// Configurer creates a connection configurer for the given authenticator.
+//
+// TODO(skriptble): Fully implement this once this package is moved over to the new connection type.
+// func Configurer(configurer connection.Configurer, authenticator Authenticator) connection.Configurer {
+// 	return connection.ConfigurerFunc(func(ctx context.Context, conn connection.Connection) (connection.Connection, error) {
+// 		err := authenticator.Auth(ctx, conn)
+// 		if err != nil {
+// 			conn.Close()
+// 			return nil, err
+// 		}
+// 		if configurer == nil {
+// 			return conn, nil
+// 		}
+// 		return configurer.Configure(ctx, conn)
+// 	})
+// }
+
+// Handshaker creates a connection handshaker for the given authenticator. The
+// handshaker will handle calling isMaster and buildInfo.
+func Handshaker(appName string, h connection.Handshaker, authenticator Authenticator) connection.Handshaker {
+	return connection.HandshakerFunc(func(ctx context.Context, address addr.Addr, rw wiremessage.ReadWriter) (description.Server, error) {
+		desc, err := (&command.Handshake{Client: command.ClientDoc(appName)}).Handshake(ctx, address, rw)
+		if err != nil {
+			return description.Server{}, err
 		}
-		return nil, err
-	}
 
-	err = authenticator.Auth(ctx, conn)
-	if err != nil {
-		// Ignore any error that occurs since we're already returning a different one.
-		_ = conn.Close()
-		return nil, err
-	}
-
-	return conn, nil
+		err = authenticator.Auth(ctx, desc, rw)
+		if err != nil {
+			return description.Server{}, err
+		}
+		if h == nil {
+			return desc, nil
+		}
+		return h.Handshake(ctx, address, rw)
+	})
 }
 
 // Authenticator handles authenticating a connection.
 type Authenticator interface {
 	// Auth authenticates the connection.
-	Auth(context.Context, conn.Connection) error
+	Auth(context.Context, description.Server, wiremessage.ReadWriter) error
 }
 
 func newError(err error, mech string) error {

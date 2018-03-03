@@ -6,144 +6,394 @@ package topology
 
 import (
 	"context"
+	"errors"
+	"math/rand"
+	"sync"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/connstring"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/result"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/addr"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 )
 
+// ErrSubscribeAfterClosed is returned when a user attempts to subscribe to a
+// closed Server or Topology.
+var ErrSubscribeAfterClosed = errors.New("cannot subscribe after close")
+
+// ErrTopologyClosed is returned when a user attempts to call a method on a
+// closed Topology.
+var ErrTopologyClosed = errors.New("topology is closed")
+
+// ErrServerSelectionTimeout is returned from server selection when the server
+// selection process took longer than allowed by the timeout.
+var ErrServerSelectionTimeout = errors.New("server selection timeout")
+
+// MonitorMode represents the way in which a server is monitored.
 type MonitorMode uint8
 
+// These constants are the available monitoring modes.
 const (
 	AutomaticMode MonitorMode = iota
 	SingleMode
 )
 
 // Topology respresents a MongoDB deployment.
-type Topology struct{}
+type Topology struct {
+	// There are too many closed booleans, but we can fix that later
+	// with a refactor. For now, just making a definitive one to guard
+	// the Close method.
+	closed      bool
+	initialized bool
+	l           sync.Mutex
 
-func New(...Option) (*Topology, error)              { return nil, nil }
-func (*Topology) Close() error                      { return nil }
-func (*Topology) Description() Description          { return Description{} }
-func (*Topology) Subscribe() (*Subscription, error) { return nil, nil }
-func (*Topology) RequestImmediateCheck()            { return }
-func (*Topology) SelectServer(context.Context, ServerSelector, readpref.ReadPref) (*SelectedServer, error) {
-	// It doesn't seem like we also need a separate SelectServer method in this package like the cluster
-	// package has. This is especially true since we are trying not to expose monitors.
-	return nil, nil
+	cfg *config
+
+	desc description.Topology
+	dmtx sync.Mutex
+
+	fsm     *fsm
+	changes chan description.Server
+
+	subscribers         map[uint64]chan description.Topology
+	currentSubscriberID uint64
+	subscriptionsClosed bool
+	subLock             sync.Mutex
+
+	serversLock   sync.Mutex
+	serversClosed bool
+	servers       map[addr.Addr]*Server
+
+	wg sync.WaitGroup
+}
+
+// New creates a new topology.
+func New(opts ...Option) (*Topology, error) {
+	cfg, err := newConfig(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	t := &Topology{
+		cfg:         cfg,
+		fsm:         newFSM(),
+		changes:     make(chan description.Server),
+		subscribers: make(map[uint64]chan description.Topology),
+		servers:     make(map[addr.Addr]*Server),
+	}
+
+	if cfg.replicaSetName != "" {
+		t.fsm.SetName = cfg.replicaSetName
+		t.fsm.Kind = description.ReplicaSetNoPrimary
+	}
+
+	if cfg.mode == SingleMode {
+		t.fsm.Kind = description.Single
+	}
+
+	return t, nil
+}
+
+// Init initializes a Topology and starts the monitoring process. This function
+// must be called to properly monitor the topology.
+func (t *Topology) Init() {
+	t.l.Lock()
+	defer t.l.Unlock()
+	if t.initialized {
+		return
+	}
+	t.initialized = true
+
+	t.serversLock.Lock()
+	for _, a := range t.cfg.seedList {
+		address := addr.Addr(a).Canonicalize()
+		t.fsm.Servers = append(t.fsm.Servers, description.Server{Addr: address})
+		t.addServer(address)
+	}
+	t.serversLock.Unlock()
+
+	go t.update()
+}
+
+// Close closes the topology. It stops the monitoring thread and
+// closes all open subscriptions.
+func (t *Topology) Close() error {
+	t.l.Lock()
+	defer t.l.Unlock()
+	if t.closed {
+		return nil
+	}
+	t.closed = true
+
+	t.serversLock.Lock()
+	t.serversClosed = true
+	for address, server := range t.servers {
+		t.removeServer(address, server)
+	}
+	t.serversLock.Unlock()
+
+	t.wg.Wait()
+	close(t.changes)
+
+	t.dmtx.Lock()
+	t.desc = description.Topology{}
+	t.dmtx.Unlock()
+
+	return nil
+}
+
+// Description returns a description of the topology.
+func (t *Topology) Description() description.Topology {
+	t.dmtx.Lock()
+	defer t.dmtx.Unlock()
+	return t.desc
+}
+
+// Subscribe returns a Subscription on which all updated description.Topologys
+// will be sent. The channel of the subscription will have a buffer size of one,
+// and will be pre-populated with the current description.Topology.
+func (t *Topology) Subscribe() (*Subscription, error) {
+	ch := make(chan description.Topology, 1)
+	t.dmtx.Lock()
+	ch <- t.desc
+	t.dmtx.Unlock()
+
+	t.subLock.Lock()
+	defer t.subLock.Unlock()
+	if t.subscriptionsClosed {
+		return nil, ErrSubscribeAfterClosed
+	}
+	id := t.currentSubscriberID
+	t.subscribers[id] = ch
+	t.currentSubscriberID++
+
+	return &Subscription{
+		C:  ch,
+		t:  t,
+		id: id,
+	}, nil
+}
+
+// RequestImmediateCheck will send heartbeats to all the servers in the
+// topology right away, instead of waiting for the heartbeat timeout.
+func (t *Topology) RequestImmediateCheck() {
+	t.serversLock.Lock()
+	for _, server := range t.servers {
+		server.RequestImmediateCheck()
+	}
+	t.serversLock.Unlock()
+}
+
+// SelectServer selects a server given a selector.SelectServer complies with the
+// server selection spec, and will time out after severSelectionTimeout or when the
+// parent context is done.
+func (t *Topology) SelectServer(ctx context.Context, ss ServerSelector) (*SelectedServer, error) {
+	var ssTimeoutCh <-chan time.Time
+
+	if t.cfg.serverSelectionTimeout > 0 {
+		ssTimeout := time.NewTimer(t.cfg.serverSelectionTimeout)
+		ssTimeoutCh = ssTimeout.C
+	}
+
+	sub, err := t.Subscribe()
+	if err != nil {
+		return nil, err
+	}
+	defer sub.Unsubscribe()
+
+	for {
+		suitable, err := t.selectServer(ctx, sub.C, ss, ssTimeoutCh)
+		if err != nil {
+			return nil, err
+		}
+
+		selected := suitable[rand.Intn(len(suitable))]
+		selectedS, err := t.findServer(selected)
+		switch {
+		case err != nil:
+			return nil, err
+		case selectedS != nil:
+			return selectedS, nil
+		default:
+			// We don't have an actual server for the provided description.
+			// This could happen for a number of reasons, including that the
+			// server has since stopped being a part of this topology, or that
+			// the server selector returned no suitable servers.
+		}
+	}
+}
+
+// findServer will attempt to find a server that fits the given server description.
+// This method will return nil, nil if a matching server could not be found.
+func (t *Topology) findServer(selected description.Server) (*SelectedServer, error) {
+	t.l.Lock()
+	defer t.l.Unlock()
+	if t.closed {
+		return nil, ErrTopologyClosed
+	}
+	server, ok := t.servers[selected.Addr]
+	if !ok {
+		return nil, nil
+	}
+
+	return &SelectedServer{
+		Server: server,
+	}, nil
+}
+
+// selectServer is the core piece of server selection. It handles getting
+// topology descriptions and running sever selection on those descriptions.
+func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan description.Topology, ss ServerSelector, timeoutCh <-chan time.Time) ([]description.Server, error) {
+	var current description.Topology
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timeoutCh:
+			return nil, ErrServerSelectionTimeout
+		case current = <-subscriptionCh:
+		}
+
+		var allowed []description.Server
+		for _, s := range current.Servers {
+			if s.Kind != description.Unknown {
+				allowed = append(allowed, s)
+			}
+		}
+
+		suitable, err := ss.SelectServer(current, allowed)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(suitable) > 0 {
+			return suitable, nil
+		}
+
+		t.RequestImmediateCheck()
+	}
+}
+
+func (t *Topology) update() {
+	defer func() {
+		//  ¯\_(ツ)_/¯
+		_ = recover()
+	}()
+
+	for change := range t.changes {
+		current, err := t.apply(change)
+		if err != nil {
+			continue
+		}
+
+		t.dmtx.Lock()
+		t.desc = current
+		t.dmtx.Unlock()
+
+		t.subLock.Lock()
+		for _, ch := range t.subscribers {
+			// We drain the description if there's one in the channel
+			select {
+			case <-ch:
+			default:
+			}
+			ch <- current
+		}
+		t.subLock.Unlock()
+	}
+	t.subLock.Lock()
+	for id, ch := range t.subscribers {
+		close(ch)
+		delete(t.subscribers, id)
+	}
+	t.subscriptionsClosed = true
+	t.subLock.Unlock()
+}
+
+func (t *Topology) apply(desc description.Server) (description.Topology, error) {
+	var err error
+	prev := t.fsm.Topology
+
+	current, err := t.fsm.apply(desc)
+	if err != nil {
+		return description.Topology{}, err
+	}
+
+	diff := description.DiffTopology(prev, current)
+	t.serversLock.Lock()
+	if t.serversClosed {
+		t.serversLock.Unlock()
+		return description.Topology{}, nil
+	}
+
+	for _, removed := range diff.Removed {
+		if s, ok := t.servers[removed.Addr]; ok {
+			t.removeServer(removed.Addr, s)
+		}
+	}
+
+	for _, added := range diff.Added {
+		t.addServer(added.Addr)
+	}
+	t.serversLock.Unlock()
+	return current, nil
+}
+
+func (t *Topology) addServer(address addr.Addr) {
+	if _, ok := t.servers[address]; ok {
+		return
+	}
+
+	svr, err := NewServer(address, t.cfg.serverOpts...)
+	if err != nil {
+		//  ¯\_(ツ)_/¯
+		return
+	}
+
+	t.servers[address] = svr
+	var sub *ServerSubscription
+	sub, err = svr.Subscribe()
+	if err != nil {
+		// ¯\_(ツ)_/¯
+		return
+	}
+
+	t.wg.Add(1)
+	go func() {
+		for c := range sub.C {
+			t.changes <- c
+		}
+		t.wg.Done()
+	}()
+}
+
+func (t *Topology) removeServer(address addr.Addr, server *Server) {
+	server.Close()
+	delete(t.servers, address)
 }
 
 // Subscription is a subscription to updates to the description of the Topology that created this
 // Subscription.
 type Subscription struct {
-	C      <-chan Description
-	closed bool
+	C  <-chan description.Topology
+	t  *Topology
+	id uint64
 }
 
-func (s *Subscription) Unsubscribe() error { return nil }
+// Unsubscribe unsubscribes this Subscription from updates and closes the
+// subscription channel.
+func (s *Subscription) Unsubscribe() error {
+	s.t.subLock.Lock()
+	defer s.t.subLock.Unlock()
+	if s.t.subscriptionsClosed {
+		return nil
+	}
 
-type fsm struct{}
+	ch, ok := s.t.subscribers[s.id]
+	if !ok {
+		return nil
+	}
 
-// apply should operate on immutable TopologyDescriptions and Descriptions. This way we don't have to
-// lock for the entire time we're applying server description.
-func (*fsm) apply(Description, ServerDescription) (Description, error) { return Description{}, nil }
+	close(ch)
+	delete(s.t.subscribers, s.id)
 
-type Option func(*config) error
-
-func WithConnString(func(connstring.ConnString) connstring.ConnString) Option { return nil }
-func WithMode(func(MonitorMode) MonitorMode) Option                           { return nil }
-func WithReplicaSetname(func(string) string) Option                           { return nil }
-func WithSeedList(func(...string) []string) Option                            { return nil }
-func WithServerOptions(func(...ServerOption) []ServerOption) Option           { return nil }
-
-type config struct{}
-
-type Description struct{}
-
-func (Description) Server(connection.Addr) (ServerDescription, bool) {
-	return ServerDescription{}, false
+	return nil
 }
-
-type DescriptionDiff struct{}
-
-func DiffDescription(Description, Description) DescriptionDiff { return DescriptionDiff{} }
-
-type Kind uint32
-
-const (
-	Single                Kind = 1
-	ReplicaSet            Kind = 2
-	ReplicaSetNoPrimary   Kind = 4 + ReplicaSet
-	ReplicaSetWithPrimary Kind = 8 + ReplicaSet
-	Sharded               Kind = 256
-)
-
-type ServerDescription struct{}
-
-func NewServerDescription(connection.Addr, result.IsMaster, result.BuildInfo) ServerDescription {
-	return ServerDescription{}
-}
-
-func (ServerDescription) setAverageRTT(time.Duration) ServerDescription { return ServerDescription{} }
-
-type ServerKind uint32
-
-const (
-	Standalone  ServerKind = 1
-	RSMember    ServerKind = 2
-	RSPrimary   ServerKind = 4 + RSMember
-	RSSecondary ServerKind = 8 + RSMember
-	RSArbiter   ServerKind = 16 + RSMember
-	RSGhost     ServerKind = 32 + RSMember
-	Mongos      ServerKind = 256
-)
-
-type ServerSelector func(Description, []ServerDescription) ([]ServerDescription, error)
-
-func CompositeSelector([]ServerSelector) ServerSelector { return nil }
-func LatencySelector(time.Duration) ServerSelector      { return nil }
-func WriteSelector() ServerSelector                     { return nil }
-
-type SelectedServer Server
-
-func (*SelectedServer) TopologyDescription() Description   { return Description{} }
-func (*SelectedServer) ReadPreference() *readpref.ReadPref { return nil }
-
-type Server struct{}
-
-func NewServer(connection.Addr, ...ServerOption) (*Server, error)         { return nil, nil }
-func (*Server) Close() error                                              { return nil }
-func (*Server) Connection(context.Context) (connection.Connection, error) { return nil, nil }
-func (*Server) Description() ServerDescription                            { return ServerDescription{} }
-func (*Server) Subscribe() (*ServerSubscription, error)                   { return nil, nil }
-func (*Server) RequestImmediateCheck()                                    { return }
-
-// Drain will drain the connection pool of this server. This is mainly here so the
-// pool for the server doesn't need to be directly exposed and so that when an error
-// is returned from reading or writing, a client can drain the pool for this server.
-// This is exposed here so we don't have to wrap the Connection type and sniff responses
-// for errors that would cause the pool to be drained, which can in turn centralize the
-// logic for handling errors in the Client type.
-func (*Server) Drain() error { return nil }
-
-type ServerSubscription struct {
-	C      <-chan ServerDescription
-	closed bool
-}
-
-func (ss *ServerSubscription) Unsubscribe() error { return nil }
-
-type monitor struct{}
-
-type serverConfig struct{}
-
-type ServerOption func(*serverConfig) error
-
-func WithConfigurer(func(connection.Configurer) connection.Configurer) ServerOption     { return nil }
-func WithConnectionOptions(func(...connection.Option) []connection.Option) ServerOption { return nil }
-func WithHeartbeatInterval(func(time.Duration) time.Duration) ServerOption              { return nil }
-func WithHeartbeatTimeout(func(time.Duration) time.Duration) ServerOption               { return nil }
-func WithMaxConnections(func(uint16) uint16) ServerOption                               { return nil }
-func WithMaxIdleConnections(func(uint16) uint16) ServerOption                           { return nil }
