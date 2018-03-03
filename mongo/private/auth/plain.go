@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
 )
 
 // PLAIN is the mechanism name for PLAIN.
@@ -34,7 +34,7 @@ type PlainAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *PlainAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
+func (a *PlainAuthenticator) Auth(ctx context.Context, c connection.Connection) error {
 	return ConductSaslConversation(ctx, c, "$external", &plainSaslClient{
 		username: a.Username,
 		password: a.Password,

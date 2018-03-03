@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
 )
 
 // Cursor instances iterate a stream of documents. Each document is
@@ -50,3 +51,17 @@ type Cursor interface {
 	// Close the cursor.
 	Close(context.Context) error
 }
+
+// CursorBuilder is a type that can build a Cursor.
+type CursorBuilder interface {
+	BuildCursor(bson.Reader, ...options.CursorOptioner) (Cursor, error)
+}
+
+type emptyCursor struct{}
+
+func (ec emptyCursor) ID() int64                         { return -1 }
+func (ec emptyCursor) Next(context.Context) bool         { return false }
+func (ec emptyCursor) Decode(interface{}) error          { return nil }
+func (ec emptyCursor) DecodeBytes() (bson.Reader, error) { return nil, nil }
+func (ec emptyCursor) Err() error                        { return nil }
+func (ec emptyCursor) Close(context.Context) error       { return nil }

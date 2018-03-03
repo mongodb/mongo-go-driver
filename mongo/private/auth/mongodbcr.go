@@ -7,7 +7,6 @@
 package auth
 
 import (
-	"bytes"
 	"context"
 	"crypto/md5"
 	"fmt"
@@ -15,9 +14,9 @@ import (
 	"io"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/model"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
-	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 )
 
 // MONGODBCR is the mechanism name for MONGODB-CR.
@@ -39,10 +38,10 @@ type MongoDBCRAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
+func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c connection.Connection) error {
 
 	// Arbiters cannot be authenticated
-	if c.Model().Kind == model.RSArbiter {
+	if c.Description().Kind == description.RSArbiter {
 		return nil
 	}
 
@@ -51,37 +50,32 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, c conn.Connection) er
 		db = defaultAuthDB
 	}
 
-	getNonceRequest := msg.NewCommand(
-		msg.NextRequestID(),
-		db,
-		true,
-		bson.NewDocument(bson.EC.Int32("getnonce", 1)),
-	)
-	var getNonceResult struct {
-		Nonce string `bson:"nonce"`
-	}
-
-	rdr, err := conn.ExecuteCommand(ctx, c, getNonceRequest)
+	cmd := command.Command{DB: db, Command: bson.NewDocument(bson.EC.Int32("getnonce", 1))}
+	desc := description.SelectedServer{Server: c.Description().Server}
+	rdr, err := cmd.RoundTrip(ctx, desc, c)
 	if err != nil {
 		return newError(err, MONGODBCR)
 	}
 
-	err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&getNonceResult)
+	var getNonceResult struct {
+		Nonce string `bson:"nonce"`
+	}
+
+	err = bson.Unmarshal(rdr, &getNonceResult)
 	if err != nil {
 		return err
 	}
 
-	authRequest := msg.NewCommand(
-		msg.NextRequestID(),
-		db,
-		true,
-		bson.NewDocument(
+	cmd = command.Command{
+		DB: db,
+		Command: bson.NewDocument(
 			bson.EC.Int32("authenticate", 1),
 			bson.EC.String("user", a.Username),
 			bson.EC.String("nonce", getNonceResult.Nonce),
-			bson.EC.String("key", a.createKey(getNonceResult.Nonce))),
-	)
-	_, err = conn.ExecuteCommand(ctx, c, authRequest)
+			bson.EC.String("key", a.createKey(getNonceResult.Nonce)),
+		),
+	}
+	_, err = cmd.RoundTrip(ctx, desc, c)
 	if err != nil {
 		return newError(err, MONGODBCR)
 	}
