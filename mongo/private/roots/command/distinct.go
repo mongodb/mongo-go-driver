@@ -4,9 +4,8 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
@@ -22,13 +21,13 @@ type Distinct struct {
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (d *Distinct) Encode(topology.ServerDescription) (wiremessage.WireMessage, error) {
+func (d *Distinct) Encode(description.Server) (wiremessage.WireMessage, error) {
 	return nil, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (d *Distinct) Decode(topology.ServerDescription, wiremessage.WireMessage) *Distinct {
+func (d *Distinct) Decode(description.Server, wiremessage.WireMessage) *Distinct {
 	return nil
 }
 
@@ -38,13 +37,7 @@ func (d *Distinct) Result() ([]interface{}, error) { return nil, nil }
 // Err returns the error set on this command.
 func (d *Distinct) Err() error { return nil }
 
-// Dispatch handles the full cycle dispatch and execution of this command against the provided
-// topology.
-func (d *Distinct) Dispatch(context.Context, topology.Topology) ([]interface{}, error) {
-	return nil, nil
-}
-
-// RoundTrip handles the execution of this command using the provided connection.
-func (d *Distinct) RoundTrip(context.Context, topology.ServerDescription, connection.Connection) ([]interface{}, error) {
+// RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
+func (d *Distinct) RoundTrip(context.Context, description.Server, wiremessage.ReadWriter) ([]interface{}, error) {
 	return nil, nil
 }
