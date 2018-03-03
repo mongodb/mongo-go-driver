@@ -7,14 +7,12 @@
 package auth
 
 import (
-	"bytes"
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/mongo/model"
-
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
-	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
 // SaslClient is the client piece of a sasl conversation.
@@ -31,10 +29,10 @@ type SaslClientCloser interface {
 }
 
 // ConductSaslConversation handles running a sasl conversation with MongoDB.
-func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, client SaslClient) error {
+func ConductSaslConversation(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter, db string, client SaslClient) error {
 
 	// Arbiters cannot be authenticated
-	if c.Model().Kind == model.RSArbiter {
+	if desc.Kind == description.RSArbiter {
 		return nil
 	}
 
@@ -51,15 +49,14 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 		return newError(err, mech)
 	}
 
-	saslStartRequest := msg.NewCommand(
-		msg.NextRequestID(),
-		db,
-		true,
-		bson.NewDocument(
+	saslStartCmd := command.Command{
+		DB: db,
+		Command: bson.NewDocument(
 			bson.EC.Int32("saslStart", 1),
 			bson.EC.String("mechanism", mech),
-			bson.EC.Binary("payload", payload)),
-	)
+			bson.EC.Binary("payload", payload),
+		),
+	}
 
 	type saslResponse struct {
 		ConversationID int    `bson:"conversationId"`
@@ -69,12 +66,14 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 	}
 
 	var saslResp saslResponse
-	rdr, err := conn.ExecuteCommand(ctx, c, saslStartRequest)
+
+	ssdesc := description.SelectedServer{Server: desc}
+	rdr, err := saslStartCmd.RoundTrip(ctx, ssdesc, rw)
 	if err != nil {
 		return newError(err, mech)
 	}
 
-	err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&saslResp)
+	err = bson.Unmarshal(rdr, &saslResp)
 	if err != nil {
 		return err
 	}
@@ -99,25 +98,23 @@ func ConductSaslConversation(ctx context.Context, c conn.Connection, db string, 
 			return nil
 		}
 
-		saslContinueRequest := msg.NewCommand(
-			msg.NextRequestID(),
-			db,
-			true,
-			bson.NewDocument(
+		saslContinueCmd := command.Command{
+			DB: db,
+			Command: bson.NewDocument(
 				bson.EC.Int32("saslContinue", 1),
 				bson.EC.Int32("conversationId", int32(cid)),
-				bson.EC.Binary("payload", payload)),
-		)
+				bson.EC.Binary("payload", payload),
+			),
+		}
 
-		rdr, err = conn.ExecuteCommand(ctx, c, saslContinueRequest)
+		rdr, err = saslContinueCmd.RoundTrip(ctx, ssdesc, rw)
 		if err != nil {
 			return newError(err, mech)
 		}
 
-		err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&saslResp)
+		err = bson.Unmarshal(rdr, &saslResp)
 		if err != nil {
 			return err
 		}
-
 	}
 }

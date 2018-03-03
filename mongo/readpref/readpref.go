@@ -10,7 +10,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/tag"
 )
 
 var (
@@ -77,7 +77,7 @@ type ReadPref struct {
 	maxStaleness    time.Duration
 	maxStalenessSet bool
 	mode            Mode
-	tagSets         []model.TagSet
+	tagSets         []tag.Set
 }
 
 // MaxStaleness is the maximum amount of time to allow
@@ -94,6 +94,6 @@ func (r *ReadPref) Mode() Mode {
 
 // TagSets are multiple tag sets indicating
 // which servers should be considered.
-func (r *ReadPref) TagSets() []model.TagSet {
+func (r *ReadPref) TagSets() []tag.Set {
 	return r.tagSets
 }

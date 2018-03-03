@@ -19,11 +19,11 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
-	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
-	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/dispatch"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 )
 
@@ -39,10 +39,10 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 
-	c, err := cluster.New()
+	c, err := topology.New()
 
 	if err != nil {
-		log.Fatalf("unable to create cluster: %s", err)
+		log.Fatalf("unable to create topology: %s", err)
 	}
 
 	done := make(chan struct{})
@@ -71,59 +71,41 @@ func main() {
 	log.Println("finished")
 }
 
-func prep(ctx context.Context, c *cluster.Cluster) error {
+func prep(ctx context.Context, c *topology.Topology) error {
 
-	var docs = bson.NewArray()
+	var docs = make([]*bson.Document, 0, 1000)
 	for i := 0; i < 1000; i++ {
-		docs.Append(bson.VC.DocumentFromElements(bson.EC.Int32("_id", int32(i))))
+		docs = append(docs, bson.NewDocument(bson.EC.Int32("_id", int32(i))))
 	}
 
-	ns := ops.ParseNamespace(*ns)
-	deleteCommand := bson.NewDocument(
-		bson.EC.String("delete", ns.Collection),
-		bson.EC.ArrayFromElements(
-			"deletes",
-			bson.VC.DocumentFromElements(
-				bson.EC.SubDocument("q", bson.NewDocument()),
-				bson.EC.Int32("limit", 0),
-			),
-		),
-	)
-	deleteRequest := msg.NewCommand(
-		msg.NextRequestID(),
-		ns.DB,
-		false,
-		deleteCommand,
-	)
-	insertCommand := bson.NewDocument(
-		bson.EC.String("insert", ns.Collection),
-		bson.EC.Array("documents", docs),
-	)
-	insertRequest := msg.NewCommand(
-		msg.NextRequestID(),
-		ns.DB,
-		false,
-		insertCommand,
-	)
+	ns := command.ParseNamespace(*ns)
 
-	s, err := c.SelectServer(ctx, cluster.WriteSelector(), readpref.Primary())
+	s, err := c.SelectServer(ctx, description.WriteSelector())
 	if err != nil {
 		return err
 	}
 
-	connection, err := s.Connection(ctx)
+	conn, err := s.Connection(ctx)
 	if err != nil {
 		return err
 	}
-	defer connection.Close()
+	defer conn.Close()
 
-	_, err = conn.ExecuteCommands(ctx, connection, []msg.Request{deleteRequest, insertRequest})
+	deletes := []*bson.Document{bson.NewDocument(
+		bson.EC.SubDocument("q", bson.NewDocument()),
+		bson.EC.Int32("limit", 0),
+	)}
+	_, err = (&command.Delete{NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
+	if err != nil {
+		return err
+	}
+	_, err = (&command.Insert{NS: ns, Docs: docs}).RoundTrip(ctx, s.Description(), conn)
 	return err
 }
 
-func work(ctx context.Context, idx int, c *cluster.Cluster) {
+func work(ctx context.Context, idx int, c *topology.Topology) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	ns := ops.ParseNamespace(*ns)
+	ns := command.ParseNamespace(*ns)
 	rp := readpref.Nearest()
 	for {
 		select {
@@ -132,19 +114,19 @@ func work(ctx context.Context, idx int, c *cluster.Cluster) {
 
 			limit := r.Intn(999) + 1
 
-			s, err := c.SelectServer(ctx, readpref.Selector(rp), rp)
-			if err != nil {
-				log.Printf("%d-failed selecting a server: %s", idx, err)
-				continue
-			}
-
 			pipeline := bson.NewArray(
 				bson.VC.DocumentFromElements(
 					bson.EC.Int32("$limit", int32(limit)),
 				),
 			)
 
-			cursor, err := ops.Aggregate(ctx, &ops.SelectedServer{s, c.Model().Kind, rp}, ns, pipeline, false, mongo.Opt.BatchSize(200))
+			cmd := command.Aggregate{
+				NS:       ns,
+				Pipeline: pipeline,
+				Opts:     []options.AggregateOptioner{options.OptBatchSize(200)},
+				ReadPref: rp,
+			}
+			cursor, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp), nil)
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue

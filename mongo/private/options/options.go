@@ -130,7 +130,7 @@ type ListCollectionsOptioner interface {
 	listCollectionsOption()
 }
 
-// ListDatabaseOptioner is the interface implemented by types that can be used as
+// ListDatabasesOptioner is the interface implemented by types that can be used as
 // Options for ListDatabase operations.
 type ListDatabasesOptioner interface {
 	Optioner
@@ -142,6 +142,13 @@ type ListDatabasesOptioner interface {
 type ListIndexesOptioner interface {
 	Optioner
 	listIndexesOption()
+}
+
+// CursorOptioner is the interface implemented by types that can be used as
+// Options for Cursor operations.
+type CursorOptioner interface {
+	Optioner
+	cursorOption()
 }
 
 var (
@@ -159,6 +166,7 @@ var (
 	_ CountOptioner             = (*OptMaxTime)(nil)
 	_ CountOptioner             = (*OptReadConcern)(nil)
 	_ CountOptioner             = (*OptSkip)(nil)
+	_ CursorOptioner            = OptBatchSize(0)
 	_ DeleteOptioner            = (*OptCollation)(nil)
 	_ DeleteOptioner            = (*OptWriteConcern)(nil)
 	_ DistinctOptioner          = (*OptCollation)(nil)
@@ -233,6 +241,8 @@ var (
 	_ InsertOptioner            = (*OptBypassDocumentValidation)(nil)
 	_ InsertOptioner            = (*OptOrdered)(nil)
 	_ InsertOptioner            = (*OptWriteConcern)(nil)
+	_ ListDatabasesOptioner     = OptNameOnly(false)
+	_ ListIndexesOptioner       = OptBatchSize(0)
 	_ ReplaceOptioner           = (*OptBypassDocumentValidation)(nil)
 	_ ReplaceOptioner           = (*OptCollation)(nil)
 	_ ReplaceOptioner           = (*OptUpsert)(nil)
@@ -298,6 +308,8 @@ func (OptBatchSize) aggregateOption()    {}
 func (OptBatchSize) changeStreamOption() {}
 func (OptBatchSize) findOption()         {}
 func (OptBatchSize) findOneOption()      {}
+func (OptBatchSize) listIndexesOption()  {}
+func (OptBatchSize) cursorOption()       {}
 
 // OptBypassDocumentValidation is for internal use.
 type OptBypassDocumentValidation bool
@@ -661,3 +673,13 @@ func (OptWriteConcern) insertManyOption()        {}
 func (OptWriteConcern) insertOneOption()         {}
 func (OptWriteConcern) replaceOption()           {}
 func (OptWriteConcern) updateOption()            {}
+
+// OptNameOnly is for internal use.
+type OptNameOnly bool
+
+// Option implements the Optioner interface.
+func (opt OptNameOnly) Option(d *bson.Document) {
+	d.Append(bson.EC.Boolean("nameOnly", bool(opt)))
+}
+
+func (OptNameOnly) listDatabasesOption() {}

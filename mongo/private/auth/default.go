@@ -10,7 +10,8 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/mongo/internal/feature"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
 func newDefaultAuthenticator(cred *Cred) (Authenticator, error) {
@@ -26,10 +27,10 @@ type DefaultAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *DefaultAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
+func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
 	var actual Authenticator
 	var err error
-	if err = feature.ScramSHA1(c.Model().Version); err != nil {
+	if err = feature.ScramSHA1(desc.Version); err != nil {
 		actual, err = newMongoDBCRAuthenticator(a.Cred)
 	} else {
 		actual, err = newScramSHA1Authenticator(a.Cred)
@@ -39,5 +40,5 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, c conn.Connection) erro
 		return err
 	}
 
-	return actual.Auth(ctx, c)
+	return actual.Auth(ctx, desc, rw)
 }
