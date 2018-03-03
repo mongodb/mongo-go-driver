@@ -7,9 +7,12 @@
 package auth_test
 
 import (
+	"context"
 	"testing"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	. "github.com/mongodb/mongo-go-driver/mongo/private/auth"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,5 +42,60 @@ func TestCreateAuthenticator(t *testing.T) {
 			require.NoError(t, err)
 			require.IsType(t, test.auther, a)
 		})
+	}
+}
+
+type conn struct {
+	t        *testing.T
+	writeErr error
+	written  chan wiremessage.WireMessage
+	readResp chan wiremessage.WireMessage
+	readErr  chan error
+}
+
+func (c *conn) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessage) error {
+	select {
+	case c.written <- wm:
+	default:
+		c.t.Error("could not write wiremessage to written channel")
+	}
+	return c.writeErr
+}
+
+func (c *conn) ReadWireMessage(ctx context.Context) (wiremessage.WireMessage, error) {
+	var wm wiremessage.WireMessage
+	var err error
+	select {
+	case wm = <-c.readResp:
+	case err = <-c.readErr:
+	case <-ctx.Done():
+	}
+	return wm, err
+}
+
+func (c *conn) Close() error {
+	return nil
+}
+
+func (c *conn) Expired() bool {
+	return false
+}
+
+func (c *conn) Alive() bool {
+	return true
+}
+
+func (c *conn) ID() string {
+	return "faked"
+}
+
+func makeReply(t *testing.T, doc *bson.Document) wiremessage.WireMessage {
+	rdr, err := doc.MarshalBSON()
+	if err != nil {
+		t.Fatalf("Could not create document: %v", err)
+	}
+	return wiremessage.Reply{
+		NumberReturned: 1,
+		Documents:      []bson.Reader{rdr},
 	}
 }

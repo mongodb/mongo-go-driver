@@ -820,7 +820,7 @@ func TestCollection_FindOneAndDelete_notFound_ignoreResult(t *testing.T) {
 	filter := bson.NewDocument(bson.EC.Int32("x", 6))
 
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
-	require.Equal(t, err, ErrNoDocuments)
+	require.Equal(t, ErrNoDocuments, err)
 }
 
 func TestCollection_FindOneAndReplace_found(t *testing.T) {

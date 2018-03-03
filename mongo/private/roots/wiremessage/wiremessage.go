@@ -14,12 +14,6 @@ import (
 	"sync/atomic"
 )
 
-// ErrInvalidHeader is returned when methods are called on a malformed Header.
-var ErrInvalidHeader = errors.New("invalid header")
-
-// ErrHeaderTooSmall is returned when the size of the header is too small to be valid.
-var ErrHeaderTooSmall = errors.New("the header is too small to be valid")
-
 // ErrInvalidMessageLength is returned when the provided message length is too small to be valid.
 var ErrInvalidMessageLength = errors.New("the message length is too small, it must be at least 16")
 
@@ -33,6 +27,29 @@ func CurrentRequestID() int32 { return atomic.LoadInt32(&globalRequestID) }
 
 // NextRequestID returns the next request ID.
 func NextRequestID() int32 { return atomic.AddInt32(&globalRequestID, 1) }
+
+// Error represents an error related to wire protocol messages.
+type Error struct {
+	Type    ErrorType
+	Message string
+}
+
+// Error implements the err interface.
+func (e Error) Error() string {
+	return e.Message
+}
+
+// ErrorType is the type of error, which indicates from which part of the code
+// the error originated.
+type ErrorType uint16
+
+// These constants are the types of errors exposed by this package.
+const (
+	ErrNil ErrorType = iota
+	ErrHeader
+	ErrOpQuery
+	ErrOpReply
+)
 
 // OpCode represents a MongoDB wire protocol opcode.
 type OpCode int32

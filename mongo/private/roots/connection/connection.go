@@ -9,17 +9,36 @@ package connection
 
 import (
 	"context"
+	"crypto/tls"
+	"errors"
+	"fmt"
+	"io"
 	"net"
+	"runtime"
+	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/addr"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/version"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
+
+var globalClientConnectionID uint64
+
+func nextClientConnectionID() uint64 {
+	return atomic.AddUint64(&globalClientConnectionID, 1)
+}
 
 // Connection is used to read and write wire protocol messages to a network.
 type Connection interface {
 	WriteWireMessage(context.Context, wiremessage.WireMessage) error
 	ReadWireMessage(context.Context) (wiremessage.WireMessage, error)
 	Close() error
+	Expired() bool
+	Alive() bool
 	ID() string
 }
 
@@ -34,48 +53,352 @@ type Dialer interface {
 // WithDialer option is more appropriate than changing this variable.
 var DefaultDialer Dialer = &net.Dialer{}
 
-// Configurer replaces the Opener type since no one outside of the connection package
-// can do anything with a connection.Option. This is mainly useful for things like
-// authenticating a Connection once it's been dialed and has gone through the
-// isMaster and buildInfo steps.
-type Configurer interface {
-	Configure(Connection) (Connection, error)
+// Handshaker is the interface implemented by types that can perform a MongoDB
+// handshake over a provided ReadWriter. This is used during connection
+// initialization.
+type Handshaker interface {
+	Handshake(context.Context, addr.Addr, wiremessage.ReadWriter) (description.Server, error)
 }
 
-type config struct{}
+// HandshakerFunc is an adapter to allow the use of ordinary functions as
+// connection handshakers.
+type HandshakerFunc func(context.Context, addr.Addr, wiremessage.ReadWriter) (description.Server, error)
 
-// Option is used to configure a connection.
-type Option func(*config) error
+// Handshake implements the Handshaker interface.
+func (hf HandshakerFunc) Handshake(ctx context.Context, address addr.Addr, rw wiremessage.ReadWriter) (description.Server, error) {
+	return hf(ctx, address, rw)
+}
+
+type connection struct {
+	addr             addr.Addr
+	id               string
+	conn             net.Conn
+	dead             bool
+	idleTimeout      time.Duration
+	idleDeadline     time.Time
+	lifetimeDeadline time.Time
+	readTimeout      time.Duration
+	writeTimeout     time.Duration
+	readBuf          []byte
+	writeBuf         []byte
+}
 
 // New opens a connection to a given Addr.
-func New(context.Context, net.Addr, ...Option) (Connection, error) { return nil, nil }
+//
+// The server description returned is nil if there was no handshaker provided.
+func New(ctx context.Context, address addr.Addr, opts ...Option) (Connection, *description.Server, error) {
+	cfg, err := newConfig(opts...)
+	if err != nil {
+		return nil, nil, err
+	}
 
-// WithAppName sets the application name which gets sent to MongoDB when it
-// first connects.
-func WithAppName(func(string) string) Option { return nil }
+	nc, err := cfg.dialer.DialContext(ctx, address.Network(), address.String())
+	if err != nil {
+		return nil, nil, err
+	}
 
-// WithConnectTimeout configures the maximum amount of time a dial will wait for a
-// connect to complete. The default is 30 seconds.
-func WithConnectTimeout(func(time.Duration) time.Duration) Option { return nil }
+	if cfg.tlsConfig != nil {
+		tlsConfig := cfg.tlsConfig.Clone()
+		if !tlsConfig.InsecureSkipVerify {
+			hostname := address.String()
+			colonPos := strings.LastIndex(hostname, ":")
+			if colonPos == -1 {
+				colonPos = len(hostname)
+			}
 
-// WithDialer configures the Dialer to use when making a new connection to MongoDB.
-func WithDialer(func(Dialer) Dialer) Option { return nil }
+			hostname = hostname[:colonPos]
+			tlsConfig.ServerName = hostname
+		}
 
-// WithConfigurer configures the Configurers that will be used to configure newly
-// dialed connections.
-func WithConfigurer(func(Configurer) Configurer) Option { return nil }
+		client := tls.Client(nc, tlsConfig.Config)
 
-// WithIdleTimeout configures the maximum idle time to allow for a connection.
-func WithIdleTimeout(func(time.Duration) time.Duration) Option { return nil }
+		errChan := make(chan error, 1)
+		go func() {
+			errChan <- client.Handshake()
+		}()
 
-// WithLifeTimeout configures the maximum life of a connection.
-func WithLifeTimeout(func(time.Duration) time.Duration) Option { return nil }
+		select {
+		case err := <-errChan:
+			if err != nil {
+				return nil, nil, err
+			}
+		case <-ctx.Done():
+			return nil, nil, errors.New("server connection cancelled/timeout during TLS handshake")
+		}
+		nc = client
+	}
 
-// WithReadTimeout configures the maximum read time for a connection.
-func WithReadTimeout(func(time.Duration) time.Duration) Option { return nil }
+	var lifetimeDeadline time.Time
+	if cfg.lifeTimeout > 0 {
+		lifetimeDeadline = time.Now().Add(cfg.lifeTimeout)
+	}
 
-// WithWriteTimeout configures the maximum write time for a connection.
-func WithWriteTimeout(func(time.Duration) time.Duration) Option { return nil }
+	id := fmt.Sprintf("%s[-%d]", address, nextClientConnectionID())
 
-// WithTLSConfig configures the TLS options for a connection.
-func WithTLSConfig(func(*TLSConfig) *TLSConfig) Option { return nil }
+	c := &connection{
+		id:               id,
+		conn:             nc,
+		addr:             address,
+		idleTimeout:      cfg.idleTimeout,
+		lifetimeDeadline: lifetimeDeadline,
+		readTimeout:      cfg.readTimeout,
+		writeTimeout:     cfg.writeTimeout,
+		readBuf:          make([]byte, 256),
+		writeBuf:         make([]byte, 0, 256),
+	}
+
+	c.bumpIdleDeadline()
+
+	var desc *description.Server
+	if cfg.handshaker != nil {
+		d, err := cfg.handshaker.Handshake(ctx, c.addr, c)
+		if err != nil {
+			return nil, nil, err
+		}
+		desc = &d
+	}
+
+	return c, desc, nil
+}
+
+func (c *connection) Alive() bool {
+	return !c.dead
+}
+
+func (c *connection) Expired() bool {
+	now := time.Now()
+	if !c.idleDeadline.IsZero() && now.After(c.idleDeadline) {
+		return true
+	}
+
+	if !c.lifetimeDeadline.IsZero() && now.After(c.lifetimeDeadline) {
+		return true
+	}
+
+	return c.dead
+}
+
+func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessage) error {
+	var err error
+	if c.dead {
+		return Error{
+			ConnectionID: c.id,
+			message:      "connection is dead",
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		return Error{
+			ConnectionID: c.id,
+			Wrapped:      ctx.Err(),
+			message:      "failed to write",
+		}
+	default:
+	}
+
+	deadline := time.Time{}
+	if c.writeTimeout != 0 {
+		deadline = time.Now().Add(c.writeTimeout)
+	}
+
+	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
+		deadline = dl
+	}
+
+	if err := c.conn.SetWriteDeadline(deadline); err != nil {
+		return Error{
+			ConnectionID: c.id,
+			Wrapped:      err,
+			message:      "failed to set write deadline",
+		}
+	}
+
+	// Truncate the write buffer
+	c.writeBuf = c.writeBuf[:0]
+
+	c.writeBuf, err = wm.AppendWireMessage(c.writeBuf)
+	if err != nil {
+		return Error{
+			ConnectionID: c.id,
+			Wrapped:      err,
+			message:      "unable to encode wire message",
+		}
+	}
+
+	_, err = c.conn.Write(c.writeBuf)
+	if err != nil {
+		c.Close()
+		return Error{
+			ConnectionID: c.id,
+			Wrapped:      err,
+			message:      "unable to write wire message to network",
+		}
+	}
+
+	c.bumpIdleDeadline()
+	return nil
+}
+
+func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessage, error) {
+	if c.dead {
+		return nil, Error{
+			ConnectionID: c.id,
+			message:      "connection is dead",
+		}
+	}
+
+	select {
+	case <-ctx.Done():
+		// We close the connection because we don't know if there
+		// is an unread message on the wire.
+		c.Close()
+		return nil, Error{
+			ConnectionID: c.id,
+			Wrapped:      ctx.Err(),
+			message:      "failed to read",
+		}
+	default:
+	}
+
+	deadline := time.Time{}
+	if c.readTimeout != 0 {
+		deadline = time.Now().Add(c.readTimeout)
+	}
+
+	if ctxDL, ok := ctx.Deadline(); ok && (deadline.IsZero() || ctxDL.Before(deadline)) {
+		deadline = ctxDL
+	}
+
+	if err := c.conn.SetReadDeadline(deadline); err != nil {
+		return nil, Error{
+			ConnectionID: c.id,
+			Wrapped:      ctx.Err(),
+			message:      "failed to set read deadline",
+		}
+	}
+
+	var sizeBuf [4]byte
+	_, err := io.ReadFull(c.conn, sizeBuf[:])
+	if err != nil {
+		defer c.Close()
+		return nil, Error{
+			ConnectionID: c.id,
+			Wrapped:      err,
+			message:      "unable to decode message length",
+		}
+	}
+
+	size := readInt32(sizeBuf[:], 0)
+
+	// Isn't the best reuse, but resizing a []byte to be larger
+	// is difficult.
+	if len(c.readBuf) > int(size) {
+		c.readBuf = c.readBuf[:size]
+	} else {
+		c.readBuf = make([]byte, size)
+	}
+
+	c.readBuf[0], c.readBuf[1], c.readBuf[2], c.readBuf[3] = sizeBuf[0], sizeBuf[1], sizeBuf[2], sizeBuf[3]
+
+	_, err = io.ReadFull(c.conn, c.readBuf[4:])
+	if err != nil {
+		defer c.Close()
+		return nil, Error{
+			ConnectionID: c.id,
+			Wrapped:      err,
+			message:      "unable to read full message",
+		}
+	}
+
+	hdr, err := wiremessage.ReadHeader(c.readBuf, 0)
+	if err != nil {
+		defer c.Close()
+		return nil, Error{
+			ConnectionID: c.id,
+			Wrapped:      err,
+			message:      "unable to decode header",
+		}
+	}
+
+	var wm wiremessage.WireMessage
+	switch hdr.OpCode {
+	case wiremessage.OpReply:
+		var r wiremessage.Reply
+		err := r.UnmarshalWireMessage(c.readBuf)
+		if err != nil {
+			defer c.Close()
+			return nil, Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to decode OP_REPLY",
+			}
+		}
+		wm = r
+	default:
+		defer c.Close()
+		return nil, Error{
+			ConnectionID: c.id,
+			message:      fmt.Sprintf("opcode %s not implemented", hdr.OpCode),
+		}
+	}
+
+	c.bumpIdleDeadline()
+	return wm, nil
+}
+
+func (c *connection) bumpIdleDeadline() {
+	if c.idleTimeout > 0 {
+		c.idleDeadline = time.Now().Add(c.idleTimeout)
+	}
+}
+
+func (c *connection) Close() error {
+	c.dead = true
+	err := c.conn.Close()
+	if err != nil {
+		return Error{
+			ConnectionID: c.id,
+			Wrapped:      err,
+			message:      "failed to close net.Conn",
+		}
+	}
+
+	return nil
+}
+
+func (c *connection) ID() string {
+	return c.id
+}
+
+func (c *connection) initialize(ctx context.Context, appName string) error {
+	return nil
+}
+
+func clientDoc(app string) *bson.Document {
+	doc := bson.NewDocument(
+		bson.EC.SubDocumentFromElements(
+			"driver",
+			bson.EC.String("name", "mongo-go-driver"),
+			bson.EC.String("version", version.Driver),
+		),
+		bson.EC.SubDocumentFromElements(
+			"os",
+			bson.EC.String("type", runtime.GOOS),
+			bson.EC.String("architecture", runtime.GOARCH),
+		),
+		bson.EC.String("platform", runtime.Version()))
+
+	if app != "" {
+		doc.Append(bson.EC.SubDocumentFromElements(
+			"application",
+			bson.EC.String("name", app),
+		))
+	}
+
+	return doc
+}
+
+func readInt32(b []byte, pos int32) int32 {
+	return (int32(b[pos+0])) | (int32(b[pos+1]) << 8) | (int32(b[pos+2]) << 16) | (int32(b[pos+3]) << 24)
+}

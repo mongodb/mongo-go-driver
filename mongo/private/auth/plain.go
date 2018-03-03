@@ -10,7 +10,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
 // PLAIN is the mechanism name for PLAIN.
@@ -34,8 +35,8 @@ type PlainAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *PlainAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
-	return ConductSaslConversation(ctx, c, "$external", &plainSaslClient{
+func (a *PlainAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+	return ConductSaslConversation(ctx, desc, rw, "$external", &plainSaslClient{
 		username: a.Username,
 		password: a.Password,
 	})
