@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/result"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
@@ -18,32 +18,71 @@ type FindOneAndReplace struct {
 	Query       *bson.Document
 	Replacement *bson.Document
 	Opts        []options.FindOneAndReplaceOptioner
+
+	result result.FindAndModify
+	err    error
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (f *FindOneAndReplace) Encode(topology.ServerDescription) (wiremessage.WireMessage, error) {
-	return nil, nil
+func (f *FindOneAndReplace) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	if err := f.NS.Validate(); err != nil {
+		return nil, err
+	}
+
+	command := bson.NewDocument(
+		bson.EC.String("findAndModify", f.NS.Collection),
+		bson.EC.SubDocument("query", f.Query),
+		bson.EC.SubDocument("update", f.Replacement),
+	)
+
+	for _, option := range f.Opts {
+		if option == nil {
+			continue
+		}
+		option.Option(command)
+	}
+
+	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (f *FindOneAndReplace) Decode(topology.ServerDescription, wiremessage.WireMessage) *FindOneAndReplace {
-	return nil
+func (f *FindOneAndReplace) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *FindOneAndReplace {
+	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	if err != nil {
+		f.err = err
+		return f
+	}
+
+	f.result, f.err = unmarshalFindAndModifyResult(rdr)
+	return f
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (f *FindOneAndReplace) Result() (Cursor, error) { return nil, nil }
-
-// Err returns the error set on this command.
-func (f *FindOneAndReplace) Err() error { return nil }
-
-// Dispatch handles the full cycle dispatch and execution of this command against the provided
-// topology.
-func (f *FindOneAndReplace) Dispatch(context.Context, topology.Topology) (Cursor, error) {
-	return nil, nil
+func (f *FindOneAndReplace) Result() (result.FindAndModify, error) {
+	if f.err != nil {
+		return result.FindAndModify{}, f.err
+	}
+	return f.result, nil
 }
 
-// RoundTrip handles the execution of this command using the provided connection.
-func (f *FindOneAndReplace) RoundTrip(context.Context, topology.ServerDescription, connection.Connection) (Cursor, error) {
-	return nil, nil
+// Err returns the error set on this command.
+func (f *FindOneAndReplace) Err() error { return f.err }
+
+// RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
+func (f *FindOneAndReplace) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.FindAndModify, error) {
+	wm, err := f.Encode(desc)
+	if err != nil {
+		return result.FindAndModify{}, err
+	}
+
+	err = rw.WriteWireMessage(ctx, wm)
+	if err != nil {
+		return result.FindAndModify{}, err
+	}
+	wm, err = rw.ReadWireMessage(ctx)
+	if err != nil {
+		return result.FindAndModify{}, err
+	}
+	return f.Decode(desc, wm).Result()
 }

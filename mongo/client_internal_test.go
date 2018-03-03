@@ -23,6 +23,7 @@ import (
 func createTestClient(t *testing.T) *Client {
 	return &Client{
 		cluster:        testutil.Cluster(t),
+		topology:       testutil.Topology(t),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 	}
