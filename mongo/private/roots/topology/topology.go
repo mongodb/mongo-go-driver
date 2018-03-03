@@ -10,7 +10,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/mongo/connstring"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/result"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 )
 
@@ -26,7 +26,7 @@ type Topology struct{}
 
 func New(...Option) (*Topology, error)              { return nil, nil }
 func (*Topology) Close() error                      { return nil }
-func (*Topology) Description() Description          { return Description{} }
+func (*Topology) Description() description.Topology { return description.Topology{} }
 func (*Topology) Subscribe() (*Subscription, error) { return nil, nil }
 func (*Topology) RequestImmediateCheck()            { return }
 func (*Topology) SelectServer(context.Context, ServerSelector, readpref.ReadPref) (*SelectedServer, error) {
@@ -38,17 +38,11 @@ func (*Topology) SelectServer(context.Context, ServerSelector, readpref.ReadPref
 // Subscription is a subscription to updates to the description of the Topology that created this
 // Subscription.
 type Subscription struct {
-	C      <-chan Description
+	C      <-chan description.Topology
 	closed bool
 }
 
 func (s *Subscription) Unsubscribe() error { return nil }
-
-type fsm struct{}
-
-// apply should operate on immutable TopologyDescriptions and Descriptions. This way we don't have to
-// lock for the entire time we're applying server description.
-func (*fsm) apply(Description, ServerDescription) (Description, error) { return Description{}, nil }
 
 type Option func(*config) error
 
@@ -60,63 +54,25 @@ func WithServerOptions(func(...ServerOption) []ServerOption) Option           { 
 
 type config struct{}
 
-type Description struct{}
-
-func (Description) Server(connection.Addr) (ServerDescription, bool) {
-	return ServerDescription{}, false
-}
-
-type DescriptionDiff struct{}
-
-func DiffDescription(Description, Description) DescriptionDiff { return DescriptionDiff{} }
-
-type Kind uint32
-
-const (
-	Single                Kind = 1
-	ReplicaSet            Kind = 2
-	ReplicaSetNoPrimary   Kind = 4 + ReplicaSet
-	ReplicaSetWithPrimary Kind = 8 + ReplicaSet
-	Sharded               Kind = 256
-)
-
-type ServerDescription struct{}
-
-func NewServerDescription(connection.Addr, result.IsMaster, result.BuildInfo) ServerDescription {
-	return ServerDescription{}
-}
-
-func (ServerDescription) setAverageRTT(time.Duration) ServerDescription { return ServerDescription{} }
-
-type ServerKind uint32
-
-const (
-	Standalone  ServerKind = 1
-	RSMember    ServerKind = 2
-	RSPrimary   ServerKind = 4 + RSMember
-	RSSecondary ServerKind = 8 + RSMember
-	RSArbiter   ServerKind = 16 + RSMember
-	RSGhost     ServerKind = 32 + RSMember
-	Mongos      ServerKind = 256
-)
-
-type ServerSelector func(Description, []ServerDescription) ([]ServerDescription, error)
+type ServerSelector func(description.Topology, []description.Server) ([]description.Server, error)
 
 func CompositeSelector([]ServerSelector) ServerSelector { return nil }
 func LatencySelector(time.Duration) ServerSelector      { return nil }
 func WriteSelector() ServerSelector                     { return nil }
 
-type SelectedServer Server
+type SelectedServer struct {
+	Server
 
-func (*SelectedServer) TopologyDescription() Description   { return Description{} }
-func (*SelectedServer) ReadPreference() *readpref.ReadPref { return nil }
+	Kind     description.TopologyKind
+	ReadPref *readpref.ReadPref
+}
 
 type Server struct{}
 
 func NewServer(connection.Addr, ...ServerOption) (*Server, error)         { return nil, nil }
 func (*Server) Close() error                                              { return nil }
 func (*Server) Connection(context.Context) (connection.Connection, error) { return nil, nil }
-func (*Server) Description() ServerDescription                            { return ServerDescription{} }
+func (*Server) Description() description.Server                           { return description.Server{} }
 func (*Server) Subscribe() (*ServerSubscription, error)                   { return nil, nil }
 func (*Server) RequestImmediateCheck()                                    { return }
 
@@ -129,7 +85,7 @@ func (*Server) RequestImmediateCheck()                                    { retu
 func (*Server) Drain() error { return nil }
 
 type ServerSubscription struct {
-	C      <-chan ServerDescription
+	C      <-chan description.Server
 	closed bool
 }
 
