@@ -16,10 +16,9 @@ import (
 	"encoding/base64"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/internal/conntest"
-	"github.com/mongodb/mongo-go-driver/mongo/internal/msgtest"
 	. "github.com/mongodb/mongo-go-driver/mongo/private/auth"
-	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
 func TestPlainAuthenticator_Fails(t *testing.T) {
@@ -30,18 +29,18 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
+	resps := make(chan wiremessage.WireMessage, 1)
+	resps <- makeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
 		bson.EC.Int32("code", 143),
-		bson.EC.Boolean("done", true)))
+		bson.EC.Boolean("done", true)),
+	)
 
-	conn := &conntest.MockConnection{
-		ResponseQ: []*msg.Reply{saslStartReply},
-	}
+	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
 
-	err := authenticator.Auth(context.Background(), conn)
+	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -60,22 +59,23 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
+	resps := make(chan wiremessage.WireMessage, 2)
+	resps <- makeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
-		bson.EC.Boolean("done", false)))
-	saslContinueReply := msgtest.CreateCommandReply(bson.NewDocument(
+		bson.EC.Boolean("done", false)),
+	)
+	resps <- makeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
-		bson.EC.Boolean("done", true)))
+		bson.EC.Boolean("done", true)),
+	)
 
-	conn := &conntest.MockConnection{
-		ResponseQ: []*msg.Reply{saslStartReply, saslContinueReply},
-	}
+	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
 
-	err := authenticator.Auth(context.Background(), conn)
+	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -94,33 +94,37 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	saslStartReply := msgtest.CreateCommandReply(bson.NewDocument(
+	resps := make(chan wiremessage.WireMessage, 1)
+	resps <- makeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
-		bson.EC.Boolean("done", true)))
+		bson.EC.Boolean("done", true)),
+	)
 
-	conn := &conntest.MockConnection{
-		ResponseQ: []*msg.Reply{saslStartReply},
-	}
+	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
 
-	err := authenticator.Auth(context.Background(), conn)
+	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
 
-	if len(conn.Sent) != 1 {
-		t.Fatalf("expected 1 messages to be sent but had %d", len(conn.Sent))
+	if len(c.written) != 1 {
+		t.Fatalf("expected 1 messages to be sent but had %d", len(c.written))
 	}
 
-	saslStartRequest := conn.Sent[0].(*msg.Query)
+	saslStartRequest := (<-c.written).(wiremessage.Query)
 	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
-	expectedCmd := bson.NewDocument(
+	expectedCmd, err := bson.NewDocument(
 		bson.EC.Int32("saslStart", 1),
 		bson.EC.String("mechanism", "PLAIN"),
-		bson.EC.Binary("payload", payload))
+		bson.EC.Binary("payload", payload),
+	).MarshalBSON()
+	if err != nil {
+		t.Fatalf("couldn't marshal bson: %v", err)
+	}
 
-	if !reflect.DeepEqual(saslStartRequest.Query, expectedCmd) {
-		t.Fatalf("saslStart command was incorrect: %v", saslStartRequest.Query)
+	if !reflect.DeepEqual(saslStartRequest.Query, bson.Reader(expectedCmd)) {
+		t.Fatalf("saslStart command was incorrect. got %v; want %v", saslStartRequest.Query, bson.Reader(expectedCmd))
 	}
 }

@@ -7,6 +7,7 @@
 package testutil
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -14,16 +15,19 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/connstring"
-	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
+	"github.com/stretchr/testify/require"
 )
 
 var connectionString connstring.ConnString
 var connectionStringOnce sync.Once
 var connectionStringErr error
-var liveCluster *cluster.Cluster
-var liveClusterOnce sync.Once
-var liveClusterErr error
+var liveTopology *topology.Topology
+var liveTopologyOnce sync.Once
+var liveTopologyErr error
 
 // AddOptionsToURI appends connection string options to a URI.
 func AddOptionsToURI(uri string, opts ...string) string {
@@ -55,26 +59,36 @@ func AddTLSConfigToURI(uri string) string {
 	return AddOptionsToURI(uri, "ssl=true&sslCertificateAuthorityFile=", caFile)
 }
 
-// Cluster gets the globally configured cluster.
-func Cluster(t *testing.T) *cluster.Cluster {
-
+// Topology gets the globally configured topology.
+func Topology(t *testing.T) *topology.Topology {
 	cs := ConnString(t)
 
-	liveClusterOnce.Do(func() {
+	liveTopologyOnce.Do(func() {
 		var err error
-		liveCluster, err = cluster.New(cluster.WithConnString(cs))
+		liveTopology, err = topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 		if err != nil {
-			liveClusterErr = err
+			liveTopologyErr = err
 		} else {
-			autoDropDB(t, liveCluster)
+			liveTopology.Init()
+			s, err := liveTopology.SelectServer(context.Background(), topology.WriteSelector())
+			require.NoError(t, err)
+
+			c, err := s.Connection(context.Background())
+			require.NoError(t, err)
+
+			_, err = (&command.Command{
+				DB:      DBName(t),
+				Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
+			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
+			require.NoError(t, err)
 		}
 	})
 
-	if liveClusterErr != nil {
-		t.Fatal(liveClusterErr)
+	if liveTopologyErr != nil {
+		t.Fatal(liveTopologyErr)
 	}
 
-	return liveCluster
+	return liveTopology
 }
 
 // ColName gets a collection name that should be unique

@@ -14,7 +14,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/mongo/internal/auth/gssapi"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.
@@ -42,8 +42,8 @@ type GSSAPIAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *GSSAPIAuthenticator) Auth(ctx context.Context, c conn.Connection) error {
-	client, err := gssapi.New(c.Model().Addr.String(), a.Username, a.Password, a.PasswordSet, a.Props)
+func (a *GSSAPIAuthenticator) Auth(ctx context.Context, c connection.Connection) error {
+	client, err := gssapi.New(c.Description().Addr.String(), a.Username, a.Password, a.PasswordSet, a.Props)
 
 	if err != nil {
 		return err
