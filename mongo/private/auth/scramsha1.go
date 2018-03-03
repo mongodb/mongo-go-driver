@@ -16,13 +16,12 @@ import (
 	"math/rand"
 	"strconv"
 
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
 	"golang.org/x/crypto/pbkdf2"
 
 	"strings"
 
 	"encoding/base64"
-
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
 )
 
 // SCRAMSHA1 is the mechanism name for SCRAM-SHA-1.
@@ -50,7 +49,7 @@ type ScramSHA1Authenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *ScramSHA1Authenticator) Auth(ctx context.Context, c conn.Connection) error {
+func (a *ScramSHA1Authenticator) Auth(ctx context.Context, c connection.Connection) error {
 	client := &scramSaslClient{
 		username:       a.Username,
 		password:       a.Password,

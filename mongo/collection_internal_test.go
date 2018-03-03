@@ -13,14 +13,13 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
-	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/private/options"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestCollection(t *testing.T, dbName *string, collName *string) *Collection {
 	if collName == nil {
-		coll := testutil.ColName(t)
+		coll := t.Name()
 		collName = &coll
 	}
 
@@ -820,7 +819,7 @@ func TestCollection_FindOneAndDelete_notFound_ignoreResult(t *testing.T) {
 	filter := bson.NewDocument(bson.EC.Int32("x", 6))
 
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
-	require.Equal(t, err, ErrNoDocuments)
+	require.Equal(t, ErrNoDocuments, err)
 }
 
 func TestCollection_FindOneAndReplace_found(t *testing.T) {

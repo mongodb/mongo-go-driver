@@ -4,6 +4,8 @@ package connection
 // that speak the mongodb wire protocol.
 //
 // Multiple goroutines may invoke methods on a Listener simultaneously.
+//
+// TODO(GODRIVER-270): Implement this.
 type Listener interface {
 	// Accept waits for and returns the next Connection to the listener.
 	Accept() (Connection, error)

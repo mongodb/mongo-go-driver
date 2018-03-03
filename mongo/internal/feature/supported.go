@@ -9,12 +9,12 @@ package feature
 import (
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
 )
 
 // MaxStaleness returns an error if the given server version
 // does not support max staleness.
-func MaxStaleness(serverVersion model.Version, wireVersion *model.Range) error {
+func MaxStaleness(serverVersion description.Version, wireVersion *description.VersionRange) error {
 	if !serverVersion.AtLeast(3, 4, 0) || (wireVersion != nil && wireVersion.Max < 5) {
 		return fmt.Errorf("max staleness is only supported for servers 3.4 or newer")
 	}
@@ -24,7 +24,7 @@ func MaxStaleness(serverVersion model.Version, wireVersion *model.Range) error {
 
 // ScramSHA1 returns an error if the given server version
 // does not support scram-sha-1.
-func ScramSHA1(version model.Version) error {
+func ScramSHA1(version description.Version) error {
 	if !version.AtLeast(3, 0, 0) {
 		return fmt.Errorf("SCRAM-SHA-1 is only supported for servers 3.0 or newer")
 	}

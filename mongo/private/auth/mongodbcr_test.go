@@ -15,10 +15,8 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/internal/conntest"
-	"github.com/mongodb/mongo-go-driver/mongo/internal/msgtest"
 	. "github.com/mongodb/mongo-go-driver/mongo/private/auth"
-	"github.com/mongodb/mongo-go-driver/mongo/private/msg"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
@@ -30,17 +28,17 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 		Password: "pencil",
 	}
 
-	getNonceReply := msgtest.CreateCommandReply(bson.NewDocument(
+	resps := make(chan wiremessage.WireMessage, 2)
+	resps <- makeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
-		bson.EC.String("nonce", "2375531c32080ae8")))
+		bson.EC.String("nonce", "2375531c32080ae8"),
+	))
 
-	authenticateReply := msgtest.CreateCommandReply(bson.NewDocument(bson.EC.Int32("ok", 0)))
+	resps <- makeReply(t, bson.NewDocument(bson.EC.Int32("ok", 0)))
 
-	conn := &conntest.MockConnection{
-		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
-	}
+	c := &conn{written: make(chan wiremessage.WireMessage, 2), readResp: resps}
 
-	err := authenticator.Auth(context.Background(), conn)
+	err := authenticator.Auth(context.Background(), c)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -60,36 +58,47 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		Password: "pencil",
 	}
 
-	getNonceReply := msgtest.CreateCommandReply(bson.NewDocument(
+	resps := make(chan wiremessage.WireMessage, 2)
+
+	resps <- makeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
-		bson.EC.String("nonce", "2375531c32080ae8")))
+		bson.EC.String("nonce", "2375531c32080ae8"),
+	))
 
-	authenticateReply := msgtest.CreateCommandReply(bson.NewDocument(bson.EC.Int32("ok", 1)))
+	resps <- makeReply(t, bson.NewDocument(bson.EC.Int32("ok", 1)))
 
-	conn := &conntest.MockConnection{
-		ResponseQ: []*msg.Reply{getNonceReply, authenticateReply},
-	}
+	c := &conn{written: make(chan wiremessage.WireMessage, 2), readResp: resps}
 
-	err := authenticator.Auth(context.Background(), conn)
+	err := authenticator.Auth(context.Background(), c)
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
 
-	if len(conn.Sent) != 2 {
-		t.Fatalf("expected 2 messages to be sent but had %d", len(conn.Sent))
+	if len(c.written) != 2 {
+		t.Fatalf("expected 2 messages to be sent but had %d", len(c.written))
 	}
 
-	getNonceRequest := conn.Sent[0].(*msg.Query)
-	if !reflect.DeepEqual(getNonceRequest.Query, bson.NewDocument(bson.EC.Int32("getnonce", 1))) {
+	getNonceRequest := (<-c.written).(wiremessage.Query)
+	var want bson.Reader
+	want, err = bson.NewDocument(bson.EC.Int32("getnonce", 1)).MarshalBSON()
+	if err != nil {
+		t.Fatalf("couldn't marshal bson: %v", err)
+	}
+	if !reflect.DeepEqual(getNonceRequest.Query, want) {
 		t.Fatalf("getnonce command was incorrect: %v", getNonceRequest.Query)
 	}
 
-	authenticateRequest := conn.Sent[1].(*msg.Query)
-	expectedAuthenticateDoc := bson.NewDocument(
+	authenticateRequest := (<-c.written).(wiremessage.Query)
+	var expectedAuthenticateDoc bson.Reader
+	expectedAuthenticateDoc, err = bson.NewDocument(
 		bson.EC.Int32("authenticate", 1),
 		bson.EC.String("user", "user"),
 		bson.EC.String("nonce", "2375531c32080ae8"),
-		bson.EC.String("key", "21742f26431831d5cfca035a08c5bdf6"))
+		bson.EC.String("key", "21742f26431831d5cfca035a08c5bdf6"),
+	).MarshalBSON()
+	if err != nil {
+		t.Fatalf("couldn't marshal bson: %v", err)
+	}
 
 	if !reflect.DeepEqual(authenticateRequest.Query, expectedAuthenticateDoc) {
 		t.Fatalf("authenticate command was incorrect: %v", authenticateRequest.Query)

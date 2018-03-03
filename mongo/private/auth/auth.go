@@ -10,8 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/mongo/model"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
 )
 
 // AuthenticatorFactory constructs an authenticator.
@@ -42,38 +41,55 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 	authFactories[name] = factory
 }
 
-// Opener returns a connection opener that will open and authenticate the connection.
-func Opener(opener conn.Opener, authenticator Authenticator) conn.Opener {
-	return func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
-		return NewConnection(ctx, authenticator, opener, addr, opts...)
-	}
-}
+// // Opener returns a connection opener that will open and authenticate the connection.
+// func Opener(opener conn.Opener, authenticator Authenticator) conn.Opener {
+// 	return func(ctx context.Context, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+// 		return NewConnection(ctx, authenticator, opener, addr, opts...)
+// 	}
+// }
+//
+// // NewConnection opens a connection and authenticates it.
+// func NewConnection(ctx context.Context, authenticator Authenticator, opener conn.Opener, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
+// 	conn, err := opener(ctx, addr, opts...)
+// 	if err != nil {
+// 		if conn != nil {
+// 			// Ignore any error that occurs since we're already returning a different one.
+// 			_ = conn.Close()
+// 		}
+// 		return nil, err
+// 	}
+//
+// 	err = authenticator.Auth(ctx, conn)
+// 	if err != nil {
+// 		// Ignore any error that occurs since we're already returning a different one.
+// 		_ = conn.Close()
+// 		return nil, err
+// 	}
+//
+// 	return conn, nil
+// }
 
-// NewConnection opens a connection and authenticates it.
-func NewConnection(ctx context.Context, authenticator Authenticator, opener conn.Opener, addr model.Addr, opts ...conn.Option) (conn.Connection, error) {
-	conn, err := opener(ctx, addr, opts...)
-	if err != nil {
-		if conn != nil {
-			// Ignore any error that occurs since we're already returning a different one.
-			_ = conn.Close()
+// Configurer creates a connection configurer for the given authenticator.
+//
+// TODO(skriptble): Fully implement this once this package is moved over to the new connection type.
+func Configurer(configurer connection.Configurer, authenticator Authenticator) connection.Configurer {
+	return connection.ConfigurerFunc(func(ctx context.Context, conn connection.Connection) (connection.Connection, error) {
+		err := authenticator.Auth(ctx, conn)
+		if err != nil {
+			conn.Close()
+			return nil, err
 		}
-		return nil, err
-	}
-
-	err = authenticator.Auth(ctx, conn)
-	if err != nil {
-		// Ignore any error that occurs since we're already returning a different one.
-		_ = conn.Close()
-		return nil, err
-	}
-
-	return conn, nil
+		if configurer == nil {
+			return conn, nil
+		}
+		return configurer.Configure(ctx, conn)
+	})
 }
 
 // Authenticator handles authenticating a connection.
 type Authenticator interface {
 	// Auth authenticates the connection.
-	Auth(context.Context, conn.Connection) error
+	Auth(context.Context, connection.Connection) error
 }
 
 func newError(err error, mech string) error {

@@ -10,7 +10,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/model"
+	"github.com/mongodb/mongo-go-driver/mongo/tag"
 )
 
 // ErrInvalidTagSet indicates that an invalid set of tags was specified.
@@ -38,10 +38,10 @@ func WithTags(tags ...string) Option {
 			return ErrInvalidTagSet
 		}
 
-		tagset := make(model.TagSet, 0)
+		tagset := make(tag.Set, 0)
 
 		for i := 0; i < len(tags)/2; i++ {
-			tagset = append(tagset, model.Tag{Name: tags[i], Value: tags[i+1]})
+			tagset = append(tagset, tag.Tag{Name: tags[i], Value: tags[i+1]})
 		}
 
 		return WithTagSets(tagset)(rp)
@@ -51,7 +51,7 @@ func WithTags(tags ...string) Option {
 // WithTagSets sets the tag sets used to match
 // a server. The last call to WithTags or WithTagSets
 // overrides all previous calls to either method.
-func WithTagSets(tagSets ...model.TagSet) Option {
+func WithTagSets(tagSets ...tag.Set) Option {
 	return func(rp *ReadPref) error {
 		rp.tagSets = tagSets
 		return nil
