@@ -144,6 +144,13 @@ type ListIndexesOptioner interface {
 	listIndexesOption()
 }
 
+// CursorOptioner is the interface implemented by types that can be used as
+// Options for Cursor operations.
+type CursorOptioner interface {
+	Optioner
+	cursorOption()
+}
+
 var (
 	_ AggregateOptioner         = (*OptAllowDiskUse)(nil)
 	_ AggregateOptioner         = (*OptBatchSize)(nil)
