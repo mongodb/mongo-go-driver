@@ -6,6 +6,8 @@ import "context"
 // Connection and cleaning it up after running a Handler. This also makes it easier to build
 // higher level processors, like proxies, by handling the life cycle of the underlying
 // connection.
+//
+// TODO(GODRIVER-269): Implement this.
 type Server struct {
 	Addr    Addr
 	Handler Handler

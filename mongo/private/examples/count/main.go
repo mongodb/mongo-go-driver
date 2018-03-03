@@ -16,9 +16,10 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/extjson"
 	"github.com/mongodb/mongo-go-driver/mongo/connstring"
-	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
-	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/dispatch"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 )
 
 var uri = flag.String("uri", "mongodb://localhost:27017", "the mongodb uri to use")
@@ -37,36 +38,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	c, err := cluster.New(
-		cluster.WithConnString(cs),
-	)
+	t, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ctx := context.Background()
-	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-
-	s, err := c.SelectServer(timeoutCtx, cluster.WriteSelector(), readpref.Primary())
-	if err != nil {
-		log.Fatalf("%v: %v", err, c.Model().Servers[0].LastError)
-	}
 
 	dbname := cs.Database
 	if dbname == "" {
 		dbname = "test"
 	}
 
-	rdr, err := ops.Run(
-		ctx,
-		&ops.SelectedServer{
-			Server:   s,
-			ReadPref: readpref.Primary(),
-		},
-		dbname,
-		bson.NewDocument(bson.EC.String("count", *col)),
-	)
+	cmd := command.Command{DB: dbname, Command: bson.NewDocument(bson.EC.String("count", *col))}
+	rdr, err := dispatch.Command(ctx, cmd, t, description.WriteSelector())
 	if err != nil {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}

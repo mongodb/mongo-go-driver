@@ -3,9 +3,10 @@ package command
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/description"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/result"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
 
@@ -13,33 +14,69 @@ import (
 //
 // The listDatabases command lists the databases in a MongoDB deployment.
 type ListDatabases struct {
-	Opts []options.ListDatabasesOptioner
+	Filter *bson.Document
+	Opts   []options.ListDatabasesOptioner
+
+	result result.ListDatabases
+	err    error
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (ld *ListDatabases) Encode(topology.ServerDescription) (wiremessage.WireMessage, error) {
-	return nil, nil
+func (ld *ListDatabases) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	cmd := bson.NewDocument(bson.EC.Int32("listDatabases", 1))
+
+	if ld.Filter != nil {
+		cmd.Append(bson.EC.SubDocument("filter", ld.Filter))
+	}
+
+	for _, opt := range ld.Opts {
+		if opt == nil {
+			continue
+		}
+		opt.Option(cmd)
+	}
+
+	return (&Command{DB: "admin", Command: cmd, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (ld *ListDatabases) Decode(topology.ServerDescription, wiremessage.WireMessage) *ListDatabases {
-	return nil
+func (ld *ListDatabases) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *ListDatabases {
+	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	if err != nil {
+		ld.err = err
+		return ld
+	}
+
+	ld.err = bson.Unmarshal(rdr, &ld.result)
+	return ld
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (ld *ListDatabases) Result() (Cursor, error) { return nil, nil }
-
-// Err returns the error set on this command.
-func (ld *ListDatabases) Err() error { return nil }
-
-// Dispatch handles the full cycle dispatch and execution of this command against the provided
-// topology.
-func (ld *ListDatabases) Dispatch(context.Context, topology.Topology) (Cursor, error) {
-	return nil, nil
+func (ld *ListDatabases) Result() (result.ListDatabases, error) {
+	if ld.err != nil {
+		return result.ListDatabases{}, ld.err
+	}
+	return ld.result, nil
 }
 
-// RoundTrip handles the execution of this command using the provided connection.
-func (ld *ListDatabases) RoundTrip(context.Context, topology.ServerDescription, connection.Connection) (Cursor, error) {
-	return nil, nil
+// Err returns the error set on this command.
+func (ld *ListDatabases) Err() error { return ld.err }
+
+// RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
+func (ld *ListDatabases) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.ListDatabases, error) {
+	wm, err := ld.Encode(desc)
+	if err != nil {
+		return result.ListDatabases{}, err
+	}
+
+	err = rw.WriteWireMessage(ctx, wm)
+	if err != nil {
+		return result.ListDatabases{}, err
+	}
+	wm, err = rw.ReadWireMessage(ctx)
+	if err != nil {
+		return result.ListDatabases{}, err
+	}
+	return ld.Decode(desc, wm).Result()
 }

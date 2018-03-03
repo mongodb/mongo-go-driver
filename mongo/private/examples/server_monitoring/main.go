@@ -11,26 +11,31 @@ import (
 	"time"
 
 	"github.com/kr/pretty"
-	"github.com/mongodb/mongo-go-driver/mongo/model"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
-	"github.com/mongodb/mongo-go-driver/mongo/private/server"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/addr"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 )
 
 func main() {
-	monitor, err := server.StartMonitor(
-		model.Addr("localhost:27017"),
-		server.WithHeartbeatInterval(2*time.Second),
-		server.WithConnectionOptions(
-			conn.WithAppName("server_monitor test"),
+	s, err := topology.NewServer(
+		addr.Addr("localhost:27017"),
+		topology.WithHeartbeatInterval(func(time.Duration) time.Duration { return 2 * time.Second }),
+		topology.WithConnectionOptions(
+			func(opts ...connection.Option) []connection.Option {
+				return append(opts, connection.WithAppName(func(string) string { return "server monitoring test" }))
+			},
 		),
 	)
 	if err != nil {
-		log.Fatalf("could not start server monitor: %v", err)
+		log.Fatalf("could not start server: %v", err)
 	}
 
-	updates, _, _ := monitor.Subscribe()
+	sub, err := s.Subscribe()
+	if err != nil {
+		log.Fatalf("could not subscribe to server: %v", err)
+	}
 
-	for desc := range updates {
+	for desc := range sub.C {
 		log.Printf("%# v", pretty.Formatter(desc))
 	}
 }
