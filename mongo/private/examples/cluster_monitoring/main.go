@@ -10,19 +10,22 @@ import (
 	"log"
 
 	"github.com/kr/pretty"
-	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 )
 
 func main() {
-	monitor, err := cluster.StartMonitor()
+	topo, err := topology.New()
 	if err != nil {
-		log.Fatalf("could not start cluster monitor: %v", err)
+		log.Fatalf("could not create topology: %v", err)
+	}
+	topo.Init()
+
+	sub, err := topo.Subscribe()
+	if err != nil {
+		log.Fatalf("could not subscribe to topology: %v", err)
 	}
 
-	updates, _, _ := monitor.Subscribe()
-
-	for desc := range updates {
+	for desc := range sub.C {
 		log.Printf("%# v", pretty.Formatter(desc))
 	}
-
 }

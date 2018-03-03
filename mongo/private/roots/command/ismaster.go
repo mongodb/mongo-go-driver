@@ -2,9 +2,9 @@ package command
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/result"
 	"github.com/mongodb/mongo-go-driver/mongo/private/roots/wiremessage"
 )
@@ -17,24 +17,78 @@ import (
 // Since IsMaster can only be run on a connection, there is no Dispatch method.
 type IsMaster struct {
 	Client *bson.Document
+
+	err error
+	res result.IsMaster
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (im *IsMaster) Encode() (wiremessage.WireMessage, error) { return nil, nil }
+func (im *IsMaster) Encode() (wiremessage.WireMessage, error) {
+	cmd := bson.NewDocument(bson.EC.Int32("isMaster", 1))
+	if im.Client != nil {
+		cmd.Append(bson.EC.SubDocument("client", im.Client))
+	}
+	rdr, err := cmd.MarshalBSON()
+	if err != nil {
+		return nil, err
+	}
+	query := wiremessage.Query{
+		MsgHeader:          wiremessage.Header{RequestID: wiremessage.NextRequestID()},
+		FullCollectionName: "admin.$cmd",
+		Flags:              wiremessage.SlaveOK,
+		NumberToReturn:     -1,
+		Query:              rdr,
+	}
+	return query, nil
+}
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (im *IsMaster) Decode(wiremessage.WireMessage) *IsMaster {
-	return nil
+func (im *IsMaster) Decode(wm wiremessage.WireMessage) *IsMaster {
+	reply, ok := wm.(wiremessage.Reply)
+	if !ok {
+		im.err = fmt.Errorf("unsupported response wiremessage type %T", wm)
+		return im
+	}
+	rdr, err := decodeCommandOpReply(reply)
+	if err != nil {
+		im.err = err
+		return im
+	}
+	err = bson.Unmarshal(rdr, &im.res)
+	if err != nil {
+		im.err = err
+		return im
+	}
+	return im
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (im *IsMaster) Result() (result.IsMaster, error) { return result.IsMaster{}, nil }
+func (im *IsMaster) Result() (result.IsMaster, error) {
+	if im.err != nil {
+		return result.IsMaster{}, im.err
+	}
+
+	return im.res, nil
+}
 
 // Err returns the error set on this command.
-func (im *IsMaster) Err() error { return nil }
+func (im *IsMaster) Err() error { return im.err }
 
-// RoundTrip handles the execution of this command using the provided connection.
-func (im *IsMaster) RoundTrip(context.Context, connection.Connection) (result.IsMaster, error) {
-	return result.IsMaster{}, nil
+// RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
+func (im *IsMaster) RoundTrip(ctx context.Context, rw wiremessage.ReadWriter) (result.IsMaster, error) {
+	wm, err := im.Encode()
+	if err != nil {
+		return result.IsMaster{}, err
+	}
+
+	err = rw.WriteWireMessage(ctx, wm)
+	if err != nil {
+		return result.IsMaster{}, err
+	}
+	wm, err = rw.ReadWireMessage(ctx)
+	if err != nil {
+		return result.IsMaster{}, err
+	}
+	return im.Decode(wm).Result()
 }
