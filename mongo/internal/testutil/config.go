@@ -7,6 +7,7 @@
 package testutil
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -14,8 +15,12 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/connstring"
 	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
+	"github.com/stretchr/testify/require"
 )
 
 var connectionString connstring.ConnString
@@ -24,6 +29,9 @@ var connectionStringErr error
 var liveCluster *cluster.Cluster
 var liveClusterOnce sync.Once
 var liveClusterErr error
+var liveTopology *topology.Topology
+var liveTopologyOnce sync.Once
+var liveTopologyErr error
 
 // AddTLSConfigToURI checks for the environmental variable indicating that the tests are being run
 // on an SSL-enabled server, and if so, returns a new URI with the necessary configuration.
@@ -66,6 +74,38 @@ func Cluster(t *testing.T) *cluster.Cluster {
 	}
 
 	return liveCluster
+}
+
+// Topology gets the globally configured topology.
+func Topology(t *testing.T) *topology.Topology {
+	cs := ConnString(t)
+
+	liveTopologyOnce.Do(func() {
+		var err error
+		liveTopology, err = topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+		if err != nil {
+			liveTopologyErr = err
+		} else {
+			liveTopology.Init()
+			s, err := liveTopology.SelectServer(context.Background(), topology.WriteSelector())
+			require.NoError(t, err)
+
+			c, err := s.Connection(context.Background())
+			require.NoError(t, err)
+
+			_, err = (&command.Command{
+				DB:      DBName(t),
+				Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
+			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
+			require.NoError(t, err)
+		}
+	})
+
+	if liveTopologyErr != nil {
+		t.Fatal(liveTopologyErr)
+	}
+
+	return liveTopology
 }
 
 // ColName gets a collection name that should be unique

@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/connstring"
 	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
 	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
@@ -23,6 +24,7 @@ const defaultLocalThreshold = 15 * time.Millisecond
 // Client performs operations on a given cluster.
 type Client struct {
 	cluster        *cluster.Cluster
+	topology       *topology.Topology
 	connString     connstring.ConnString
 	localThreshold time.Duration
 	readPreference *readpref.ReadPref
@@ -47,9 +49,17 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 		return nil, err
 	}
 
+	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+	if err != nil {
+		return nil, err
+	}
+
+	topo.Init()
+
 	// TODO(GODRIVER-92): Allow custom localThreshold
 	client := &Client{
 		cluster:        clst,
+		topology:       topo,
 		connString:     cs,
 		localThreshold: defaultLocalThreshold,
 		readPreference: readpref.Primary(),
