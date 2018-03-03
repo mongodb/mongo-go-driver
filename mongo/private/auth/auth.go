@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/mongo/model"
 	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
+	"github.com/mongodb/mongo-go-driver/mongo/private/roots/connection"
 )
 
 // AuthenticatorFactory constructs an authenticator.
@@ -68,6 +69,23 @@ func NewConnection(ctx context.Context, authenticator Authenticator, opener conn
 	}
 
 	return conn, nil
+}
+
+// Configurer creates a connection configurer for the given authenticator.
+//
+// TODO(skriptble): Fully implement this once this package is moved over to the new connection type.
+func Configurer(configurer connection.Configurer, authenticator Authenticator) connection.Configurer {
+	return connection.ConfigurerFunc(func(ctx context.Context, conn connection.Connection) (connection.Connection, error) {
+		err := authenticator.Auth(ctx, nil)
+		if err != nil {
+			conn.Close()
+			return nil, err
+		}
+		if configurer == nil {
+			return conn, nil
+		}
+		return configurer.Configure(ctx, conn)
+	})
 }
 
 // Authenticator handles authenticating a connection.
