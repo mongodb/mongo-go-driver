@@ -34,6 +34,24 @@
       "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a05fa509_016096c6",
+        "filename": "mongo/private/roots/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:11:47Z",
+      "side": 1,
+      "message": "Can you document this? It doesn\u0027t seem obvious from the names.",
+      "parentUuid": "11790d4d_b4db71dd",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
