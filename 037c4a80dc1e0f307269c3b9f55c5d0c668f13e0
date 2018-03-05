@@ -1,0 +1,257 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0c37d006_cadeb10b",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "\"unmarshaling\"?",
+      "range": {
+        "startLine": 130,
+        "startChar": 69,
+        "endLine": 130,
+        "endChar": 80
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6541052b_41a05f8d",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "\"adjust\"?",
+      "range": {
+        "startLine": 130,
+        "startChar": 59,
+        "endLine": 130,
+        "endChar": 64
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ff3cc0ac_07ac8cae",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "This reads a little strange, how about \"may be changed using a struct tag\"?",
+      "range": {
+        "startLine": 129,
+        "startChar": 91,
+        "endLine": 130,
+        "endChar": 23
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e66ff593_0c2bb104",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "This is worded weirdly, what is the actual functionality that occurs? Do we not unmarshal if it would overflow the value? Do we return an error?",
+      "range": {
+        "startLine": 140,
+        "startChar": 7,
+        "endLine": 141,
+        "endChar": 16
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "03c93981_2baeda98",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "This is a bit ambiguous, does this only apply to integer types?",
+      "range": {
+        "startLine": 143,
+        "startChar": 3,
+        "endLine": 143,
+        "endChar": 87
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "90f4609b_488e9993",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "Same as before.",
+      "range": {
+        "startLine": 60,
+        "startChar": 49,
+        "endLine": 60,
+        "endChar": 73
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8903a9a0_9672cbfa",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "\"adjust\"?",
+      "range": {
+        "startLine": 61,
+        "startChar": 21,
+        "endLine": 61,
+        "endChar": 26
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "82d3b4ab_d21c57a2",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "This implies it only works on int64, when it actually works on all integer types that can be larger than an int32, e.g. int64, uint64, uint32, etc...",
+      "range": {
+        "startLine": 73,
+        "startChar": 19,
+        "endLine": 73,
+        "endChar": 53
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d53a6df5_ed6f388f",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "I don\u0027t think this is actually true. Can you confirm?",
+      "range": {
+        "startLine": 77,
+        "startChar": 85,
+        "endLine": 78,
+        "endChar": 83
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9fa4186e_50fe569a",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "There is only a single example here, so this should be \"An example\".",
+      "range": {
+        "startLine": 80,
+        "startChar": 4,
+        "endLine": 80,
+        "endChar": 17
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "813b78d4_24852714",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:25:01Z",
+      "side": 1,
+      "message": "Why is this here? UnmarshalDocument doesn\u0027t accept a type to unmarshal into.",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 124,
+        "endChar": 49
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
