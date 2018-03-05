@@ -125,8 +125,24 @@ func NewDecoder(r io.Reader) *Decoder {
 //   - any map with string keys
 //   - a struct (possibly with tags)
 //
-// In the case of a map or struct, Decode will treat the value as a BSON document with the map keys
-// or struct field names as the keys and the map values or struct fields as the values.
+// In the case of struct values, only exported fields will be deserialized. The lowercased field
+// name is used as the key for each exported field, but this behavior may be changed using the
+// respective field tag. The tag may also contain flags to tweak the marshalling behavior for the
+// field. The tag formats accepted are:
+//
+//     "[<key>][,<flag1>[,<flag2>]]"
+//
+//     `(...) bson:"[<key>][,<flag1>[,<flag2>]]" (...)`
+//
+// The target field or element types of out may not necessarily match the BSON values of the
+// provided data. The following conversions are made automatically:
+//
+//   - Numeric types are converted if at least the integer part of the value would be preserved
+//     correctly
+//
+// If the value would not fit the type and cannot be converted, it is silently skipped.
+//
+// Pointer values are initialized when necessary.
 func (d *Decoder) Decode(v interface{}) error {
 	switch t := v.(type) {
 	case Unmarshaler:
