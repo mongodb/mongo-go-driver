@@ -708,6 +708,30 @@
       "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fe81eb5c_5cc7721b",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T21:31:54Z",
+      "side": 1,
+      "message": "Fixed per offline discussion",
+      "parentUuid": "56f8bf3f_67793c15",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 124,
+        "endChar": 49
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
