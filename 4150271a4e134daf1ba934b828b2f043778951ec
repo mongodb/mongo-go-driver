@@ -16,6 +16,24 @@
       "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "11790d4d_b4db71dd",
+        "filename": "mongo/private/roots/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T19:38:40Z",
+      "side": 1,
+      "message": "Command failure comes from a query failure whereas a command execution error can be any error from the database.",
+      "parentUuid": "1c0fc7ba_4f40d660",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
