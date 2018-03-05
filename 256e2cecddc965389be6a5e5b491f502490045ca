@@ -22,6 +22,30 @@
       "revId": "256e2cecddc965389be6a5e5b491f502490045ca",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e838ac16_4f85f2e5",
+        "filename": "mongo/private/options/collation_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:59:50Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "aa3ee064_8d858569",
+      "range": {
+        "startLine": 13,
+        "startChar": 5,
+        "endLine": 13,
+        "endChar": 21
+      },
+      "revId": "256e2cecddc965389be6a5e5b491f502490045ca",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
