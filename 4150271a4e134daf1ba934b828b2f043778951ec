@@ -70,6 +70,24 @@
       "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "30c57a66_c04c3e47",
+        "filename": "mongo/private/roots/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T21:24:32Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "59455fcd_882b43ec",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
