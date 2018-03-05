@@ -497,6 +497,30 @@
     },
     {
       "key": {
+        "uuid": "6506201b_6f2a6f29",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T21:21:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4250eb28_8fbe1c8a",
+      "range": {
+        "startLine": 77,
+        "startChar": 85,
+        "endLine": 78,
+        "endChar": 83
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9fa4186e_50fe569a",
         "filename": "bson/encode.go",
         "patchSetId": 1
@@ -568,6 +592,30 @@
     },
     {
       "key": {
+        "uuid": "e16f6092_5f096af2",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T21:21:10Z",
+      "side": 1,
+      "message": "Done in patch 3.",
+      "parentUuid": "b2ac31e1_39b18cac",
+      "range": {
+        "startLine": 80,
+        "startChar": 4,
+        "endLine": 80,
+        "endChar": 17
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "813b78d4_24852714",
         "filename": "bson/marshal.go",
         "patchSetId": 1
@@ -627,6 +675,30 @@
       "side": 1,
       "message": "It\u0027s still there in the latest patch.",
       "parentUuid": "330df828_93eeae21",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 124,
+        "endChar": 49
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "56f8bf3f_67793c15",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T21:21:10Z",
+      "side": 1,
+      "message": "I don\u0027t see it in either patch 2 or 3. Which patch are you seeing it in?",
+      "parentUuid": "7b5ff86d_6ab616ad",
       "range": {
         "startLine": 97,
         "startChar": 0,
