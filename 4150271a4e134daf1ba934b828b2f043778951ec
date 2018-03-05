@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1c0fc7ba_4f40d660",
+        "filename": "mongo/private/roots/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T19:30:40Z",
+      "side": 1,
+      "message": "What\u0027s the difference between a \"command failure\" and a \"command execution error\"?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
