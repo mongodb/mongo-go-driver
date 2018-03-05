@@ -71,6 +71,78 @@
     },
     {
       "key": {
+        "uuid": "dec9f59b_e26b13ba",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6541052b_41a05f8d",
+      "range": {
+        "startLine": 130,
+        "startChar": 59,
+        "endLine": 130,
+        "endChar": 64
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "803e8005_feaac6ca",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0c37d006_cadeb10b",
+      "range": {
+        "startLine": 130,
+        "startChar": 69,
+        "endLine": 130,
+        "endChar": 80
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "879892e2_35029e9b",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ff3cc0ac_07ac8cae",
+      "range": {
+        "startLine": 129,
+        "startChar": 91,
+        "endLine": 130,
+        "endChar": 23
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e66ff593_0c2bb104",
         "filename": "bson/decode.go",
         "patchSetId": 1
@@ -82,6 +154,30 @@
       "writtenOn": "2018-03-05T20:25:01Z",
       "side": 1,
       "message": "This is worded weirdly, what is the actual functionality that occurs? Do we not unmarshal if it would overflow the value? Do we return an error?",
+      "range": {
+        "startLine": 140,
+        "startChar": 7,
+        "endLine": 141,
+        "endChar": 16
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d10950bf_38479dbc",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "If the integer doesn\u0027t fit in the type that\u0027s given, we ignore it (as it says below).",
+      "parentUuid": "e66ff593_0c2bb104",
       "range": {
         "startLine": 140,
         "startChar": 7,
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "52e89295_680a9c57",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "No, it refers to all types.",
+      "parentUuid": "03c93981_2baeda98",
+      "range": {
+        "startLine": 143,
+        "startChar": 3,
+        "endLine": 143,
+        "endChar": 87
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "90f4609b_488e9993",
         "filename": "bson/encode.go",
         "patchSetId": 1
@@ -137,6 +257,30 @@
       "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "41deb995_38e81da4",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "90f4609b_488e9993",
+      "range": {
+        "startLine": 60,
+        "startChar": 49,
+        "endLine": 60,
+        "endChar": 73
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -163,6 +307,30 @@
     },
     {
       "key": {
+        "uuid": "ba2e1879_5f24d9b5",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8903a9a0_9672cbfa",
+      "range": {
+        "startLine": 61,
+        "startChar": 21,
+        "endLine": 61,
+        "endChar": 26
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "82d3b4ab_d21c57a2",
         "filename": "bson/encode.go",
         "patchSetId": 1
@@ -186,6 +354,30 @@
     },
     {
       "key": {
+        "uuid": "65bf3598_ac6c7301",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "82d3b4ab_d21c57a2",
+      "range": {
+        "startLine": 73,
+        "startChar": 19,
+        "endLine": 73,
+        "endChar": 53
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d53a6df5_ed6f388f",
         "filename": "bson/encode.go",
         "patchSetId": 1
@@ -197,6 +389,30 @@
       "writtenOn": "2018-03-05T20:25:01Z",
       "side": 1,
       "message": "I don\u0027t think this is actually true. Can you confirm?",
+      "range": {
+        "startLine": 77,
+        "startChar": 85,
+        "endLine": 78,
+        "endChar": 83
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0632d5d5_0a9f5882",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "This was the documentation on mgo/bson, and you said that we used flags in the same way. Did you implement `inline` differently? If so, let me know how and I\u0027ll update this to reflect it.",
+      "parentUuid": "d53a6df5_ed6f388f",
       "range": {
         "startLine": 77,
         "startChar": 85,
@@ -232,6 +448,30 @@
     },
     {
       "key": {
+        "uuid": "b8716cef_8d70d76a",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "I think the idea is that these are \"some examples\" of struct tags, but I don\u0027t have a preference for either wording.",
+      "parentUuid": "9fa4186e_50fe569a",
+      "range": {
+        "startLine": 80,
+        "startChar": 4,
+        "endLine": 80,
+        "endChar": 17
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "813b78d4_24852714",
         "filename": "bson/marshal.go",
         "patchSetId": 1
@@ -252,6 +492,30 @@
       "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "330df828_93eeae21",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1012922
+      },
+      "writtenOn": "2018-03-05T20:52:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "813b78d4_24852714",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 124,
+        "endChar": 49
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
