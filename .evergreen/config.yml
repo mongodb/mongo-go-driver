@@ -50,16 +50,17 @@ functions:
            fi
 
            export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+           export PROJECT_DIRECTORY="$(pwd)"
 
            # Python has cygwin path problems on Windows. Detect prospective mongo-orchestration home directory
-           if [ "Windows_NT" == "$OS" ]; then # Magic variable in cygwin
+           if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
               export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
+              export PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
            fi
 
            export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
            export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
            export UPLOAD_BUCKET="${project}"
-           export PROJECT_DIRECTORY="$(pwd)"
            export PATH="${GCC_PATH}:$GOPATH/bin:$MONGODB_BINARIES:$PATH"
            export PROJECT="${project}"
 
@@ -125,34 +126,29 @@ functions:
       params:
         script: |
           ${PREPARE_SHELL}
-          find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf ${PROJECT_DIRECTORY}/mongodb-logs.tar.gz
+          find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: /${PROJECT_DIRECTORY}/mongodb-logs.tar.gz
+        local_file: mongodb-logs.tar.gz
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
         bucket: mciuploads
         permissions: public-read
         content_type: ${content_type|application/x-gzip}
         display_name: "mongodb-logs.tar.gz"
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: /${DRIVERS_TOOLS}/.evergreen/orchestration/server.log
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-orchestration.log
-        bucket: mciuploads
-        permissions: public-read
-        content_type: ${content_type|text/plain}
-        display_name: "orchestration.log"
-
 
   bootstrap-mongo-orchestration:
     - command: shell.exec
       params:
         script: |
           ${PREPARE_SHELL}
+
+          cp ${PROJECT_DIRECTORY}/data/certificates/server.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/server.pem
+          cp ${PROJECT_DIRECTORY}/data/certificates/ca.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem
+          cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem
+          cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
+
           MONGODB_VERSION=${VERSION} TOPOLOGY=${TOPOLOGY} AUTH=${AUTH} SSL=${SSL} sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
@@ -234,15 +230,10 @@ functions:
         script: |
           ${PREPARE_SHELL}
 
-          cp ${PROJECT_DIRECTORY}/data/certificates/server.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/server.pem
-          cp ${PROJECT_DIRECTORY}/data/certificates/ca.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem
-          cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${DRIVERS_TOOLS}/.evergreen/x509gen/client.pem
-          cp ${PROJECT_DIRECTORY}/data/certificates/client.pem ${MONGO_ORCHESTRATION_HOME}/lib/client.pem
-
           if [ ${SSL} = "ssl" ]; then
               export MONGO_GO_DRIVER_CA_FILE="$PROJECT_DIRECTORY/data/certificates/ca.pem"
 
-              if [ "Windows_NT" == "$OS" ]; then # Magic variable in cygwin
+              if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
                   export MONGO_GO_DRIVER_CA_FILE=$(cygpath -m $MONGO_GO_DRIVER_CA_FILE)
               fi
           fi
