@@ -8,9 +8,9 @@ package options
 
 import "github.com/mongodb/mongo-go-driver/bson"
 
-// CollationOptions allows users to specify language-specific rules for string comparison, such as
+// Collation allows users to specify language-specific rules for string comparison, such as
 // rules for lettercase and accent marks.
-type CollationOptions struct {
+type Collation struct {
 	Locale          string `bson:",omitempty"`
 	CaseLevel       bool   `bson:",omitempty"`
 	CaseFirst       string `bson:",omitempty"`
@@ -21,7 +21,7 @@ type CollationOptions struct {
 	Backwards       bool   `bson:",omitempty"`
 }
 
-func (co *CollationOptions) toDocument() *bson.Document {
+func (co *Collation) toDocument() *bson.Document {
 	doc := bson.NewDocument()
 	if co.Locale != "" {
 		doc.Append(bson.EC.String("locale", co.Locale))
@@ -51,6 +51,6 @@ func (co *CollationOptions) toDocument() *bson.Document {
 }
 
 // MarshalBSONDocument implements the bson.DocumentMarshaler interface.
-func (co *CollationOptions) MarshalBSONDocument() (*bson.Document, error) {
+func (co *Collation) MarshalBSONDocument() (*bson.Document, error) {
 	return co.toDocument(), nil
 }

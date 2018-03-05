@@ -14,7 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/extjson"
 	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
 	"github.com/stretchr/testify/require"
 )
 
@@ -884,8 +884,8 @@ func verifyCursorResults(t *testing.T, cursor Cursor, result json.RawMessage) {
 
 }
 
-func collationFromMap(m map[string]interface{}) *options.CollationOptions {
-	var collation options.CollationOptions
+func collationFromMap(m map[string]interface{}) *options.Collation {
+	var collation options.Collation
 
 	if locale, found := m["locale"]; found {
 		collation.Locale = locale.(string)

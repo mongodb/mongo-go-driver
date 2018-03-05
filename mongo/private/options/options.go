@@ -296,7 +296,7 @@ func (OptBypassDocumentValidation) replaceOption()           {}
 func (OptBypassDocumentValidation) updateOption()            {}
 
 // OptCollation is for internal use.
-type OptCollation struct{ Collation *CollationOptions }
+type OptCollation struct{ Collation *Collation }
 
 // Option implements the Optioner interface.
 func (opt OptCollation) Option(d *bson.Document) {
