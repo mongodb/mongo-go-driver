@@ -52,6 +52,24 @@
       "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "59455fcd_882b43ec",
+        "filename": "mongo/private/roots/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:13:37Z",
+      "side": 1,
+      "message": "CommandFailure should be called QueryFailure, so I\u0027ll change it to that, since we\u0027ll OP_QUERY will be used for actual queries when we add 3.0 support.",
+      "parentUuid": "a05fa509_016096c6",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
