@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
@@ -68,7 +68,7 @@ func (Options) BypassDocumentValidation(b bool) options.OptBypassDocumentValidat
 // for lettercase and accent marks.
 //
 // See https://docs.mongodb.com/manual/reference/collation/.
-func (Options) Collation(collation *options.CollationOptions) options.OptCollation {
+func (Options) Collation(collation *options.Collation) options.OptCollation {
 	opt := options.OptCollation{Collation: collation}
 	return opt
 }
