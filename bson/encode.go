@@ -56,8 +56,35 @@ type Encoder interface {
 	//   - any map with string keys
 	//   - a struct (possibly with tags)
 	//
-	// In the case of a map or struct, Encode will interpret the value as a BSON document with the map
-	// keys or struct field names as the keys and the map values or struct fields as the values.
+	// In the case of a struct, the lowercased field name is used as the key for each exported
+	// field but this behavior may be changed using a struct tag. The tag may also contain flags to
+	// adjust the marshalling behavior for the field. The tag formats accepted are:
+	//
+	//     "[<key>][,<flag1>[,<flag2>]]"
+	//
+	//     `(...) bson:"[<key>][,<flag1>[,<flag2>]]" (...)`
+	//
+	// The following flags are currently supported:
+	//
+	//     omitempty  Only include the field if it's not set to the zero value for the type or to
+	//                empty slices or maps.
+	//
+	//     minsize    Marshal an integer of a type larger than 32 bits value as an int32, if that's
+	//                feasible while preserving the numeric value.
+	//
+	//     inline     Inline the field, which must be a struct or a map, causing all of its fields
+	//                or keys to be processed as if they were part of the outer struct.
+	//
+	// An example:
+	//
+	//     type T struct {
+	//         A bool
+	//         B int    "myb"
+	//         C string "myc,omitempty"
+	//         D string `bson:",omitempty" json:"jsonkey"`
+	//         E int64  ",minsize"
+	//         F int64  "myf,omitempty,minsize"
+	//     }
 	Encode(interface{}) error
 }
 
