@@ -190,6 +190,30 @@
     },
     {
       "key": {
+        "uuid": "9dd4ce49_55675618",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T21:06:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d10950bf_38479dbc",
+      "range": {
+        "startLine": 140,
+        "startChar": 7,
+        "endLine": 141,
+        "endChar": 16
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "03c93981_2baeda98",
         "filename": "bson/decode.go",
         "patchSetId": 1
@@ -234,6 +258,30 @@
       "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7ea3a8f2_8908dc6a",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T21:06:12Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "52e89295_680a9c57",
+      "range": {
+        "startLine": 143,
+        "startChar": 3,
+        "endLine": 143,
+        "endChar": 87
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -425,6 +473,30 @@
     },
     {
       "key": {
+        "uuid": "4250eb28_8fbe1c8a",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T21:06:12Z",
+      "side": 1,
+      "message": "It is implemented differently. It should just inline them directly and the keys conflicting shouldn\u0027t matter, but that\u0027s why I asked you to confirm. :-)",
+      "parentUuid": "0632d5d5_0a9f5882",
+      "range": {
+        "startLine": 77,
+        "startChar": 85,
+        "endLine": 78,
+        "endChar": 83
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9fa4186e_50fe569a",
         "filename": "bson/encode.go",
         "patchSetId": 1
@@ -472,6 +544,30 @@
     },
     {
       "key": {
+        "uuid": "b2ac31e1_39b18cac",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T21:06:12Z",
+      "side": 1,
+      "message": "I think saying \"Some examples\" and then only having one struct is a little confusing. It could also be \"Some examples of struct tags:\".",
+      "parentUuid": "b8716cef_8d70d76a",
+      "range": {
+        "startLine": 80,
+        "startChar": 4,
+        "endLine": 80,
+        "endChar": 17
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "813b78d4_24852714",
         "filename": "bson/marshal.go",
         "patchSetId": 1
@@ -507,6 +603,30 @@
       "side": 1,
       "message": "Done",
       "parentUuid": "813b78d4_24852714",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 124,
+        "endChar": 49
+      },
+      "revId": "037c4a80dc1e0f307269c3b9f55c5d0c668f13e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7b5ff86d_6ab616ad",
+        "filename": "bson/marshal.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T21:06:12Z",
+      "side": 1,
+      "message": "It\u0027s still there in the latest patch.",
+      "parentUuid": "330df828_93eeae21",
       "range": {
         "startLine": 97,
         "startChar": 0,
