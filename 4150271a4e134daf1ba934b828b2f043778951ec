@@ -2,6 +2,57 @@
   "comments": [
     {
       "key": {
+        "uuid": "06cbe30f_a1d06c1a",
+        "filename": "mongo/private/roots/addr/addr.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Please either do this, or mark it TODO with a ticket number.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c5400f81_8b94c12e",
+        "filename": "mongo/private/roots/addr/addr.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Calling this and parsing a string error just to find out if we need to append a port  seems convoluted.  But it\u0027s a reasonable shortcut for now.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed32cd55_0bbcefdb",
+        "filename": "mongo/private/roots/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I\u0027m not sure if these distinctions are useful.  In the Perl driver, I lump many of them into just a single \"ProtocolError\" -- meaning the server sent something I didn\u0027t expect.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1c0fc7ba_4f40d660",
         "filename": "mongo/private/roots/command/errors.go",
         "patchSetId": 1
@@ -88,6 +139,564 @@
       "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "19b27b3d_1e20c1ed",
+        "filename": "mongo/private/roots/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I think the term \"Command\" is being overused and that\u0027s causing confusion.  When there is an error code back from the database, that should be \"DatabaseError\" or \"OperationError\" or something like that.",
+      "parentUuid": "a05fa509_016096c6",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "56ef1e6f_79281e92",
+        "filename": "mongo/private/roots/command/opreply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Calling this \"decodeOpReply\" is confusing because most of the intro code is about the number of document -- all of which are technically legal in an OP_REPLY.  Is this intended to decode a *command* reply -- where we expect just a single document?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4784bfd6_df53b3d1",
+        "filename": "mongo/private/roots/command/opreply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "After rdr.Validate() in line 19, could this fail?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "10d616bd_add60368",
+        "filename": "mongo/private/roots/command/opreply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "In the default case here, we got something unexpected from the DB and should error.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cfc111f9_a94cc735",
+        "filename": "mongo/private/roots/command/opreply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "else error",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89d55cb0_a1a26b09",
+        "filename": "mongo/private/roots/command/opreply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "else error",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e5cf5cbd_53eef381",
+        "filename": "mongo/private/roots/command/opreply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "else error",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d3b606a6_c6db3c3f",
+        "filename": "mongo/private/roots/command/opreply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I suggest if there\u0027s no code, that we default to 8 (UnknownError) rather than letting it stay the zero value (which the server uses for \"ok\")",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2bae79c8_7eeed026",
+        "filename": "mongo/private/roots/connection/buildinfo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "There\u0027s no reason it has to be run only on a connection, even if we do in practice.  It might be beneficial to make it look just like every other command instead of having future readers puzzle out the exception.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4acdfe07_717c1bac",
+        "filename": "mongo/private/roots/connection/buildinfo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "As I look at this and the rest of this file, I think 90% of it is generic to a \"command\".  The only unique bit is the actual result type.  I\u0027d look for a way to roundtrip a generic command instead and then just convert the response.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7776c751_ed5dd004",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "What is ID supposed to represent?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "af1a79b7_34e897b6",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "description.Connection also has an ID field.  Is that the same or different than ID above?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eb66ce5b_1a5e7eee",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I was confused when I read we had both idleTimeout and idleDeadline.  Maybe call the latter \"idleNextDeadline\" and then the distinction is clearer.  Also, I see where we bump the deadline, but not where we check it.  Where does that happen?",
+      "range": {
+        "startLine": 70,
+        "startChar": 1,
+        "endLine": 70,
+        "endChar": 13
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "812fa639_10e721d3",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Ditto: where does this get checked?",
+      "range": {
+        "startLine": 71,
+        "startChar": 1,
+        "endLine": 71,
+        "endChar": 17
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7894f9ea_10e53072",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Should this use net.SplitHostPort instead of doing it by hand?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "315b321f_d6c1570a",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 166,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "This creates a race condition -- Done could be closed after this check during the write (before the write deadline).  But some quick Googling seems to suggest this is unavoidable as Read/Write aren\u0027t cancelable (other than doing the read/write in a goroutine and selecting on completion of that *or* the context being done) -- which seems like a lot of machinery/complexity for now.  I suggest adding a comment about this situation instead.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a2fab307_54121455",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 256,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "This is fine for now, but inefficient and should have a TODO ticket.  We want to let the network stack give us as much as it can in one shot (but at least 4 bytes!) and then check the length to see if we got it all or if we need to go back for more.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1cc3c7b9_a91aa8db",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "This error isn\u0027t about decoding. This is a short read error, like an unexpected EOF.  Probably should also defer c.Close() before returning",
+      "range": {
+        "startLine": 262,
+        "startChar": 28,
+        "endLine": 262,
+        "endChar": 34
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d0526f92_2df472f9",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 284,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Should be same short-read message as before, whatever that is.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a9f1c189_aef2ef3c",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 288,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I don\u0027t think we use anything from the header except the OpCode.  Should we just grab that instead of a full header?  Should the entire op-code switching move into a function in the wiremessage package (so that other connections can use it)?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0bd4b51f_1a958c4d",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "At this point we have the full message (but it\u0027s corrupt/invalid).  Why close the connection?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "54a099b3_515791e4",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Ditto: don\u0027t see why we close on this.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aeff51aa_99cbbaa4",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 320,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "defer this so we know it always runs?  (As long as it doesn\u0027t conflict with deferred close?)  My thought is that *any* use of the connection should bump the idle deadline.  E.g. if we get an unimplemented opcode, we should still be bumping the idle deadline.",
+      "range": {
+        "startLine": 320,
+        "startChar": 3,
+        "endLine": 320,
+        "endChar": 19
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c1c9438_1f71b8c2",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I\u0027m not a fan of this  -- this is an extra round-trip on *every* connection when it\u0027s only needed at most once when a server is added to a topology.  Related: GODRIVER-6.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "92629cce_ad0759bb",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I think we can drop this, given DRIVERS-360",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "42dc98c3_eebdfb4b",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 400,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I\u0027d really like to avoid scattering routines like these throughout the codebase.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0efe9d62_b3f828cf",
+        "filename": "mongo/private/roots/connection/error.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Is there some generic error wrapping package we could be using rather than doing it ad hoc for some errors but not others?",
+      "range": {
+        "startLine": 8,
+        "startChar": 1,
+        "endLine": 8,
+        "endChar": 8
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a08e73e6_d1bb683c",
+        "filename": "mongo/private/roots/connection/getlasterror.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Per DRIVERS-360, we should do this anyway.  Also, per my connection about the BuildInfo command, you can see how much code is duplicated.  Even though Go has a higher tolerance for that sort of thing, I think it\u0027s excessive for things that are essentially \"given bson.Document, dispatch it (or direct send it) to a server, get a bson.Document back, then Unmarshal it into type X\".  We need a better pattern for that because it\u0027s going to be everywhere.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ff8a5cad_41a6bc5f",
+        "filename": "mongo/private/roots/connection/ismaster.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "Ditto: need to find a better pattern for doing commands where the only difference is the command document and how to Unmarshal the reply.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed570824_8a9916da",
+        "filename": "mongo/private/roots/description/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "I don\u0027t understand what concept \"description\" refers to.  It might be too generic.  Is this another \"models\" package?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5905de8b_e66972d5",
+        "filename": "mongo/private/roots/description/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-05T21:54:14Z",
+      "side": 1,
+      "message": "What is \"ID\" supposed to represent? What are allowed or example values?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
