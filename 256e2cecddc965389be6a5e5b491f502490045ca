@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "aa3ee064_8d858569",
+        "filename": "mongo/private/options/collation_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-05T20:39:24Z",
+      "side": 1,
+      "message": "Let\u0027s rename this (and the file) to Collation, because options.CollationOptions stutters.",
+      "range": {
+        "startLine": 13,
+        "startChar": 5,
+        "endLine": 13,
+        "endChar": 21
+      },
+      "revId": "256e2cecddc965389be6a5e5b491f502490045ca",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
