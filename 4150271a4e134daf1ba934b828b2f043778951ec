@@ -666,6 +666,40 @@
     },
     {
       "key": {
+        "uuid": "ca5db4f7_5bff195f",
+        "filename": "mongo/private/roots/connection/opreply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "Is this a copy of decodeOpReply in roots/command/opreply.go?  I\u0027m confused why it\u0027s in both places.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "85f4bce6_c6fc0978",
+        "filename": "mongo/private/roots/connection/options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "30 seconds seems very long in network time.  Perl, Java and Ruby use 10 secs.  Pymongo uses 20.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ed570824_8a9916da",
         "filename": "mongo/private/roots/description/connection.go",
         "patchSetId": 1
@@ -694,6 +728,268 @@
       "writtenOn": "2018-03-05T21:54:14Z",
       "side": 1,
       "message": "What is \"ID\" supposed to represent? What are allowed or example values?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3e19a910_3b31914d",
+        "filename": "mongo/private/roots/description/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "Stub?  Why are topology type and methods in server.go?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "235b89f9_c600b848",
+        "filename": "mongo/private/roots/description/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "Should this have a member of type result.IsMaster rather than copying all the fields?",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "94a87ce2_2b065a4d",
+        "filename": "mongo/private/roots/description/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "Should be int32 as that\u0027s what we\u0027ll get back from the isMaster.  (3.6 raises this value to 100k)  MaxDocumentSize and MaxMessageSize below should also probably be int32.  Also better to have the names exactly match the isMaster fields (eg MaxWriteBatchSizes) if we don\u0027t just have a result.IsMaster field.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ffb1d5b8_56c619e2",
+        "filename": "mongo/private/roots/description/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "Don\u0027t need this -- drivers are supposed to use wire version ranges.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "298b1c6e_d3bdc11c",
+        "filename": "mongo/private/roots/description/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "We should drop buildInfo.  It\u0027s not part of the spec for server descriptions.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2897cab7_9739c49e",
+        "filename": "mongo/private/roots/description/tag.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "TagSets are not ordered.  (A read preference contains an ordered list of tagsets -- but that\u0027s not the same thing.) I find this whole file bizarre.  A TagSet can just be map[string]string.",
+      "range": {
+        "startLine": 28,
+        "startChar": 16,
+        "endLine": 28,
+        "endChar": 23
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d6b0ca00_e3638065",
+        "filename": "mongo/private/roots/description/tag.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "if implemented as a map, this becomes O(1) instead of O(N).  N is usually very small, so this might be more efficient than a map in the real work, but I find that using a list instead of a map obscures the underlying set logic.",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eee2c4ae_7cc4b106",
+        "filename": "mongo/private/roots/description/tag.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "I don\u0027t understand why this takes other as []Tag instead of TagSet.  And, again, if implemented as maps, it\u0027s more efficient.  (Though in the real world, N is so small it doesn\u0027t really matter)",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1e0734d0_4e453c1e",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "I think this is out of date, superseded by `lastWrite` which is a BSON document.  See https://docs.mongodb.com/manual/reference/command/isMaster/index.html#isMaster.lastWrite",
+      "range": {
+        "startLine": 28,
+        "startChar": 1,
+        "endLine": 28,
+        "endChar": 19
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b6d74a59_309b5756",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "I think this should be Int32.  We should match what the server actually sends, I think, rather than cast it to unsigned, just to avoid anyone seeing the code and wondering how the server is sending unsigned values.",
+      "range": {
+        "startLine": 29,
+        "startChar": 21,
+        "endLine": 29,
+        "endChar": 27
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1df4d89c_950f4798",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "Should be Int32.  Note: MongoDB 3.6 returns 100,000 for this.",
+      "range": {
+        "startLine": 31,
+        "startChar": 21,
+        "endLine": 31,
+        "endChar": 27
+      },
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "663dab95_3ed7d0aa",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "missing field: Primary string `bson:\"primary,omitempty\"`",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2a463ac4_9082b6f0",
+        "filename": "mongo/private/roots/wiremessage/query.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "I prefer an explanatory comment for an empty case in the middle.  It\u0027s too easy for a reader to miss the no-op or be mentally in C-mode and see the case labels flow together",
+      "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b253896a_e1a44cf7",
+        "filename": "mongo/private/roots/wiremessage/query.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T03:39:41Z",
+      "side": 1,
+      "message": "Great comment! I hate when there are magic numbers without explanation.",
       "revId": "4150271a4e134daf1ba934b828b2f043778951ec",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
