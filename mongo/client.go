@@ -127,3 +127,53 @@ func (client *Client) selectServer(ctx context.Context, selector cluster.ServerS
 
 	return s, nil
 }
+
+func (client *Client) listDatabasesHelper(ctx context.Context, filter interface{},
+	nameOnly bool) (Cursor, error) {
+
+	// The spec indicates that we should not run the listDatabase command on a secondary in a
+	// replica set.
+	selector := cluster.CompositeSelector([]cluster.ServerSelector{
+		readpref.Selector(readpref.Primary()),
+	})
+
+	s, err := client.selectServer(ctx, selector, readpref.Primary())
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := TransformDocument(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	return ops.ListDatabases(ctx, s, f, ops.ListDatabasesOptions{NameOnly: nameOnly})
+}
+
+// ListDatabases returns a Cursor iterating over descriptions of each of the databases on the server.
+func (client *Client) ListDatabases(ctx context.Context, filter interface{}) (Cursor, error) {
+	return client.listDatabasesHelper(ctx, filter, false)
+}
+
+// ListDatabaseNames returns a slice containing the names of all of the databases on the server.
+func (client *Client) ListDatabaseNames(ctx context.Context, filter interface{}) ([]string, error) {
+	c, err := client.listDatabasesHelper(ctx, filter, true)
+	if err != nil {
+		return nil, err
+	}
+
+	names := make([]string, 0)
+	for c.Next(ctx) {
+		var db struct{ Name string }
+		if err := c.Decode(&db); err != nil {
+			return nil, err
+		}
+
+		names = append(names, db.Name)
+	}
+	if err := c.Err(); err != nil {
+		return nil, err
+	}
+
+	return names, nil
+}

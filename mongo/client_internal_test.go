@@ -164,3 +164,141 @@ func TestClient_X509Auth(t *testing.T) {
 
 	t.Error("unable to find authenticated user")
 }
+
+func TestClient_ListDatabases_noFilter(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	dbName := "listDatabases_noFilter"
+
+	c := createTestClient(t)
+	db := c.Database(dbName)
+	_, err := db.Collection("test").InsertOne(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.Int32("x", 1),
+		),
+	)
+	require.NoError(t, err)
+
+	dbs, err := c.ListDatabases(context.Background(), nil)
+	found := false
+
+	for dbs.Next(context.Background()) {
+		var db struct{ Name string }
+		err = dbs.Decode(&db)
+		require.NoError(t, err)
+
+		if db.Name == dbName {
+			found = true
+			break
+		}
+	}
+	require.NoError(t, dbs.Err())
+	require.True(t, found)
+}
+
+func TestClient_ListDatabases_filter(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	skipIfBelow36(t)
+
+	dbName := "listDatabases_filter"
+
+	c := createTestClient(t)
+	db := c.Database(dbName)
+	_, err := db.Collection("test").InsertOne(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.Int32("x", 1),
+		),
+	)
+	require.NoError(t, err)
+
+	dbs, err := c.ListDatabases(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.Regex("name", dbName, ""),
+		),
+	)
+
+	require.True(t, dbs.Next(context.Background()))
+	var dbInfo struct{ Name string }
+	err = dbs.Decode(&dbInfo)
+	require.NoError(t, err)
+	require.Equal(t, dbName, dbInfo.Name)
+
+	require.False(t, dbs.Next(context.Background()))
+	require.NoError(t, dbs.Err())
+}
+
+func TestClient_ListDatabaseNames_noFilter(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	dbName := "listDatabasesNames_noFilter"
+
+	c := createTestClient(t)
+	db := c.Database(dbName)
+	_, err := db.Collection("test").InsertOne(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.Int32("x", 1),
+		),
+	)
+	require.NoError(t, err)
+
+	dbs, err := c.ListDatabaseNames(context.Background(), nil)
+	found := false
+
+	for _, name := range dbs {
+		if name == dbName {
+			found = true
+			break
+		}
+	}
+	require.True(t, found)
+}
+
+func TestClient_ListDatabaseNames_filter(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	skipIfBelow36(t)
+
+	dbName := "listDatabasesNames_filter"
+
+	c := createTestClient(t)
+	db := c.Database(dbName)
+	_, err := db.Collection("test").InsertOne(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.Int32("x", 1),
+		),
+	)
+	require.NoError(t, err)
+
+	dbs, err := c.ListDatabaseNames(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.Regex("name", dbName, ""),
+		),
+	)
+
+	require.NoError(t, err)
+	require.Len(t, dbs, 1)
+	require.Equal(t, dbName, dbs[0])
+}

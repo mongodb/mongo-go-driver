@@ -25,7 +25,7 @@ func TestListDatabases(t *testing.T) {
 	testutil.AutoInsertDocs(t, writeconcern.New(writeconcern.WMajority()), bson.NewDocument(bson.EC.Int32("_id", 1)))
 
 	s := getServer(t)
-	cursor, err := ListDatabases(context.Background(), s, ListDatabasesOptions{})
+	cursor, err := ListDatabases(context.Background(), s, nil, ListDatabasesOptions{})
 	require.NoError(t, err)
 
 	var next = bson.NewDocument()
@@ -61,7 +61,7 @@ func TestListDatabasesWithMaxTimeMS(t *testing.T) {
 	}
 	defer testutil.DisableMaxTimeFailPoint(t, s)
 
-	_, err := ListDatabases(context.Background(), s, ListDatabasesOptions{
+	_, err := ListDatabases(context.Background(), s, nil, ListDatabasesOptions{
 		MaxTime: time.Millisecond,
 	})
 	require.Error(t, err)

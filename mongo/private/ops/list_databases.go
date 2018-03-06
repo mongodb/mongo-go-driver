@@ -18,15 +18,28 @@ import (
 
 // ListDatabasesOptions are the options for listing databases.
 type ListDatabasesOptions struct {
+	// Specifies whether or not the name is the only value that should be returned.
+	NameOnly bool
 	// The maximum execution time in milliseconds.  A zero value indicates no maximum.
 	MaxTime time.Duration
 }
 
 // ListDatabases lists the databases with the given options
-func ListDatabases(ctx context.Context, s *SelectedServer, options ListDatabasesOptions) (Cursor, error) {
+func ListDatabases(ctx context.Context, s *SelectedServer, filter *bson.Document,
+	options ListDatabasesOptions) (Cursor, error) {
 
 	listDatabasesCommand := bson.NewDocument(
 		bson.EC.Int32("listDatabases", 1))
+
+	if filter != nil {
+		listDatabasesCommand.Append(
+			bson.EC.SubDocument("filter", filter))
+	}
+
+	if options.NameOnly {
+		listDatabasesCommand.Append(
+			bson.EC.Boolean("nameOnly", options.NameOnly))
+	}
 
 	if options.MaxTime != 0 {
 		listDatabasesCommand.Append(bson.EC.Int64("maxTimeMS", int64(options.MaxTime/time.Millisecond)))
