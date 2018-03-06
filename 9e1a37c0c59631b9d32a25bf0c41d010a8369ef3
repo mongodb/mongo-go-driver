@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ec5bc816_3a9b43b4",
+        "filename": "mongo/private/roots/command/errors.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T11:17:43Z",
+      "side": 1,
+      "message": "+1 on the rename",
+      "range": {
+        "startLine": 22,
+        "startChar": 5,
+        "endLine": 22,
+        "endChar": 22
+      },
+      "revId": "9e1a37c0c59631b9d32a25bf0c41d010a8369ef3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a8fc8ed4_0af8a25f",
+        "filename": "mongo/private/roots/integration/main_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-06T11:17:43Z",
+      "side": 1,
+      "message": "I strongly recommend using environment variables over test flags.  For Evergreen, much of the config is already communicated that way.  For interactive use, it\u0027s easier to set it in the shell for an entire round of testing.  It\u0027s also better to use a full connection string URI than a host/port pair as eventually you\u0027ll need to test with auth parameters, etc.\n\nIf you feel strongly about test flags, then pick up the default from the environment before falling back to a hard-coded value.",
+      "revId": "9e1a37c0c59631b9d32a25bf0c41d010a8369ef3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
