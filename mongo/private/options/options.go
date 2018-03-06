@@ -116,7 +116,7 @@ type FindOneAndReplaceOptioner interface {
 	findOneAndReplaceOption()
 }
 
-// ChangeStreamOptioner is the interface  implemented by types that can be used as Options for
+// ChangeStreamOptioner is the interface implemented by types that can be used as Options for
 // change stream operations.
 type ChangeStreamOptioner interface {
 	Optioner
