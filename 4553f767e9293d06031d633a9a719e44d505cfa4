@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "056010df_63de5cbd",
+        "filename": "mongo/private/roots/addr/addr_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-07T19:14:30Z",
+      "side": 1,
+      "message": "I suggest adding IPv4 and IPv6 literals, as well.",
+      "revId": "4553f767e9293d06031d633a9a719e44d505cfa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9ff23a0a_ce403fc3",
+        "filename": "mongo/private/roots/description/topology.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-07T19:14:30Z",
+      "side": 1,
+      "message": "Do we know if the existing addresses are canonicalized already?",
+      "revId": "4553f767e9293d06031d633a9a719e44d505cfa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7e1850ee_a2fd8da1",
+        "filename": "mongo/private/roots/description/version_range.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-07T19:14:30Z",
+      "side": 1,
+      "message": "Here\u0027s me being nitpicky about names again: since we have a \"Version\" type that has nothing to do with this type, I suggest we rename this to \"WireVersionRange\".",
+      "revId": "4553f767e9293d06031d633a9a719e44d505cfa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f9941dc9_b2304dce",
+        "filename": "mongo/private/roots/topology/fsm.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-07T19:14:30Z",
+      "side": 1,
+      "message": "Should we start these out at 4 and 3.2, respectively, until we add support for older servers?  Or do we need the wider range for spec testing or something?",
+      "revId": "4553f767e9293d06031d633a9a719e44d505cfa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "269884c7_18682f27",
+        "filename": "mongo/private/roots/topology/fsm.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1012906
+      },
+      "writtenOn": "2018-03-07T19:14:30Z",
+      "side": 1,
+      "message": "FWIW, I think these two cases could be collapsed down so that we (a) check the VersionRange and (b) if out of range report the range we require -- rather than separately having the \"too small\" vs \"too large\" cases.",
+      "revId": "4553f767e9293d06031d633a9a719e44d505cfa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
