@@ -1124,3 +1124,8 @@ func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 	opts ...options.ChangeStreamOptioner) (Cursor, error) {
 	return newChangeStream(ctx, coll, pipeline, opts...)
 }
+
+// Indexes returns the index view for this collection.
+func (coll *Collection) Indexes() IndexView {
+	return IndexView{coll: coll}
+}
