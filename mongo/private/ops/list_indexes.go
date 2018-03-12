@@ -25,6 +25,7 @@ func ListIndexes(ctx context.Context, s *SelectedServer, ns Namespace, options L
 	listIndexesCommand := bson.NewDocument(bson.EC.String("listIndexes", ns.Collection))
 
 	rdr, err := runMustUsePrimary(ctx, s, ns.DB, listIndexesCommand)
+
 	switch err {
 	case nil:
 		return NewCursor(rdr, options.BatchSize, s)
@@ -34,5 +35,4 @@ func ListIndexes(ctx context.Context, s *SelectedServer, ns Namespace, options L
 		}
 		return nil, err
 	}
-
 }
