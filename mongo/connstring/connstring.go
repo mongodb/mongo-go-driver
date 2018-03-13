@@ -38,14 +38,19 @@ type ConnString struct {
 	AuthMechanismProperties        map[string]string
 	AuthSource                     string
 	Connect                        ConnectMode
+	ConnectSet                     bool
 	ConnectTimeout                 time.Duration
+	ConnectTimeoutSet              bool
 	Database                       string
 	HeartbeatInterval              time.Duration
+	HeartbeatIntervalSet           bool
 	Hosts                          []string
 	J                              bool
 	JSet                           bool
 	LocalThreshold                 time.Duration
+	LocalThresholdSet              bool
 	MaxConnIdleTime                time.Duration
+	MaxConnIdleTimeSet             bool
 	MaxConnLifeTime                time.Duration
 	MaxConnsPerHost                uint16
 	MaxConnsPerHostSet             bool
@@ -58,11 +63,15 @@ type ConnString struct {
 	ReadPreferenceTagSets          []map[string]string
 	ReplicaSet                     string
 	ServerSelectionTimeout         time.Duration
+	ServerSelectionTimeoutSet      bool
 	SocketTimeout                  time.Duration
+	SocketTimeoutSet               bool
 	SSL                            bool
+	SSLSet                         bool
 	SSLClientCertificateKeyFile    string
 	SSLClientCertificateKeyFileSet bool
 	SSLInsecure                    bool
+	SSLInsecureSet                 bool
 	SSLCaFile                      string
 	SSLCaFileSet                   bool
 	WString                        string
@@ -70,8 +79,9 @@ type ConnString struct {
 	WNumberSet                     bool
 	Username                       string
 
-	WTimeout    time.Duration
-	WTimeoutSet bool
+	WTimeout              time.Duration
+	WTimeoutSet           bool
+	WTimeoutSetFromOption bool
 
 	Options        map[string][]string
 	UnknownOptions map[string][]string
@@ -200,6 +210,7 @@ func (p *parser) parse(original string) error {
 
 		// SSL is enabled by default for SRV, but can be manually disabled with "ssl=false".
 		p.SSL = true
+		p.SSLSet = true
 	}
 
 	for _, host := range parsedHosts {
@@ -235,6 +246,11 @@ func (p *parser) parse(original string) error {
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if p.WNumberSet && p.WNumber == 0 && p.JSet && p.J {
 		return writeconcern.ErrInconsistent
+	}
+
+	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
+	if p.WTimeoutSetFromOption {
+		p.WTimeoutSet = true
 	}
 
 	return nil
@@ -341,18 +357,22 @@ func (p *parser) addOption(pair string) error {
 		default:
 			return fmt.Errorf("invalid 'connect' value: %s", value)
 		}
+
+		p.ConnectSet = true
 	case "connecttimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.ConnectTimeout = time.Duration(n) * time.Millisecond
+		p.ConnectTimeoutSet = true
 	case "heartbeatintervalms", "heartbeatfrequencyms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.HeartbeatInterval = time.Duration(n) * time.Millisecond
+		p.HeartbeatIntervalSet = true
 	case "journal":
 		switch value {
 		case "true":
@@ -370,6 +390,7 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.LocalThreshold = time.Duration(n) * time.Millisecond
+		p.LocalThresholdSet = true
 	case "maxconnsperhost":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
@@ -390,6 +411,7 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.MaxConnIdleTime = time.Duration(n) * time.Millisecond
+		p.MaxConnIdleTimeSet = true
 	case "maxlifetimems":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
@@ -443,8 +465,11 @@ func (p *parser) addOption(pair string) error {
 		default:
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
+
+		p.SSLSet = true
 	case "sslclientcertificatekeyfile":
 		p.SSL = true
+		p.SSLSet = true
 		p.SSLClientCertificateKeyFile = value
 		p.SSLClientCertificateKeyFileSet = true
 	case "sslinsecure":
@@ -456,8 +481,11 @@ func (p *parser) addOption(pair string) error {
 		default:
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
+
+		p.SSLInsecureSet = true
 	case "sslcertificateauthorityfile":
 		p.SSL = true
+		p.SSLSet = true
 		p.SSLCaFile = value
 		p.SSLCaFileSet = true
 	case "w":
@@ -468,10 +496,12 @@ func (p *parser) addOption(pair string) error {
 
 			p.WNumber = w
 			p.WNumberSet = true
+			p.WString = ""
 			break
 		}
 
 		p.WString = value
+		p.WNumberSet = false
 
 	case "wtimeoutms":
 		n, err := strconv.Atoi(value)
@@ -481,8 +511,8 @@ func (p *parser) addOption(pair string) error {
 		p.WTimeout = time.Duration(n) * time.Millisecond
 		p.WTimeoutSet = true
 	case "wtimeout":
+		// Defer to wtimeoutms, but not to a manually-set option.
 		if p.WTimeoutSet {
-			// use wtimeoutMS if it exists
 			break
 		}
 		n, err := strconv.Atoi(value)

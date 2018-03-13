@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/connstring"
 	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
 	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/mongo/private/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
@@ -40,7 +41,24 @@ func NewClient(uri string) (*Client, error) {
 	return NewClientFromConnString(cs)
 }
 
-// NewClientFromConnString creates a new client to connect to a cluster specified by the connection string.
+// NewClientWithOptions creates a new client to connect to to a cluster specified by the connection
+// string and the options manually passed in. If the same option is configured in both the
+// connection string and the manual options, the manual option will be ignored.
+func NewClientWithOptions(uri string, options ...options.ClientOptioner) (*Client, error) {
+	cs, err := connstring.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, opt := range options {
+		opt.ClientOption(&cs)
+	}
+
+	return NewClientFromConnString(cs)
+}
+
+// NewClientFromConnString creates a new client to connect to a cluster, with configuration
+// specified by the connection string.
 func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 	clst, err := cluster.New(cluster.WithConnString(cs))
 	if err != nil {
