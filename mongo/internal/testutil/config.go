@@ -25,14 +25,8 @@ var liveCluster *cluster.Cluster
 var liveClusterOnce sync.Once
 var liveClusterErr error
 
-// AddTLSConfigToURI checks for the environmental variable indicating that the tests are being run
-// on an SSL-enabled server, and if so, returns a new URI with the necessary configuration.
-func AddTLSConfigToURI(uri string) string {
-	caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE")
-	if len(caFile) == 0 {
-		return uri
-	}
-
+// AddOptionsToURI appends connection string options to a URI.
+func AddOptionsToURI(uri string, opts ...string) string {
 	if !strings.ContainsRune(uri, '?') {
 		if uri[len(uri)-1] != '/' {
 			uri += "/"
@@ -43,7 +37,22 @@ func AddTLSConfigToURI(uri string) string {
 		uri += "&"
 	}
 
-	return uri + "ssl=true&sslCertificateAuthorityFile=" + caFile
+	for _, opt := range opts {
+		uri += opt
+	}
+
+	return uri
+}
+
+// AddTLSConfigToURI checks for the environmental variable indicating that the tests are being run
+// on an SSL-enabled server, and if so, returns a new URI with the necessary configuration.
+func AddTLSConfigToURI(uri string) string {
+	caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE")
+	if len(caFile) == 0 {
+		return uri
+	}
+
+	return AddOptionsToURI(uri, "ssl=true&sslCertificateAuthorityFile=", caFile)
 }
 
 // Cluster gets the globally configured cluster.
