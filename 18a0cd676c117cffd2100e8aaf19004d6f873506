@@ -93,6 +93,30 @@
       "revId": "18a0cd676c117cffd2100e8aaf19004d6f873506",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a03c833_64d1d43d",
+        "filename": "mongo/client_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-14T21:52:52Z",
+      "side": 1,
+      "message": "We discussed this a few weeks back. For reference: GODRIVER-272\nBasically, instead of returning the underlying options.* type, we return ClientOptions and then the NewClient* functions take a ClientOptions instead of the options.ClientOptioner.",
+      "parentUuid": "9442ef51_1507d9e2",
+      "range": {
+        "startLine": 16,
+        "startChar": 0,
+        "endLine": 16,
+        "endChar": 27
+      },
+      "revId": "18a0cd676c117cffd2100e8aaf19004d6f873506",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
