@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0c2b5982_55c7c0ca",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-14T21:47:16Z",
+      "side": 1,
+      "message": "I think we might want to redesign the NewClient* functions, but this is okay for now. My main issue is that the lowest level seems to be the function that takes a connection string with the uri version being sugar on top for people who don\u0027t want to parse their own connection string, but we can discuss this later.",
+      "range": {
+        "startLine": 47,
+        "startChar": 5,
+        "endLine": 47,
+        "endChar": 25
+      },
+      "revId": "18a0cd676c117cffd2100e8aaf19004d6f873506",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "59b7b1da_1d223f49",
+        "filename": "mongo/client_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-03-14T21:47:16Z",
+      "side": 1,
+      "message": "Maybe we should implement this one with the new approach, e.g. stack based type similar to the context object.",
+      "range": {
+        "startLine": 16,
+        "startChar": 0,
+        "endLine": 16,
+        "endChar": 27
+      },
+      "revId": "18a0cd676c117cffd2100e8aaf19004d6f873506",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
