@@ -243,6 +243,10 @@ func (d *Decoder) reflectDecode(val reflect.Value) (err error) {
 func (d *Decoder) createEmptyValue(r Reader, t reflect.Type) (reflect.Value, error) {
 	var val reflect.Value
 
+	if t == tReader {
+		return reflect.ValueOf(r), nil
+	}
+
 	switch t.Kind() {
 	case reflect.Map:
 		val = reflect.MakeMap(t)
@@ -274,11 +278,6 @@ func (d *Decoder) createEmptyValue(r Reader, t reflect.Type) (reflect.Value, err
 	case reflect.Struct:
 		val = reflect.New(t)
 	default:
-		if t == tReader {
-			val = reflect.ValueOf(r)
-			break
-		}
-
 		val = reflect.Zero(t)
 	}
 
@@ -822,6 +821,10 @@ func (d *Decoder) decodeIntoStruct(structVal reflect.Value) error {
 		}
 
 		if v != zeroVal {
+			if field.Type().Kind() == reflect.Ptr {
+				v = v.Addr()
+			}
+
 			field.Set(v)
 		}
 	}

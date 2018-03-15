@@ -2045,7 +2045,109 @@ func TestDecoder(t *testing.T) {
 			},
 
 			{
-				"map containing array",
+				"struct containing document",
+				bytes.NewBuffer([]byte{
+					// length
+					0x1c, 0x0, 0x0, 0x0,
+
+					// --- begin array ---
+
+					// type - document
+					0x3,
+					// key - "foo"
+					0x66, 0x6f, 0x6f, 0x0,
+
+					// length
+					0x12, 0x0, 0x0, 0x0,
+					// type - string
+					0x2,
+					// key - "bar"
+					0x62, 0x61, 0x72, 0x0,
+					// value - string length
+					0x4, 0x0, 0x0, 0x0,
+					// value - "baz"
+					0x62, 0x61, 0x7a, 0x0,
+
+					// null terminator
+					0x0,
+
+					// --- end array ---
+
+					// null terminator
+					0x0,
+				}),
+				&struct {
+					Foo *Document
+				}{
+					NewDocument(
+						EC.String("bar", "baz"),
+					),
+				},
+				&struct {
+					Foo *Document
+				}{},
+				nil,
+			},
+
+			{
+				"struct containing reader",
+				bytes.NewBuffer([]byte{
+					// length
+					0x1c, 0x0, 0x0, 0x0,
+
+					// --- begin array ---
+
+					// type - document
+					0x3,
+					// key - "foo"
+					0x66, 0x6f, 0x6f, 0x0,
+
+					// length
+					0x12, 0x0, 0x0, 0x0,
+					// type - string
+					0x2,
+					// key - "bar"
+					0x62, 0x61, 0x72, 0x0,
+					// value - string length
+					0x4, 0x0, 0x0, 0x0,
+					// value - "baz"
+					0x62, 0x61, 0x7a, 0x0,
+
+					// null terminator
+					0x0,
+
+					// --- end array ---
+
+					// null terminator
+					0x0,
+				}),
+				&struct {
+					Foo Reader
+				}{
+					Reader{
+						// length
+						0x12, 0x0, 0x0, 0x0,
+						// type - string
+						0x2,
+						// key - "bar"
+						0x62, 0x61, 0x72, 0x0,
+						// value - string length
+						0x4, 0x0, 0x0, 0x0,
+						// value - "baz"
+						0x62, 0x61, 0x7a, 0x0,
+
+						// null terminator
+						0x0,
+					},
+				},
+				&struct {
+					Foo Reader
+				}{},
+				nil,
+			},
+
+			{
+				"map containing slice",
 				bytes.NewBuffer([]byte{
 					// length
 					0x1a, 0x0, 0x0, 0x0,
@@ -2170,7 +2272,7 @@ func TestDecoder(t *testing.T) {
 					return
 				}
 
-				require.True(t, reflect.DeepEqual(tc.expected, tc.actual))
+				require.True(t, cmp.Equal(tc.actual, tc.expected))
 			})
 		}
 	})
