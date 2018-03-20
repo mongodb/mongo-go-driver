@@ -287,6 +287,16 @@ func (scckf SSLClientCertificateKeyFile) ClientOption(cs *connstring.ConnString)
 	}
 }
 
+// SSLClientCertificateKeyPassword for internal use.
+type SSLClientCertificateKeyPassword func() string
+
+// ClientOption implements the ClientOption interface.
+func (scckp SSLClientCertificateKeyPassword) ClientOption(cs *connstring.ConnString) {
+	if scckp != nil {
+		cs.SSLClientCertificateKeyPassword = scckp
+	}
+}
+
 // SSLInsecure is for internal use.
 type SSLInsecure bool
 

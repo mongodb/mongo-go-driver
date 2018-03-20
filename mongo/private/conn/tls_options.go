@@ -7,6 +7,7 @@
 package conn
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/asn1"
@@ -14,14 +15,16 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"strings"
 )
 
 // TLSConfig contains options for configuring an SSL connection to the server.
 type TLSConfig struct {
-	caCert        *x509.Certificate
-	clientCert    tls.Certificate
-	clientCertSet bool
-	insecure      bool
+	caCert         *x509.Certificate
+	clientCert     tls.Certificate
+	clientCertPass func() string
+	clientCertSet  bool
+	insecure       bool
 }
 
 // NewTLSConfig creates a new TLSConfig.
@@ -36,6 +39,10 @@ func (c *TLSConfig) SetInsecure(allow bool) {
 	c.insecure = allow
 }
 
+func (c *TLSConfig) SetClientCertDecryptPassword(f func() string) {
+	c.clientCertPass = f
+}
+
 // AddClientCertFromFile adds a client certificate to the configuration given a path to the
 // containing file and returns the certificate's subject name.
 func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
@@ -44,7 +51,47 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 		return "", err
 	}
 
-	cert, err := tls.X509KeyPair(data, data)
+	var (
+		currentBlock                          *pem.Block
+		certBlock, certDecodedBlock, keyBlock []byte
+	)
+	remaining := data
+	start := 0
+	for {
+		currentBlock, remaining = pem.Decode(remaining)
+		if currentBlock == nil {
+			break
+		}
+
+		if currentBlock.Type == "CERTIFICATE" {
+			// Maintain a copy of
+			if len(certBlock) != 0 {
+				return "", fmt.Errorf("multiple CERTIFICATE sections in .pem file")
+			}
+
+			certBlock = data[start : len(data)-len(remaining)-1]
+			certDecodedBlock = currentBlock.Bytes
+			start += len(certBlock)
+		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
+			if c.clientCertPass != nil && x509.IsEncryptedPEMBlock(currentBlock) {
+				var encoded bytes.Buffer
+				buf, err := x509.DecryptPEMBlock(currentBlock, []byte(c.clientCertPass()))
+				if err != nil {
+					return "", err
+				}
+
+				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: buf})
+				keyBlock = encoded.Bytes()
+				start = len(data) - len(remaining)
+			} else {
+				keyBlock = data[start : len(data)-len(remaining)]
+				start += len(keyBlock)
+				certDecodedBlock = currentBlock.Bytes
+			}
+		}
+	}
+
+	cert, err := tls.X509KeyPair(certBlock, keyBlock)
 	if err != nil {
 		return "", err
 	}
@@ -53,15 +100,8 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 	c.clientCertSet = true
 
 	// The documentation for the tls.X509KeyPair indicates that the Leaf certificate is not
-	// retained. Because there isn't any way of creating a tls.Certificate from an x509.Certificate
-	// short of calling X509KeyPair on the raw bytes, we're forced to parse the certificate over
-	// again to get the subject name.
-	certBytes, err := loadCert(data)
-	if err != nil {
-		return "", err
-	}
-
-	crt, err := x509.ParseCertificate(certBytes)
+	// retained.
+	crt, err := x509.ParseCertificate(certDecodedBlock)
 	if err != nil {
 		return "", err
 	}

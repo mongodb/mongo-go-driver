@@ -146,6 +146,12 @@ func (co *ClientOptions) SSLClientCertificateKeyFile(s string) *ClientOptions {
 	return &ClientOptions{next: co, opt: options.SSLClientCertificateKeyFile(s), err: nil}
 }
 
+// SSLClientCertificateKeyPassword provides a callback that returns a password used for decrypting the
+// private key of a PEM file (if one is provided).
+func (co *ClientOptions) SSLClientCertificateKeyPassword(s func() string) *ClientOptions {
+	return &ClientOptions{next: co, opt: options.SSLClientCertificateKeyPassword(s), err: nil}
+}
+
 // SSLInsecure indicates whether to skip the verification of the server certificate and hostname.
 func (co *ClientOptions) SSLInsecure(b bool) *ClientOptions {
 	return &ClientOptions{next: co, opt: options.SSLInsecure(b), err: nil}
