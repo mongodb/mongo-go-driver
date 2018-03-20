@@ -488,6 +488,47 @@ func TestDecoder(t *testing.T) {
 				nil,
 			},
 			{
+				"containing array",
+				bytes.NewBuffer(
+					[]byte{
+						// length
+						0x1a, 0x0, 0x0, 0x0,
+
+						// type - array
+						0x4,
+						// key - "foo"
+						0x66, 0x6f, 0x6f, 0x0,
+
+						// ----- begin array -----
+
+						// length
+						0x10, 0x0, 0x0, 0x0,
+
+						// type string
+						0x2,
+						// key - "0"
+						0x30, 0x0,
+						// value - string length
+						0x4, 0x0, 0x0, 0x0,
+						// value - string "bar"
+						0x62, 0x61, 0x72, 0x0,
+
+						// null terminator
+						0x0,
+
+						// ----- end array -----
+
+						// null terminator
+						0x0,
+					},
+				),
+				map[string]interface{}{
+					"foo": []interface{}{"bar"},
+				},
+				make(map[string]interface{}),
+				nil,
+			},
+			{
 				"nested doc",
 				bytes.NewBuffer([]byte{
 					// length
@@ -687,6 +728,71 @@ func TestDecoder(t *testing.T) {
 				nil,
 			},
 			{
+				"empty interface field",
+				bytes.NewBuffer([]byte{
+					// length
+					0xe, 0x0, 0x0, 0x0,
+
+					// type - int32
+					0x10,
+					// key - "baz"
+					0x62, 0x61, 0x7a, 0x0,
+					// value - int32(32)
+					0x20, 0x0, 0x0, 0x0,
+
+					// null terminator
+					0x0,
+				}),
+				&struct {
+					Baz interface{}
+				}{
+					int32(32),
+				},
+				&struct {
+					Baz interface{}
+				}{},
+				nil,
+			},
+			{
+				"containing array",
+				bytes.NewBuffer(
+					[]byte{
+						// length
+						0x1a, 0x0, 0x0, 0x0,
+
+						// type - array
+						0x4,
+						// key - "foo"
+						0x66, 0x6f, 0x6f, 0x0,
+
+						// ----- begin array -----
+
+						// length
+						0x10, 0x0, 0x0, 0x0,
+
+						// type string
+						0x2,
+						// key - "0"
+						0x30, 0x0,
+						// value - string length
+						0x4, 0x0, 0x0, 0x0,
+						// value - string "bar"
+						0x62, 0x61, 0x72, 0x0,
+
+						// null terminator
+						0x0,
+
+						// ----- end array -----
+
+						// null terminator
+						0x0,
+					},
+				),
+				&struct{ Foo interface{} }{[]interface{}{"bar"}},
+				&struct{ Foo interface{} }{},
+				nil,
+			},
+			{
 				"nested doc",
 				bytes.NewBuffer([]byte{
 					// length
@@ -793,7 +899,7 @@ func TestDecoder(t *testing.T) {
 					return
 				}
 
-				require.True(t, reflect.DeepEqual(tc.expected, tc.actual))
+				require.True(t, cmp.Equal(tc.expected, tc.actual))
 			})
 		}
 	})

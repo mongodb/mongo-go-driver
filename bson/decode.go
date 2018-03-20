@@ -48,6 +48,7 @@ var tUint32 = reflect.TypeOf(uint32(0))
 var tUint64 = reflect.TypeOf(uint64(0))
 
 var tEmpty = reflect.TypeOf((*interface{})(nil)).Elem()
+var tEmptySlice = reflect.TypeOf([]interface{}(nil))
 
 var zeroVal reflect.Value
 
@@ -365,6 +366,18 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 
 		val = reflect.ValueOf(v.StringValue())
 	case 0x4:
+		if containerType == tEmpty {
+			d := NewDecoder(bytes.NewBuffer(v.ReaderArray()))
+			newVal, err := d.decodeBSONArrayToSlice(tEmptySlice)
+			if err != nil {
+				return val, err
+			}
+
+			val = newVal
+
+			break
+		}
+
 		if containerType.Kind() == reflect.Slice {
 			d := NewDecoder(bytes.NewBuffer(v.ReaderArray()))
 			newVal, err := d.decodeBSONArrayToSlice(containerType)
