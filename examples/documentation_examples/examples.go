@@ -1185,6 +1185,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1225,6 +1226,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1264,6 +1266,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1304,6 +1307,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1347,6 +1351,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1392,6 +1397,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1451,6 +1457,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1630,6 +1637,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1688,6 +1696,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
@@ -1746,6 +1755,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		doc := bson.NewDocument()
 		for cursor.Next(context.Background()) {
+			doc.Reset()
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
