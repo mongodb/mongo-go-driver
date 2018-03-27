@@ -400,5 +400,18 @@ func convertValueToElem(key string, v *Value) *Element {
 	elem := newElement(0, uint32(keyLen+2))
 	elem.value.data = d
 
+	if v.d == nil {
+		return elem
+	}
+	mdata, err := v.d.MarshalBSON()
+	if err != nil {
+		return nil
+	}
+	elem.value.d, err = ReadDocument(mdata)
+	if err != nil {
+		return nil
+	}
+
+
 	return elem
 }
