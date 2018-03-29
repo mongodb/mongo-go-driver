@@ -1687,8 +1687,8 @@ func testConvertValueToElem(t *testing.T) {
 		{"nil", "", nil, nil},
 		{"double", "foo", VC.Double(3.14159), EC.Double("foo", 3.14159)},
 		{"int64", "foo", VC.Int64(1234567890), EC.Int64("foo", 1234567890)},
+		{"interface-array", "test", VC.ArrayFromValues(VC.String("test01")), EC.ArrayFromElements("test", VC.String("test01"))},
 	}
-
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := convertValueToElem(tc.key, tc.val)

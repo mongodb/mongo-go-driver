@@ -384,13 +384,10 @@ func convertValueToElem(key string, v *Value) *Element {
 		return nil
 	}
 
-	vSize, err := v.valueSize()
-	if err != nil {
-		return nil
-	}
-
 	keyLen := len(key)
-	d := make([]byte, 2+len(key)+int(vSize))
+	// We add the length of the data so when we compare values
+	// we don't have extra space at the end of the data property.
+	d := make([]byte, 2+len(key)+len(v.data[v.offset:]))
 
 	d[0] = v.data[v.start]
 	copy(d[1:keyLen+1], key)
