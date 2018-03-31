@@ -119,6 +119,9 @@ func WithConnString(cs connstring.ConnString) Option {
 			}
 
 			if cs.SSLClientCertificateKeyFileSet {
+				if cs.SSLClientCertificateKeyPassword != nil {
+					tls.SetClientCertDecryptPassword(cs.SSLClientCertificateKeyPassword)
+				}
 				s, err := tls.AddClientCertFromFile(cs.SSLClientCertificateKeyFile)
 				if err != nil {
 					return err

@@ -68,6 +68,7 @@ func TestClientOptions_chainAll(t *testing.T) {
 		SocketTimeout(2 * time.Second).
 		SSL(true).
 		SSLClientCertificateKeyFile("client.pem").
+		SSLClientCertificateKeyPassword(func() string { return "password" }).
 		SSLInsecure(false).
 		SSLCaFile("ca.pem").
 		WString("majority").
