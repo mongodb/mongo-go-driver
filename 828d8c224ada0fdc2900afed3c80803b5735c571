@@ -1,0 +1,497 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a57e8e36_49afd3e9",
+        "filename": "mongo/collection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "Can we not get the read/write selectors from db?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5bf3322f_5914714d",
+        "filename": "mongo/collection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 348,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "There can only be 1 upserted document by definition. As in, update all these documents - if you don\u0027t find any, insert one \u003c- upserted document.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "66b6e9dd_e7c90363",
+        "filename": "mongo/collection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 419,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "How does this work when $out is present? There are no results, so is it an empty cursor?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a229a49_f64aaef1",
+        "filename": "mongo/collection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 529,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "Why doesn\u0027t this return a DocumentResult and an error? Most methods seem to return a result and an error (Cursor, err) ([]interface{}, error), etc...",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1934bf91_e6607da9",
+        "filename": "mongo/database.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "can this be topology.WriteSelector()? It doesn\u0027t make a lot of sense to use a ReadPrefSelector for writes.\n\n(other places as well)",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a1c51445_c97164c2",
+        "filename": "mongo/database.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "just use db.writeSelector.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "56a3f03a_1fa1bcaa",
+        "filename": "mongo/internal/feature/supported.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "This method is getting used at all. It would go on topology/server_selector.go#137, but that is exactly the below code. So, let\u0027s either call this function or get rid of it.\n\nHaving the function and using it is nice because it let\u0027s users find out what is supported and also is an easy way to document what features are checked.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bdf4d130_704f3956",
+        "filename": "mongo/private/auth/auth.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "This seems backwards. In the auth package, this handshaker should be solely responsible for doing authentication. The provided connection.Handshaker (h) should be doing the other stuff. In other words, this Handshaker is just wrapping h.\n\nSo, first thing in, call h.Handshake(...). Then call authenticator.Auth(...). And that\u0027s it.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d510229b_a2080dd2",
+        "filename": "mongo/private/options/options.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 516,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "This seems wonky... Would it not be better to have OptFields for Find, and OptProjection for the other things and not need to deal with a boolean that gets set somehow?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "98147edd_d540a36e",
+        "filename": "mongo/private/roots/command/bootstrap.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "Is this used. I know Handshaker exists, so what additional stuff is this going to support?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e56ab1a1_bb5b20b2",
+        "filename": "mongo/private/roots/command/buildinfo.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "I don\u0027t understand this comment? Are you trying to say that this is really only for internal use? Why would a proxy, for instance, not want to catch/inspect a buildInfo command, or why would a user (internal) not want to run this?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "986a6738_f6ea9934",
+        "filename": "mongo/private/roots/command/command.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "If a custom type implements bson.Marshaler, are we punting on validating it? There isn\u0027t a guarantee it does a right job, which could ultimately corrupt their data.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "103cc616_a3930d71",
+        "filename": "mongo/private/roots/command/command_test.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "So general statement here... this file is blank, and none of the other commands have any tests. I think we need them all to have tests. I personally prefer unit tests to just integration (I see the ones you have in the integration package). But I\u0027ll defer to you and Jeff on how much and where. \n\nNote that most of these do not have integration tests in the integration package and those that are there don\u0027t exhaustively test the encoding of options for each command.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "35345082_c69bfbbe",
+        "filename": "mongo/private/roots/command/count.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "The server won\u0027t ever return this, which means without a unit test, it will never get exercised. Should probably either be removed, or add an IsNumber() method onto bson.Type and use an if statement. \n\nIf there is an IsNumber() method, I guess you\u0027d also need a way to get an Int64 from any of the number types... hmm.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "392a19a7_55bff480",
+        "filename": "mongo/private/roots/command/delete.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "This applies to all the commands... why are we mutating the Delete structure with the result and an error instead of just returning them?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d36b01a6_ef51cee7",
+        "filename": "mongo/private/roots/command/doc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "*hands -\u003e handles",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "19cb8bdb_a6641ba1",
+        "filename": "mongo/private/roots/command/list_indexes.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "So OptBatchSize is the only struct that implements ListIndexesOptioner. However, batchSize isn\u0027t part of the cmd itself... it only, apparently, applies to the cursor. So it seems like mixing CursorOptioner and ListIndexesOptioner together is going to mis-apply the CursorOptioner to the cmd.\n\nIt looks like ListCollections and ListDatabases have the same issue. Any command that returns a cursor may have this problem, although it has been specifically handled in Aggregate and Find.\n\nThese makes me think there is a potential design issue here where making a change to an Optioner in some other package might cause invalid commands to get created.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1ddbf8fa_2ba2b1c1",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "can we move this method to another method?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7d51ea04_277b1ad9",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 378,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "I don\u0027t think this function is used anywhere since it exists in the command package.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "06891afd_36646f96",
+        "filename": "mongo/private/roots/description/shared_spec_test.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "topologyKindFromString",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d6b91767_9c17f6ad",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "1. So we\u0027re saying that a write concern passed directly to this function takes precedence over one in the cmd.Opts... The one in cmd.Opts is the one the user provided directly to the collection.Aggregate method and the write concern passed as a parameter came from the collection; it seems like we are backwards here.\n\n2. What happens if cmd.Opts now has two OptWriteConcern? Does writeConcern get added twice to the command document?\n\n3. It feels wrong to mutate the provided cmd object by appending to it\u0027s array. I\u0027m not sure how to get around that with this design, but let\u0027s think about it. It is an unexpected outcome of calling this method.\n\nWhich brings up a different point... Why do we need to have both an Option as well as a parameter?\n\n(this applies to many other dispatch methods as well)",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5ce5219e_d84ab220",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "During the call to ss.Connection(...), the description of the server could change and the connection could come back connected to a different version of the server. Super edge case here, but we really need to be getting the description for the server from the connection itself, not from the topology\u0027s selected server.\n\nThis comes into play down into the Encode methods of commands, particularly when you need to determine whether to use OP_MSG or not.\n\nI\u0027d imagine that simply putting a description.Server onto conn (which it already has) would be sufficient here to construct a new SelectedServer{} with that one instead of the server\u0027s itself.\n\n(This applies to every dispatch method it appears)",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "52268fe9_d7da1a0b",
+        "filename": "mongo/private/roots/dispatch/delete.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "Yes, but since we put ours last, the user\u0027s preference gets discarded.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a0697ab9_f3ec63f7",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "These are going to need to have additional stuff. You probably know this. Individual documents can have their own errors. Figuring out the right way to handle that in the API should be fun.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "54e43eaa_156930cf",
+        "filename": "mongo/private/roots/topology/server.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "This is gonna be misunderstood and will be totally unexpected...",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cecb9d9f_a675555a",
+        "filename": "mongo/private/roots/topology/server.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "Would a custom SSL setup (openssl) be provided as a dialer and not a handshaker?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d682f182_0ae7371f",
+        "filename": "mongo/private/roots/topology/server_selector.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "Should we call feature.MaxStaleness(...) here?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f9b9b31b_594f488d",
+        "filename": "mongo/private/roots/topology/topology.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "The booleans are fine... it\u0027s the quantity of locks that is concerning. The potential for deadlocking seems high.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a77fde11_8d9a3bf1",
+        "filename": "mongo/private/roots/wiremessage/header.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-03T22:57:58Z",
+      "side": 1,
+      "message": "lenght -\u003e length",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
