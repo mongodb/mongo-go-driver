@@ -358,6 +358,8 @@ func TestEncoder(t *testing.T) {
 func reflectionEncoderTest(t *testing.T) {
 	oid := objectid.New()
 	oids := []objectid.ObjectID{objectid.New(), objectid.New(), objectid.New()}
+	var str = new(string)
+	*str = "bar"
 
 	testCases := []struct {
 		name  string
@@ -444,6 +446,30 @@ func reflectionEncoderTest(t *testing.T) {
 			nil,
 		},
 		{
+			"map[string]*string",
+			map[string]*string{"foo": str},
+			docToBytes(NewDocument(EC.String("foo", "bar"))),
+			nil,
+		},
+		{
+			"map[string]*string with nil",
+			map[string]*string{"baz": nil},
+			docToBytes(NewDocument(EC.Null("baz"))),
+			nil,
+		},
+		{
+			"map[string]_Interface",
+			map[string]_Interface{"foo": _impl{Foo: "bar"}},
+			docToBytes(NewDocument(EC.SubDocumentFromElements("foo", EC.String("foo", "bar")))),
+			nil,
+		},
+		{
+			"map[string]_Interface with nil",
+			map[string]_Interface{"baz": (*_impl)(nil)},
+			docToBytes(NewDocument(EC.Null("baz"))),
+			nil,
+		},
+		{
 			"[]string",
 			[]string{"foo", "bar", "baz"},
 			[]byte{
@@ -500,6 +526,25 @@ func reflectionEncoderTest(t *testing.T) {
 			nil,
 		},
 		{
+			"[]*string with nil",
+			[]*string{str, nil},
+			arrToBytes(NewArray(
+				VC.String(*str),
+				VC.Null(),
+			)),
+			nil,
+		},
+		{
+			"[]_Interface with nil",
+			[]_Interface{_impl{Foo: "bar"}, (*_impl)(nil), nil},
+			arrToBytes(NewArray(
+				VC.DocumentFromElements(EC.String("foo", "bar")),
+				VC.Null(),
+				VC.Null(),
+			)),
+			nil,
+		},
+		{
 			"map[string][]*Element",
 			map[string][]*Element{"Z": {EC.Int32("A", 1), EC.Int32("B", 2), EC.Int32("EC", 3)}},
 			docToBytes(NewDocument(
@@ -552,6 +597,22 @@ func reflectionEncoderTest(t *testing.T) {
 			map[string][]objectid.ObjectID{"Z": oids},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("Z", VC.ObjectID(oids[0]), VC.ObjectID(oids[1]), VC.ObjectID(oids[2])),
+			)),
+			nil,
+		},
+		{
+			"map[string][]*string with nil",
+			map[string][]*string{"Z": {str, nil}},
+			docToBytes(NewDocument(
+				EC.ArrayFromElements("Z", VC.String("bar"), VC.Null()),
+			)),
+			nil,
+		},
+		{
+			"map[string][]_Interface with nil",
+			map[string][]_Interface{"Z": {_impl{Foo: "bar"}, (*_impl)(nil), nil}},
+			docToBytes(NewDocument(
+				EC.ArrayFromElements("Z", VC.DocumentFromElements(EC.String("foo", "bar")), VC.Null(), VC.Null()),
 			)),
 			nil,
 		},
@@ -670,6 +731,13 @@ func reflectionEncoderTest(t *testing.T) {
 				O *Document
 				P Reader
 				Q objectid.ObjectID
+				R *string
+				S map[struct{}]struct{}
+				T []struct{}
+				U _Interface
+				V _Interface
+				W map[struct{}]struct{}
+				X map[struct{}]struct{}
 			}{
 				A: true,
 				B: 123,
@@ -691,6 +759,13 @@ func reflectionEncoderTest(t *testing.T) {
 				O: NewDocument(EC.Int64("countdown", 9876543210)),
 				P: Reader{0x05, 0x00, 0x00, 0x00, 0x00},
 				Q: oid,
+				R: nil,
+				S: nil,
+				T: nil,
+				U: nil,
+				V: _Interface((*_impl)(nil)), // typed nil
+				W: map[struct{}]struct{}{},
+				X: nil,
 			},
 			docToBytes(NewDocument(
 				EC.Boolean("a", true),
@@ -709,6 +784,13 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.SubDocumentFromElements("o", EC.Int64("countdown", 9876543210)),
 				EC.SubDocumentFromElements("p"),
 				EC.ObjectID("q", oid),
+				EC.Null("r"),
+				EC.Null("s"),
+				EC.Null("t"),
+				EC.Null("u"),
+				EC.Null("v"),
+				EC.SubDocument("w", NewDocument()),
+				EC.Null("x"),
 			)),
 			nil,
 		},
@@ -734,6 +816,13 @@ func reflectionEncoderTest(t *testing.T) {
 				P []*Document
 				Q []Reader
 				R []objectid.ObjectID
+				S []*string
+				T []struct{}
+				U []_Interface
+				V []_Interface
+				W []map[struct{}]struct{}
+				X []map[struct{}]struct{}
+				Y []map[struct{}]struct{}
 			}{
 				A: []bool{true},
 				B: []int32{123},
@@ -758,6 +847,13 @@ func reflectionEncoderTest(t *testing.T) {
 				P: []*Document{NewDocument(EC.Int64("countdown", 9876543210))},
 				Q: []Reader{{0x05, 0x00, 0x00, 0x00, 0x00}},
 				R: oids,
+				S: []*string{str, nil},
+				T: nil,
+				U: nil,
+				V: []_Interface{_impl{Foo: "bar"}, nil, (*_impl)(nil)},
+				W: nil,
+				X: []map[struct{}]struct{}{},   // Should be empty BSON Array
+				Y: []map[struct{}]struct{}{{}}, // Should be BSON array with one element, an empty BSON SubDocument
 			},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("a", VC.Boolean(true)),
@@ -777,6 +873,13 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.ArrayFromElements("p", VC.DocumentFromElements(EC.Int64("countdown", 9876543210))),
 				EC.ArrayFromElements("q", VC.DocumentFromElements()),
 				EC.ArrayFromElements("r", VC.ObjectID(oids[0]), VC.ObjectID(oids[1]), VC.ObjectID(oids[2])),
+				EC.ArrayFromElements("s", VC.String("bar"), VC.Null()),
+				EC.Null("t"),
+				EC.Null("u"),
+				EC.ArrayFromElements("v", VC.DocumentFromElements(EC.String("foo", "bar")), VC.Null(), VC.Null()),
+				EC.Null("w"),
+				EC.Array("x", NewArray()),
+				EC.ArrayFromElements("y", VC.Document(NewDocument())),
 			)),
 			nil,
 		},
@@ -819,3 +922,13 @@ func arrToBytes(a *Array) []byte {
 type byteMarshaler []byte
 
 func (bm byteMarshaler) MarshalBSON() ([]byte, error) { return bm, nil }
+
+type _Interface interface {
+	method()
+}
+
+type _impl struct {
+	Foo string
+}
+
+func (_impl) method() {}

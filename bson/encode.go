@@ -237,6 +237,9 @@ func (e *encoder) underlyingVal(val reflect.Value) reflect.Value {
 	if val.Kind() != reflect.Ptr && val.Kind() != reflect.Interface {
 		return val
 	}
+	if val.IsNil() {
+		return val
+	}
 	return e.underlyingVal(val.Elem())
 }
 
@@ -478,6 +481,11 @@ func (e *encoder) isZero(v reflect.Value) bool {
 func (e *encoder) elemFromValue(key string, val reflect.Value, minsize bool) (*Element, error) {
 	var elem *Element
 	switch val.Kind() {
+	case reflect.Interface, reflect.Ptr:
+		if !val.IsNil() {
+			return nil, errors.New("Values must be unwrapped when calling elemFromValue, try calling underlyingVal first")
+		}
+		elem = EC.Null(key)
 	case reflect.Bool:
 		elem = EC.Boolean(key, val.Bool())
 	case reflect.Int8, reflect.Int16, reflect.Int32:
@@ -507,12 +515,28 @@ func (e *encoder) elemFromValue(key string, val reflect.Value, minsize bool) (*E
 	case reflect.String:
 		elem = EC.String(key, val.String())
 	case reflect.Map:
+		// We specifically check if the value is nil so we can properly round trip.
+		// If we didn't do this, we couldn't differentiate between an empty map, which should
+		// be a document, and a nil map, which should be null. In Go, there is a difference
+		// between the empty value and nil, we should preserve that.
+		if val.IsNil() {
+			elem = EC.Null(key)
+			break
+		}
 		mapElems, err := e.encodeMap(val)
 		if err != nil {
 			return nil, err
 		}
 		elem = EC.SubDocumentFromElements(key, mapElems...)
 	case reflect.Slice:
+		// We specifically check if the value is nil so we can properly round trip.
+		// If we didn't do this, we couldn't differentiate between an empty slice, which should
+		// be an array, and a nil slice, which should be null. In Go, there is a difference
+		// between the empty value and nil, we should preserve that.
+		if val.IsNil() {
+			elem = EC.Null(key)
+			break
+		}
 		if val.Type() == tByteSlice {
 			elem = EC.Binary(key, val.Slice(0, val.Len()).Interface().([]byte))
 			break
@@ -554,6 +578,11 @@ func (e *encoder) elemFromValue(key string, val reflect.Value, minsize bool) (*E
 func (e *encoder) valueFromValue(val reflect.Value, minsize bool) (*Value, error) {
 	var elem *Value
 	switch val.Kind() {
+	case reflect.Interface, reflect.Ptr:
+		if !val.IsNil() {
+			return nil, errors.New("Values must be unwrapped when calling elemFromValue, try calling underlyingVal first")
+		}
+		elem = VC.Null()
 	case reflect.Bool:
 		elem = VC.Boolean(val.Bool())
 	case reflect.Int8, reflect.Int16, reflect.Int32:
@@ -583,12 +612,28 @@ func (e *encoder) valueFromValue(val reflect.Value, minsize bool) (*Value, error
 	case reflect.String:
 		elem = VC.String(val.String())
 	case reflect.Map:
+		// We specifically check if the value is nil so we can properly round trip.
+		// If we didn't do this, we couldn't differentiate between an empty map, which should
+		// be a document, and a nil map, which should be null. In Go, there is a difference
+		// between the empty value and nil, we should preserve that.
+		if val.IsNil() {
+			elem = VC.Null()
+			break
+		}
 		mapElems, err := e.encodeMap(val)
 		if err != nil {
 			return nil, err
 		}
 		elem = VC.DocumentFromElements(mapElems...)
 	case reflect.Slice:
+		// We specifically check if the value is nil so we can properly round trip.
+		// If we didn't do this, we couldn't differentiate between an empty slice, which should
+		// be an array, and a nil slice, which should be null. In Go, there is a difference
+		// between the empty value and nil, we should preserve that.
+		if val.IsNil() {
+			elem = VC.Null()
+			break
+		}
 		if val.Type() == tByteSlice {
 			elem = VC.Binary(val.Slice(0, val.Len()).Interface().([]byte))
 			break
