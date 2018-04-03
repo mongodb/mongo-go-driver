@@ -14,6 +14,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 // ErrEncoderNilWriter indicates that encoder.Encode was called with a nil argument.
@@ -284,7 +286,11 @@ func (e *encoder) encodeMap(val reflect.Value) ([]*Element, error) {
 		case reflect.String:
 			key = rkey.String()
 		default:
-			return nil, fmt.Errorf("Unsupported map key type %s", rkey.Kind())
+			if rkey.Type() == tOID {
+				key = fmt.Sprintf("%s", rkey.Interface())
+			} else {
+				return nil, fmt.Errorf("Unsupported map key type %s", rkey.Kind())
+			}
 		}
 
 		rval := val.MapIndex(rkey)
@@ -517,19 +523,22 @@ func (e *encoder) elemFromValue(key string, val reflect.Value, minsize bool) (*E
 		}
 		elem = EC.ArrayFromElements(key, sliceElems...)
 	case reflect.Array:
-		if val.Kind() == reflect.Array && val.Type().Elem() == tByte {
+		switch {
+		case val.Type() == tOID:
+			elem = EC.ObjectID(key, val.Interface().(objectid.ObjectID))
+		case val.Type().Elem() == tByte:
 			b := make([]byte, val.Len())
 			for i := 0; i < val.Len(); i++ {
 				b[i] = byte(val.Index(i).Uint())
 			}
 			elem = EC.Binary(key, b)
-			break
+		default:
+			arrayElems, err := e.encodeSliceAsArray(val, minsize)
+			if err != nil {
+				return nil, err
+			}
+			elem = EC.ArrayFromElements(key, arrayElems...)
 		}
-		arrayElems, err := e.encodeSliceAsArray(val, minsize)
-		if err != nil {
-			return nil, err
-		}
-		elem = EC.ArrayFromElements(key, arrayElems...)
 	case reflect.Struct:
 		structElems, err := e.encodeStruct(val)
 		if err != nil {
@@ -590,19 +599,22 @@ func (e *encoder) valueFromValue(val reflect.Value, minsize bool) (*Value, error
 		}
 		elem = VC.ArrayFromValues(sliceElems...)
 	case reflect.Array:
-		if val.Kind() == reflect.Array && val.Type().Elem() == tByte {
+		switch {
+		case val.Type() == tOID:
+			elem = VC.ObjectID(val.Interface().(objectid.ObjectID))
+		case val.Type().Elem() == tByte:
 			b := make([]byte, val.Len())
 			for i := 0; i < val.Len(); i++ {
 				b[i] = byte(val.Index(i).Uint())
 			}
 			elem = VC.Binary(b)
-			break
+		default:
+			arrayElems, err := e.encodeSliceAsArray(val, minsize)
+			if err != nil {
+				return nil, err
+			}
+			elem = VC.ArrayFromValues(arrayElems...)
 		}
-		arrayElems, err := e.encodeSliceAsArray(val, minsize)
-		if err != nil {
-			return nil, err
-		}
-		elem = VC.ArrayFromValues(arrayElems...)
 	case reflect.Struct:
 		structElems, err := e.encodeStruct(val)
 		if err != nil {

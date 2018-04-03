@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 func TestEncoder(t *testing.T) {
@@ -355,6 +356,9 @@ func TestEncoder(t *testing.T) {
 }
 
 func reflectionEncoderTest(t *testing.T) {
+	oid := objectid.New()
+	oids := []objectid.ObjectID{objectid.New(), objectid.New(), objectid.New()}
+
 	testCases := []struct {
 		name  string
 		value interface{}
@@ -428,6 +432,18 @@ func reflectionEncoderTest(t *testing.T) {
 			nil,
 		},
 		{
+			"map[string]objectid.ObjectID",
+			map[string]objectid.ObjectID{"foo": oid},
+			docToBytes(NewDocument(EC.ObjectID("foo", oid))),
+			nil,
+		},
+		{
+			"map[objectid.ObjectID]string",
+			map[objectid.ObjectID]string{oid: "foo"},
+			docToBytes(NewDocument(EC.String(oid.String(), "foo"))),
+			nil,
+		},
+		{
 			"[]string",
 			[]string{"foo", "bar", "baz"},
 			[]byte{
@@ -470,6 +486,16 @@ func reflectionEncoderTest(t *testing.T) {
 			[]Reader{{0x05, 0x00, 0x00, 0x00, 0x00}},
 			docToBytes(NewDocument(
 				EC.SubDocumentFromElements("0"),
+			)),
+			nil,
+		},
+		{
+			"[]objectid.ObjectID",
+			oids,
+			arrToBytes(NewArray(
+				VC.ObjectID(oids[0]),
+				VC.ObjectID(oids[1]),
+				VC.ObjectID(oids[2]),
 			)),
 			nil,
 		},
@@ -518,6 +544,14 @@ func reflectionEncoderTest(t *testing.T) {
 			map[string][]int32{"Z": {1, 2, 3}},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("Z", VC.Int32(1), VC.Int32(2), VC.Int32(3)),
+			)),
+			nil,
+		},
+		{
+			"map[string][]objectid.ObjectID",
+			map[string][]objectid.ObjectID{"Z": oids},
+			docToBytes(NewDocument(
+				EC.ArrayFromElements("Z", VC.ObjectID(oids[0]), VC.ObjectID(oids[1]), VC.ObjectID(oids[2])),
 			)),
 			nil,
 		},
@@ -635,6 +669,7 @@ func reflectionEncoderTest(t *testing.T) {
 				N *Element
 				O *Document
 				P Reader
+				Q objectid.ObjectID
 			}{
 				A: true,
 				B: 123,
@@ -655,6 +690,7 @@ func reflectionEncoderTest(t *testing.T) {
 				N: EC.Null("N"),
 				O: NewDocument(EC.Int64("countdown", 9876543210)),
 				P: Reader{0x05, 0x00, 0x00, 0x00, 0x00},
+				Q: oid,
 			},
 			docToBytes(NewDocument(
 				EC.Boolean("a", true),
@@ -672,6 +708,7 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.Null("N"),
 				EC.SubDocumentFromElements("o", EC.Int64("countdown", 9876543210)),
 				EC.SubDocumentFromElements("p"),
+				EC.ObjectID("q", oid),
 			)),
 			nil,
 		},
@@ -696,6 +733,7 @@ func reflectionEncoderTest(t *testing.T) {
 				O []*Element
 				P []*Document
 				Q []Reader
+				R []objectid.ObjectID
 			}{
 				A: []bool{true},
 				B: []int32{123},
@@ -719,6 +757,7 @@ func reflectionEncoderTest(t *testing.T) {
 				O: []*Element{EC.Null("N")},
 				P: []*Document{NewDocument(EC.Int64("countdown", 9876543210))},
 				Q: []Reader{{0x05, 0x00, 0x00, 0x00, 0x00}},
+				R: oids,
 			},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("a", VC.Boolean(true)),
@@ -737,6 +776,7 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.ArrayFromElements("o", VC.Null()),
 				EC.ArrayFromElements("p", VC.DocumentFromElements(EC.Int64("countdown", 9876543210))),
 				EC.ArrayFromElements("q", VC.DocumentFromElements()),
+				EC.ArrayFromElements("r", VC.ObjectID(oids[0]), VC.ObjectID(oids[1]), VC.ObjectID(oids[2])),
 			)),
 			nil,
 		},
@@ -754,6 +794,7 @@ func reflectionEncoderTest(t *testing.T) {
 			if diff := cmp.Diff(b, tc.b); diff != "" {
 				t.Errorf("Bytes written differ: (-got +want)\n%s", diff)
 				t.Errorf("Bytes\ngot: %v\nwant:%v\n", b, tc.b)
+				t.Errorf("Readers\ngot: %v\nwant:%v\n", Reader(b), Reader(tc.b))
 			}
 		})
 	}
@@ -761,6 +802,14 @@ func reflectionEncoderTest(t *testing.T) {
 
 func docToBytes(d *Document) []byte {
 	b, err := d.MarshalBSON()
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func arrToBytes(a *Array) []byte {
+	b, err := a.MarshalBSON()
 	if err != nil {
 		panic(err)
 	}
