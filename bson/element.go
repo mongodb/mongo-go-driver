@@ -348,7 +348,7 @@ func (e *Element) MarshalBSON() ([]byte, error) {
 // String implements the fmt.Stringer interface.
 func (e *Element) String() string {
 	val := e.Value().Interface()
-	if s, ok := val.(string); ok {
+	if s, ok := val.(string); ok && e.Value().Type() == TypeString {
 		val = strconv.Quote(s)
 	}
 	return fmt.Sprintf(`bson.Element{[%s]"%s": %v}`, e.Value().Type(), e.Key(), val)

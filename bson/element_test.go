@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
@@ -2535,6 +2536,48 @@ func testValidateValue(t *testing.T) {
 		}
 		if got != want {
 			t.Errorf("Did not return correct error. got %v; want %v", got, want)
+		}
+	})
+	t.Run("fmt.Stringer", func(t *testing.T) {
+		var rdr Reader
+		var err error
+		rdr, err = NewDocument(EC.String("foo", "bar"),
+			EC.SubDocumentFromElements("fooer",
+				EC.SubDocumentFromElements("barer", EC.Int32("ok", 1)),
+			),
+		).MarshalBSON()
+		if err != nil {
+			t.Errorf("Unexpected error while marshaling document: %v", err)
+		}
+		testCases := []struct {
+			name string
+			doc  interface{}
+			want string
+		}{
+			{
+				"nested document",
+				NewDocument(
+					EC.String("foo", "bar"),
+					EC.SubDocumentFromElements("fooer",
+						EC.SubDocumentFromElements("barer", EC.Int32("ok", 1)),
+					),
+				),
+				`bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Reader{bson.Element{[embedded document]"barer": bson.Reader{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
+			},
+			{
+				"nested reader",
+				rdr,
+				`bson.Reader{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Reader{bson.Element{[embedded document]"barer": bson.Reader{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				got := fmt.Sprintf("%s", tc.doc)
+				if got != tc.want {
+					t.Errorf("Output from fmt.Stringer implementation does not match.\ngot :%s\nwant:%s", got, tc.want)
+				}
+			})
 		}
 	})
 }
