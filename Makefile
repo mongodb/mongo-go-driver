@@ -1,14 +1,16 @@
 BSON_PKGS = $(shell ./etc/find_pkgs.sh ./bson)
 BSON_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./bson _test)
-YAMGO_PKGS = $(shell ./etc/find_pkgs.sh ./mongo)
-YAMGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./mongo _test)
-PKGS = $(BSON_PKGS) $(YAMGO_PKGS)
-TEST_PKGS = $(BSON_TEST_PKGS) $(YAMGO_TEST_PKGS)
+MONGO_PKGS = $(shell ./etc/find_pkgs.sh ./mongo)
+MONGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./mongo _test)
+CORE_PKGS = $(shell ./etc/find_pkgs.sh ./core)
+CORE_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./core _test)
+PKGS = $(BSON_PKGS) $(MONGO_PKGS) $(CORE_PKGS)
+TEST_PKGS = $(BSON_TEST_PKGS) $(MONGO_TEST_PKGS) $(CORE_TEST_PKGS)
 
 TEST_TIMEOUT = 300
 
 .PHONY: default
-default: check-fmt vet build-examples lint errcheck test-cover test-race 
+default: check-fmt vet build-examples lint errcheck test-cover test-race
 
 .PHONY: doc
 doc:
@@ -16,7 +18,7 @@ doc:
 
 .PHONY: build-examples
 build-examples:
-	go build $(BUILD_TAGS) ./examples/...
+	go build $(BUILD_TAGS) ./examples/... ./core/examples/...
 
 .PHONY: check-fmt
 check-fmt:
@@ -99,4 +101,4 @@ evg-test:
 
 .PHONY: evg-test-auth
 evg-test-auth:
-	go run -tags gssapi ./mongo/private/examples/count/main.go -uri $(MONGODB_URI)
+	go run -tags gssapi ./core/examples/count/main.go -uri $(MONGODB_URI)
