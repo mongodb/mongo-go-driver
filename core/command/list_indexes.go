@@ -1,0 +1,91 @@
+package command
+
+import (
+	"context"
+
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+)
+
+// ListIndexes represents the listIndexes command.
+//
+// The listIndexes command lists the indexes for a namespace.
+type ListIndexes struct {
+	NS   Namespace
+	Opts []options.ListIndexesOptioner
+
+	result Cursor
+	err    error
+}
+
+// Encode will encode this command into a wire message for the given server description.
+func (li *ListIndexes) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	cmd := bson.NewDocument(bson.EC.String("listIndexes", li.NS.Collection))
+
+	for _, opt := range li.Opts {
+		if opt == nil {
+			continue
+		}
+		opt.Option(cmd)
+	}
+
+	return (&Command{DB: li.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
+}
+
+// Decode will decode the wire message using the provided server description. Errors during decoding
+// are deferred until either the Result or Err methods are called.
+func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListIndexes {
+	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	if err != nil {
+		if IsNotFound(err) {
+			li.result = emptyCursor{}
+			return li
+		}
+		li.err = err
+		return li
+	}
+
+	opts := make([]options.CursorOptioner, 0)
+	for _, opt := range li.Opts {
+		curOpt, ok := opt.(options.CursorOptioner)
+		if !ok {
+			continue
+		}
+		opts = append(opts, curOpt)
+	}
+
+	li.result, li.err = cb.BuildCursor(rdr, opts...)
+
+	return li
+}
+
+// Result returns the result of a decoded wire message and server description.
+func (li *ListIndexes) Result() (Cursor, error) {
+	if li.err != nil {
+		return nil, li.err
+	}
+	return li.result, nil
+}
+
+// Err returns the error set on this command.
+func (li *ListIndexes) Err() error { return li.err }
+
+// RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
+func (li *ListIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+	wm, err := li.Encode(desc)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rw.WriteWireMessage(ctx, wm)
+	if err != nil {
+		return nil, err
+	}
+	wm, err = rw.ReadWireMessage(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return li.Decode(desc, cb, wm).Result()
+}

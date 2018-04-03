@@ -12,13 +12,13 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/private/options"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/dispatch"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Collection performs operations on a given collection.

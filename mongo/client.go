@@ -10,14 +10,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/connstring"
-	"github.com/mongodb/mongo-go-driver/mongo/private/options"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/command"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/dispatch"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/topology"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/connstring"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond

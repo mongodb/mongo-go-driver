@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/private/roots/result"
+	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
 // InsertOneResult is a result of an InsertOne operation.

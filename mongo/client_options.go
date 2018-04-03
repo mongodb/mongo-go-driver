@@ -9,7 +9,7 @@ package mongo
 import (
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/private/options"
+	"github.com/mongodb/mongo-go-driver/core/options"
 )
 
 // ClientOptions is used as a namespace for mongo.Client option constructors.
