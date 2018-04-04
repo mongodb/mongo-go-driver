@@ -61,8 +61,6 @@ func (c *Count) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 	}
 
 	switch val.Value().Type() {
-	case bson.TypeDouble:
-		c.result = int64(val.Value().Double())
 	case bson.TypeInt32:
 		c.result = int64(val.Value().Int32())
 	case bson.TypeInt64:
