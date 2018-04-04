@@ -87,6 +87,24 @@
     },
     {
       "key": {
+        "uuid": "7ce6c9ab_84058ce1",
+        "filename": "mongo/database.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-04T14:59:22Z",
+      "side": 1,
+      "message": "Agreed.  The rules are subtly different for writing and reading from primary.  In particular, read preference is ignored for \"direct\" connections, so you can read from a direct connection to a secondary even if the read preference is primary.",
+      "parentUuid": "1934bf91_e6607da9",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a1c51445_c97164c2",
         "filename": "mongo/database.go",
         "patchSetId": 18
@@ -376,6 +394,24 @@
     },
     {
       "key": {
+        "uuid": "f9750b7d_1dbdf404",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-04T14:59:22Z",
+      "side": 1,
+      "message": "+1, though I\u0027m ok with creating a Jira issue for this and deferring it.",
+      "parentUuid": "5ce5219e_d84ab220",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "52268fe9_d7da1a0b",
         "filename": "mongo/private/roots/dispatch/delete.go",
         "patchSetId": 18
@@ -404,6 +440,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "These are going to need to have additional stuff. You probably know this. Individual documents can have their own errors. Figuring out the right way to handle that in the API should be fun.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "abf9e27d_e87e11f6",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-04T14:59:22Z",
+      "side": 1,
+      "message": "Is this intended to track errors as well, or is that a separate code path?\n\nTo pass CRUD tests, you probably need the _id of each document.",
+      "parentUuid": "a0697ab9_f3ec63f7",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
