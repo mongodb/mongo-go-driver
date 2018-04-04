@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "c9cdfff0_40ba2f00",
+        "filename": "mongo/collection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "We can, I\u0027m not entire sure why these are set here, but this is what the previous implementation did.\n\nGODRIVER-330",
+      "parentUuid": "a57e8e36_49afd3e9",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5bf3322f_5914714d",
         "filename": "mongo/collection.go",
         "patchSetId": 18
@@ -30,6 +48,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "There can only be 1 upserted document by definition. As in, update all these documents - if you don\u0027t find any, insert one \u003c- upserted document.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a3f67cac_f3f9273e",
+        "filename": "mongo/collection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 348,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "I didn\u0027t realize when I wrote this that we only accept a single update and filter, which means the server will only return one thing here.",
+      "parentUuid": "5bf3322f_5914714d",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "dfe10a4d_b8d3065a",
+        "filename": "mongo/collection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 419,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Yeah, the CursorBuilder would build an empty cursor in this case.",
+      "parentUuid": "66b6e9dd_e7c90363",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a229a49_f64aaef1",
         "filename": "mongo/collection.go",
         "patchSetId": 18
@@ -64,6 +118,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "Why doesn\u0027t this return a DocumentResult and an error? Most methods seem to return a result and an error (Cursor, err) ([]interface{}, error), etc...",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bb82e94c_3949bef6",
+        "filename": "mongo/collection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 529,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "This is actually borrowed from the database/sql package, where the sql.Row type is returned from a QueryRow call. In the case of a QueryRow call, only the sql.Row object is returned and the sql.Row object proxies the error. The usage looks like this:\n\n    err :\u003d db.QueryRow(\"SELECT * FROM foo\").Scan(...)\n\nSimilarly, for FindOne it would be:\n\n    err :\u003d coll.FindOne(ctx, ...).Decode(\u0026res)\n\nThis makes it so users don\u0027t have to do extra error checking. If FindOne returned both a DocumentResult and en error the code would be:\n\n    dr, err :\u003d coll.FindOne(ctx, ...)\n    if err !\u003d nil { // do something }\n    err \u003d dr.Decode(\u0026res)",
+      "parentUuid": "1a229a49_f64aaef1",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -105,6 +177,24 @@
     },
     {
       "key": {
+        "uuid": "ab94efe6_f3982bc6",
+        "filename": "mongo/database.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "I was confused by this as well. This is how it was so I left it, but it does seem like something we should change.\n\nGODRIVER-331.",
+      "parentUuid": "1934bf91_e6607da9",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a1c51445_c97164c2",
         "filename": "mongo/database.go",
         "patchSetId": 18
@@ -116,6 +206,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "just use db.writeSelector.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6122ef6d_e1105a9c",
+        "filename": "mongo/database.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Ack.\n\nGODIRVER-332.",
+      "parentUuid": "a1c51445_c97164c2",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -139,6 +247,24 @@
     },
     {
       "key": {
+        "uuid": "cb3eb65e_5e8ed0fe",
+        "filename": "mongo/internal/feature/supported.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "I think we should keep this. Let\u0027s update the place where it should be used. I think this is description/server_selector.go#118 (I\u0027m also going to make a ticket to use the description server selectors and remove the topology ones).\n\nGODRIVER-333.",
+      "parentUuid": "56a3f03a_1fa1bcaa",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bdf4d130_704f3956",
         "filename": "mongo/private/auth/auth.go",
         "patchSetId": 18
@@ -150,6 +276,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "This seems backwards. In the auth package, this handshaker should be solely responsible for doing authentication. The provided connection.Handshaker (h) should be doing the other stuff. In other words, this Handshaker is just wrapping h.\n\nSo, first thing in, call h.Handshake(...). Then call authenticator.Auth(...). And that\u0027s it.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ec929f23_3eeea87e",
+        "filename": "mongo/private/auth/auth.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "As per our discussion offline and David\u0027s email, this is the functionality we want.",
+      "parentUuid": "bdf4d130_704f3956",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -173,6 +317,24 @@
     },
     {
       "key": {
+        "uuid": "98b9e694_fcf76fec",
+        "filename": "mongo/private/options/options.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 516,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "So the CRUD spec requires there to be a projection option for both find and findOneAnd* methods. After we implement GODRIVER-272, we can update this package to have an OptFields and OptProjection since these options do not need to conform to the CRUD spec. I\u0027ve created GODRIVER-335 for this.",
+      "parentUuid": "d510229b_a2080dd2",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "98147edd_d540a36e",
         "filename": "mongo/private/roots/command/bootstrap.go",
         "patchSetId": 18
@@ -184,6 +346,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "Is this used. I know Handshaker exists, so what additional stuff is this going to support?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4b5156b4_3869aa49",
+        "filename": "mongo/private/roots/command/bootstrap.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "This is what was going to be Handshake before I made the Handshake command. We can remove this.",
+      "parentUuid": "98147edd_d540a36e",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -207,6 +387,24 @@
     },
     {
       "key": {
+        "uuid": "d9e3f95d_22f824d1",
+        "filename": "mongo/private/roots/command/buildinfo.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "This is an old comment form a previous design. When I first designed the command package, the dispatch functions were methods attached to each type. I have since separated them into their own package, since it provides a simpler dependency graph and separation, which means this comment no longer applies.",
+      "parentUuid": "e56ab1a1_bb5b20b2",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "986a6738_f6ea9934",
         "filename": "mongo/private/roots/command/command.go",
         "patchSetId": 18
@@ -224,6 +422,24 @@
     },
     {
       "key": {
+        "uuid": "ce0a2d0e_38767af7",
+        "filename": "mongo/private/roots/command/command.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "I think part of my logic here was that we might have circumstances where users wants to send an invalid document for testing purposes, but that can be handled at the wiremessage layer.\n\nI can open a question ticket and we can send it to our alpha tests to see if they would prefer if we validated BSON if the type is a bson.Marshaler.",
+      "parentUuid": "986a6738_f6ea9934",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "103cc616_a3930d71",
         "filename": "mongo/private/roots/command/command_test.go",
         "patchSetId": 18
@@ -235,6 +451,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "So general statement here... this file is blank, and none of the other commands have any tests. I think we need them all to have tests. I personally prefer unit tests to just integration (I see the ones you have in the integration package). But I\u0027ll defer to you and Jeff on how much and where. \n\nNote that most of these do not have integration tests in the integration package and those that are there don\u0027t exhaustively test the encoding of options for each command.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dd9071c2_6032d82b",
+        "filename": "mongo/private/roots/command/command_test.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Will respond to the general statement in the main overview. This file is specifically here so we can generate coverage information from running the integration tests.",
+      "parentUuid": "103cc616_a3930d71",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -258,6 +492,24 @@
     },
     {
       "key": {
+        "uuid": "9945496c_2884853b",
+        "filename": "mongo/private/roots/command/count.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "We actually do have an IsNumber method on the Value type, but we can just remove this.",
+      "parentUuid": "35345082_c69bfbbe",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "392a19a7_55bff480",
         "filename": "mongo/private/roots/command/delete.go",
         "patchSetId": 18
@@ -269,6 +521,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "This applies to all the commands... why are we mutating the Delete structure with the result and an error instead of just returning them?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "88bea218_a539efa7",
+        "filename": "mongo/private/roots/command/delete.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "In the future, when this library can also be used by proxies and servers, we\u0027ll be decoding the wiremessage that encoded created, therefore this method will not always set the result and err properties, it\u0027ll actually unwind the NS, Deletes, and Opts properties. This will also ensure that we can round trip the commands, so the results of an encode that are then decoded will result in the original object.",
+      "parentUuid": "392a19a7_55bff480",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -292,6 +562,24 @@
     },
     {
       "key": {
+        "uuid": "1b3374d6_0a690770",
+        "filename": "mongo/private/roots/command/doc.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d36b01a6_ef51cee7",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "19cb8bdb_a6641ba1",
         "filename": "mongo/private/roots/command/list_indexes.go",
         "patchSetId": 18
@@ -303,6 +591,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "So OptBatchSize is the only struct that implements ListIndexesOptioner. However, batchSize isn\u0027t part of the cmd itself... it only, apparently, applies to the cursor. So it seems like mixing CursorOptioner and ListIndexesOptioner together is going to mis-apply the CursorOptioner to the cmd.\n\nIt looks like ListCollections and ListDatabases have the same issue. Any command that returns a cursor may have this problem, although it has been specifically handled in Aggregate and Find.\n\nThese makes me think there is a potential design issue here where making a change to an Optioner in some other package might cause invalid commands to get created.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "570f6c16_eedb8d81",
+        "filename": "mongo/private/roots/command/list_indexes.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Ah, what we\u0027re missing here is a check if the option is a CursorOptioner and if it is we shouldn\u0027t include it in the initial command\u0027s options. Since we are doing GODRIVER-272 we can actually have a CursorOpts property on the types that return a Cursor and not have the Cursor only optioners implement those type optioners.\n\nYou are right though, this is a design issue, partially rooted in the way that we currently do options at the CRUD level. Once we do GODRIVER-272 though, we can fix this.",
+      "parentUuid": "19cb8bdb_a6641ba1",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -326,6 +632,24 @@
     },
     {
       "key": {
+        "uuid": "a7ab14d8_54098877",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Sure, GODRIVER-336.",
+      "parentUuid": "1ddbf8fa_2ba2b1c1",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7d51ea04_277b1ad9",
         "filename": "mongo/private/roots/connection/connection.go",
         "patchSetId": 18
@@ -337,6 +661,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "I don\u0027t think this function is used anywhere since it exists in the command package.",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "63b3afa2_959668b3",
+        "filename": "mongo/private/roots/connection/connection.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 378,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7d51ea04_277b1ad9",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -360,6 +702,24 @@
     },
     {
       "key": {
+        "uuid": "f08a1d8c_046d5e98",
+        "filename": "mongo/private/roots/description/shared_spec_test.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "06891afd_36646f96",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d6b91767_9c17f6ad",
         "filename": "mongo/private/roots/dispatch/aggregate.go",
         "patchSetId": 18
@@ -371,6 +731,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "1. So we\u0027re saying that a write concern passed directly to this function takes precedence over one in the cmd.Opts... The one in cmd.Opts is the one the user provided directly to the collection.Aggregate method and the write concern passed as a parameter came from the collection; it seems like we are backwards here.\n\n2. What happens if cmd.Opts now has two OptWriteConcern? Does writeConcern get added twice to the command document?\n\n3. It feels wrong to mutate the provided cmd object by appending to it\u0027s array. I\u0027m not sure how to get around that with this design, but let\u0027s think about it. It is an unexpected outcome of calling this method.\n\nWhich brings up a different point... Why do we need to have both an Option as well as a parameter?\n\n(this applies to many other dispatch methods as well)",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8e000f95_2a6be3a5",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Ah, so this is undocumented and should be documented somewhere but I\u0027m not sure where. Right now, the user\u0027s write concern will be used instead of the collection because only the first write concern will apply to the command.\n\nTo your last point, the reason writeConcern is an option is because we can\u0027t attach it to options slice in Collection.Aggregate because we don\u0027t know if this will be a read or write command. I\u0027ve created GODRIVER-337 to help with this problem. What that will allow us to do is make OptWriteConcern an actual writeConcern, this way we can extract out the write concern in collection.Aggregate and then always pass either that or the Collection\u0027s write concern.",
+      "parentUuid": "d6b91767_9c17f6ad",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -412,6 +790,24 @@
     },
     {
       "key": {
+        "uuid": "424ee429_7f368cb9",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "What if we instead just retrieve the description after we get a connection?\n\nThe reason I don\u0027t want to attach a description to a connection is that the description could become out of date. We could be retrieving a pooled connection that was created hours ago and the topology could have changed or the server itself could have changed in the interim. It seems too expensive to either add an extra round trip or to try to update the descriptions of all of the current connections each time the server\u0027s description is updated.\n\nIt seems to me that in the general case that the server\u0027s description would be more update to date than the connection\u0027s description since the connections are far more likely to be pooled connections.",
+      "parentUuid": "f9750b7d_1dbdf404",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "52268fe9_d7da1a0b",
         "filename": "mongo/private/roots/dispatch/delete.go",
         "patchSetId": 18
@@ -426,6 +822,24 @@
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c5a58365_24915718",
+        "filename": "mongo/private/roots/dispatch/delete.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "This loop will iterate in order, so the first write concern hit will be ours. After we see one we break the loop.",
+      "parentUuid": "52268fe9_d7da1a0b",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     },
     {
       "key": {
@@ -464,6 +878,24 @@
     },
     {
       "key": {
+        "uuid": "bce1db1c_2b2d57fb",
+        "filename": "mongo/private/roots/result/result.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "The addition stuff will be added with GODRIVER-312 when we add support for write errors and write concern errors.\n\nThe insert command doesn\u0027t return the _id of each document, we actually handle that at the CRUD layer. Errors will be handled with these types.",
+      "parentUuid": "abf9e27d_e87e11f6",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "54e43eaa_156930cf",
         "filename": "mongo/private/roots/topology/server.go",
         "patchSetId": 18
@@ -475,6 +907,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "This is gonna be misunderstood and will be totally unexpected...",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "74f99ea3_10fc6b7b",
+        "filename": "mongo/private/roots/topology/server.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "It\u0027s explicitly documented as having a king of Single. The name could be better though.",
+      "parentUuid": "54e43eaa_156930cf",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -498,6 +948,24 @@
     },
     {
       "key": {
+        "uuid": "23e1abd3_b4263a6a",
+        "filename": "mongo/private/roots/topology/server.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Yes, there is no access to the net.Conn at the handshaker level.",
+      "parentUuid": "cecb9d9f_a675555a",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d682f182_0ae7371f",
         "filename": "mongo/private/roots/topology/server_selector.go",
         "patchSetId": 18
@@ -509,6 +977,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "Should we call feature.MaxStaleness(...) here?",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "074bbe6d_588a782c",
+        "filename": "mongo/private/roots/topology/server_selector.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Yes.",
+      "parentUuid": "d682f182_0ae7371f",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -532,6 +1018,24 @@
     },
     {
       "key": {
+        "uuid": "f651ffce_c4e14bb5",
+        "filename": "mongo/private/roots/topology/topology.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "This type will definitely need to be refactored.",
+      "parentUuid": "f9b9b31b_594f488d",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a77fde11_8d9a3bf1",
         "filename": "mongo/private/roots/wiremessage/header.go",
         "patchSetId": 18
@@ -543,6 +1047,24 @@
       "writtenOn": "2018-04-03T22:57:58Z",
       "side": 1,
       "message": "lenght -\u003e length",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ac081b6c_5ca9b145",
+        "filename": "mongo/private/roots/wiremessage/header.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T16:43:08Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a77fde11_8d9a3bf1",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
