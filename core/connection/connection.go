@@ -14,15 +14,12 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/addr"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/version"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -373,30 +370,6 @@ func (c *connection) ID() string {
 
 func (c *connection) initialize(ctx context.Context, appName string) error {
 	return nil
-}
-
-func clientDoc(app string) *bson.Document {
-	doc := bson.NewDocument(
-		bson.EC.SubDocumentFromElements(
-			"driver",
-			bson.EC.String("name", "mongo-go-driver"),
-			bson.EC.String("version", version.Driver),
-		),
-		bson.EC.SubDocumentFromElements(
-			"os",
-			bson.EC.String("type", runtime.GOOS),
-			bson.EC.String("architecture", runtime.GOARCH),
-		),
-		bson.EC.String("platform", runtime.Version()))
-
-	if app != "" {
-		doc.Append(bson.EC.SubDocumentFromElements(
-			"application",
-			bson.EC.String("name", app),
-		))
-	}
-
-	return doc
 }
 
 func readInt32(b []byte, pos int32) int32 {
