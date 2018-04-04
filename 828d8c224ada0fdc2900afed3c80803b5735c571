@@ -476,6 +476,24 @@
     },
     {
       "key": {
+        "uuid": "adf20c0a_2acb413f",
+        "filename": "mongo/private/roots/command/command.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-04T23:53:12Z",
+      "side": 1,
+      "message": "I feel fairly strongly that the driver\u0027s bson abstraction layer should prevent bad BSON from getting on or off the wire.  But we can leave that to for subsequent work.",
+      "parentUuid": "0dca6a49_ccbcdfcd",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "103cc616_a3930d71",
         "filename": "mongo/private/roots/command/command_test.go",
         "patchSetId": 18
@@ -916,6 +934,24 @@
     },
     {
       "key": {
+        "uuid": "a45a8d6a_133dedca",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-04T23:53:12Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f150d674_eb449913",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "52268fe9_d7da1a0b",
         "filename": "mongo/private/roots/dispatch/delete.go",
         "patchSetId": 18
@@ -981,6 +1017,24 @@
       "side": 1,
       "message": "Discussed offline.",
       "parentUuid": "2695df2c_302e7cda",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "07ec9d1a_1c07c3ee",
+        "filename": "mongo/private/roots/dispatch/delete.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-04T23:53:12Z",
+      "side": 1,
+      "message": "Was the outcome to leave it as is?",
+      "parentUuid": "8bbae77d_c593ddea",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
