@@ -440,6 +440,24 @@
     },
     {
       "key": {
+        "uuid": "0dca6a49_ccbcdfcd",
+        "filename": "mongo/private/roots/command/command.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-04T18:29:56Z",
+      "side": 1,
+      "message": "Perhaps... my concern isn\u0027t whether people want to do it, but whether we should let them. I\u0027m unclear as to whether the server validates BSON now... it used to not allowing invalid BSON to get in. If they don\u0027t, an implementation mistake could go a long time without getting caught.",
+      "parentUuid": "ce0a2d0e_38767af7",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "103cc616_a3930d71",
         "filename": "mongo/private/roots/command/command_test.go",
         "patchSetId": 18
@@ -755,6 +773,24 @@
     },
     {
       "key": {
+        "uuid": "4a3f1cd0_8aa20a58",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-04T18:29:56Z",
+      "side": 1,
+      "message": "\"Ah, so this is undocumented and should be documented somewhere but I\u0027m not sure where. Right now, the user\u0027s write concern will be used instead of the collection because only the first write concern will apply to the command.\"\n\nBut the last write concern will set the acknowledged field, so there is a disconnect between the options sent to the server and the acknowledged status after the loop on line 43.",
+      "parentUuid": "8e000f95_2a6be3a5",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5ce5219e_d84ab220",
         "filename": "mongo/private/roots/dispatch/aggregate.go",
         "patchSetId": 18
@@ -808,6 +844,24 @@
     },
     {
       "key": {
+        "uuid": "8c69c44f_9fca5ab9",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-04T18:29:56Z",
+      "side": 1,
+      "message": "If you reverse it, then you have the same problem in the opposite direction. This is a very edgy case, but one that has come up before.\n\nThe thing about the connection is that when the server changes states... different version, different wire version, no longer primary, maxWireMessageSize, maxBatchCount, etc... the connection gets killed. Which means that while we are holding onto the connection and it\u0027s alive, we know those things are correct, which are basically the only things we care about after this point. \n\nPerhaps that is an abstraction point. Don\u0027t pass down the whole description.Server, but rather just the stuff that is needed to make decisions. \n\nBut as Jeff said, no need to do this now. Create a ticket and move on.",
+      "parentUuid": "424ee429_7f368cb9",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "52268fe9_d7da1a0b",
         "filename": "mongo/private/roots/dispatch/delete.go",
         "patchSetId": 18
@@ -837,6 +891,24 @@
       "side": 1,
       "message": "This loop will iterate in order, so the first write concern hit will be ours. After we see one we break the loop.",
       "parentUuid": "52268fe9_d7da1a0b",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2695df2c_302e7cda",
+        "filename": "mongo/private/roots/dispatch/delete.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-04T18:29:56Z",
+      "side": 1,
+      "message": "ah, missed the break at the end. I think this should probably be written the other way.\n\nif wc, ok :\u003d opt.(options.OptWriteConcern); ok {\n  acknowledged \u003d wc.Acknowledged\n  break\n}\n\nLess lines, and more clear.",
+      "parentUuid": "c5a58365_24915718",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -925,6 +997,24 @@
       "side": 1,
       "message": "It\u0027s explicitly documented as having a king of Single. The name could be better though.",
       "parentUuid": "54e43eaa_156930cf",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "57b005d9_1796e5b4",
+        "filename": "mongo/private/roots/topology/server.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-04T18:29:56Z",
+      "side": 1,
+      "message": "Yeah, I saw the description, but devs don\u0027t read those until they\u0027ve been bitten. Make it hard to do the wrong thing and easy to do the right thing. This is pretty easy to mis-use and since this is easily handled outside of this struct, I\u0027m not sure it belongs on the struct to begin with.",
+      "parentUuid": "74f99ea3_10fc6b7b",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
