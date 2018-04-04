@@ -60,7 +60,7 @@ func (h Header) AppendHeader(b []byte) []byte {
 	return b
 }
 
-// SetDefaults sets the lenght and opcode of this header.
+// SetDefaults sets the length and opcode of this header.
 func (h *Header) SetDefaults(length int, opcode OpCode) error {
 	switch h.MessageLength {
 	case int32(length):

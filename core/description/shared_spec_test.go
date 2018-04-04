@@ -54,7 +54,7 @@ type readPref struct {
 	TagSets      []map[string]string `json:"tag_sets"`
 }
 
-func clusterKindFromString(s string) TopologyKind {
+func topologyKindFromString(s string) TopologyKind {
 	switch s {
 	case "Single":
 		return Single
@@ -191,7 +191,7 @@ func selectServers(t *testing.T, test *testCase) error {
 	}
 
 	c := Topology{
-		Kind:    clusterKindFromString(test.TopologyDescription.Type),
+		Kind:    topologyKindFromString(test.TopologyDescription.Type),
 		Servers: servers,
 	}
 

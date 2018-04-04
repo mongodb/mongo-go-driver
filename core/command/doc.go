@@ -5,6 +5,6 @@
 // Each type consists of two levels of interaction. The lowest level are the Encode and Decode
 // methods. These are meant to be symmetric eventually, but currently only support the driver
 // side of commands. The higher level is the RoundTrip method. This only makes sense from the
-// driver side of commands and this method hands the encoding of the request and decoding of
+// driver side of commands and this method handles the encoding of the request and decoding of
 // the response using the given wiremessage.ReadWriter.
 package command

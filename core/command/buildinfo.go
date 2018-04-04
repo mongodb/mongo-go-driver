@@ -13,8 +13,6 @@ import (
 //
 // The buildInfo command is used for getting the build information for a
 // MongoDB server.
-//
-// Since BuildInfo can only be run on a connection, there is no Dispatch method.
 type BuildInfo struct {
 	err error
 	res result.BuildInfo
