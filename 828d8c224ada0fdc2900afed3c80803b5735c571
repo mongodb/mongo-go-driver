@@ -458,6 +458,24 @@
     },
     {
       "key": {
+        "uuid": "9af90a9f_cb685540",
+        "filename": "mongo/private/roots/command/command.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T21:45:15Z",
+      "side": 1,
+      "message": "Opened GODRIVER-340 to discuss further.",
+      "parentUuid": "0dca6a49_ccbcdfcd",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "103cc616_a3930d71",
         "filename": "mongo/private/roots/command/command_test.go",
         "patchSetId": 18
@@ -791,6 +809,24 @@
     },
     {
       "key": {
+        "uuid": "3ab9558a_b4d51f1f",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T21:45:15Z",
+      "side": 1,
+      "message": "Discussed offline.",
+      "parentUuid": "4a3f1cd0_8aa20a58",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5ce5219e_d84ab220",
         "filename": "mongo/private/roots/dispatch/aggregate.go",
         "patchSetId": 18
@@ -862,6 +898,24 @@
     },
     {
       "key": {
+        "uuid": "f150d674_eb449913",
+        "filename": "mongo/private/roots/dispatch/aggregate.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T21:45:15Z",
+      "side": 1,
+      "message": "I opened GODRIVER-341 to continue discussion.",
+      "parentUuid": "8c69c44f_9fca5ab9",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "52268fe9_d7da1a0b",
         "filename": "mongo/private/roots/dispatch/delete.go",
         "patchSetId": 18
@@ -912,6 +966,24 @@
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8bbae77d_c593ddea",
+        "filename": "mongo/private/roots/dispatch/delete.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T21:45:15Z",
+      "side": 1,
+      "message": "Discussed offline.",
+      "parentUuid": "2695df2c_302e7cda",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -1015,6 +1087,24 @@
       "side": 1,
       "message": "Yeah, I saw the description, but devs don\u0027t read those until they\u0027ve been bitten. Make it hard to do the wrong thing and easy to do the right thing. This is pretty easy to mis-use and since this is easily handled outside of this struct, I\u0027m not sure it belongs on the struct to begin with.",
       "parentUuid": "74f99ea3_10fc6b7b",
+      "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e3b91681_6173471c",
+        "filename": "mongo/private/roots/topology/server.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-04T21:45:15Z",
+      "side": 1,
+      "message": "Per offline discussion, I\u0027ve opened GODRIVER-342.",
+      "parentUuid": "57b005d9_1796e5b4",
       "revId": "828d8c224ada0fdc2900afed3c80803b5735c571",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
