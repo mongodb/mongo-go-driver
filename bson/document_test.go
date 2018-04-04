@@ -314,6 +314,12 @@ func TestDocument(t *testing.T) {
 				EC.Null("x"),
 				(&Document{}).Append(EC.Null("w"), EC.Null("y"), EC.Null("z"), EC.Null("x")),
 			},
+			{
+				"update-element-not-lexicographically-sorted",
+				NewDocument(EC.Int32("b", 1), EC.Int32("a", 2), EC.Int32("d", 3), EC.Int32("c", 4)),
+				EC.Int32("d", 5),
+				NewDocument(EC.Int32("b", 1), EC.Int32("a", 2), EC.Int32("d", 5), EC.Int32("c", 4)),
+			},
 		}
 
 		for _, tc := range testCases {
