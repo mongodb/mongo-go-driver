@@ -256,7 +256,7 @@ func (d *Document) Set(elem *Element) *Document {
 	key := elem.Key() + "\x00"
 	i := sort.Search(len(d.index), func(i int) bool { return bytes.Compare(d.keyFromIndex(i), []byte(key)) >= 0 })
 	if i < len(d.index) && bytes.Compare(d.keyFromIndex(i), []byte(key)) == 0 {
-		d.elems[i] = elem
+		d.elems[d.index[i]] = elem
 		return d
 	}
 
