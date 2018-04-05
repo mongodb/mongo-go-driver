@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
@@ -162,7 +163,7 @@ func (client *Client) listDatabasesHelper(ctx context.Context, filter interface{
 
 	// The spec indicates that we should not run the listDatabase command on a secondary in a
 	// replica set.
-	res, err := dispatch.ListDatabases(ctx, cmd, client.topology, topology.ReadPrefSelector(readpref.Primary()))
+	res, err := dispatch.ListDatabases(ctx, cmd, client.topology, description.ReadPrefSelector(readpref.Primary()))
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}

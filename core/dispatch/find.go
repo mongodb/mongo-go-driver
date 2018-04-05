@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
@@ -14,7 +15,7 @@ func Find(
 	ctx context.Context,
 	cmd command.Find,
 	topo *topology.Topology,
-	selector topology.ServerSelector,
+	selector description.ServerSelector,
 	rc *readconcern.ReadConcern,
 ) (command.Cursor, error) {
 

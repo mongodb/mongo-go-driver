@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
 
@@ -13,7 +14,7 @@ func ListCollections(
 	ctx context.Context,
 	cmd command.ListCollections,
 	topo *topology.Topology,
-	selector topology.ServerSelector,
+	selector description.ServerSelector,
 ) (command.Cursor, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
