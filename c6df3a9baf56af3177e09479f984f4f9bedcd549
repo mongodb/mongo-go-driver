@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "479864bb_2ccdbd5a",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-05T21:33:42Z",
+      "side": 1,
+      "message": "If this is intended, to have the connstring take precedence, then this works. I find that a surprising choice. The URI typically comes from outside the application, but the options obviously have to come from inside, which means they are closer to the configuration point and should take precedence. I could also argue the other way though, so...\n\nWe can probably tackle this question with GODRIVER-348.",
+      "parentUuid": "866bdbd0_c351c951",
+      "revId": "c6df3a9baf56af3177e09479f984f4f9bedcd549",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f03420a8_a198a700",
         "filename": "mongo/client_options.go",
         "patchSetId": 1
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "The connstring.ConnString attached to the client is a value type, so the version on Client is a copy. I\u0027ve added a test in that shows that when we start with an empty ConnString that after adding an AppName only the Client.connString has been altered.",
       "parentUuid": "f03420a8_a198a700",
+      "revId": "c6df3a9baf56af3177e09479f984f4f9bedcd549",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1b8818fa_f9b1e57c",
+        "filename": "mongo/client_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-05T21:33:42Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1ec0f7b6_55a89ff1",
       "revId": "c6df3a9baf56af3177e09479f984f4f9bedcd549",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
