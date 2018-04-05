@@ -23,8 +23,7 @@ const minHeartbeatInterval = 500 * time.Millisecond
 var ErrServerClosed = errors.New("server is closed")
 
 // SelectedServer represents a specific server that was selected during server selection.
-// It contains the kind of the typology it was selected from and the read preference that
-// was given during server selection.
+// It contains the kind of the typology it was selected from.
 type SelectedServer struct {
 	*Server
 
