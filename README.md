@@ -3,10 +3,27 @@
 MongoDB Driver for Go.
 
 -------------------------
+- [Requirements](#requirements)
+- [Installation](#installation)
 - [Bugs/Feature Reporting](#bugs-feature-reporting)
 - [Testing / Development](#testing--development)
 - [Continuous Integration](#continuous-integration)
 - [License](#license)
+
+-------------------------
+## Requirements
+
+- Go 1.9 or higher. We aim to support the latest supported versions go.
+- MongoDB 3.2 and higher.
+
+-------------------------
+## Installation
+
+The recommended way to get started using the MongoDB Go driver is by using `dep` to install the dependency in your project.
+
+```bash
+dep ensure -add github.com/mongodb/mongo-go-driver/mongo
+```
 
 -------------------------
 ## Bugs / Feature Reporting
