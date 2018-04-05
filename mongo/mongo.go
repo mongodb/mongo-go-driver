@@ -7,15 +7,22 @@
 package mongo
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"reflect"
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
+
+// Dialer is used to make network connections.
+type Dialer interface {
+	DialContext(ctx context.Context, network, address string) (net.Conn, error)
+}
 
 // TransformDocument handles transforming a document of an allowable type into
 // a *bson.Document. This method is called directly after most methods that
