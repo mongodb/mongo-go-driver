@@ -96,33 +96,10 @@ func New(ctx context.Context, address addr.Addr, opts ...Option) (Connection, *d
 
 	if cfg.tlsConfig != nil {
 		tlsConfig := cfg.tlsConfig.Clone()
-		if !tlsConfig.InsecureSkipVerify {
-			hostname := address.String()
-			colonPos := strings.LastIndex(hostname, ":")
-			if colonPos == -1 {
-				colonPos = len(hostname)
-			}
-
-			hostname = hostname[:colonPos]
-			tlsConfig.ServerName = hostname
+		nc, err = configureTLS(ctx, nc, address, tlsConfig)
+		if err != nil {
+			return nil, nil, err
 		}
-
-		client := tls.Client(nc, tlsConfig.Config)
-
-		errChan := make(chan error, 1)
-		go func() {
-			errChan <- client.Handshake()
-		}()
-
-		select {
-		case err := <-errChan:
-			if err != nil {
-				return nil, nil, err
-			}
-		case <-ctx.Done():
-			return nil, nil, errors.New("server connection cancelled/timeout during TLS handshake")
-		}
-		nc = client
 	}
 
 	var lifetimeDeadline time.Time
@@ -156,6 +133,36 @@ func New(ctx context.Context, address addr.Addr, opts ...Option) (Connection, *d
 	}
 
 	return c, desc, nil
+}
+
+func configureTLS(ctx context.Context, nc net.Conn, address addr.Addr, config *TLSConfig) (net.Conn, error) {
+	if !config.InsecureSkipVerify {
+		hostname := address.String()
+		colonPos := strings.LastIndex(hostname, ":")
+		if colonPos == -1 {
+			colonPos = len(hostname)
+		}
+
+		hostname = hostname[:colonPos]
+		config.ServerName = hostname
+	}
+
+	client := tls.Client(nc, config.Config)
+
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- client.Handshake()
+	}()
+
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return nil, err
+		}
+	case <-ctx.Done():
+		return nil, errors.New("server connection cancelled/timeout during TLS handshake")
+	}
+	return client, nil
 }
 
 func (c *connection) Alive() bool {
