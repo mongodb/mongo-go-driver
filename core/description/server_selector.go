@@ -1,13 +1,13 @@
 package description
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/tag"
+	"github.com/mongodb/mongo-go-driver/internal/feature"
 )
 
 // ServerSelector is an interface implemented by types that can select a server given a
@@ -115,8 +115,8 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 		if _, set := rp.MaxStaleness(); set {
 			for _, s := range candidates {
 				if s.Kind != Unknown {
-					if !s.Version.AtLeast(3, 4, 0) || (s.WireVersion != nil && s.WireVersion.Max < 5) {
-						return nil, errors.New("max staleness is only supported for servers 3.4 or newer")
+					if err := feature.MaxStaleness(s.Version, s.WireVersion); err != nil {
+						return nil, err
 					}
 				}
 			}
