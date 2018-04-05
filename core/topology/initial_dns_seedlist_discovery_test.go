@@ -124,7 +124,7 @@ func buildSet(list []string) map[string]struct{} {
 }
 
 func getServerByAddress(address string, c *Topology) (description.Server, error) {
-	selectByName := ServerSelectorFunc(func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
+	selectByName := description.ServerSelectorFunc(func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
 		for _, s := range servers {
 			if s.Addr.String() == address {
 				return []description.Server{s}, nil

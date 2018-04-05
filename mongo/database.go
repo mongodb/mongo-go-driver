@@ -11,10 +11,10 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
-	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
@@ -25,8 +25,8 @@ type Database struct {
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
 	readPreference *readpref.ReadPref
-	readSelector   topology.ServerSelector
-	writeSelector  topology.ServerSelector
+	readSelector   description.ServerSelector
+	writeSelector  description.ServerSelector
 }
 
 func newDatabase(client *Client, name string) *Database {
@@ -38,12 +38,12 @@ func newDatabase(client *Client, name string) *Database {
 		writeConcern:   client.writeConcern,
 	}
 
-	db.readSelector = topology.CompositeSelector([]topology.ServerSelector{
-		topology.ReadPrefSelector(db.readPreference),
-		topology.LatencySelector(db.client.localThreshold),
+	db.readSelector = description.CompositeSelector([]description.ServerSelector{
+		description.ReadPrefSelector(db.readPreference),
+		description.LatencySelector(db.client.localThreshold),
 	})
 
-	db.writeSelector = topology.ReadPrefSelector(readpref.Primary())
+	db.writeSelector = description.ReadPrefSelector(readpref.Primary())
 
 	return db
 }
@@ -72,5 +72,5 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}) (bso
 	}
 
 	cmd := command.Command{DB: db.Name(), Command: runCommand}
-	return dispatch.Command(ctx, cmd, db.client.topology, topology.ReadPrefSelector(readpref.Primary()))
+	return dispatch.Command(ctx, cmd, db.client.topology, description.ReadPrefSelector(readpref.Primary()))
 }

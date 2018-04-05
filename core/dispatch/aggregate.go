@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -15,7 +16,7 @@ func Aggregate(
 	ctx context.Context,
 	cmd command.Aggregate,
 	topo *topology.Topology,
-	readSelector, writeSelector topology.ServerSelector,
+	readSelector, writeSelector description.ServerSelector,
 	wc *writeconcern.WriteConcern,
 ) (command.Cursor, error) {
 
