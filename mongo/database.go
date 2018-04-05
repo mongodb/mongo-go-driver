@@ -43,7 +43,7 @@ func newDatabase(client *Client, name string) *Database {
 		description.LatencySelector(db.client.localThreshold),
 	})
 
-	db.writeSelector = description.ReadPrefSelector(readpref.Primary())
+	db.writeSelector = description.WriteSelector()
 
 	return db
 }

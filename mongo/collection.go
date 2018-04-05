@@ -41,14 +41,9 @@ func newCollection(db *Database, name string) *Collection {
 		readPreference: db.readPreference,
 		readConcern:    db.readConcern,
 		writeConcern:   db.writeConcern,
+		readSelector:   db.readSelector,
+		writeSelector:  db.writeSelector,
 	}
-
-	coll.readSelector = description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(coll.readPreference),
-		description.LatencySelector(db.client.localThreshold),
-	})
-
-	coll.writeSelector = description.ReadPrefSelector(readpref.Primary())
 
 	return coll
 }
