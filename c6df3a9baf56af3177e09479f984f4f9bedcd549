@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3248ab87_a88a45f8",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-05T19:50:52Z",
+      "side": 1,
+      "message": "It appears as though if the user provides both a URI and options, then the options would override the connection string. However, inside each of the options, it appears as though they will not override if something is already set. For instance, if the cs.Username already has a value, then the option will not get applied. Could you clarify what your intent is?",
+      "revId": "c6df3a9baf56af3177e09479f984f4f9bedcd549",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f03420a8_a198a700",
+        "filename": "mongo/client_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-05T19:50:52Z",
+      "side": 1,
+      "message": "So, this is mutating the existing connection string object. If the user provided one and kept a reference, then this mutates their reference too. It appears as though this isn\u0027t currently a problem solely because of how the public API is exposed, but that\u0027s a scary line to have where allowing the user to provide a connection string object immediately makes this an issue.\n\nWe should either clone the connection string to ensure that this doesn\u0027t happen accidentally in the future, or come up with something else. Like, why not maintain a list of topology options?",
+      "revId": "c6df3a9baf56af3177e09479f984f4f9bedcd549",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
