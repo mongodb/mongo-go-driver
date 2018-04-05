@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "866bdbd0_c351c951",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-05T20:23:12Z",
+      "side": 1,
+      "message": "The original ticket said that the connection string should take precedence: https://jira.mongodb.org/browse/GODRIVER-153. What makes it appear \"as though if the user provides both a URI and options, then the options would override the connection string\"?",
+      "parentUuid": "3248ab87_a88a45f8",
+      "revId": "c6df3a9baf56af3177e09479f984f4f9bedcd549",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f03420a8_a198a700",
         "filename": "mongo/client_options.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2018-04-05T19:50:52Z",
       "side": 1,
       "message": "So, this is mutating the existing connection string object. If the user provided one and kept a reference, then this mutates their reference too. It appears as though this isn\u0027t currently a problem solely because of how the public API is exposed, but that\u0027s a scary line to have where allowing the user to provide a connection string object immediately makes this an issue.\n\nWe should either clone the connection string to ensure that this doesn\u0027t happen accidentally in the future, or come up with something else. Like, why not maintain a list of topology options?",
+      "revId": "c6df3a9baf56af3177e09479f984f4f9bedcd549",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1ec0f7b6_55a89ff1",
+        "filename": "mongo/client_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-05T20:23:12Z",
+      "side": 1,
+      "message": "The connstring.ConnString attached to the client is a value type, so the version on Client is a copy. I\u0027ve added a test in that shows that when we start with an empty ConnString that after adding an AppName only the Client.connString has been altered.",
+      "parentUuid": "f03420a8_a198a700",
       "revId": "c6df3a9baf56af3177e09479f984f4f9bedcd549",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
