@@ -39,7 +39,7 @@ func NewClient(uri string) (*Client, error) {
 		return nil, err
 	}
 
-	return NewClientFromConnString(cs)
+	return newClient(cs, nil)
 }
 
 // NewClientWithOptions creates a new client to connect to to a cluster specified by the connection
@@ -51,38 +51,42 @@ func NewClientWithOptions(uri string, opts *ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	for opts.opt != nil || opts.err != nil {
-		if opts.err != nil {
-			return nil, opts.err
-		}
-
-		opts.opt.ClientOption(&cs)
-		opts = opts.next
-
-	}
-
-	return NewClientFromConnString(cs)
+	return newClient(cs, opts)
 }
 
 // NewClientFromConnString creates a new client to connect to a cluster, with configuration
 // specified by the connection string.
 func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
-	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+	return newClient(cs, nil)
+}
+
+func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
+	client := &Client{
+		connString:     cs,
+		localThreshold: defaultLocalThreshold,
+		readPreference: readpref.Primary(),
+	}
+
+	if opts != nil {
+		for opts.opt != nil {
+			err := opts.opt(client)
+			if err != nil {
+				return nil, err
+			}
+			opts = opts.next
+		}
+	}
+
+	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return client.connString }))
 	if err != nil {
 		return nil, err
 	}
 
 	topo.Init()
 
-	// TODO(GODRIVER-92): Allow custom localThreshold
-	client := &Client{
-		topology:       topo,
-		connString:     cs,
-		localThreshold: defaultLocalThreshold,
-		readPreference: readpref.Primary(),
-		readConcern:    readConcernFromConnString(&cs),
-		writeConcern:   writeConcernFromConnString(&cs),
-	}
+	client.topology = topo
+	client.readConcern = readConcernFromConnString(&client.connString)
+	client.writeConcern = writeConcernFromConnString(&client.connString)
 
 	return client, nil
 }
