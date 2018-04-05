@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
@@ -16,7 +17,7 @@ func FindOneAndReplace(
 	ctx context.Context,
 	cmd command.FindOneAndReplace,
 	topo *topology.Topology,
-	selector topology.ServerSelector,
+	selector description.ServerSelector,
 	wc *writeconcern.WriteConcern,
 ) (result.FindAndModify, error) {
 

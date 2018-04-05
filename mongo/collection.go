@@ -13,11 +13,11 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
-	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
@@ -29,8 +29,8 @@ type Collection struct {
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
 	readPreference *readpref.ReadPref
-	readSelector   topology.ServerSelector
-	writeSelector  topology.ServerSelector
+	readSelector   description.ServerSelector
+	writeSelector  description.ServerSelector
 }
 
 func newCollection(db *Database, name string) *Collection {
@@ -43,12 +43,12 @@ func newCollection(db *Database, name string) *Collection {
 		writeConcern:   db.writeConcern,
 	}
 
-	coll.readSelector = topology.CompositeSelector([]topology.ServerSelector{
-		topology.ReadPrefSelector(coll.readPreference),
-		topology.LatencySelector(db.client.localThreshold),
+	coll.readSelector = description.CompositeSelector([]description.ServerSelector{
+		description.ReadPrefSelector(coll.readPreference),
+		description.LatencySelector(db.client.localThreshold),
 	})
 
-	coll.writeSelector = topology.ReadPrefSelector(readpref.Primary())
+	coll.writeSelector = description.ReadPrefSelector(readpref.Primary())
 
 	return coll
 }
