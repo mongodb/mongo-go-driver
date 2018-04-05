@@ -55,7 +55,7 @@ func TestClientOptions_chainAll(t *testing.T) {
 		Journal(true).
 		LocalThreshold(time.Second).
 		MaxConnIdleTime(30 * time.Second).
-		MaxIdleConnsPerHost(150).
+		MaxConnsPerHost(150).
 		MaxIdleConnsPerHost(20).
 		Password("supersecurepassword").
 		ReadConcernLevel("majority").
@@ -75,8 +75,10 @@ func TestClientOptions_chainAll(t *testing.T) {
 		Username("admin").
 		WTimeout(2 * time.Second)
 
-	for opts.opt != nil || opts.err != nil {
-		require.NoError(t, opts.err)
+	client := new(Client)
+	for opts.opt != nil {
+		err := opts.opt(client)
+		require.NoError(t, err)
 		opts = opts.next
 	}
 }
