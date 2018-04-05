@@ -1,7 +1,6 @@
 package description
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"time"
@@ -115,8 +114,8 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 		if _, set := rp.MaxStaleness(); set {
 			for _, s := range candidates {
 				if s.Kind != Unknown {
-					if !s.Version.AtLeast(3, 4, 0) || (s.WireVersion != nil && s.WireVersion.Max < 5) {
-						return nil, errors.New("max staleness is only supported for servers 3.4 or newer")
+					if err := MaxStalenessSupported(s.Version, s.WireVersion); err != nil {
+						return nil, err
 					}
 				}
 			}
