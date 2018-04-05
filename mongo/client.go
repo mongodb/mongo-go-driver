@@ -25,12 +25,13 @@ const defaultLocalThreshold = 15 * time.Millisecond
 
 // Client performs operations on a given topology.
 type Client struct {
-	topology       *topology.Topology
-	connString     connstring.ConnString
-	localThreshold time.Duration
-	readPreference *readpref.ReadPref
-	readConcern    *readconcern.ReadConcern
-	writeConcern   *writeconcern.WriteConcern
+	topologyOptions []topology.Option
+	topology        *topology.Topology
+	connString      connstring.ConnString
+	localThreshold  time.Duration
+	readPreference  *readpref.ReadPref
+	readConcern     *readconcern.ReadConcern
+	writeConcern    *writeconcern.WriteConcern
 }
 
 // NewClient creates a new client to connect to a cluster specified by the uri.
@@ -78,7 +79,11 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 		}
 	}
 
-	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return client.connString }))
+	topts := append(
+		client.topologyOptions,
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return client.connString }),
+	)
+	topo, err := topology.New(topts...)
 	if err != nil {
 		return nil, err
 	}

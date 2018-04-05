@@ -9,7 +9,9 @@ package mongo
 import (
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
+	"github.com/mongodb/mongo-go-driver/core/topology"
 )
 
 type option func(*Client) error
@@ -78,6 +80,30 @@ func (co *ClientOptions) ConnectTimeout(d time.Duration) *ClientOptions {
 			c.connString.ConnectTimeout = d
 			c.connString.ConnectTimeoutSet = true
 		}
+		return nil
+	}
+	return &ClientOptions{next: co, opt: fn}
+}
+
+// Dialer specifies a custom dialer used to dial new connections to a server.
+func (co *ClientOptions) Dialer(d Dialer) *ClientOptions {
+	var fn option = func(c *Client) error {
+		c.topologyOptions = append(
+			c.topologyOptions,
+			topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+				return append(
+					opts,
+					topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+						return append(
+							opts,
+							connection.WithDialer(func(connection.Dialer) connection.Dialer {
+								return d
+							}),
+						)
+					}),
+				)
+			}),
+		)
 		return nil
 	}
 	return &ClientOptions{next: co, opt: fn}

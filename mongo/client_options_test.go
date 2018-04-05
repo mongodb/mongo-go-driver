@@ -1,6 +1,9 @@
 package mongo
 
 import (
+	"context"
+	"net"
+	"sync/atomic"
 	"testing"
 
 	"time"
@@ -96,4 +99,27 @@ func TestClientOptions_chainAll(t *testing.T) {
 		require.NoError(t, err)
 		opts = opts.next
 	}
+}
+
+func TestClientOptions_CustomDialer(t *testing.T) {
+	td := &testDialer{d: &net.Dialer{}}
+	opts := ClientOpt.Dialer(td)
+	client, err := newClient(testutil.ConnString(t), opts)
+	require.NoError(t, err)
+	_, err = client.ListDatabases(context.Background(), nil)
+	require.NoError(t, err)
+	got := atomic.LoadInt32(&td.called)
+	if got < 1 {
+		t.Errorf("Custom dialer was not used when dialing new connections")
+	}
+}
+
+type testDialer struct {
+	called int32
+	d      Dialer
+}
+
+func (td *testDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	atomic.AddInt32(&td.called, 1)
+	return td.d.DialContext(ctx, network, address)
 }
