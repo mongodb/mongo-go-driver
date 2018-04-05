@@ -72,5 +72,5 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}) (bso
 	}
 
 	cmd := command.Command{DB: db.Name(), Command: runCommand}
-	return dispatch.Command(ctx, cmd, db.client.topology, topology.ReadPrefSelector(readpref.Primary()))
+	return dispatch.Command(ctx, cmd, db.client.topology, db.writeSelector)
 }
