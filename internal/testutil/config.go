@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/stretchr/testify/require"
 )
@@ -70,7 +71,7 @@ func Topology(t *testing.T) *topology.Topology {
 			liveTopologyErr = err
 		} else {
 			liveTopology.Init()
-			s, err := liveTopology.SelectServer(context.Background(), topology.WriteSelector())
+			s, err := liveTopology.SelectServer(context.Background(), description.WriteSelector())
 			require.NoError(t, err)
 
 			c, err := s.Connection(context.Background())
