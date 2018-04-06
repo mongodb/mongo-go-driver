@@ -41,6 +41,7 @@ var (
 	_ ClientOptioner = (*SocketTimeout)(nil)
 	_ ClientOptioner = (*SSL)(nil)
 	_ ClientOptioner = (*SSLClientCertificateKeyFile)(nil)
+	_ ClientOptioner = (*SSLClientCertificateKeyPassword)(nil)
 	_ ClientOptioner = (*SSLInsecure)(nil)
 	_ ClientOptioner = (*SSLCaFile)(nil)
 	_ ClientOptioner = (*WString)(nil)
