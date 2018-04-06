@@ -1,1 +1,4 @@
-(github.com/mongodb/mongo-go-driver/mongo/private/conn.Connection).Close
+(*github.com/mongodb/mongo-go-driver/core/connection.connection).Close
+(github.com/mongodb/mongo-go-driver/core/connection.Connection).Close
+(*github.com/mongodb/mongo-go-driver/core/topology.Subscription).Unsubscribe
+(*github.com/mongodb/mongo-go-driver/core/topology.Server).Close

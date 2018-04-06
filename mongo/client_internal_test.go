@@ -15,14 +15,14 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/internal/testutil"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestClient(t *testing.T) *Client {
 	return &Client{
-		cluster:        testutil.Cluster(t),
+		topology:       testutil.Topology(t),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 	}
@@ -32,7 +32,7 @@ func TestNewClient(t *testing.T) {
 	t.Parallel()
 
 	c := createTestClient(t)
-	require.NotNil(t, c.cluster)
+	require.NotNil(t, c.topology)
 }
 
 func TestClient_Database(t *testing.T) {
@@ -185,19 +185,16 @@ func TestClient_ListDatabases_noFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	dbs, err := c.ListDatabases(context.Background(), nil)
+	require.NoError(t, err)
 	found := false
 
-	for dbs.Next(context.Background()) {
-		var db struct{ Name string }
-		err = dbs.Decode(&db)
-		require.NoError(t, err)
+	for _, db := range dbs.Databases {
 
 		if db.Name == dbName {
 			found = true
 			break
 		}
 	}
-	require.NoError(t, dbs.Err())
 	require.True(t, found)
 }
 
@@ -229,14 +226,8 @@ func TestClient_ListDatabases_filter(t *testing.T) {
 		),
 	)
 
-	require.True(t, dbs.Next(context.Background()))
-	var dbInfo struct{ Name string }
-	err = dbs.Decode(&dbInfo)
-	require.NoError(t, err)
-	require.Equal(t, dbName, dbInfo.Name)
-
-	require.False(t, dbs.Next(context.Background()))
-	require.NoError(t, dbs.Err())
+	require.Equal(t, len(dbs.Databases), 1)
+	require.Equal(t, dbName, dbs.Databases[0].Name)
 }
 
 func TestClient_ListDatabaseNames_noFilter(t *testing.T) {

@@ -10,19 +10,21 @@ import (
 	"context"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/connstring"
-	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
-	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/connstring"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
 
-// Client performs operations on a given cluster.
+// Client performs operations on a given topology.
 type Client struct {
-	cluster        *cluster.Cluster
+	topology       *topology.Topology
 	connString     connstring.ConnString
 	localThreshold time.Duration
 	readPreference *readpref.ReadPref
@@ -65,14 +67,16 @@ func NewClientWithOptions(uri string, opts *ClientOptions) (*Client, error) {
 // NewClientFromConnString creates a new client to connect to a cluster, with configuration
 // specified by the connection string.
 func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
-	clst, err := cluster.New(cluster.WithConnString(cs))
+	topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 	if err != nil {
 		return nil, err
 	}
 
+	topo.Init()
+
 	// TODO(GODRIVER-92): Allow custom localThreshold
 	client := &Client{
-		cluster:        clst,
+		topology:       topo,
 		connString:     cs,
 		localThreshold: defaultLocalThreshold,
 		readPreference: readpref.Primary(),
@@ -140,62 +144,46 @@ func (client *Client) ConnectionString() string {
 	return client.connString.Original
 }
 
-func (client *Client) selectServer(ctx context.Context, selector cluster.ServerSelector,
-	readPref *readpref.ReadPref) (*ops.SelectedServer, error) {
-
-	s, err := client.cluster.SelectServer(ctx, selector, readPref)
-	if err != nil {
-		return nil, err
-	}
-
-	return s, nil
-}
-
 func (client *Client) listDatabasesHelper(ctx context.Context, filter interface{},
-	nameOnly bool) (Cursor, error) {
-
-	// The spec indicates that we should not run the listDatabase command on a secondary in a
-	// replica set.
-	selector := cluster.CompositeSelector([]cluster.ServerSelector{
-		readpref.Selector(readpref.Primary()),
-	})
-
-	s, err := client.selectServer(ctx, selector, readpref.Primary())
-	if err != nil {
-		return nil, err
-	}
+	nameOnly bool) (ListDatabasesResult, error) {
 
 	f, err := TransformDocument(filter)
 	if err != nil {
-		return nil, err
+		return ListDatabasesResult{}, err
 	}
 
-	return ops.ListDatabases(ctx, s, f, ops.ListDatabasesOptions{NameOnly: nameOnly})
+	opts := []options.ListDatabasesOptioner{}
+
+	if nameOnly {
+		opts = append(opts, options.OptNameOnly(nameOnly))
+	}
+
+	cmd := command.ListDatabases{Filter: f, Opts: opts}
+
+	// The spec indicates that we should not run the listDatabase command on a secondary in a
+	// replica set.
+	res, err := dispatch.ListDatabases(ctx, cmd, client.topology, topology.ReadPrefSelector(readpref.Primary()))
+	if err != nil {
+		return ListDatabasesResult{}, err
+	}
+	return (ListDatabasesResult{}).fromResult(res), nil
 }
 
-// ListDatabases returns a Cursor iterating over descriptions of each of the databases on the server.
-func (client *Client) ListDatabases(ctx context.Context, filter interface{}) (Cursor, error) {
+// ListDatabases returns a ListDatabasesResult.
+func (client *Client) ListDatabases(ctx context.Context, filter interface{}) (ListDatabasesResult, error) {
 	return client.listDatabasesHelper(ctx, filter, false)
 }
 
 // ListDatabaseNames returns a slice containing the names of all of the databases on the server.
 func (client *Client) ListDatabaseNames(ctx context.Context, filter interface{}) ([]string, error) {
-	c, err := client.listDatabasesHelper(ctx, filter, true)
+	res, err := client.listDatabasesHelper(ctx, filter, true)
 	if err != nil {
 		return nil, err
 	}
 
 	names := make([]string, 0)
-	for c.Next(ctx) {
-		var db struct{ Name string }
-		if err := c.Decode(&db); err != nil {
-			return nil, err
-		}
-
-		names = append(names, db.Name)
-	}
-	if err := c.Err(); err != nil {
-		return nil, err
+	for _, spec := range res.Databases {
+		names = append(names, spec.Name)
 	}
 
 	return names, nil

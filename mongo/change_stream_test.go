@@ -7,15 +7,13 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/internal"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
-	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
-	"github.com/mongodb/mongo-go-driver/mongo/private/options"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/stretchr/testify/require"
 )
 
 func isServerError(err error) bool {
-	_, ok := internal.UnwrapError(err).(*conn.CommandError)
+	_, ok := err.(command.Error)
 	return ok
 }
 
@@ -86,7 +84,9 @@ func TestChangeStream_noCustomStandaloneError(t *testing.T) {
 
 	_, err = coll.Watch(context.Background(), nil)
 	require.Error(t, err)
-	require.True(t, isServerError(err))
+	if _, ok := err.(command.Error); !ok {
+		t.Errorf("Should have returned command error, but got %T", err)
+	}
 }
 
 func TestChangeStream_trackResumeToken(t *testing.T) {
@@ -229,10 +229,20 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	changes, err := coll.Watch(context.Background(), nil)
 	require.NoError(t, err)
 
-	server, err := coll.getReadableServer(context.Background())
+	oldns := coll.namespace()
+	killCursors := command.KillCursors{
+		NS:  command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		IDs: []int64{changes.ID()},
+	}
+
+	ss, err := coll.client.topology.SelectServer(context.Background(), coll.readSelector)
 	require.NoError(t, err)
 
-	_, err = ops.KillCursors(context.Background(), server, coll.namespace(), []int64{changes.ID()})
+	conn, err := ss.Connection(context.Background())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	_, err = killCursors.RoundTrip(context.Background(), ss.Description(), conn)
 	require.NoError(t, err)
 
 	require.False(t, changes.Next(context.Background()))

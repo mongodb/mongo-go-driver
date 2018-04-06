@@ -1024,5 +1024,9 @@ func (v *Value) equal(v2 *Value) bool {
 		return false
 	}
 
+	if v.d != nil && !v.d.Equal(v2.d) {
+		return false
+	}
+
 	return bytes.Equal(v.data, v2.data)
 }

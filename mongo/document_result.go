@@ -9,6 +9,8 @@ package mongo
 import (
 	"context"
 	"errors"
+
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // ErrNoDocuments is returned by Decode when an operation that returns a
@@ -21,6 +23,7 @@ var ErrNoDocuments = errors.New("mongo: no documents in result")
 type DocumentResult struct {
 	err error
 	cur Cursor
+	rdr bson.Reader
 }
 
 // Decode will attempt to decode the first document into v. If there was an
@@ -28,17 +31,26 @@ type DocumentResult struct {
 // will be returned. If there were no returned documents, ErrNoDocuments is
 // returned.
 func (dr *DocumentResult) Decode(v interface{}) error {
-	if dr.err != nil {
+	switch {
+	case dr.err != nil:
 		return dr.err
-	}
-	if !dr.cur.Next(context.TODO()) {
-		if err := dr.cur.Err(); err != nil {
-			return err
+	case dr.rdr != nil:
+		if v == nil {
+			return nil
 		}
-		return ErrNoDocuments
+		return bson.Unmarshal(dr.rdr, v)
+	case dr.cur != nil:
+		if !dr.cur.Next(context.TODO()) {
+			if err := dr.cur.Err(); err != nil {
+				return err
+			}
+			return ErrNoDocuments
+		}
+		if v == nil {
+			return nil
+		}
+		return dr.cur.Decode(v)
 	}
-	if v == nil {
-		return nil
-	}
-	return dr.cur.Decode(v)
+
+	return ErrNoDocuments
 }

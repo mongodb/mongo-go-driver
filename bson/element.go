@@ -348,7 +348,7 @@ func (e *Element) MarshalBSON() ([]byte, error) {
 // String implements the fmt.Stringer interface.
 func (e *Element) String() string {
 	val := e.Value().Interface()
-	if s, ok := val.(string); ok {
+	if s, ok := val.(string); ok && e.Value().Type() == TypeString {
 		val = strconv.Quote(s)
 	}
 	return fmt.Sprintf(`bson.Element{[%s]"%s": %v}`, e.Value().Type(), e.Key(), val)
@@ -384,13 +384,10 @@ func convertValueToElem(key string, v *Value) *Element {
 		return nil
 	}
 
-	vSize, err := v.valueSize()
-	if err != nil {
-		return nil
-	}
-
 	keyLen := len(key)
-	d := make([]byte, 2+len(key)+int(vSize))
+	// We add the length of the data so when we compare values
+	// we don't have extra space at the end of the data property.
+	d := make([]byte, 2+len(key)+len(v.data[v.offset:]))
 
 	d[0] = v.data[v.start]
 	copy(d[1:keyLen+1], key)
@@ -399,6 +396,7 @@ func convertValueToElem(key string, v *Value) *Element {
 
 	elem := newElement(0, uint32(keyLen+2))
 	elem.value.data = d
+	elem.value.d = v.d
 
 	return elem
 }

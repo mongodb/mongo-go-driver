@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
 // InsertOneResult is a result of an InsertOne operation.
@@ -31,6 +32,33 @@ type InsertManyResult struct {
 type DeleteResult struct {
 	// The number of documents that were deleted.
 	DeletedCount int64 `bson:"n"`
+}
+
+// ListDatabasesResult is a result of a ListDatabases operation. Each specification
+// is a description of the datbases on the server.
+type ListDatabasesResult struct {
+	Databases []DatabaseSpecification
+	TotalSize int64
+}
+
+func (ldr ListDatabasesResult) fromResult(res result.ListDatabases) ListDatabasesResult {
+	ldr.Databases = make([]DatabaseSpecification, 0, len(res.Databases))
+	for _, spec := range res.Databases {
+		ldr.Databases = append(
+			ldr.Databases,
+			DatabaseSpecification{Name: spec.Name, SizeOnDisk: spec.SizeOnDisk, Empty: spec.Empty},
+		)
+	}
+	ldr.TotalSize = res.TotalSize
+	return ldr
+}
+
+// DatabaseSpecification is the information for a single database returned
+// from a ListDatabases operation.
+type DatabaseSpecification struct {
+	Name       string
+	SizeOnDisk int64
+	Empty      bool
 }
 
 // UpdateResult is a result of an update operation.

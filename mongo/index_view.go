@@ -7,7 +7,8 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
 )
 
 // ErrInvalidIndexValue indicates that the index Keys document has a value that isn't either a number or a string.
@@ -32,12 +33,9 @@ type IndexModel struct {
 
 // List returns a cursor iterating over all the indexes in the collection.
 func (iv IndexView) List(ctx context.Context) (Cursor, error) {
-	s, err := iv.coll.getWriteableServer(ctx)
-	if err != nil {
-		return nil, err
-	}
+	listCmd := command.ListIndexes{NS: iv.coll.namespace()}
 
-	return ops.ListIndexes(ctx, s, iv.coll.namespace(), ops.ListIndexesOptions{})
+	return dispatch.ListIndexes(ctx, listCmd, iv.coll.client.topology, iv.coll.writeSelector)
 }
 
 // CreateOne creates a single index in the collection specified by the model.
@@ -78,12 +76,9 @@ func (iv IndexView) CreateMany(ctx context.Context, models ...IndexModel) ([]str
 		indexes.Append(bson.VC.Document(index))
 	}
 
-	s, err := iv.coll.getWriteableServer(ctx)
-	if err != nil {
-		return nil, err
-	}
+	cmd := command.CreateIndexes{NS: iv.coll.namespace(), Indexes: indexes}
 
-	err = ops.CreateIndexes(ctx, s, iv.coll.namespace(), indexes)
+	_, err := dispatch.CreateIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 	if err != nil {
 		return nil, err
 	}
@@ -97,22 +92,16 @@ func (iv IndexView) DropOne(ctx context.Context, name string) (bson.Reader, erro
 		return nil, ErrMultipleIndexDrop
 	}
 
-	s, err := iv.coll.getWriteableServer(ctx)
-	if err != nil {
-		return nil, err
-	}
+	cmd := command.DropIndexes{NS: iv.coll.namespace(), Index: name}
 
-	return ops.DropIndexes(ctx, s, iv.coll.namespace(), name)
+	return dispatch.DropIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 }
 
 // DropAll drops all indexes in the collection.
 func (iv IndexView) DropAll(ctx context.Context) (bson.Reader, error) {
-	s, err := iv.coll.getWriteableServer(ctx)
-	if err != nil {
-		return nil, err
-	}
+	cmd := command.DropIndexes{NS: iv.coll.namespace(), Index: "*"}
 
-	return ops.DropIndexes(ctx, s, iv.coll.namespace(), "*")
+	return dispatch.DropIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 }
 
 func getOrGenerateIndexName(model IndexModel) (string, error) {

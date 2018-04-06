@@ -7,19 +7,18 @@
 package mongo
 
 import (
-	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
-	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
-	"github.com/mongodb/mongo-go-driver/mongo/private/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Collection performs operations on a given collection.
@@ -30,8 +29,8 @@ type Collection struct {
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
 	readPreference *readpref.ReadPref
-	readSelector   cluster.ServerSelector
-	writeSelector  cluster.ServerSelector
+	readSelector   topology.ServerSelector
+	writeSelector  topology.ServerSelector
 }
 
 func newCollection(db *Database, name string) *Collection {
@@ -44,29 +43,19 @@ func newCollection(db *Database, name string) *Collection {
 		writeConcern:   db.writeConcern,
 	}
 
-	latencySelector := cluster.LatencySelector(db.client.localThreshold)
-
-	coll.readSelector = cluster.CompositeSelector([]cluster.ServerSelector{
-		readpref.Selector(coll.readPreference),
-		latencySelector,
+	coll.readSelector = topology.CompositeSelector([]topology.ServerSelector{
+		topology.ReadPrefSelector(coll.readPreference),
+		topology.LatencySelector(db.client.localThreshold),
 	})
 
-	coll.writeSelector = readpref.Selector(readpref.Primary())
+	coll.writeSelector = topology.ReadPrefSelector(readpref.Primary())
 
 	return coll
 }
 
 // namespace returns the namespace of the collection.
-func (coll *Collection) namespace() ops.Namespace {
-	return ops.NewNamespace(coll.db.name, coll.name)
-}
-
-func (coll *Collection) getWriteableServer(ctx context.Context) (*ops.SelectedServer, error) {
-	return coll.client.selectServer(ctx, coll.writeSelector, readpref.Primary())
-}
-
-func (coll *Collection) getReadableServer(ctx context.Context) (*ops.SelectedServer, error) {
-	return coll.client.selectServer(ctx, coll.readSelector, coll.readPreference)
+func (coll *Collection) namespace() command.Namespace {
+	return command.NewNamespace(coll.db.name, coll.name)
 }
 
 // InsertOne inserts a single document into the collection. A user can supply
@@ -95,56 +84,23 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		return nil, err
 	}
 
-	s, err := coll.getWriteableServer(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		opts = append(opts, wc)
-	}
-
 	newOptions := make([]options.InsertOptioner, 0, len(opts))
 	for _, opt := range opts {
 		newOptions = append(newOptions, opt)
 	}
 
-	insert := func() (bson.Reader, error) {
-		return ops.Insert(
-			ctx,
-			s,
-			coll.namespace(),
-			[]*bson.Document{doc},
-			newOptions...,
-		)
+	oldns := coll.namespace()
+	cmd := command.Insert{
+		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Docs: []*bson.Document{doc},
+		Opts: newOptions,
 	}
 
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		go func() { _, _ = insert() }()
-		return nil, nil
-	}
-
-	_, err = insert()
-
-	if err != nil {
+	_, err = dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-
-	return &InsertOneResult{InsertedID: insertedID}, nil
+	return &InsertOneResult{InsertedID: insertedID}, err
 }
 
 // InsertMany inserts the provided documents. A user can supply a custom context to this
@@ -181,56 +137,23 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		result[i] = insertedID
 	}
 
-	s, err := coll.getWriteableServer(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		opts = append(opts, wc)
-	}
-
 	newOptions := make([]options.InsertOptioner, 0, len(opts))
 	for _, opt := range opts {
 		newOptions = append(newOptions, opt)
 	}
 
-	insert := func() (bson.Reader, error) {
-		return ops.Insert(
-			ctx,
-			s,
-			coll.namespace(),
-			docs,
-			newOptions...,
-		)
+	oldns := coll.namespace()
+	cmd := command.Insert{
+		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Docs: docs,
+		Opts: newOptions,
 	}
 
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		go func() { _, _ = insert() }()
-		return nil, nil
-	}
-
-	_, err = insert()
-
-	if err != nil {
+	_, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-
-	return &InsertManyResult{InsertedIDs: result}, nil
+	return &InsertManyResult{InsertedIDs: result}, err
 }
 
 // DeleteOne deletes a single document from the collection. A user can supply
@@ -256,56 +179,18 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 			bson.EC.Int32("limit", 1)),
 	}
 
-	s, err := coll.getWriteableServer(ctx)
-	if err != nil {
+	oldns := coll.namespace()
+	cmd := command.Delete{
+		NS:      command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Deletes: deleteDocs,
+		Opts:    opts,
+	}
+
+	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		opts = append(opts, wc)
-	}
-
-	var result DeleteResult
-	doDelete := func() (bson.Reader, error) {
-		return ops.Delete(
-			ctx,
-			s,
-			coll.namespace(),
-			deleteDocs,
-			opts...,
-		)
-	}
-
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		go func() { _, _ = doDelete() }()
-		return nil, nil
-	}
-
-	rdr, err := doDelete()
-	if err != nil {
-		return nil, err
-	}
-
-	err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
+	return &DeleteResult{DeletedCount: int64(res.N)}, err
 }
 
 // DeleteMany deletes multiple documents from the collection. A user can
@@ -328,56 +213,18 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	}
 	deleteDocs := []*bson.Document{bson.NewDocument(bson.EC.SubDocument("q", f), bson.EC.Int32("limit", 0))}
 
-	s, err := coll.getWriteableServer(ctx)
-	if err != nil {
+	oldns := coll.namespace()
+	cmd := command.Delete{
+		NS:      command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Deletes: deleteDocs,
+		Opts:    opts,
+	}
+
+	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		opts = append(opts, wc)
-	}
-
-	var result DeleteResult
-	doDelete := func() (bson.Reader, error) {
-		return ops.Delete(
-			ctx,
-			s,
-			coll.namespace(),
-			deleteDocs,
-			opts...,
-		)
-	}
-
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		go func() { _, _ = doDelete() }()
-		return nil, nil
-	}
-
-	rdr, err := doDelete()
-	if err != nil {
-		return nil, err
-	}
-
-	err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
+	return &DeleteResult{DeletedCount: int64(res.N)}, err
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
@@ -395,60 +242,27 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		),
 	}
 
-	s, err := coll.getWriteableServer(ctx)
-	if err != nil {
+	oldns := coll.namespace()
+	cmd := command.Update{
+		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Docs: updateDocs,
+		Opts: opts,
+	}
+
+	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		opts = append(opts, wc)
+	res := &UpdateResult{
+		MatchedCount:  r.MatchedCount,
+		ModifiedCount: r.ModifiedCount,
+	}
+	if len(r.Upserted) > 0 {
+		res.UpsertedID = r.Upserted[0].ID
+		res.MatchedCount--
 	}
 
-	var result UpdateResult
-	doUpdate := func() (bson.Reader, error) {
-		return ops.Update(
-			ctx,
-			s,
-			coll.namespace(),
-			updateDocs,
-			opts...,
-		)
-	}
-
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		go func() { _, _ = doUpdate() }()
-		return nil, nil
-	}
-
-	rdr, err := doUpdate()
-	if err != nil {
-		return nil, err
-	}
-
-	err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	if result.UpsertedID != nil {
-		result.MatchedCount--
-	}
-
-	return &result, nil
+	return res, err
 }
 
 // UpdateOne updates a single document in the collection. A user can supply a
@@ -516,60 +330,28 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		),
 	}
 
-	s, err := coll.getWriteableServer(ctx)
-	if err != nil {
+	oldns := coll.namespace()
+	cmd := command.Update{
+		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Docs: updateDocs,
+		Opts: opts,
+	}
+
+	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		opts = append(opts, wc)
+	res := &UpdateResult{
+		MatchedCount:  r.MatchedCount,
+		ModifiedCount: r.ModifiedCount,
+	}
+	// TODO(skriptble): Is this correct? Do we only return the first upserted ID for an UpdateMany?
+	if len(r.Upserted) > 0 {
+		res.UpsertedID = r.Upserted[0].ID
+		res.MatchedCount--
 	}
 
-	var result UpdateResult
-	doUpdate := func() (bson.Reader, error) {
-		return ops.Update(
-			ctx,
-			s,
-			coll.namespace(),
-			updateDocs,
-			opts...,
-		)
-	}
-
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		go func() { _, _ = doUpdate() }()
-		return nil, nil
-	}
-
-	rdr, err := doUpdate()
-	if err != nil {
-		return nil, err
-	}
-
-	err = bson.NewDecoder(bytes.NewReader(rdr)).Decode(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	if result.UpsertedID != nil {
-		result.MatchedCount--
-	}
-
-	return &result, nil
+	return res, err
 }
 
 // ReplaceOne replaces a single document in the collection. A user can supply
@@ -627,90 +409,14 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		return nil, err
 	}
 
-	var dollarOut bool
-	if pipelineArr.Len() > 0 {
-		val, err := pipelineArr.Lookup(uint(pipelineArr.Len() - 1))
-		if err != nil {
-			return nil, err
-		}
-		if val.Type() != bson.TypeEmbeddedDocument {
-			return nil, errors.New("pipeline contains non-document element")
-		}
-		doc := val.MutableDocument()
-		if doc.Len() != 1 {
-			return nil, fmt.Errorf("pipeline document of incorrect length %d", doc.Len())
-		}
-
-		if elem, ok := doc.ElementAtOK(0); ok && elem.Key() == "$out" {
-			dollarOut = true
-		}
+	oldns := coll.namespace()
+	cmd := command.Aggregate{
+		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Pipeline: pipelineArr,
+		Opts:     opts,
+		ReadPref: coll.readPreference,
 	}
-
-	var cursor Cursor
-	if dollarOut {
-		var s *ops.SelectedServer
-		s, err = coll.getWriteableServer(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		if coll.writeConcern != nil {
-			wc, err := Opt.WriteConcern(coll.writeConcern)
-			if err != nil {
-				return nil, err
-			}
-
-			opts = append(opts, wc)
-		}
-
-		doAggregate := func() (Cursor, error) {
-			return ops.Aggregate(ctx, s, coll.namespace(), pipelineArr, true, opts...)
-		}
-
-		acknowledged := true
-
-		for _, opt := range opts {
-			if wc, ok := opt.(options.OptWriteConcern); ok {
-				acknowledged = wc.Acknowledged
-				break
-			}
-		}
-
-		if !acknowledged {
-			go func() { _, _ = doAggregate() }()
-			return nil, nil
-		}
-
-		cursor, err = doAggregate()
-	} else {
-		var s *ops.SelectedServer
-		s, err = coll.getReadableServer(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		cursor, err = coll.aggregateWithServer(ctx, s, pipelineArr, opts...)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return cursor, nil
-}
-
-func (coll *Collection) aggregateWithServer(ctx context.Context, server *ops.SelectedServer,
-	pipeline *bson.Array, opts ...options.AggregateOptioner) (Cursor, error) {
-	if coll.readConcern != nil {
-		rc, err := Opt.ReadConcern(coll.readConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		opts = append(opts, rc)
-	}
-
-	return ops.Aggregate(ctx, server, coll.namespace(), pipeline, false, opts...)
+	return dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector, coll.writeConcern)
 }
 
 // Count gets the number of documents matching the filter. A user can supply a
@@ -720,7 +426,7 @@ func (coll *Collection) aggregateWithServer(ctx context.Context, server *ops.Sel
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Count(ctx context.Context, filter interface{},
-	options ...options.CountOptioner) (int64, error) {
+	opts ...options.CountOptioner) (int64, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -731,26 +437,14 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
-	s, err := coll.getReadableServer(ctx)
-	if err != nil {
-		return 0, err
+	oldns := coll.namespace()
+	cmd := command.Count{
+		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query:    f,
+		Opts:     opts,
+		ReadPref: coll.readPreference,
 	}
-
-	if coll.readConcern != nil {
-		rc, err := Opt.ReadConcern(coll.readConcern)
-		if err != nil {
-			return 0, err
-		}
-
-		options = append(options, rc)
-	}
-
-	count, err := ops.Count(ctx, s, coll.namespace(), f, options...)
-	if err != nil {
-		return 0, err
-	}
-
-	return int64(count), nil
+	return dispatch.Count(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
 }
 
 // Distinct finds the distinct values for a specified field across a single
@@ -761,7 +455,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
-	options ...options.DistinctOptioner) ([]interface{}, error) {
+	opts ...options.DistinctOptioner) ([]interface{}, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -776,35 +470,20 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		}
 	}
 
-	s, err := coll.getReadableServer(ctx)
-
+	oldns := coll.namespace()
+	cmd := command.Distinct{
+		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Field:    fieldName,
+		Query:    f,
+		Opts:     opts,
+		ReadPref: coll.readPreference,
+	}
+	res, err := dispatch.Distinct(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
 	if err != nil {
 		return nil, err
 	}
 
-	if coll.readConcern != nil {
-		rc, err := Opt.ReadConcern(coll.readConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		options = append(options, rc)
-	}
-
-	values, err := ops.Distinct(
-		ctx,
-		s,
-		coll.namespace(),
-		fieldName,
-		f,
-		options...,
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return values, nil
+	return res.Values, nil
 }
 
 // Find finds the documents matching a model. A user can supply a custom context to this
@@ -814,7 +493,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	options ...options.FindOptioner) (Cursor, error) {
+	opts ...options.FindOptioner) (Cursor, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -829,26 +508,14 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 	}
 
-	s, err := coll.getReadableServer(ctx)
-	if err != nil {
-		return nil, err
+	oldns := coll.namespace()
+	cmd := command.Find{
+		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Filter:   f,
+		Opts:     opts,
+		ReadPref: coll.readPreference,
 	}
-
-	if coll.readConcern != nil {
-		rc, err := Opt.ReadConcern(coll.readConcern)
-		if err != nil {
-			return nil, err
-		}
-
-		options = append(options, rc)
-	}
-
-	cursor, err := ops.Find(ctx, s, coll.namespace(), f, options...)
-	if err != nil {
-		return nil, err
-	}
-
-	return cursor, nil
+	return dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
 }
 
 // FindOne returns up to one document that matches the model. A user can
@@ -881,16 +548,14 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		}
 	}
 
-	if coll.readConcern != nil {
-		rc, err := Opt.ReadConcern(coll.readConcern)
-		if err != nil {
-			return &DocumentResult{err: err}
-		}
-
-		opts = append(opts, rc)
+	oldns := coll.namespace()
+	cmd := command.Find{
+		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Filter:   f,
+		Opts:     findOpts,
+		ReadPref: coll.readPreference,
 	}
-
-	cursor, err := coll.Find(ctx, f, findOpts...)
+	cursor, err := dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -923,48 +588,18 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		}
 	}
 
-	s, err := coll.getWriteableServer(ctx)
+	oldns := coll.namespace()
+	cmd := command.FindOneAndDelete{
+		NS:    command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query: f,
+		Opts:  opts,
+	}
+	res, err := dispatch.FindOneAndDelete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return &DocumentResult{err: err}
-		}
-
-		opts = append(opts, wc)
-	}
-
-	findOneAndDelete := func() (Cursor, error) {
-		return ops.FindOneAndDelete(
-			ctx,
-			s,
-			coll.namespace(),
-			f,
-			opts...,
-		)
-	}
-
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		// TODO(skriptble): This is probably wrong. We should be returning
-		// ErrUnacknowledged but we don't have that yet  ¯\_(ツ)_/¯
-		go func() { _, _ = findOneAndDelete() }()
-		return nil
-	}
-
-	cur, err := findOneAndDelete()
-	return &DocumentResult{cur: cur, err: err}
+	return &DocumentResult{rdr: res.Value}
 }
 
 // FindOneAndReplace finds a single document and replaces it, returning either
@@ -997,49 +632,19 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		return &DocumentResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
 	}
 
-	s, err := coll.getWriteableServer(ctx)
+	oldns := coll.namespace()
+	cmd := command.FindOneAndReplace{
+		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query:       f,
+		Replacement: r,
+		Opts:        opts,
+	}
+	res, err := dispatch.FindOneAndReplace(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return &DocumentResult{err: err}
-		}
-
-		opts = append(opts, wc)
-	}
-
-	findOneAndReplace := func() (Cursor, error) {
-		return ops.FindOneAndReplace(
-			ctx,
-			s,
-			coll.namespace(),
-			f,
-			r,
-			opts...,
-		)
-	}
-
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		// TODO(skriptble): This is probably wrong. We should be returning
-		// ErrUnacknowledged but we don't have that yet  ¯\_(ツ)_/¯
-		go func() { _, _ = findOneAndReplace() }()
-		return nil
-	}
-
-	cur, err := findOneAndReplace()
-	return &DocumentResult{cur: cur, err: err}
+	return &DocumentResult{rdr: res.Value}
 }
 
 // FindOneAndUpdate finds a single document and updates it, returning either
@@ -1072,49 +677,19 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &DocumentResult{err: errors.New("update document must contain key beginning with '$")}
 	}
 
-	s, err := coll.getWriteableServer(ctx)
+	oldns := coll.namespace()
+	cmd := command.FindOneAndUpdate{
+		NS:     command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query:  f,
+		Update: u,
+		Opts:   opts,
+	}
+	res, err := dispatch.FindOneAndUpdate(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
-	if coll.writeConcern != nil {
-		wc, err := Opt.WriteConcern(coll.writeConcern)
-		if err != nil {
-			return &DocumentResult{err: err}
-		}
-
-		opts = append(opts, wc)
-	}
-
-	findOneAndUpdate := func() (Cursor, error) {
-		return ops.FindOneAndUpdate(
-			ctx,
-			s,
-			coll.namespace(),
-			f,
-			u,
-			opts...,
-		)
-	}
-
-	acknowledged := true
-
-	for _, opt := range opts {
-		if wc, ok := opt.(options.OptWriteConcern); ok {
-			acknowledged = wc.Acknowledged
-			break
-		}
-	}
-
-	if !acknowledged {
-		// TODO(skriptble): This is probably wrong. We should be returning
-		// ErrUnacknowledged but we don't have that yet  ¯\_(ツ)_/¯
-		go func() { _, _ = findOneAndUpdate() }()
-		return nil
-	}
-
-	cur, err := findOneAndUpdate()
-	return &DocumentResult{cur: cur, err: err}
+	return &DocumentResult{rdr: res.Value}
 }
 
 // Watch returns a change stream cursor used to receive notifications of changes to the collection.

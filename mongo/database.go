@@ -10,11 +10,12 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/private/cluster"
-	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Database performs operations on a given database.
@@ -24,8 +25,8 @@ type Database struct {
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
 	readPreference *readpref.ReadPref
-	readSelector   cluster.ServerSelector
-	writeSelector  cluster.ServerSelector
+	readSelector   topology.ServerSelector
+	writeSelector  topology.ServerSelector
 }
 
 func newDatabase(client *Client, name string) *Database {
@@ -37,14 +38,12 @@ func newDatabase(client *Client, name string) *Database {
 		writeConcern:   client.writeConcern,
 	}
 
-	latencySelector := cluster.LatencySelector(client.localThreshold)
-
-	db.readSelector = cluster.CompositeSelector([]cluster.ServerSelector{
-		readpref.Selector(db.readPreference),
-		latencySelector,
+	db.readSelector = topology.CompositeSelector([]topology.ServerSelector{
+		topology.ReadPrefSelector(db.readPreference),
+		topology.LatencySelector(db.client.localThreshold),
 	})
 
-	db.writeSelector = readpref.Selector(readpref.Primary())
+	db.writeSelector = topology.ReadPrefSelector(readpref.Primary())
 
 	return db
 }
@@ -66,16 +65,12 @@ func (db *Database) Collection(name string) *Collection {
 
 // RunCommand runs a command on the database. A user can supply a custom
 // context to this method, or nil to default to context.Background().
-func (db *Database) RunCommand(ctx context.Context, command interface{}) (bson.Reader, error) {
+func (db *Database) RunCommand(ctx context.Context, runCommand interface{}) (bson.Reader, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	s, err := db.client.selectServer(ctx, readpref.Selector(readpref.Primary()), readpref.Primary())
-	if err != nil {
-		return nil, err
-	}
-
-	return ops.RunCommand(ctx, s, db.Name(), command)
+	cmd := command.Command{DB: db.Name(), Command: runCommand}
+	return dispatch.Command(ctx, cmd, db.client.topology, topology.ReadPrefSelector(readpref.Primary()))
 }

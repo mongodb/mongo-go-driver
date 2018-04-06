@@ -12,10 +12,8 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/internal"
-	"github.com/mongodb/mongo-go-driver/mongo/private/conn"
-	"github.com/mongodb/mongo-go-driver/mongo/private/ops"
-	"github.com/mongodb/mongo-go-driver/mongo/private/options"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/options"
 )
 
 // ErrMissingResumeToken indicates that a change stream notification from the server did not
@@ -82,8 +80,8 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		return false
 	}
 
-	switch t := internal.UnwrapError(err).(type) {
-	case *conn.CommandError:
+	switch t := err.(type) {
+	case command.Error:
 		if t.Code != errorCodeNotMaster && t.Code != errorCodeCursorNotFound {
 			return false
 		}
@@ -104,13 +102,26 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		cs.options = append(cs.options, resumeToken)
 	}
 
-	server, err := cs.coll.getReadableServer(ctx)
+	oldns := cs.coll.namespace()
+	killCursors := command.KillCursors{
+		NS:  command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		IDs: []int64{cs.ID()},
+	}
+
+	ss, err := cs.coll.client.topology.SelectServer(ctx, cs.coll.readSelector)
 	if err != nil {
 		cs.err = err
 		return false
 	}
 
-	_, _ = ops.KillCursors(ctx, server, cs.coll.namespace(), []int64{cs.ID()})
+	conn, err := ss.Connection(ctx)
+	if err != nil {
+		cs.err = err
+		return false
+	}
+	defer conn.Close()
+
+	_, _ = killCursors.RoundTrip(ctx, ss.Description(), conn)
 
 	changeStreamOptions := bson.NewDocument()
 
@@ -120,9 +131,16 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 
 	cs.pipeline.Set(0, bson.VC.Document(
 		bson.NewDocument(
-			bson.EC.SubDocument("$changeStream", changeStreamOptions))))
+			bson.EC.SubDocument("$changeStream", changeStreamOptions)),
+	),
+	)
 
-	cs.cursor, cs.err = cs.coll.aggregateWithServer(ctx, server, cs.pipeline)
+	oldns = cs.coll.namespace()
+	aggCmd := command.Aggregate{
+		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Pipeline: cs.pipeline,
+	}
+	cs.cursor, cs.err = aggCmd.RoundTrip(ctx, ss.Description(), ss, conn)
 
 	if cs.err != nil {
 		return false
