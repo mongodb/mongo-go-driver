@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "05396f4b_bfdcc8e1",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-06T11:57:51Z",
+      "side": 1,
+      "message": "This comment is incorrect... there is no read preference in here. There used to be, iirc, but it apparently got removed somewhere and comment was not updated.",
+      "revId": "3245fae22151d38dd3d8f4a4730492f76b799b2e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
