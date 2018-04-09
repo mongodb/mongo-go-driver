@@ -11,17 +11,17 @@ import (
 )
 
 func TestServerSelection(t *testing.T) {
-	var selectFirst ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
+	var selectFirst description.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
 		if len(candidates) == 0 {
 			return []description.Server{}, nil
 		}
 		return candidates[0:1], nil
 	}
-	var selectNone ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+	var selectNone description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return []description.Server{}, nil
 	}
 	var errSelectionError = errors.New("encountered an error in the selector")
-	var selectError ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+	var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return nil, errSelectionError
 	}
 	noerr := func(t *testing.T, err error) {

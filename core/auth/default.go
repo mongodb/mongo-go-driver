@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
-	"github.com/mongodb/mongo-go-driver/internal/feature"
 )
 
 func newDefaultAuthenticator(cred *Cred) (Authenticator, error) {
@@ -30,7 +29,7 @@ type DefaultAuthenticator struct {
 func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
 	var actual Authenticator
 	var err error
-	if err = feature.ScramSHA1(desc.Version); err != nil {
+	if err = description.ScramSHA1Supported(desc.Version); err != nil {
 		actual, err = newMongoDBCRAuthenticator(a.Cred)
 	} else {
 		actual, err = newScramSHA1Authenticator(a.Cred)

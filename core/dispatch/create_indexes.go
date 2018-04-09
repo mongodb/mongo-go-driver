@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
@@ -14,7 +15,7 @@ func CreateIndexes(
 	ctx context.Context,
 	cmd command.CreateIndexes,
 	topo *topology.Topology,
-	selector topology.ServerSelector,
+	selector description.ServerSelector,
 ) (result.CreateIndexes, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)

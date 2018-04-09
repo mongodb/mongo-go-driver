@@ -22,6 +22,23 @@ const minHeartbeatInterval = 500 * time.Millisecond
 // the server has been closed.
 var ErrServerClosed = errors.New("server is closed")
 
+// SelectedServer represents a specific server that was selected during server selection.
+// It contains the kind of the typology it was selected from.
+type SelectedServer struct {
+	*Server
+
+	Kind description.TopologyKind
+}
+
+// Description returns a description of the server as of the last heartbeat.
+func (ss *SelectedServer) Description() description.SelectedServer {
+	sdesc := ss.Server.Description()
+	return description.SelectedServer{
+		Server: sdesc,
+		Kind:   ss.Kind,
+	}
+}
+
 // Server is a single server within a topology.
 type Server struct {
 	cfg     *serverConfig
