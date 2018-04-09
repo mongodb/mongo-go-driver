@@ -109,7 +109,6 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 			} else {
 				keyBlock = data[start : len(data)-len(remaining)]
 				start += len(keyBlock)
-				certDecodedBlock = currentBlock.Bytes
 			}
 		}
 	}
