@@ -75,10 +75,9 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 		return "", err
 	}
 
-	var (
-		currentBlock                          *pem.Block
-		certBlock, certDecodedBlock, keyBlock []byte
-	)
+	var currentBlock *pem.Block
+	var certBlock, certDecodedBlock, keyBlock []byte
+
 	remaining := data
 	start := 0
 	for {

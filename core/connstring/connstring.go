@@ -32,53 +32,54 @@ func Parse(s string) (ConnString, error) {
 
 // ConnString represents a connection string to mongodb.
 type ConnString struct {
-	Original                        string
-	AppName                         string
-	AuthMechanism                   string
-	AuthMechanismProperties         map[string]string
-	AuthSource                      string
-	Connect                         ConnectMode
-	ConnectSet                      bool
-	ConnectTimeout                  time.Duration
-	ConnectTimeoutSet               bool
-	Database                        string
-	HeartbeatInterval               time.Duration
-	HeartbeatIntervalSet            bool
-	Hosts                           []string
-	J                               bool
-	JSet                            bool
-	LocalThreshold                  time.Duration
-	LocalThresholdSet               bool
-	MaxConnIdleTime                 time.Duration
-	MaxConnIdleTimeSet              bool
-	MaxConnLifeTime                 time.Duration
-	MaxConnsPerHost                 uint16
-	MaxConnsPerHostSet              bool
-	MaxIdleConnsPerHost             uint16
-	MaxIdleConnsPerHostSet          bool
-	Password                        string
-	PasswordSet                     bool
-	ReadConcernLevel                string
-	ReadPreference                  string
-	ReadPreferenceTagSets           []map[string]string
-	ReplicaSet                      string
-	ServerSelectionTimeout          time.Duration
-	ServerSelectionTimeoutSet       bool
-	SocketTimeout                   time.Duration
-	SocketTimeoutSet                bool
-	SSL                             bool
-	SSLSet                          bool
-	SSLClientCertificateKeyFile     string
-	SSLClientCertificateKeyPassword func() string
-	SSLClientCertificateKeyFileSet  bool
-	SSLInsecure                     bool
-	SSLInsecureSet                  bool
-	SSLCaFile                       string
-	SSLCaFileSet                    bool
-	WString                         string
-	WNumber                         int
-	WNumberSet                      bool
-	Username                        string
+	Original                           string
+	AppName                            string
+	AuthMechanism                      string
+	AuthMechanismProperties            map[string]string
+	AuthSource                         string
+	Connect                            ConnectMode
+	ConnectSet                         bool
+	ConnectTimeout                     time.Duration
+	ConnectTimeoutSet                  bool
+	Database                           string
+	HeartbeatInterval                  time.Duration
+	HeartbeatIntervalSet               bool
+	Hosts                              []string
+	J                                  bool
+	JSet                               bool
+	LocalThreshold                     time.Duration
+	LocalThresholdSet                  bool
+	MaxConnIdleTime                    time.Duration
+	MaxConnIdleTimeSet                 bool
+	MaxConnLifeTime                    time.Duration
+	MaxConnsPerHost                    uint16
+	MaxConnsPerHostSet                 bool
+	MaxIdleConnsPerHost                uint16
+	MaxIdleConnsPerHostSet             bool
+	Password                           string
+	PasswordSet                        bool
+	ReadConcernLevel                   string
+	ReadPreference                     string
+	ReadPreferenceTagSets              []map[string]string
+	ReplicaSet                         string
+	ServerSelectionTimeout             time.Duration
+	ServerSelectionTimeoutSet          bool
+	SocketTimeout                      time.Duration
+	SocketTimeoutSet                   bool
+	SSL                                bool
+	SSLSet                             bool
+	SSLClientCertificateKeyFile        string
+	SSLClientCertificateKeyFileSet     bool
+	SSLClientCertificateKeyPassword    func() string
+	SSLClientCertificateKeyPasswordSet bool
+	SSLInsecure                        bool
+	SSLInsecureSet                     bool
+	SSLCaFile                          string
+	SSLCaFileSet                       bool
+	WString                            string
+	WNumber                            int
+	WNumberSet                         bool
+	Username                           string
 
 	WTimeout              time.Duration
 	WTimeoutSet           bool
@@ -475,6 +476,7 @@ func (p *parser) addOption(pair string) error {
 		p.SSLClientCertificateKeyFileSet = true
 	case "sslclientcertificatekeypassword":
 		p.SSLClientCertificateKeyPassword = func() string { return value }
+		p.SSLClientCertificateKeyPasswordSet = true
 	case "sslinsecure":
 		switch value {
 		case "true":
