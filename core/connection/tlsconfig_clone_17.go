@@ -6,7 +6,7 @@ import "crypto/tls"
 // used concurrently by a TLS client or server.
 func (c *TLSConfig) Clone() *TLSConfig {
 	cfg := cloneconfig(c.Config)
-	return &TLSConfig{cfg}
+	return &TLSConfig{cfg, c.clientCertPass}
 }
 
 func cloneconfig(c *tls.Config) *tls.Config {
