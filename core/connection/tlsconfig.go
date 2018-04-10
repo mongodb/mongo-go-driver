@@ -91,9 +91,6 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 			certDecodedBlock = currentBlock.Bytes
 			start += len(certBlock)
 		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
-			if len(certBlock) == 0 {
-				return "", fmt.Errorf("failed to find CERTIFICATE but did find private key; PEM inputs may be switched")
-			}
 			if c.clientCertPass != nil && x509.IsEncryptedPEMBlock(currentBlock) {
 				var encoded bytes.Buffer
 				buf, err := x509.DecryptPEMBlock(currentBlock, []byte(c.clientCertPass()))
@@ -109,6 +106,12 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 				start += len(keyBlock)
 			}
 		}
+	}
+	if len(certBlock) == 0 {
+		return "", fmt.Errorf("failed to find CERTIFICATE")
+	}
+	if len(keyBlock) == 0 {
+		return "", fmt.Errorf("failed to find PRIVATE KEY")
 	}
 
 	cert, err := tls.X509KeyPair(certBlock, keyBlock)
