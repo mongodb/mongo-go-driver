@@ -15,6 +15,7 @@ import (
 func TestPool(t *testing.T) {
 	noerr := func(t *testing.T, err error) {
 		if err != nil {
+			t.Helper()
 			t.Errorf("Unepexted error: %v", err)
 			t.FailNow()
 		}
@@ -49,6 +50,8 @@ func TestPool(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
+		err = p.Connect(context.TODO())
+		noerr(t, err)
 
 		c1, _, err := p.Get(context.Background())
 		noerr(t, err)
@@ -69,6 +72,8 @@ func TestPool(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
+		err = p.Connect(context.TODO())
+		noerr(t, err)
 		c1, _, err := p.Get(context.Background())
 		noerr(t, err)
 		first := c1.ID()
@@ -87,6 +92,8 @@ func TestPool(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
+		err = p.Connect(context.TODO())
+		noerr(t, err)
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		_, _, err = p.Get(ctx)
@@ -99,6 +106,8 @@ func TestPool(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
+		err = p.Connect(context.TODO())
+		noerr(t, err)
 		_, _, err = p.Get(context.Background())
 		if !strings.Contains(err.Error(), "dial tcp") {
 			t.Errorf("Expected context called error, but got: %v", err)
@@ -109,7 +118,11 @@ func TestPool(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
-		err = p.Close()
+		err = p.Connect(context.TODO())
+		noerr(t, err)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+		err = p.Disconnect(ctx)
 		noerr(t, err)
 		_, _, err = p.Get(context.Background())
 		if err != connection.ErrPoolClosed {
@@ -121,9 +134,13 @@ func TestPool(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
+		err = p.Connect(context.TODO())
+		noerr(t, err)
 		c1, _, err := p.Get(context.Background())
 		noerr(t, err)
-		err = p.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+		err = p.Disconnect(ctx)
 		noerr(t, err)
 		err = c1.Close()
 		if err != nil {
@@ -147,6 +164,8 @@ func TestPool(t *testing.T) {
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
+		err = p.Connect(context.TODO())
+		noerr(t, err)
 		c1, _, err := p.Get(context.Background())
 		noerr(t, err)
 		if c1.Expired() != false {
@@ -161,18 +180,6 @@ func TestPool(t *testing.T) {
 	t.Run("Drain Expires Idle Connections", func(t *testing.T) {
 		// Implement this once there is a more testable Dialer.
 		t.Skip()
-	})
-	t.Run("Close Is Idempotent", func(t *testing.T) {
-		p, err := connection.NewPool(addr.Addr(*host), 2, 4, opts...)
-		if err != nil {
-			t.Errorf("Unexpected error while creating pool: %v", err)
-		}
-		err = p.Close()
-		noerr(t, err)
-		err = p.Close()
-		if err != nil {
-			t.Errorf("Should be able to call Close twice, but got error: %v", err)
-		}
 	})
 	t.Run("Pool Close Closes All Connections In A Pool", func(t *testing.T) {
 		// Implement this once there is a more testable Dialer.

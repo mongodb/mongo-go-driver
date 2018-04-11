@@ -1,12 +1,16 @@
 package integration
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 )
 
@@ -38,6 +42,14 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func noerr(t *testing.T, err error) {
+	if err != nil {
+		t.Helper()
+		t.Errorf("Unepexted error: %v", err)
+		t.FailNow()
+	}
+}
+
 // addTLSConfigToURI checks for the environmental variable indicating that the tests are being run
 // on an SSL-enabled server, and if so, returns a new URI with the necessary configuration.
 func addTLSConfigToURI(uri string) string {
@@ -57,4 +69,57 @@ func addTLSConfigToURI(uri string) string {
 	}
 
 	return uri + "ssl=true&sslCertificateAuthorityFile=" + caFile
+}
+
+type netconn struct {
+	net.Conn
+	closed chan struct{}
+	d      *dialer
+}
+
+func (nc *netconn) Close() error {
+	nc.closed <- struct{}{}
+	nc.d.connclosed(nc)
+	return nc.Conn.Close()
+}
+
+type dialer struct {
+	connection.Dialer
+	opened map[*netconn]struct{}
+	closed map[*netconn]struct{}
+	sync.Mutex
+}
+
+func newdialer(d connection.Dialer) *dialer {
+	return &dialer{Dialer: d, opened: make(map[*netconn]struct{}), closed: make(map[*netconn]struct{})}
+}
+
+func (d *dialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	d.Lock()
+	defer d.Unlock()
+	c, err := d.Dialer.DialContext(ctx, network, address)
+	if err != nil {
+		return nil, err
+	}
+	nc := &netconn{Conn: c, closed: make(chan struct{}, 1), d: d}
+	d.opened[nc] = struct{}{}
+	return nc, nil
+}
+
+func (d *dialer) connclosed(nc *netconn) {
+	d.Lock()
+	defer d.Unlock()
+	d.closed[nc] = struct{}{}
+}
+
+func (d *dialer) lenopened() int {
+	d.Lock()
+	defer d.Unlock()
+	return len(d.opened)
+}
+
+func (d *dialer) lenclosed() int {
+	d.Lock()
+	defer d.Unlock()
+	return len(d.closed)
 }

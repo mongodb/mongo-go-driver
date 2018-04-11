@@ -113,7 +113,7 @@ func TestCommandAggregate(t *testing.T) {
 	t.Run("MaxTimeMS", func(t *testing.T) {
 		t.Skip("max time is flaky on the server")
 
-		server, err := topology.NewServer(addr.Addr(*host))
+		server, err := topology.ConnectServer(context.Background(), addr.Addr(*host))
 		noerr(t, err)
 		conn, err := server.Connection(context.Background())
 		noerr(t, err)

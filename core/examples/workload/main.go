@@ -67,7 +67,7 @@ func main() {
 
 	<-done
 	log.Println("interupt received: shutting down")
-	_ = c.Close()
+	_ = c.Disconnect(ctx)
 	log.Println("finished")
 }
 

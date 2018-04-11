@@ -7,6 +7,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -17,7 +18,8 @@ import (
 )
 
 func main() {
-	s, err := topology.NewServer(
+	s, err := topology.ConnectServer(
+		context.Background(),
 		addr.Addr("localhost:27017"),
 		topology.WithHeartbeatInterval(func(time.Duration) time.Duration { return 2 * time.Second }),
 		topology.WithConnectionOptions(
