@@ -50,6 +50,14 @@ type Dialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
+// DialerFunc is a type implemented by functions that can be used as a Dialer.
+type DialerFunc func(ctx context.Context, network, address string) (net.Conn, error)
+
+// DialContext implements the Dialer interface.
+func (df DialerFunc) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	return df(ctx, network, address)
+}
+
 // DefaultDialer is the Dialer implementation that is used by this package. Changing this
 // will also change the Dialer used for this package. This should only be changed why all
 // of the connections being made need to use a different Dialer. Most of the time, using a

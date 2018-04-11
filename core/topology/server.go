@@ -11,6 +11,7 @@ import (
 	"errors"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
@@ -23,10 +24,15 @@ import (
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
+const connectionSemaphoreSize = math.MaxInt64
 
 // ErrServerClosed occurs when an attempt to get a connection is made after
 // the server has been closed.
 var ErrServerClosed = errors.New("server is closed")
+
+// ErrServerConnected occurs when at attempt to connect is made after a server
+// has already been connected.
+var ErrServerConnected = errors.New("server is connected")
 
 // SelectedServer represents a specific server that was selected during server selection.
 // It contains the kind of the typology it was selected from.
@@ -45,20 +51,26 @@ func (ss *SelectedServer) Description() description.SelectedServer {
 	}
 }
 
+// These constants represent the connection states of a server.
+const (
+	disconnected int32 = iota
+	disconnecting
+	connected
+	connecting
+)
+
 // Server is a single server within a topology.
 type Server struct {
 	cfg     *serverConfig
 	address addr.Addr
 
-	l        sync.Mutex
-	closed   bool
-	done     chan struct{}
-	checkNow chan struct{}
-	closewg  sync.WaitGroup
-	pool     connection.Pool
+	connectionstate int32
+	done            chan struct{}
+	checkNow        chan struct{}
+	closewg         sync.WaitGroup
+	pool            connection.Pool
 
-	desc description.Server
-	dmtx sync.RWMutex
+	desc atomic.Value // holds a description.Server
 
 	averageRTTSet bool
 	averageRTT    time.Duration
@@ -67,6 +79,20 @@ type Server struct {
 	subscribers         map[uint64]chan description.Server
 	currentSubscriberID uint64
 	subscriptionsClosed bool
+}
+
+// ConnectServer creates a new Server and then initializes it using the
+// Connect method.
+func ConnectServer(ctx context.Context, address addr.Addr, opts ...ServerOption) (*Server, error) {
+	srvr, err := NewServer(address, opts...)
+	if err != nil {
+		return nil, err
+	}
+	err = srvr.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return srvr, nil
 }
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
@@ -84,10 +110,9 @@ func NewServer(address addr.Addr, opts ...ServerOption) (*Server, error) {
 		done:     make(chan struct{}),
 		checkNow: make(chan struct{}, 1),
 
-		desc: description.Server{Addr: address},
-
 		subscribers: make(map[uint64]chan description.Server),
 	}
+	s.desc.Store(description.Server{Addr: address})
 
 	var maxConns uint64
 	if cfg.maxConns == 0 {
@@ -96,41 +121,59 @@ func NewServer(address addr.Addr, opts ...ServerOption) (*Server, error) {
 		maxConns = uint64(cfg.maxConns)
 	}
 
-	// TODO(skriptble): Add a configurer here that will take any newly dialed connections for this pool
-	// and put their server descriptions through the fsm.
 	s.pool, err = connection.NewPool(address, uint64(cfg.maxIdleConns), maxConns, cfg.connectionOpts...)
 	if err != nil {
 		return nil, err
 	}
 
-	go s.update()
-	s.closewg.Add(1)
-
 	return s, nil
 }
 
-// Close closes the server.
-func (s *Server) Close() error {
-	s.l.Lock()
-	defer s.l.Unlock()
-
-	if s.closed {
-		return nil
+// Connect initialzies the Server by starting background monitoring goroutines.
+// This method must be called before a Server can be used.
+func (s *Server) Connect(ctx context.Context) error {
+	if !atomic.CompareAndSwapInt32(&s.connectionstate, disconnected, connected) {
+		return ErrServerConnected
 	}
-	s.closed = true
+	s.desc.Store(description.Server{Addr: s.address})
+	go s.update()
+	s.closewg.Add(1)
+	return s.pool.Connect(ctx)
+}
 
-	close(s.done)
-	err := s.pool.Close()
+// Disconnect closes sockets to the server referenced by this Server.
+// Subscriptions to this Server will be closed. Disconnect will shutdown
+// any monitoring goroutines, close the idle connection pool, and will
+// wait until all the in use connections have been returned to the connection
+// pool and are closed before returning. If the context expires via
+// cancellation, deadline, or timeout before the in use connections have been
+// returned, the in use connections will be closed, resulting in the failure of
+// any in flight read or write operations. If this method returns with no
+// errors, all connections associated with this Server have been closed.
+func (s *Server) Disconnect(ctx context.Context) error {
+	if !atomic.CompareAndSwapInt32(&s.connectionstate, connected, disconnecting) {
+		return ErrServerClosed
+	}
+
+	// For every call to Connect there must be at least 1 goroutine that is
+	// waiting on the done channel.
+	s.done <- struct{}{}
+	err := s.pool.Disconnect(ctx)
 	if err != nil {
 		return err
 	}
+
 	s.closewg.Wait()
+	atomic.StoreInt32(&s.connectionstate, disconnected)
 
 	return nil
 }
 
 // Connection gets a connection to the server.
 func (s *Server) Connection(ctx context.Context) (connection.Connection, error) {
+	if atomic.LoadInt32(&s.connectionstate) != connected {
+		return nil, ErrServerClosed
+	}
 	conn, desc, err := s.pool.Get(ctx)
 	if err != nil {
 		return nil, err
@@ -138,14 +181,13 @@ func (s *Server) Connection(ctx context.Context) (connection.Connection, error) 
 	if desc != nil {
 		go s.updateDescription(*desc, false)
 	}
-	return &sconn{Connection: conn, s: s}, nil
+	sc := &sconn{Connection: conn, s: s}
+	return sc, nil
 }
 
 // Description returns a description of the server as of the last heartbeat.
 func (s *Server) Description() description.Server {
-	s.dmtx.RLock()
-	defer s.dmtx.RUnlock()
-	return s.desc
+	return s.desc.Load().(description.Server)
 }
 
 // SelectedDescription returns a description.SelectedServer with a Kind of
@@ -163,10 +205,11 @@ func (s *Server) SelectedDescription() description.SelectedServer {
 // updated server descriptions will be sent. The channel will have a buffer
 // size of one, and will be pre-populated with the current description.
 func (s *Server) Subscribe() (*ServerSubscription, error) {
+	if atomic.LoadInt32(&s.connectionstate) != connected {
+		return nil, ErrSubscribeAfterClosed
+	}
 	ch := make(chan description.Server, 1)
-	s.dmtx.Lock()
-	defer s.dmtx.Unlock()
-	ch <- s.desc
+	ch <- s.desc.Load().(description.Server)
 
 	s.subLock.Lock()
 	defer s.subLock.Unlock()
@@ -198,14 +241,18 @@ func (s *Server) RequestImmediateCheck() {
 // update handles performing heartbeats and updating any subscribers of the
 // newest description.Server retrieved.
 func (s *Server) update() {
-	defer func() {
-		// TODO(skriptble): What should we do here?
-		_ = recover()
-	}()
+	defer s.closewg.Done()
 	heartbeatTicker := time.NewTicker(s.cfg.heartbeatInterval)
 	rateLimiter := time.NewTicker(minHeartbeatInterval)
 	checkNow := s.checkNow
 	done := s.done
+
+	defer func() {
+		if r := recover(); r != nil {
+			// We keep this goroutine alive attempting to read from the done channel.
+			<-done
+		}
+	}()
 
 	var conn connection.Connection
 	var desc description.Server
@@ -226,7 +273,6 @@ func (s *Server) update() {
 			s.subscriptionsClosed = true
 			s.subLock.Unlock()
 			conn.Close()
-			s.closewg.Done()
 			return
 		}
 
@@ -246,9 +292,7 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 		//  ¯\_(ツ)_/¯
 		_ = recover()
 	}()
-	s.dmtx.Lock()
-	s.desc = desc
-	s.dmtx.Unlock()
+	s.desc.Store(desc)
 
 	s.subLock.Lock()
 	for _, c := range s.subscribers {
