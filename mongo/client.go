@@ -34,6 +34,19 @@ type Client struct {
 	writeConcern    *writeconcern.WriteConcern
 }
 
+// Connect creates a new Client and then initializes it using the Connect method.
+func Connect(ctx context.Context, uri string, opts *ClientOptions) (*Client, error) {
+	c, err := NewClientWithOptions(uri, opts)
+	if err != nil {
+		return nil, err
+	}
+	err = c.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
 // NewClient creates a new client to connect to a cluster specified by the uri.
 func NewClient(uri string) (*Client, error) {
 	cs, err := connstring.Parse(uri)
@@ -62,6 +75,24 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 	return newClient(cs, nil)
 }
 
+// Connect initializes the Client by starting background monitoring goroutines.
+// This method must be called before a Client can be used.
+func (c *Client) Connect(ctx context.Context) error {
+	return c.topology.Connect(ctx)
+}
+
+// Disconnect closes sockets to the topology referenced by this Client. It will
+// shut down any monitoring goroutines, close the idle connection pool, and will
+// wait until all the in use connections have been returned to the connection
+// pool and closed before returning. If the context expires via cancellation,
+// deadline, or timeout before the in use connections have returned, the in use
+// connections will be closed, resulting in the failure of any in flight read
+// or write operations. If this method returns with no errors, all connections
+// associated with this Client have been closed.
+func (c *Client) Disconnect(ctx context.Context) error {
+	return c.topology.Disconnect(ctx)
+}
+
 func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 	client := &Client{
 		connString:     cs,
@@ -88,7 +119,10 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	topo.Init()
+	err = topo.Connect(context.Background())
+	if err != nil {
+		return nil, err
+	}
 
 	client.topology = topo
 	client.readConcern = readConcernFromConnString(&client.connString)
@@ -145,16 +179,16 @@ func writeConcernFromConnString(cs *connstring.ConnString) *writeconcern.WriteCo
 }
 
 // Database returns a handle for a given database.
-func (client *Client) Database(name string) *Database {
-	return newDatabase(client, name)
+func (c *Client) Database(name string) *Database {
+	return newDatabase(c, name)
 }
 
 // ConnectionString returns the connection string of the cluster the client is connected to.
-func (client *Client) ConnectionString() string {
-	return client.connString.Original
+func (c *Client) ConnectionString() string {
+	return c.connString.Original
 }
 
-func (client *Client) listDatabasesHelper(ctx context.Context, filter interface{},
+func (c *Client) listDatabasesHelper(ctx context.Context, filter interface{},
 	nameOnly bool) (ListDatabasesResult, error) {
 
 	f, err := TransformDocument(filter)
@@ -172,7 +206,7 @@ func (client *Client) listDatabasesHelper(ctx context.Context, filter interface{
 
 	// The spec indicates that we should not run the listDatabase command on a secondary in a
 	// replica set.
-	res, err := dispatch.ListDatabases(ctx, cmd, client.topology, description.ReadPrefSelector(readpref.Primary()))
+	res, err := dispatch.ListDatabases(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.Primary()))
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
@@ -180,13 +214,13 @@ func (client *Client) listDatabasesHelper(ctx context.Context, filter interface{
 }
 
 // ListDatabases returns a ListDatabasesResult.
-func (client *Client) ListDatabases(ctx context.Context, filter interface{}) (ListDatabasesResult, error) {
-	return client.listDatabasesHelper(ctx, filter, false)
+func (c *Client) ListDatabases(ctx context.Context, filter interface{}) (ListDatabasesResult, error) {
+	return c.listDatabasesHelper(ctx, filter, false)
 }
 
 // ListDatabaseNames returns a slice containing the names of all of the databases on the server.
-func (client *Client) ListDatabaseNames(ctx context.Context, filter interface{}) ([]string, error) {
-	res, err := client.listDatabasesHelper(ctx, filter, true)
+func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}) ([]string, error) {
+	res, err := c.listDatabasesHelper(ctx, filter, true)
 	if err != nil {
 		return nil, err
 	}

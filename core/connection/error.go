@@ -34,3 +34,8 @@ type NetworkError struct {
 func (ne NetworkError) Error() string {
 	return fmt.Sprintf("connection(%s): %s", ne.ConnectionID, ne.Wrapped.Error())
 }
+
+// PoolError is an error returned from a Pool method.
+type PoolError string
+
+func (pe PoolError) Error() string { return string(pe) }
