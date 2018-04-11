@@ -70,7 +70,7 @@ func Topology(t *testing.T) *topology.Topology {
 		if err != nil {
 			liveTopologyErr = err
 		} else {
-			liveTopology.Init()
+			liveTopology.Connect(context.Background())
 			s, err := liveTopology.SelectServer(context.Background(), description.WriteSelector())
 			require.NoError(t, err)
 

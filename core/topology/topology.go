@@ -15,6 +15,7 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/addr"
@@ -28,6 +29,10 @@ var ErrSubscribeAfterClosed = errors.New("cannot subscribe after close")
 // ErrTopologyClosed is returned when a user attempts to call a method on a
 // closed Topology.
 var ErrTopologyClosed = errors.New("topology is closed")
+
+// ErrTopologyConnected is returned whena  user attempts to connect to an
+// already connected Topology.
+var ErrTopologyConnected = errors.New("topology is connected or connecting")
 
 // ErrServerSelectionTimeout is returned from server selection when the server
 // selection process took longer than allowed by the timeout.
@@ -44,26 +49,30 @@ const (
 
 // Topology respresents a MongoDB deployment.
 type Topology struct {
-	// There are too many closed booleans, but we can fix that later
-	// with a refactor. For now, just making a definitive one to guard
-	// the Close method.
-	closed      bool
-	initialized bool
-	l           sync.Mutex
+	connectionstate int32
 
 	cfg *config
 
-	desc description.Topology
-	dmtx sync.Mutex
+	desc atomic.Value // holds a description.Topology
 
-	fsm     *fsm
-	changes chan description.Server
+	done chan struct{}
 
+	fsm       *fsm
+	changes   chan description.Server
+	changeswg sync.WaitGroup
+
+	// This should really be encapsulated into it's own type. This will likely
+	// require a redesign so we can share a minimum of data between the
+	// subscribers and the topology.
 	subscribers         map[uint64]chan description.Topology
 	currentSubscriberID uint64
 	subscriptionsClosed bool
 	subLock             sync.Mutex
 
+	// We should redesign how we connect and handle individal servers. This is
+	// too difficult to maintain and it's rather easy to accidentally access
+	// the servers without acquiring the lock or checking if the servers are
+	// closed. This lock should also be an RWMutex.
 	serversLock   sync.Mutex
 	serversClosed bool
 	servers       map[addr.Addr]*Server
@@ -80,6 +89,7 @@ func New(opts ...Option) (*Topology, error) {
 
 	t := &Topology{
 		cfg:         cfg,
+		done:        make(chan struct{}),
 		fsm:         newFSM(),
 		changes:     make(chan description.Server),
 		subscribers: make(map[uint64]chan description.Topology),
@@ -98,69 +108,75 @@ func New(opts ...Option) (*Topology, error) {
 	return t, nil
 }
 
-// Init initializes a Topology and starts the monitoring process. This function
+// Connect initializes a Topology and starts the monitoring process. This function
 // must be called to properly monitor the topology.
-func (t *Topology) Init() {
-	t.l.Lock()
-	defer t.l.Unlock()
-	if t.initialized {
-		return
+func (t *Topology) Connect(ctx context.Context) error {
+	if !atomic.CompareAndSwapInt32(&t.connectionstate, disconnected, connecting) {
+		return ErrTopologyConnected
 	}
-	t.initialized = true
 
+	var err error
 	t.serversLock.Lock()
 	for _, a := range t.cfg.seedList {
 		address := addr.Addr(a).Canonicalize()
 		t.fsm.Servers = append(t.fsm.Servers, description.Server{Addr: address})
-		t.addServer(address)
+		err = t.addServer(ctx, address)
 	}
 	t.serversLock.Unlock()
 
 	go t.update()
+	t.changeswg.Add(1)
+
+	atomic.StoreInt32(&t.connectionstate, connected)
+	return err
 }
 
-// Close closes the topology. It stops the monitoring thread and
+// Disconnect closes the topology. It stops the monitoring thread and
 // closes all open subscriptions.
-func (t *Topology) Close() error {
-	t.l.Lock()
-	defer t.l.Unlock()
-	if t.closed {
-		return nil
+func (t *Topology) Disconnect(ctx context.Context) error {
+	if !atomic.CompareAndSwapInt32(&t.connectionstate, connected, disconnecting) {
+		return ErrTopologyClosed
 	}
-	t.closed = true
 
 	t.serversLock.Lock()
 	t.serversClosed = true
 	for address, server := range t.servers {
-		t.removeServer(address, server)
+		t.removeServer(ctx, address, server)
 	}
 	t.serversLock.Unlock()
 
 	t.wg.Wait()
-	close(t.changes)
+	t.done <- struct{}{}
+	t.changeswg.Wait()
 
-	t.dmtx.Lock()
-	t.desc = description.Topology{}
-	t.dmtx.Unlock()
+	t.desc.Store(description.Topology{})
 
+	atomic.StoreInt32(&t.connectionstate, disconnected)
 	return nil
 }
 
 // Description returns a description of the topology.
 func (t *Topology) Description() description.Topology {
-	t.dmtx.Lock()
-	defer t.dmtx.Unlock()
-	return t.desc
+	td, ok := t.desc.Load().(description.Topology)
+	if !ok {
+		td = description.Topology{}
+	}
+	return td
 }
 
 // Subscribe returns a Subscription on which all updated description.Topologys
 // will be sent. The channel of the subscription will have a buffer size of one,
 // and will be pre-populated with the current description.Topology.
 func (t *Topology) Subscribe() (*Subscription, error) {
+	if atomic.LoadInt32(&t.connectionstate) != connected {
+		return nil, errors.New("cannot subscribe to Topology that is not connected")
+	}
 	ch := make(chan description.Topology, 1)
-	t.dmtx.Lock()
-	ch <- t.desc
-	t.dmtx.Unlock()
+	td, ok := t.desc.Load().(description.Topology)
+	if !ok {
+		td = description.Topology{}
+	}
+	ch <- td
 
 	t.subLock.Lock()
 	defer t.subLock.Unlock()
@@ -181,6 +197,9 @@ func (t *Topology) Subscribe() (*Subscription, error) {
 // RequestImmediateCheck will send heartbeats to all the servers in the
 // topology right away, instead of waiting for the heartbeat timeout.
 func (t *Topology) RequestImmediateCheck() {
+	if atomic.LoadInt32(&t.connectionstate) != connected {
+		return
+	}
 	t.serversLock.Lock()
 	for _, server := range t.servers {
 		server.RequestImmediateCheck()
@@ -192,6 +211,9 @@ func (t *Topology) RequestImmediateCheck() {
 // server selection spec, and will time out after severSelectionTimeout or when the
 // parent context is done.
 func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (*SelectedServer, error) {
+	if atomic.LoadInt32(&t.connectionstate) != connected {
+		return nil, ErrTopologyClosed
+	}
 	var ssTimeoutCh <-chan time.Time
 
 	if t.cfg.serverSelectionTimeout > 0 {
@@ -230,11 +252,11 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 // findServer will attempt to find a server that fits the given server description.
 // This method will return nil, nil if a matching server could not be found.
 func (t *Topology) findServer(selected description.Server) (*SelectedServer, error) {
-	t.l.Lock()
-	defer t.l.Unlock()
-	if t.closed {
+	if atomic.LoadInt32(&t.connectionstate) != connected {
 		return nil, ErrTopologyClosed
 	}
+	t.serversLock.Lock()
+	defer t.serversLock.Unlock()
 	server, ok := t.servers[selected.Addr]
 	if !ok {
 		return nil, nil
@@ -279,42 +301,48 @@ func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan descr
 }
 
 func (t *Topology) update() {
+	defer t.changeswg.Done()
 	defer func() {
 		//  ¯\_(ツ)_/¯
-		_ = recover()
+		if r := recover(); r != nil {
+			<-t.done
+		}
 	}()
 
-	for change := range t.changes {
-		current, err := t.apply(change)
-		if err != nil {
-			continue
-		}
-
-		t.dmtx.Lock()
-		t.desc = current
-		t.dmtx.Unlock()
-
-		t.subLock.Lock()
-		for _, ch := range t.subscribers {
-			// We drain the description if there's one in the channel
-			select {
-			case <-ch:
-			default:
+	for {
+		select {
+		case change := <-t.changes:
+			current, err := t.apply(context.TODO(), change)
+			if err != nil {
+				continue
 			}
-			ch <- current
+
+			t.desc.Store(current)
+
+			t.subLock.Lock()
+			for _, ch := range t.subscribers {
+				// We drain the description if there's one in the channel
+				select {
+				case <-ch:
+				default:
+				}
+				ch <- current
+			}
+			t.subLock.Unlock()
+		case <-t.done:
+			t.subLock.Lock()
+			for id, ch := range t.subscribers {
+				close(ch)
+				delete(t.subscribers, id)
+			}
+			t.subscriptionsClosed = true
+			t.subLock.Unlock()
+			return
 		}
-		t.subLock.Unlock()
 	}
-	t.subLock.Lock()
-	for id, ch := range t.subscribers {
-		close(ch)
-		delete(t.subscribers, id)
-	}
-	t.subscriptionsClosed = true
-	t.subLock.Unlock()
 }
 
-func (t *Topology) apply(desc description.Server) (description.Topology, error) {
+func (t *Topology) apply(ctx context.Context, desc description.Server) (description.Topology, error) {
 	var err error
 	prev := t.fsm.Topology
 
@@ -332,34 +360,32 @@ func (t *Topology) apply(desc description.Server) (description.Topology, error) 
 
 	for _, removed := range diff.Removed {
 		if s, ok := t.servers[removed.Addr]; ok {
-			t.removeServer(removed.Addr, s)
+			t.removeServer(ctx, removed.Addr, s)
 		}
 	}
 
 	for _, added := range diff.Added {
-		t.addServer(added.Addr)
+		t.addServer(ctx, added.Addr)
 	}
 	t.serversLock.Unlock()
 	return current, nil
 }
 
-func (t *Topology) addServer(address addr.Addr) {
+func (t *Topology) addServer(ctx context.Context, address addr.Addr) error {
 	if _, ok := t.servers[address]; ok {
-		return
+		return nil
 	}
 
-	svr, err := NewServer(address, t.cfg.serverOpts...)
+	svr, err := ConnectServer(ctx, address, t.cfg.serverOpts...)
 	if err != nil {
-		//  ¯\_(ツ)_/¯
-		return
+		return err
 	}
 
 	t.servers[address] = svr
 	var sub *ServerSubscription
 	sub, err = svr.Subscribe()
 	if err != nil {
-		// ¯\_(ツ)_/¯
-		return
+		return err
 	}
 
 	t.wg.Add(1)
@@ -369,10 +395,12 @@ func (t *Topology) addServer(address addr.Addr) {
 		}
 		t.wg.Done()
 	}()
+
+	return nil
 }
 
-func (t *Topology) removeServer(address addr.Addr, server *Server) {
-	server.Close()
+func (t *Topology) removeServer(ctx context.Context, address addr.Addr, server *Server) {
+	_ = server.Disconnect(ctx)
 	delete(t.servers, address)
 }
 
