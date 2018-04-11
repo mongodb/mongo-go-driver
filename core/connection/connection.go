@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 // Package connection contains the types for building and pooling connections that can speak the
 // MongoDB Wire Protocol. Since this low level library is meant to be used in the context of either
 // a driver or a server there are some extra identifiers on a connection so one can keep track of
