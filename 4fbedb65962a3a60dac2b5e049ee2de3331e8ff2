@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "6d987bc8_1be8cd36",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T20:17:49Z",
+      "side": 1,
+      "message": "Added a comment that explains how this method works.",
+      "parentUuid": "40dd5c86_ac76cf35",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0ec84140_ba664e89",
         "filename": "core/connection/pool.go",
         "patchSetId": 2
@@ -172,6 +190,24 @@
       "side": 1,
       "message": "Might be better to encapsulate this into another wrapper.\n\nacquiredConnection wraps pooledConnection wraps Connection.\n\nThis way, providedConnection can guard against multiple close and pooledConnection can be responsible for it\u0027s own stuff. I think this is how .NET handled this. yeah -\u003e https://github.com/craiggwilson/mongo-csharp-driver/blob/master/src/MongoDB.Driver.Core/Core/ConnectionPools/ExclusiveConnectionPool.cs  AcquiredConnection and PooledConnection. AcquiredConnection guards against multiple close.",
       "parentUuid": "c72d9be5_d3cfab6d",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4254cabc_70e2dfca",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T20:17:49Z",
+      "side": 1,
+      "message": "I added an acquired type that handles this. Thanks for the suggestion, made this much easier.",
+      "parentUuid": "11f2f1a0_bfe13a1e",
       "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -295,6 +331,24 @@
       "side": 1,
       "message": "But that then requires users check status before getting a description, which is itself a race condition.",
       "parentUuid": "2df58ed9_54590d30",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fcf2b8eb_2bf9d382",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T20:17:49Z",
+      "side": 1,
+      "message": "Actually, never mind, s.pool.Get won\u0027t return a non-nil server description after we\u0027ve disconnected the pool. This is contingent on adding the second check before we add the connection to the inflight map.",
+      "parentUuid": "5355b714_a7ced372",
       "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
