@@ -16,6 +16,24 @@
       "revId": "806c9cf1625fb552b2b1dfe8c45cfeb20558380c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "298a2f29_4d72e581",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 239,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T20:36:19Z",
+      "side": 1,
+      "message": "I think a connection should be safe for concurrent closing. Since a net.Conn is goroutine safe there isn\u0027t anything we\u0027re doing currently that restricts a user from using a connection concurrently. Since in the common case we won\u0027t be using this concurrently, there won\u0027t be much lock contention. If you think it\u0027ll cause too much overhead, though, I\u0027m fine with removing the locks.",
+      "parentUuid": "ecb0822c_5c125bfe",
+      "revId": "806c9cf1625fb552b2b1dfe8c45cfeb20558380c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
