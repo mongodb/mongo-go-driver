@@ -1,0 +1,174 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "131e79a7_9cc89f34",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "states of a connection pool?",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fc8435f6_1f70d6cb",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "This eager closing of outstanding connections is the opposite of what most other drivers do. Most wait for the outstanding connections to get returned after their operations are completed naturally, allowing for a natural clean shutdown. \n\nThis seems to be an immediate disconnect of all outstanding connections. \n\nPart of the issue might be that the ctx passed in isn\u0027t used here at all. It seems like you would really only want to eagerly shutdown if the context has died (deadline expired). And what if the context is cancelled (does it mean to stop waiting and kill now, or that I no longer want to disconnect?)",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0ec84140_ba664e89",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "1) Instead of using 0, you should use the constant (disconnected) here. And should this instead be !\u003d connected? If we are in the processing of disconnecting, not sure we want to allow the getting of a connection.\n\n2) This is a race condition... It\u0027s entirely possible for us to pass this check and move on to p.get, but before we get there to have moved into the disconnecting state. In that case, things get really weird and unpredictable about what is open, what isn\u0027t, and what state everything is in.",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "29815b7a_13b14e3a",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "Is concurrent use of a connection supported? That seems a bit weird. If not, make this a boolean and change the atomic operations on this variable.\n\nEDIT: \nPlease confirm that this is true. Close can be done concurrently if we are trying to close an inflight connection.",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0606ba6b_76f111a3",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "How are outstanding subscribers handled?",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "aaf9e490_fef0b757",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "Should ctx be used here (other than the pool)? I see us doing a Wait(), but the context isn\u0027t used.",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "06e65c12_01bcb2ee",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "This is a race condition. We could check this, move past, and then be in a disconnecting/disconnected state before ever calling the pool to get a connection.\n\nThe fallout from this one isn\u0027t as unpredictable. Depending on how things get interleaved, either getting the connection from the pool will error out or it won\u0027t. The bad thing is that we could update the description after it has already been set to it\u0027s disconnected form, leaving the server\u0027s description in a weird state.",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f9ef3ff2_1a6b3e2c",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "1) use a constant instead of 0.\n\n2) are we allowing a subscrive in connecting and disconnecting states?",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ac67c4e6_ececb0a3",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "Should desc be initialized to something?",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e392ccda_b5ece491",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T17:06:48Z",
+      "side": 1,
+      "message": "So this is an interesting race condition. I believe it is possible for us to be in this update loop processing changes from the servers. In the meantime, we get disconnected, the servers map gets cleared, etc... And then we start adding the servers back because the diff indicates that the server doesn\u0027t exist.",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
