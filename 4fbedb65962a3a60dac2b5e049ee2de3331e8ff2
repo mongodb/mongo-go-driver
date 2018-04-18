@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1ca57489_853fb660",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "Yeah, copy paste error.",
+      "parentUuid": "131e79a7_9cc89f34",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fc8435f6_1f70d6cb",
         "filename": "core/connection/pool.go",
         "patchSetId": 2
@@ -33,6 +51,24 @@
       "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c9a3cc4a_450be21a",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "We do wait until the context is either cancelled, the deadline expires, or there is a timeout before we aggressively close connections. This isn\u0027t an immediate disconnect, we first close all of the open connections in the pool, then we try and acquire a semaphore the size of the entire capacity. If we can acquire that before the context expires, that means all of the connections have been closed, and we release the semaphore. If the context expires or is cancelled then we aggressively close the remaining inflight connections.\n\nFor reference, the call to sem.Acquire will block until either the semaphore is acquired or the context is expired or cancelled.",
+      "parentUuid": "fc8435f6_1f70d6cb",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "7bc5c777_de4802e8",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "You\u0027re right, we should be using !\u003d connected.\n\nAfter looking at this code some more I don\u0027t think we need this check here, but we can keep it to shortcut around a potential extra dial of a connection. We do need to do another check to see if the pool has been disconnected after we p.Lock and before we put the connection into the inflight pool. If we have disconnected during that time, we close the connection and return ErrPoolClosed.\n\nFor the case where we pull a connection from the channel before the Disconnect method reaches it, the disconnect\u0027s aggressive close will handle closing the connection.",
+      "parentUuid": "0ec84140_ba664e89",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "29815b7a_13b14e3a",
         "filename": "core/connection/pool.go",
         "patchSetId": 2
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "c72d9be5_d3cfab6d",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "Concurrent close of a connection must be supported in order for us to actually aggressively close connections. Current Read/Write of a connection isn\u0027t supported. There is a larger issue though where calling Close on a pooledConnection twice will put it in the p.conns channel twice. This seems to be a bug going back pretty far. I think we can actually solve it by having 3 states for a pooledConnection: inflight, landed, and closed. Landed would be for when the connection has been checked back into the pool.\n\nIt will overall complicate the implementation of pools and connections that live in pools. I think we\u0027ll need to revisit this design. For now we should just make a note that Connections from a Pool cannot have their Close method called more than once.",
+      "parentUuid": "29815b7a_13b14e3a",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0606ba6b_76f111a3",
         "filename": "core/topology/server.go",
         "patchSetId": 2
@@ -81,6 +153,24 @@
       "writtenOn": "2018-04-18T17:06:48Z",
       "side": 1,
       "message": "How are outstanding subscribers handled?",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0d36e47d_7db85689",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "They will be closed. I\u0027ll add this to the documentation comment.",
+      "parentUuid": "0606ba6b_76f111a3",
       "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "6f93fa9b_4a23c890",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 151,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "Nope, we only need to pass the context to the pool, which will handle shutting down the underlying connections.",
+      "parentUuid": "aaf9e490_fef0b757",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "06e65c12_01bcb2ee",
         "filename": "core/topology/server.go",
         "patchSetId": 2
@@ -121,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "2df58ed9_54590d30",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "I think the underlying protection of concurrent Disconnect and Get calls to the Pool should protect us here.\n\nFor the server description, I think if we set the description to an empty description on Connect we should be okay. We could document that getting a server description from a Disconnected server might return a weird server description.",
+      "parentUuid": "06e65c12_01bcb2ee",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f9ef3ff2_1a6b3e2c",
         "filename": "core/topology/server.go",
         "patchSetId": 2
@@ -132,6 +258,24 @@
       "writtenOn": "2018-04-18T17:06:48Z",
       "side": 1,
       "message": "1) use a constant instead of 0.\n\n2) are we allowing a subscrive in connecting and disconnecting states?",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b188f886_0ab6d114",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "Changed this to also be !\u003d connected.",
+      "parentUuid": "f9ef3ff2_1a6b3e2c",
       "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -155,6 +299,24 @@
     },
     {
       "key": {
+        "uuid": "90c7cef1_b68c3f99",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "Yeah, I missed adding that, got some panics, and fixed the panics but never added the initialization here.",
+      "parentUuid": "ac67c4e6_ececb0a3",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e392ccda_b5ece491",
         "filename": "core/topology/topology.go",
         "patchSetId": 2
@@ -169,6 +331,24 @@
       "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "885b888b_d8552ff1",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-18T18:19:53Z",
+      "side": 1,
+      "message": "The servers map has a lock around it and a boolean indicating if the servers map is opened or closed. We also disconnect in a specific order. We set the close variable to true, so no new servers can be added or removed by this loop. Then we close each of the servers, we wait until those closes are confirmed, which means that this loop has read all of the server descriptions from the changes channel, then we send an empty struct down the done channel to tell this loop to clean up subscribers and exit. There shouldn\u0027t be a race condition around this logic, but I might be missing something.",
+      "parentUuid": "e392ccda_b5ece491",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
