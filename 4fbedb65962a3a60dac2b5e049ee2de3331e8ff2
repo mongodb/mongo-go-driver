@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "40dd5c86_ac76cf35",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T19:06:54Z",
+      "side": 1,
+      "message": "got it... eyes skipped right over the p.sem.Acquire. Probably worth documenting this whole thing as a comment.",
+      "parentUuid": "c9a3cc4a_450be21a",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0ec84140_ba664e89",
         "filename": "core/connection/pool.go",
         "patchSetId": 2
@@ -136,6 +154,24 @@
       "side": 1,
       "message": "Concurrent close of a connection must be supported in order for us to actually aggressively close connections. Current Read/Write of a connection isn\u0027t supported. There is a larger issue though where calling Close on a pooledConnection twice will put it in the p.conns channel twice. This seems to be a bug going back pretty far. I think we can actually solve it by having 3 states for a pooledConnection: inflight, landed, and closed. Landed would be for when the connection has been checked back into the pool.\n\nIt will overall complicate the implementation of pools and connections that live in pools. I think we\u0027ll need to revisit this design. For now we should just make a note that Connections from a Pool cannot have their Close method called more than once.",
       "parentUuid": "29815b7a_13b14e3a",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "11f2f1a0_bfe13a1e",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 220,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T19:06:54Z",
+      "side": 1,
+      "message": "Might be better to encapsulate this into another wrapper.\n\nacquiredConnection wraps pooledConnection wraps Connection.\n\nThis way, providedConnection can guard against multiple close and pooledConnection can be responsible for it\u0027s own stuff. I think this is how .NET handled this. yeah -\u003e https://github.com/craiggwilson/mongo-csharp-driver/blob/master/src/MongoDB.Driver.Core/Core/ConnectionPools/ExclusiveConnectionPool.cs  AcquiredConnection and PooledConnection. AcquiredConnection guards against multiple close.",
+      "parentUuid": "c72d9be5_d3cfab6d",
       "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -247,6 +283,24 @@
     },
     {
       "key": {
+        "uuid": "5355b714_a7ced372",
+        "filename": "core/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T19:06:54Z",
+      "side": 1,
+      "message": "But that then requires users check status before getting a description, which is itself a race condition.",
+      "parentUuid": "2df58ed9_54590d30",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f9ef3ff2_1a6b3e2c",
         "filename": "core/topology/server.go",
         "patchSetId": 2
@@ -346,6 +400,24 @@
       "side": 1,
       "message": "The servers map has a lock around it and a boolean indicating if the servers map is opened or closed. We also disconnect in a specific order. We set the close variable to true, so no new servers can be added or removed by this loop. Then we close each of the servers, we wait until those closes are confirmed, which means that this loop has read all of the server descriptions from the changes channel, then we send an empty struct down the done channel to tell this loop to clean up subscribers and exit. There shouldn\u0027t be a race condition around this logic, but I might be missing something.",
       "parentUuid": "e392ccda_b5ece491",
+      "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aac28c0a_134cf2b8",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T19:06:54Z",
+      "side": 1,
+      "message": "Gotcha, missed the t.serversClosed check.",
+      "parentUuid": "885b888b_d8552ff1",
       "revId": "4fbedb65962a3a60dac2b5e049ee2de3331e8ff2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
