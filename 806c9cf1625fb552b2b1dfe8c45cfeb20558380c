@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ecb0822c_5c125bfe",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 239,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-18T20:17:54Z",
+      "side": 1,
+      "message": "I\u0027m not convinced you need a lock at all. Is a connection safe for concurrent use? If not, then any use of it concurrently is a violation and will end up in a failure somewhere probably, so don\u0027t really need to lock here at all. Given that these are high-traffic methods...",
+      "revId": "806c9cf1625fb552b2b1dfe8c45cfeb20558380c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
