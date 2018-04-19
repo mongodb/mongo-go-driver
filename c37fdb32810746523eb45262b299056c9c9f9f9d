@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "aa225b59_dd45f83f",
+        "filename": "core/options/options.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 693,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-19T20:04:41Z",
+      "side": 1,
+      "message": "should return actual error now that you can.",
+      "revId": "c37fdb32810746523eb45262b299056c9c9f9f9d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
