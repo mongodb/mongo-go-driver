@@ -18,10 +18,10 @@ import (
 //
 // The dropCollections command drops collection for a database.
 type DropCollection struct {
-	DB     string
+	DB         string
 	Collection string
-	result bson.Reader
-	err    error
+	result     bson.Reader
+	err        error
 }
 
 // Encode will encode this command into a wire message for the given server description.
