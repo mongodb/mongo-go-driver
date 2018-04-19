@@ -19,7 +19,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create topology: %v", err)
 	}
-	topo.Connect(context.Background())
+	err = topo.Connect(context.Background())
+	if err != nil {
+		log.Fatalf("could not create topology: %v", err)
+	}
 
 	sub, err := topo.Subscribe()
 	if err != nil {

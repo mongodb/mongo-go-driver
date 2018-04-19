@@ -2,3 +2,6 @@
 (github.com/mongodb/mongo-go-driver/core/connection.Connection).Close
 (*github.com/mongodb/mongo-go-driver/core/topology.Subscription).Unsubscribe
 (*github.com/mongodb/mongo-go-driver/core/topology.Server).Close
+(*github.com/mongodb/mongo-go-driver/core/connection.pool).closeConnection
+(net.Conn).Close
+encoding/pem.Encode

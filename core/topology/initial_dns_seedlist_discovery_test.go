@@ -92,7 +92,8 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 		// make a topology from the options
 		c, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 		require.NoError(t, err)
-		c.Connect(context.Background())
+		err = c.Connect(context.Background())
+		require.NoError(t, err)
 
 		for _, host := range test.Hosts {
 			_, err := getServerByAddress(host, c)
