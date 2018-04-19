@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8e24e2f8_a55099bf",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 372,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-19T18:49:26Z",
+      "side": 1,
+      "message": "Is this really what you want to do here? All the other servers that are already added are now also ejected as opposed to just not adding this particular one?",
+      "revId": "c2025ec70c1c59fd9aa15552f9f1812341146006",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
