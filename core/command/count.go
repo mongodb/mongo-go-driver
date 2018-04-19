@@ -41,7 +41,10 @@ func (c *Count) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 		if option == nil {
 			continue
 		}
-		option.Option(command)
+		err := option.Option(command)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return (&Command{DB: c.NS.DB, ReadPref: c.ReadPref, Command: command}).Encode(desc)

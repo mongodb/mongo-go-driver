@@ -34,7 +34,10 @@ func (gm *GetMore) Encode(desc description.SelectedServer) (wiremessage.WireMess
 		bson.EC.String("collection", gm.NS.Collection),
 	)
 	for _, opt := range gm.Opts {
-		opt.Option(cmd)
+		err := opt.Option(cmd)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return (&Command{DB: gm.NS.DB, Command: cmd}).Encode(desc)
 }

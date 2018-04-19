@@ -44,7 +44,10 @@ func (i *Insert) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		if option == nil {
 			continue
 		}
-		option.Option(command)
+		err := option.Option(command)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return (&Command{DB: i.NS.DB, Command: command, isWrite: true}).Encode(desc)
