@@ -367,7 +367,10 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) (descript
 	}
 
 	for _, added := range diff.Added {
-		t.addServer(ctx, added.Addr)
+		err := t.addServer(ctx, added.Addr)
+		if err != nil {
+			return description.Topology{}, err
+		}
 	}
 	t.serversLock.Unlock()
 	return current, nil

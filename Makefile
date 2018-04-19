@@ -39,7 +39,7 @@ lint-add-whitelist:
 
 .PHONY: errcheck
 errcheck:
-	errcheck -exclude .errcheck-excludes ./bson/... ./mongo/...
+	errcheck -exclude .errcheck-excludes ./bson/... ./mongo/... ./core/...
 
 .PHONY: test
 test:
