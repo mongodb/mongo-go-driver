@@ -107,6 +107,8 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 	opts := ClientOpt.Dialer(td)
 	client, err := newClient(testutil.ConnString(t), opts)
 	require.NoError(t, err)
+	err = client.Connect(context.Background())
+	require.NoError(t, err)
 	_, err = client.ListDatabases(context.Background(), nil)
 	require.NoError(t, err)
 	got := atomic.LoadInt32(&td.called)
