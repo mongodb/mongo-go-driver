@@ -702,6 +702,9 @@ func (d *Decoder) decodeBSONArrayToSlice(sliceType reflect.Type) (reflect.Value,
 			break
 		}
 
+		if sliceType.Elem().Kind() == reflect.Ptr {
+			elem = elem.Addr()
+		}
 		out.Index(i).Set(elem)
 	}
 
@@ -787,11 +790,12 @@ func matchesField(key string, field string, sType reflect.Type) bool {
 
 	tag, ok := sField.Tag.Lookup("bson")
 	if !ok {
+		// Get the full tag string
+		tag = string(sField.Tag)
+
 		if len(sField.Tag) == 0 || strings.ContainsRune(tag, ':') {
 			return strings.ToLower(key) == strings.ToLower(field)
 		}
-
-		tag = string(sField.Tag)
 	}
 
 	var fieldKey string
