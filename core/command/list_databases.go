@@ -39,7 +39,10 @@ func (ld *ListDatabases) Encode(desc description.SelectedServer) (wiremessage.Wi
 		if opt == nil {
 			continue
 		}
-		opt.Option(cmd)
+		err := opt.Option(cmd)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return (&Command{DB: "admin", Command: cmd, isWrite: true}).Encode(desc)

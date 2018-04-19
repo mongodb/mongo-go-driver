@@ -34,7 +34,10 @@ func (li *ListIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 		if opt == nil {
 			continue
 		}
-		opt.Option(cmd)
+		err := opt.Option(cmd)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return (&Command{DB: li.NS.DB, Command: cmd, isWrite: true}).Encode(desc)

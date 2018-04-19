@@ -48,7 +48,10 @@ func (d *Distinct) Encode(desc description.SelectedServer) (wiremessage.WireMess
 		if option == nil {
 			continue
 		}
-		option.Option(command)
+		err := option.Option(command)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return (&Command{DB: d.NS.DB, ReadPref: d.ReadPref, Command: command}).Encode(desc)

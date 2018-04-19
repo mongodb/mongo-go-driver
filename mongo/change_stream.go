@@ -43,7 +43,10 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 	changeStreamOptions := bson.NewDocument()
 
 	for _, opt := range opts {
-		opt.Option(changeStreamOptions)
+		err = opt.Option(changeStreamOptions)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pipelineArr.Prepend(
@@ -126,7 +129,11 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 	changeStreamOptions := bson.NewDocument()
 
 	for _, opt := range cs.options {
-		opt.Option(changeStreamOptions)
+		err = opt.Option(changeStreamOptions)
+		if err != nil {
+			cs.err = err
+			return false
+		}
 	}
 
 	cs.pipeline.Set(0, bson.VC.Document(

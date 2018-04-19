@@ -43,10 +43,16 @@ func (u *Update) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 			continue
 		case options.OptUpsert, options.OptCollation, options.OptArrayFilters:
 			for _, doc := range u.Docs {
-				option.Option(doc)
+				err := option.Option(doc)
+				if err != nil {
+					return nil, err
+				}
 			}
 		default:
-			option.Option(command)
+			err := option.Option(command)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

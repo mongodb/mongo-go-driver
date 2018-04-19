@@ -44,7 +44,10 @@ func (f *FindOneAndDelete) Encode(desc description.SelectedServer) (wiremessage.
 		if option == nil {
 			continue
 		}
-		option.Option(command)
+		err := option.Option(command)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
