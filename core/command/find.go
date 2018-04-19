@@ -43,6 +43,7 @@ func (f *Find) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 
 	var limit int64
 	var batchSize int32
+	var err error
 
 	for _, option := range f.Opts {
 		switch t := option.(type) {
@@ -50,14 +51,17 @@ func (f *Find) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 			continue
 		case options.OptLimit:
 			limit = int64(t)
-			option.Option(command)
+			err = option.Option(command)
 		case options.OptBatchSize:
 			batchSize = int32(t)
-			option.Option(command)
+			err = option.Option(command)
 		case options.OptProjection:
-			t.IsFind().Option(command)
+			err = t.IsFind().Option(command)
 		default:
-			option.Option(command)
+			err = option.Option(command)
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
