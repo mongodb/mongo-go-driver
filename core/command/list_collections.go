@@ -39,7 +39,10 @@ func (lc *ListCollections) Encode(desc description.SelectedServer) (wiremessage.
 		if opt == nil {
 			continue
 		}
-		opt.Option(cmd)
+		err := opt.Option(cmd)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return (&Command{DB: lc.DB, Command: cmd, isWrite: true}).Encode(desc)

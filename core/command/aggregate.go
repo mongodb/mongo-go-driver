@@ -49,9 +49,15 @@ func (a *Aggregate) Encode(desc description.SelectedServer) (wiremessage.WireMes
 			if t == 0 && a.HasDollarOut() {
 				continue
 			}
-			option.Option(cursor)
+			err := option.Option(cursor)
+			if err != nil {
+				return nil, err
+			}
 		default:
-			option.Option(command)
+			err := option.Option(command)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
