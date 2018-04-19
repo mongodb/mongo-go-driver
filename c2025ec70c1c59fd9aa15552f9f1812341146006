@@ -16,6 +16,24 @@
       "revId": "c2025ec70c1c59fd9aa15552f9f1812341146006",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "93868a5f_b96eefc1",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 372,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-19T18:59:57Z",
+      "side": 1,
+      "message": "Ah you\u0027re right, we should just ignore this error here.",
+      "parentUuid": "8e24e2f8_a55099bf",
+      "revId": "c2025ec70c1c59fd9aa15552f9f1812341146006",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
