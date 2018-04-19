@@ -699,3 +699,24 @@ func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 func (coll *Collection) Indexes() IndexView {
 	return IndexView{coll: coll}
 }
+
+// Drop function  drops the collection from db.
+func (coll *Collection) Drop(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	cmd := command.DropCollection{
+		DB:         coll.db.name,
+		Collection: coll.name,
+	}
+	_, err := dispatch.DropCollection(ctx, cmd, coll.client.topology, coll.writeSelector)
+	if err != nil {
+		if command.IsNotFound(err) {
+			return nil
+		} else {
+			return err
+		}
+	}
+	return nil
+}
