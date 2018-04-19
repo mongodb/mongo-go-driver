@@ -7,6 +7,7 @@
 package connection
 
 import (
+	"net"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type config struct {
 func newConfig(opts ...Option) (*config, error) {
 	cfg := &config{
 		connectTimeout: 30 * time.Second,
-		dialer:         DefaultDialer,
+		dialer:         nil,
 		idleTimeout:    10 * time.Minute,
 		lifeTimeout:    30 * time.Minute,
 	}
@@ -35,6 +36,10 @@ func newConfig(opts ...Option) (*config, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if cfg.dialer == nil {
+		cfg.dialer = &net.Dialer{Timeout: cfg.connectTimeout}
 	}
 
 	return cfg, nil
