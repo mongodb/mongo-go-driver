@@ -119,11 +119,6 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	err = topo.Connect(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
 	client.topology = topo
 	client.readConcern = readConcernFromConnString(&client.connString)
 	client.writeConcern = writeConcernFromConnString(&client.connString)
