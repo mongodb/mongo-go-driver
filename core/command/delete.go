@@ -48,10 +48,16 @@ func (d *Delete) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		case nil:
 		case options.OptCollation:
 			for _, doc := range d.Deletes {
-				option.Option(doc)
+				err := option.Option(doc)
+				if err != nil {
+					return nil, err
+				}
 			}
 		default:
-			option.Option(command)
+			err := option.Option(command)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
