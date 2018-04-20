@@ -91,8 +91,9 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		Opts: newOptions,
 	}
 
-	_, err = dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
+	if rr&rrOne == 0 {
 		return nil, err
 	}
 	return &InsertOneResult{InsertedID: insertedID}, err
@@ -144,11 +145,13 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		Opts: newOptions,
 	}
 
-	_, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
+	if rr&rrMany == 0 {
 		return nil, err
 	}
 	return &InsertManyResult{InsertedIDs: result}, err
+
 }
 
 // DeleteOne deletes a single document from the collection. A user can supply
@@ -182,7 +185,8 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	}
 
 	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
+	if rr&rrOne == 0 {
 		return nil, err
 	}
 	return &DeleteResult{DeletedCount: int64(res.N)}, err
@@ -216,7 +220,8 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	}
 
 	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
+	if rr&rrMany == 0 {
 		return nil, err
 	}
 	return &DeleteResult{DeletedCount: int64(res.N)}, err
@@ -257,6 +262,10 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		res.MatchedCount--
 	}
 
+	rr, err := processWriteError(r.WriteConcernError, r.WriteErrors, err)
+	if rr&rrOne == 0 {
+		return nil, err
+	}
 	return res, err
 }
 
@@ -346,6 +355,10 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		res.MatchedCount--
 	}
 
+	rr, err := processWriteError(r.WriteConcernError, r.WriteErrors, err)
+	if rr&rrMany == 0 {
+		return nil, err
+	}
 	return res, err
 }
 

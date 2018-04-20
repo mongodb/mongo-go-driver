@@ -9,11 +9,13 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -93,6 +95,62 @@ func TestCollection_InsertOne(t *testing.T) {
 	require.Equal(t, result.InsertedID, want)
 }
 
+func TestCollection_InsertOne_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 11000}
+	doc := bson.NewDocument(bson.EC.ObjectID("_id", objectid.New()))
+	coll := createTestCollection(t, nil, nil)
+
+	_, err := coll.InsertOne(context.Background(), doc)
+	require.NoError(t, err)
+	_, err = coll.InsertOne(context.Background(), doc)
+	got, ok := err.(WriteErrors)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+	}
+	if len(got) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+		t.FailNow()
+	}
+	if got[0].Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+	}
+
+}
+
+func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	doc := bson.NewDocument(bson.EC.ObjectID("_id", objectid.New()))
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.InsertOne(context.Background(), doc, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
+}
+
 func TestCollection_InsertMany(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -117,6 +175,69 @@ func TestCollection_InsertMany(t *testing.T) {
 	require.NotNil(t, result.InsertedIDs[1])
 	require.Equal(t, result.InsertedIDs[2], want2)
 
+}
+
+func TestCollection_InsertMany_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 11000}
+	docs := []interface{}{
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+	}
+	coll := createTestCollection(t, nil, nil)
+
+	_, err := coll.InsertMany(context.Background(), docs)
+	require.NoError(t, err)
+	_, err = coll.InsertMany(context.Background(), docs)
+	got, ok := err.(WriteErrors)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+	}
+	if len(got) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+		t.FailNow()
+	}
+	if got[0].Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+	}
+}
+
+func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	docs := []interface{}{
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+	}
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.InsertMany(context.Background(), docs, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, WriteConcernError{}, err)
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
 }
 
 func TestCollection_DeleteOne_found(t *testing.T) {
@@ -166,6 +287,69 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 	result, err := coll.DeleteOne(context.Background(), filter, Opt.Collation(&options.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
+}
+
+func TestCollection_DeleteOne_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 20}
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
+	db := createTestDatabase(t, nil)
+	_, err := db.RunCommand(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.String("create", testutil.ColName(t)),
+			bson.EC.Boolean("capped", true),
+			bson.EC.Int32("size", 64*1024),
+		),
+	)
+	require.NoError(t, err)
+	coll := db.Collection(testutil.ColName(t))
+
+	_, err = coll.DeleteOne(context.Background(), filter)
+	got, ok := err.(WriteErrors)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+	}
+	if len(got) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+		t.FailNow()
+	}
+	if got[0].Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+	}
+}
+
+func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.DeleteOne(context.Background(), filter, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
 }
 
 func TestCollection_DeleteMany_found(t *testing.T) {
@@ -220,6 +404,69 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 	result, err := coll.DeleteMany(context.Background(), filter, Opt.Collation(&options.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
+}
+
+func TestCollection_DeleteMany_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 20}
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
+	db := createTestDatabase(t, nil)
+	_, err := db.RunCommand(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.String("create", testutil.ColName(t)),
+			bson.EC.Boolean("capped", true),
+			bson.EC.Int32("size", 64*1024),
+		),
+	)
+	require.NoError(t, err)
+	coll := db.Collection(testutil.ColName(t))
+
+	_, err = coll.DeleteMany(context.Background(), filter)
+	got, ok := err.(WriteErrors)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+	}
+	if len(got) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+		t.FailNow()
+	}
+	if got[0].Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+	}
+}
+
+func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	filter := bson.NewDocument(bson.EC.Int32("x", 1))
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.DeleteMany(context.Background(), filter, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
 }
 
 func TestCollection_UpdateOne_found(t *testing.T) {
@@ -284,6 +531,74 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
+}
+
+func TestCollection_UpdateOne_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 66}
+	filter := bson.NewDocument(bson.EC.String("_id", "foo"))
+	update := bson.NewDocument(
+		bson.EC.SubDocumentFromElements(
+			"$set",
+			bson.EC.Double("_id", 3.14159),
+		),
+	)
+	coll := createTestCollection(t, nil, nil)
+
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.String("_id", "foo")))
+	require.NoError(t, err)
+
+	_, err = coll.UpdateOne(context.Background(), filter, update)
+	got, ok := err.(WriteErrors)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+	}
+	if len(got) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+		t.FailNow()
+	}
+	if got[0].Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+	}
+}
+
+func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	filter := bson.NewDocument(bson.EC.String("_id", "foo"))
+	update := bson.NewDocument(
+		bson.EC.SubDocumentFromElements(
+			"$set",
+			bson.EC.Double("pi", 3.14159),
+		),
+	)
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.UpdateOne(context.Background(), filter, update, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
 }
 
 func TestCollection_UpdateMany_found(t *testing.T) {
@@ -355,6 +670,75 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 	require.NotNil(t, result.UpsertedID)
 }
 
+func TestCollection_UpdateMany_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 66}
+	filter := bson.NewDocument(bson.EC.String("_id", "foo"))
+	update := bson.NewDocument(
+		bson.EC.SubDocumentFromElements(
+			"$set",
+			bson.EC.Double("_id", 3.14159),
+		),
+	)
+	coll := createTestCollection(t, nil, nil)
+
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.String("_id", "foo")))
+	require.NoError(t, err)
+
+	_, err = coll.UpdateMany(context.Background(), filter, update)
+	got, ok := err.(WriteErrors)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+	}
+	if len(got) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+		t.FailNow()
+	}
+	if got[0].Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+	}
+
+}
+
+func TestCollection_UpdateMany_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	filter := bson.NewDocument(bson.EC.String("_id", "foo"))
+	update := bson.NewDocument(
+		bson.EC.SubDocumentFromElements(
+			"$set",
+			bson.EC.Double("pi", 3.14159),
+		),
+	)
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.UpdateMany(context.Background(), filter, update, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
+}
+
 func TestCollection_ReplaceOne_found(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -414,6 +798,64 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
+}
+
+func TestCollection_ReplaceOne_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 66}
+	filter := bson.NewDocument(bson.EC.String("_id", "foo"))
+	replacement := bson.NewDocument(bson.EC.Double("_id", 3.14159))
+	coll := createTestCollection(t, nil, nil)
+
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.String("_id", "foo")))
+	require.NoError(t, err)
+
+	_, err = coll.ReplaceOne(context.Background(), filter, replacement)
+	got, ok := err.(WriteErrors)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+	}
+	if len(got) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+		t.FailNow()
+	}
+	if got[0].Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+	}
+}
+
+func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	filter := bson.NewDocument(bson.EC.String("_id", "foo"))
+	update := bson.NewDocument(bson.EC.Double("pi", 3.14159))
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.ReplaceOne(context.Background(), filter, update, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
 }
 
 func TestCollection_Aggregate(t *testing.T) {
