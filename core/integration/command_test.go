@@ -13,13 +13,16 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/addr"
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCommand(t *testing.T) {
 	noerr := func(t *testing.T, err error) {
-		// t.Helper()
+		t.Helper()
 		if err != nil {
 			t.Errorf("Unepexted error: %v", err)
 			t.FailNow()
@@ -73,4 +76,32 @@ func TestCommand(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, elem.Value().Type(), bson.TypeDouble)
 	require.Equal(t, float64(1), elem.Value().Double(), "Unable to ping MongoDB")
+}
+
+func TestWriteCommands(t *testing.T) {
+	t.Run("Insert", func(t *testing.T) {
+		t.Run("Should return write error", func(t *testing.T) {
+			ctx := context.TODO()
+			server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+			noerr(t, err)
+			conn, err := server.Connection(context.Background())
+			noerr(t, err)
+			cmd := &command.Insert{
+				NS:   command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
+				Docs: []*bson.Document{bson.NewDocument(bson.EC.String("_id", "helloworld"))},
+			}
+			_, err = cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+			noerr(t, err)
+			res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+			noerr(t, err)
+			if len(res.WriteErrors) != 1 {
+				t.Errorf("Expected to get a write error. got %d; want %d", len(res.WriteErrors), 1)
+				t.FailNow()
+			}
+			want := result.WriteError{Code: 11000}
+			if res.WriteErrors[0].Code != want.Code {
+				t.Errorf("Expected error codes to match. want %d; got %d", res.WriteErrors[0].Code, want.Code)
+			}
+		})
+	})
 }
