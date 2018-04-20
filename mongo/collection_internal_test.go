@@ -9,11 +9,13 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -93,6 +95,57 @@ func TestCollection_InsertOne(t *testing.T) {
 	require.Equal(t, result.InsertedID, want)
 }
 
+func TestCollection_InsertOne_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 11000}
+	doc := bson.NewDocument(bson.EC.ObjectID("_id", objectid.New()))
+	coll := createTestCollection(t, nil, nil)
+
+	_, err := coll.InsertOne(context.Background(), doc)
+	require.NoError(t, err)
+	_, err = coll.InsertOne(context.Background(), doc)
+	got, ok := err.(WriteError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+}
+
+func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	doc := bson.NewDocument(bson.EC.ObjectID("_id", objectid.New()))
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.InsertOne(context.Background(), doc, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
+}
+
 func TestCollection_InsertMany(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -117,6 +170,65 @@ func TestCollection_InsertMany(t *testing.T) {
 	require.NotNil(t, result.InsertedIDs[1])
 	require.Equal(t, result.InsertedIDs[2], want2)
 
+}
+
+func TestCollection_InsertMany_WriteError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	want := WriteError{Code: 11000}
+	docs := []interface{}{
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+	}
+	coll := createTestCollection(t, nil, nil)
+
+	_, err := coll.InsertMany(context.Background(), docs)
+	require.NoError(t, err)
+	_, err = coll.InsertMany(context.Background(), docs)
+	got, ok := err.(WriteError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteError{})
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+}
+
+func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
+	docs := []interface{}{
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+	}
+	coll := createTestCollection(t, nil, nil)
+
+	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	require.NoError(t, err)
+	_, err = coll.InsertMany(context.Background(), docs, optwc)
+	got, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, WriteConcernError{}, err)
+	}
+	if got.Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+	}
+	if got.Message != want.Message {
+		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
+	}
 }
 
 func TestCollection_DeleteOne_found(t *testing.T) {

@@ -91,11 +91,19 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		Opts: newOptions,
 	}
 
-	_, err = dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	switch {
+	case err == dispatch.ErrUnacknowledgedWrite:
+		return &InsertOneResult{InsertedID: insertedID}, err
+	case err != nil:
 		return nil, err
+	case len(res.WriteErrors) == 1:
+		return nil, WriteError{Code: res.WriteErrors[0].Code, Message: res.WriteErrors[0].ErrMsg}
+	case res.WriteConcernError != nil:
+		return nil, WriteConcernError{Code: res.WriteConcernError.Code, Message: res.WriteConcernError.ErrMsg}
+	default:
+		return &InsertOneResult{InsertedID: insertedID}, nil
 	}
-	return &InsertOneResult{InsertedID: insertedID}, err
 }
 
 // InsertMany inserts the provided documents. A user can supply a custom context to this
@@ -144,11 +152,24 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		Opts: newOptions,
 	}
 
-	_, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
 	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-	return &InsertManyResult{InsertedIDs: result}, err
+	switch {
+	case err == dispatch.ErrUnacknowledgedWrite:
+		return &InsertManyResult{InsertedIDs: result}, err
+	case err != nil:
+		return nil, err
+	case len(res.WriteErrors) == 1:
+		return nil, WriteError{Code: res.WriteErrors[0].Code, Message: res.WriteErrors[0].ErrMsg}
+	case len(res.WriteErrors) > 1:
+		return nil, writeErrorsFromResult(res.WriteErrors)
+	case res.WriteConcernError != nil:
+		return nil, WriteConcernError{Code: res.WriteConcernError.Code, Message: res.WriteConcernError.ErrMsg}
+	default:
+		return &InsertManyResult{InsertedIDs: result}, nil
+	}
 }
 
 // DeleteOne deletes a single document from the collection. A user can supply
