@@ -91,11 +91,19 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		Opts: newOptions,
 	}
 
-	_, err = dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	switch {
+	case err == dispatch.ErrUnacknowledgedWrite:
+		return &InsertOneResult{InsertedID: insertedID}, err
+	case err != nil:
 		return nil, err
+	case len(res.WriteErrors) == 1:
+		return nil, WriteError{Code: res.WriteErrors[0].Code, Message: res.WriteErrors[0].ErrMsg}
+	case res.WriteConcernError != nil:
+		return nil, WriteConcernError{Code: res.WriteConcernError.Code, Message: res.WriteConcernError.ErrMsg}
+	default:
+		return &InsertOneResult{InsertedID: insertedID}, nil
 	}
-	return &InsertOneResult{InsertedID: insertedID}, err
 }
 
 // InsertMany inserts the provided documents. A user can supply a custom context to this
@@ -144,11 +152,24 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		Opts: newOptions,
 	}
 
-	_, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
 	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-	return &InsertManyResult{InsertedIDs: result}, err
+	switch {
+	case err == dispatch.ErrUnacknowledgedWrite:
+		return &InsertManyResult{InsertedIDs: result}, err
+	case err != nil:
+		return nil, err
+	case len(res.WriteErrors) == 1:
+		return nil, WriteError{Code: res.WriteErrors[0].Code, Message: res.WriteErrors[0].ErrMsg}
+	case len(res.WriteErrors) > 1:
+		return nil, writeErrorsFromResult(res.WriteErrors)
+	case res.WriteConcernError != nil:
+		return nil, WriteConcernError{Code: res.WriteConcernError.Code, Message: res.WriteConcernError.ErrMsg}
+	default:
+		return &InsertManyResult{InsertedIDs: result}, nil
+	}
 }
 
 // DeleteOne deletes a single document from the collection. A user can supply
@@ -182,10 +203,18 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	}
 
 	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	switch {
+	case err == dispatch.ErrUnacknowledgedWrite:
+		return &DeleteResult{DeletedCount: int64(res.N)}, err
+	case err != nil:
 		return nil, err
+	case len(res.WriteErrors) == 1:
+		return nil, WriteError{Code: res.WriteErrors[0].Code, Message: res.WriteErrors[0].ErrMsg}
+	case res.WriteConcernError != nil:
+		return nil, WriteConcernError{Code: res.WriteConcernError.Code, Message: res.WriteConcernError.ErrMsg}
+	default:
+		return &DeleteResult{DeletedCount: int64(res.N)}, nil
 	}
-	return &DeleteResult{DeletedCount: int64(res.N)}, err
 }
 
 // DeleteMany deletes multiple documents from the collection. A user can
@@ -219,7 +248,18 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
 		return nil, err
 	}
-	return &DeleteResult{DeletedCount: int64(res.N)}, err
+	switch {
+	case err == dispatch.ErrUnacknowledgedWrite:
+		return &DeleteResult{DeletedCount: int64(res.N)}, err
+	case err != nil:
+		return nil, err
+	case len(res.WriteErrors) == 1:
+		return nil, WriteError{Code: res.WriteErrors[0].Code, Message: res.WriteErrors[0].ErrMsg}
+	case res.WriteConcernError != nil:
+		return nil, WriteConcernError{Code: res.WriteConcernError.Code, Message: res.WriteConcernError.ErrMsg}
+	default:
+		return &DeleteResult{DeletedCount: int64(res.N)}, nil
+	}
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
@@ -257,7 +297,18 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		res.MatchedCount--
 	}
 
-	return res, err
+	switch {
+	case err == dispatch.ErrUnacknowledgedWrite:
+		return res, err
+	case err != nil:
+		return nil, err
+	case len(r.WriteErrors) == 1:
+		return nil, WriteError{Code: r.WriteErrors[0].Code, Message: r.WriteErrors[0].ErrMsg}
+	case r.WriteConcernError != nil:
+		return nil, WriteConcernError{Code: r.WriteConcernError.Code, Message: r.WriteConcernError.ErrMsg}
+	default:
+		return res, nil
+	}
 }
 
 // UpdateOne updates a single document in the collection. A user can supply a
@@ -346,7 +397,18 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		res.MatchedCount--
 	}
 
-	return res, err
+	switch {
+	case err == dispatch.ErrUnacknowledgedWrite:
+		return res, err
+	case err != nil:
+		return nil, err
+	case len(r.WriteErrors) == 1:
+		return nil, WriteError{Code: r.WriteErrors[0].Code, Message: r.WriteErrors[0].ErrMsg}
+	case r.WriteConcernError != nil:
+		return nil, WriteConcernError{Code: r.WriteConcernError.Code, Message: r.WriteConcernError.ErrMsg}
+	default:
+		return res, nil
+	}
 }
 
 // ReplaceOne replaces a single document in the collection. A user can supply
