@@ -260,23 +260,31 @@ func (s *Server) update() {
 	desc, conn = s.heartbeat(nil)
 	s.updateDescription(desc, true)
 
+	closeServer := func() {
+		s.subLock.Lock()
+		for id, c := range s.subscribers {
+			close(c)
+			delete(s.subscribers, id)
+		}
+		s.subscriptionsClosed = true
+		s.subLock.Unlock()
+		conn.Close()
+	}
 	for {
 		select {
 		case <-heartbeatTicker.C:
 		case <-checkNow:
 		case <-done:
-			s.subLock.Lock()
-			for id, c := range s.subscribers {
-				close(c)
-				delete(s.subscribers, id)
-			}
-			s.subscriptionsClosed = true
-			s.subLock.Unlock()
-			conn.Close()
+			closeServer()
 			return
 		}
 
-		<-rateLimiter.C
+		select {
+		case <-rateLimiter.C:
+		case <-done:
+			closeServer()
+			return
+		}
 
 		desc, conn = s.heartbeat(conn)
 		s.updateDescription(desc, false)
