@@ -421,6 +421,13 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 		case Reader:
 			elems = append(elems, EC.SubDocumentFromReader(key, t))
 			continue
+		case ValueMarshaler:
+			v, err := t.MarshalBSONValue()
+			if err != nil {
+				return nil, err
+			}
+			elems = append(elems, EC.Interface(key, v.Interface()))
+			continue
 		}
 		field = e.underlyingVal(field)
 
