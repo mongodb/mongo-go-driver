@@ -10,7 +10,7 @@ stepback: true
 # Mark a failure as a system/bootstrap failure (purple box) rather then a task
 # failure by default.
 # Actual testing tasks are marked with `type: test`
-command_type: system
+command_type: setup
 
 # Protect ourself against rogue test case, or curl gone wild, that runs forever
 # 12 minutes is the longest we'll ever run
@@ -27,10 +27,9 @@ functions:
   fetch-source:
     # Executes git clone and applies the submitted patch, if any
     - command: git.get_project
+      type: system
       params:
         directory: src/github.com/mongodb/mongo-go-driver
-    # Deprecated. Should be removed. But still needed for certain agents (ZAP)
-    - command: git.apply_patch
     # Make an evergreen expansion file with dynamic values
     - command: shell.exec
       params:
