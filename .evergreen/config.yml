@@ -545,9 +545,9 @@ axes:
           - windows-64-vs2015-large
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-      - id: "ubuntu1404-64"
-        display_name: "Ubuntu 14.04"
-        run_on: ubuntu1404-build
+      - id: "ubuntu1604-64"
+        display_name: "Ubuntu 16.04"
+        run_on: ubuntu1604-build
       - id: osx
         display_name: "MacOS 10.12"
         run_on: macos-1012
@@ -557,7 +557,7 @@ buildvariants:
 - name: static-analysis
   display_name: "Static Analysis"
   run_on:
-    - ubuntu1404-build
+    - ubuntu1604-build
   tasks:
     - name: ".static-analysis"
 
