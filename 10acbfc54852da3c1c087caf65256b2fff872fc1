@@ -244,6 +244,24 @@
     },
     {
       "key": {
+        "uuid": "b241365b_d1128786",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T21:53:30Z",
+      "side": 1,
+      "message": "He means that the dispatch.ErrUnacknowledgedWrite is still propagating out even thought it has been \"handled\". Why is it important for someone to know that the response was manufactured? The requested this behavior with the write concern.",
+      "parentUuid": "0547a5d5_2c4d60d3",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8b767472_604e31e2",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -344,6 +362,24 @@
       "writtenOn": "2018-04-24T21:51:57Z",
       "side": 1,
       "message": "Definitely possible.  Consider a bulk write with ordered : false.  The nth write could fail with a write error, and then the rest could fail to replicate with a write concern error.",
+      "parentUuid": "e4c5b4be_0c11b6c3",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6885b4b3_a696d6d2",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T21:53:30Z",
+      "side": 1,
+      "message": "Yes, a single WriteConcernError and one or more WriteErrors can co-exist.\n\nThe WriteConcernError is for the whole thing.",
       "parentUuid": "e4c5b4be_0c11b6c3",
       "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
