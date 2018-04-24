@@ -16,6 +16,24 @@
       "revId": "17b123f9bce68eb01a5c4cb8b6b51d968775c190",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "76cd957c_e4be5091",
+        "filename": "bson/constructor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 131,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-04-24T23:59:25Z",
+      "side": 1,
+      "message": "yeah, sorry about that.",
+      "parentUuid": "74c09f92_b8d6980b",
+      "revId": "17b123f9bce68eb01a5c4cb8b6b51d968775c190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
