@@ -26,7 +26,10 @@ func createTestCollection(t *testing.T, dbName *string, collName *string) *Colle
 
 	db := createTestDatabase(t, dbName)
 
-	return db.Collection(*collName)
+	collection := db.Collection(*collName)
+	require.Equal(t, *collName, collection.Name())
+
+	return collection
 }
 
 func initCollection(t *testing.T, coll *Collection) {

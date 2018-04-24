@@ -45,8 +45,11 @@ func newCollection(db *Database, name string) *Collection {
 		writeSelector:  db.writeSelector,
 	}
 
-	return coll
+	return colly
 }
+
+// Name provides access to the name of the collection.
+func (coll *Collection) Name() string { return coll.name }
 
 // namespace returns the namespace of the collection.
 func (coll *Collection) namespace() command.Namespace {
