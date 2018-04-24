@@ -76,6 +76,19 @@ func TestCollection_namespace(t *testing.T) {
 	require.Equal(t, namespace.FullName(), fmt.Sprintf("%s.%s", dbName, collName))
 }
 
+func TestCollection_name_accessor(t *testing.T) {
+	t.Parallel()
+
+	dbName := "foo"
+	collName := "bar"
+
+	coll := createTestCollection(t, &dbName, &collName)
+	namespace := coll.namespace()
+	require.Equal(t, coll.Name(), collName)
+	require.Equal(t, coll.Name(), namespace.Collection)
+
+}
+
 func TestCollection_InsertOne(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")

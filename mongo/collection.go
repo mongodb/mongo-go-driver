@@ -48,6 +48,11 @@ func newCollection(db *Database, name string) *Collection {
 	return coll
 }
 
+// Name provides access to the name of the collection.
+func (coll *Collection) Name() string {
+	return coll.name
+}
+
 // namespace returns the namespace of the collection.
 func (coll *Collection) namespace() command.Namespace {
 	return command.NewNamespace(coll.db.name, coll.name)
