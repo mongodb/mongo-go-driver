@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8c2f1e45_edef0d82",
+        "filename": "core/result/result.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-04-24T16:24:01Z",
+      "side": 1,
+      "message": "does it make sense to make this a pointer?",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d40935a0_85e2c6f9",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-04-24T16:24:01Z",
+      "side": 1,
+      "message": "is it possible to refactor some or all of these switch statement out?",
+      "range": {
+        "startLine": 95,
+        "startChar": 1,
+        "endLine": 95,
+        "endChar": 7
+      },
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
