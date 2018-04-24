@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eeff26d9_d17315fe",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T16:54:38Z",
+      "side": 1,
+      "message": "ping: \"Let\u0027s do this in multiple lines for consistency.\"",
+      "revId": "f4a8abd59f08ff0775b06fb6836c521be9f56300",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
