@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/elements"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"time"
 )
 
 // EC is a convenience variable provided for access to the ElementConstructor methods.
@@ -325,6 +326,7 @@ func (ElementConstructor) Boolean(key string, b bool) *Element {
 }
 
 // DateTime creates a datetime element with the given key and value.
+// dt represents milliseconds since the Unix epoch
 func (ElementConstructor) DateTime(key string, dt int64) *Element {
 	size := uint32(1 + len(key) + 1 + 8)
 	elem := newElement(0, 1+uint32(len(key))+1)
@@ -336,6 +338,11 @@ func (ElementConstructor) DateTime(key string, dt int64) *Element {
 	}
 
 	return elem
+}
+
+// Time creates a datetime element with the given key and value.
+func (c ElementConstructor) Time(key string, time time.Time) *Element {
+	return c.DateTime(key, time.Unix()*1000)
 }
 
 // Null creates a null element with the given key.
