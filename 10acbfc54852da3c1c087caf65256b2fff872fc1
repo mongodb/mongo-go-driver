@@ -19,6 +19,41 @@
     },
     {
       "key": {
+        "uuid": "48ae6e21_c9f8a211",
+        "filename": "core/result/result.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T16:45:19Z",
+      "side": 1,
+      "message": "On successful inserts, this will be nil.",
+      "parentUuid": "8c2f1e45_edef0d82",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "00f8b55f_0cf8692b",
+        "filename": "core/result/result.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T16:45:19Z",
+      "side": 1,
+      "message": "How would people access this? Is there a reason this needs to be a struct instead of just an []interface{}",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d40935a0_85e2c6f9",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -39,6 +74,57 @@
       "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "42475bde_a14454c1",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T16:45:19Z",
+      "side": 1,
+      "message": "Why are we raising an unacknowledged write error?",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8b767472_604e31e2",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T16:45:19Z",
+      "side": 1,
+      "message": "1) If we have more than one write error, it appears that we are going to return success (default). Obviously, this is a single InsertOne, but who knows what may happen.\n\n2) What if there is also a WriteConcernError? Do we trash it? In the multiple write scenario, it could be that one of many errored, and the others were never replicated.\n\n3) (Again for multi writes), what if some writes succeeded and some failed? We need the user to know about each information separately.",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cca92ae6_2e60af2b",
+        "filename": "mongo/errors.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T16:45:19Z",
+      "side": 1,
+      "message": "Why not check to see if it\u0027s just one and return it; otherwise do the combination. That way, you can call this function without needing to check whether there are more than 1 error, since it seems that is always done from the callsites.",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
