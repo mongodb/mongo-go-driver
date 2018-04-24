@@ -11,58 +11,49 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
-// GetMore represents the getMore command.
+// DropCollection represents the drop command.
 //
-// The getMore command retrieves additional documents from a cursor.
-type GetMore struct {
-	ID   int64
-	NS   Namespace
-	Opts []options.CursorOptioner
-
-	result bson.Reader
-	err    error
+// The dropCollections command drops collection for a database.
+type DropCollection struct {
+	DB         string
+	Collection string
+	result     bson.Reader
+	err        error
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (gm *GetMore) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+func (di *DropCollection) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
 	cmd := bson.NewDocument(
-		bson.EC.Int64("getMore", gm.ID),
-		bson.EC.String("collection", gm.NS.Collection),
+		bson.EC.String("drop", di.Collection),
 	)
-	for _, opt := range gm.Opts {
-		err := opt.Option(cmd)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return (&Command{DB: gm.NS.DB, Command: cmd}).Encode(desc)
+
+	return (&Command{DB: di.DB, Command: cmd, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (gm *GetMore) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *GetMore {
-	gm.result, gm.err = (&Command{}).Decode(desc, wm).Result()
-	return gm
+func (di *DropCollection) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *DropCollection {
+	di.result, di.err = (&Command{}).Decode(desc, wm).Result()
+	return di
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (gm *GetMore) Result() (bson.Reader, error) {
-	if gm.err != nil {
-		return nil, gm.err
+func (di *DropCollection) Result() (bson.Reader, error) {
+	if di.err != nil {
+		return nil, di.err
 	}
-	return gm.result, nil
+	return di.result, nil
 }
 
 // Err returns the error set on this command.
-func (gm *GetMore) Err() error { return gm.err }
+func (di *DropCollection) Err() error { return di.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
-	wm, err := gm.Encode(desc)
+func (di *DropCollection) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+	wm, err := di.Encode(desc)
 	if err != nil {
 		return nil, err
 	}
@@ -75,5 +66,5 @@ func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServe
 	if err != nil {
 		return nil, err
 	}
-	return gm.Decode(desc, wm).Result()
+	return di.Decode(desc, wm).Result()
 }

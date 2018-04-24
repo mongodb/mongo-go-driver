@@ -129,6 +129,9 @@ func TestClient_X509Auth(t *testing.T) {
 	authClient, err := NewClient(cs)
 	require.NoError(t, err)
 
+	err = authClient.Connect(context.Background())
+	require.NoError(t, err)
+
 	db = authClient.Database("test")
 	rdr, err := db.RunCommand(
 		context.Background(),

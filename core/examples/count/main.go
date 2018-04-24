@@ -42,7 +42,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	t.Init()
+	err = t.Connect(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

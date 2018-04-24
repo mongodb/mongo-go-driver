@@ -67,6 +67,14 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			connOpts = append(connOpts, connection.WithConnectTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
 		}
 
+		if cs.SocketTimeoutSet {
+			connOpts = append(
+				connOpts,
+				connection.WithReadTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
+				connection.WithWriteTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
+			)
+		}
+
 		if cs.HeartbeatInterval > 0 {
 			c.serverOpts = append(c.serverOpts, WithHeartbeatInterval(func(time.Duration) time.Duration { return cs.HeartbeatInterval }))
 		}

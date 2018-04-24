@@ -10,7 +10,7 @@ stepback: true
 # Mark a failure as a system/bootstrap failure (purple box) rather then a task
 # failure by default.
 # Actual testing tasks are marked with `type: test`
-command_type: system
+command_type: setup
 
 # Protect ourself against rogue test case, or curl gone wild, that runs forever
 # 12 minutes is the longest we'll ever run
@@ -27,10 +27,9 @@ functions:
   fetch-source:
     # Executes git clone and applies the submitted patch, if any
     - command: git.get_project
+      type: system
       params:
         directory: src/github.com/mongodb/mongo-go-driver
-    # Deprecated. Should be removed. But still needed for certain agents (ZAP)
-    - command: git.apply_patch
     # Make an evergreen expansion file with dynamic values
     - command: shell.exec
       params:
@@ -61,17 +60,13 @@ functions:
            export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
            export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
            export UPLOAD_BUCKET="${project}"
-           export PATH="${GCC_PATH}:$GOPATH/bin:$MONGODB_BINARIES:$PATH"
+           export PATH="${GO_DIST}/bin:${GCC_PATH}:$GOPATH/bin:$MONGODB_BINARIES:$PATH"
            export PROJECT="${project}"
 
            if [ "Windows_NT" = "$OS" ]; then
               export USERPROFILE=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
               export HOME=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
            fi
-
-           go get -u github.com/andrewkroh/gvm
-           eval "$(gvm -f bash 1.9.5)"
-           gvm -f bash 1.9.5
 
            go version
            go env
@@ -87,7 +82,7 @@ functions:
               set -o errexit
               set -o xtrace
               export GOPATH="$GOPATH"
-              export GOROOT="$GOROOT"
+              export GOROOT="${GO_DIST}"
               export DRIVERS_TOOLS="$DRIVERS_TOOLS"
               export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
               export MONGODB_BINARIES="$MONGODB_BINARIES"
@@ -543,26 +538,29 @@ axes:
       - id: "windows-64"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vs2015-compile
           - windows-64-vs2015-test
-          - windows-64-vs2015-large
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-      - id: "ubuntu1404-64"
-        display_name: "Ubuntu 14.04"
-        run_on: ubuntu1404-build
+          GO_DIST: "C:\\golang\\go1.9.5"
+      - id: "ubuntu1604-64"
+        display_name: "Ubuntu 16.04"
+        run_on: ubuntu1604-build
+        variables:
+          GO_DIST: "/opt/golang/go1.9"
       - id: osx
         display_name: "MacOS 10.12"
         run_on: macos-1012
+        variables:
+          GO_DIST: "/opt/golang/go1.9"
 
 
 buildvariants:
 - name: static-analysis
   display_name: "Static Analysis"
   run_on:
-    # we don't care where this one runs
-    - macos-1012
-    - ubuntu1404-build
+    - ubuntu1604-build
+  expansions: 
+    GO_DIST: "/opt/golang/go1.9"
   tasks:
     - name: ".static-analysis"
 
