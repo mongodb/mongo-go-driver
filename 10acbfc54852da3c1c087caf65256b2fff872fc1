@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "a3c9a362_bd54918d",
+        "filename": "core/result/result.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T17:34:19Z",
+      "side": 1,
+      "message": "People need to access the ID field, and importantly we need to unmarshal it properly. This will ensure that users can get to the ID fields.",
+      "parentUuid": "00f8b55f_0cf8692b",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d40935a0_85e2c6f9",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -94,6 +112,24 @@
     },
     {
       "key": {
+        "uuid": "b8b4164f_9159a4a2",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T17:34:19Z",
+      "side": 1,
+      "message": "We don\u0027t raise it, it\u0027s if we get it. The reason we need this is to signal to the user that the result they get isn\u0027t a response from the database.",
+      "parentUuid": "42475bde_a14454c1",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8b767472_604e31e2",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -111,6 +147,24 @@
     },
     {
       "key": {
+        "uuid": "7d224fae_3cb2e686",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T17:34:19Z",
+      "side": 1,
+      "message": "We have to choose, since the CRUD spec says we can only return a WriteError or a WriteConcernError, and I\u0027m assuming that the server doesn\u0027t return both. We can return the InsertOneResult and the WriteError when an error occurs, but that might be confusing. It might make more sense for the *Many write types.",
+      "parentUuid": "8b767472_604e31e2",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "cca92ae6_2e60af2b",
         "filename": "mongo/errors.go",
         "patchSetId": 4
@@ -125,6 +179,24 @@
       "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f9864bdf_a3a16ae0",
+        "filename": "mongo/errors.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T17:34:19Z",
+      "side": 1,
+      "message": "We could instead just always return mongo.WriteErrors even when there\u0027s only a single error, but I don\u0027t think that\u0027s in line with the CRUD spec.",
+      "parentUuid": "cca92ae6_2e60af2b",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
