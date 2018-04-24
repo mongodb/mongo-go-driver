@@ -9,10 +9,10 @@ package bson
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/stretchr/testify/require"
-	"time"
 )
 
 func requireElementsEqual(t *testing.T, expected *Element, actual *Element) {

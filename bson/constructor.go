@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/elements"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
-	"time"
 )
 
 // EC is a convenience variable provided for access to the ElementConstructor methods.
