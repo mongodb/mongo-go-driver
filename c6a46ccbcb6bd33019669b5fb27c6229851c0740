@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a885eceb_194da6b7",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T13:20:47Z",
+      "side": 1,
+      "message": "This doesn\u0027t compile.",
+      "revId": "c6a46ccbcb6bd33019669b5fb27c6229851c0740",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "80e17dfe_67d4194f",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T13:20:47Z",
+      "side": 1,
+      "message": "Let\u0027s do this in multiple lines for consistency.",
+      "revId": "c6a46ccbcb6bd33019669b5fb27c6229851c0740",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "195c4e0a_1cfd8634",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-24T13:20:47Z",
+      "side": 1,
+      "message": "This isn\u0027t the best place to test this. The problem is that if it were to break, then all tests using this method would break. So, TestInsert, TestReadPreference, TestXXX, none of them actually broken and none indicating what the problem is until we inspect them.\n\nIt is best to isolate these into their own methods so that failures don\u0027t necessarily ripple and the test name can tell us more specifically what has happened.",
+      "revId": "c6a46ccbcb6bd33019669b5fb27c6229851c0740",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
