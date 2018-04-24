@@ -220,14 +220,13 @@ functions:
         file="${PROJECT_DIRECTORY}/.evergreen/install-dependencies.sh"
         [ -f ${file} ] && sh ${file} || echo "${file} not available, skipping"
 
-
   run-make:
     - command: shell.exec
       params:
         working_dir: src/github.com/mongodb/mongo-go-driver
         script: |
           ${PREPARE_SHELL}
-          make ${targets} BUILD_TAGS="-tags gssapi"
+          ${BUILD_ENV|} make ${targets} BUILD_TAGS="-tags gssapi"
 
 
   run-tests:
@@ -511,6 +510,38 @@ tasks:
       commands:
         - func: run-enterprise-gssapi-auth-tests
 
+    - name: go1.8-build
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build"
+            BUILD_ENV: "PATH=/opt/golang/go1.8/bin:$PATH GOROOT=/opt/golang/go1.8"
+
+    - name: linux-32-bit
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build"
+            BUILD_ENV: "GOARCH=386"
+
+    - name: linux-arm64
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build"
+            BUILD_ENV: "GOARCH=arm64"
+
+    - name: linux-s390x
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build"
+            BUILD_ENV: "GOARCH=ppc64le"
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -559,10 +590,19 @@ buildvariants:
   display_name: "Static Analysis"
   run_on:
     - ubuntu1604-build
-  expansions: 
+  expansions:
     GO_DIST: "/opt/golang/go1.9"
   tasks:
     - name: ".static-analysis"
+
+- name: build-check
+  display_name: "Compile Only Checks"
+  run_on:
+    - ubuntu1604-test
+  expansions:
+    GO_DIST: "/opt/golang/go1.10"
+  tasks:
+    - name: ".compile-check"
 
 - matrix_name: "tests"
   matrix_spec: { version: "*", os: "*" }

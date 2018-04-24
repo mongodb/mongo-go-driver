@@ -64,7 +64,7 @@ func (ElementConstructor) Interface(key string, value interface{}) *Element {
 		switch {
 		case t < math.MaxInt32:
 			elem = EC.Int32(key, int32(t))
-		case t > math.MaxInt64:
+		case uint64(t) > math.MaxInt64:
 			elem = EC.Null(key)
 		default:
 			elem = EC.Int64(key, int64(t))
@@ -128,7 +128,7 @@ func (c ElementConstructor) InterfaceErr(key string, value interface{}) (*Elemen
 		switch {
 		case t < math.MaxInt32:
 			elem = EC.Int32(key, int32(t))
-		case t > math.MaxInt64:
+		case uint64(t) > math.MaxInt64:
 			err = fmt.Errorf("BSON only has signed integer types and %d overflows an int64", t)
 		default:
 			elem = EC.Int64(key, int64(t))
@@ -137,7 +137,7 @@ func (c ElementConstructor) InterfaceErr(key string, value interface{}) (*Elemen
 		switch {
 		case t < math.MaxInt32:
 			elem = EC.Int32(key, int32(t))
-		case t > math.MaxInt64:
+		case uint64(t) > math.MaxInt64:
 			err = fmt.Errorf("BSON only has signed integer types and %d overflows an int64", t)
 		default:
 			elem = EC.Int64(key, int64(t))

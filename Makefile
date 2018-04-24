@@ -20,6 +20,10 @@ doc:
 build-examples:
 	go build $(BUILD_TAGS) ./examples/... ./core/examples/...
 
+.PHONY: build
+build:
+	go build $(filter-out ./core/auth/internal/gssapi,$(PKGS))
+
 .PHONY: check-fmt
 check-fmt:
 	@gofmt -l -s $(PKGS) | read; if [ $$? == 0 ]; then echo "gofmt check failed for:"; gofmt -l -s $(PKGS) | sed -e 's/^/ - /'; exit 1; fi
