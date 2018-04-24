@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "f52e6c7d_6a35200f",
+        "filename": "core/result/result.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-04-24T20:03:09Z",
+      "side": 1,
+      "message": "you can range over Update.Upserted, so this doesn\u0027t feel substantively different than what I\u0027d expect. I think it feels slightly weird to strip out the keys of these documents.",
+      "parentUuid": "ba3157f9_21dd00a1",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d40935a0_85e2c6f9",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -148,6 +166,24 @@
     },
     {
       "key": {
+        "uuid": "c23d34c4_b2982619",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-04-24T20:03:09Z",
+      "side": 1,
+      "message": "but we are propagating the error. on the next line. I think it makes sense to have the error value for these cases be nil, regardless.",
+      "parentUuid": "b8b4164f_9159a4a2",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8b767472_604e31e2",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -195,6 +231,24 @@
       "side": 1,
       "message": "Yeah, these comments were mostly in the context of the *Many types. It\u0027s something you need to figure out. Returning both an instance and an error is weird I think. I believe there are already other examples in this source set (DocumentResult I think) where you don\u0027t return an error, but return the result and let them check on that whether there was an error.",
       "parentUuid": "7d224fae_3cb2e686",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f82a633e_953caee5",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-04-24T20:03:09Z",
+      "side": 1,
+      "message": "I think it\u0027s reasonable to return an error and a value for the *Many reports (as this is really just propagating the admittedly weird result from MongoDB,) but we ought to document this pretty clearly.",
+      "parentUuid": "5b5f1b14_9d1647f0",
       "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
