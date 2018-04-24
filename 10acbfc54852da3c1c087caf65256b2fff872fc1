@@ -108,6 +108,24 @@
     },
     {
       "key": {
+        "uuid": "2ebc786b_05c821d7",
+        "filename": "core/result/result.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T21:02:57Z",
+      "side": 1,
+      "message": "Yeah something like this:\n\nvar update result.Update \u003d ...\nfor _, upserted :\u003d range update.Upserted {\n     id :\u003d upserted.ID\n     ....\n}",
+      "parentUuid": "f52e6c7d_6a35200f",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d40935a0_85e2c6f9",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -119,6 +137,30 @@
       "writtenOn": "2018-04-24T16:24:01Z",
       "side": 1,
       "message": "is it possible to refactor some or all of these switch statement out?",
+      "range": {
+        "startLine": 95,
+        "startChar": 1,
+        "endLine": 95,
+        "endChar": 7
+      },
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "66103083_64dac534",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T21:02:57Z",
+      "side": 1,
+      "message": "Factored this out into a function.",
+      "parentUuid": "d40935a0_85e2c6f9",
       "range": {
         "startLine": 95,
         "startChar": 1,
@@ -178,6 +220,24 @@
       "side": 1,
       "message": "but we are propagating the error. on the next line. I think it makes sense to have the error value for these cases be nil, regardless.",
       "parentUuid": "b8b4164f_9159a4a2",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0547a5d5_2c4d60d3",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T21:02:57Z",
+      "side": 1,
+      "message": "I\u0027m not sure what you mean here. All this case does is check if we did an unacknowledged write, if we did, we inform the user and return to them the ID of the document the inserted since we generate that.",
+      "parentUuid": "c23d34c4_b2982619",
       "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -255,6 +315,24 @@
     },
     {
       "key": {
+        "uuid": "e4c5b4be_0c11b6c3",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T21:02:57Z",
+      "side": 1,
+      "message": "Is it even possible to get both a WriteConcernError and a WriteError? There is only ever a single WriteConcernError, so for the *Many cases we wouldn\u0027t have any way to know which write the WriteConcernError was for.",
+      "parentUuid": "f82a633e_953caee5",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "cca92ae6_2e60af2b",
         "filename": "mongo/errors.go",
         "patchSetId": 4
@@ -284,6 +362,24 @@
       "side": 1,
       "message": "We could instead just always return mongo.WriteErrors even when there\u0027s only a single error, but I don\u0027t think that\u0027s in line with the CRUD spec.",
       "parentUuid": "cca92ae6_2e60af2b",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c5ba4049_94ae0787",
+        "filename": "mongo/errors.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-24T21:02:57Z",
+      "side": 1,
+      "message": "Changed the collection methods to always return a mongo.WriteErrors even when there is only a single one.",
+      "parentUuid": "f9864bdf_a3a16ae0",
       "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
