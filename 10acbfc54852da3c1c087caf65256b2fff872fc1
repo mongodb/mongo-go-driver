@@ -333,6 +333,24 @@
     },
     {
       "key": {
+        "uuid": "7fa9b873_b9af5275",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-24T21:51:57Z",
+      "side": 1,
+      "message": "Definitely possible.  Consider a bulk write with ordered : false.  The nth write could fail with a write error, and then the rest could fail to replicate with a write concern error.",
+      "parentUuid": "e4c5b4be_0c11b6c3",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "cca92ae6_2e60af2b",
         "filename": "mongo/errors.go",
         "patchSetId": 4
