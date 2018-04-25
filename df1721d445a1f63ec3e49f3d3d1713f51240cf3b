@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5ac12d02_d3c8d9f9",
+        "filename": "core/topology/topology_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-25T21:20:49Z",
+      "side": 1,
+      "message": "I\u0027d just set it directly. c.serverSelectionTimeout \u003d cs.ServerSelectionTimeout. No need to screw around with the options at this level.",
+      "revId": "df1721d445a1f63ec3e49f3d3d1713f51240cf3b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
