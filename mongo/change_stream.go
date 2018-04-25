@@ -35,7 +35,7 @@ const errorCodeCursorNotFound int32 = 43
 func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{},
 	opts ...options.ChangeStreamOptioner) (*changeStream, error) {
 
-	pipelineArr, err := transformAggregatePipeline(pipeline)
+	pipelineArr, err := coll.transformAggregatePipeline(pipeline)
 	if err != nil {
 		return nil, err
 	}

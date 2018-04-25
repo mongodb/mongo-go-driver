@@ -27,6 +27,7 @@ type Database struct {
 	readPreference *readpref.ReadPref
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
+	docTransformer DocumentTransformer
 }
 
 func newDatabase(client *Client, name string) *Database {
@@ -36,6 +37,7 @@ func newDatabase(client *Client, name string) *Database {
 		readPreference: client.readPreference,
 		readConcern:    client.readConcern,
 		writeConcern:   client.writeConcern,
+		docTransformer: client.docTransformer,
 	}
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{

@@ -24,6 +24,14 @@ type Dialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
+// DocumentTransformer provides a way for clients to modify the way
+// that a client's collection methods convert input documents into
+// *bson.Documents.
+//
+// These functions allow you to wrap other bson libraries or enforce
+// different conversion strategies within the driver.
+type DocumentTransformer func(interface{}) (*bson.Document, error)
+
 // TransformDocument handles transforming a document of an allowable type into
 // a *bson.Document. This method is called directly after most methods that
 // have one or more parameters that are documents.
@@ -86,38 +94,4 @@ func ensureDollarKey(doc *bson.Document) error {
 		return errors.New("update document must contain key beginning with '$'")
 	}
 	return nil
-}
-
-func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
-	var pipelineArr *bson.Array
-	switch t := pipeline.(type) {
-	case *bson.Array:
-		pipelineArr = t
-	case []*bson.Document:
-		pipelineArr = bson.NewArray()
-
-		for _, doc := range t {
-			pipelineArr.Append(bson.VC.Document(doc))
-		}
-	case []interface{}:
-		pipelineArr = bson.NewArray()
-
-		for _, val := range t {
-			doc, err := TransformDocument(val)
-			if err != nil {
-				return nil, err
-			}
-
-			pipelineArr.Append(bson.VC.Document(doc))
-		}
-	default:
-		p, err := TransformDocument(pipeline)
-		if err != nil {
-			return nil, err
-		}
-
-		pipelineArr = bson.ArrayFromDocument(p)
-	}
-
-	return pipelineArr, nil
 }

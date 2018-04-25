@@ -32,6 +32,7 @@ type Client struct {
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
 	writeConcern    *writeconcern.WriteConcern
+	docTransformer  DocumentTransformer
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -110,6 +111,9 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 		}
 	}
 
+	if client.docTransformer == nil {
+		client.docTransformer = TransformDocument
+	}
 	topts := append(
 		client.topologyOptions,
 		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return client.connString }),
@@ -186,7 +190,7 @@ func (c *Client) ConnectionString() string {
 func (c *Client) listDatabasesHelper(ctx context.Context, filter interface{},
 	nameOnly bool) (ListDatabasesResult, error) {
 
-	f, err := TransformDocument(filter)
+	f, err := c.docTransformer(filter)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}

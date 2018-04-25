@@ -409,3 +409,16 @@ func (co *ClientOptions) WTimeout(d time.Duration) *ClientOptions {
 	}
 	return &ClientOptions{next: co, opt: fn}
 }
+
+// DocumentTransformer sets the document transformer function used by
+// the client to transform interface{} types into bson documents.
+func (co *ClientOptions) DocumentTransformer(dt DocumentTransformer) *ClientOptions {
+	var fn option = func(c *Client) error {
+		if dt != nil {
+			c.docTransformer = dt
+		}
+
+		return nil
+	}
+	return &ClientOptions{next: co, opt: fn}
+}

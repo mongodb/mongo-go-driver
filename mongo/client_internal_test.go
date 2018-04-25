@@ -25,6 +25,7 @@ func createTestClient(t *testing.T) *Client {
 		topology:       testutil.Topology(t),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
+		docTransformer: TransformDocument,
 	}
 }
 
