@@ -284,8 +284,9 @@ func TestConstructor(t *testing.T) {
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
 
-			actualTime := EC.Time("foo", time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC))
-			actualDateTime := EC.DateTime("foo", 1514768461000)
+			date := time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)
+			actualTime := EC.Time("foo", date)
+			actualDateTime := EC.DateTime("foo", date.Unix()*1000)
 
 			requireElementsEqual(t, expected, actualTime)
 			requireElementsEqual(t, expected, actualDateTime)
