@@ -50,6 +50,14 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 	return func(c *config) error {
 		cs := fn(c.cs)
 		c.cs = cs
+
+		if cs.ServerSelectionTimeoutSet {
+			opt := WithServerSelectionTimeout(func(time.Duration) time.Duration { return cs.ServerSelectionTimeout })
+			if err := opt(c); err != nil {
+				return err
+			}
+		}
+
 		var connOpts []connection.Option
 
 		if cs.AppName != "" {
