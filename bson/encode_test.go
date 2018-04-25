@@ -9,11 +9,13 @@ package bson
 import (
 	"bytes"
 	"io"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEncoder(t *testing.T) {
@@ -909,6 +911,42 @@ func reflectionEncoderTest(t *testing.T) {
 			}
 		})
 	}
+}
+
+type zeroTest struct {
+	reportZero bool
+}
+
+func (z zeroTest) IsZero() bool { return z.reportZero }
+
+type nonZeroer struct {
+	value bool
+}
+
+func TestZeoerInterfaceUsedByDecoder(t *testing.T) {
+	enc := &encoder{}
+
+	// cases that are zero, because they are known types or pointers
+	var st *nonZeroer
+	assert.True(t, enc.isZero(reflect.ValueOf(st)))
+	assert.True(t, enc.isZero(reflect.ValueOf(0)))
+	assert.True(t, enc.isZero(reflect.ValueOf(false)))
+
+	// cases that shouldn't be zero
+	st = &nonZeroer{value: false}
+	assert.False(t, enc.isZero(reflect.ValueOf(struct{ val bool }{val: true})))
+	assert.False(t, enc.isZero(reflect.ValueOf(struct{ val bool }{val: false})))
+	assert.False(t, enc.isZero(reflect.ValueOf(st)))
+	st.value = true
+	assert.False(t, enc.isZero(reflect.ValueOf(st)))
+
+	// a test to see if the interface impacts the outcome
+	z := zeroTest{}
+	assert.False(t, enc.isZero(reflect.ValueOf(z)))
+
+	z.reportZero = true
+	assert.True(t, enc.isZero(reflect.ValueOf(z)))
+
 }
 
 func docToBytes(d *Document) []byte {
