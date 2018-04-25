@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "af6bc6b4_245b2dd4",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 979,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-25T15:32:06Z",
+      "side": 1,
+      "message": "This doesn\u0027t compile for me. There isn\u0027t a cursor type in the mongo package.\n\nThis belongs in the core\\topology package under the name cursor_internal_test.go.",
+      "revId": "e9463aab33933d3a1376cc682fbe1ab11d655045",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
