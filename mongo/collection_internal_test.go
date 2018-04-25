@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -973,4 +974,22 @@ func TestCollection_FindOneAndUpdate_notFound_ignoreResult(t *testing.T) {
 
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
+}
+
+func TestCursorNextDoesNotPanicIfContextisNil(t *testing.T) {
+	// all collection/cursor iterators should take contexts, but
+	// permit passing nils for contexts, which should not
+	// panic.
+	//
+	// While more through testing might be ideal this check
+	// prevents a regression of GODRIVER-298
+
+	c := cursor{batch: bson.NewArray(bson.VC.Null("a"), bson.VC.Null("b"))}
+
+	var iterNext bool
+	assert.NotPanics(t, func() {
+		iterNext = c.Next(nil)
+	})
+	asert.False(iterNext)
+
 }
