@@ -262,6 +262,24 @@
     },
     {
       "key": {
+        "uuid": "91768d03_33adb0f1",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-25T22:25:53Z",
+      "side": 1,
+      "message": "They might have set the write concern on the Client which could be very far removed from this method call. Additionally, intervening Database and Collection types might have changed the write concern behavior.\n\nFor the same reason that we are adding name methods for Collection and Database, we need to return this error because it provides the user with additional information and changes the semantics of the returned result they get. If we return nil in this case, the user doesn\u0027t know if the operation completed on the server or was just sent to the server.",
+      "parentUuid": "b241365b_d1128786",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8b767472_604e31e2",
         "filename": "mongo/collection.go",
         "patchSetId": 4
@@ -381,6 +399,24 @@
       "side": 1,
       "message": "Yes, a single WriteConcernError and one or more WriteErrors can co-exist.\n\nThe WriteConcernError is for the whole thing.",
       "parentUuid": "e4c5b4be_0c11b6c3",
+      "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "52afeeb5_96022b73",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-25T22:25:53Z",
+      "side": 1,
+      "message": "I talked with the platforms team about this some. I\u0027m going to update this to return a WriteConcernError over everything, although the CRUD spec should allow us to return both WriteErrors and a WriteConcernError.",
+      "parentUuid": "6885b4b3_a696d6d2",
       "revId": "10acbfc54852da3c1c087caf65256b2fff872fc1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
