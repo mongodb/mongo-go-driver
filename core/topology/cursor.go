@@ -79,6 +79,10 @@ func (c *cursor) ID() int64 {
 }
 
 func (c *cursor) Next(ctx context.Context) bool {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	c.current++
 	if c.current < c.batch.Len() {
 		return true
