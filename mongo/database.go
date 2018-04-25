@@ -74,3 +74,19 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}) (bso
 	cmd := command.Command{DB: db.Name(), Command: runCommand}
 	return dispatch.Command(ctx, cmd, db.client.topology, db.writeSelector)
 }
+
+// Drop drops this database from mongodb.
+func (db *Database) Drop(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	cmd := command.DropDatabase{
+		DB: db.name,
+	}
+	_, err := dispatch.DropDatabase(ctx, cmd, db.client.topology, db.writeSelector)
+	if err != nil && !command.IsNotFound(err) {
+		return err
+	}
+	return nil
+}

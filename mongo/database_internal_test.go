@@ -53,3 +53,20 @@ func TestDatabase_RunCommand(t *testing.T) {
 	require.Equal(t, ok.Value().Type(), bson.TypeDouble)
 	require.Equal(t, ok.Value().Double(), 1.0)
 }
+
+func TestDatabase_Drop(t *testing.T) {
+	t.Parallel()
+
+	name := "TestDatabase_Drop"
+
+	db := createTestDatabase(t, &name)
+
+	client := createTestClient(t)
+	err := db.Drop(context.Background())
+	require.NoError(t, err)
+	list, err := client.ListDatabaseNames(context.Background(), nil)
+
+	require.NoError(t, err)
+	require.NotContains(t, list, name)
+
+}
