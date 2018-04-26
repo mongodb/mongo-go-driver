@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "6b8db6a7_7843bd5f",
+        "filename": "core/result/result.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T19:26:35Z",
+      "side": 1,
+      "message": "You could make it a bson.Reader I guess. However, it has already been unmarshalled. It is the thing that WriteConcernError was unmarshalled from. In affect, you are reading out 2 special fields from the document (code and errmsg), and then adding the whole document in.\n\nwc :\u003d result.Lookup(\"writeConcern\")\nreturn \u0026WriteConcernError{\n  Code: wc.Lookup(\"code\").ToInt32(),\n  ErrMsg: wc.Lookup(\"errmsg\").ToString(),\n  Details: wc,\n}\n\nI\u0027ve got the syntax wrong, but you get the gist. There are other ways of doing this I think, but the above is the simplest.\n\ntype WriteConcernError *bson.Document\n\nfunc (wce *WriteConcernError) Code() int32 {\n  return wce.Lookup(\"code\").ToInt32()\n}",
+      "parentUuid": "e42c6104_9ac51e1d",
+      "revId": "26864de8056f922de1d8d39a5a5c7bea3633823c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "405a195a_643135a7",
         "filename": "mongo/errors.go",
         "patchSetId": 10
