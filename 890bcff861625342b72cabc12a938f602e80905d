@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "afc67a1b_8218598b",
+        "filename": "core/result/result.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T17:22:52Z",
+      "side": 1,
+      "message": "Then let\u0027s file a ticket for the CRUD spec to include this extra stuff. As it is, this extra stuff does indeed exist in the \"details\" document, which is why it\u0027s there. Using an older driver against a newer server means you still get the extra information.",
+      "parentUuid": "5594d358_a6c3c7fd",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0e66a98e_cda85b71",
         "filename": "mongo/collection.go",
         "patchSetId": 9
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "ErrUnacknowledgedWrite works like io.EOF. It\u0027s a signal of a graceful end to something, it doesn\u0027t necessarily invalidate the returned information.\n\nI understand that the spec says that acknowledged can be a field within the result object, but that is far easier to miss than an error. Errors are not exceptions, so returning an error doesn\u0027t necessarily mean that something has failed.",
       "parentUuid": "0e66a98e_cda85b71",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "37cb04b2_df1266a5",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T17:22:52Z",
+      "side": 1,
+      "message": "Fair enough... while I disagree with this choice, I\u0027m not going to argue about go idioms. You know way better than I.\n\nHowever, I can provide a little insight into the CRUD spec part.\n\nThe acknowledged flag in the result is there to indicate that other fields in the result have no values, specifically the counts (matchedCount, modifiedCount, etc...). If the fact that these have no values is divorced from the result itself, a user cannot pass the result to a helper function without also passing a second argument to indicate whether the counts in the result type are populated. Is there a go idiom to address this? Do you want to add MatchedCountSet booleans to each result? Is this not something that go developers need to worry about?",
+      "parentUuid": "7a769568_09104ddf",
       "revId": "890bcff861625342b72cabc12a938f602e80905d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
