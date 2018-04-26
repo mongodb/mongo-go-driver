@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d4d7b6bb_9699f065",
+        "filename": "core/result/result.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T13:14:15Z",
+      "side": 1,
+      "message": "You need details in here according to the CRUD spec. The result may contain extra pertinent information that isn\u0027t exposed in a typed manner.",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0e66a98e_cda85b71",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T13:14:15Z",
+      "side": 1,
+      "message": "1) So, not to belabor this, but this still seems wrong. In affect, we are forcing every user who calls a write method to not only check for a non-nil error, but to also check if it was unacknowledged.\n\nif err !\u003d nil \u0026\u0026 err !\u003d ErrUnacknowledgedWrite {\n    // ...\n}\n\nIf they don\u0027t do this and they do an unacknowledged write, they will misinterpret and handle the error, presumably because they think there was a problem, which there was not. Do other go APIs require this type of error checking?\n\nThis is going to be a complete surprise to users when someone flips a switch somewhere to make things \"go faster\" and everything starts breaking.\n\n(We are saved by the fact that this is used very infrequently, but for those few users...)\n\n2) Beyond this, the CRUD spec already has a mechanism to provide this information inside the XXXResult structures.  Like all things, I\u0027m not against breaking the rules with sufficient reason, but it has to be justified.",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "aa24be38_3e69f255",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 360,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T13:14:15Z",
+      "side": 1,
+      "message": "Yes... an UpdateMany will only ever result in a single upsert. \"Update as many documents as match this filter. If none match, insert one.\"",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b01ff056_05f1f1fb",
+        "filename": "mongo/errors.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T13:14:15Z",
+      "side": 1,
+      "message": "You need details in here according to the CRUD spec. The result may contain extra pertinent information that isn\u0027t exposed in a typed manner.",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "918e750e_8f342910",
+        "filename": "mongo/errors.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T13:14:15Z",
+      "side": 1,
+      "message": "This comment isn\u0027t accurate.",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e9980292_12629177",
+        "filename": "mongo/errors.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T13:14:15Z",
+      "side": 1,
+      "message": "This comment isn\u0027t accurate.",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
