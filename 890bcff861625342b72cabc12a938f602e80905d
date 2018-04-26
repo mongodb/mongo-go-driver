@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "c330d4de_191f35c6",
+        "filename": "core/result/result.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T17:38:05Z",
+      "side": 1,
+      "message": "After talking with someone on the server team the errInfo field is returned but only in a wtimeout WriteConcernError, which is difficult to test without putting some sort of proxy between mongod instances in a replicaset. We should come up with a better way of testing these types of errors.\n\nAlso the field that exists in 3.4 and 3.6 is not in details, it\u0027s called codeName and is not part of errInfo.",
+      "parentUuid": "afc67a1b_8218598b",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0e66a98e_cda85b71",
         "filename": "mongo/collection.go",
         "patchSetId": 9
@@ -102,6 +120,24 @@
       "side": 1,
       "message": "Fair enough... while I disagree with this choice, I\u0027m not going to argue about go idioms. You know way better than I.\n\nHowever, I can provide a little insight into the CRUD spec part.\n\nThe acknowledged flag in the result is there to indicate that other fields in the result have no values, specifically the counts (matchedCount, modifiedCount, etc...). If the fact that these have no values is divorced from the result itself, a user cannot pass the result to a helper function without also passing a second argument to indicate whether the counts in the result type are populated. Is there a go idiom to address this? Do you want to add MatchedCountSet booleans to each result? Is this not something that go developers need to worry about?",
       "parentUuid": "7a769568_09104ddf",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f750bd79_e8aaee20",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T17:38:05Z",
+      "side": 1,
+      "message": "A helper function for this seems weird to me. Why would a helper function only had a certain set of errors and not others? You would in effect be saying for the case of \"everything went well\" and the case of \"we don\u0027t know how things went\" are handled by one thing but the intermediate states, such as WriteErrors and WriteConcernErrors are handled by another. Perhaps this makes sense, but to me it makes the most sense that I would handle all of the cases that aren\u0027t \"everything went well\" together. Perhaps I am missing something here.\n\nAdditionally, there is nothing that precludes us from adding an acknowledged field to the result type later. We might revisit this once we implement bulkwrite as well.",
+      "parentUuid": "37cb04b2_df1266a5",
       "revId": "890bcff861625342b72cabc12a938f602e80905d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
