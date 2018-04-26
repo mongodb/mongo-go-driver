@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
@@ -823,6 +824,7 @@ func reflectionEncoderTest(t *testing.T) {
 				W []map[struct{}]struct{}
 				X []map[struct{}]struct{}
 				Y []map[struct{}]struct{}
+				Z time.Time
 			}{
 				A: []bool{true},
 				B: []int32{123},
@@ -854,6 +856,7 @@ func reflectionEncoderTest(t *testing.T) {
 				W: nil,
 				X: []map[struct{}]struct{}{},   // Should be empty BSON Array
 				Y: []map[struct{}]struct{}{{}}, // Should be BSON array with one element, an empty BSON SubDocument
+				Z: time.Now(),
 			},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("a", VC.Boolean(true)),
@@ -880,6 +883,7 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.Null("w"),
 				EC.Array("x", NewArray()),
 				EC.ArrayFromElements("y", VC.Document(NewDocument())),
+				EC.DateTime("z", time.Now().UnixNano()/int64(time.Millisecond)),
 			)),
 			nil,
 		},
