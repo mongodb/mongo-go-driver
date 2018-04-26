@@ -144,6 +144,24 @@
     },
     {
       "key": {
+        "uuid": "21c70110_b8738931",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-26T17:43:06Z",
+      "side": 1,
+      "message": "In real applications the use of unacknowledged writes is a well-considered choice.  It\u0027s not something one would do accidentally.  We shouldn\u0027t complicate applications that make this choice by requiring them to ignore an ErrUnacknowledgedWrite error.  I say this with the assumption that there are other errors that could potentially be returned by a write operation, e.g. some BSON encoding failure.  So an application can\u0027t safely ignore all errors.  It would have to switch on the type of the error and ignore only ErrUnacknowledgedWrite.\n\nLet me know if I\u0027m misunderstanding something.",
+      "parentUuid": "37cb04b2_df1266a5",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "aa24be38_3e69f255",
         "filename": "mongo/collection.go",
         "patchSetId": 9
