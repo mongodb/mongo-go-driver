@@ -247,8 +247,12 @@ func (s *Server) update() {
 	checkNow := s.checkNow
 	done := s.done
 
+	var doneOnce bool
 	defer func() {
 		if r := recover(); r != nil {
+			if doneOnce {
+				return
+			}
 			// We keep this goroutine alive attempting to read from the done channel.
 			<-done
 		}
@@ -261,6 +265,7 @@ func (s *Server) update() {
 	s.updateDescription(desc, true)
 
 	closeServer := func() {
+		doneOnce = true
 		s.subLock.Lock()
 		for id, c := range s.subscribers {
 			close(c)
@@ -268,6 +273,9 @@ func (s *Server) update() {
 		}
 		s.subscriptionsClosed = true
 		s.subLock.Unlock()
+		if conn == nil {
+			return
+		}
 		conn.Close()
 	}
 	for {
