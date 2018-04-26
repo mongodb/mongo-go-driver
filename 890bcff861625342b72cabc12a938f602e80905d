@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "5594d358_a6c3c7fd",
+        "filename": "core/result/result.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T15:42:34Z",
+      "side": 1,
+      "message": "While I\u0027ve added this, we need to update the CRUD spec because this field doesn\u0027t exist in most circumstances and fields that do exist in 3.4 and 3.6 like codeName are not represented here.",
+      "parentUuid": "d4d7b6bb_9699f065",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0e66a98e_cda85b71",
         "filename": "mongo/collection.go",
         "patchSetId": 9
@@ -33,6 +51,24 @@
       "revId": "890bcff861625342b72cabc12a938f602e80905d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7a769568_09104ddf",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T15:42:34Z",
+      "side": 1,
+      "message": "ErrUnacknowledgedWrite works like io.EOF. It\u0027s a signal of a graceful end to something, it doesn\u0027t necessarily invalidate the returned information.\n\nI understand that the spec says that acknowledged can be a field within the result object, but that is far easier to miss than an error. Errors are not exceptions, so returning an error doesn\u0027t necessarily mean that something has failed.",
+      "parentUuid": "0e66a98e_cda85b71",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     },
     {
       "key": {
@@ -87,6 +123,24 @@
     },
     {
       "key": {
+        "uuid": "ccc140a3_c25b1191",
+        "filename": "mongo/errors.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T15:42:34Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "918e750e_8f342910",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e9980292_12629177",
         "filename": "mongo/errors.go",
         "patchSetId": 9
@@ -98,6 +152,24 @@
       "writtenOn": "2018-04-26T13:14:15Z",
       "side": 1,
       "message": "This comment isn\u0027t accurate.",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "68272081_7a4b1836",
+        "filename": "mongo/errors.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T15:42:34Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e9980292_12629177",
       "revId": "890bcff861625342b72cabc12a938f602e80905d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
