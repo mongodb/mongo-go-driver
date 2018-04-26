@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ee95d9d3_e9eb437a",
+        "filename": "mongo/errors.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-04-26T17:54:38Z",
+      "side": 1,
+      "message": "I think we need to put the write error case above the write concern error.",
+      "revId": "26864de8056f922de1d8d39a5a5c7bea3633823c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

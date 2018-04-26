@@ -180,6 +180,24 @@
     },
     {
       "key": {
+        "uuid": "417342c6_1a9beb35",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-04-26T17:54:38Z",
+      "side": 1,
+      "message": "I think if you ask for fire and forget, you should only get an error if your insert document is malformed or if there\u0027s a socket error, and I would be surprised by any error in this case.",
+      "parentUuid": "f750bd79_e8aaee20",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "aa24be38_3e69f255",
         "filename": "mongo/collection.go",
         "patchSetId": 9
