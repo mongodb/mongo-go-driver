@@ -9,6 +9,7 @@ package bson
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/stretchr/testify/require"
@@ -269,6 +270,26 @@ func TestConstructor(t *testing.T) {
 			actual := EC.DateTime("foo", 17)
 
 			requireElementsEqual(t, expected, actual)
+		})
+
+		t.Run("time", func(t *testing.T) {
+			buf := []byte{
+				// type
+				0x9,
+				// key
+				0x66, 0x6f, 0x6f, 0x0,
+				// value
+				0xC8, 0x6C, 0x3C, 0xAF, 0x60, 0x1, 0x0, 0x0,
+			}
+
+			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
+
+			date := time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)
+			actualTime := EC.Time("foo", date)
+			actualDateTime := EC.DateTime("foo", date.Unix()*1000)
+
+			requireElementsEqual(t, expected, actualTime)
+			requireElementsEqual(t, expected, actualDateTime)
 		})
 
 		t.Run("Null", func(t *testing.T) {
