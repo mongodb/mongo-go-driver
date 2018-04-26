@@ -162,6 +162,24 @@
     },
     {
       "key": {
+        "uuid": "5cfe3ed2_9eaddca3",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T17:46:55Z",
+      "side": 1,
+      "message": "Well, I think that\u0027s the whole point. An unaknowledged error doesn\u0027t mean something went badly. In fact, it\u0027s just information about something that already went well which means we have two different paths for handling \"it went well\". \n\nBut if you are set on this, then that\u0027s fine. You will need to add an acknowledged flag to the *Result types regardless because there isn\u0027t a good reason to not include it.",
+      "parentUuid": "f750bd79_e8aaee20",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "aa24be38_3e69f255",
         "filename": "mongo/collection.go",
         "patchSetId": 9
