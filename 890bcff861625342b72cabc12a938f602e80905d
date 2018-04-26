@@ -198,6 +198,24 @@
     },
     {
       "key": {
+        "uuid": "6115220c_023e9245",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T18:38:44Z",
+      "side": 1,
+      "message": "I think the assumption here is that users always knows and understands the circumstances under which they have requested an unacknowledged write. I\u0027m not convinced that this is the case.\n\nIf we can safely assume the user always knows what they did, then we wouldn\u0027t need either the Collection.Name nor the Database.Name methods. We\u0027ve also stated that users sometimes are forgetful and don\u0027t remember to check things, which is why we said we don\u0027t want to use a fluent API.\n\nI think there\u0027s a possibility that a user doesn\u0027t intend to do an unacknowledged write, but does. Since they think they haven\u0027t done an unacknowledged write, they likely won\u0027t bother to check the acknowledged field of the return result. If they then think that the return means the write has been performed and do subsequent logic that requires the write to be completed, they might not know there is a problem until a timing bug occurs where the unacknowledged write doesn\u0027t happen for some time. This is likely to be a difficult bug to discover, debug, and ultimately fix.\n\nIf we think users will forget the string they used when calling client.Database or db.Collection, that it\u0027s valid that users might not fully understand what the write concern they have inherited is.",
+      "parentUuid": "417342c6_1a9beb35",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "aa24be38_3e69f255",
         "filename": "mongo/collection.go",
         "patchSetId": 9
