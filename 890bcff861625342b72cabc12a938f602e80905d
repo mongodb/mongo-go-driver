@@ -216,6 +216,24 @@
     },
     {
       "key": {
+        "uuid": "52f985c9_4b2223ce",
+        "filename": "mongo/collection.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-04-26T19:01:03Z",
+      "side": 1,
+      "message": "Let\u0027s defer this decision to a separate Jira issue, with a title like \"Return error for unacknowledged writes\", as it\u0027s holding up the review process for something that is higher priority. \n\nThis issue is about exposing write errors and write concern errors, and an unacknowledged write is neither of these.",
+      "parentUuid": "6115220c_023e9245",
+      "revId": "890bcff861625342b72cabc12a938f602e80905d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "aa24be38_3e69f255",
         "filename": "mongo/collection.go",
         "patchSetId": 9
