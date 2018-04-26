@@ -73,6 +73,24 @@
     },
     {
       "key": {
+        "uuid": "2df37ac1_47535461",
+        "filename": "core/result/result.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T21:44:26Z",
+      "side": 1,
+      "message": "Updated per conversation.",
+      "parentUuid": "a4f5c5dd_510980ef",
+      "revId": "26864de8056f922de1d8d39a5a5c7bea3633823c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "405a195a_643135a7",
         "filename": "mongo/errors.go",
         "patchSetId": 10
