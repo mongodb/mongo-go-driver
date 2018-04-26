@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "e42c6104_9ac51e1d",
+        "filename": "core/result/result.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T19:17:38Z",
+      "side": 1,
+      "message": "We can change this to bson.Reader as well.",
+      "parentUuid": "1c59a7e1_a57ed483",
+      "revId": "26864de8056f922de1d8d39a5a5c7bea3633823c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "405a195a_643135a7",
         "filename": "mongo/errors.go",
         "patchSetId": 10
@@ -33,6 +51,24 @@
       "revId": "26864de8056f922de1d8d39a5a5c7bea3633823c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fcbcc1d2_21b57f35",
+        "filename": "mongo/errors.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-04-26T19:17:38Z",
+      "side": 1,
+      "message": "I don\u0027t quite know what is returned for this or the structure of a document, we could return a bson.Reader instead.",
+      "parentUuid": "405a195a_643135a7",
+      "revId": "26864de8056f922de1d8d39a5a5c7bea3633823c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     },
     {
       "key": {
