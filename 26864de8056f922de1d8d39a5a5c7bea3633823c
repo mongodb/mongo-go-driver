@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "a4f5c5dd_510980ef",
+        "filename": "core/result/result.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-26T19:44:07Z",
+      "side": 1,
+      "message": "This code is wrong and a bad interpretation. It appears that this is how python works, but .NET does it differently. Discussed with Kris on slack.",
+      "parentUuid": "6b8db6a7_7843bd5f",
+      "revId": "26864de8056f922de1d8d39a5a5c7bea3633823c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "405a195a_643135a7",
         "filename": "mongo/errors.go",
         "patchSetId": 10
