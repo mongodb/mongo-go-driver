@@ -361,6 +361,7 @@ func reflectionEncoderTest(t *testing.T) {
 	oids := []objectid.ObjectID{objectid.New(), objectid.New(), objectid.New()}
 	var str = new(string)
 	*str = "bar"
+	now := time.Now()
 
 	testCases := []struct {
 		name  string
@@ -856,7 +857,7 @@ func reflectionEncoderTest(t *testing.T) {
 				W: nil,
 				X: []map[struct{}]struct{}{},   // Should be empty BSON Array
 				Y: []map[struct{}]struct{}{{}}, // Should be BSON array with one element, an empty BSON SubDocument
-				Z: time.Now(),
+				Z: now,
 			},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("a", VC.Boolean(true)),
@@ -883,7 +884,7 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.Null("w"),
 				EC.Array("x", NewArray()),
 				EC.ArrayFromElements("y", VC.Document(NewDocument())),
-				EC.DateTime("z", time.Now().UnixNano()/int64(time.Millisecond)),
+				EC.DateTime("z", now.UnixNano()/int64(time.Millisecond)),
 			)),
 			nil,
 		},
