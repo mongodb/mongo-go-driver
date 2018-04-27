@@ -119,6 +119,8 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have closed 3 connections, but didn't. got %d; want %d", d.lenclosed(), 3)
 			}
 			close(cleanup)
+			err = conns[2].Close()
+			noerr(t, err)
 			ok := p.(*pool).sem.TryAcquire(int64(p.(*pool).capacity))
 			if !ok {
 				t.Errorf("clean shutdown should acquire and release semaphore, but semaphore still held")
@@ -476,6 +478,9 @@ func TestPool(t *testing.T) {
 			noerr(t, err)
 
 			err = p.Drain()
+			noerr(t, err)
+
+			err = conns[1].Close()
 			noerr(t, err)
 
 			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
