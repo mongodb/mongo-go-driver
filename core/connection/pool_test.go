@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -119,6 +120,8 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have closed 3 connections, but didn't. got %d; want %d", d.lenclosed(), 3)
 			}
 			close(cleanup)
+			err = conns[2].Close()
+			noerr(t, err)
 			ok := p.(*pool).sem.TryAcquire(int64(p.(*pool).capacity))
 			if !ok {
 				t.Errorf("clean shutdown should acquire and release semaphore, but semaphore still held")
@@ -478,6 +481,9 @@ func TestPool(t *testing.T) {
 			err = p.Drain()
 			noerr(t, err)
 
+			err = conns[1].Close()
+			noerr(t, err)
+
 			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
 			defer cancel()
 			c, _, err = p.Get(ctx)
@@ -485,6 +491,44 @@ func TestPool(t *testing.T) {
 			if d.lenopened() != 3 {
 				t.Errorf("Should have opened 3 connections, but didn't. got %d; want %d", d.lenopened(), 3)
 			}
+			close(cleanup)
+		})
+		t.Run("Cannot starve connection request", func(t *testing.T) {
+			cleanup := make(chan struct{})
+			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+				<-cleanup
+				nc.Close()
+			})
+			d := newdialer(&net.Dialer{})
+			p, err := NewPool(addr.Addr(address.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.Connect(context.Background())
+			noerr(t, err)
+			conns := [2]Connection{}
+			for idx := range [2]struct{}{} {
+				conns[idx], _, err = p.Get(context.Background())
+				noerr(t, err)
+			}
+			if d.lenopened() != 2 {
+				t.Errorf("Should have opened 2 connections, but didn't. got %d; want %d", d.lenopened(), 2)
+			}
+
+			var wg sync.WaitGroup
+
+			wg.Add(1)
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+				defer cancel()
+				_, _, err = p.Get(ctx)
+				if err != nil {
+					t.Errorf("Should not be able to starve connection request, but got error: %v", err)
+				}
+				wg.Done()
+			}()
+			time.Sleep(50 * time.Millisecond)
+			err = conns[0].Close()
+			noerr(t, err)
+			wg.Wait()
 			close(cleanup)
 		})
 	})
