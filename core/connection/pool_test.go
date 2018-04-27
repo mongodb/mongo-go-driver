@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"net"
+	"runtime"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -119,6 +121,8 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have closed 3 connections, but didn't. got %d; want %d", d.lenclosed(), 3)
 			}
 			close(cleanup)
+			err = conns[2].Close()
+			noerr(t, err)
 			ok := p.(*pool).sem.TryAcquire(int64(p.(*pool).capacity))
 			if !ok {
 				t.Errorf("clean shutdown should acquire and release semaphore, but semaphore still held")
@@ -478,6 +482,9 @@ func TestPool(t *testing.T) {
 			err = p.Drain()
 			noerr(t, err)
 
+			err = conns[1].Close()
+			noerr(t, err)
+
 			ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
 			defer cancel()
 			c, _, err = p.Get(ctx)
@@ -486,6 +493,129 @@ func TestPool(t *testing.T) {
 				t.Errorf("Should have opened 3 connections, but didn't. got %d; want %d", d.lenopened(), 3)
 			}
 			close(cleanup)
+		})
+		t.Run("Cannot starve connection request", func(t *testing.T) {
+			cleanup := make(chan struct{})
+			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+				<-cleanup
+				nc.Close()
+			})
+			d := newdialer(&net.Dialer{})
+			p, err := NewPool(addr.Addr(address.String()), 1, 1, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.Connect(context.Background())
+			noerr(t, err)
+			conn, _, err := p.Get(context.Background())
+			if d.lenopened() != 1 {
+				t.Errorf("Should have opened 1 connections, but didn't. got %d; want %d", d.lenopened(), 1)
+			}
+
+			var wg sync.WaitGroup
+
+			wg.Add(1)
+			ch := make(chan struct{})
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+				defer cancel()
+				ch <- struct{}{}
+				_, _, err := p.Get(ctx)
+				if err != nil {
+					t.Errorf("Should not be able to starve connection request, but got error: %v", err)
+				}
+				wg.Done()
+			}()
+			<-ch
+			runtime.Gosched()
+			err = conn.Close()
+			noerr(t, err)
+			wg.Wait()
+			close(cleanup)
+		})
+		t.Run("Does not leak permit from failure to dial connection", func(t *testing.T) {
+			cleanup := make(chan struct{})
+			address := bootstrapConnections(t, 0, func(nc net.Conn) {
+				<-cleanup
+				nc.Close()
+			})
+			close(cleanup)
+			want := errors.New("dialing error")
+			p, err := NewPool(
+				addr.Addr(address.String()), 1, 2,
+				WithDialer(
+					func(Dialer) Dialer {
+						return DialerFunc(func(ctx context.Context, network, address string) (net.Conn, error) {
+							return nil, want
+						})
+					}),
+			)
+			noerr(t, err)
+			err = p.Connect(context.Background())
+			noerr(t, err)
+			_, _, err = p.Get(context.Background())
+			if err != want {
+				t.Errorf("Expected dial failure but got: %v", err)
+			}
+			ok := p.(*pool).sem.TryAcquire(int64(p.(*pool).capacity))
+			if !ok {
+				t.Errorf("Dial failure should not leak semaphore permit")
+			} else {
+				p.(*pool).sem.Release(int64(p.(*pool).capacity))
+			}
+		})
+		t.Run("Does not leak permit from cancelled context", func(t *testing.T) {
+			cleanup := make(chan struct{})
+			address := bootstrapConnections(t, 1, func(nc net.Conn) {
+				<-cleanup
+				nc.Close()
+			})
+			close(cleanup)
+			d := newdialer(&net.Dialer{})
+			p, err := NewPool(addr.Addr(address.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.Connect(context.Background())
+			noerr(t, err)
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			_, _, err = p.Get(ctx)
+			if err != context.Canceled {
+				t.Errorf("Expected context cancelled error. got %v; want %v", err, context.Canceled)
+			}
+			ok := p.(*pool).sem.TryAcquire(int64(p.(*pool).capacity))
+			if !ok {
+				t.Errorf("Canceled context should not leak semaphore permit")
+			} else {
+				p.(*pool).sem.Release(int64(p.(*pool).capacity))
+			}
+		})
+		t.Run("Get does not acquire multiple permits", func(t *testing.T) {
+			cleanup := make(chan struct{})
+			address := bootstrapConnections(t, 2, func(nc net.Conn) {
+				<-cleanup
+				nc.Close()
+			})
+			close(cleanup)
+			d := newdialer(&net.Dialer{})
+			p, err := NewPool(addr.Addr(address.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
+			noerr(t, err)
+			err = p.Connect(context.Background())
+			noerr(t, err)
+			c, _, err := p.Get(context.Background())
+			noerr(t, err)
+			err = c.Close()
+			noerr(t, err)
+
+			p.Drain()
+
+			c, _, err = p.Get(context.Background())
+			noerr(t, err)
+			err = c.Close()
+			noerr(t, err)
+			ok := p.(*pool).sem.TryAcquire(int64(p.(*pool).capacity))
+			if !ok {
+				t.Errorf("Get should not acquire multiple permits (when expired conn in idle pool)")
+			} else {
+				p.(*pool).sem.Release(int64(p.(*pool).capacity))
+			}
 		})
 	})
 	t.Run("Connection", func(t *testing.T) {

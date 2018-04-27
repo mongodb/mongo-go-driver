@@ -123,7 +123,7 @@ loop:
 		select {
 		case pc := <-p.conns:
 			// This error would be overwritten by the semaphore
-			_ = pc.Close()
+			_ = p.closeConnection(pc)
 		default:
 			break loop
 		}
@@ -155,24 +155,30 @@ func (p *pool) Get(ctx context.Context) (Connection, *description.Server, error)
 		return nil, nil, ErrPoolClosed
 	}
 
+	err := p.sem.Acquire(ctx, 1)
+	if err != nil {
+		return nil, nil, err
+	}
+	return p.get(ctx)
+}
+
+func (p *pool) get(ctx context.Context) (Connection, *description.Server, error) {
 	g := atomic.LoadUint64(&p.generation)
 	select {
 	case c := <-p.conns:
 		if c.Expired() {
 			go p.closeConnection(c)
-			return p.Get(ctx)
+			return p.get(ctx)
 		}
 
-		return &acquired{Connection: c}, nil, nil
+		return &acquired{Connection: c, sem: p.sem}, nil, nil
 	case <-ctx.Done():
+		p.sem.Release(1)
 		return nil, nil, ctx.Err()
 	default:
-		err := p.sem.Acquire(ctx, 1)
-		if err != nil {
-			return nil, nil, err
-		}
 		c, desc, err := New(ctx, p.address, p.opts...)
 		if err != nil {
+			p.sem.Release(1)
 			return nil, nil, err
 		}
 
@@ -185,12 +191,13 @@ func (p *pool) Get(ctx context.Context) (Connection, *description.Server, error)
 		p.Lock()
 		if atomic.LoadInt32(&p.connected) != connected {
 			p.Unlock()
+			p.sem.Release(1)
 			p.closeConnection(pc)
 			return nil, nil, ErrPoolClosed
 		}
 		defer p.Unlock()
 		p.inflight[pc.id] = pc
-		return &acquired{Connection: pc}, desc, nil
+		return &acquired{Connection: pc, sem: p.sem}, desc, nil
 	}
 }
 
@@ -198,7 +205,6 @@ func (p *pool) closeConnection(pc *pooledConnection) error {
 	if !atomic.CompareAndSwapInt32(&pc.closed, 0, 1) {
 		return nil
 	}
-	pc.p.sem.Release(1)
 	p.Lock()
 	delete(p.inflight, pc.id)
 	p.Unlock()
@@ -241,6 +247,7 @@ func (pc *pooledConnection) Expired() bool {
 type acquired struct {
 	Connection
 
+	sem *semaphore.Weighted
 	sync.Mutex
 }
 
@@ -269,6 +276,7 @@ func (a *acquired) Close() error {
 		return nil
 	}
 	err := a.Connection.Close()
+	a.sem.Release(1)
 	a.Connection = nil
 	return err
 }
