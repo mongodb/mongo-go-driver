@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1574fd7f_a95b5ece",
+        "filename": "core/connection/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-04-28T07:38:08Z",
+      "side": 1,
+      "message": "This is actually a bug. If you call this recursively, you are going to get at least multiple permits for a single requester.\nAlso, you don\u0027t want to release the permit here because then the requester loses their place in line.\n\nYou need to take the body of this function (the part after the semaphore aquisition and put it in its own method that can be called recursively.\n\nShould probably write a test for this bug as well.",
+      "revId": "25feabf3018029d5a48d2288370f7361a5544ff2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
