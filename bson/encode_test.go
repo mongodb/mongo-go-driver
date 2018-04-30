@@ -8,11 +8,14 @@ package bson
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
+	"net/url"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -362,6 +365,16 @@ func reflectionEncoderTest(t *testing.T) {
 	var str = new(string)
 	*str = "bar"
 	now := time.Now()
+	murl, err := url.Parse("https://mongodb.com/random-url?hello=world")
+	if err != nil {
+		t.Errorf("Error parsing URL: %v", err)
+		t.FailNow()
+	}
+	decimal128, err := decimal.ParseDecimal128("1.5e10")
+	if err != nil {
+		t.Errorf("Error parsing decimal128: %v", err)
+		t.FailNow()
+	}
 
 	testCases := []struct {
 		name  string
@@ -472,6 +485,38 @@ func reflectionEncoderTest(t *testing.T) {
 			nil,
 		},
 		{
+			"map[json.Number]json.Number(int64)",
+			map[json.Number]json.Number{
+				json.Number("5"): json.Number("10"),
+			},
+			docToBytes(NewDocument(EC.Int64("5", 10))),
+			nil,
+		},
+		{
+			"map[json.Number]json.Number(float64)",
+			map[json.Number]json.Number{
+				json.Number("5.0"): json.Number("10.1"),
+			},
+			docToBytes(NewDocument(EC.Double("5.0", 10.1))),
+			nil,
+		},
+		{
+			"map[*url.URL]*url.URL",
+			map[*url.URL]*url.URL{
+				murl: murl,
+			},
+			docToBytes(NewDocument(EC.String(murl.String(), murl.String()))),
+			nil,
+		},
+		{
+			"map[decimal.Decimal128]decimal.Decimal128",
+			map[decimal.Decimal128]decimal.Decimal128{
+				decimal128: decimal128,
+			},
+			docToBytes(NewDocument(EC.Decimal128(decimal128.String(), decimal128))),
+			nil,
+		},
+		{
 			"[]string",
 			[]string{"foo", "bar", "baz"},
 			[]byte{
@@ -547,6 +592,31 @@ func reflectionEncoderTest(t *testing.T) {
 			nil,
 		},
 		{
+			"[]json.Number",
+			[]json.Number{"5", "10.1"},
+			arrToBytes(NewArray(
+				VC.Int64(5),
+				VC.Double(10.1),
+			)),
+			nil,
+		},
+		{
+			"[]*url.URL",
+			[]*url.URL{murl},
+			arrToBytes(NewArray(
+				VC.String(murl.String()),
+			)),
+			nil,
+		},
+		{
+			"[]decimal.Decimal128",
+			[]decimal.Decimal128{decimal128},
+			arrToBytes(NewArray(
+				VC.Decimal128(decimal128),
+			)),
+			nil,
+		},
+		{
 			"map[string][]*Element",
 			map[string][]*Element{"Z": {EC.Int32("A", 1), EC.Int32("B", 2), EC.Int32("EC", 3)}},
 			docToBytes(NewDocument(
@@ -615,6 +685,38 @@ func reflectionEncoderTest(t *testing.T) {
 			map[string][]_Interface{"Z": {_impl{Foo: "bar"}, (*_impl)(nil), nil}},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("Z", VC.DocumentFromElements(EC.String("foo", "bar")), VC.Null(), VC.Null()),
+			)),
+			nil,
+		},
+		{
+			"map[string][]json.Number(int64)",
+			map[string][]json.Number{"Z": {json.Number("5"), json.Number("10")}},
+			docToBytes(NewDocument(
+				EC.ArrayFromElements("Z", VC.Int64(5), VC.Int64(10)),
+			)),
+			nil,
+		},
+		{
+			"map[string][]json.Number(float64)",
+			map[string][]json.Number{"Z": {json.Number("5.0"), json.Number("10.10")}},
+			docToBytes(NewDocument(
+				EC.ArrayFromElements("Z", VC.Double(5.0), VC.Double(10.10)),
+			)),
+			nil,
+		},
+		{
+			"map[string][]*url.URL",
+			map[string][]*url.URL{"Z": {murl}},
+			docToBytes(NewDocument(
+				EC.ArrayFromElements("Z", VC.String(murl.String())),
+			)),
+			nil,
+		},
+		{
+			"map[string][]decimal.Decimal128",
+			map[string][]decimal.Decimal128{"Z": {decimal128}},
+			docToBytes(NewDocument(
+				EC.ArrayFromElements("Z", VC.Decimal128(decimal128)),
 			)),
 			nil,
 		},
@@ -729,18 +831,22 @@ func reflectionEncoderTest(t *testing.T) {
 				L struct {
 					M string
 				}
-				N *Element
-				O *Document
-				P Reader
-				Q objectid.ObjectID
-				R *string
-				S map[struct{}]struct{}
-				T []struct{}
-				U _Interface
-				V _Interface
-				W map[struct{}]struct{}
-				X map[struct{}]struct{}
-				Z time.Time
+				N  *Element
+				O  *Document
+				P  Reader
+				Q  objectid.ObjectID
+				R  *string
+				S  map[struct{}]struct{}
+				T  []struct{}
+				U  _Interface
+				V  _Interface
+				W  map[struct{}]struct{}
+				X  map[struct{}]struct{}
+				Y  json.Number
+				Z  time.Time
+				AA json.Number
+				AB *url.URL
+				AC decimal.Decimal128
 			}{
 				A: true,
 				B: 123,
@@ -758,18 +864,22 @@ func reflectionEncoderTest(t *testing.T) {
 				}{
 					M: "foobar",
 				},
-				N: EC.Null("N"),
-				O: NewDocument(EC.Int64("countdown", 9876543210)),
-				P: Reader{0x05, 0x00, 0x00, 0x00, 0x00},
-				Q: oid,
-				R: nil,
-				S: nil,
-				T: nil,
-				U: nil,
-				V: _Interface((*_impl)(nil)), // typed nil
-				W: map[struct{}]struct{}{},
-				X: nil,
-				Z: now,
+				N:  EC.Null("N"),
+				O:  NewDocument(EC.Int64("countdown", 9876543210)),
+				P:  Reader{0x05, 0x00, 0x00, 0x00, 0x00},
+				Q:  oid,
+				R:  nil,
+				S:  nil,
+				T:  nil,
+				U:  nil,
+				V:  _Interface((*_impl)(nil)), // typed nil
+				W:  map[struct{}]struct{}{},
+				X:  nil,
+				Y:  json.Number("5"),
+				Z:  now,
+				AA: json.Number("10.10"),
+				AB: murl,
+				AC: decimal128,
 			},
 			docToBytes(NewDocument(
 				EC.Boolean("a", true),
@@ -795,7 +905,11 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.Null("v"),
 				EC.SubDocument("w", NewDocument()),
 				EC.Null("x"),
+				EC.Int64("y", 5),
 				EC.DateTime("z", now.UnixNano()/int64(time.Millisecond)),
+				EC.Double("aa", 10.10),
+				EC.String("ab", murl.String()),
+				EC.Decimal128("ac", decimal128),
 			)),
 			nil,
 		},
@@ -816,19 +930,22 @@ func reflectionEncoderTest(t *testing.T) {
 				L []struct {
 					M string
 				}
-				N [][]string
-				O []*Element
-				P []*Document
-				Q []Reader
-				R []objectid.ObjectID
-				S []*string
-				T []struct{}
-				U []_Interface
-				V []_Interface
-				W []map[struct{}]struct{}
-				X []map[struct{}]struct{}
-				Y []map[struct{}]struct{}
-				Z []time.Time
+				N  [][]string
+				O  []*Element
+				P  []*Document
+				Q  []Reader
+				R  []objectid.ObjectID
+				S  []*string
+				T  []struct{}
+				U  []_Interface
+				V  []_Interface
+				W  []map[struct{}]struct{}
+				X  []map[struct{}]struct{}
+				Y  []map[struct{}]struct{}
+				Z  []time.Time
+				AA []json.Number
+				AB []*url.URL
+				AC []decimal.Decimal128
 			}{
 				A: []bool{true},
 				B: []int32{123},
@@ -848,19 +965,22 @@ func reflectionEncoderTest(t *testing.T) {
 						M: "foobar",
 					},
 				},
-				N: [][]string{{"foo", "bar"}},
-				O: []*Element{EC.Null("N")},
-				P: []*Document{NewDocument(EC.Int64("countdown", 9876543210))},
-				Q: []Reader{{0x05, 0x00, 0x00, 0x00, 0x00}},
-				R: oids,
-				S: []*string{str, nil},
-				T: nil,
-				U: nil,
-				V: []_Interface{_impl{Foo: "bar"}, nil, (*_impl)(nil)},
-				W: nil,
-				X: []map[struct{}]struct{}{},   // Should be empty BSON Array
-				Y: []map[struct{}]struct{}{{}}, // Should be BSON array with one element, an empty BSON SubDocument
-				Z: []time.Time{now, now},
+				N:  [][]string{{"foo", "bar"}},
+				O:  []*Element{EC.Null("N")},
+				P:  []*Document{NewDocument(EC.Int64("countdown", 9876543210))},
+				Q:  []Reader{{0x05, 0x00, 0x00, 0x00, 0x00}},
+				R:  oids,
+				S:  []*string{str, nil},
+				T:  nil,
+				U:  nil,
+				V:  []_Interface{_impl{Foo: "bar"}, nil, (*_impl)(nil)},
+				W:  nil,
+				X:  []map[struct{}]struct{}{},   // Should be empty BSON Array
+				Y:  []map[struct{}]struct{}{{}}, // Should be BSON array with one element, an empty BSON SubDocument
+				Z:  []time.Time{now, now},
+				AA: []json.Number{json.Number("5"), json.Number("10.10")},
+				AB: []*url.URL{murl},
+				AC: []decimal.Decimal128{decimal128},
 			},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("a", VC.Boolean(true)),
@@ -888,6 +1008,9 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.Array("x", NewArray()),
 				EC.ArrayFromElements("y", VC.Document(NewDocument())),
 				EC.ArrayFromElements("z", VC.DateTime(now.UnixNano()/int64(time.Millisecond)), VC.DateTime(now.UnixNano()/int64(time.Millisecond))),
+				EC.ArrayFromElements("aa", VC.Int64(5), VC.Double(10.10)),
+				EC.ArrayFromElements("ab", VC.String(murl.String())),
+				EC.ArrayFromElements("ac", VC.Decimal128(decimal128)),
 			)),
 			nil,
 		},

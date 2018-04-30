@@ -8,10 +8,13 @@ package bson
 
 import (
 	"bytes"
+	"encoding/json"
+	"net/url"
 	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -2011,6 +2014,47 @@ func TestDecoder(t *testing.T) {
 				})
 			}
 		})
+		t.Run("decimal128", func(t *testing.T) {
+			decimal128, err := decimal.ParseDecimal128("1.5e10")
+			if err != nil {
+				t.Errorf("Error parsing decimal128: %v", err)
+				t.FailNow()
+			}
+			testCases := []struct {
+				name     string
+				reader   []byte
+				expected interface{}
+				actual   interface{}
+				err      error
+			}{
+				{
+					"decimal128",
+					docToBytes(NewDocument(EC.Decimal128("a", decimal128))),
+					&struct {
+						A decimal.Decimal128
+					}{
+						A: decimal128,
+					},
+					&struct {
+						A decimal.Decimal128
+					}{},
+					nil,
+				},
+			}
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					d := NewDecoder(bytes.NewBuffer(tc.reader))
+
+					err := d.Decode(tc.actual)
+					requireErrEqual(t, tc.err, err)
+					if err != nil {
+						return
+					}
+
+					require.True(t, reflect.DeepEqual(tc.expected, tc.actual))
+				})
+			}
+		})
 	})
 
 	t.Run("mixed types", func(t *testing.T) {
@@ -2379,6 +2423,63 @@ func TestDecoder(t *testing.T) {
 				}
 
 				require.True(t, cmp.Equal(tc.actual, tc.expected))
+			})
+		}
+	})
+	t.Run("pluggable types", func(t *testing.T) {
+		murl, err := url.Parse("https://mongodb.com/random-url?hello=world")
+		if err != nil {
+			t.Errorf("Error parsing URL: %v", err)
+			t.FailNow()
+		}
+		testCases := []struct {
+			name     string
+			reader   []byte
+			expected interface{}
+			actual   interface{}
+			err      error
+		}{
+			{
+				"*url.URL",
+				docToBytes(NewDocument(EC.String("a", murl.String()))),
+				&struct {
+					A *url.URL
+				}{
+					A: murl,
+				},
+				&struct {
+					A *url.URL
+				}{},
+				nil,
+			},
+			{
+				"json.Number",
+				docToBytes(NewDocument(EC.Int64("a", 5), EC.Double("b", 10.10))),
+				&struct {
+					A json.Number
+					B json.Number
+				}{
+					A: json.Number("5"),
+					B: json.Number("10.1"),
+				},
+				&struct {
+					A json.Number
+					B json.Number
+				}{},
+				nil,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				d := NewDecoder(bytes.NewBuffer(tc.reader))
+
+				err := d.Decode(tc.actual)
+				requireErrEqual(t, tc.err, err)
+				if err != nil {
+					return
+				}
+
+				require.True(t, reflect.DeepEqual(tc.expected, tc.actual))
 			})
 		}
 	})

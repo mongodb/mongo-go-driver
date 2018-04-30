@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -289,6 +291,9 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 	var val reflect.Value
 
 	for containerType.Kind() == reflect.Ptr {
+		if containerType == tURL {
+			break
+		}
 		containerType = containerType.Elem()
 	}
 
@@ -355,16 +360,26 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 
 		case tFloat64, tEmpty:
 			val = reflect.ValueOf(f)
+		case tJSONNumber:
+			val = reflect.ValueOf(strconv.FormatFloat(f, 'f', -1, 64)).Convert(tJSONNumber)
 		default:
 			return val, nil
 		}
 
 	case 0x2:
-		if containerType != tString && containerType != tEmpty {
+		str := v.StringValue()
+		switch containerType {
+		case tString, tEmpty:
+			val = reflect.ValueOf(str)
+		case tURL:
+			u, err := url.Parse(str)
+			if err != nil {
+				return val, err
+			}
+			val = reflect.ValueOf(u)
+		default:
 			return val, nil
 		}
-
-		val = reflect.ValueOf(v.StringValue())
 	case 0x4:
 		if containerType == tEmpty {
 			d := NewDecoder(bytes.NewBuffer(v.ReaderArray()))
@@ -547,6 +562,8 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 
 		case tEmpty, tInt32, tInt64, tInt, tFloat32, tFloat64:
 			val = reflect.ValueOf(i).Convert(containerType)
+		case tJSONNumber:
+			val = reflect.ValueOf(strconv.FormatInt(int64(i), 10)).Convert(tJSONNumber)
 		default:
 			return val, nil
 		}
@@ -609,6 +626,8 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			val = reflect.ValueOf(float32(i))
 		case tFloat64:
 			val = reflect.ValueOf(float64(i))
+		case tJSONNumber:
+			val = reflect.ValueOf(strconv.FormatInt(i, 10)).Convert(tJSONNumber)
 		}
 
 	case 0x13:
@@ -838,7 +857,7 @@ func (d *Decoder) decodeIntoStruct(structVal reflect.Value) error {
 		}
 
 		if v != zeroVal {
-			if field.Type().Kind() == reflect.Ptr {
+			if field.Type().Kind() == reflect.Ptr && field.Type() != tURL {
 				v = v.Addr()
 			}
 
