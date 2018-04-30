@@ -7,15 +7,18 @@
 package bson
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math"
+	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -25,6 +28,8 @@ var ErrEncoderNilWriter = errors.New("encoder.Encode called on Encoder with nil 
 var tByteSlice = reflect.TypeOf(([]byte)(nil))
 var tByte = reflect.TypeOf(byte(0x00))
 var tElement = reflect.TypeOf((*Element)(nil))
+var tURL = reflect.TypeOf(url.URL{})
+var tJSONNumber = reflect.TypeOf(json.Number(""))
 
 // Marshaler describes a type that can marshal a BSON representation of itself into bytes.
 type Marshaler interface {
@@ -271,6 +276,7 @@ func (e *encoder) encodeMap(val reflect.Value) ([]*Element, error) {
 	mapkeys := val.MapKeys()
 	elems := make([]*Element, 0, val.Len())
 	for _, rkey := range mapkeys {
+		orig := rkey
 		rkey = e.underlyingVal(rkey)
 
 		var key string
@@ -290,9 +296,15 @@ func (e *encoder) encodeMap(val reflect.Value) ([]*Element, error) {
 		case reflect.String:
 			key = rkey.String()
 		default:
-			if rkey.Type() == tOID {
+			switch rkey.Type() {
+			case tOID:
 				key = fmt.Sprintf("%s", rkey.Interface())
-			} else {
+			case tURL:
+				rkey = orig
+				key = fmt.Sprintf("%s", rkey.Interface())
+			case tDecimal:
+				key = fmt.Sprintf("%s", rkey.Interface())
+			default:
 				return nil, fmt.Errorf("Unsupported map key type %s", rkey.Kind())
 			}
 		}
@@ -308,6 +320,24 @@ func (e *encoder) encodeMap(val reflect.Value) ([]*Element, error) {
 			continue
 		case Reader:
 			elems = append(elems, EC.SubDocumentFromReader(key, t))
+			continue
+		case json.Number:
+			// We try to do an int first
+			if i64, err := t.Int64(); err == nil {
+				elems = append(elems, EC.Int64(key, i64))
+				continue
+			}
+			f64, err := t.Float64()
+			if err != nil {
+				return nil, fmt.Errorf("Invalid json.Number used as map value: %s", err)
+			}
+			elems = append(elems, EC.Double(key, f64))
+			continue
+		case *url.URL:
+			elems = append(elems, EC.String(key, t.String()))
+			continue
+		case decimal.Decimal128:
+			elems = append(elems, EC.Decimal128(key, t))
 			continue
 		}
 		rval = e.underlyingVal(rval)
@@ -336,6 +366,24 @@ func (e *encoder) encodeSlice(val reflect.Value) ([]*Element, error) {
 		case Reader:
 			elems = append(elems, EC.SubDocumentFromReader(key, t))
 			continue
+		case json.Number:
+			// We try to do an int first
+			if i64, err := t.Int64(); err == nil {
+				elems = append(elems, EC.Int64(key, i64))
+				continue
+			}
+			f64, err := t.Float64()
+			if err != nil {
+				return nil, fmt.Errorf("Invalid json.Number used as map value: %s", err)
+			}
+			elems = append(elems, EC.Double(key, f64))
+			continue
+		case *url.URL:
+			elems = append(elems, EC.String(key, t.String()))
+			continue
+		case decimal.Decimal128:
+			elems = append(elems, EC.Decimal128(key, t))
+			continue
 		}
 		sval = e.underlyingVal(sval)
 		elem, err := e.elemFromValue(key, sval, false)
@@ -363,6 +411,24 @@ func (e *encoder) encodeSliceAsArray(rval reflect.Value, minsize bool) ([]*Value
 			continue
 		case Reader:
 			vals = append(vals, VC.DocumentFromReader(t))
+			continue
+		case json.Number:
+			// We try to do an int first
+			if i64, err := t.Int64(); err == nil {
+				vals = append(vals, VC.Int64(i64))
+				continue
+			}
+			f64, err := t.Float64()
+			if err != nil {
+				return nil, fmt.Errorf("Invalid json.Number used as map value: %s", err)
+			}
+			vals = append(vals, VC.Double(f64))
+			continue
+		case *url.URL:
+			vals = append(vals, VC.String(t.String()))
+			continue
+		case decimal.Decimal128:
+			vals = append(vals, VC.Decimal128(t))
 			continue
 		}
 
@@ -421,6 +487,24 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 			continue
 		case Reader:
 			elems = append(elems, EC.SubDocumentFromReader(key, t))
+			continue
+		case json.Number:
+			// We try to do an int first
+			if i64, err := t.Int64(); err == nil {
+				elems = append(elems, EC.Int64(key, i64))
+				continue
+			}
+			f64, err := t.Float64()
+			if err != nil {
+				return nil, fmt.Errorf("Invalid json.Number used as map value: %s", err)
+			}
+			elems = append(elems, EC.Double(key, f64))
+			continue
+		case *url.URL:
+			elems = append(elems, EC.String(key, t.String()))
+			continue
+		case decimal.Decimal128:
+			elems = append(elems, EC.Decimal128(key, t))
 			continue
 		}
 		field = e.underlyingVal(field)
