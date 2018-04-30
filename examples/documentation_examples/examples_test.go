@@ -10,6 +10,7 @@
 package documentation_examples_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/examples/documentation_examples"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestDocumentationExamples(t *testing.T) {
-	client, err := mongo.NewClient("mongodb://localhost:27017")
+	client, err := mongo.Connect(context.Background(), "mongodb://localhost:27017", nil)
 	require.NoError(t, err)
 
 	db := client.Database("documentation_examples")
