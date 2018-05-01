@@ -44,6 +44,7 @@ func Distinct(
 	if err != nil {
 		return result.Distinct{}, err
 	}
+	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }
