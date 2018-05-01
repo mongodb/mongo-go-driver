@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
@@ -564,11 +565,18 @@ func (e *encoder) elemFromValue(key string, val reflect.Value, minsize bool) (*E
 			elem = EC.ArrayFromElements(key, arrayElems...)
 		}
 	case reflect.Struct:
-		structElems, err := e.encodeStruct(val)
-		if err != nil {
-			return nil, err
+		switch val.Interface().(type) {
+		case time.Time:
+			t := val.Interface().(time.Time)
+
+			elem = EC.DateTime(key, t.UnixNano()/int64(time.Millisecond))
+		default:
+			structElems, err := e.encodeStruct(val)
+			if err != nil {
+				return nil, err
+			}
+			elem = EC.SubDocumentFromElements(key, structElems...)
 		}
-		elem = EC.SubDocumentFromElements(key, structElems...)
 	default:
 		return nil, fmt.Errorf("Unsupported value type %s", val.Kind())
 	}
@@ -661,11 +669,18 @@ func (e *encoder) valueFromValue(val reflect.Value, minsize bool) (*Value, error
 			elem = VC.ArrayFromValues(arrayElems...)
 		}
 	case reflect.Struct:
-		structElems, err := e.encodeStruct(val)
-		if err != nil {
-			return nil, err
+		switch val.Interface().(type) {
+		case time.Time:
+			t := val.Interface().(time.Time)
+
+			elem = VC.DateTime(t.UnixNano() / int64(time.Millisecond))
+		default:
+			structElems, err := e.encodeStruct(val)
+			if err != nil {
+				return nil, err
+			}
+			elem = VC.DocumentFromElements(structElems...)
 		}
-		elem = VC.DocumentFromElements(structElems...)
 	default:
 		return nil, fmt.Errorf("Unsupported value type %s", val.Kind())
 	}

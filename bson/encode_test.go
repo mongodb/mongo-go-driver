@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
@@ -360,6 +361,7 @@ func reflectionEncoderTest(t *testing.T) {
 	oids := []objectid.ObjectID{objectid.New(), objectid.New(), objectid.New()}
 	var str = new(string)
 	*str = "bar"
+	now := time.Now()
 
 	testCases := []struct {
 		name  string
@@ -738,6 +740,7 @@ func reflectionEncoderTest(t *testing.T) {
 				V _Interface
 				W map[struct{}]struct{}
 				X map[struct{}]struct{}
+				Z time.Time
 			}{
 				A: true,
 				B: 123,
@@ -766,6 +769,7 @@ func reflectionEncoderTest(t *testing.T) {
 				V: _Interface((*_impl)(nil)), // typed nil
 				W: map[struct{}]struct{}{},
 				X: nil,
+				Z: now,
 			},
 			docToBytes(NewDocument(
 				EC.Boolean("a", true),
@@ -791,6 +795,7 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.Null("v"),
 				EC.SubDocument("w", NewDocument()),
 				EC.Null("x"),
+				EC.DateTime("z", now.UnixNano()/int64(time.Millisecond)),
 			)),
 			nil,
 		},
@@ -823,6 +828,7 @@ func reflectionEncoderTest(t *testing.T) {
 				W []map[struct{}]struct{}
 				X []map[struct{}]struct{}
 				Y []map[struct{}]struct{}
+				Z []time.Time
 			}{
 				A: []bool{true},
 				B: []int32{123},
@@ -854,6 +860,7 @@ func reflectionEncoderTest(t *testing.T) {
 				W: nil,
 				X: []map[struct{}]struct{}{},   // Should be empty BSON Array
 				Y: []map[struct{}]struct{}{{}}, // Should be BSON array with one element, an empty BSON SubDocument
+				Z: []time.Time{now, now},
 			},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("a", VC.Boolean(true)),
@@ -880,6 +887,7 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.Null("w"),
 				EC.Array("x", NewArray()),
 				EC.ArrayFromElements("y", VC.Document(NewDocument())),
+				EC.ArrayFromElements("z", VC.DateTime(now.UnixNano()/int64(time.Millisecond)), VC.DateTime(now.UnixNano()/int64(time.Millisecond))),
 			)),
 			nil,
 		},
