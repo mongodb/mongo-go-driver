@@ -604,7 +604,8 @@ func TestPool(t *testing.T) {
 			err = c.Close()
 			noerr(t, err)
 
-			p.Drain()
+			err = p.Drain()
+			noerr(t, err)
 
 			c, _, err = p.Get(context.Background())
 			noerr(t, err)
