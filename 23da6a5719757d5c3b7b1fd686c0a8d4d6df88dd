@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c76a8083_2774101d",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-01T20:59:07Z",
+      "side": 1,
+      "message": "This isn\u0027t just any type, it\u0027s specifically structs.",
+      "revId": "23da6a5719757d5c3b7b1fd686c0a8d4d6df88dd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e15929ba_cee6abe5",
+        "filename": "bson/encode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-01T20:59:07Z",
+      "side": 1,
+      "message": "Should this say \"are not considered to be zero\"?",
+      "revId": "23da6a5719757d5c3b7b1fd686c0a8d4d6df88dd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
