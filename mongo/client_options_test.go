@@ -80,6 +80,7 @@ func TestClientOptions_chainAll(t *testing.T) {
 		ReadPreference("secondary").
 		ReadPreferenceTagSets([]map[string]string{
 			{"nyc": "1"}}).
+		MaxStaleness(2 * time.Second).
 		ReplicaSet("foo").
 		ServerSelectionTimeout(time.Second).
 		Single(false).

@@ -247,6 +247,18 @@ func (co *ClientOptions) ReadPreferenceTagSets(m []map[string]string) *ClientOpt
 	return &ClientOptions{next: co, opt: fn}
 }
 
+//MaxStaleness sets the "maxStaleness" field of the read pref to set on the client.
+func (co *ClientOptions) MaxStaleness(d time.Duration) *ClientOptions {
+	var fn option = func(c *Client) error {
+		if !c.connString.MaxStalenessSet {
+			c.connString.MaxStaleness = d
+			c.connString.MaxStalenessSet = true
+		}
+		return nil
+	}
+	return &ClientOptions{next: co, opt: fn}
+}
+
 // ReplicaSet specifies the name of the replica set of the cluster.
 func (co *ClientOptions) ReplicaSet(s string) *ClientOptions {
 	var fn option = func(c *Client) error {
