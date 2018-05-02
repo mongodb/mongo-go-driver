@@ -22,6 +22,30 @@
       "revId": "51a9d3ece1934e4799648892968d2eea7060ce7f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9a9a6e89_a3402e67",
+        "filename": "bson/encode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-02T18:54:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "63098a16_54cfb4a0",
+      "range": {
+        "startLine": 101,
+        "startChar": 3,
+        "endLine": 101,
+        "endChar": 42
+      },
+      "revId": "51a9d3ece1934e4799648892968d2eea7060ce7f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
