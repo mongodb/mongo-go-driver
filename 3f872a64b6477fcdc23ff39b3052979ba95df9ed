@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4458e471_1e70a33e",
+        "filename": "bson/encode.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-02T14:10:40Z",
+      "side": 1,
+      "message": "why not handle url.URL and let the normal \"deference pointers\" logic find the value we need rather than special casing the pointer type?",
+      "revId": "3f872a64b6477fcdc23ff39b3052979ba95df9ed",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
