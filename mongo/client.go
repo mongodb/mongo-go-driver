@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -97,7 +98,6 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 	client := &Client{
 		connString:     cs,
 		localThreshold: defaultLocalThreshold,
-		readPreference: readpref.Primary(),
 	}
 
 	if opts != nil {
@@ -122,6 +122,10 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 	client.topology = topo
 	client.readConcern = readConcernFromConnString(&client.connString)
 	client.writeConcern = writeConcernFromConnString(&client.connString)
+	client.readPreference, err = readPreferenceFromConnString(&client.connString)
+	if err != nil {
+		return nil, err
+	}
 
 	return client, nil
 }
@@ -171,6 +175,31 @@ func writeConcernFromConnString(cs *connstring.ConnString) *writeconcern.WriteCo
 	}
 
 	return wc
+}
+
+func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref, error) {
+	var rp *readpref.ReadPref
+	var err error
+	options := make([]readpref.Option, 0, 1)
+
+	tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
+	if len(tagSets) > 0 {
+		options = append(options, readpref.WithTagSets(tagSets...))
+	}
+
+	if cs.MaxStaleness != 0 {
+		options = append(options, readpref.WithMaxStaleness(cs.MaxStaleness))
+	}
+	if len(cs.ReadPreference) > 0 {
+		if rp == nil {
+			mode, _ := readpref.ModeFromString(cs.ReadPreference)
+			rp, err = readpref.New(mode, options...)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return rp, nil
 }
 
 // Database returns a handle for a given database.

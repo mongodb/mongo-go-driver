@@ -359,6 +359,31 @@ func TestReadPreferenceTags(t *testing.T) {
 	}
 }
 
+func TestMaxStaleness(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected time.Duration
+		err      bool
+	}{
+		{s: "maxStaleness=10", expected: time.Duration(10) * time.Second},
+		{s: "maxStaleness=100", expected: time.Duration(100) * time.Second},
+		{s: "maxStaleness=-2", err: true},
+		{s: "maxStaleness=gsdge", err: true},
+	}
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.MaxStaleness)
+			}
+		})
+	}
+}
+
 func TestReplicaSet(t *testing.T) {
 	tests := []struct {
 		s        string

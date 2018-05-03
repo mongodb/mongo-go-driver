@@ -16,8 +16,11 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
+
+	"time"
 )
 
 func createTestClient(t *testing.T) *Client {
@@ -295,4 +298,38 @@ func TestClient_ListDatabaseNames_filter(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, dbs, 1)
 	require.Equal(t, dbName, dbs[0])
+}
+
+func TestClient_ReadPreference(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+	var tags = []tag.Set{
+		{
+			tag.Tag{
+				Name:  "one",
+				Value: "1",
+			},
+		},
+		{
+			tag.Tag{
+				Name:  "two",
+				Value: "2",
+			},
+		},
+	}
+	baseConnString := testutil.ConnString(t)
+	cs := testutil.AddOptionsToURI(baseConnString.String(), "readpreference=secondary&readPreferenceTags=one:1&readPreferenceTags=two:2&maxStaleness=5")
+
+	c, err := NewClient(cs)
+	require.NoError(t, err)
+	require.NotNil(t, c)
+	require.Equal(t, readpref.SecondaryMode, c.readPreference.Mode())
+	require.Equal(t, tags, c.readPreference.TagSets())
+	d, flag := c.readPreference.MaxStaleness()
+	require.True(t, flag)
+	require.Equal(t, time.Duration(5)*time.Second, d)
+
 }
