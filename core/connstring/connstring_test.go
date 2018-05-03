@@ -365,8 +365,8 @@ func TestMaxStaleness(t *testing.T) {
 		expected time.Duration
 		err      bool
 	}{
-		{s: "maxStaleness=10", expected: time.Duration(10) * time.Millisecond},
-		{s: "maxStaleness=100", expected: time.Duration(100) * time.Millisecond},
+		{s: "maxStaleness=10", expected: time.Duration(10) * time.Second},
+		{s: "maxStaleness=100", expected: time.Duration(100) * time.Second},
 		{s: "maxStaleness=-2", err: true},
 		{s: "maxStaleness=gsdge", err: true},
 	}
