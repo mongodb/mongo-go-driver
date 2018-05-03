@@ -45,6 +45,30 @@
       "revId": "34f44be94e0ac6a041eb5a7b546356d8b638f8f0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ccc3b4d3_6f4f8751",
+        "filename": "bson/encode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 441,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-03T19:08:50Z",
+      "side": 1,
+      "message": "I think by using this conversion mechanism rather than dividing by a millsecond, we\u0027re safe-ish. \n\nWe will at least be equivalent to mgo with this behavior.",
+      "parentUuid": "9c6a3c4f_d71d3fa9",
+      "range": {
+        "startLine": 440,
+        "startChar": 2,
+        "endLine": 441,
+        "endChar": 76
+      },
+      "revId": "34f44be94e0ac6a041eb5a7b546356d8b638f8f0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
