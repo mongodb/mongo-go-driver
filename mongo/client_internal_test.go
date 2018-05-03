@@ -321,10 +321,7 @@ func TestClient_ReadPreference(t *testing.T) {
 		},
 	}
 	baseConnString := testutil.ConnString(t)
-	cs := fmt.Sprintf(
-		"%s/?readpreference=secondary&readPreferenceTags=one:1&readPreferenceTags=two:2&maxStaleness=5",
-		baseConnString.String(),
-	)
+	cs := testutil.AddOptionsToURI(baseConnString.String(), "readpreference=secondary&readPreferenceTags=one:1&readPreferenceTags=two:2&maxStaleness=5")
 
 	c, err := NewClient(cs)
 	require.NoError(t, err)
