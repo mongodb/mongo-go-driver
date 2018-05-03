@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "07ba1cee_962ea51e",
+        "filename": "bson/decode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 477,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-03T18:52:06Z",
+      "side": 1,
+      "message": "Can we make this a constant and then give that constant a comment indicating what this is and why it\u0027s this number specifically? This will likely be asked by nearly everyone the first time they stumble across it.",
+      "range": {
+        "startLine": 477,
+        "startChar": 29,
+        "endLine": 477,
+        "endChar": 44
+      },
+      "revId": "34f44be94e0ac6a041eb5a7b546356d8b638f8f0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c6a3c4f_d71d3fa9",
+        "filename": "bson/encode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 441,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-03T18:52:06Z",
+      "side": 1,
+      "message": "Should we be doing the check here to ensure we don\u0027t insert a 1754 time?",
+      "range": {
+        "startLine": 440,
+        "startChar": 2,
+        "endLine": 441,
+        "endChar": 76
+      },
+      "revId": "34f44be94e0ac6a041eb5a7b546356d8b638f8f0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
