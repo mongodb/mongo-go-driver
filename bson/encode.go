@@ -516,6 +516,10 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 		}
 		field = e.underlyingVal(field)
 
+		if omitempty && e.isZero(field) {
+			continue
+		}
+		
 		if inline {
 			switch sf.Type.Kind() {
 			case reflect.Map:
@@ -537,9 +541,6 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 			}
 		}
 
-		if omitempty && e.isZero(field) {
-			continue
-		}
 		elem, err := e.elemFromValue(key, field, minsize)
 		if err != nil {
 			return nil, err
