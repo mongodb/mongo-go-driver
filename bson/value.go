@@ -373,8 +373,7 @@ func (v *Value) Double() float64 {
 	if v.data[v.start] != '\x01' {
 		panic(ElementTypeError{"compact.Element.double", Type(v.data[v.start])})
 	}
-	bits := binary.LittleEndian.Uint64(v.data[v.offset : v.offset+8])
-	return math.Float64frombits(bits)
+	return math.Float64frombits(v.getUint64())
 }
 
 // DoubleOK is the same as Double, but returns a boolean instead of panicking.
@@ -608,7 +607,7 @@ func (v *Value) DateTime() time.Time {
 	if v.data[v.start] != '\x09' {
 		panic(ElementTypeError{"compact.Element.dateTime", Type(v.data[v.start])})
 	}
-	i := binary.LittleEndian.Uint64(v.data[v.offset : v.offset+8])
+	i := v.getUint64()
 	return time.Unix(int64(i)/1000, int64(i)%1000*1000000)
 }
 
@@ -840,7 +839,11 @@ func (v *Value) Int64() int64 {
 	if v.data[v.start] != '\x12' {
 		panic(ElementTypeError{"compact.Element.int64Type", Type(v.data[v.start])})
 	}
-	return int64(binary.LittleEndian.Uint64(v.data[v.offset : v.offset+8]))
+	return int64(v.getUint64())
+}
+
+func (v *Value) getUint64() uint64 {
+	return binary.LittleEndian.Uint64(v.data[v.offset : v.offset+8])
 }
 
 // Int64OK is the same as Int64, except that it returns a boolean instead of

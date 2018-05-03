@@ -54,6 +54,12 @@ var tEmptySlice = reflect.TypeOf([]interface{}(nil))
 
 var zeroVal reflect.Value
 
+// this references the quantity of milliseconds between zero time and
+// the unix epoch. useful for making sure that we convert time.Time
+// objects correctly to match the legacy bson library's handling of
+// time.Time values.
+const zeroEpochMs = int64(62135596800000)
+
 // Unmarshaler describes a type that can unmarshal itself from BSON bytes.
 type Unmarshaler interface {
 	UnmarshalBSON([]byte) error
@@ -474,7 +480,11 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			return val, nil
 		}
 
-		val = reflect.ValueOf(v.DateTime())
+		if int64(v.getUint64()) == -zeroEpochMs {
+			val = reflect.ValueOf(time.Time{})
+		} else {
+			val = reflect.ValueOf(v.DateTime())
+		}
 	case 0xA:
 		if containerType != tEmpty {
 			return val, nil
