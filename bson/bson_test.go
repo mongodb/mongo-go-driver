@@ -10,6 +10,9 @@ import (
 	"encoding/binary"
 	"math"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValue(t *testing.T) {
@@ -101,4 +104,28 @@ func TestValue(t *testing.T) {
 		}
 	})
 	t.Run("document", func(t *testing.T) {})
+}
+
+func TestTimeRoundTrip(t *testing.T) {
+	val := struct {
+		Value time.Time
+		ID    string
+	}{
+		ID: "time-rt-test",
+	}
+
+	assert.True(t, val.Value.IsZero())
+
+	bsonOut, err := Marshal(val)
+	assert.NoError(t, err)
+	rtval := struct {
+		Value time.Time
+		ID    string
+	}{}
+
+	err = Unmarshal(bsonOut, &rtval)
+	assert.NoError(t, err)
+	assert.Equal(t, val, rtval)
+	assert.True(t, rtval.Value.IsZero())
+
 }

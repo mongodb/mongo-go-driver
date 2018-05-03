@@ -437,6 +437,9 @@ func (e *encoder) encodeSliceAsArray(rval reflect.Value, minsize bool) ([]*Value
 		case decimal.Decimal128:
 			vals = append(vals, VC.Decimal128(t))
 			continue
+		case time.Time:
+			vals = append(vals, VC.DateTime(t.Unix()*1000+int64(t.Nanosecond()/1e6)))
+			continue
 		}
 
 		sval = e.underlyingVal(sval)
@@ -512,6 +515,9 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 			continue
 		case decimal.Decimal128:
 			elems = append(elems, EC.Decimal128(key, t))
+			continue
+		case time.Time:
+			elems = append(elems, EC.DateTime(key, t.Unix()*1000+int64(t.Nanosecond()/1e6)))
 			continue
 		}
 		field = e.underlyingVal(field)
@@ -659,18 +665,11 @@ func (e *encoder) elemFromValue(key string, val reflect.Value, minsize bool) (*E
 			elem = EC.ArrayFromElements(key, arrayElems...)
 		}
 	case reflect.Struct:
-		switch val.Interface().(type) {
-		case time.Time:
-			t := val.Interface().(time.Time)
-
-			elem = EC.DateTime(key, t.UnixNano()/int64(time.Millisecond))
-		default:
-			structElems, err := e.encodeStruct(val)
-			if err != nil {
-				return nil, err
-			}
-			elem = EC.SubDocumentFromElements(key, structElems...)
+		structElems, err := e.encodeStruct(val)
+		if err != nil {
+			return nil, err
 		}
+		elem = EC.SubDocumentFromElements(key, structElems...)
 	default:
 		return nil, fmt.Errorf("Unsupported value type %s", val.Kind())
 	}
@@ -763,18 +762,11 @@ func (e *encoder) valueFromValue(val reflect.Value, minsize bool) (*Value, error
 			elem = VC.ArrayFromValues(arrayElems...)
 		}
 	case reflect.Struct:
-		switch val.Interface().(type) {
-		case time.Time:
-			t := val.Interface().(time.Time)
-
-			elem = VC.DateTime(t.UnixNano() / int64(time.Millisecond))
-		default:
-			structElems, err := e.encodeStruct(val)
-			if err != nil {
-				return nil, err
-			}
-			elem = VC.DocumentFromElements(structElems...)
+		structElems, err := e.encodeStruct(val)
+		if err != nil {
+			return nil, err
 		}
+		elem = VC.DocumentFromElements(structElems...)
 	default:
 		return nil, fmt.Errorf("Unsupported value type %s", val.Kind())
 	}
