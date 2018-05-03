@@ -474,7 +474,12 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			return val, nil
 		}
 
-		val = reflect.ValueOf(v.DateTime())
+		if int64(v.getUint64()) == -6795364578871 {
+			val = reflect.ValueOf(time.Time{})
+		} else {
+			val = reflect.ValueOf(v.DateTime())
+		}
+
 	case 0xA:
 		if containerType != tEmpty {
 			return val, nil
