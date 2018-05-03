@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "273273c7_504f9f3d",
+        "filename": "bson/decode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 477,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-03T20:21:37Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "07ba1cee_962ea51e",
+      "range": {
+        "startLine": 477,
+        "startChar": 29,
+        "endLine": 477,
+        "endChar": 44
+      },
+      "revId": "34f44be94e0ac6a041eb5a7b546356d8b638f8f0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9c6a3c4f_d71d3fa9",
         "filename": "bson/encode.go",
         "patchSetId": 2
