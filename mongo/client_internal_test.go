@@ -307,13 +307,13 @@ func TestClient_ReadPreference(t *testing.T) {
 		t.Skip()
 	}
 	var tags = []tag.Set{
-		tag.Set{
+		{
 			tag.Tag{
 				Name:  "one",
 				Value: "1",
 			},
 		},
-		tag.Set{
+		{
 			tag.Tag{
 				Name:  "two",
 				Value: "2",
