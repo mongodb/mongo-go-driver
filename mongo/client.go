@@ -190,6 +190,7 @@ func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref
 	if cs.MaxStaleness != 0 {
 		options = append(options, readpref.WithMaxStaleness(cs.MaxStaleness))
 	}
+
 	if len(cs.ReadPreference) > 0 {
 		if rp == nil {
 			mode, _ := readpref.ModeFromString(cs.ReadPreference)
@@ -199,7 +200,8 @@ func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref
 			}
 		}
 	}
-	return rp, nil
+
+	return readPref.Primary();
 }
 
 // Database returns a handle for a given database.
