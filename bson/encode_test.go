@@ -817,6 +817,16 @@ func reflectionEncoderTest(t *testing.T) {
 			nil,
 		},
 		{
+			"inline, omitempty",
+			struct {
+				A string `bson:",omitempty,inline"`
+			}{
+				A: "",
+			},
+			docToBytes(NewDocument()),
+			nil,
+		},
+		{
 			"struct{}",
 			struct {
 				A bool
