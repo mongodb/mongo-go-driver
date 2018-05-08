@@ -118,13 +118,19 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	client.topology = topo
+
 	client.readConcern = readConcernFromConnString(&client.connString)
 	client.writeConcern = writeConcernFromConnString(&client.connString)
-	client.readPreference, err = readPreferenceFromConnString(&client.connString)
+
+	rp, err := readPreferenceFromConnString(&client.connString)
 	if err != nil {
 		return nil, err
+	}
+	if rp != nil {
+		client.readPreference = rp
+	} else {
+		client.readPreference = readpref.Primary()
 	}
 
 	return client, nil
@@ -201,7 +207,7 @@ func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref
 		}
 	}
 
-	return readPref.Primary();
+	return rp, nil
 }
 
 // Database returns a handle for a given database.
