@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -21,9 +22,9 @@ import (
 type CreateIndexes struct {
 	NS      Namespace
 	Indexes *bson.Array
-
-	result result.CreateIndexes
-	err    error
+	Opts    []options.CreateIndexesOptioner
+	result  result.CreateIndexes
+	err     error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -32,6 +33,16 @@ func (ci *CreateIndexes) Encode(desc description.SelectedServer) (wiremessage.Wi
 		bson.EC.String("createIndexes", ci.NS.Collection),
 		bson.EC.Array("indexes", ci.Indexes),
 	)
+
+	for _, opt := range ci.Opts {
+		if opt == nil {
+			continue
+		}
+		err := opt.Option(cmd)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return (&Command{DB: ci.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
 }
