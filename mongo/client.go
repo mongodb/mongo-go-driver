@@ -199,6 +199,9 @@ func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref
 			}
 		}
 	}
+	if rp == nil {
+		rp = readpref.Primary()
+	}
 	return rp, nil
 }
 
