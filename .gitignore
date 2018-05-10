@@ -5,3 +5,5 @@ debug
 *.ipr
 *.iws
 .idea
+*.sublime-project
+*.sublime-workspace

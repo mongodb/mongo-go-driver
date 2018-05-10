@@ -331,5 +331,17 @@ func TestClient_ReadPreference(t *testing.T) {
 	d, flag := c.readPreference.MaxStaleness()
 	require.True(t, flag)
 	require.Equal(t, time.Duration(5)*time.Second, d)
+}
 
+func TestClient_ReadPreferenceAbsent(t *testing.T) {
+	t.Parallel()
+
+	cs := testutil.ConnString(t)
+	c, err := NewClient(cs.String())
+	require.NoError(t, err)
+	require.NotNil(t, c)
+	require.Equal(t, readpref.PrimaryMode, c.readPreference.Mode())
+	require.Empty(t, c.readPreference.TagSets())
+	_, flag := c.readPreference.MaxStaleness()
+	require.False(t, flag)
 }

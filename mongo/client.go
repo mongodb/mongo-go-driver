@@ -118,13 +118,19 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	client.topology = topo
+
 	client.readConcern = readConcernFromConnString(&client.connString)
 	client.writeConcern = writeConcernFromConnString(&client.connString)
-	client.readPreference, err = readPreferenceFromConnString(&client.connString)
+
+	rp, err := readPreferenceFromConnString(&client.connString)
 	if err != nil {
 		return nil, err
+	}
+	if rp != nil {
+		client.readPreference = rp
+	} else {
+		client.readPreference = readpref.Primary()
 	}
 
 	return client, nil
@@ -190,6 +196,7 @@ func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref
 	if cs.MaxStaleness != 0 {
 		options = append(options, readpref.WithMaxStaleness(cs.MaxStaleness))
 	}
+
 	if len(cs.ReadPreference) > 0 {
 		if rp == nil {
 			mode, _ := readpref.ModeFromString(cs.ReadPreference)
@@ -199,6 +206,7 @@ func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref
 			}
 		}
 	}
+
 	return rp, nil
 }
 
