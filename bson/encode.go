@@ -488,6 +488,10 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 
 		field := val.Field(i)
 
+		if omitempty && e.isZero(field) {
+			continue
+		}
+
 		switch t := field.Interface().(type) {
 		case *Element:
 			elems = append(elems, t)
@@ -522,10 +526,6 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 		}
 		field = e.underlyingVal(field)
 
-		if omitempty && e.isZero(field) {
-			continue
-		}
-		
 		if inline {
 			switch sf.Type.Kind() {
 			case reflect.Map:

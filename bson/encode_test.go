@@ -751,6 +751,16 @@ func reflectionEncoderTest(t *testing.T) {
 			nil,
 		},
 		{
+			"omitempty",
+			struct {
+				A time.Time `bson:",omitempty"`
+			}{
+				A: time.Time{},
+			},
+			docToBytes(NewDocument()),
+			nil,
+		},
+		{
 			"no private fields",
 			struct {
 				a string
