@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/options"
 )
 
 // ErrInvalidIndexValue indicates that the index Keys document has a value that isn't either a number or a string.
@@ -39,8 +40,8 @@ func (iv IndexView) List(ctx context.Context) (Cursor, error) {
 }
 
 // CreateOne creates a single index in the collection specified by the model.
-func (iv IndexView) CreateOne(ctx context.Context, model IndexModel) (string, error) {
-	names, err := iv.CreateMany(ctx, model)
+func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...options.CreateIndexesOptioner) (string, error) {
+	names, err := iv.CreateMany(ctx, opts, model)
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +51,7 @@ func (iv IndexView) CreateOne(ctx context.Context, model IndexModel) (string, er
 
 // CreateMany creates multiple indexes in the collection specified by the models. The names of the
 // creates indexes are returned.
-func (iv IndexView) CreateMany(ctx context.Context, models ...IndexModel) ([]string, error) {
+func (iv IndexView) CreateMany(ctx context.Context, opts []options.CreateIndexesOptioner, models ...IndexModel) ([]string, error) {
 	names := make([]string, 0, len(models))
 	indexes := bson.NewArray()
 
@@ -76,7 +77,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models ...IndexModel) ([]str
 		indexes.Append(bson.VC.Document(index))
 	}
 
-	cmd := command.CreateIndexes{NS: iv.coll.namespace(), Indexes: indexes}
+	cmd := command.CreateIndexes{NS: iv.coll.namespace(), Indexes: indexes, Opts: opts}
 
 	_, err := dispatch.CreateIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 	if err != nil {
@@ -87,19 +88,19 @@ func (iv IndexView) CreateMany(ctx context.Context, models ...IndexModel) ([]str
 }
 
 // DropOne drops the index with the given name from the collection.
-func (iv IndexView) DropOne(ctx context.Context, name string) (bson.Reader, error) {
+func (iv IndexView) DropOne(ctx context.Context, name string, opts ...options.DropIndexesOptioner) (bson.Reader, error) {
 	if name == "*" {
 		return nil, ErrMultipleIndexDrop
 	}
 
-	cmd := command.DropIndexes{NS: iv.coll.namespace(), Index: name}
+	cmd := command.DropIndexes{NS: iv.coll.namespace(), Index: name, Opts: opts}
 
 	return dispatch.DropIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 }
 
 // DropAll drops all indexes in the collection.
-func (iv IndexView) DropAll(ctx context.Context) (bson.Reader, error) {
-	cmd := command.DropIndexes{NS: iv.coll.namespace(), Index: "*"}
+func (iv IndexView) DropAll(ctx context.Context, opts ...options.DropIndexesOptioner) (bson.Reader, error) {
+	cmd := command.DropIndexes{NS: iv.coll.namespace(), Index: "*", Opts: opts}
 
 	return dispatch.DropIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 }
