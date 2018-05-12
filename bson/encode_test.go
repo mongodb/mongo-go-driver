@@ -751,7 +751,7 @@ func reflectionEncoderTest(t *testing.T) {
 			nil,
 		},
 		{
-			"omitempty",
+			"omitempty, empty time",
 			struct {
 				A time.Time `bson:",omitempty"`
 			}{
