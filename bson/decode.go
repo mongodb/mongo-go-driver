@@ -70,8 +70,40 @@ type DocumentUnmarshaler interface {
 	UnmarshalBSONDocument(*Document) error
 }
 
-// Decoder facilitates decoding a value from an io.Reader yielding a BSON document as bytes.
-type Decoder struct {
+// Decoder describes a BSON representation that can decodes itself into a value.
+type Decoder interface {
+	// The value can be any one of the following types:
+	//
+	//   - bson.Unmarshaler
+	//   - io.Writer
+	//   - []byte
+	//   - bson.Reader
+	//   - any map with string keys
+	//   - a struct (possibly with tags)
+	//
+	// In the case of struct values, only exported fields will be deserialized. The lowercased field
+	// name is used as the key for each exported field, but this behavior may be changed using a struct
+	// tag. The tag may also contain flags to adjust the unmarshaling behavior for the field. The tag
+	// formats accepted are:
+	//
+	//     "[<key>][,<flag1>[,<flag2>]]"
+	//
+	//     `(...) bson:"[<key>][,<flag1>[,<flag2>]]" (...)`
+	//
+	// The target field or element types of out may not necessarily match the BSON values of the
+	// provided data. The following conversions are made automatically:
+	//
+	//   - Numeric types are converted if at least the integer part of the value would be preserved
+	//     correctly
+	//
+	// If the value would not fit the type and cannot be converted, it is silently skipped.
+	//
+	// Pointer values are initialized when necessary.
+	Decode(interface{}) error
+}
+
+// decoder facilitates decoding a value from an io.Reader yielding a BSON document as bytes.
+type decoder struct {
 	pReader    *peekLengthReader
 	bsonReader Reader
 }
@@ -119,40 +151,16 @@ func (r *peekLengthReader) Read(b []byte) (int, error) {
 }
 
 // NewDecoder constructs a new Decoder from the given io.Reader.
-func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{pReader: newPeekLengthReader(r)}
+func NewDecoder(r io.Reader) Decoder {
+	return newDecoderImpl(r)
+}
+
+func newDecoderImpl(r io.Reader) *decoder {
+	return &decoder{pReader: newPeekLengthReader(r)}
 }
 
 // Decode decodes the BSON document from the underlying io.Reader into the given value.
-//
-// The value can be any one of the following types:
-//
-//   - bson.Unmarshaler
-//   - io.Writer
-//   - []byte
-//   - bson.Reader
-//   - any map with string keys
-//   - a struct (possibly with tags)
-//
-// In the case of struct values, only exported fields will be deserialized. The lowercased field
-// name is used as the key for each exported field, but this behavior may be changed using a struct
-// tag. The tag may also contain flags to adjust the unmarshaling behavior for the field. The tag
-// formats accepted are:
-//
-//     "[<key>][,<flag1>[,<flag2>]]"
-//
-//     `(...) bson:"[<key>][,<flag1>[,<flag2>]]" (...)`
-//
-// The target field or element types of out may not necessarily match the BSON values of the
-// provided data. The following conversions are made automatically:
-//
-//   - Numeric types are converted if at least the integer part of the value would be preserved
-//     correctly
-//
-// If the value would not fit the type and cannot be converted, it is silently skipped.
-//
-// Pointer values are initialized when necessary.
-func (d *Decoder) Decode(v interface{}) error {
+func (d *decoder) Decode(v interface{}) error {
 	switch t := v.(type) {
 	case Unmarshaler:
 		err := d.decodeToReader()
@@ -210,7 +218,7 @@ func (d *Decoder) Decode(v interface{}) error {
 	}
 }
 
-func (d *Decoder) decodeToReader() error {
+func (d *decoder) decodeToReader() error {
 	var err error
 	d.bsonReader, err = NewFromIOReader(d.pReader)
 	if err != nil {
@@ -222,7 +230,7 @@ func (d *Decoder) decodeToReader() error {
 
 }
 
-func (d *Decoder) reflectDecode(val reflect.Value) (err error) {
+func (d *decoder) reflectDecode(val reflect.Value) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = fmt.Errorf("%s", e)
@@ -249,7 +257,7 @@ func (d *Decoder) reflectDecode(val reflect.Value) (err error) {
 	}
 }
 
-func (d *Decoder) createEmptyValue(r Reader, t reflect.Type) (reflect.Value, error) {
+func (d *decoder) createEmptyValue(r Reader, t reflect.Type) (reflect.Value, error) {
 	var val reflect.Value
 
 	if t == tReader {
@@ -293,7 +301,7 @@ func (d *Decoder) createEmptyValue(r Reader, t reflect.Type) (reflect.Value, err
 	return val, nil
 }
 
-func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer reflect.Type) (reflect.Value, error) {
+func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer reflect.Type) (reflect.Value, error) {
 	var val reflect.Value
 
 	for containerType.Kind() == reflect.Ptr {
@@ -385,7 +393,7 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		}
 	case 0x4:
 		if containerType == tEmpty {
-			d := NewDecoder(bytes.NewBuffer(v.ReaderArray()))
+			d := newDecoderImpl(bytes.NewBuffer(v.ReaderArray()))
 			newVal, err := d.decodeBSONArrayToSlice(tEmptySlice)
 			if err != nil {
 				return val, err
@@ -397,7 +405,7 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		}
 
 		if containerType.Kind() == reflect.Slice {
-			d := NewDecoder(bytes.NewBuffer(v.ReaderArray()))
+			d := newDecoderImpl(bytes.NewBuffer(v.ReaderArray()))
 			newVal, err := d.decodeBSONArrayToSlice(containerType)
 			if err != nil {
 				return val, err
@@ -409,7 +417,7 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		}
 
 		if containerType.Kind() == reflect.Array {
-			d := NewDecoder(bytes.NewBuffer(v.ReaderArray()))
+			d := newDecoderImpl(bytes.NewBuffer(v.ReaderArray()))
 			newVal, err := d.decodeBSONArrayIntoArray(containerType)
 			if err != nil {
 				return val, err
@@ -662,7 +670,7 @@ func (d *Decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 	return val, nil
 }
 
-func (d *Decoder) decodeIntoMap(mapVal reflect.Value) error {
+func (d *decoder) decodeIntoMap(mapVal reflect.Value) error {
 	err := d.decodeToReader()
 	if err != nil {
 		return err
@@ -690,7 +698,7 @@ func (d *Decoder) decodeIntoMap(mapVal reflect.Value) error {
 	return itr.Err()
 }
 
-func (d *Decoder) decodeBSONArrayToSlice(sliceType reflect.Type) (reflect.Value, error) {
+func (d *decoder) decodeBSONArrayToSlice(sliceType reflect.Type) (reflect.Value, error) {
 	var out reflect.Value
 
 	elems := make([]reflect.Value, 0)
@@ -737,7 +745,7 @@ func (d *Decoder) decodeBSONArrayToSlice(sliceType reflect.Type) (reflect.Value,
 	return out, nil
 }
 
-func (d *Decoder) decodeBSONArrayIntoArray(arrayType reflect.Type) (reflect.Value, error) {
+func (d *decoder) decodeBSONArrayIntoArray(arrayType reflect.Type) (reflect.Value, error) {
 	length := arrayType.Len()
 	arrayVal := reflect.New(arrayType)
 
@@ -777,7 +785,7 @@ func (d *Decoder) decodeBSONArrayIntoArray(arrayType reflect.Type) (reflect.Valu
 	return arrayVal.Elem(), nil
 }
 
-func (d *Decoder) decodeIntoElementSlice(sliceVal reflect.Value) error {
+func (d *decoder) decodeIntoElementSlice(sliceVal reflect.Value) error {
 	if sliceVal.Type().Elem() != tElement {
 		return nil
 	}
@@ -835,7 +843,7 @@ func matchesField(key string, field string, sType reflect.Type) bool {
 	return fieldKey == key
 }
 
-func (d *Decoder) decodeIntoStruct(structVal reflect.Value) error {
+func (d *decoder) decodeIntoStruct(structVal reflect.Value) error {
 	err := d.decodeToReader()
 	if err != nil {
 		return err
