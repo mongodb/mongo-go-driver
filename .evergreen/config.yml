@@ -344,34 +344,6 @@ tasks:
             AUTH: "noauth"
             SSL: "nossl"
 
-    - name: test-standalone-noauth-ssl
-      tags: ["test", "standalone"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            TOPOLOGY: "server"
-            AUTH: "noauth"
-            SSL: "ssl"
-        - func: run-tests
-          vars:
-            TOPOLOGY: "server"
-            AUTH: "noauth"
-            SSL: "ssl"
-
-    - name: test-standalone-auth-nossl
-      tags: ["test", "standalone"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            TOPOLOGY: "server"
-            AUTH: "auth"
-            SSL: "nossl"
-        - func: run-tests
-          vars:
-            TOPOLOGY: "server"
-            AUTH: "auth"
-            SSL: "nossl"
-
     - name: test-standalone-auth-ssl
       tags: ["test", "standalone"]
       commands:
@@ -400,34 +372,6 @@ tasks:
             AUTH: "noauth"
             SSL: "nossl"
 
-    - name: test-replicaset-noauth-ssl
-      tags: ["test", "replicaset"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            TOPOLOGY: "replica_set"
-            AUTH: "noauth"
-            SSL: "ssl"
-        - func: run-tests
-          vars:
-            TOPOLOGY: "replica_set"
-            AUTH: "noauth"
-            SSL: "ssl"
-
-    - name: test-replicaset-auth-nossl
-      tags: ["test", "replicaset"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            TOPOLOGY: "replica_set"
-            AUTH: "auth"
-            SSL: "nossl"
-        - func: run-tests
-          vars:
-            TOPOLOGY: "replica_set"
-            AUTH: "auth"
-            SSL: "nossl"
-
     - name: test-replicaset-auth-ssl
       tags: ["test", "replicaset"]
       commands:
@@ -454,34 +398,6 @@ tasks:
           vars:
             TOPOLOGY: "sharded_cluster"
             AUTH: "noauth"
-            SSL: "nossl"
-
-    - name: test-sharded-noauth-ssl
-      tags: ["test", "sharded"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            TOPOLOGY: "sharded_cluster"
-            AUTH: "noauth"
-            SSL: "ssl"
-        - func: run-tests
-          vars:
-            TOPOLOGY: "sharded_cluster"
-            AUTH: "noauth"
-            SSL: "ssl"
-
-    - name: test-sharded-auth-nossl
-      tags: ["test", "sharded"]
-      commands:
-        - func: bootstrap-mongo-orchestration
-          vars:
-            TOPOLOGY: "sharded_cluster"
-            AUTH: "auth"
-            SSL: "nossl"
-        - func: run-tests
-          vars:
-            TOPOLOGY: "sharded_cluster"
-            AUTH: "auth"
             SSL: "nossl"
 
     - name: test-sharded-auth-ssl
