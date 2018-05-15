@@ -33,6 +33,24 @@
       "revId": "3907727251e0a8bd54186e6dcd572ce45398e022",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6c18947b_234483a7",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 158,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-15T15:00:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "eaefc48e_4947ac5a",
+      "revId": "3907727251e0a8bd54186e6dcd572ce45398e022",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
