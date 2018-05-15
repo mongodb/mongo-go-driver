@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9e48965f_d4f2d211",
+        "filename": "bson/decode.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-05-15T13:53:04Z",
+      "side": 1,
+      "message": "This was a good description of the Decoder struct, but it\u0027s too specific for the Decoder interface.  We can say that the default implementation of the Decoder works as described here, but for external implementors of the interface the value can be of any type that\u0027s supported by the struct implementing this interface.",
+      "revId": "3907727251e0a8bd54186e6dcd572ce45398e022",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
