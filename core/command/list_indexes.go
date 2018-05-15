@@ -19,9 +19,8 @@ import (
 //
 // The listIndexes command lists the indexes for a namespace.
 type ListIndexes struct {
-	NS   Namespace
-	Opts []options.ListIndexesOptioner
-
+	NS     Namespace
+	Opts   []options.ListIndexesOptioner
 	result Cursor
 	err    error
 }

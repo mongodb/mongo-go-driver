@@ -137,18 +137,32 @@ type ListDatabasesOptioner interface {
 	listDatabasesOption()
 }
 
-// ListIndexesOptioner is the interface implemented by types that can be used as
-// Options for ListIndexes operations.
-type ListIndexesOptioner interface {
-	Optioner
-	listIndexesOption()
-}
-
 // CursorOptioner is the interface implemented by types that can be used as
 // Options for Cursor operations.
 type CursorOptioner interface {
 	Optioner
 	cursorOption()
+}
+
+//ListIndexesOptioner is the interface implemented by types that can be used as
+// Options for list_indexes operations.
+type ListIndexesOptioner interface {
+	Optioner
+	listIndexesOption()
+}
+
+//CreateIndexesOptioner is the interface implemented by types that can be used as
+// Options for create_indexes operations.
+type CreateIndexesOptioner interface {
+	Optioner
+	createIndexesOption()
+}
+
+//DropIndexesOptioner is the interface implemented by types that can be used as
+// Options for drop_indexes operations.
+type DropIndexesOptioner interface {
+	Optioner
+	dropIndexesOption()
 }
 
 var (
@@ -480,6 +494,9 @@ func (OptMaxTime) findOneOption()           {}
 func (OptMaxTime) findOneAndDeleteOption()  {}
 func (OptMaxTime) findOneAndReplaceOption() {}
 func (OptMaxTime) findOneAndUpdateOption()  {}
+func (OptMaxTime) listIndexesOption()       {}
+func (OptMaxTime) dropIndexesOption()       {}
+func (OptMaxTime) createIndexesOption()     {}
 
 // OptMin is for internal use.
 type OptMin struct{ Min *bson.Document }
@@ -705,6 +722,8 @@ func (OptWriteConcern) insertManyOption()        {}
 func (OptWriteConcern) insertOneOption()         {}
 func (OptWriteConcern) replaceOption()           {}
 func (OptWriteConcern) updateOption()            {}
+func (OptWriteConcern) createIndexesOption()     {}
+func (OptWriteConcern) dropIndexesOption()       {}
 
 // OptNameOnly is for internal use.
 type OptNameOnly bool
