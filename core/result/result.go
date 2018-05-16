@@ -90,7 +90,7 @@ type IsMaster struct {
 	LastWriteTimestamp  time.Time         `bson:"lastWriteDate,omitempty"`
 	MaxBSONObjectSize   uint32            `bson:"maxBsonObjectSize,omitempty"`
 	MaxMessageSizeBytes uint32            `bson:"maxMessageSizeBytes,omitempty"`
-	MaxWriteBatchSize   uint16            `bson:"maxWriteBatchSize,omitempty"`
+	MaxWriteBatchSize   uint32            `bson:"maxWriteBatchSize,omitempty"`
 	Me                  string            `bson:"me,omitempty"`
 	MaxWireVersion      int32             `bson:"maxWireVersion,omitempty"`
 	MinWireVersion      int32             `bson:"minWireVersion,omitempty"`
