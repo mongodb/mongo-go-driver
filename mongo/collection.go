@@ -133,6 +133,10 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		if err != nil {
 			return nil, err
 		}
+		_, err = bdoc.Validate()
+		if err != nil {
+			return nil, err
+		}
 
 		docs[i] = bdoc
 		result[i] = insertedID
