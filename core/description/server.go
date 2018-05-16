@@ -39,7 +39,7 @@ type Server struct {
 	LastError         error
 	LastUpdateTime    time.Time
 	LastWriteTime     time.Time
-	MaxBatchCount     uint16
+	MaxBatchCount     uint32
 	MaxDocumentSize   uint32
 	MaxMessageSize    uint32
 	Members           []addr.Addr
