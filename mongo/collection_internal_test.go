@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -187,10 +188,44 @@ func TestCollection_InsertMany(t *testing.T) {
 	require.Equal(t, result.InsertedIDs[0], want1)
 	require.NotNil(t, result.InsertedIDs[1])
 	require.Equal(t, result.InsertedIDs[2], want2)
-
 }
 
-func TestCollection_InsertMany_WriteError(t *testing.T) {
+func TestCollection_InsertMany_Batches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	const (
+		megabyte = 10 * 10 * 10 * 10 * 10 * 10
+		numDocs  = 700000
+	)
+
+	docs := []interface{}{}
+	total := uint32(0)
+	expectedDocSize := uint32(26)
+	for i := 0; i < numDocs; i++ {
+		d := bson.NewDocument(
+			bson.EC.Int32("a", int32(i)),
+			bson.EC.Int32("b", int32(i*2)),
+			bson.EC.Int32("c", int32(i*3)),
+		)
+		len, err := d.Validate()
+		require.NoError(t, err)
+		require.Equal(t, expectedDocSize, len, "len=%d expected=%d", len, expectedDocSize)
+		docs = append(docs, d)
+		total += len
+	}
+	assert.True(t, total > 16*megabyte)
+	coll := createTestCollection(t, nil, nil)
+
+	result, err := coll.InsertMany(context.Background(), docs)
+	require.Nil(t, err)
+	require.Len(t, result.InsertedIDs, numDocs)
+}
+
+func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -205,20 +240,76 @@ func TestCollection_InsertMany_WriteError(t *testing.T) {
 	}
 	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.InsertMany(context.Background(), docs)
-	require.NoError(t, err)
-	_, err = coll.InsertMany(context.Background(), docs)
-	got, ok := err.(BulkWriteError)
-	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
-	}
-	if len(got.WriteErrors) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
-		t.FailNow()
-	}
-	if got.WriteErrors[0].Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
-	}
+	t.Run("insert_batch_unordered", func(t *testing.T) {
+		_, err := coll.InsertMany(context.Background(), docs)
+		require.NoError(t, err)
+
+		// without option ordered
+		_, err = coll.InsertMany(context.Background(), docs, option.OptOrdered(false))
+		got, ok := err.(BulkWriteError)
+		if !ok {
+			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+			t.FailNow()
+		}
+		if len(got.WriteErrors) != 3 {
+			t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 3)
+			t.FailNow()
+		}
+		if got.WriteErrors[0].Code != want.Code {
+			t.Errorf("Did not recieve the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+		}
+	})
+	t.Run("insert_batch_ordered_write_error", func(t *testing.T) {
+		// run the insert again to ensure that the documents
+		// are there in cases when this case is run
+		// independently of the previous test
+		_, _ = coll.InsertMany(context.Background(), docs)
+
+		// with the ordered option (default, we should only get one write error)
+		_, err := coll.InsertMany(context.Background(), docs)
+		got, ok := err.(BulkWriteError)
+		if !ok {
+			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+			t.FailNow()
+		}
+		if len(got.WriteErrors) != 1 {
+			t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
+			t.FailNow()
+		}
+		if got.WriteErrors[0].Code != want.Code {
+			t.Errorf("Did not recieve the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+		}
+
+	})
+	t.Run("insert_batch_write_concern_error", func(t *testing.T) {
+		if os.Getenv("TOPOLOGY") != "replica_set" {
+			t.Skip()
+		}
+
+		docs = []interface{}{
+			bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+			bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+			bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
+		}
+
+		optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(42)))
+		if err != nil {
+			t.Errorf("could not create write concern: %+v", err)
+			t.FailNow()
+		}
+
+		_, err = coll.InsertMany(context.Background(), docs, optwc)
+		if err == nil {
+			t.Errorf("write concern error not propagated from command: %+v", err)
+		}
+		bulkErr, ok := err.(BulkWriteError)
+		if !ok {
+			t.Errorf("incorrect error type returned: %T", err)
+		}
+		if bulkErr.WriteConcernError == nil {
+			t.Errorf("write concern error is nil: %+v", bulkErr)
+		}
+	})
 }
 
 func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
