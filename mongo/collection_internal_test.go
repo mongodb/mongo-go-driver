@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/options"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -187,7 +188,37 @@ func TestCollection_InsertMany(t *testing.T) {
 	require.Equal(t, result.InsertedIDs[0], want1)
 	require.NotNil(t, result.InsertedIDs[1])
 	require.Equal(t, result.InsertedIDs[2], want2)
+}
 
+func TestCollection_InsertMany_Batches(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	const (
+		megabyte = 10 * 10 * 10 * 10 * 10 * 10
+		numDocs  = 1500000
+	)
+
+	docs := []interface{}{}
+	// these documents are 12 bytes, 1.5m is more than 16mb
+	total := uint32(0)
+	for i := 0; i < numDocs; i++ {
+		d := bson.NewDocument(bson.EC.Int32("a", int32(i)))
+		len, err := d.Validate()
+		assert.NoError(t, err)
+		assert.Equal(t, len, uint32(12))
+		docs = append(docs, d)
+		total += len
+	}
+	assert.True(t, total > 16*megabyte)
+	coll := createTestCollection(t, nil, nil)
+
+	result, err := coll.InsertMany(context.Background(), docs)
+	require.Nil(t, err)
+	require.Len(t, result.InsertedIDs, numDocs)
 }
 
 func TestCollection_InsertMany_WriteError(t *testing.T) {
@@ -207,18 +238,35 @@ func TestCollection_InsertMany_WriteError(t *testing.T) {
 
 	_, err := coll.InsertMany(context.Background(), docs)
 	require.NoError(t, err)
-	_, err = coll.InsertMany(context.Background(), docs)
+
+	// without
+	_, err = coll.InsertMany(context.Background(), docs, options.OptOrdered(false))
 	got, ok := err.(BulkWriteError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
 	}
-	if len(got.WriteErrors) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
+	if len(got.WriteErrors) != 3 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 3)
 		t.FailNow()
 	}
 	if got.WriteErrors[0].Code != want.Code {
 		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
 	}
+
+	// with the ordered option (defautl, we should only get one write error )
+	_, err = coll.InsertMany(context.Background(), docs)
+	got, ok = err.(BulkWriteError)
+	if !ok {
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+	}
+	if len(got.WriteErrors) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 3)
+		t.FailNow()
+	}
+	if got.WriteErrors[0].Code != want.Code {
+		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+	}
+
 }
 
 func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
