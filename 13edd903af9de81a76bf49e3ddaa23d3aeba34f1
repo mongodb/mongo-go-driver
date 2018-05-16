@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "15ba3b40_a99391a9",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-16T19:06:43Z",
+      "side": 1,
+      "message": "Could we try naming this \"encode\" or \"encodeBatch\"?",
+      "range": {
+        "startLine": 74,
+        "startChar": 17,
+        "endLine": 74,
+        "endChar": 27
+      },
+      "revId": "13edd903af9de81a76bf49e3ddaa23d3aeba34f1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fbde89f3_e9d412e4",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-16T19:06:43Z",
+      "side": 1,
+      "message": "This block seems strange, we don\u0027t return a write concern error anywhere else, and we shouldn\u0027t use errors.New because we won\u0027t be able to catch the write concern error in the mongo package.",
+      "range": {
+        "startLine": 161,
+        "startChar": 2,
+        "endLine": 165,
+        "endChar": 0
+      },
+      "revId": "13edd903af9de81a76bf49e3ddaa23d3aeba34f1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2868ecfe_3790ed5a",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-16T19:06:43Z",
+      "side": 1,
+      "message": "Was this just for debugging?",
+      "revId": "13edd903af9de81a76bf49e3ddaa23d3aeba34f1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
