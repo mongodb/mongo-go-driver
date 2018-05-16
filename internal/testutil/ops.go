@@ -8,6 +8,7 @@ package testutil
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -69,8 +70,11 @@ func AutoInsertDocs(t *testing.T, writeConcern *writeconcern.WriteConcern, docs 
 func InsertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern.WriteConcern, docs ...*bson.Document) {
 	cmd := command.Insert{NS: command.NewNamespace(dbname, colname), Docs: docs}
 
+	ws := description.WriteSelector()
 	topo := Topology(t)
-	_, err := dispatch.Insert(context.Background(), cmd, topo, description.WriteSelector(), writeConcern)
+	ss, _ := topo.SelectServer(context.TODO(), ws)
+	res, err := dispatch.Insert(context.Background(), cmd, topo, ws, writeConcern)
+	fmt.Printf("%+v\n%+v\n---\n", ss.Server, res)
 	require.NoError(t, err)
 }
 
