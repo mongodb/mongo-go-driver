@@ -16,6 +16,10 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
+// this is the amount of reserved buffer space in a message that the
+// driver reserves for command overhead.
+const reservedCommandBufferBytes = 16 * 10 * 10 * 10
+
 // Insert represents the insert command.
 //
 // The insert command inserts a set of documents into the database.
@@ -27,15 +31,60 @@ type Insert struct {
 	Docs []*bson.Document
 	Opts []options.InsertOptioner
 
-	result result.Insert
-	err    error
+	result          result.Insert
+	err             error
+	continueOnError bool
 }
 
-// Encode will encode this command into a wire message for the given server description.
-func (i *Insert) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+func (i *Insert) split(maxCount, targetBatchSize int) ([][]*bson.Document, error) {
+	batches := [][]*bson.Document{}
+
+	if targetBatchSize > reservedCommandBufferBytes {
+		targetBatchSize -= reservedCommandBufferBytes
+	}
+
+	if maxCount <= 0 {
+		maxCount = 1
+	}
+
+	startAt := 0
+splitInserts:
+	for {
+		size := 0
+		batch := []*bson.Document{}
+	assembleBatch:
+		for idx := startAt; idx < len(i.Docs); idx++ {
+			itsize, err := i.Docs[idx].Validate()
+			if err != nil {
+				return nil, err
+			}
+
+			if size+int(itsize) > targetBatchSize {
+				break assembleBatch
+			}
+
+			size += int(itsize)
+			batch = append(batch, i.Docs[idx])
+			startAt++
+			if len(batch) == maxCount {
+				break assembleBatch
+			}
+		}
+		batches = append(batches, batch)
+		if startAt == len(i.Docs) {
+			break splitInserts
+		}
+	}
+
+	return batches, nil
+}
+
+func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedServer) (wiremessage.WireMessage, error) {
+
 	command := bson.NewDocument(bson.EC.String("insert", i.NS.Collection))
-	vals := make([]*bson.Value, 0, len(i.Docs))
-	for _, doc := range i.Docs {
+
+	vals := make([]*bson.Value, 0, len(docs))
+	for _, doc := range docs {
 		vals = append(vals, bson.VC.Document(doc))
 	}
 	command.Append(bson.EC.ArrayFromElements("documents", vals...))
@@ -44,6 +93,13 @@ func (i *Insert) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		if option == nil {
 			continue
 		}
+
+		if ordered, ok := option.(options.OptOrdered); ok {
+			if !ordered {
+				i.continueOnError = true
+			}
+		}
+
 		err := option.Option(command)
 		if err != nil {
 			return nil, err
@@ -51,6 +107,26 @@ func (i *Insert) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 	}
 
 	return (&Command{DB: i.NS.DB, Command: command, isWrite: true}).Encode(desc)
+}
+
+// Encode will encode this command into a wire message for the given server description.
+func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMessage, error) {
+	out := []wiremessage.WireMessage{}
+	batches, err := i.split(int(desc.MaxBatchCount), int(desc.MaxDocumentSize))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, docs := range batches {
+		cmd, err := i.encodeBatch(docs, desc)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, cmd)
+	}
+
+	return out, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
@@ -79,18 +155,40 @@ func (i *Insert) Err() error { return i.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (i *Insert) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Insert, error) {
-	wm, err := i.Encode(desc)
+	res := result.Insert{}
+
+	wms, err := i.Encode(desc)
 	if err != nil {
-		return result.Insert{}, err
+		return res, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
-	if err != nil {
-		return result.Insert{}, err
+	for _, wm := range wms {
+		err = rw.WriteWireMessage(ctx, wm)
+		if err != nil {
+			return res, err
+		}
+		wm, err = rw.ReadWireMessage(ctx)
+		if err != nil {
+			return res, err
+		}
+
+		r, err := i.Decode(desc, wm).Result()
+		if err != nil {
+			return res, err
+		}
+
+		res.WriteErrors = append(res.WriteErrors, r.WriteErrors...)
+
+		if r.WriteConcernError != nil {
+			res.WriteConcernError = r.WriteConcernError
+		}
+
+		if !i.continueOnError && len(res.WriteErrors) > 0 {
+			return res, nil
+		}
+
+		res.N += r.N
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return result.Insert{}, err
-	}
-	return i.Decode(desc, wm).Result()
+
+	return res, nil
 }
