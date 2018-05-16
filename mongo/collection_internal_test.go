@@ -212,8 +212,8 @@ func TestCollection_InsertMany_WriteError(t *testing.T) {
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
 	}
-	if len(got.WriteErrors) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
+	if len(got.WriteErrors) != 3 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 3)
 		t.FailNow()
 	}
 	if got.WriteErrors[0].Code != want.Code {
