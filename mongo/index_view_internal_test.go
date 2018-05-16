@@ -306,7 +306,7 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
 	indexView := coll.Indexes()
 	var opts []options.CreateIndexesOptioner
-	wc := writeconcern.New(writeconcern.W(25))
+	wc := writeconcern.New(writeconcern.W(1))
 	elem, err := wc.MarshalBSONElement()
 	require.NoError(t, err)
 	optwc := options.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
@@ -380,7 +380,7 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
 	indexView := coll.Indexes()
 	var opts []options.DropIndexesOptioner
-	wc := writeconcern.New(writeconcern.W(25))
+	wc := writeconcern.New(writeconcern.W(1))
 	elem, err := wc.MarshalBSONElement()
 	require.NoError(t, err)
 	optwc := options.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
