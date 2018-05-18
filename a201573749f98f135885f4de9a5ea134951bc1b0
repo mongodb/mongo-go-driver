@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "8d0b5dee_c918ae4d",
+        "filename": "core/command/command_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-18T19:37:43Z",
+      "side": 1,
+      "message": "While I don\u0027t have time right now, I want to get rid of testify. It\u0027s a bloated dependency that screws up the output of go test.",
+      "parentUuid": "c73b53bd_37977aab",
+      "revId": "a201573749f98f135885f4de9a5ea134951bc1b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a62dd028_6c55794d",
         "filename": "core/topology/topology.go",
         "patchSetId": 1
@@ -39,6 +57,30 @@
       "revId": "a201573749f98f135885f4de9a5ea134951bc1b0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7d76b810_df1528fa",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-18T19:37:43Z",
+      "side": 1,
+      "message": "Changed.",
+      "parentUuid": "a62dd028_6c55794d",
+      "range": {
+        "startLine": 267,
+        "startChar": 15,
+        "endLine": 267,
+        "endChar": 16
+      },
+      "revId": "a201573749f98f135885f4de9a5ea134951bc1b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
