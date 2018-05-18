@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -198,6 +199,25 @@ func TestServerSelection(t *testing.T) {
 
 		if err != errSelectionError {
 			t.Errorf("Incorrect error received. got %v; want %v", err, errSelectionError)
+		}
+	})
+	t.Run("findServer returns topology kind", func(t *testing.T) {
+		topo, err := New()
+		noerr(t, err)
+		atomic.StoreInt32(&topo.connectionstate, connected)
+		srvr, err := NewServer(addr.Addr("one"))
+		noerr(t, err)
+		topo.servers[addr.Addr("one")] = srvr
+		desc := topo.desc.Load().(description.Topology)
+		desc.Kind = description.Single
+		topo.desc.Store(desc)
+
+		selected := description.Server{Addr: addr.Addr("one")}
+
+		ss, err := topo.findServer(selected)
+		noerr(t, err)
+		if ss.Kind != description.Single {
+			t.Errorf("findServer does not properly set the topology description kind. got %v; want %v", ss.Kind, description.Single)
 		}
 	})
 }
