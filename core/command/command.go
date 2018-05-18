@@ -41,19 +41,16 @@ func (c *Command) Encode(desc description.SelectedServer) (wiremessage.WireMessa
 	}
 
 	var flags wiremessage.QueryFlag
-	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
-		flags |= wiremessage.SlaveOK
-	}
+	if c.isWrite {
+		if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
+			flags |= wiremessage.SlaveOK
+		}
 
-	if !c.isWrite {
+	} else {
+		flags = c.slaveOK(desc, flags)
 		rdr, err = c.addReadPref(c.ReadPref, desc.Server.Kind, rdr)
 		if err != nil {
 			return nil, err
-		}
-
-		if c.ReadPref == nil || c.ReadPref.Mode() == readpref.PrimaryMode {
-			// assume primary
-			flags &^= wiremessage.SlaveOK
 		}
 	}
 
@@ -66,6 +63,23 @@ func (c *Command) Encode(desc description.SelectedServer) (wiremessage.WireMessa
 	}
 
 	return query, nil
+}
+
+func (c *Command) slaveOK(desc description.SelectedServer, flags wiremessage.QueryFlag) wiremessage.QueryFlag {
+	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
+		return flags | wiremessage.SlaveOK
+	}
+
+	if c.ReadPref == nil {
+		// assume primary
+		return flags
+	}
+
+	if c.ReadPref.Mode() != readpref.PrimaryMode {
+		return flags | wiremessage.SlaveOK
+	}
+
+	return flags
 }
 
 // addReadPref will add a read preference to the query document.

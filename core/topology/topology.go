@@ -264,8 +264,10 @@ func (t *Topology) findServer(selected description.Server) (*SelectedServer, err
 		return nil, nil
 	}
 
+	desc := t.desc.Load().(description.Topology)
 	return &SelectedServer{
 		Server: server,
+		Kind:   desc.Kind,
 	}, nil
 }
 
