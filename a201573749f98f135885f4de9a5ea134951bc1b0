@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c73b53bd_37977aab",
+        "filename": "core/command/command_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-18T17:45:43Z",
+      "side": 1,
+      "message": "I feel like we should just use testify?",
+      "revId": "a201573749f98f135885f4de9a5ea134951bc1b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a62dd028_6c55794d",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-18T17:45:43Z",
+      "side": 1,
+      "message": "I realize that this is out of the scope of this CR, but I\u0027m a bit creeped out by needing to do casts for accessing this atomic. Could we add a method on the Topology?",
+      "range": {
+        "startLine": 267,
+        "startChar": 15,
+        "endLine": 267,
+        "endChar": 16
+      },
+      "revId": "a201573749f98f135885f4de9a5ea134951bc1b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
