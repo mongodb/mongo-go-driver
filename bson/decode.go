@@ -484,9 +484,7 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		if reflect.PtrTo(typeToCreate) == empty.Type() {
 			empty = empty.Elem()
 			if isPtr {
-				valPtr := reflect.New(empty.Type())
-				valPtr.Elem().Set(empty)
-				empty = valPtr
+				empty = convertToPtr(empty)
 				isPtr = false
 			}
 		}
