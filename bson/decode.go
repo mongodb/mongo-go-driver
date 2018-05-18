@@ -123,6 +123,12 @@ func (r *peekLengthReader) Read(b []byte) (int, error) {
 	return int(bytesToRead), nil
 }
 
+func convertToPtr(val reflect.Value) reflect.Value {
+	valPtr := reflect.New(val.Type())
+	valPtr.Elem().Set(val)
+	return valPtr
+}
+
 // NewDecoder constructs a new default Decoder implementation from the given io.Reader.
 //
 // In this implementation, the value can be any one of the following types:
@@ -377,7 +383,6 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			val = reflect.ValueOf(f)
 		case tJSONNumber:
 			val = reflect.ValueOf(strconv.FormatFloat(f, 'f', -1, 64)).Convert(tJSONNumber)
-
 		default:
 			return val, nil
 		}
@@ -404,15 +409,6 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			return val, nil
 		}
 	case 0x4:
-		postProcess := func(isPtr bool, valueToProcess reflect.Value) reflect.Value {
-			if !isPtr {
-				return valueToProcess
-			}
-			valPtr := reflect.New(valueToProcess.Type())
-			valPtr.Elem().Set(valueToProcess)
-			return valPtr
-		}
-
 		if containerType == tEmpty {
 			d := newDecoder(bytes.NewBuffer(v.ReaderArray()))
 			newVal, err := d.decodeBSONArrayToSlice(tEmptySlice)
@@ -420,8 +416,12 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 				return val, err
 			}
 
-			val = postProcess(isPtr, newVal)
-			isPtr = false
+			if isPtr {
+				val = convertToPtr(newVal)
+				isPtr = false
+			} else {
+				val = newVal
+			}
 
 			break
 		}
@@ -433,8 +433,12 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 				return val, err
 			}
 
-			val = postProcess(isPtr, newVal)
-			isPtr = false
+			if isPtr {
+				val = convertToPtr(newVal)
+				isPtr = false
+			} else {
+				val = newVal
+			}
 
 			break
 		}
@@ -446,8 +450,12 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 				return val, err
 			}
 
-			val = postProcess(isPtr, newVal)
-			isPtr = false
+			if isPtr {
+				val = convertToPtr(newVal)
+				isPtr = false
+			} else {
+				val = newVal
+			}
 
 			break
 		}
@@ -698,9 +706,7 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 	}
 
 	if isPtr && val.IsValid() && !val.CanAddr() {
-		valPtr := reflect.New(val.Type())
-		valPtr.Elem().Set(val)
-		val = valPtr
+		val = convertToPtr(val)
 	}
 	return val, nil
 }
