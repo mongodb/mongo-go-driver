@@ -55,6 +55,10 @@ func (c *Command) Encode(desc description.SelectedServer) (wiremessage.WireMessa
 			// assume primary
 			flags &^= wiremessage.SlaveOK
 		}
+
+		if c.ReadPref.Mode() != readpref.PrimaryMode {
+			flags |= wiremessage.SlaveOK
+		}
 	}
 
 	query := wiremessage.Query{
