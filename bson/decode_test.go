@@ -1855,7 +1855,7 @@ func TestDecoder(t *testing.T) {
 					&struct {
 						Baz float32
 					}{
-						0,
+						3,
 					},
 					&struct {
 						Baz float32
