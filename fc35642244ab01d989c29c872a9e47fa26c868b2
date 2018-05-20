@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "98746fb3_301e279e",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-20T22:22:57Z",
+      "side": 1,
+      "message": "feels like this just equals 0... What am I missing?",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "85bc9841_188a1474",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-20T22:22:57Z",
+      "side": 1,
+      "message": "to avoid what?",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "745a2436_06d011bc",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-20T22:22:57Z",
+      "side": 1,
+      "message": "How expensive is this? It seems like calling Validate() actually recurses through the doc structure to calculate the size. The way other drivers do it (maybe all, I\u0027m not sure) is to just start encoding them and keep track along the way of how many bytes have been written. That way there isn\u0027t any double traversal going on.",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6d13824a_d2e86a58",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-20T22:22:57Z",
+      "side": 1,
+      "message": "targetBatchSize is already an int.",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "097732e1_00f1fb31",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-20T22:22:57Z",
+      "side": 1,
+      "message": "By default, we are going to want to stop inserting with the first error. There is an option called \"ordered\" (a boolean) that defaults to true. When it\u0027s false, you continue, keeping track of write errors and write concern errors along the way. When ordered is true (the default), you stop on the first error, either one.\n\nAll this is written up here: https://github.com/mongodb/specifications/blob/master/source/server_write_commands.rst. It\u0027s rather large. You bit off a big ticket. \n\nEven if this ticket isn\u0027t about implementing the spec, we should still use default behavior here so that when we do implement the spec, it isn\u0027t a change, but rather adds new options.",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
