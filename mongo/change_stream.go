@@ -13,7 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 )
 
 // ErrMissingResumeToken indicates that a change stream notification from the server did not
@@ -22,7 +22,7 @@ var ErrMissingResumeToken = errors.New("cannot provide resume functionality when
 
 type changeStream struct {
 	pipeline    *bson.Array
-	options     []options.ChangeStreamOptioner
+	options     []option.ChangeStreamOptioner
 	coll        *Collection
 	cursor      Cursor
 	resumeToken *bson.Document
@@ -33,7 +33,7 @@ const errorCodeNotMaster int32 = 10107
 const errorCodeCursorNotFound int32 = 43
 
 func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{},
-	opts ...options.ChangeStreamOptioner) (*changeStream, error) {
+	opts ...option.ChangeStreamOptioner) (*changeStream, error) {
 
 	pipelineArr, err := transformAggregatePipeline(pipeline)
 	if err != nil {
@@ -94,7 +94,7 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 	found := false
 
 	for i, opt := range cs.options {
-		if _, ok := opt.(options.OptResumeAfter); ok {
+		if _, ok := opt.(option.OptResumeAfter); ok {
 			cs.options[i] = resumeToken
 			found = true
 			break

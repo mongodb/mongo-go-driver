@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,7 +20,7 @@ import (
 // The listIndexes command lists the indexes for a namespace.
 type ListIndexes struct {
 	NS     Namespace
-	Opts   []options.ListIndexesOptioner
+	Opts   []option.ListIndexesOptioner
 	result Cursor
 	err    error
 }
@@ -55,9 +55,9 @@ func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder,
 		return li
 	}
 
-	opts := make([]options.CursorOptioner, 0)
+	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range li.Opts {
-		curOpt, ok := opt.(options.CursorOptioner)
+		curOpt, ok := opt.(option.CursorOptioner)
 		if !ok {
 			continue
 		}

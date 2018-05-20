@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -22,7 +22,7 @@ import (
 type FindOneAndDelete struct {
 	NS    Namespace
 	Query *bson.Document
-	Opts  []options.FindOneAndDeleteOptioner
+	Opts  []option.FindOneAndDeleteOptioner
 
 	result result.FindAndModify
 	err    error

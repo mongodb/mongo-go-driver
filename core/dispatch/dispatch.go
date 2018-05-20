@@ -9,7 +9,7 @@ package dispatch
 import (
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -18,18 +18,18 @@ import (
 // write concern.
 var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
 
-func writeConcernOption(wc *writeconcern.WriteConcern) (options.OptWriteConcern, error) {
+func writeConcernOption(wc *writeconcern.WriteConcern) (option.OptWriteConcern, error) {
 	elem, err := wc.MarshalBSONElement()
 	if err != nil {
-		return options.OptWriteConcern{}, err
+		return option.OptWriteConcern{}, err
 	}
-	return options.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}, nil
+	return option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}, nil
 }
 
-func readConcernOption(rc *readconcern.ReadConcern) (options.OptReadConcern, error) {
+func readConcernOption(rc *readconcern.ReadConcern) (option.OptReadConcern, error) {
 	elem, err := rc.MarshalBSONElement()
 	if err != nil {
-		return options.OptReadConcern{}, err
+		return option.OptReadConcern{}, err
 	}
-	return options.OptReadConcern{ReadConcern: elem}, nil
+	return option.OptReadConcern{ReadConcern: elem}, nil
 }

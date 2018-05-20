@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -22,7 +22,7 @@ import (
 type Update struct {
 	NS   Namespace
 	Docs []*bson.Document
-	Opts []options.UpdateOptioner
+	Opts []option.UpdateOptioner
 
 	result result.Update
 	err    error
@@ -37,19 +37,19 @@ func (u *Update) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 	}
 	command.Append(bson.EC.ArrayFromElements("updates", vals...))
 
-	for _, option := range u.Opts {
-		switch option.(type) {
+	for _, opt := range u.Opts {
+		switch opt.(type) {
 		case nil:
 			continue
-		case options.OptUpsert, options.OptCollation, options.OptArrayFilters:
+		case option.OptUpsert, option.OptCollation, option.OptArrayFilters:
 			for _, doc := range u.Docs {
-				err := option.Option(doc)
+				err := opt.Option(doc)
 				if err != nil {
 					return nil, err
 				}
 			}
 		default:
-			err := option.Option(command)
+			err := opt.Option(command)
 			if err != nil {
 				return nil, err
 			}

@@ -19,7 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
@@ -414,7 +414,7 @@ func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 func (s *Server) Drain() error { return s.pool.Drain() }
 
 // BuildCursor implements the command.CursorBuilder interface for the Server type.
-func (s *Server) BuildCursor(result bson.Reader, opts ...options.CursorOptioner) (command.Cursor, error) {
+func (s *Server) BuildCursor(result bson.Reader, opts ...option.CursorOptioner) (command.Cursor, error) {
 	return newCursor(result, s, opts...)
 }
 

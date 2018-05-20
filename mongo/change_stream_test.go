@@ -8,7 +8,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/stretchr/testify/require"
 )
 
@@ -198,7 +198,7 @@ func TestChangeStream_resumableError(t *testing.T) {
 	hasResume := false
 
 	for _, opt := range changes.(*changeStream).options {
-		if _, ok := opt.(options.OptResumeAfter); ok {
+		if _, ok := opt.(option.OptResumeAfter); ok {
 			hasResume = true
 			break
 		}

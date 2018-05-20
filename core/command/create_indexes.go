@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -22,7 +22,7 @@ import (
 type CreateIndexes struct {
 	NS      Namespace
 	Indexes *bson.Array
-	Opts    []options.CreateIndexesOptioner
+	Opts    []option.CreateIndexesOptioner
 	result  result.CreateIndexes
 	err     error
 }

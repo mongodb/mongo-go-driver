@@ -14,7 +14,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 )
 
 type cursor struct {
@@ -24,10 +24,10 @@ type cursor struct {
 	id        int64
 	err       error
 	server    *Server
-	opts      []options.CursorOptioner
+	opts      []option.CursorOptioner
 }
 
-func newCursor(result bson.Reader, server *Server, opts ...options.CursorOptioner) (command.Cursor, error) {
+func newCursor(result bson.Reader, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
 	cur, err := result.Lookup("cursor")
 	if err != nil {
 		return nil, err

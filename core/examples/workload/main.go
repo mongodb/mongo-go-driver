@@ -22,7 +22,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
@@ -123,7 +123,7 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 			cmd := command.Aggregate{
 				NS:       ns,
 				Pipeline: pipeline,
-				Opts:     []options.AggregateOptioner{options.OptBatchSize(200)},
+				Opts:     []option.AggregateOptioner{option.OptBatchSize(200)},
 				ReadPref: rp,
 			}
 			cursor, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp), nil)

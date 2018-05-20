@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -23,7 +23,7 @@ import (
 type Delete struct {
 	NS      Namespace
 	Deletes []*bson.Document
-	Opts    []options.DeleteOptioner
+	Opts    []option.DeleteOptioner
 
 	result result.Delete
 	err    error
@@ -43,18 +43,18 @@ func (d *Delete) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 	}
 	command.Append(bson.EC.Array("deletes", arr))
 
-	for _, option := range d.Opts {
-		switch option.(type) {
+	for _, opt := range d.Opts {
+		switch opt.(type) {
 		case nil:
-		case options.OptCollation:
+		case option.OptCollation:
 			for _, doc := range d.Deletes {
-				err := option.Option(doc)
+				err := opt.Option(doc)
 				if err != nil {
 					return nil, err
 				}
 			}
 		default:
-			err := option.Option(command)
+			err := opt.Option(command)
 			if err != nil {
 				return nil, err
 			}

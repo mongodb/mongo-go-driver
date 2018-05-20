@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -46,7 +46,7 @@ func Update(
 	// parse out the option.
 	acknowledged := true
 	for _, opt := range cmd.Opts {
-		wc, ok := opt.(options.OptWriteConcern)
+		wc, ok := opt.(option.OptWriteConcern)
 		if !ok {
 			continue
 		}

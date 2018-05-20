@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/stretchr/testify/require"
 )
@@ -142,7 +142,7 @@ func TestIndexView_CreateMany(t *testing.T) {
 
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		[]options.CreateIndexesOptioner{},
+		[]option.CreateIndexesOptioner{},
 		IndexModel{
 			Keys: bson.NewDocument(
 				bson.EC.Int32("foo", -1),
@@ -206,7 +206,7 @@ func TestIndexView_DropOne(t *testing.T) {
 
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		[]options.CreateIndexesOptioner{},
+		[]option.CreateIndexesOptioner{},
 		IndexModel{
 			Keys: bson.NewDocument(
 				bson.EC.Int32("foo", -1),
@@ -257,7 +257,7 @@ func TestIndexView_DropAll(t *testing.T) {
 
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		[]options.CreateIndexesOptioner{},
+		[]option.CreateIndexesOptioner{},
 		IndexModel{
 			Keys: bson.NewDocument(
 				bson.EC.Int32("foo", -1),
@@ -305,11 +305,11 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 	dbName, coll := getIndexableCollection(t)
 	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
 	indexView := coll.Indexes()
-	var opts []options.CreateIndexesOptioner
+	var opts []option.CreateIndexesOptioner
 	wc := writeconcern.New(writeconcern.W(1))
 	elem, err := wc.MarshalBSONElement()
 	require.NoError(t, err)
-	optwc := options.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
+	optwc := option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
 	opts = append(opts, optwc)
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
@@ -379,15 +379,15 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	dbName, coll := getIndexableCollection(t)
 	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
 	indexView := coll.Indexes()
-	var opts []options.DropIndexesOptioner
+	var opts []option.DropIndexesOptioner
 	wc := writeconcern.New(writeconcern.W(1))
 	elem, err := wc.MarshalBSONElement()
 	require.NoError(t, err)
-	optwc := options.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
+	optwc := option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
 	opts = append(opts, optwc)
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		[]options.CreateIndexesOptioner{},
+		[]option.CreateIndexesOptioner{},
 		IndexModel{
 			Keys: bson.NewDocument(
 				bson.EC.Int32("foo", -1),

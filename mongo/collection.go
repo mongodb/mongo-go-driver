@@ -15,7 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -68,7 +68,7 @@ func (coll *Collection) namespace() command.Namespace {
 // TODO(skriptble): Determine if we should unwrap the value for the
 // InsertOneResult or just return the bson.Element or a bson.Value.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...options.InsertOneOptioner) (*InsertOneResult, error) {
+	opts ...option.InsertOneOptioner) (*InsertOneResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -84,7 +84,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		return nil, err
 	}
 
-	newOptions := make([]options.InsertOptioner, 0, len(opts))
+	newOptions := make([]option.InsertOptioner, 0, len(opts))
 	for _, opt := range opts {
 		newOptions = append(newOptions, opt)
 	}
@@ -115,7 +115,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // documents.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
-	opts ...options.InsertManyOptioner) (*InsertManyResult, error) {
+	opts ...option.InsertManyOptioner) (*InsertManyResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -138,7 +138,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		result[i] = insertedID
 	}
 
-	newOptions := make([]options.InsertOptioner, 0, len(opts))
+	newOptions := make([]option.InsertOptioner, 0, len(opts))
 	for _, opt := range opts {
 		newOptions = append(newOptions, opt)
 	}
@@ -174,7 +174,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
-	opts ...options.DeleteOptioner) (*DeleteResult, error) {
+	opts ...option.DeleteOptioner) (*DeleteResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -213,7 +213,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
-	opts ...options.DeleteOptioner) (*DeleteResult, error) {
+	opts ...option.DeleteOptioner) (*DeleteResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -241,7 +241,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
-	update *bson.Document, opts ...options.UpdateOptioner) (*UpdateResult, error) {
+	update *bson.Document, opts ...option.UpdateOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -289,7 +289,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 // into a *bson.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
-	options ...options.UpdateOptioner) (*UpdateResult, error) {
+	options ...option.UpdateOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -319,7 +319,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // into a *bson.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
-	opts ...options.UpdateOptioner) (*UpdateResult, error) {
+	opts ...option.UpdateOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -382,7 +382,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 // parameter into a *bson.Document. See TransformDocument for the list of
 // valid types for filter and replacement.
 func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...options.ReplaceOptioner) (*UpdateResult, error) {
+	replacement interface{}, opts ...option.ReplaceOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -402,7 +402,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
 	}
 
-	updateOptions := make([]options.UpdateOptioner, 0, len(opts))
+	updateOptions := make([]option.UpdateOptioner, 0, len(opts))
 	for _, opt := range opts {
 		updateOptions = append(updateOptions, opt)
 	}
@@ -419,7 +419,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // pipeline.
 func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
-	opts ...options.AggregateOptioner) (Cursor, error) {
+	opts ...option.AggregateOptioner) (Cursor, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -447,7 +447,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Count(ctx context.Context, filter interface{},
-	opts ...options.CountOptioner) (int64, error) {
+	opts ...option.CountOptioner) (int64, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -476,7 +476,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
-	opts ...options.DistinctOptioner) ([]interface{}, error) {
+	opts ...option.DistinctOptioner) ([]interface{}, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -514,7 +514,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	opts ...options.FindOptioner) (Cursor, error) {
+	opts ...option.FindOptioner) (Cursor, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -547,11 +547,11 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...options.FindOneOptioner) *DocumentResult {
+	opts ...option.FindOneOptioner) *DocumentResult {
 
-	findOpts := make([]options.FindOptioner, 0, len(opts))
+	findOpts := make([]option.FindOptioner, 0, len(opts))
 	for _, opt := range opts {
-		findOpts = append(findOpts, opt.(options.FindOptioner))
+		findOpts = append(findOpts, opt.(option.FindOptioner))
 	}
 
 	findOpts = append(findOpts, Opt.Limit(1))
@@ -594,7 +594,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
-	opts ...options.FindOneAndDeleteOptioner) *DocumentResult {
+	opts ...option.FindOneAndDeleteOptioner) *DocumentResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -633,7 +633,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 // parameter into a *bson.Document. See TransformDocument for the list of
 // valid types for filter and replacement.
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...options.FindOneAndReplaceOptioner) *DocumentResult {
+	replacement interface{}, opts ...option.FindOneAndReplaceOptioner) *DocumentResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -678,7 +678,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 // into a *bson.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
-	update interface{}, opts ...options.FindOneAndUpdateOptioner) *DocumentResult {
+	update interface{}, opts ...option.FindOneAndUpdateOptioner) *DocumentResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -717,7 +717,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 // This method is preferred to running a raw aggregation with a $changeStream stage because it
 // supports resumability in the case of some errors.
 func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
-	opts ...options.ChangeStreamOptioner) (Cursor, error) {
+	opts ...option.ChangeStreamOptioner) (Cursor, error) {
 	return newChangeStream(ctx, coll, pipeline, opts...)
 }
 
