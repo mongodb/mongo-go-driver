@@ -17,7 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/addr"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
@@ -68,7 +68,7 @@ func TestCommandAggregate(t *testing.T) {
 				),
 				bson.VC.Document(bson.NewDocument(bson.EC.SubDocument("$sort", bson.NewDocument(bson.EC.Int32("_id", -1))))),
 			),
-			Opts: []options.AggregateOptioner{options.OptBatchSize(2)},
+			Opts: []option.AggregateOptioner{option.OptBatchSize(2)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
@@ -110,7 +110,7 @@ func TestCommandAggregate(t *testing.T) {
 		_, err = (&command.Aggregate{
 			NS:       command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bson.NewArray(),
-			Opts:     []options.AggregateOptioner{options.OptAllowDiskUse(true)},
+			Opts:     []option.AggregateOptioner{option.OptAllowDiskUse(true)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		if err != nil {
 			t.Errorf("Expected no error from allowing disk use, but got %v", err)
@@ -136,7 +136,7 @@ func TestCommandAggregate(t *testing.T) {
 		_, err = (&command.Aggregate{
 			NS:       command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bson.NewArray(),
-			Opts:     []options.AggregateOptioner{options.OptMaxTime(time.Millisecond)},
+			Opts:     []option.AggregateOptioner{option.OptMaxTime(time.Millisecond)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		if !strings.Contains(err.Error(), "operation exceeded time limit") {
 			t.Errorf("Expected time limit exceeded error, but got %v", err)

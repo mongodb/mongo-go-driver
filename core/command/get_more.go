@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -21,7 +21,7 @@ import (
 type GetMore struct {
 	ID   int64
 	NS   Namespace
-	Opts []options.CursorOptioner
+	Opts []option.CursorOptioner
 
 	result bson.Reader
 	err    error

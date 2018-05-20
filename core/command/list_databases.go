@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -21,7 +21,7 @@ import (
 // The listDatabases command lists the databases in a MongoDB deployment.
 type ListDatabases struct {
 	Filter *bson.Document
-	Opts   []options.ListDatabasesOptioner
+	Opts   []option.ListDatabasesOptioner
 
 	result result.ListDatabases
 	err    error

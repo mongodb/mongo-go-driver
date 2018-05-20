@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package options
+package option
 
 // ReturnDocument specifies whether a findAndUpdate operation should return the document as it was
 // before the update or as it is after the update.

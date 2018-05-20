@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -22,7 +22,7 @@ import (
 type Find struct {
 	NS       Namespace
 	Filter   *bson.Document
-	Opts     []options.FindOptioner
+	Opts     []option.FindOptioner
 	ReadPref *readpref.ReadPref
 
 	result Cursor
@@ -45,20 +45,20 @@ func (f *Find) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 	var batchSize int32
 	var err error
 
-	for _, option := range f.Opts {
-		switch t := option.(type) {
+	for _, opt := range f.Opts {
+		switch t := opt.(type) {
 		case nil:
 			continue
-		case options.OptLimit:
+		case option.OptLimit:
 			limit = int64(t)
-			err = option.Option(command)
-		case options.OptBatchSize:
+			err = opt.Option(command)
+		case option.OptBatchSize:
 			batchSize = int32(t)
-			err = option.Option(command)
-		case options.OptProjection:
+			err = opt.Option(command)
+		case option.OptProjection:
 			err = t.IsFind().Option(command)
 		default:
-			err = option.Option(command)
+			err = opt.Option(command)
 		}
 		if err != nil {
 			return nil, err
@@ -81,9 +81,9 @@ func (f *Find) Decode(desc description.SelectedServer, cb CursorBuilder, wm wire
 		return f
 	}
 
-	opts := make([]options.CursorOptioner, 0)
+	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range f.Opts {
-		curOpt, ok := opt.(options.CursorOptioner)
+		curOpt, ok := opt.(option.CursorOptioner)
 		if !ok {
 			continue
 		}

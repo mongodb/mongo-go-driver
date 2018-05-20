@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -21,7 +21,7 @@ import (
 type ListCollections struct {
 	DB     string
 	Filter *bson.Document
-	Opts   []options.ListCollectionsOptioner
+	Opts   []option.ListCollectionsOptioner
 
 	result Cursor
 	err    error
@@ -57,9 +57,9 @@ func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuil
 		return lc
 	}
 
-	opts := make([]options.CursorOptioner, 0)
+	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range lc.Opts {
-		curOpt, ok := opt.(options.CursorOptioner)
+		curOpt, ok := opt.(option.CursorOptioner)
 		if !ok {
 			continue
 		}

@@ -14,7 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/tag"
@@ -228,10 +228,10 @@ func (c *Client) listDatabasesHelper(ctx context.Context, filter interface{},
 		return ListDatabasesResult{}, err
 	}
 
-	opts := []options.ListDatabasesOptioner{}
+	opts := []option.ListDatabasesOptioner{}
 
 	if nameOnly {
-		opts = append(opts, options.OptNameOnly(nameOnly))
+		opts = append(opts, option.OptNameOnly(nameOnly))
 	}
 
 	cmd := command.ListDatabases{Filter: f, Opts: opts}

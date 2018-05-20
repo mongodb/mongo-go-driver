@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -25,7 +25,7 @@ type Distinct struct {
 	NS       Namespace
 	Field    string
 	Query    *bson.Document
-	Opts     []options.DistinctOptioner
+	Opts     []option.DistinctOptioner
 	ReadPref *readpref.ReadPref
 
 	result result.Distinct

@@ -14,7 +14,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
@@ -297,7 +297,7 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(bson.EC.Int32("x", 0))
-	result, err := coll.DeleteOne(context.Background(), filter, Opt.Collation(&options.Collation{Locale: "en_US"}))
+	result, err := coll.DeleteOne(context.Background(), filter, Opt.Collation(&option.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -414,7 +414,7 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 	filter := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$lt", 1)))
 
-	result, err := coll.DeleteMany(context.Background(), filter, Opt.Collation(&options.Collation{Locale: "en_US"}))
+	result, err := coll.DeleteMany(context.Background(), filter, Opt.Collation(&option.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -1073,7 +1073,7 @@ func TestCollection_Distinct_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	results, err := coll.Distinct(context.Background(), "x", nil, Opt.Collation(&options.Collation{Locale: "en_US"}))
+	results, err := coll.Distinct(context.Background(), "x", nil, Opt.Collation(&option.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)})
 }

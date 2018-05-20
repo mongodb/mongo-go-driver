@@ -11,7 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/options"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -22,7 +22,7 @@ import (
 type Aggregate struct {
 	NS       Namespace
 	Pipeline *bson.Array
-	Opts     []options.AggregateOptioner
+	Opts     []option.AggregateOptioner
 	ReadPref *readpref.ReadPref
 
 	result Cursor
@@ -41,20 +41,20 @@ func (a *Aggregate) Encode(desc description.SelectedServer) (wiremessage.WireMes
 	cursor := bson.NewDocument()
 	command.Append(bson.EC.SubDocument("cursor", cursor))
 
-	for _, option := range a.Opts {
-		switch t := option.(type) {
+	for _, opt := range a.Opts {
+		switch t := opt.(type) {
 		case nil:
 			continue
-		case options.OptBatchSize:
+		case option.OptBatchSize:
 			if t == 0 && a.HasDollarOut() {
 				continue
 			}
-			err := option.Option(cursor)
+			err := opt.Option(cursor)
 			if err != nil {
 				return nil, err
 			}
 		default:
-			err := option.Option(command)
+			err := opt.Option(command)
 			if err != nil {
 				return nil, err
 			}
@@ -98,9 +98,9 @@ func (a *Aggregate) Decode(desc description.SelectedServer, cb CursorBuilder, wm
 		return a
 	}
 
-	opts := make([]options.CursorOptioner, 0)
+	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range a.Opts {
-		curOpt, ok := opt.(options.CursorOptioner)
+		curOpt, ok := opt.(option.CursorOptioner)
 		if !ok {
 			continue
 		}
