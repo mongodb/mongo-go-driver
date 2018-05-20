@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f4d6d12e_cdcb201d",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-20T22:04:04Z",
+      "side": 1,
+      "message": "c.slaveOK already does the check for single/mongos. Seems like you can just call c.slaveOk for both reads and writes. You only need to addReadPref when it\u0027s not a write.",
+      "revId": "1153f4439ba90ddf54f92eab0c9240a3277cb63d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
