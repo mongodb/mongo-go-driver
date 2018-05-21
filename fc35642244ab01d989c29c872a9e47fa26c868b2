@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ed99d85f_2cff0e45",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-21T00:07:00Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "98746fb3_301e279e",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "85bc9841_188a1474",
         "filename": "core/command/insert.go",
         "patchSetId": 6
@@ -30,6 +48,24 @@
       "writtenOn": "2018-05-20T22:22:57Z",
       "side": 1,
       "message": "to avoid what?",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3a5e9eae_7ebdea0b",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-21T00:07:00Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "85bc9841_188a1474",
       "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "a3c5cea7_0038e715",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-21T00:07:00Z",
+      "side": 1,
+      "message": "We already call validate on all input documents in the high level API, I\u0027ve removed this call in the high level API, leaving only this call in the lower level implementation. \n \nI recall an earlier conversation in the context of changing TransformDocument, that the fact we use bson.Document internally leads to incorrect. I don\u0027t think given that we\u0027re using bson.Documents and how we encode the commands, that there isn\u0027t a way to track the size of the document \"as we write\" in the mode of other bson library/driver combinations. It might make sense to leave this as a later optimization when we have a more appropriate bson representation.",
+      "parentUuid": "745a2436_06d011bc",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6d13824a_d2e86a58",
         "filename": "core/command/insert.go",
         "patchSetId": 6
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "ca9205c5_b85d467d",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-21T00:07:00Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6d13824a_d2e86a58",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "097732e1_00f1fb31",
         "filename": "core/command/insert.go",
         "patchSetId": 6
@@ -81,6 +153,24 @@
       "writtenOn": "2018-05-20T22:22:57Z",
       "side": 1,
       "message": "By default, we are going to want to stop inserting with the first error. There is an option called \"ordered\" (a boolean) that defaults to true. When it\u0027s false, you continue, keeping track of write errors and write concern errors along the way. When ordered is true (the default), you stop on the first error, either one.\n\nAll this is written up here: https://github.com/mongodb/specifications/blob/master/source/server_write_commands.rst. It\u0027s rather large. You bit off a big ticket. \n\nEven if this ticket isn\u0027t about implementing the spec, we should still use default behavior here so that when we do implement the spec, it isn\u0027t a change, but rather adds new options.",
+      "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3d59a2f7_15509fba",
+        "filename": "core/command/insert.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-21T00:07:00Z",
+      "side": 1,
+      "message": "The intention of this ticket was not to support the full spec, but will add the proper continue on error semantics.\n\nThanks for the heads up.",
+      "parentUuid": "097732e1_00f1fb31",
       "revId": "fc35642244ab01d989c29c872a9e47fa26c868b2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
