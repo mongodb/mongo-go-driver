@@ -918,13 +918,13 @@ func TestCollection_Aggregate(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, doc.Len(), 1)
-		num, err := doc.Lookup("x")
+		num, err := doc.LookupErr("x")
 		require.NoError(t, err)
-		if num.Value().Type() != bson.TypeInt32 {
-			t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Value().Type())
+		if num.Type() != bson.TypeInt32 {
+			t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Type())
 			t.FailNow()
 		}
-		require.Equal(t, int(num.Value().Int32()), i)
+		require.Equal(t, int(num.Int32()), i)
 	}
 }
 
@@ -972,13 +972,13 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, doc.Len(), 1)
-		num, err := doc.Lookup("x")
+		num, err := doc.LookupErr("x")
 		require.NoError(t, err)
-		if num.Value().Type() != bson.TypeInt32 {
-			t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Value().Type())
+		if num.Type() != bson.TypeInt32 {
+			t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Type())
 			t.FailNow()
 		}
-		require.Equal(t, int(num.Value().Int32()), i)
+		require.Equal(t, int(num.Int32()), i)
 	}
 }
 
@@ -1153,16 +1153,16 @@ func TestCollection_FindOne_found(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, result.Len(), 2)
 
-	_, err = result.Lookup("_id")
+	_, err = result.LookupErr("_id")
 	require.NoError(t, err)
 
-	num, err := result.Lookup("x")
+	num, err := result.LookupErr("x")
 	require.NoError(t, err)
-	if num.Value().Type() != bson.TypeInt32 {
-		t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Value().Type())
+	if num.Type() != bson.TypeInt32 {
+		t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Type())
 		t.FailNow()
 	}
-	require.Equal(t, int(num.Value().Int32()), 1)
+	require.Equal(t, int(num.Int32()), 1)
 }
 
 func TestCollection_FindOne_found_withOption(t *testing.T) {
@@ -1184,16 +1184,16 @@ func TestCollection_FindOne_found_withOption(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, result.Len(), 2)
 
-	_, err = result.Lookup("_id")
+	_, err = result.LookupErr("_id")
 	require.NoError(t, err)
 
-	num, err := result.Lookup("x")
+	num, err := result.LookupErr("x")
 	require.NoError(t, err)
-	if num.Value().Type() != bson.TypeInt32 {
-		t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Value().Type())
+	if num.Type() != bson.TypeInt32 {
+		t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Type())
 		t.FailNow()
 	}
-	require.Equal(t, int(num.Value().Int32()), 1)
+	require.Equal(t, int(num.Int32()), 1)
 }
 
 func TestCollection_FindOne_notFound(t *testing.T) {
@@ -1227,10 +1227,10 @@ func TestCollection_FindOneAndDelete_found(t *testing.T) {
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(result)
 	require.NoError(t, err)
 
-	elem, err := result.Lookup("x")
+	elem, err := result.LookupErr("x")
 	require.NoError(t, err)
-	require.Equal(t, elem.Value().Type(), bson.TypeInt32, "Incorrect BSON Element type")
-	require.Equal(t, int(elem.Value().Int32()), 3)
+	require.Equal(t, elem.Type(), bson.TypeInt32, "Incorrect BSON Element type")
+	require.Equal(t, int(elem.Int32()), 3)
 }
 
 func TestCollection_FindOneAndDelete_found_ignoreResult(t *testing.T) {
@@ -1298,10 +1298,10 @@ func TestCollection_FindOneAndReplace_found(t *testing.T) {
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(result)
 	require.NoError(t, err)
 
-	elem, err := result.Lookup("x")
+	elem, err := result.LookupErr("x")
 	require.NoError(t, err)
-	require.Equal(t, elem.Value().Type(), bson.TypeInt32, "Incorrect BSON Element type")
-	require.Equal(t, int(elem.Value().Int32()), 3)
+	require.Equal(t, elem.Type(), bson.TypeInt32, "Incorrect BSON Element type")
+	require.Equal(t, int(elem.Int32()), 3)
 }
 
 func TestCollection_FindOneAndReplace_found_ignoreResult(t *testing.T) {
@@ -1373,10 +1373,10 @@ func TestCollection_FindOneAndUpdate_found(t *testing.T) {
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(result)
 	require.NoError(t, err)
 
-	elem, err := result.Lookup("x")
+	elem, err := result.LookupErr("x")
 	require.NoError(t, err)
-	require.Equal(t, elem.Value().Type(), bson.TypeInt32, "Incorrect BSON Element type")
-	require.Equal(t, int(elem.Value().Int32()), 3)
+	require.Equal(t, elem.Type(), bson.TypeInt32, "Incorrect BSON Element type")
+	require.Equal(t, int(elem.Int32()), 3)
 }
 
 func TestCollection_FindOneAndUpdate_found_ignoreResult(t *testing.T) {

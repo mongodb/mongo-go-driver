@@ -79,13 +79,13 @@ func TestCommandListCollections(t *testing.T) {
 			err = cursor.Decode(next)
 			noerr(t, err)
 
-			elem, err := next.Lookup("name")
+			val, err := next.LookupErr("name")
 			noerr(t, err)
-			if elem.Value().Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", elem.Value().Type(), bson.TypeString)
+			if val.Type() != bson.TypeString {
+				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
 				t.FailNow()
 			}
-			names[elem.Value().StringValue()] = true
+			names[val.StringValue()] = true
 		}
 
 		for _, required := range []string{collOne, collTwo, collThree} {
