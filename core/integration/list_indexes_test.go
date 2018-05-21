@@ -41,13 +41,13 @@ func TestCommandListIndexes(t *testing.T) {
 			err = cursor.Decode(next)
 			noerr(t, err)
 
-			elem, err := next.Lookup("name")
+			val, err := next.LookupErr("name")
 			noerr(t, err)
-			if elem.Value().Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", elem.Value().Type(), bson.TypeString)
+			if val.Type() != bson.TypeString {
+				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
 				t.FailNow()
 			}
-			indexes = append(indexes, elem.Value().StringValue())
+			indexes = append(indexes, val.StringValue())
 		}
 
 		if len(indexes) != 0 {
@@ -70,13 +70,13 @@ func TestCommandListIndexes(t *testing.T) {
 			err = cursor.Decode(next)
 			noerr(t, err)
 
-			elem, err := next.Lookup("name")
+			val, err := next.LookupErr("name")
 			noerr(t, err)
-			if elem.Value().Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", elem.Value().Type(), bson.TypeString)
+			if val.Type() != bson.TypeString {
+				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
 				t.FailNow()
 			}
-			indexes = append(indexes, elem.Value().StringValue())
+			indexes = append(indexes, val.StringValue())
 		}
 
 		if len(indexes) != 0 {
@@ -105,13 +105,13 @@ func TestCommandListIndexes(t *testing.T) {
 			err = cursor.Decode(next)
 			noerr(t, err)
 
-			elem, err := next.Lookup("name")
+			val, err := next.LookupErr("name")
 			noerr(t, err)
-			if elem.Value().Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", elem.Value().Type(), bson.TypeString)
+			if val.Type() != bson.TypeString {
+				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
 				t.FailNow()
 			}
-			indexes = append(indexes, elem.Value().StringValue())
+			indexes = append(indexes, val.StringValue())
 		}
 
 		if len(indexes) != 5 {
@@ -145,13 +145,13 @@ func TestCommandListIndexes(t *testing.T) {
 			err = cursor.Decode(next)
 			noerr(t, err)
 
-			elem, err := next.Lookup("name")
+			val, err := next.LookupErr("name")
 			noerr(t, err)
-			if elem.Value().Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", elem.Value().Type(), bson.TypeString)
+			if val.Type() != bson.TypeString {
+				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
 				t.FailNow()
 			}
-			indexes = append(indexes, elem.Value().StringValue())
+			indexes = append(indexes, val.StringValue())
 		}
 
 		if len(indexes) != 4 {

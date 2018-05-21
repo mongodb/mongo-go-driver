@@ -332,13 +332,6 @@ func TestDocument(t *testing.T) {
 		}
 	})
 	t.Run("Lookup", func(t *testing.T) {
-		t.Run("empty key", func(t *testing.T) {
-			d := NewDocument()
-			_, err := d.Lookup()
-			if err != ErrEmptyKey {
-				t.Errorf("Empty key lookup did not return expected result. got %#v; want %#v", err, ErrEmptyKey)
-			}
-		})
 		testCases := []struct {
 			name string
 			d    *Document
@@ -377,7 +370,7 @@ func TestDocument(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := tc.d.Lookup(tc.key...)
+				got, err := tc.d.LookupElementErr(tc.key...)
 				if err != tc.err {
 					t.Errorf("Returned error does not match. got %#v; want %#v", err, tc.err)
 				}

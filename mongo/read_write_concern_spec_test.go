@@ -124,11 +124,11 @@ func runConnectionStringTest(t *testing.T, testName string, testCase *connection
 
 			rcDoc := rcBSON.Value().MutableDocument()
 			expectedLevel, expectedFound := testCase.ReadConcern["level"]
-			actualLevel, actualErr := rcDoc.Lookup("level")
+			actualLevel, actualErr := rcDoc.LookupErr("level")
 			require.Equal(t, expectedFound, actualErr == nil)
 
 			if expectedFound {
-				require.Equal(t, expectedLevel, actualLevel.Value().StringValue())
+				require.Equal(t, expectedLevel, actualLevel.StringValue())
 			}
 		}
 
