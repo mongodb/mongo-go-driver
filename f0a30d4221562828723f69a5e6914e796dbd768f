@@ -70,6 +70,24 @@
       "revId": "f0a30d4221562828723f69a5e6914e796dbd768f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "15ee4a6e_f1c949ce",
+        "filename": "core/command/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-21T21:13:38Z",
+      "side": 1,
+      "message": "This still feels wrong, but cool. Done.",
+      "parentUuid": "8b7da65b_8d20ce01",
+      "revId": "f0a30d4221562828723f69a5e6914e796dbd768f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
