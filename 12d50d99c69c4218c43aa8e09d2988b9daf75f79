@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "54847b27_18f83b82",
+        "filename": "core/command/insert.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T16:30:00Z",
+      "side": 1,
+      "message": "can you add a comment for what this actually is?",
+      "revId": "12d50d99c69c4218c43aa8e09d2988b9daf75f79",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "58a1c9b4_99ec1371",
+        "filename": "core/command/insert.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T16:30:00Z",
+      "side": 1,
+      "message": "This comment is probably going to get out of sync since the place the value (16kb) changes isn\u0027t right here. I\u0027d suggest getting rid of the comment.",
+      "revId": "12d50d99c69c4218c43aa8e09d2988b9daf75f79",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0837cd39_3df89989",
+        "filename": "core/command/insert.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T16:30:00Z",
+      "side": 1,
+      "message": "I like the refactoring. Good job.\n\nSo, a WriteConcernError doesn\u0027t cause us to stop at all, regardless of continueOnError. I had to talk with Robert to clear this up cause I wasn\u0027t sure. Basically, the explanation is this:\n\nWe are supposed to do what the server would have done if we had sent everything in a single batch. If that was true, the server doesn\u0027t check write concern until after all the writes were tried (assuming continueOnError \u003d true). That means that write concern only gets handled at the end, after all the batches were sent to the server.\n\nThat also means that if you see multiple write concern errors, last one wins.\n\nIn this case, I think all you need to do is NOT return if we have a write concern error. Simply set it on `res` and let the natural flow happen.\n\nYou\u0027ll want to add some tests for this.",
+      "revId": "12d50d99c69c4218c43aa8e09d2988b9daf75f79",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "23fda9a5_825fb856",
+        "filename": "internal/testutil/ops.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T16:30:00Z",
+      "side": 1,
+      "message": "please remove debug statement.",
+      "revId": "12d50d99c69c4218c43aa8e09d2988b9daf75f79",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
