@@ -16,6 +16,24 @@
       "revId": "f0a30d4221562828723f69a5e6914e796dbd768f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6c420234_d4b29c59",
+        "filename": "core/command/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T20:14:32Z",
+      "side": 1,
+      "message": "I think you missed this one.",
+      "parentUuid": "da64cdce_d398ebf0",
+      "revId": "f0a30d4221562828723f69a5e6914e796dbd768f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
