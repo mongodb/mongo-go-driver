@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "40cb5585_7b0b36ad",
+        "filename": "core/command/insert.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T21:40:04Z",
+      "side": 1,
+      "message": "can we make maxCount and targetBatchSize uints? So we don\u0027t need to do bounds checking?",
+      "revId": "46466c97a561ef2538a971b0de7e05f50be46505",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
