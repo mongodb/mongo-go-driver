@@ -107,17 +107,17 @@ func (iv IndexView) DropAll(ctx context.Context, opts ...options.DropIndexesOpti
 
 func getOrGenerateIndexName(model IndexModel) (string, error) {
 	if model.Options != nil {
-		nameVal, err := model.Options.Lookup("name")
+		nameVal, err := model.Options.LookupErr("name")
 
 		switch err {
 		case bson.ErrElementNotFound:
 			break
 		case nil:
-			if nameVal.Value().Type() != bson.TypeString {
+			if nameVal.Type() != bson.TypeString {
 				return "", ErrNonStringIndexName
 			}
 
-			return nameVal.Value().StringValue(), nil
+			return nameVal.StringValue(), nil
 		default:
 			return "", err
 		}
