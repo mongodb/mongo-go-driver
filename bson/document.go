@@ -273,15 +273,33 @@ func (d *Document) Set(elem *Element) *Document {
 	return d
 }
 
-// Lookup searches the document and potentially subdocuments or arrays for the
+func (d *Document) Lookup(key ...string) *Value {
+	elem, err := d.LookupElement(key...)
+	if err != nil {
+		return nil
+	}
+
+	return elem.value
+}
+
+func (d *Document) LookupErr(key ...string) (*Value, error) {
+	elem, err := d.LookupElement(key...)
+	if err != nil {
+		return nil, err
+	}
+
+	return elem.value, nil
+}
+
+//  LookupEleement searches the document and potentially subdocuments or arrays for the
 // provided key. Each key provided to this method represents a layer of depth.
-func (d *Document) Lookup(key ...string) (*Element, error) {
+func (d *Document) LookupElement(key ...string) (*Element, error) {
 	if d == nil {
 		return nil, ErrNilDocument
 	}
 
 	if len(key) == 0 {
-		return nil, ErrEmptyKey
+		key = []string{""}
 	}
 	var elem *Element
 	var err error
@@ -294,7 +312,7 @@ func (d *Document) Lookup(key ...string) (*Element, error) {
 		}
 		switch elem.value.Type() {
 		case '\x03':
-			elem, err = elem.value.MutableDocument().Lookup(key[1:]...)
+			elem, err = elem.value.MutableDocument().LookupElement(key[1:]...)
 		case '\x04':
 			index, err := strconv.ParseUint(key[1], 10, 0)
 			if err != nil {
