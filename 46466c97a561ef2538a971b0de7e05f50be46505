@@ -16,6 +16,24 @@
       "revId": "46466c97a561ef2538a971b0de7e05f50be46505",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a71296f8_3bb61b43",
+        "filename": "core/command/insert.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-21T22:08:15Z",
+      "side": 1,
+      "message": "we\u0027d still want to check that it wasn\u0027t 0, which means we\u0027d not be able to elide the check entirely, and validate+len return ints, so there\u0027d be even more casting, which seems worse than the check, at least to my eyes.",
+      "parentUuid": "40cb5585_7b0b36ad",
+      "revId": "46466c97a561ef2538a971b0de7e05f50be46505",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
