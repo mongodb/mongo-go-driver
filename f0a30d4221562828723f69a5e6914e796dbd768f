@@ -34,6 +34,24 @@
       "revId": "f0a30d4221562828723f69a5e6914e796dbd768f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "825f15df_31a0a7ba",
+        "filename": "core/command/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 186,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-21T20:14:44Z",
+      "side": 1,
+      "message": "I thought that if we were in the \"don\u0027t continue on error\" case, then we would want to abort for either a write concern error or a write error.",
+      "parentUuid": "da64cdce_d398ebf0",
+      "revId": "f0a30d4221562828723f69a5e6914e796dbd768f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
