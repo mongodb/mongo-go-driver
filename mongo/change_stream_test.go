@@ -59,7 +59,7 @@ func TestChangeStream_firstStage(t *testing.T) {
 	doc := elem.MutableDocument()
 	require.Equal(t, 1, doc.Len())
 
-	_, err = doc.Lookup("$changeStream")
+	_, err = doc.LookupErr("$changeStream")
 	require.NoError(t, err)
 }
 
@@ -121,10 +121,10 @@ func TestChangeStream_trackResumeToken(t *testing.T) {
 		err := changes.Decode(doc)
 		require.NoError(t, err)
 
-		id, err := doc.Lookup("_id")
+		id, err := doc.LookupErr("_id")
 		require.NoError(t, err)
 
-		require.Equal(t, id.Value().MutableDocument(), changes.(*changeStream).resumeToken)
+		require.Equal(t, id.MutableDocument(), changes.(*changeStream).resumeToken)
 	}
 }
 

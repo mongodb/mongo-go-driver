@@ -580,7 +580,7 @@ type OptReadConcern struct{ ReadConcern *bson.Element }
 
 // Option implements the Optioner interface.
 func (opt OptReadConcern) Option(d *bson.Document) error {
-	if _, err := d.Lookup(opt.ReadConcern.Key()); err == bson.ErrElementNotFound {
+	if _, err := d.LookupElementErr(opt.ReadConcern.Key()); err == bson.ErrElementNotFound {
 		d.Append(opt.ReadConcern)
 	}
 	return nil
@@ -704,7 +704,7 @@ type OptWriteConcern struct {
 
 // Option implements the Optioner interface.
 func (opt OptWriteConcern) Option(d *bson.Document) error {
-	_, err := d.Lookup(opt.WriteConcern.Key())
+	_, err := d.LookupElementErr(opt.WriteConcern.Key())
 	if err == bson.ErrElementNotFound {
 		d.Append(opt.WriteConcern)
 		return nil

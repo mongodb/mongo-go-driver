@@ -42,10 +42,10 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, doc.Len(), 1)
-	e, err := doc.Lookup("n")
+	e, err := doc.LookupErr("n")
 	require.NoError(t, err)
-	require.Equal(t, e.Value().Type(), bson.TypeInt64)
-	require.Equal(t, e.Value().Int64(), int64(1))
+	require.Equal(t, e.Type(), bson.TypeInt64)
+	require.Equal(t, e.Int64(), int64(1))
 }
 
 func TestUpdateOneResult_unmarshalInto(t *testing.T) {

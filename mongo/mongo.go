@@ -67,7 +67,7 @@ func TransformDocument(document interface{}) (*bson.Document, error) {
 func ensureID(d *bson.Document) (interface{}, error) {
 	var id interface{}
 
-	elem, err := d.Lookup("_id")
+	elem, err := d.LookupElementErr("_id")
 	switch {
 	case err == bson.ErrElementNotFound:
 		oid := objectid.New()

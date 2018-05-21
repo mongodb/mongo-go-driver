@@ -49,19 +49,19 @@ func TestCommand(t *testing.T) {
 	result, err = bson.ReadDocument(rdr)
 	noerr(t, err)
 
-	elem, err := result.Lookup("ok")
+	val, err := result.LookupErr("ok")
 	noerr(t, err)
-	if got, want := elem.Value().Type(), bson.TypeDouble; got != want {
+	if got, want := val.Type(), bson.TypeDouble; got != want {
 		t.Errorf("Did not get correct type for 'ok'. got %s; want %s", got, want)
 	}
-	if got, want := elem.Value().Double(), float64(1); got != want {
+	if got, want := val.Double(), float64(1); got != want {
 		t.Errorf("Did not get correct value for 'ok'. got %f; want %f", got, want)
 	}
 
-	elem, err = result.Lookup("nonce")
+	val, err = result.LookupErr("nonce")
 	require.NoError(t, err)
-	require.Equal(t, elem.Value().Type(), bson.TypeString)
-	require.NotEqual(t, "", elem.Value().StringValue(), "MongoDB returned empty nonce")
+	require.Equal(t, val.Type(), bson.TypeString)
+	require.NotEqual(t, "", val.StringValue(), "MongoDB returned empty nonce")
 
 	result.Reset()
 	cmd.Command = bson.NewDocument(bson.EC.Int32("ping", 1))
@@ -72,10 +72,10 @@ func TestCommand(t *testing.T) {
 	result, err = bson.ReadDocument(rdr)
 	require.NoError(t, err)
 
-	elem, err = result.Lookup("ok")
+	val, err = result.LookupErr("ok")
 	require.NoError(t, err)
-	require.Equal(t, elem.Value().Type(), bson.TypeDouble)
-	require.Equal(t, float64(1), elem.Value().Double(), "Unable to ping MongoDB")
+	require.Equal(t, val.Type(), bson.TypeDouble)
+	require.Equal(t, float64(1), val.Double(), "Unable to ping MongoDB")
 }
 
 func TestWriteCommands(t *testing.T) {
