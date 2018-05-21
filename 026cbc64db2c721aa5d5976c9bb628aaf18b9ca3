@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "de1fd4fd_579587e7",
+        "filename": "bson/document_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T15:49:08Z",
+      "side": 0,
+      "message": "Rather than remove the test, it should be either changed to support the new semantics, or it needs to get added as a testCase below.",
+      "revId": "026cbc64db2c721aa5d5976c9bb628aaf18b9ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}

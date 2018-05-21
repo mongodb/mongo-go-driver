@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d61a82b9_b95f60b1",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T15:49:08Z",
+      "side": 1,
+      "message": "LookupElement",
+      "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5dd8485f_f69d1cbc",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T15:49:08Z",
+      "side": 1,
+      "message": "Should this be split into LookupElement and LookupElementErr as well?",
+      "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c1fedaa4_934e9936",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 302,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-21T15:49:08Z",
+      "side": 1,
+      "message": "I\u0027m not sure this is the right way to go here. There is a different between looking up a value with an empty string and looking up a value with no string. If they want to lookup an empty string, they should supply an empty string, not a zero argument call.\n\nI\u0027d actually suggest modifying the syntax for this method to be:  \n\n  func (d *Document) LookupElement(key: string, additionalKeys ...string) (*Element, error)\n\nThis would enforce at least a single argument, and optionally allow more if the user wanted to.",
+      "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
