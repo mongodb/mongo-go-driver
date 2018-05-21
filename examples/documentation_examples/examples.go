@@ -1410,10 +1410,10 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			require.False(t, containsKey(keys, "size", nil))
 			require.True(t, containsKey(keys, "instock", nil))
 
-			instock, err := doc.Lookup("instock")
+			instock, err := doc.LookupErr("instock")
 			require.NoError(t, err)
 
-			arr := instock.Value().MutableArray()
+			arr := instock.MutableArray()
 
 			for i := uint(0); i < uint(arr.Len()); i++ {
 				elem, err := arr.Lookup(i)
@@ -1423,7 +1423,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 				subdoc := elem.MutableDocument()
 
 				require.Equal(t, 1, subdoc.Len())
-				_, err = subdoc.Lookup("qty")
+				_, err = subdoc.LookupErr("qty")
 				require.NoError(t, err)
 			}
 		}
@@ -1470,9 +1470,9 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			require.False(t, containsKey(keys, "size", nil))
 			require.True(t, containsKey(keys, "instock", nil))
 
-			instock, err := doc.Lookup("instock")
+			instock, err := doc.LookupErr("instock")
 			require.NoError(t, err)
-			require.Equal(t, instock.Value().MutableArray().Len(), 1)
+			require.Equal(t, instock.MutableArray().Len(), 1)
 		}
 
 		require.NoError(t, cursor.Err())
@@ -1641,13 +1641,13 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
-			uom, err := doc.Lookup("size", "uom")
+			uom, err := doc.LookupErr("size", "uom")
 			require.NoError(t, err)
-			require.Equal(t, uom.Value().StringValue(), "cm")
+			require.Equal(t, uom.StringValue(), "cm")
 
-			status, err := doc.Lookup("status")
+			status, err := doc.LookupErr("status")
 			require.NoError(t, err)
-			require.Equal(t, status.Value().StringValue(), "P")
+			require.Equal(t, status.StringValue(), "P")
 
 			keys, err := doc.Keys(false)
 			require.NoError(t, err)
@@ -1700,13 +1700,13 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
-			uom, err := doc.Lookup("size", "uom")
+			uom, err := doc.LookupErr("size", "uom")
 			require.NoError(t, err)
-			require.Equal(t, uom.Value().StringValue(), "cm")
+			require.Equal(t, uom.StringValue(), "cm")
 
-			status, err := doc.Lookup("status")
+			status, err := doc.LookupErr("status")
 			require.NoError(t, err)
-			require.Equal(t, status.Value().StringValue(), "P")
+			require.Equal(t, status.StringValue(), "P")
 
 			keys, err := doc.Keys(false)
 			require.NoError(t, err)
@@ -1767,9 +1767,9 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 			require.True(t, containsKey(keys, "item", nil))
 			require.True(t, containsKey(keys, "instock", nil))
 
-			instock, err := doc.Lookup("instock")
+			instock, err := doc.LookupErr("instock")
 			require.NoError(t, err)
-			require.Equal(t, instock.Value().MutableArray().Len(), 2)
+			require.Equal(t, instock.MutableArray().Len(), 2)
 
 		}
 

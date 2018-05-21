@@ -377,7 +377,7 @@ func TestDocument(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				got, err := tc.d.Lookup(tc.key...)
+				got, err := tc.d.LookupElementErr(tc.key...)
 				if err != tc.err {
 					t.Errorf("Returned error does not match. got %#v; want %#v", err, tc.err)
 				}
