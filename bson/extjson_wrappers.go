@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package extjson
+package bson
 
 import (
 	"encoding/base64"
@@ -29,7 +29,7 @@ const (
 	int64Type
 	double
 	decimalType
-	binary
+	binaryData
 	code
 	timestamp
 	regex
@@ -53,7 +53,7 @@ func (w wrapperType) String() string {
 		return "double"
 	case decimalType:
 		return "decimalType"
-	case binary:
+	case binaryData:
 		return "binary"
 	case code:
 		return "JavaScript code"
@@ -93,7 +93,7 @@ func wrapperKeyType(key []byte) wrapperType {
 	case "$numberDecimal":
 		return decimalType
 	case "$binary":
-		return binary
+		return binaryData
 	case "$code":
 		fallthrough
 	case "$scope":

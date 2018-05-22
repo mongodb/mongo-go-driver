@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package extjson
+package bson
 
 import (
 	"bytes"
@@ -27,9 +27,9 @@ type extJSONWriter struct {
 	canonical bool
 }
 
-// BsonToExtJSON converts a BSON byte slice into an extended JSON string. If canonical is true, it
+// ToExtJSON converts a BSON byte slice into an extended JSON string. If canonical is true, it
 // will output canonical extended JSON. Otherwise, it will output relaxed extended JSON.
-func BsonToExtJSON(canonical bool, bson []byte) (string, error) {
+func ToExtJSON(canonical bool, bson []byte) (string, error) {
 	p, err := parser.NewBSONParser(bytes.NewReader(bson))
 	if err != nil {
 		return "", err
