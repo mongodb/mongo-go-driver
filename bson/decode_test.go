@@ -3816,8 +3816,8 @@ func TestDecoder(t *testing.T) {
 		}
 	})
 	t.Run("pluggable types", func(t *testing.T) {
-		intJsonNumber := json.Number("5")
-		floatJsonNumber := json.Number("10.1")
+		intJSONNumber := json.Number("5")
+		floatJSONNumber := json.Number("10.1")
 		murl, err := url.Parse("https://mongodb.com/random-url?hello=world")
 		if err != nil {
 			t.Errorf("Error parsing URL: %v", err)
@@ -3866,8 +3866,8 @@ func TestDecoder(t *testing.T) {
 					A *json.Number
 					B *json.Number
 				}{
-					A: &intJsonNumber,
-					B: &floatJsonNumber,
+					A: &intJSONNumber,
+					B: &floatJSONNumber,
 				},
 				&struct {
 					A *json.Number
