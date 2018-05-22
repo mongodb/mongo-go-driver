@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e117b5f4_8c7ed4da",
+        "filename": "bson/document.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-22T19:52:18Z",
+      "side": 1,
+      "message": "I think we can simplify this to \"If an error would have been returned, the *Value will be nil\".",
+      "range": {
+        "startLine": 279,
+        "startChar": 0,
+        "endLine": 280,
+        "endChar": 45
+      },
+      "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "df064599_0880f80e",
+        "filename": "bson/document.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-22T19:52:18Z",
+      "side": 1,
+      "message": "I don\u0027t think we need this comment, since this is the usual behavior when returning an error.",
+      "range": {
+        "startLine": 293,
+        "startChar": 0,
+        "endLine": 294,
+        "endChar": 45
+      },
+      "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "097094b9_5832ff4c",
+        "filename": "bson/document.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-22T19:52:18Z",
+      "side": 1,
+      "message": "Same comment as Lookup.",
+      "range": {
+        "startLine": 307,
+        "startChar": 0,
+        "endLine": 308,
+        "endChar": 47
+      },
+      "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aa4f90eb_cd70e0b4",
+        "filename": "bson/document.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 322,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-22T19:52:18Z",
+      "side": 1,
+      "message": "I don\u0027t think we need this comment, since this is the usual behavior when returning an error.",
+      "range": {
+        "startLine": 321,
+        "startChar": 0,
+        "endLine": 322,
+        "endChar": 70
+      },
+      "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
