@@ -34,6 +34,75 @@
       "revId": "46466c97a561ef2538a971b0de7e05f50be46505",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ef50d347_14694187",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 267,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-22T19:42:55Z",
+      "side": 1,
+      "message": "This should be 1.",
+      "range": {
+        "startLine": 267,
+        "startChar": 90,
+        "endLine": 267,
+        "endChar": 92
+      },
+      "revId": "46466c97a561ef2538a971b0de7e05f50be46505",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8cf5cf7a_6254f05f",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-22T19:42:55Z",
+      "side": 1,
+      "message": "This test is broken when run by itself. Since this is a separate subtest, we should be able to run it by itself.",
+      "range": {
+        "startLine": 258,
+        "startChar": 1,
+        "endLine": 274,
+        "endChar": 3
+      },
+      "revId": "46466c97a561ef2538a971b0de7e05f50be46505",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ba1df3fc_010f582a",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-22T19:42:55Z",
+      "side": 1,
+      "message": "This test is broken.",
+      "range": {
+        "startLine": 275,
+        "startChar": 1,
+        "endLine": 296,
+        "endChar": 3
+      },
+      "revId": "46466c97a561ef2538a971b0de7e05f50be46505",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
