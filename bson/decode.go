@@ -158,7 +158,6 @@ func convertToPtr(val reflect.Value) reflect.Value {
 // If the value would not fit the type and cannot be converted, it is silently skipped.
 //
 // Pointer values are initialized when necessary.
-
 func NewDecoder(r io.Reader) Decoder {
 	return newDecoder(r)
 }
