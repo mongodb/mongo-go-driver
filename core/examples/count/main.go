@@ -14,7 +14,6 @@ import (
 	"flag"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/extjson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -61,7 +60,7 @@ func main() {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}
 
-	result, err := extjson.BsonToExtJSON(true, rdr)
+	result, err := bson.ToExtJSON(true, rdr)
 	if err != nil {
 		log.Fatalf("failed to convert BSON to extended JSON: %s", err)
 	}

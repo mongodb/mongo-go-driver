@@ -4,13 +4,11 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package extjson
+package bson
 
 import (
-	"fmt"
-
 	"errors"
-
+	"fmt"
 	"strconv"
 
 	"github.com/mongodb/mongo-go-driver/bson/builder"
@@ -20,20 +18,41 @@ import (
 type docElementParser func([]byte, []byte, jsonparser.ValueType, int) error
 type arrayElementParser func(int, []byte, jsonparser.ValueType, int) error
 
-// ParseObjectToBuilder parses a JSON object string into a *builder.DocumentBuilder.
-func ParseObjectToBuilder(s string) (*builder.DocumentBuilder, error) {
+// ParseExtJSONObject parses a JSON object string into a *Document.
+func ParseExtJSONObject(s string) (*Document, error) {
 	b := builder.NewDocumentBuilder()
 	err := parseObjectToBuilder(b, s, nil, true)
 	if err != nil {
 		return nil, err
 	}
 
-	return b, nil
+	buf := make([]byte, b.RequiredBytes())
+	_, err = b.WriteDocument(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadDocument(buf)
 }
 
-// ParseArrayToBuilder parses a JSON array string into a *builder.ArrayBuilder.
-func ParseArrayToBuilder(s string) (*builder.ArrayBuilder, error) {
-	return parseArrayToBuilder(s, true)
+// ParseExtJSONArray parses a JSON array string into a *Array.
+func ParseExtJSONArray(s string) (*Array, error) {
+	b, err := parseJSONArrayToBuilder(s, true)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, b.RequiredBytes())
+	b.WriteDocument(buf)
+
+	doc, err := ReadDocument(buf)
+	if err != nil {
+		return nil, err
+	}
+
+	array := ArrayFromDocument(doc)
+
+	return array, nil
 }
 
 func getDocElementParser(b *builder.DocumentBuilder, containingKey *string, ext bool) (docElementParser, *parseState) {
@@ -50,7 +69,7 @@ func getDocElementParser(b *builder.DocumentBuilder, containingKey *string, ext 
 	return p, s
 }
 
-func parseArrayToBuilder(s string, ext bool) (*builder.ArrayBuilder, error) {
+func parseJSONArrayToBuilder(s string, ext bool) (*builder.ArrayBuilder, error) {
 	var b builder.ArrayBuilder
 
 	_, err := jsonparser.ArrayEach([]byte(s), parseArrayElement(&b, ext))
@@ -135,7 +154,7 @@ func parseDocElement(b *builder.DocumentBuilder, ext bool) docElementParser {
 			}
 
 		case jsonparser.Array:
-			array, err := ParseArrayToBuilder(string(value))
+			array, err := parseJSONArrayToBuilder(string(value), ext)
 			if err != nil {
 				return fmt.Errorf("invalid JSON array: %s", string(value))
 			}
