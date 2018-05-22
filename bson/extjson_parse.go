@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package extjson
+package bson
 
 import (
 	"errors"
@@ -114,7 +114,7 @@ func (s *parseState) parseElement(key []byte, value []byte, dataType jsonparser.
 		}
 
 		s.docBuilder.Append(builder.C.Decimal(*s.containingKey, d))
-	case binary:
+	case binaryData:
 		b, t, err := parseBinary(value, dataType)
 		if err != nil {
 			return err

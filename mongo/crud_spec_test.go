@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/extjson"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/stretchr/testify/require"
@@ -428,17 +427,10 @@ func findOneAndDeleteTest(t *testing.T, coll *Collection, test *testCase) {
 
 		require.NoError(t, err)
 
-		docBuilder, err := extjson.ParseObjectToBuilder(string(jsonBytes))
+		doc, err := bson.ParseExtJSONObject(string(jsonBytes))
 		require.NoError(t, err)
 
-		bsonBytes := make([]byte, docBuilder.RequiredBytes())
-		_, err = docBuilder.WriteDocument(bsonBytes)
-		require.NoError(t, err)
-
-		expected, err := bson.NewDocumentEncoder().EncodeDocument(bsonBytes)
-		require.NoError(t, err)
-
-		require.True(t, expected.Equal(actual))
+		require.True(t, doc.Equal(actual))
 
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
@@ -507,17 +499,10 @@ func findOneAndReplaceTest(t *testing.T, coll *Collection, test *testCase) {
 
 		require.NoError(t, err)
 
-		docBuilder, err := extjson.ParseObjectToBuilder(string(jsonBytes))
+		doc, err := bson.ParseExtJSONObject(string(jsonBytes))
 		require.NoError(t, err)
 
-		bsonBytes := make([]byte, docBuilder.RequiredBytes())
-		_, err = docBuilder.WriteDocument(bsonBytes)
-		require.NoError(t, err)
-
-		expected, err := bson.NewDocumentEncoder().EncodeDocument(bsonBytes)
-		require.NoError(t, err)
-
-		require.True(t, expected.Equal(actual))
+		require.True(t, doc.Equal(actual))
 
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
@@ -592,17 +577,10 @@ func findOneAndUpdateTest(t *testing.T, coll *Collection, test *testCase) {
 
 		require.NoError(t, err)
 
-		docBuilder, err := extjson.ParseObjectToBuilder(string(jsonBytes))
+		doc, err := bson.ParseExtJSONObject(string(jsonBytes))
 		require.NoError(t, err)
 
-		bsonBytes := make([]byte, docBuilder.RequiredBytes())
-		_, err = docBuilder.WriteDocument(bsonBytes)
-		require.NoError(t, err)
-
-		expected, err := bson.NewDocumentEncoder().EncodeDocument(bsonBytes)
-		require.NoError(t, err)
-
-		require.True(t, expected.Equal(actual))
+		require.True(t, doc.Equal(actual))
 
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
@@ -926,22 +904,16 @@ func docSliceFromRaw(t *testing.T, raw json.RawMessage) []*bson.Document {
 	jsonBytes, err := raw.MarshalJSON()
 	require.NoError(t, err)
 
-	array, err := extjson.ParseArrayToBuilder(string(jsonBytes))
-	require.NoError(t, err)
-
-	bsonBytes := make([]byte, array.RequiredBytes())
-	_, err = array.WriteDocument(bsonBytes)
-	require.NoError(t, err)
-
-	itr, err := bson.Reader(bsonBytes).Iterator()
+	array, err := bson.ParseExtJSONArray(string(jsonBytes))
 	require.NoError(t, err)
 
 	docs := make([]*bson.Document, 0)
 
-	for itr.Next() {
-		docs = append(docs, itr.Element().Clone().Value().MutableDocument())
+	for i := 0; i < array.Len(); i++ {
+		item, err := array.Lookup(uint(i))
+		require.NoError(t, err)
+		docs = append(docs, item.MutableDocument())
 	}
-	require.NoError(t, itr.Err())
 
 	return docs
 }

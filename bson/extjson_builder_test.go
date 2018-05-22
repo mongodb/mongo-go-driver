@@ -4,18 +4,17 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package extjson_test
+package bson_test
 
 import (
+	"bytes"
 	"testing"
 
-	"bytes"
-
-	"github.com/mongodb/mongo-go-driver/bson/extjson"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 func Test_ParseObjectToBuilder(t *testing.T) {
-	bson := []byte{
+	expectedBSON := []byte{
 		// length
 		0x3f, 0x0, 0x0, 0x0,
 
@@ -97,24 +96,24 @@ func Test_ParseObjectToBuilder(t *testing.T) {
 	}
 
 	json := `{ "a": null, "b": false, "c": [ "foo", -2.7 ], "d": { "efg": 4 } }`
-	builder, err := extjson.ParseObjectToBuilder(json)
+	builder, err := bson.ParseExtJSONObject(json)
 	if err != nil {
 		t.Fatalf("unable to parse json string: %s", err)
 	}
 
-	buf := make([]byte, len(bson))
-	_, err = builder.WriteDocument(buf)
+	buf := make([]byte, len(expectedBSON))
+	_, err = builder.WriteDocument(0, buf)
 	if err != nil {
 		t.Fatalf("unable to write document to bytes buffer: %s", err)
 	}
 
-	if !bytes.Equal(bson, buf) {
-		t.Fatalf("bytes are unequal:\n%#v\n%#v", bson, buf)
+	if !bytes.Equal(expectedBSON, buf) {
+		t.Fatalf("bytes are unequal:\n%#v\n%#v", expectedBSON, buf)
 	}
 }
 
 func Test_ParseObjectToBuilderSubDoc(t *testing.T) {
-	bson := []byte{
+	expectedBSON := []byte{
 		// length
 		0x21, 0x0, 0x0, 0x0,
 
@@ -161,24 +160,23 @@ func Test_ParseObjectToBuilderSubDoc(t *testing.T) {
 	}
 
 	json := `{ "a": null, "b": false, "d": { "efg": 4 } }`
-	builder, err := extjson.ParseObjectToBuilder(json)
+	doc, err := bson.ParseExtJSONObject(json)
 	if err != nil {
 		t.Fatalf("unable to parse json string: %s", err)
 	}
 
-	buf := make([]byte, len(bson))
-	_, err = builder.WriteDocument(buf)
+	buf, err := doc.MarshalBSON()
 	if err != nil {
 		t.Fatalf("unable to write document to bytes buffer: %s", err)
 	}
 
-	if !bytes.Equal(bson, buf) {
-		t.Fatalf("bytes are unequal:\n%#v\n%#v", bson, buf)
+	if !bytes.Equal(expectedBSON, buf) {
+		t.Fatalf("bytes are unequal:\n%#v\n%#v", expectedBSON, buf)
 	}
 }
 
 func Test_ParseObjectToBuilderFlat(t *testing.T) {
-	bson := []byte{
+	expectedBSON := []byte{
 		// length
 		0x2f, 0x0, 0x0, 0x0,
 
@@ -223,18 +221,17 @@ func Test_ParseObjectToBuilderFlat(t *testing.T) {
 	}
 
 	json := `{ "a": null, "b": false, "c": "foo", "d": -2.7, "efg": 4 }`
-	builder, err := extjson.ParseObjectToBuilder(json)
+	builder, err := bson.ParseExtJSONObject(json)
 	if err != nil {
 		t.Fatalf("unable to parse json string: %s", err)
 	}
 
-	buf := make([]byte, len(bson))
-	_, err = builder.WriteDocument(buf)
+	buf, err := builder.MarshalBSON()
 	if err != nil {
 		t.Fatalf("unable to write document to bytes buffer: %s", err)
 	}
 
-	if !bytes.Equal(bson, buf) {
-		t.Fatalf("bytes are unequal:\n%#v\n%#v", bson, buf)
+	if !bytes.Equal(expectedBSON, buf) {
+		t.Fatalf("bytes are unequal:\n%#v\n%#v", expectedBSON, buf)
 	}
 }
