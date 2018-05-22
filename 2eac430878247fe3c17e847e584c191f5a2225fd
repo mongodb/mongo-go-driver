@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3c7b75ab_2f72195f",
+        "filename": "bson/document.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 280,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T20:09:37Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e117b5f4_8c7ed4da",
+      "range": {
+        "startLine": 279,
+        "startChar": 0,
+        "endLine": 280,
+        "endChar": 45
+      },
+      "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "df064599_0880f80e",
         "filename": "bson/document.go",
         "patchSetId": 3
@@ -45,6 +69,30 @@
       "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "597dea25_63e41566",
+        "filename": "bson/document.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T20:09:37Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "df064599_0880f80e",
+      "range": {
+        "startLine": 293,
+        "startChar": 0,
+        "endLine": 294,
+        "endChar": 45
+      },
+      "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "72bcd508_5fd38098",
+        "filename": "bson/document.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T20:09:37Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "097094b9_5832ff4c",
+      "range": {
+        "startLine": 307,
+        "startChar": 0,
+        "endLine": 308,
+        "endChar": 47
+      },
+      "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "aa4f90eb_cd70e0b4",
         "filename": "bson/document.go",
         "patchSetId": 3
@@ -91,6 +163,30 @@
       "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d3f3aa56_0f29761e",
+        "filename": "bson/document.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 322,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T20:09:37Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "aa4f90eb_cd70e0b4",
+      "range": {
+        "startLine": 321,
+        "startChar": 0,
+        "endLine": 322,
+        "endChar": 70
+      },
+      "revId": "2eac430878247fe3c17e847e584c191f5a2225fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
