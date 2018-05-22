@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package extjson
+package bson
 
 import (
 	"bytes"
@@ -53,7 +53,7 @@ type parseErrorTestCase struct {
 	String      string `json:"string"`
 }
 
-const dataDir = "../../data"
+const dataDir = "../data"
 
 func findJSONFilesInDir(t *testing.T, dir string) []string {
 	files := make([]string, 0)
@@ -159,7 +159,7 @@ func runTest(t *testing.T, file string) {
 
 			// bson_to_canonical_extended_json(cB) = cEJ
 			cEJ = string(pretty.Ugly([]byte(cEJ)))
-			actualExtendedJSON, err := BsonToExtJSON(true, cB)
+			actualExtendedJSON, err := ToExtJSON(true, cB)
 			require.NoError(t, err)
 
 			actualCompactExtendedJSON := string(pretty.Ugly([]byte(actualExtendedJSON)))
@@ -168,13 +168,12 @@ func runTest(t *testing.T, file string) {
 
 			// json_to_bson(cEJ) = cB (unless lossy)
 			if v.Lossy == nil || !*v.Lossy {
-				doc, err := ParseObjectToBuilder(v.CanonicalExtJSON)
+				doc, err := ParseExtJSONObject(v.CanonicalExtJSON)
 				require.NoError(t, err)
 
-				actualBytes := make([]byte, doc.RequiredBytes())
-				i, err := doc.WriteDocument(actualBytes)
+				actualBytes, err := doc.MarshalBSON()
 				require.NoError(t, err)
-				require.Len(t, cB, int(i))
+				require.Len(t, cB, len(actualBytes))
 				require.True(t, bytes.Equal(cB, actualBytes))
 			}
 		}
