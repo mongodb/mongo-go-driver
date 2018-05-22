@@ -16,6 +16,24 @@
       "revId": "026cbc64db2c721aa5d5976c9bb628aaf18b9ca3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "27add9ab_c8600e4f",
+        "filename": "bson/document_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T00:59:55Z",
+      "side": 0,
+      "message": "Reverted; after discussing this with Kris, we decided that it was probably best to leave the existing semantics for empty key, but it might be worth filing a ticket.",
+      "parentUuid": "de1fd4fd_579587e7",
+      "revId": "026cbc64db2c721aa5d5976c9bb628aaf18b9ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

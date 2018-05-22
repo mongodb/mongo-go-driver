@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "b33fa85a_a10e86a6",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T00:59:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b5695933_018ce25e",
+      "range": {
+        "startLine": 276,
+        "startChar": 0,
+        "endLine": 276,
+        "endChar": 4
+      },
+      "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a95690a9_38f87fd1",
         "filename": "bson/document.go",
         "patchSetId": 1
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "a2a24d37_c64e3a1a",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T00:59:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a95690a9_38f87fd1",
+      "range": {
+        "startLine": 285,
+        "startChar": 0,
+        "endLine": 285,
+        "endChar": 4
+      },
+      "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d61a82b9_b95f60b1",
         "filename": "bson/document.go",
         "patchSetId": 1
@@ -59,6 +107,24 @@
       "writtenOn": "2018-05-21T15:49:08Z",
       "side": 1,
       "message": "LookupElement",
+      "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "94697036_3e11bd64",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T00:59:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d61a82b9_b95f60b1",
       "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -100,6 +166,24 @@
     },
     {
       "key": {
+        "uuid": "628873ee_fa1abcd2",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 296,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T00:59:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "29e4a5b8_22ff818a",
+      "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c1fedaa4_934e9936",
         "filename": "bson/document.go",
         "patchSetId": 1
@@ -129,6 +213,24 @@
       "side": 1,
       "message": "I agree that this behavior is incorrect. I worry that with the suggested API, users who have their keys already in a slice will have to do something a little funky like:\n\n  slc :\u003d []string{\"foo\", \"bar\", \"baz\"}\n  elem, err :\u003d doc.LookupElement(slc[0], slc[1:]...)\n\nAlthough I do understand the desire to not allow users to incorrectly call this method. This error also fits a bit more nicely with the error flow, if you pass in an empty or nil slice, we\u0027ll return an error instead of having users potentially panic their code trying to do a slc[0] invocation.\n\nAlternatively, we could return a nil value and a nil error and document that \"if you ask for nothing, you will receive nothing\".",
       "parentUuid": "c1fedaa4_934e9936",
+      "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3abaf48a_0f4b199b",
+        "filename": "bson/document.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 302,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-22T00:59:55Z",
+      "side": 1,
+      "message": "We discussed this offline, and I think came to the conclusion that the previous semantics were probably correct here, at least for the moment. We could open a ticket for this, but I don\u0027t know if it makes sense to fold this work into this ticket.",
+      "parentUuid": "ff7df8e8_f77b0e8d",
       "revId": "5aefdda6ee6c86542ba50d2ff87dde59ff6c4ca3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
