@@ -43,7 +43,7 @@ lint-add-whitelist:
 
 .PHONY: errcheck
 errcheck:
-	errcheck -exclude .errcheck-excludes ./bson/... ./mongo/... ./core/...
+	/home/tychoish/goprojects/bin/errcheck -exclude .errcheck-excludes ./bson/... ./mongo/... ./core/...
 
 .PHONY: test
 test:
