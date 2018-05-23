@@ -13,7 +13,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -78,7 +78,7 @@ func setUpFSM(t *testing.T, uri string) *fsm {
 	}
 
 	for _, host := range cs.Hosts {
-		fsm.Servers = append(fsm.Servers, description.Server{Addr: addr.Addr(host).Canonicalize()})
+		fsm.Servers = append(fsm.Servers, description.Server{Addr: address.Address(host).Canonicalize()})
 	}
 
 	return fsm
@@ -86,7 +86,7 @@ func setUpFSM(t *testing.T, uri string) *fsm {
 
 func applyResponses(f *fsm, responses []response) error {
 	for _, response := range responses {
-		server := description.NewServer(addr.Addr(response.Host), response.IsMaster, result.BuildInfo{})
+		server := description.NewServer(address.Address(response.Host), response.IsMaster, result.BuildInfo{})
 		_, err := f.apply(server)
 
 		if err != nil {
@@ -124,11 +124,11 @@ func runTest(t *testing.T, directory string, filename string) {
 			require.Equal(t, phase.Outcome.SetName, f.SetName)
 			require.Equal(t, len(phase.Outcome.Servers), len(f.Servers))
 
-			for address, server := range phase.Outcome.Servers {
-				fsmServer, ok := f.Server(addr.Addr(address))
+			for addr, server := range phase.Outcome.Servers {
+				fsmServer, ok := f.Server(address.Address(addr))
 				require.True(t, ok)
 
-				require.Equal(t, addr.Addr(address), fsmServer.Addr)
+				require.Equal(t, address.Address(addr), fsmServer.Addr)
 				require.Equal(t, server.SetName, fsmServer.SetName)
 
 				// PossiblePrimary is only relevant to single-threaded drivers.

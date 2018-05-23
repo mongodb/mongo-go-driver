@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package addr
+package address
 
 import (
 	"testing"
@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddr_String(t *testing.T) {
+func TestAddress_String(t *testing.T) {
 	tests := []struct {
 		in       string
 		expected string
@@ -26,12 +26,12 @@ func TestAddr_String(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.in, func(t *testing.T) {
-			require.Equal(t, Addr(test.in).String(), test.expected)
+			require.Equal(t, Address(test.in).String(), test.expected)
 		})
 	}
 }
 
-func TestAddr_Canonicalize(t *testing.T) {
+func TestAddress_Canonicalize(t *testing.T) {
 	tests := []struct {
 		in       string
 		expected string
@@ -45,7 +45,7 @@ func TestAddr_Canonicalize(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.in, func(t *testing.T) {
-			require.Equal(t, Addr(test.in).Canonicalize(), Addr(test.expected))
+			require.Equal(t, Address(test.in).Canonicalize(), Address(test.expected))
 		})
 	}
 }

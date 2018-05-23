@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -26,7 +26,7 @@ func TestConnection(t *testing.T) {
 	}
 
 	t.Run("New", func(t *testing.T) {
-		// address := addr.Addr(*host)
+		// address := address.Address(*host)
 		// _, err := connection.New(context.Background(), address)
 		// if err != nil {
 		// 	t.Errorf("Whoops: %s", err)
@@ -184,7 +184,7 @@ func testConnection(t *testing.T, opts ...connection.Option) connection.Connecti
 		return &command.Handshake{Client: command.ClientDoc("mongo-go-driver-test")}
 	}))
 
-	c, _, err := connection.New(context.Background(), addr.Addr(*host), opts...)
+	c, _, err := connection.New(context.Background(), address.Address(*host), opts...)
 	if err != nil {
 		t.Errorf("failed dialing mongodb server - ensure that one is running at %s: %v", *host, err)
 		t.FailNow()

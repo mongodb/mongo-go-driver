@@ -24,7 +24,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -68,20 +68,20 @@ var DefaultDialer Dialer = &net.Dialer{}
 // handshake over a provided ReadWriter. This is used during connection
 // initialization.
 type Handshaker interface {
-	Handshake(context.Context, addr.Addr, wiremessage.ReadWriter) (description.Server, error)
+	Handshake(context.Context, address.Address, wiremessage.ReadWriter) (description.Server, error)
 }
 
 // HandshakerFunc is an adapter to allow the use of ordinary functions as
 // connection handshakers.
-type HandshakerFunc func(context.Context, addr.Addr, wiremessage.ReadWriter) (description.Server, error)
+type HandshakerFunc func(context.Context, address.Address, wiremessage.ReadWriter) (description.Server, error)
 
 // Handshake implements the Handshaker interface.
-func (hf HandshakerFunc) Handshake(ctx context.Context, address addr.Addr, rw wiremessage.ReadWriter) (description.Server, error) {
-	return hf(ctx, address, rw)
+func (hf HandshakerFunc) Handshake(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
+	return hf(ctx, addr, rw)
 }
 
 type connection struct {
-	addr             addr.Addr
+	addr             address.Address
 	id               string
 	conn             net.Conn
 	dead             bool
@@ -97,20 +97,20 @@ type connection struct {
 // New opens a connection to a given Addr.
 //
 // The server description returned is nil if there was no handshaker provided.
-func New(ctx context.Context, address addr.Addr, opts ...Option) (Connection, *description.Server, error) {
+func New(ctx context.Context, addr address.Address, opts ...Option) (Connection, *description.Server, error) {
 	cfg, err := newConfig(opts...)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	nc, err := cfg.dialer.DialContext(ctx, address.Network(), address.String())
+	nc, err := cfg.dialer.DialContext(ctx, addr.Network(), addr.String())
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if cfg.tlsConfig != nil {
 		tlsConfig := cfg.tlsConfig.Clone()
-		nc, err = configureTLS(ctx, nc, address, tlsConfig)
+		nc, err = configureTLS(ctx, nc, addr, tlsConfig)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -121,12 +121,12 @@ func New(ctx context.Context, address addr.Addr, opts ...Option) (Connection, *d
 		lifetimeDeadline = time.Now().Add(cfg.lifeTimeout)
 	}
 
-	id := fmt.Sprintf("%s[-%d]", address, nextClientConnectionID())
+	id := fmt.Sprintf("%s[-%d]", addr, nextClientConnectionID())
 
 	c := &connection{
 		id:               id,
 		conn:             nc,
-		addr:             address,
+		addr:             addr,
 		idleTimeout:      cfg.idleTimeout,
 		lifetimeDeadline: lifetimeDeadline,
 		readTimeout:      cfg.readTimeout,
@@ -149,9 +149,9 @@ func New(ctx context.Context, address addr.Addr, opts ...Option) (Connection, *d
 	return c, desc, nil
 }
 
-func configureTLS(ctx context.Context, nc net.Conn, address addr.Addr, config *TLSConfig) (net.Conn, error) {
+func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config *TLSConfig) (net.Conn, error) {
 	if !config.InsecureSkipVerify {
-		hostname := address.String()
+		hostname := addr.String()
 		colonPos := strings.LastIndex(hostname, ":")
 		if colonPos == -1 {
 			colonPos = len(hostname)

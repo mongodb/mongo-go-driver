@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/description"
 )
 
@@ -43,9 +43,9 @@ func TestServerSelection(t *testing.T) {
 		noerr(t, err)
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: addr.Addr("one"), Kind: description.Standalone},
-				{Addr: addr.Addr("two"), Kind: description.Standalone},
-				{Addr: addr.Addr("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.Standalone},
+				{Addr: address.Address("two"), Kind: description.Standalone},
+				{Addr: address.Address("three"), Kind: description.Standalone},
 			},
 		}
 		subCh := make(chan description.Topology, 1)
@@ -75,9 +75,9 @@ func TestServerSelection(t *testing.T) {
 
 		desc = description.Topology{
 			Servers: []description.Server{
-				{Addr: addr.Addr("one"), Kind: description.Standalone},
-				{Addr: addr.Addr("two"), Kind: description.Standalone},
-				{Addr: addr.Addr("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.Standalone},
+				{Addr: address.Address("two"), Kind: description.Standalone},
+				{Addr: address.Address("three"), Kind: description.Standalone},
 			},
 		}
 		select {
@@ -103,9 +103,9 @@ func TestServerSelection(t *testing.T) {
 	t.Run("Cancel", func(t *testing.T) {
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: addr.Addr("one"), Kind: description.Standalone},
-				{Addr: addr.Addr("two"), Kind: description.Standalone},
-				{Addr: addr.Addr("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.Standalone},
+				{Addr: address.Address("two"), Kind: description.Standalone},
+				{Addr: address.Address("three"), Kind: description.Standalone},
 			},
 		}
 		topo, err := New()
@@ -140,9 +140,9 @@ func TestServerSelection(t *testing.T) {
 	t.Run("Timeout", func(t *testing.T) {
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: addr.Addr("one"), Kind: description.Standalone},
-				{Addr: addr.Addr("two"), Kind: description.Standalone},
-				{Addr: addr.Addr("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.Standalone},
+				{Addr: address.Address("two"), Kind: description.Standalone},
+				{Addr: address.Address("three"), Kind: description.Standalone},
 			},
 		}
 		topo, err := New()
@@ -175,9 +175,9 @@ func TestServerSelection(t *testing.T) {
 	t.Run("Error", func(t *testing.T) {
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: addr.Addr("one"), Kind: description.Standalone},
-				{Addr: addr.Addr("two"), Kind: description.Standalone},
-				{Addr: addr.Addr("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.Standalone},
+				{Addr: address.Address("two"), Kind: description.Standalone},
+				{Addr: address.Address("three"), Kind: description.Standalone},
 			},
 		}
 		topo, err := New()

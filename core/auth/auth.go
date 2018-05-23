@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -93,8 +93,8 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 // Handshaker creates a connection handshaker for the given authenticator. The
 // handshaker will handle calling isMaster and buildInfo.
 func Handshaker(appName string, h connection.Handshaker, authenticator Authenticator) connection.Handshaker {
-	return connection.HandshakerFunc(func(ctx context.Context, address addr.Addr, rw wiremessage.ReadWriter) (description.Server, error) {
-		desc, err := (&command.Handshake{Client: command.ClientDoc(appName)}).Handshake(ctx, address, rw)
+	return connection.HandshakerFunc(func(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
+		desc, err := (&command.Handshake{Client: command.ClientDoc(appName)}).Handshake(ctx, addr, rw)
 		if err != nil {
 			return description.Server{}, err
 		}
@@ -106,7 +106,7 @@ func Handshaker(appName string, h connection.Handshaker, authenticator Authentic
 		if h == nil {
 			return desc, nil
 		}
-		return h.Handshake(ctx, address, rw)
+		return h.Handshake(ctx, addr, rw)
 	})
 }
 

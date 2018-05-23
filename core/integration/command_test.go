@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -30,7 +30,7 @@ func TestCommand(t *testing.T) {
 	}
 	t.Parallel()
 
-	server, err := topology.ConnectServer(context.Background(), addr.Addr(*host), serveropts(t)...)
+	server, err := topology.ConnectServer(context.Background(), address.Address(*host), serveropts(t)...)
 	noerr(t, err)
 
 	ctx := context.Background()

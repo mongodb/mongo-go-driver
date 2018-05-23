@@ -18,7 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/description"
 )
 
@@ -75,7 +75,7 @@ type Topology struct {
 	// closed. This lock should also be an RWMutex.
 	serversLock   sync.Mutex
 	serversClosed bool
-	servers       map[addr.Addr]*Server
+	servers       map[address.Address]*Server
 
 	wg sync.WaitGroup
 }
@@ -93,7 +93,7 @@ func New(opts ...Option) (*Topology, error) {
 		fsm:         newFSM(),
 		changes:     make(chan description.Server),
 		subscribers: make(map[uint64]chan description.Topology),
-		servers:     make(map[addr.Addr]*Server),
+		servers:     make(map[address.Address]*Server),
 	}
 	t.desc.Store(description.Topology{})
 
@@ -120,7 +120,7 @@ func (t *Topology) Connect(ctx context.Context) error {
 	var err error
 	t.serversLock.Lock()
 	for _, a := range t.cfg.seedList {
-		address := addr.Addr(a).Canonicalize()
+		address := address.Address(a).Canonicalize()
 		t.fsm.Servers = append(t.fsm.Servers, description.Server{Addr: address})
 		err = t.addServer(ctx, address)
 	}
@@ -375,17 +375,17 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) (descript
 	return current, nil
 }
 
-func (t *Topology) addServer(ctx context.Context, address addr.Addr) error {
-	if _, ok := t.servers[address]; ok {
+func (t *Topology) addServer(ctx context.Context, addr address.Address) error {
+	if _, ok := t.servers[addr]; ok {
 		return nil
 	}
 
-	svr, err := ConnectServer(ctx, address, t.cfg.serverOpts...)
+	svr, err := ConnectServer(ctx, addr, t.cfg.serverOpts...)
 	if err != nil {
 		return err
 	}
 
-	t.servers[address] = svr
+	t.servers[addr] = svr
 	var sub *ServerSubscription
 	sub, err = svr.Subscribe()
 	if err != nil {
@@ -403,9 +403,9 @@ func (t *Topology) addServer(ctx context.Context, address addr.Addr) error {
 	return nil
 }
 
-func (t *Topology) removeServer(ctx context.Context, address addr.Addr, server *Server) {
+func (t *Topology) removeServer(ctx context.Context, addr address.Address, server *Server) {
 	_ = server.Disconnect(ctx)
-	delete(t.servers, address)
+	delete(t.servers, addr)
 }
 
 // Subscription is a subscription to updates to the description of the Topology that created this

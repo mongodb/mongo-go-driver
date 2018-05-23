@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/description"
 )
 
@@ -276,9 +276,9 @@ func (f *fsm) updateUnknownWithStandalone(s description.Server) {
 	f.replaceServer(s)
 }
 
-func (f *fsm) addServer(address addr.Addr) {
+func (f *fsm) addServer(addr address.Address) {
 	f.Servers = append(f.Servers, description.Server{
-		Addr: address.Canonicalize(),
+		Addr: addr.Canonicalize(),
 	})
 }
 
@@ -292,8 +292,8 @@ func (f *fsm) findPrimary() (int, bool) {
 	return 0, false
 }
 
-func (f *fsm) findServer(address addr.Addr) (int, bool) {
-	canon := address.Canonicalize()
+func (f *fsm) findServer(addr address.Address) (int, bool) {
+	canon := addr.Canonicalize()
 	for i, s := range f.Servers {
 		if canon == s.Addr {
 			return i, true
@@ -307,8 +307,8 @@ func (f *fsm) removeServer(i int) {
 	f.Servers = append(f.Servers[:i], f.Servers[i+1:]...)
 }
 
-func (f *fsm) removeServerByAddr(address addr.Addr) {
-	if i, ok := f.findServer(address); ok {
+func (f *fsm) removeServerByAddr(addr address.Address) {
+	if i, ok := f.findServer(addr); ok {
 		f.removeServer(i)
 	}
 }
