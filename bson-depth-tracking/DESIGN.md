@@ -1,10 +1,10 @@
-#BSON Depth Tracking
+# BSON Depth Tracking
 To help ensure that users of the BSON library do not crash their applications do a stack overflow
 from attempting to decode a malicious document, we need to add depth tracking to the BSON library’s
 validation functions and allow users to set the maximum depth of a BSON document the library will
 decode.
 
-##Scope of Work
+## Scope of Work
 The `bson.Document`, `bson.Reader`, `bson.Element`, and `bson.Value` types need to have their
 validate methods augmented with additional depth tracking parameters to track how deep the
 validation should go. Each of these types has a `validate` method except for the `bson.Value` type.
@@ -19,6 +19,6 @@ To allow users to set the maximum depth, each of the public `Validate` methods w
 additional parameter of `maxDepth` that will be used as the parameter of the same name to each of
 the `validate` methods.
 
-##Testing
+## Testing
 Unit tests must be written for each of the paths through validation, ensuring that the current depth
 is incremented properly, and that an error is returned when max depth is exceeded.
