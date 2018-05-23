@@ -29,7 +29,7 @@
               "x": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -75,7 +75,7 @@
               "x": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -120,7 +120,7 @@
               "x": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -164,7 +164,7 @@
               "x": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -209,7 +209,7 @@
               "x": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -251,7 +251,7 @@
               "x": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -295,7 +295,7 @@
               "x": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -338,7 +338,7 @@
               "x": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },

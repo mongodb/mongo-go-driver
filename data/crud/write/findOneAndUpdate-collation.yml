@@ -14,7 +14,7 @@ tests:
                     x: 'PING'
                 update:
                     $set: {x: 'pong'}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {_id: 1}
                 collation: { locale: 'en_US', strength: 2 } # https://docs.mongodb.com/master/reference/collation/#collation-document
 

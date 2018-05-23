@@ -9,11 +9,11 @@ tests:
         operation:
             name: findOneAndUpdate
             arguments:
-                filter: 
+                filter:
                     _id: {$gt: 1}
-                update: 
+                update:
                     $inc: {x: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:
@@ -28,11 +28,11 @@ tests:
         operation:
             name: findOneAndUpdate
             arguments:
-                filter: 
+                filter:
                     _id: {$gt: 1}
-                update: 
+                update:
                     $inc: {x: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
 
@@ -49,9 +49,9 @@ tests:
             name: findOneAndUpdate
             arguments:
                 filter: {_id: 2}
-                update: 
+                update:
                     $inc: {x: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:
@@ -67,9 +67,9 @@ tests:
             name: findOneAndUpdate
             arguments:
                 filter: {_id: 2}
-                update: 
+                update:
                     $inc: {x: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
 
@@ -86,9 +86,9 @@ tests:
             name: findOneAndUpdate
             arguments:
                 filter: {_id: 4}
-                update: 
+                update:
                     $inc: {x: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:
@@ -104,9 +104,9 @@ tests:
             name: findOneAndUpdate
             arguments:
                 filter: {_id: 4}
-                update: 
+                update:
                     $inc: {x: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 # Omit the sort option as it has no effect when no documents
                 # match and would only cause an inconsistent return value on
                 # pre-3.0 servers when combined with returnDocument "before"
@@ -127,9 +127,9 @@ tests:
             name: findOneAndUpdate
             arguments:
                 filter: {_id: 4}
-                update: 
+                update:
                     $inc: {x: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
 
@@ -146,9 +146,9 @@ tests:
             name: findOneAndUpdate
             arguments:
                 filter: {_id: 4}
-                update: 
+                update:
                     $inc: {x: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
                 upsert: true
