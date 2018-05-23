@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "84a900fb_4119bcdc",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 4
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-23T21:14:31Z",
+      "side": 1,
+      "message": "We should mark this task (and all of the static analysis tasks) with \"type: test\" so that it shows up as a redbox instead of a purple box on failure.",
+      "range": {
+        "startLine": 303,
+        "startChar": 6,
+        "endLine": 308,
+        "endChar": 29
+      },
+      "revId": "8f8e0c50b844d21be8ef18bd0e0e4cc190e28196",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
