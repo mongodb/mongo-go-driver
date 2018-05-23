@@ -120,6 +120,7 @@ functions:
            ${PREPARE_SHELL}
            # any go tools that we need
            go get -u github.com/golang/lint/golint
+           go get -u github.com/kisielk/errcheck
 
            # initialize submodules
            git submodule init
@@ -211,15 +212,6 @@ functions:
           done
 
 
-  install-dependencies:
-    type: test
-    params:
-      working_dir: src/github.com/mongodb/mongo-go-driver
-      script: |
-        ${PREPARE_SHELL}
-        file="${PROJECT_DIRECTORY}/.evergreen/install-dependencies.sh"
-        [ -f ${file} ] && sh ${file} || echo "${file} not available, skipping"
-
   run-make:
     - command: shell.exec
       params:
@@ -258,7 +250,7 @@ functions:
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            export GOPATeH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
           fi;
           export PATH="${GCC_PATH}:$PATH"
           MONGODB_URI="${MONGODB_URI}" make -s evg-test-auth
@@ -292,7 +284,6 @@ pre:
   - func: windows-fix
   - func: fix-absolute-paths
   - func: make-files-executable
-  - func: install-dependencies
 
 post:
   - command: gotest.parse_files
@@ -308,6 +299,13 @@ tasks:
         - func: run-make
           vars:
             targets: check-fmt
+
+    - name: sa-errcheck
+      tags: ["static-analysis"]
+      commands:
+        - func: run-make
+          vars:
+            targets: errcheck
 
     - name: sa-lint
       tags: ["static-analysis"]

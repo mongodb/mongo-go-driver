@@ -205,14 +205,14 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
 		atomic.StoreInt32(&topo.connectionstate, connected)
-		srvr, err := NewServer(addr.Addr("one"))
+		srvr, err := NewServer(address.Address("one"))
 		noerr(t, err)
-		topo.servers[addr.Addr("one")] = srvr
+		topo.servers[address.Address("one")] = srvr
 		desc := topo.desc.Load().(description.Topology)
 		desc.Kind = description.Single
 		topo.desc.Store(desc)
 
-		selected := description.Server{Addr: addr.Addr("one")}
+		selected := description.Server{Addr: address.Address("one")}
 
 		ss, err := topo.findServer(selected)
 		noerr(t, err)
