@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8310217d_3f391a5c",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-23T19:14:39Z",
+      "side": 1,
+      "message": "This tests takes a long time, can we make the documents larger so we have to insert fewer of them?",
+      "range": {
+        "startLine": 193,
+        "startChar": 5,
+        "endLine": 193,
+        "endChar": 38
+      },
+      "revId": "63e3d481d74a87c2594f40e63caf94ac634a9f89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
