@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -62,7 +62,7 @@ const (
 // Server is a single server within a topology.
 type Server struct {
 	cfg     *serverConfig
-	address addr.Addr
+	address address.Address
 
 	connectionstate int32
 	done            chan struct{}
@@ -83,8 +83,8 @@ type Server struct {
 
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(ctx context.Context, address addr.Addr, opts ...ServerOption) (*Server, error) {
-	srvr, err := NewServer(address, opts...)
+func ConnectServer(ctx context.Context, addr address.Address, opts ...ServerOption) (*Server, error) {
+	srvr, err := NewServer(addr, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func ConnectServer(ctx context.Context, address addr.Addr, opts ...ServerOption)
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(address addr.Addr, opts ...ServerOption) (*Server, error) {
+func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 	cfg, err := newServerConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -105,14 +105,14 @@ func NewServer(address addr.Addr, opts ...ServerOption) (*Server, error) {
 
 	s := &Server{
 		cfg:     cfg,
-		address: address,
+		address: addr,
 
 		done:     make(chan struct{}),
 		checkNow: make(chan struct{}, 1),
 
 		subscribers: make(map[uint64]chan description.Server),
 	}
-	s.desc.Store(description.Server{Addr: address})
+	s.desc.Store(description.Server{Addr: addr})
 
 	var maxConns uint64
 	if cfg.maxConns == 0 {
@@ -121,7 +121,7 @@ func NewServer(address addr.Addr, opts ...ServerOption) (*Server, error) {
 		maxConns = uint64(cfg.maxConns)
 	}
 
-	s.pool, err = connection.NewPool(address, uint64(cfg.maxIdleConns), maxConns, cfg.connectionOpts...)
+	s.pool, err = connection.NewPool(addr, uint64(cfg.maxIdleConns), maxConns, cfg.connectionOpts...)
 	if err != nil {
 		return nil, err
 	}

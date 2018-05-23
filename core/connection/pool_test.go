@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 )
 
 func TestPool(t *testing.T) {
@@ -23,7 +23,7 @@ func TestPool(t *testing.T) {
 	}
 	t.Run("NewPool", func(t *testing.T) {
 		t.Run("should be connected", func(t *testing.T) {
-			P, err := NewPool(addr.Addr(""), 1, 2)
+			P, err := NewPool(address.Address(""), 1, 2)
 			p := P.(*pool)
 			noerr(t, err)
 			err = p.Connect(context.Background())
@@ -33,7 +33,7 @@ func TestPool(t *testing.T) {
 			}
 		})
 		t.Run("size cannot be larger than capcity", func(t *testing.T) {
-			_, err := NewPool(addr.Addr(""), 5, 1)
+			_, err := NewPool(address.Address(""), 5, 1)
 			if err != ErrSizeLargerThanCapacity {
 				t.Errorf("Should recieve error when size is larger than capacity. got %v; want %v", err, ErrSizeLargerThanCapacity)
 			}
@@ -41,7 +41,7 @@ func TestPool(t *testing.T) {
 	})
 	t.Run("Disconnect", func(t *testing.T) {
 		t.Run("cannot disconnect twice", func(t *testing.T) {
-			p, err := NewPool(addr.Addr(""), 1, 2)
+			p, err := NewPool(address.Address(""), 1, 2)
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -54,12 +54,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("closes idle connections", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -92,12 +92,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("closes inflight connections when context expires", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -132,12 +132,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("properly sets the connection state on return", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -165,12 +165,12 @@ func TestPool(t *testing.T) {
 	t.Run("Connect", func(t *testing.T) {
 		t.Run("can reconnect a disconnected pool", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -213,7 +213,7 @@ func TestPool(t *testing.T) {
 			}
 		})
 		t.Run("cannot connect multiple times without disconnect", func(t *testing.T) {
-			p, err := NewPool(addr.Addr(""), 3, 3)
+			p, err := NewPool(address.Address(""), 3, 3)
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -233,7 +233,7 @@ func TestPool(t *testing.T) {
 			}
 		})
 		t.Run("can disconnect and reconnect multiple times", func(t *testing.T) {
-			p, err := NewPool(addr.Addr(""), 3, 3)
+			p, err := NewPool(address.Address(""), 3, 3)
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -260,12 +260,12 @@ func TestPool(t *testing.T) {
 	t.Run("Get", func(t *testing.T) {
 		t.Run("return context error when already cancelled", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -279,12 +279,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("return context error when attempting to acquire semaphore", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -303,7 +303,7 @@ func TestPool(t *testing.T) {
 		t.Run("return error when attempting to create new connection", func(t *testing.T) {
 			want := errors.New("create new connection error")
 			var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) { return nil, want }
-			p, err := NewPool(addr.Addr(""), 1, 2, WithDialer(func(Dialer) Dialer { return dialer }))
+			p, err := NewPool(address.Address(""), 1, 2, WithDialer(func(Dialer) Dialer { return dialer }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -314,12 +314,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("adds connection to inflight pool", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 1, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -337,13 +337,13 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("closes expired connections", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 2, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 2, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
 			p, err := NewPool(
-				addr.Addr(address.String()), 3, 3,
+				address.Address(addr.String()), 3, 3,
 				WithDialer(func(Dialer) Dialer { return d }),
 				WithIdleTimeout(func(time.Duration) time.Duration { return 10 * time.Millisecond }),
 			)
@@ -376,12 +376,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("recycles connections", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -398,12 +398,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("cannot get from disconnected pool", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 3, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -419,12 +419,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("pool closes excess connections when returned", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 1, 3, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 1, 3, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -447,12 +447,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("cannot get more than capacity connections", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -496,12 +496,12 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("Cannot starve connection request", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 1, 1, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 1, 1, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -533,14 +533,14 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("Does not leak permit from failure to dial connection", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 0, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 0, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			close(cleanup)
 			want := errors.New("dialing error")
 			p, err := NewPool(
-				addr.Addr(address.String()), 1, 2,
+				address.Address(addr.String()), 1, 2,
 				WithDialer(
 					func(Dialer) Dialer {
 						return DialerFunc(func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -564,13 +564,13 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("Does not leak permit from cancelled context", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 1, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			close(cleanup)
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -589,13 +589,13 @@ func TestPool(t *testing.T) {
 		})
 		t.Run("Get does not acquire multiple permits", func(t *testing.T) {
 			cleanup := make(chan struct{})
-			address := bootstrapConnections(t, 2, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 2, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			close(cleanup)
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 1, 2, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -623,12 +623,12 @@ func TestPool(t *testing.T) {
 		t.Run("Connection Close Does Not Error After Pool Is Disconnected", func(t *testing.T) {
 			cleanup := make(chan struct{})
 			defer close(cleanup)
-			address := bootstrapConnections(t, 3, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 3, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			p, err := NewPool(addr.Addr(address.String()), 2, 4, WithDialer(func(Dialer) Dialer { return d }))
+			p, err := NewPool(address.Address(addr.String()), 2, 4, WithDialer(func(Dialer) Dialer { return d }))
 			noerr(t, err)
 			err = p.Connect(context.Background())
 			noerr(t, err)
@@ -646,12 +646,12 @@ func TestPool(t *testing.T) {
 		t.Run("Does not return to pool twice", func(t *testing.T) {
 			cleanup := make(chan struct{})
 			defer close(cleanup)
-			address := bootstrapConnections(t, 1, func(nc net.Conn) {
+			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
 				<-cleanup
 				nc.Close()
 			})
 			d := newdialer(&net.Dialer{})
-			P, err := NewPool(addr.Addr(address.String()), 2, 4, WithDialer(func(Dialer) Dialer { return d }))
+			P, err := NewPool(address.Address(addr.String()), 2, 4, WithDialer(func(Dialer) Dialer { return d }))
 			p := P.(*pool)
 			noerr(t, err)
 			err = p.Connect(context.Background())

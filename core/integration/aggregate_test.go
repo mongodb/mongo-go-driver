@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
@@ -119,7 +119,7 @@ func TestCommandAggregate(t *testing.T) {
 	t.Run("MaxTimeMS", func(t *testing.T) {
 		t.Skip("max time is flaky on the server")
 
-		server, err := topology.ConnectServer(context.Background(), addr.Addr(*host))
+		server, err := topology.ConnectServer(context.Background(), address.Address(*host))
 		noerr(t, err)
 		conn, err := server.Connection(context.Background())
 		noerr(t, err)

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 )
@@ -45,14 +45,14 @@ func TestPool(t *testing.T) {
 		opts = append(opts, connection.WithTLSConfig(func(*connection.TLSConfig) *connection.TLSConfig { return config }))
 	}
 	t.Run("Cannot Create Pool With Size Larger Than Capacity", func(t *testing.T) {
-		_, err := connection.NewPool(addr.Addr(""), 4, 2, opts...)
+		_, err := connection.NewPool(address.Address(""), 4, 2, opts...)
 		if err != connection.ErrSizeLargerThanCapacity {
 			t.Errorf("Should not be able to create a pool with size larger than capacity. got %v; want %v", err, connection.ErrSizeLargerThanCapacity)
 		}
 	})
 	t.Run("Reuses Connections", func(t *testing.T) {
 		// TODO(skriptble): make this a table test.
-		p, err := connection.NewPool(addr.Addr(*host), 2, 4, opts...)
+		p, err := connection.NewPool(address.Address(*host), 2, 4, opts...)
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
@@ -72,7 +72,7 @@ func TestPool(t *testing.T) {
 		}
 	})
 	t.Run("Expired Connections Aren't Returned", func(t *testing.T) {
-		p, err := connection.NewPool(addr.Addr(*host), 2, 4,
+		p, err := connection.NewPool(address.Address(*host), 2, 4,
 			append(opts, connection.WithIdleTimeout(func(time.Duration) time.Duration { return 10 * time.Millisecond }))...,
 		)
 		if err != nil {
@@ -94,7 +94,7 @@ func TestPool(t *testing.T) {
 		}
 	})
 	t.Run("Get With Done Context", func(t *testing.T) {
-		p, err := connection.NewPool(addr.Addr(*host), 2, 4, opts...)
+		p, err := connection.NewPool(address.Address(*host), 2, 4, opts...)
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
@@ -108,7 +108,7 @@ func TestPool(t *testing.T) {
 		}
 	})
 	t.Run("Get Returns Error From Creating A Connection", func(t *testing.T) {
-		p, err := connection.NewPool(addr.Addr("localhost:0"), 2, 4, opts...)
+		p, err := connection.NewPool(address.Address("localhost:0"), 2, 4, opts...)
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
@@ -120,7 +120,7 @@ func TestPool(t *testing.T) {
 		}
 	})
 	t.Run("Get Returns An Error After Pool Is Closed", func(t *testing.T) {
-		p, err := connection.NewPool(addr.Addr(*host), 2, 4, opts...)
+		p, err := connection.NewPool(address.Address(*host), 2, 4, opts...)
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
@@ -136,7 +136,7 @@ func TestPool(t *testing.T) {
 		}
 	})
 	t.Run("Connection Close Does Not Error After Pool Is Closed", func(t *testing.T) {
-		p, err := connection.NewPool(addr.Addr(*host), 2, 4, opts...)
+		p, err := connection.NewPool(address.Address(*host), 2, 4, opts...)
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}
@@ -166,7 +166,7 @@ func TestPool(t *testing.T) {
 		t.Skip()
 	})
 	t.Run("Drain Expires Existing Checked Out Connections", func(t *testing.T) {
-		p, err := connection.NewPool(addr.Addr(*host), 2, 4, opts...)
+		p, err := connection.NewPool(address.Address(*host), 2, 4, opts...)
 		if err != nil {
 			t.Errorf("Unexpected error while creating pool: %v", err)
 		}

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package addr
+package address
 
 import (
 	"net"
@@ -13,12 +13,12 @@ import (
 
 const defaultPort = "27017"
 
-// Addr is a network address. It can either be an IP address or a DNS name.
-type Addr string
+// Address is a network address. It can either be an IP address or a DNS name.
+type Address string
 
 // Network is the network protocol for this address. In most cases this will be
 // "tcp" or "unix".
-func (a Addr) Network() string {
+func (a Address) Network() string {
 	if strings.HasSuffix(string(a), "sock") {
 		return "unix"
 	}
@@ -27,7 +27,7 @@ func (a Addr) Network() string {
 
 // String is the canonical version of this address, e.g. localhost:27017,
 // 1.2.3.4:27017, example.com:27017.
-func (a Addr) String() string {
+func (a Address) String() string {
 	// TODO: unicode case folding?
 	s := strings.ToLower(string(a))
 	if len(s) == 0 {
@@ -44,6 +44,6 @@ func (a Addr) String() string {
 }
 
 // Canonicalize creates a canonicalized address.
-func (a Addr) Canonicalize() Addr {
-	return Addr(a.String())
+func (a Address) Canonicalize() Address {
+	return Address(a.String())
 }

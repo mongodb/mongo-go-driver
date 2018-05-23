@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/stretchr/testify/require"
@@ -37,9 +37,9 @@ func TestServerSelection(t *testing.T) {
 				desc: Topology{
 					Kind: ReplicaSetWithPrimary,
 					Servers: []Server{
-						{Addr: addr.Addr("localhost:27017"), Kind: RSPrimary},
-						{Addr: addr.Addr("localhost:27018"), Kind: RSSecondary},
-						{Addr: addr.Addr("localhost:27019"), Kind: RSSecondary},
+						{Addr: address.Address("localhost:27017"), Kind: RSPrimary},
+						{Addr: address.Address("localhost:27018"), Kind: RSSecondary},
+						{Addr: address.Address("localhost:27019"), Kind: RSSecondary},
 					},
 				},
 				start: 0,
@@ -50,8 +50,8 @@ func TestServerSelection(t *testing.T) {
 				desc: Topology{
 					Kind: ReplicaSetNoPrimary,
 					Servers: []Server{
-						{Addr: addr.Addr("localhost:27018"), Kind: RSSecondary},
-						{Addr: addr.Addr("localhost:27019"), Kind: RSSecondary},
+						{Addr: address.Address("localhost:27018"), Kind: RSSecondary},
+						{Addr: address.Address("localhost:27019"), Kind: RSSecondary},
 					},
 				},
 				start: 0,
@@ -62,8 +62,8 @@ func TestServerSelection(t *testing.T) {
 				desc: Topology{
 					Kind: Sharded,
 					Servers: []Server{
-						{Addr: addr.Addr("localhost:27018"), Kind: Mongos},
-						{Addr: addr.Addr("localhost:27019"), Kind: Mongos},
+						{Addr: address.Address("localhost:27018"), Kind: Mongos},
+						{Addr: address.Address("localhost:27019"), Kind: Mongos},
 					},
 				},
 				start: 0,
@@ -74,7 +74,7 @@ func TestServerSelection(t *testing.T) {
 				desc: Topology{
 					Kind: Single,
 					Servers: []Server{
-						{Addr: addr.Addr("localhost:27018"), Kind: Standalone},
+						{Addr: address.Address("localhost:27018"), Kind: Standalone},
 					},
 				},
 				start: 0,
@@ -106,9 +106,9 @@ func TestServerSelection(t *testing.T) {
 				name: "NoRTTSet",
 				desc: Topology{
 					Servers: []Server{
-						{Addr: addr.Addr("localhost:27017")},
-						{Addr: addr.Addr("localhost:27018")},
-						{Addr: addr.Addr("localhost:27019")},
+						{Addr: address.Address("localhost:27017")},
+						{Addr: address.Address("localhost:27018")},
+						{Addr: address.Address("localhost:27019")},
 					},
 				},
 				start: 0,
@@ -118,9 +118,9 @@ func TestServerSelection(t *testing.T) {
 				name: "MultipleServers PartialNoRTTSet",
 				desc: Topology{
 					Servers: []Server{
-						{Addr: addr.Addr("localhost:27017"), AverageRTT: 5 * time.Second, AverageRTTSet: true},
-						{Addr: addr.Addr("localhost:27018"), AverageRTT: 10 * time.Second, AverageRTTSet: true},
-						{Addr: addr.Addr("localhost:27019")},
+						{Addr: address.Address("localhost:27017"), AverageRTT: 5 * time.Second, AverageRTTSet: true},
+						{Addr: address.Address("localhost:27018"), AverageRTT: 10 * time.Second, AverageRTTSet: true},
+						{Addr: address.Address("localhost:27019")},
 					},
 				},
 				start: 0,
@@ -130,9 +130,9 @@ func TestServerSelection(t *testing.T) {
 				name: "MultipleServers",
 				desc: Topology{
 					Servers: []Server{
-						{Addr: addr.Addr("localhost:27017"), AverageRTT: 5 * time.Second, AverageRTTSet: true},
-						{Addr: addr.Addr("localhost:27018"), AverageRTT: 10 * time.Second, AverageRTTSet: true},
-						{Addr: addr.Addr("localhost:27019"), AverageRTT: 26 * time.Second, AverageRTTSet: true},
+						{Addr: address.Address("localhost:27017"), AverageRTT: 5 * time.Second, AverageRTTSet: true},
+						{Addr: address.Address("localhost:27018"), AverageRTT: 10 * time.Second, AverageRTTSet: true},
+						{Addr: address.Address("localhost:27019"), AverageRTT: 26 * time.Second, AverageRTTSet: true},
 					},
 				},
 				start: 0,
@@ -148,7 +148,7 @@ func TestServerSelection(t *testing.T) {
 				name: "1 Server",
 				desc: Topology{
 					Servers: []Server{
-						{Addr: addr.Addr("localhost:27017"), AverageRTT: 26 * time.Second, AverageRTTSet: true},
+						{Addr: address.Address("localhost:27017"), AverageRTT: 26 * time.Second, AverageRTTSet: true},
 					},
 				},
 				start: 0,
@@ -172,7 +172,7 @@ func TestServerSelection(t *testing.T) {
 }
 
 var readPrefTestPrimary = Server{
-	Addr:              addr.Addr("localhost:27017"),
+	Addr:              address.Address("localhost:27017"),
 	HeartbeatInterval: time.Duration(10) * time.Second,
 	LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
@@ -181,7 +181,7 @@ var readPrefTestPrimary = Server{
 	Version:           Version{Parts: []uint8{3, 4, 0}},
 }
 var readPrefTestSecondary1 = Server{
-	Addr:              addr.Addr("localhost:27018"),
+	Addr:              address.Address("localhost:27018"),
 	HeartbeatInterval: time.Duration(10) * time.Second,
 	LastWriteTime:     time.Date(2017, 2, 11, 13, 58, 0, 0, time.UTC),
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
@@ -190,7 +190,7 @@ var readPrefTestSecondary1 = Server{
 	Version:           Version{Parts: []uint8{3, 4, 0}},
 }
 var readPrefTestSecondary2 = Server{
-	Addr:              addr.Addr("localhost:27018"),
+	Addr:              address.Address("localhost:27018"),
 	HeartbeatInterval: time.Duration(10) * time.Second,
 	LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
@@ -210,7 +210,7 @@ func TestSelector_Sharded(t *testing.T) {
 	subject := readpref.Primary()
 
 	s := Server{
-		Addr:              addr.Addr("localhost:27017"),
+		Addr:              address.Address("localhost:27017"),
 		HeartbeatInterval: time.Duration(10) * time.Second,
 		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
@@ -236,7 +236,7 @@ func TestSelector_Single(t *testing.T) {
 	subject := readpref.Primary()
 
 	s := Server{
-		Addr:              addr.Addr("localhost:27017"),
+		Addr:              address.Address("localhost:27017"),
 		HeartbeatInterval: time.Duration(10) * time.Second,
 		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
@@ -669,7 +669,7 @@ func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 	)
 
 	s := Server{
-		Addr:              addr.Addr("localhost:27017"),
+		Addr:              address.Address("localhost:27017"),
 		HeartbeatInterval: time.Duration(10) * time.Second,
 		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
@@ -695,7 +695,7 @@ func TestSelector_Max_staleness_is_too_low(t *testing.T) {
 	)
 
 	s := Server{
-		Addr:              addr.Addr("localhost:27017"),
+		Addr:              address.Address("localhost:27017"),
 		HeartbeatInterval: time.Duration(100) * time.Second,
 		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),

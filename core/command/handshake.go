@@ -11,7 +11,7 @@ import (
 	"runtime"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/addr"
+	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/version"
@@ -64,11 +64,11 @@ func (h *Handshake) Decode(wms [2]wiremessage.WireMessage) *Handshake {
 }
 
 // Result returns the result of decoded wire messages.
-func (h *Handshake) Result(address addr.Addr) (description.Server, error) {
+func (h *Handshake) Result(addr address.Address) (description.Server, error) {
 	if h.err != nil {
 		return description.Server{}, h.err
 	}
-	return description.NewServer(address, h.ismstr, h.bldinfo), nil
+	return description.NewServer(addr, h.ismstr, h.bldinfo), nil
 }
 
 // Err returns the error set on this Handshake.
@@ -78,7 +78,7 @@ func (h *Handshake) Err() error { return h.err }
 // to the RoundTrip methods on other types in this package. It will execute
 // the isMaster and buildInfo commands, using pipelining to enable a single
 // roundtrip.
-func (h *Handshake) Handshake(ctx context.Context, address addr.Addr, rw wiremessage.ReadWriter) (description.Server, error) {
+func (h *Handshake) Handshake(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
 	wms, err := h.Encode()
 	if err != nil {
 		return description.Server{}, err
@@ -101,7 +101,7 @@ func (h *Handshake) Handshake(ctx context.Context, address addr.Addr, rw wiremes
 	if err != nil {
 		return description.Server{}, err
 	}
-	return h.Decode(wms).Result(address)
+	return h.Decode(wms).Result(addr)
 }
 
 // ClientDoc creates a client information document for use in an isMaster
