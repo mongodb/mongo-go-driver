@@ -22,6 +22,30 @@
       "revId": "8f8e0c50b844d21be8ef18bd0e0e4cc190e28196",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b42cb726_fbd1ac7f",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 4
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-23T21:29:21Z",
+      "side": 1,
+      "message": "done,\n\nyou have to do it on the command level rather than at the task level, but yeah.",
+      "parentUuid": "84a900fb_4119bcdc",
+      "range": {
+        "startLine": 303,
+        "startChar": 6,
+        "endLine": 308,
+        "endChar": 29
+      },
+      "revId": "8f8e0c50b844d21be8ef18bd0e0e4cc190e28196",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
