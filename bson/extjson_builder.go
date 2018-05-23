@@ -43,7 +43,9 @@ func ParseExtJSONArray(s string) (*Array, error) {
 	}
 
 	buf := make([]byte, b.RequiredBytes())
-	b.WriteDocument(buf)
+	if _, err = b.WriteDocument(buf); err != nil {
+		return nil, err
+	}
 
 	doc, err := ReadDocument(buf)
 	if err != nil {
