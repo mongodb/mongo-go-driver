@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -89,4 +90,22 @@ func (db *Database) Drop(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+// ListCollections list collections from mongodb database.
+func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, options ...option.ListCollectionsOptioner) (command.Cursor, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cmd := command.ListCollections{
+		DB:     db.name,
+		Filter: filter,
+		Opts:   options,
+	}
+	cursor, err := dispatch.ListCollections(ctx, cmd, db.client.topology, db.readSelector)
+	if err != nil && !command.IsNotFound(err) {
+		return nil, err
+	}
+	return cursor, nil
+
 }

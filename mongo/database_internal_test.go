@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -69,4 +70,80 @@ func TestDatabase_Drop(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, list, name)
 
+}
+
+func TestDatabase_ListCollections(t *testing.T) {
+	t.Parallel()
+	dbName := "db_list_collection"
+	db := createTestDatabase(t, &dbName)
+	collName := "list_collections_name"
+	coll := db.Collection(collName)
+	require.Equal(t, coll.Name(), collName)
+	require.NotNil(t, coll)
+	cursor, err := db.ListCollections(context.Background(), nil)
+	require.NoError(t, err)
+
+	next := bson.NewDocument()
+
+	for cursor.Next(context.Background()) {
+		err = cursor.Decode(next)
+		require.NoError(t, err)
+
+		elem, err := next.LookupErr("name")
+		require.NoError(t, err)
+		if elem.Type() != bson.TypeString {
+			t.Errorf("Incorrect type for 'name'. got %v; want %v", elem.Type(), bson.TypeString)
+			t.FailNow()
+		}
+		if elem.StringValue() != collName {
+			t.Errorf("Incorrect collection name. got %s: want %s", elem.StringValue(), collName)
+			t.FailNow()
+		}
+		//Because we run it without nameOnly parameter we should check if another parameter is exist
+		docType, err := next.LookupErr("type")
+		require.NoError(t, err)
+		if docType.StringValue() != "collections" {
+			t.Errorf("Incorrect cursor type. got %s: want %s", docType.StringValue(), "collections")
+			t.FailNow()
+		}
+	}
+	defer func() {
+		err := db.Drop(context.Background())
+		require.NoError(t, err)
+	}()
+}
+
+func TestDatabase_ListCollectionsOptions(t *testing.T) {
+	t.Parallel()
+	dbName := "db_list_collection_options"
+	db := createTestDatabase(t, &dbName)
+	collName := "list_collections_options"
+	coll := db.Collection(collName)
+	require.Equal(t, coll.Name(), collName)
+	require.NotNil(t, coll)
+	cursor, err := db.ListCollections(context.Background(), nil, option.OptNameOnly(true))
+	require.NoError(t, err)
+
+	next := bson.NewDocument()
+
+	for cursor.Next(context.Background()) {
+		err = cursor.Decode(next)
+		require.NoError(t, err)
+
+		elem, err := next.LookupErr("name")
+		require.NoError(t, err)
+
+		if elem.StringValue() != collName {
+			t.Errorf("Incorrect collection name. got %s: want %s", elem.StringValue(), collName)
+			t.FailNow()
+		}
+
+		//Because we run it with name only parameter we should check that there are no other parameters
+		_, err = next.LookupErr("type")
+		require.Error(t, err)
+	}
+	defer func() {
+		err := db.Drop(context.Background())
+		require.NoError(t, err)
+	}()
 }

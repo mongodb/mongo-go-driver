@@ -256,6 +256,7 @@ var (
 	_ InsertOptioner            = (*OptOrdered)(nil)
 	_ InsertOptioner            = (*OptWriteConcern)(nil)
 	_ ListDatabasesOptioner     = OptNameOnly(false)
+	_ ListCollectionsOptioner   = OptNameOnly(false)
 	_ ListIndexesOptioner       = OptBatchSize(0)
 	_ ReplaceOptioner           = (*OptBypassDocumentValidation)(nil)
 	_ ReplaceOptioner           = (*OptCollation)(nil)
@@ -734,4 +735,5 @@ func (opt OptNameOnly) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptNameOnly) listDatabasesOption() {}
+func (OptNameOnly) listDatabasesOption()   {}
+func (OptNameOnly) listCollectionsOption() {}
