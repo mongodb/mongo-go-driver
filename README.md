@@ -10,3 +10,5 @@ of all of the these.
 
 ## Design Documents
 [Options Design](options-design/DESIGN.md)
+
+[BSON Depth Tracking Design](bson-depth-tracking/DESIGN.md)
