@@ -22,6 +22,30 @@
       "revId": "9c053b673cddcd4c870d76d5fb742afc6da4b9a0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "38aea9fc_8a22fc7b",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 253,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-23T20:53:05Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "86701463_6af5df1a",
+      "range": {
+        "startLine": 253,
+        "startChar": 24,
+        "endLine": 253,
+        "endChar": 25
+      },
+      "revId": "9c053b673cddcd4c870d76d5fb742afc6da4b9a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
