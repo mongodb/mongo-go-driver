@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "300c5d4f_021c2935",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-24T14:51:59Z",
+      "side": 1,
+      "message": "Small thing here (and we should document this somewhere), we usually to TODOs like this:\n\nTODO(GODRIVER-425): Remove this when work is completed\n\nOr something similar.",
+      "range": {
+        "startLine": 198,
+        "startChar": 4,
+        "endLine": 198,
+        "endChar": 45
+      },
+      "revId": "6e37c39c746202b7013a2f9a74dd1c17f2730088",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
