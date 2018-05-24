@@ -891,6 +891,37 @@ func TestDocument(t *testing.T) {
 			}
 		}
 	})
+	t.Run("ToExtJSON", func(t *testing.T) {
+		t.Run("Marshaling Error", func(t *testing.T) {
+			var doc *Document
+			_, err := doc.ToExtJSONErr(false)
+			if err != ErrNilDocument {
+				t.Errorf("Did not receive expected error. got %v; want %v", err, ErrNilDocument)
+			}
+		})
+		t.Run("Canonical", func(t *testing.T) {
+			doc := NewDocument(EC.String("hello", "world"), EC.Double("pi", 3.14159))
+			want := `{"hello":"world","pi":{"$numberDouble":"3.14159"}}`
+			got, err := doc.ToExtJSONErr(true)
+			if err != nil {
+				t.Errorf("Unexpected error while converting document to extended json: %v", err)
+			}
+			if got != want {
+				t.Errorf("Did not recieve expected result. got %s; want %s", got, want)
+			}
+		})
+		t.Run("Relaxed", func(t *testing.T) {
+			doc := NewDocument(EC.String("hello", "world"), EC.Double("pi", 3.14159))
+			want := `{"hello":"world","pi":3.14159}`
+			got, err := doc.ToExtJSONErr(false)
+			if err != nil {
+				t.Errorf("Unexpected error while converting document to extended json: %v", err)
+			}
+			if got != want {
+				t.Errorf("Did not recieve expected result. got %s; want %s", got, want)
+			}
+		})
+	})
 }
 
 func testDocumentKeys(t *testing.T) {

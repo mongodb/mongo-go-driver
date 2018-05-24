@@ -755,3 +755,28 @@ func (d *Document) String() string {
 
 	return buf.String()
 }
+
+// ToExtJSON marshals this document to BSON and transforms that BSON to
+// extended JSON. If there is an error during the conversion, this method
+// will return an empty string. To receive the error, use the ToExtJSONErr
+// method.
+func (d *Document) ToExtJSON(canonical bool) string {
+	s, err := d.ToExtJSONErr(canonical)
+	if err != nil {
+		return ""
+	}
+	return s
+}
+
+// ToExtJSONErr marshals this document to BSON and transforms that BSON to
+// extended JSON.
+func (d *Document) ToExtJSONErr(canonical bool) (string, error) {
+	// We don't check for a nil document here because that's the first thing
+	// that MarshalBSON does.
+	b, err := d.MarshalBSON()
+	if err != nil {
+		return "", err
+	}
+
+	return ToExtJSON(canonical, b)
+}
