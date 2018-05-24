@@ -366,9 +366,7 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			}
 
 		case tFloat32:
-			if float64(float32(f)) == f {
-				val = reflect.ValueOf(float32(f))
-			}
+			val = reflect.ValueOf(float32(f))
 
 		case tFloat64, tEmpty:
 			val = reflect.ValueOf(f)
