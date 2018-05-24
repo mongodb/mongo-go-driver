@@ -123,6 +123,12 @@ func (r *peekLengthReader) Read(b []byte) (int, error) {
 	return int(bytesToRead), nil
 }
 
+func convertToPtr(val reflect.Value) reflect.Value {
+	valPtr := reflect.New(val.Type())
+	valPtr.Elem().Set(val)
+	return valPtr
+}
+
 // NewDecoder constructs a new default Decoder implementation from the given io.Reader.
 //
 // In this implementation, the value can be any one of the following types:
@@ -305,6 +311,8 @@ func (d *decoder) createEmptyValue(r Reader, t reflect.Type) (reflect.Value, err
 func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer reflect.Type) (reflect.Value, error) {
 	var val reflect.Value
 
+	isPtr := (containerType.Kind() == reflect.Ptr)
+
 	for containerType.Kind() == reflect.Ptr {
 		containerType = containerType.Elem()
 	}
@@ -381,6 +389,13 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		switch containerType {
 		case tString, tEmpty:
 			val = reflect.ValueOf(str)
+		case tJSONNumber:
+			_, err := strconv.ParseFloat(str, 64)
+			if err != nil {
+				return val, err
+			}
+			val = reflect.ValueOf(str).Convert(tJSONNumber)
+
 		case tURL:
 			u, err := url.Parse(str)
 			if err != nil {
@@ -398,7 +413,12 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 				return val, err
 			}
 
-			val = newVal
+			if isPtr {
+				val = convertToPtr(newVal)
+				isPtr = false
+			} else {
+				val = newVal
+			}
 
 			break
 		}
@@ -410,7 +430,12 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 				return val, err
 			}
 
-			val = newVal
+			if isPtr {
+				val = convertToPtr(newVal)
+				isPtr = false
+			} else {
+				val = newVal
+			}
 
 			break
 		}
@@ -422,7 +447,12 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 				return val, err
 			}
 
-			val = newVal
+			if isPtr {
+				val = convertToPtr(newVal)
+				isPtr = false
+			} else {
+				val = newVal
+			}
 
 			break
 		}
@@ -450,6 +480,10 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 
 		if reflect.PtrTo(typeToCreate) == empty.Type() {
 			empty = empty.Elem()
+			if isPtr {
+				empty = convertToPtr(empty)
+				isPtr = false
+			}
 		}
 
 		val = empty
@@ -492,6 +526,7 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		} else {
 			val = reflect.ValueOf(v.DateTime())
 		}
+
 	case 0xA:
 		if containerType != tEmpty {
 			return val, nil
@@ -573,7 +608,6 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 			}
 
 			val = reflect.ValueOf(uint(i))
-
 		case tEmpty, tInt32, tInt64, tInt, tFloat32, tFloat64:
 			val = reflect.ValueOf(i).Convert(containerType)
 		case tJSONNumber:
@@ -666,6 +700,9 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		return val, fmt.Errorf("invalid BSON type: %s", v.Type())
 	}
 
+	if isPtr && val.IsValid() && !val.CanAddr() {
+		val = convertToPtr(val)
+	}
 	return val, nil
 }
 
@@ -736,7 +773,11 @@ func (d *decoder) decodeBSONArrayToSlice(sliceType reflect.Type) (reflect.Value,
 		}
 
 		if sliceType.Elem().Kind() == reflect.Ptr {
-			elem = elem.Addr()
+			if elem.CanAddr() {
+				elem = elem.Addr()
+			} else {
+				elem = elem.Elem().Addr()
+			}
 		}
 		out.Index(i).Set(elem)
 	}
@@ -872,7 +913,11 @@ func (d *decoder) decodeIntoStruct(structVal reflect.Value) error {
 
 		if v != zeroVal {
 			if field.Type().Kind() == reflect.Ptr {
-				v = v.Addr()
+				if v.CanAddr() {
+					v = v.Addr()
+				} else {
+					v = v.Elem().Addr()
+				}
 			}
 
 			field.Set(v)
