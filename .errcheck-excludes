@@ -5,3 +5,4 @@
 (*github.com/mongodb/mongo-go-driver/core/connection.pool).closeConnection
 (net.Conn).Close
 encoding/pem.Encode
+fmt.Fprintf
