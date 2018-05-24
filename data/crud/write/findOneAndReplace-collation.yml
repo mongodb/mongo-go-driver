@@ -11,7 +11,7 @@ tests:
             arguments:
                 filter: {x: 'PING'}
                 replacement: {x: 'pong'}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
                 collation: { locale: 'en_US', strength: 2 } # https://docs.mongodb.com/master/reference/collation/#collation-document

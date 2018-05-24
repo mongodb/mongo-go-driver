@@ -202,6 +202,20 @@ func (Options) Projection(projection interface{}) (option.OptProjection, error) 
 	return opt, nil
 }
 
+// Fields limits the fields to return for all matching documents.
+//
+// This function uses TransformDocument to turn the projection parameter into a
+// *bson.Document. See TransformDocument for the list of valid types for
+// fields.
+func (Options) Fields(fields interface{}) (option.OptFields, error) {
+	doc, err := TransformDocument(fields)
+	if err != nil {
+		return option.OptFields{}, nil
+	}
+	opt := option.OptFields{Fields: doc}
+	return opt, nil
+}
+
 // ReadConcern for replica sets and replica set shards determines which data to return from a query.
 func (Options) ReadConcern(readConcern *readconcern.ReadConcern) (option.OptReadConcern, error) {
 	elem, err := readConcern.MarshalBSONElement()

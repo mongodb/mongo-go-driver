@@ -22,7 +22,7 @@
           "replacement": {
             "x": "pong"
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },

@@ -398,8 +398,8 @@ func findOneAndDeleteTest(t *testing.T, coll *Collection, test *testCase) {
 			opts = append(opts, sortOpt)
 		}
 
-		if projection, found := test.Operation.Arguments["projection"]; found {
-			projectionOpt, err := Opt.Projection(projection.(map[string]interface{}))
+		if projection, found := test.Operation.Arguments["fields"]; found {
+			projectionOpt, err := Opt.Fields(projection.(map[string]interface{}))
 			require.NoError(t, err)
 
 			opts = append(opts, projectionOpt)
@@ -451,8 +451,8 @@ func findOneAndReplaceTest(t *testing.T, coll *Collection, test *testCase) {
 
 		var opts []option.FindOneAndReplaceOptioner
 
-		if projection, found := test.Operation.Arguments["projection"]; found {
-			projectionOpt, err := Opt.Projection(projection.(map[string]interface{}))
+		if projection, found := test.Operation.Arguments["fields"]; found {
+			projectionOpt, err := Opt.Fields(projection.(map[string]interface{}))
 			require.NoError(t, err)
 
 			opts = append(opts, projectionOpt)
@@ -529,8 +529,8 @@ func findOneAndUpdateTest(t *testing.T, coll *Collection, test *testCase) {
 			opts = append(opts, arrayFiltersOpt)
 		}
 
-		if projection, found := test.Operation.Arguments["projection"]; found {
-			projectionOpt, err := Opt.Projection(projection.(map[string]interface{}))
+		if projection, found := test.Operation.Arguments["fields"]; found {
+			projectionOpt, err := Opt.Fields(projection.(map[string]interface{}))
 			require.NoError(t, err)
 
 			opts = append(opts, projectionOpt)

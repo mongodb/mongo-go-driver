@@ -27,7 +27,7 @@
           "replacement": {
             "x": 32
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -71,7 +71,7 @@
           "replacement": {
             "x": 32
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -114,7 +114,7 @@
           "replacement": {
             "x": 32
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -156,7 +156,7 @@
           "replacement": {
             "x": 32
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -199,7 +199,7 @@
           "replacement": {
             "x": 44
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -239,7 +239,7 @@
           "replacement": {
             "x": 44
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },

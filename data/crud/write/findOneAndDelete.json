@@ -24,7 +24,7 @@
               "$gt": 1
             }
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -59,7 +59,7 @@
           "filter": {
             "_id": 2
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },
@@ -94,7 +94,7 @@
           "filter": {
             "_id": 4
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },

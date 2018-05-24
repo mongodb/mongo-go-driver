@@ -12,7 +12,7 @@ tests:
             arguments:
                 filter: {_id: 4}
                 replacement: {x: 44}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 # Omit the sort option as it has no effect when no documents
                 # match and would only cause an inconsistent return value on
                 # pre-3.0 servers when combined with returnDocument "before"
@@ -34,7 +34,7 @@ tests:
             arguments:
                 filter: {_id: 4}
                 replacement: {x: 44}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
                 upsert: true
@@ -54,7 +54,7 @@ tests:
             arguments:
                 filter: {_id: 4}
                 replacement: {_id: 4, x: 44}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 # Omit the sort option as it has no effect when no documents
                 # match and would only cause an inconsistent return value on
                 # pre-3.0 servers when combined with returnDocument "before"
@@ -76,7 +76,7 @@ tests:
             arguments:
                 filter: {_id: 4}
                 replacement: {_id: 4, x: 44}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
                 upsert: true

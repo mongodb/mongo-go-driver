@@ -24,7 +24,7 @@
             "_id": 2,
             "x": "PING"
           },
-          "projection": {
+          "fields": {
             "x": 1,
             "_id": 0
           },

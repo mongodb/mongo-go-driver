@@ -9,10 +9,10 @@ tests:
         operation:
             name: findOneAndReplace
             arguments:
-                filter: 
+                filter:
                     _id: {$gt: 1}
                 replacement: {x: 32}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:
@@ -27,10 +27,10 @@ tests:
         operation:
             name: findOneAndReplace
             arguments:
-                filter: 
+                filter:
                     _id: {$gt: 1}
                 replacement: {x: 32}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
 
@@ -48,7 +48,7 @@ tests:
             arguments:
                 filter: {_id: 2}
                 replacement: {x: 32}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:
@@ -65,7 +65,7 @@ tests:
             arguments:
                 filter: {_id: 2}
                 replacement: {x: 32}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
 
@@ -83,7 +83,7 @@ tests:
             arguments:
                 filter: {_id: 4}
                 replacement: {x: 44}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:
@@ -100,7 +100,7 @@ tests:
             arguments:
                 filter: {_id: 4}
                 replacement: {x: 44}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 returnDocument: After
                 sort: {x: 1}
 

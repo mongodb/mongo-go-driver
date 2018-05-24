@@ -11,7 +11,7 @@ tests:
             name: findOneAndDelete
             arguments:
                 filter: {_id: 2, x: 'PING'}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
                 collation: { locale: 'en_US', strength: 2 } # https://docs.mongodb.com/master/reference/collation/#collation-document
 

@@ -9,9 +9,9 @@ tests:
         operation:
             name: findOneAndDelete
             arguments:
-                filter: 
+                filter:
                     _id: {$gt: 1}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:
@@ -26,7 +26,7 @@ tests:
             name: findOneAndDelete
             arguments:
                 filter: {_id: 2}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:
@@ -41,7 +41,7 @@ tests:
             name: findOneAndDelete
             arguments:
                 filter: {_id: 4}
-                projection: {x: 1, _id: 0}
+                fields: {x: 1, _id: 0}
                 sort: {x: 1}
 
         outcome:

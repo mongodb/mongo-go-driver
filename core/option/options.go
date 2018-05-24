@@ -188,13 +188,13 @@ var (
 	_ DistinctOptioner          = (*OptReadConcern)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptCollation)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptMaxTime)(nil)
-	_ FindOneAndDeleteOptioner  = (*OptProjection)(nil)
+	_ FindOneAndDeleteOptioner  = (*OptFields)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptSort)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptWriteConcern)(nil)
 	_ FindOneAndReplaceOptioner = (*OptBypassDocumentValidation)(nil)
 	_ FindOneAndReplaceOptioner = (*OptCollation)(nil)
 	_ FindOneAndReplaceOptioner = (*OptMaxTime)(nil)
-	_ FindOneAndReplaceOptioner = (*OptProjection)(nil)
+	_ FindOneAndReplaceOptioner = (*OptFields)(nil)
 	_ FindOneAndReplaceOptioner = (*OptReturnDocument)(nil)
 	_ FindOneAndReplaceOptioner = (*OptSort)(nil)
 	_ FindOneAndReplaceOptioner = (*OptUpsert)(nil)
@@ -203,7 +203,7 @@ var (
 	_ FindOneAndUpdateOptioner  = (*OptBypassDocumentValidation)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptCollation)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptMaxTime)(nil)
-	_ FindOneAndUpdateOptioner  = (*OptProjection)(nil)
+	_ FindOneAndUpdateOptioner  = (*OptFields)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptReturnDocument)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptSort)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptUpsert)(nil)
@@ -549,31 +549,31 @@ func (OptOrdered) insertOption()     {}
 // OptProjection is for internal use.
 type OptProjection struct {
 	Projection *bson.Document
-	find       bool
 }
 
 // Option implements the Optioner interface.
 func (opt OptProjection) Option(d *bson.Document) error {
-	var key = "fields"
-	if opt.find {
-		key = "projection"
-	}
-	d.Append(bson.EC.SubDocument(key, opt.Projection))
+	d.Append(bson.EC.SubDocument("projection", opt.Projection))
 	return nil
 }
 
-// IsFind is for internal use.
-func (opt OptProjection) IsFind() OptProjection {
-	opt.find = true
+func (OptProjection) findOption()    {}
+func (OptProjection) findOneOption() {}
 
-	return opt
+// OptFields is for internal use.
+type OptFields struct {
+	Fields *bson.Document
 }
 
-func (OptProjection) findOption()              {}
-func (OptProjection) findOneOption()           {}
-func (OptProjection) findOneAndDeleteOption()  {}
-func (OptProjection) findOneAndReplaceOption() {}
-func (OptProjection) findOneAndUpdateOption()  {}
+// Option implements the Optioner interface.
+func (opt OptFields) Option(d *bson.Document) error {
+	d.Append(bson.EC.SubDocument("fields", opt.Fields))
+	return nil
+}
+
+func (OptFields) findOneAndDeleteOption()  {}
+func (OptFields) findOneAndReplaceOption() {}
+func (OptFields) findOneAndUpdateOption()  {}
 
 // OptReadConcern is for internal use.
 type OptReadConcern struct{ ReadConcern *bson.Element }
