@@ -6,3 +6,4 @@
 (net.Conn).Close
 encoding/pem.Encode
 fmt.Fprintf
+fmt.Fprint
