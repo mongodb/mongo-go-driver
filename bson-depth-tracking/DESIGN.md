@@ -11,13 +11,14 @@ validation should go. Each of these types has a `validate` method except for the
 
 All of the internal calls during the validation process should use the `validate` method. This
 method will take the current depth and the maximum depth. An increase in the current depth number
-will occur before validating a BSON element of type `0x03`, `0x04`, or `0x0F`.  If, when entering
-the block for validation, the current depth is greater than the maximum depth, an
-`ErrMaximumDepthExceeded` error must be returned.
+will occur before validating a BSON element of type Document (`0x03`), Array (`0x04`), or JavaScript
+With Scope (`0x0F`).  If, when entering the block for validation, the current depth is greater than
+the maximum depth, an `ErrMaximumDepthExceeded` error must be returned.
 
-To allow users to set the maximum depth, each of the public `Validate` methods will take an
-additional parameter of `maxDepth` that will be used as the parameter of the same name to each of
-the `validate` methods.
+To allow users to set the maximum depth, each of the types will have a `ValidateWithDepth` method
+added which will take a `maxDepth` parameter that will be used as the parameter of the same name for
+each of the `validate methods`. The `Validate` methods attached to the types will use a default max
+depth of `100`.
 
 ## Testing
 Unit tests must be written for each of the paths through validation, ensuring that the current depth
