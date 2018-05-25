@@ -871,6 +871,7 @@ func reflectionEncoderTest(t *testing.T) {
 				AA json.Number
 				AB *url.URL
 				AC decimal.Decimal128
+				AD *time.Time
 			}{
 				A: true,
 				B: 123,
@@ -904,6 +905,7 @@ func reflectionEncoderTest(t *testing.T) {
 				AA: json.Number("10.10"),
 				AB: murl,
 				AC: decimal128,
+				AD: &now,
 			},
 			docToBytes(NewDocument(
 				EC.Boolean("a", true),
@@ -934,6 +936,7 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.Double("aa", 10.10),
 				EC.String("ab", murl.String()),
 				EC.Decimal128("ac", decimal128),
+				EC.DateTime("ad", now.UnixNano()/int64(time.Millisecond)),
 			)),
 			nil,
 		},
@@ -970,6 +973,7 @@ func reflectionEncoderTest(t *testing.T) {
 				AA []json.Number
 				AB []*url.URL
 				AC []decimal.Decimal128
+				AD []*time.Time
 			}{
 				A: []bool{true},
 				B: []int32{123},
@@ -1005,6 +1009,7 @@ func reflectionEncoderTest(t *testing.T) {
 				AA: []json.Number{json.Number("5"), json.Number("10.10")},
 				AB: []*url.URL{murl},
 				AC: []decimal.Decimal128{decimal128},
+				AD: []*time.Time{&now, &now},
 			},
 			docToBytes(NewDocument(
 				EC.ArrayFromElements("a", VC.Boolean(true)),
@@ -1035,6 +1040,7 @@ func reflectionEncoderTest(t *testing.T) {
 				EC.ArrayFromElements("aa", VC.Int64(5), VC.Double(10.10)),
 				EC.ArrayFromElements("ab", VC.String(murl.String())),
 				EC.ArrayFromElements("ac", VC.Decimal128(decimal128)),
+				EC.ArrayFromElements("ad", VC.DateTime(now.UnixNano()/int64(time.Millisecond)), VC.DateTime(now.UnixNano()/int64(time.Millisecond))),
 			)),
 			nil,
 		},
