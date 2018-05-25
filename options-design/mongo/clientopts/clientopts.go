@@ -4,6 +4,8 @@ import (
 	"context"
 	"net"
 	"time"
+
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/readconcern"
 )
 
 type ContextDialer interface {
@@ -36,7 +38,7 @@ func (b *Bundle) MaxConnIdleTime(d time.Duration) *Bundle                 { retu
 func (b *Bundle) MaxConnsPerHost(u uint16) *Bundle                        { return nil }
 func (b *Bundle) MaxIdleConnsPerHost(u uint16) *Bundle                    { return nil }
 func (b *Bundle) Password(s string) *Bundle                               { return nil }
-func (b *Bundle) ReadConcernLevel(s string) *Bundle                       { return nil }
+func (b *Bundle) ReadConcernLevel(rc *readconcern.ReadConcern) *Bundle    { return nil }
 func (b *Bundle) ReadPreference(s string) *Bundle                         { return nil }
 func (b *Bundle) ReadPreferenceTagSets(m []map[string]string) *Bundle     { return nil }
 func (b *Bundle) MaxStaleness(d time.Duration) *Bundle                    { return nil }
@@ -53,6 +55,7 @@ func (b *Bundle) WString(s string) *Bundle                                { retu
 func (b *Bundle) WNumber(i int) *Bundle                                   { return nil }
 func (b *Bundle) Username(s string) *Bundle                               { return nil }
 func (b *Bundle) WTimeout(d time.Duration) *Bundle                        { return nil }
+func (b *Bundle) URI(uri string) *Bundle                                  { return nil }
 
 func (b *Bundle) String() string    { return "" }
 func (b *Bundle) Unbundle() *Client { return nil }
@@ -71,7 +74,7 @@ func MaxConnIdleTime(d time.Duration) Option                 { return nil }
 func MaxConnsPerHost(u uint16) Option                        { return nil }
 func MaxIdleConnsPerHost(u uint16) Option                    { return nil }
 func Password(s string) Option                               { return nil }
-func ReadConcernLevel(s string) Option                       { return nil }
+func ReadConcernLevel(rc *readconcern.ReadConcern) Option    { return nil }
 func ReadPreference(s string) Option                         { return nil }
 func ReadPreferenceTagSets(m []map[string]string) Option     { return nil }
 func MaxStaleness(d time.Duration) Option                    { return nil }
@@ -88,3 +91,4 @@ func WString(s string) Option                                { return nil }
 func WNumber(i int) Option                                   { return nil }
 func Username(s string) Option                               { return nil }
 func WTimeout(d time.Duration) Option                        { return nil }
+func URI(uri string) Option                                  { return nil }

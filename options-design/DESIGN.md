@@ -1,15 +1,16 @@
 # Options Design
+## Motivation
 The design for options uses [self referential
 functions](https://commandcenter.blogspot.com/2014/01/self-referential-functions-and-design.html)
 and a constructor type in the mongo package for creating these. This design does not make it easy to
-discover which options are valid for which methods. Additionally, this methods limits the ways in
-which users can bundle together options as they are passed through their application. This design
-builds on top of the self referential options design while adopting a new design for the options
-constructor that enables a better discovery and bundling experience. This design also allows the
-core API to separate two options that have the same driver API name but different command names.
-Finally, this design ensures that users are not directly exposed to the core/options package, which
-has caused confusion in the past.
+discover which options are valid for which methods. Additionally, this method limits the ways in
+which users can bundle together options as they are passed through their application.
 
+The design propsed in this document builds on top of the self referential options design while
+adopting a new design for the options constructor that enables a better discovery and bundling
+experience. It also allows the core API to separate two options that have the same driver API name
+but different command names. Finally, the design in this document ensures that users are not
+directly exposed to the core/options package, which has caused confusion in the past.
 
 ## High Level Design
 This design uses namespace packages, and interfaces, types, and functions within those
@@ -96,7 +97,17 @@ values for Qux would be 7 and for Baz would be 9.
 
 The mongo package will use Bundles to construct the slice of options that will
 be used. The way the bundles are designed pushes the complexity of unbundling into
-the options packages and keeps the mongo package simpler.
+the options packages and keeps the mongo package simpler. This is internal functionality, for
+example:
+
+```
+func (coll *Collection) Foo(ctx context.Context, opts ...foopts.Foo) error {
+    optopts := fooopts.BundleFoo(opts...).Unbundle(true)
+    for _, opt := range optopts {
+        // Do something with the options...
+    }
+}
+```
 
 The method signature for an Unbundle method follows this pattern:
 ```
@@ -109,7 +120,10 @@ type, for example the `findopts.ManyBundle.Unbundle` method will return `[]optio
 `findopts.DeleteBundle.Unbundle` method will return `[]option.FindOneAndDeleteOptioner`.
 
 As a special case, the clientopts package does not follow this pattern, and instead returns a
-`\*clientopts.Client`.
+`*clientopts.Client`. This is done because the clientopts package cannot import the mongo.Client
+type, so instead of returning options that take a `mongo.Client`, we just return a
+`*clientopts.Client` that the `mongo.NewClient` function can use to copy the final options to the
+`mongo.Client` type.
 
 #### Debugging
 To enable debugging, the bundle types will implement `fmt.Stringer`, and print a structure the

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/clientopts"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/dbopts"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopts"
 	"github.com/mongodb/mongo-go-driver/options-design/option"
 )
@@ -17,7 +18,7 @@ import (
 type Client struct{}
 
 // NewClient creates a client from the given uri string.
-func NewClient(uri string, opts ...clientopts.Option) (*Client, error) { return nil, nil }
+func NewClient(opts ...clientopts.Option) (*Client, error) { return nil, nil }
 
 // Database returns a handle to a MongoDB database.
 func (c *Client) Database(name string) *Database { return nil }
@@ -37,7 +38,9 @@ func (db *Database) Collection(name string) *Collection { return nil }
 // RunCommand always returns a non-nil value. Errors are deferred until
 // RunCommandResult's Decode method is called. This allows easy chaining of the
 // methods.
-func (db *Database) RunCommand(ctx context.Context, cmd interface{}) *DocumentResult { return nil }
+func (db *Database) RunCommand(ctx context.Context, cmd interface{}, opts ...dbopts.RunCommand) *DocumentResult {
+	return nil
+}
 
 // Collection is a handle to a specific collection within a MongoDB database.
 type Collection struct{}
@@ -75,7 +78,7 @@ func (c *Collection) UpdateMany(ctx context.Context, filter interface{}, update 
 }
 
 // ReplaceOne replaces a single document.
-func (c *Collection) ReplaceOne(ctx context.Context, filter interface{}, replacement interface{}, opts ...option.UpdateOptioner) (*UpdateResult, error) {
+func (c *Collection) ReplaceOne(ctx context.Context, filter interface{}, replacement interface{}, opts ...option.ReplaceOptioner) (*UpdateResult, error) {
 	return nil, nil
 }
 
