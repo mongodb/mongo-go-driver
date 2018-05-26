@@ -203,6 +203,54 @@ func TestDocument(t *testing.T) {
 				}()
 			}
 		})
+		t.Run("Update Index Properly", func(t *testing.T) {
+			a, b, c, d, e := EC.Null("a"), EC.Null("b"), EC.Null("c"), EC.Null("d"), EC.Null("e")
+			testCases := []struct {
+				name  string
+				elems [][]*Element
+				index [][]uint32
+			}{
+				{
+					"two",
+					[][]*Element{{a}, {b}},
+					[][]uint32{{0}, {1, 0}},
+				},
+				{
+					"three",
+					[][]*Element{{a}, {b}, {c}},
+					[][]uint32{{0}, {1, 0}, {2, 1, 0}},
+				},
+				{
+					"four",
+					[][]*Element{{a}, {d}, {b}, {c}},
+					[][]uint32{{0}, {1, 0}, {2, 0, 1}, {3, 1, 0, 2}},
+				},
+				{
+					"five",
+					[][]*Element{{a}, {d}, {e}, {b}, {c}},
+					[][]uint32{{0}, {1, 0}, {2, 1, 0}, {3, 0, 2, 1}, {4, 1, 0, 3, 2}},
+				},
+			}
+
+			for _, tc := range testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					d := NewDocument()
+					for idx := range tc.elems {
+						d.Prepend(tc.elems[idx]...)
+						index := d.index
+						for jdx := range tc.index[idx] {
+							if tc.index[idx][jdx] != index[jdx] {
+								t.Errorf(
+									"Indexes do not match at %d: got %v; want %v",
+									idx, index, tc.index[idx],
+								)
+								break
+							}
+						}
+					}
+				})
+			}
+		})
 		testCases := []struct {
 			name  string
 			elems [][]*Element
@@ -396,34 +444,43 @@ func TestDocument(t *testing.T) {
 				t.Errorf("Delete should return nil element when deleting with empty key. got %#v; want %#v", got, want)
 			}
 		})
+		d, c, b, a := EC.Null("d"), EC.Null("c"), EC.Null("b"), EC.Null("a")
 		testCases := []struct {
 			name string
 			d    *Document
-			key  []string
-			want *Element
+			keys [][]string
+			want []*Element
 		}{
-			{"first", (&Document{}).Append(EC.Null("x")), []string{"x"},
-				&Element{&Value{start: 0, offset: 3}},
+			{"first", (&Document{}).Append(EC.Null("x")), [][]string{{"x"}},
+				[]*Element{{&Value{start: 0, offset: 3}}},
 			},
 			{"depth-one", (&Document{}).Append(EC.SubDocumentFromElements("x", EC.Null("y"))),
-				[]string{"x", "y"},
-				&Element{&Value{start: 0, offset: 3}},
+				[][]string{{"x", "y"}},
+				[]*Element{{&Value{start: 0, offset: 3}}},
 			},
 			{"invalid-depth-traversal", (&Document{}).Append(EC.Null("x")),
-				[]string{"x", "y"},
-				nil,
+				[][]string{{"x", "y"}},
+				[]*Element{nil},
 			},
 			{"not-found", (&Document{}).Append(EC.Null("x")),
-				[]string{"y"},
-				nil,
+				[][]string{{"y"}},
+				[]*Element{nil},
+			},
+			{
+				"delete twice",
+				NewDocument(d, c, b, a),
+				[][]string{{"d"}, {"c"}},
+				[]*Element{d, c},
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				got := tc.d.Delete(tc.key...)
-				if !elementEqual(got, tc.want) {
-					t.Errorf("Returned element does not match expected element. got %#v; want %#v", got, tc.want)
+				for idx := range tc.keys {
+					got := tc.d.Delete(tc.keys[idx]...)
+					if !elementEqual(got, tc.want[idx]) {
+						t.Errorf("Returned element does not match expected element. got %#v; want %#v", got, tc.want[idx])
+					}
 				}
 			})
 		}
