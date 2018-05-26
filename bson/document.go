@@ -217,6 +217,9 @@ func (d *Document) Prepend(elems ...*Element) *Document {
 		}
 		remaining--
 		d.elems[idx] = elem
+		for idx := range d.index {
+			d.index[idx]++
+		}
 		i := sort.Search(len(d.index), func(i int) bool {
 			return bytes.Compare(
 				d.keyFromIndex(i), elem.value.data[elem.value.start+1:elem.value.offset]) >= 0
@@ -224,9 +227,9 @@ func (d *Document) Prepend(elems ...*Element) *Document {
 		if i < len(d.index) {
 			d.index = append(d.index, 0)
 			copy(d.index[i+1:], d.index[i:])
-			d.index[i] = uint32(len(d.elems) - 1)
+			d.index[i] = 0
 		} else {
-			d.index = append(d.index, uint32(len(d.elems)-1))
+			d.index = append(d.index, 0)
 		}
 	}
 	return d
@@ -367,9 +370,6 @@ func (d *Document) LookupElementErr(key ...string) (*Element, error) {
 // returned. If the key does not exist, then nil is returned and the delete is
 // a no-op. The same is true if something along the depth tree does not exist
 // or is not a traversable type.
-//
-// TODO(skriptble): This method differs from Lookup when it comes to errors.
-// Should this method return errors to be consistent?
 func (d *Document) Delete(key ...string) *Element {
 	if d == nil {
 		panic(ErrNilDocument)
@@ -389,6 +389,11 @@ func (d *Document) Delete(key ...string) *Element {
 		if len(key) == 1 {
 			d.index = append(d.index[:i], d.index[i+1:]...)
 			d.elems = append(d.elems[:keyIndex], d.elems[keyIndex+1:]...)
+			for j := range d.index {
+				if d.index[j] > keyIndex {
+					d.index[j]--
+				}
+			}
 			return elem
 		}
 		switch elem.value.Type() {
