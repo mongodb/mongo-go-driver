@@ -221,6 +221,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 	if t.cfg.serverSelectionTimeout > 0 {
 		ssTimeout := time.NewTimer(t.cfg.serverSelectionTimeout)
 		ssTimeoutCh = ssTimeout.C
+		defer ssTimeout.Stop()
 	}
 
 	sub, err := t.Subscribe()
