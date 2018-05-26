@@ -197,7 +197,7 @@ func TestCollection_InsertMany_Batches(t *testing.T) {
 
 	// TODO(GODRIVER-425): remove this as part a larger project to
 	// refactor integration and other longrunning tasks.
-	if os.Getenv("EVR_TASK_ID") != "" {
+	if os.Getenv("EVR_TASK_ID") == "" {
 		t.Skip("skipping long running integration test outside of evergreen")
 	}
 
