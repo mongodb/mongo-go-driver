@@ -1486,7 +1486,7 @@ func TestElement(t *testing.T) {
 						start: 0, offset: 2,
 						data: []byte{0x11, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x1, 0x00, 0x0},
 					}},
-					255, 256, nil,
+					256, 255, nil,
 				},
 			}
 
