@@ -34,6 +34,24 @@
       "revId": "74ce031679d06a79fbe4858cc3f6716e66cacd9c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1b27b1b7_6bab367e",
+        "filename": "bson/document.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-29T17:21:43Z",
+      "side": 1,
+      "message": "ah... I didn\u0027t realize we had defined two separate formats for extended json. Sounds good.",
+      "parentUuid": "0710d5cd_16fd2300",
+      "revId": "74ce031679d06a79fbe4858cc3f6716e66cacd9c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
