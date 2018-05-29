@@ -1,6 +1,7 @@
 # mongo-go-driver
 
 MongoDB Driver for Go.
+[![GoDoc](https://godoc.org/github.com/mongodb/mongo-go-driver/mongo?status.svg)](https://godoc.org/github.com/mongodb/mongo-go-driver/mongo)
 
 -------------------------
 - [Requirements](#requirements)
