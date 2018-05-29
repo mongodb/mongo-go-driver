@@ -16,6 +16,24 @@
       "revId": "4bf9e16d713619ec40ff64c5275ed4a67b6f444a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "82b97c6e_ba088da7",
+        "filename": "bson/document.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-29T17:15:49Z",
+      "side": 1,
+      "message": "It isn\u0027t idx because each time we iterate through the loop we are shifting something onto the front of the document. The loop on line 220 takes care of incrementing as we go on. For example, if we prepend 4 elements, the first element will be 0, then each iteration of this loop will push it one more down the chain, so it would go 0 -\u003e 1 -\u003e 2 -\u003e 3. We don\u0027t set it to 3 here because that would complicate the loop above.\n\nWe could, in theory, iterate through the indexes array before this loop, increment everything len(elems), and then change this to idx. I\u0027m not sure if that code is less confusing though.",
+      "parentUuid": "31abe22c_5ed77fb1",
+      "revId": "4bf9e16d713619ec40ff64c5275ed4a67b6f444a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
