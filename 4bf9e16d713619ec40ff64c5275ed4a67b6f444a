@@ -34,6 +34,29 @@
       "revId": "4bf9e16d713619ec40ff64c5275ed4a67b6f444a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "59f298da_cf9b149d",
+        "filename": "bson/document_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-29T21:17:01Z",
+      "side": 1,
+      "message": "I don\u0027t understand these results.\n\nIf I understand correctly, the elements are in insertion order (but prepend puts them at the front), and index would have them in key sort order. If that\u0027s the case, then the elements at the end of all this would be c, b, d, a, which should correspond with indexes 2, 1, 3, 0.",
+      "range": {
+        "startLine": 224,
+        "startChar": 5,
+        "endLine": 227,
+        "endChar": 6
+      },
+      "revId": "4bf9e16d713619ec40ff64c5275ed4a67b6f444a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
