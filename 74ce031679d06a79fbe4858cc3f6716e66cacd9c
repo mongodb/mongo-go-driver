@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6a9b6d3b_fe322e57",
+        "filename": "bson/document.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 763,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-05-29T16:41:18Z",
+      "side": 1,
+      "message": "I\u0027m not sure about the canonical part. ExtJSON is a strictly defined format. It doesn\u0027t have an option. ToExtJSON is, by default, canonical. If you want to offer a non-canonical json formatter, then it should probably be called ToJSON.",
+      "revId": "74ce031679d06a79fbe4858cc3f6716e66cacd9c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
