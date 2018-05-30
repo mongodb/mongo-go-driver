@@ -57,6 +57,30 @@
       "revId": "4bf9e16d713619ec40ff64c5275ed4a67b6f444a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "beb487b4_f4782fbf",
+        "filename": "bson/document_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-30T14:18:11Z",
+      "side": 1,
+      "message": "Discussed offline. The order here is correct.",
+      "parentUuid": "59f298da_cf9b149d",
+      "range": {
+        "startLine": 224,
+        "startChar": 5,
+        "endLine": 227,
+        "endChar": 6
+      },
+      "revId": "4bf9e16d713619ec40ff64c5275ed4a67b6f444a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
