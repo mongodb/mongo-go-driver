@@ -36,6 +36,23 @@ also has the benefit of allowing the core API to separate two options that have 
 name but different command names. Finally, the proposed design ensures that users are not directly
 exposed to the Core API's `option` package, which has caused confusion in the past.
 
+The proposed design purposefully provides users with a number of ways to construct and bundle
+options. This enables users to construct options differently as they learn to use the driver and as
+the applications they build become more complex. For instance, when a user is writing a proof of
+concept application and they aren't familiar with MongoDB, they might lean heavily on the bundle
+types to provide the set of options available for a method or a constructor. Later on, that same
+user might build another proof of concept application, but now knows which options are available for
+methods and constructors, so they just the functions that are provided and skip the bundles. If the
+user then builds a complex application with defaults, overrides, and configuration from various
+sources, they'll find the flexibility of being able to use both the functions and bundles together
+useful. For instance, they might combine a few bundles from different configuration sources, then
+provide default options for specific functions in their application and in other places provide
+overrides. For example, a user in one part of their application might want to by default perform
+upserts when doing an update but might have a configuration flag that turns off this functionality.
+In another case the user might want to limit the number of documents returned to 100 no matter what.
+The proposed design provides the foundational types, functions, and methods to enable these usage
+patterns.
+
 ## High Level Design
 The proposed design uses namespace packages, and interfaces, types, and functions within those
 packages. Each namespace package contains:
