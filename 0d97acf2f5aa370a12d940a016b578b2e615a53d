@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "38e450e3_bbf49e5b",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-05-31T14:05:50Z",
+      "side": 1,
+      "message": "Let\u0027s do the error checking here so users know that this method can return an error. Let\u0027s also pass in a context.TODO() here as well. While users can pass in nil I think we generally want to discourage it because it could put users in the position of having a method that hangs forever.",
+      "range": {
+        "startLine": 8,
+        "startChar": 6,
+        "endLine": 8,
+        "endChar": 25
+      },
+      "revId": "0d97acf2f5aa370a12d940a016b578b2e615a53d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
