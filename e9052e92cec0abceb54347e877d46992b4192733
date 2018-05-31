@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c9d76ce0_a87cbe52",
+        "filename": "mongo/database_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-31T20:14:08Z",
+      "side": 1,
+      "message": "I tend to do \n\nvar (\n    uncappedFound bool\n    cappedFound bool\n)\n\nbecause the zero\u0027d value is false. \n\nalso I would declare `next` the #195 loop, as you currently (in effect) rely on cursor.Decode() zeroing the content of document rather than selectively overwriting it, which is true in the current implementation of Decode() but may not always be true.",
+      "range": {
+        "startLine": 193,
+        "startChar": 16,
+        "endLine": 193,
+        "endChar": 27
+      },
+      "revId": "e9052e92cec0abceb54347e877d46992b4192733",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c25e6c34_bad99f95",
+        "filename": "mongo/database_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 295,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-31T20:14:08Z",
+      "side": 1,
+      "message": "does it make sense to make these test cases more table-driven, as they\u0027re all very similar?",
+      "range": {
+        "startLine": 295,
+        "startChar": 0,
+        "endLine": 295,
+        "endChar": 4
+      },
+      "revId": "e9052e92cec0abceb54347e877d46992b4192733",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
