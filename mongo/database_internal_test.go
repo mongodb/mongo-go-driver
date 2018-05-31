@@ -10,10 +10,12 @@ import (
 	"context"
 	"testing"
 
+	"fmt"
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
+	"os"
 )
 
 func createTestDatabase(t *testing.T, name *string) *Database {
@@ -72,78 +74,151 @@ func TestDatabase_Drop(t *testing.T) {
 
 }
 
-func TestDatabase_ListCollections(t *testing.T) {
-	t.Parallel()
-	dbName := "db_list_collection"
-	db := createTestDatabase(t, &dbName)
-	collName := "list_collections_name"
-	coll := db.Collection(collName)
-	require.Equal(t, coll.Name(), collName)
-	require.NotNil(t, coll)
-	cursor, err := db.ListCollections(context.Background(), nil)
-	require.NoError(t, err)
+// creates 1 normal collection and 1 capped collection of size 64*1024
+func setupListCollectionsDb(db *Database) (uncappedName string, cappedName string, err error) {
+	uncappedName, cappedName = "listcoll_uncapped", "listcoll_capped"
+	uncappedColl := db.Collection(uncappedName)
 
-	next := bson.NewDocument()
-
-	for cursor.Next(context.Background()) {
-		err = cursor.Decode(next)
-		require.NoError(t, err)
-
-		elem, err := next.LookupErr("name")
-		require.NoError(t, err)
-		if elem.Type() != bson.TypeString {
-			t.Errorf("Incorrect type for 'name'. got %v; want %v", elem.Type(), bson.TypeString)
-			t.FailNow()
-		}
-		if elem.StringValue() != collName {
-			t.Errorf("Incorrect collection name. got %s: want %s", elem.StringValue(), collName)
-			t.FailNow()
-		}
-		//Because we run it without nameOnly parameter we should check if another parameter is exist
-		docType, err := next.LookupErr("type")
-		require.NoError(t, err)
-		if docType.StringValue() != "collections" {
-			t.Errorf("Incorrect cursor type. got %s: want %s", docType.StringValue(), "collections")
-			t.FailNow()
-		}
+	_, err = db.RunCommand(
+		context.Background(),
+		bson.NewDocument(
+			bson.EC.String("create", cappedName),
+			bson.EC.Boolean("capped", true),
+			bson.EC.Int32("size", 64*1024),
+		),
+	)
+	if err != nil {
+		return "", "", err
 	}
-	defer func() {
-		err := db.Drop(context.Background())
-		require.NoError(t, err)
-	}()
+	cappedColl := db.Collection(cappedName)
+
+	id := objectid.New()
+	want := bson.EC.ObjectID("_id", id)
+	doc := bson.NewDocument(want, bson.EC.Int32("x", 1))
+
+	_, err = uncappedColl.InsertOne(context.Background(), doc)
+	if err != nil {
+		return "", "", err
+	}
+
+	_, err = cappedColl.InsertOne(context.Background(), doc)
+	if err != nil {
+		return "", "", err
+	}
+
+	return uncappedName, cappedName, nil
 }
 
-func TestDatabase_ListCollectionsOptions(t *testing.T) {
-	t.Parallel()
-	dbName := "db_list_collection_options"
-	db := createTestDatabase(t, &dbName)
-	collName := "list_collections_options"
-	coll := db.Collection(collName)
-	require.Equal(t, coll.Name(), collName)
-	require.NotNil(t, coll)
-	cursor, err := db.ListCollections(context.Background(), nil, option.OptNameOnly(true))
-	require.NoError(t, err)
-
-	next := bson.NewDocument()
+// verifies both collection names are found in cursor, cursor does not have extra collections, and cursor has no
+// duplicates
+func verifyListCollections(cursor Cursor, uncappedName string, cappedName string, cappedOnly bool) (err error) {
+	var uncappedFound bool
+	var cappedFound bool
 
 	for cursor.Next(context.Background()) {
+		next := bson.NewDocument()
 		err = cursor.Decode(next)
-		require.NoError(t, err)
-
-		elem, err := next.LookupErr("name")
-		require.NoError(t, err)
-
-		if elem.StringValue() != collName {
-			t.Errorf("Incorrect collection name. got %s: want %s", elem.StringValue(), collName)
-			t.FailNow()
+		if err != nil {
+			return err
 		}
 
-		//Because we run it with name only parameter we should check that there are no other parameters
-		_, err = next.LookupErr("type")
-		require.Error(t, err)
+		elem, err := next.LookupErr("name")
+		if err != nil {
+			return err
+		}
+
+		if elem.Type() != bson.TypeString {
+			return fmt.Errorf("incorrect type for 'name'. got %v. want %v", elem.Type(), bson.TypeString)
+		}
+
+		elemName := elem.StringValue()
+
+		if elemName != uncappedName && elemName != cappedName {
+			return fmt.Errorf("incorrect collection name. got: %s. wanted: %s or %s", elemName, uncappedName,
+				cappedName)
+		}
+
+		if elemName == uncappedName && !uncappedFound {
+			if cappedOnly {
+				return fmt.Errorf("found uncapped collection %s. expected only capped collections", uncappedName)
+			}
+
+			uncappedFound = true
+			continue
+		}
+
+		if elemName == cappedName && !cappedFound {
+			cappedFound = true
+			continue
+		}
+
+		// duplicate found
+		return fmt.Errorf("found duplicate collection %s", elemName)
 	}
-	defer func() {
-		err := db.Drop(context.Background())
-		require.NoError(t, err)
-	}()
+
+	if !cappedFound {
+		return fmt.Errorf("did not find collection %s", cappedName)
+	}
+
+	if !cappedOnly && !uncappedFound {
+		return fmt.Errorf("did not find collection %s", uncappedName)
+	}
+
+	return nil
+}
+
+func listCollectionsTest(db *Database, cappedOnly bool) error {
+	uncappedName, cappedName, err := setupListCollectionsDb(db)
+	if err != nil {
+		return err
+	}
+
+	var filter *bson.Document
+	if cappedOnly {
+		filter = bson.NewDocument(
+			bson.EC.Boolean("options.capped", true),
+		)
+	}
+
+	cursor, err := db.ListCollections(context.Background(), filter)
+	if err != nil {
+		return err
+	}
+
+	return verifyListCollections(cursor, uncappedName, cappedName, cappedOnly)
+}
+
+func TestDatabase_ListCollections(t *testing.T) {
+	t.Parallel()
+
+	var listCollectionsTable = []struct {
+		name             string
+		expectedTopology string
+		cappedOnly       bool
+	}{
+		{"standalone_nofilter", "server", false},
+		{"standalone_filter", "server", true},
+		{"replicaset_nofilter", "replica_set", false},
+		{"replicaset_filter", "replica_set", true},
+		{"sharded_nofilter", "sharded_cluster", false},
+		{"sharded_filter", "sharded_cluster", true},
+	}
+
+	for _, tt := range listCollectionsTable {
+		t.Run(tt.name, func(t *testing.T) {
+			if os.Getenv("topology") != tt.expectedTopology {
+				t.Skip()
+			}
+			dbName := "db_list_collections"
+			db := createTestDatabase(t, &dbName)
+
+			defer func() {
+				err := db.Drop(context.Background())
+				require.NoError(t, err)
+			}()
+
+			err := listCollectionsTest(db, tt.cappedOnly)
+			require.NoError(t, err)
+		})
+	}
 }
