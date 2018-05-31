@@ -1,10 +1,11 @@
 // Package mongo provides a MongoDB Driver API for Go.
 //
 // Basic usage of the driver starts with creating a Client from a connection
-// string. To do so, call the NewClient function:
+// string. To do so, call the NewClient and Connect functions:
 //
 //    client, err := mongo.NewClient("mongodb://foo:bar@localhost:27017")
 //    if err != nil { log.Fatal(err) }
+//    client.Connect(nil)
 //
 // This will create a new client and start monitoring the MongoDB server on localhost.
 // The Database and Collection types can be used to access the database:
