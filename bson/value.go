@@ -105,7 +105,7 @@ func (v *Value) Interface() interface{} {
 	}
 }
 
-func (v *Value) validate(sizeOnly bool) (uint32, error) {
+func (v Value) validate(sizeOnly bool) (uint32, error) {
 	if v.data == nil {
 		return 0, ErrUninitializedElement
 	}

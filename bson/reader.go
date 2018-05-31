@@ -66,16 +66,38 @@ func NewFromIOReader(r io.Reader) (Reader, error) {
 // Validate validates the document. This method only validates the first document in
 // the slice, to validate other documents, the slice must be resliced.
 func (r Reader) Validate() (size uint32, err error) {
-	return r.readElements(func(elem *Element) error {
-		var err error
-		switch elem.value.Type() {
-		case '\x03':
-			_, err = elem.value.ReaderDocument().Validate()
-		case '\x04':
-			_, err = elem.value.ReaderArray().Validate()
+	givenLength := readi32(r[0:4])
+	if len(r) < int(givenLength) || givenLength < 0 {
+		return 0, ErrInvalidLength
+	}
+	var pos uint32 = 4
+	var val Value
+	end := uint32(givenLength)
+	for {
+		if pos >= end {
+			// We've gone off the end of the buffer and we're missing
+			// a null terminator.
+			return 0, ErrInvalidReadOnlyDocument
 		}
-		return err
-	})
+		if r[pos] == '\x00' {
+			break
+		}
+		val.start = pos
+		pos++
+		n, err := r.validateKey(pos, end)
+		pos += n
+		if err != nil {
+			return pos, err
+		}
+		val.offset = pos
+		val.data = r
+		n, err = val.validate(true)
+		pos += n
+		if err != nil {
+			return pos, err
+		}
+	}
+	return pos, nil
 }
 
 // validateKey will ensure the key is valid and return the length of the key

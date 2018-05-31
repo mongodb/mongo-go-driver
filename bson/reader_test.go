@@ -18,6 +18,50 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func buildLargeDeepDocument() *Document {
+	var subdoc func(depth int) *Document
+	subdoc = func(depth int) *Document {
+		doc := buildLargeFlatDocument()
+
+		if depth < 50 {
+			doc.Append(EC.SubDocument("b", subdoc(depth+1)))
+		}
+
+		return doc
+	}
+
+	d := subdoc(0)
+	return d
+}
+
+func buildLargeFlatDocument() *Document {
+	doc := NewDocument()
+	for i := 0; i < 2000; i++ {
+		doc.Append(EC.Int32(fmt.Sprintf("a%d", i), int32(i)))
+	}
+
+	return doc
+}
+
+var largeDeep, _ = buildLargeDeepDocument().MarshalBSON()
+var bencherr error
+
+func BenchmarkReaderValidateAlloc(b *testing.B) {
+	var err error
+	for i := 0; i < b.N; i++ {
+		_, err = Reader(largeDeep).Validate()
+	}
+	bencherr = err
+}
+
+func BenchmarkReaderValidateNoAlloc(b *testing.B) {
+	var err error
+	for i := 0; i < b.N; i++ {
+		err = Reader(largeDeep).ValidateNoAllocs()
+	}
+	bencherr = err
+}
+
 func ExampleReader_Validate() {
 	rdr := make(Reader, 500)
 	rdr[250], rdr[251], rdr[252], rdr[253], rdr[254] = '\x05', '\x00', '\x00', '\x00', '\x00'
