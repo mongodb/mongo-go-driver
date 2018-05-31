@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1546a223_56f09cb0",
+        "filename": "mongo/database_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-05-31T22:19:34Z",
+      "side": 1,
+      "message": "typically people use goimport which is a superset of gofmt that also sorts imports so that stdlib packages are before other packages. \n\nthis is totally a nit, but is the convention for formatting (at least I think.)",
+      "range": {
+        "startLine": 18,
+        "startChar": 0,
+        "endLine": 18,
+        "endChar": 1
+      },
+      "revId": "828263dcdf3df03c9004c1ddd039293a27fc38af",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
