@@ -11,7 +11,6 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
-	"fmt"
 	"io"
 	"math/rand"
 	"strconv"
@@ -60,7 +59,7 @@ func (a *ScramSHA1Authenticator) Auth(ctx context.Context, desc description.Serv
 
 	err := ConductSaslConversation(ctx, desc, rw, a.DB, client)
 	if err != nil {
-		return err
+		return newAuthError("sasl conversation error", err)
 	}
 
 	a.clientKey = client.clientKey
@@ -82,7 +81,7 @@ type scramSaslClient struct {
 
 func (c *scramSaslClient) Start() (string, []byte, error) {
 	if err := c.generateClientNonce(scramSHA1NonceLen); err != nil {
-		return SCRAMSHA1, nil, err
+		return SCRAMSHA1, nil, newAuthError("generate nonce error", err)
 	}
 
 	c.clientFirstMessageBare = "n=" + usernameSanitizer.Replace(c.username) + ",r=" + string(c.clientNonce)
@@ -98,7 +97,7 @@ func (c *scramSaslClient) Next(challenge []byte) ([]byte, error) {
 	case 2:
 		return c.step2(challenge)
 	default:
-		return nil, fmt.Errorf("unexpected server challenge")
+		return nil, newAuthError("unexpected server challenge", nil)
 	}
 }
 
@@ -109,33 +108,33 @@ func (c *scramSaslClient) Completed() bool {
 func (c *scramSaslClient) step1(challenge []byte) ([]byte, error) {
 	fields := bytes.Split(challenge, []byte{','})
 	if len(fields) != 3 {
-		return nil, fmt.Errorf("invalid server response")
+		return nil, newAuthError("invalid server response", nil)
 	}
 
 	if !bytes.HasPrefix(fields[0], []byte("r=")) || len(fields[0]) < 2 {
-		return nil, fmt.Errorf("invalid nonce")
+		return nil, newAuthError("invalid nonce", nil)
 	}
 	r := fields[0][2:]
 	if !bytes.HasPrefix(r, c.clientNonce) {
-		return nil, fmt.Errorf("invalid nonce")
+		return nil, newAuthError("invalid nonce", nil)
 	}
 
 	if !bytes.HasPrefix(fields[1], []byte("s=")) || len(fields[1]) < 6 {
-		return nil, fmt.Errorf("invalid salt")
+		return nil, newAuthError("invalid salt", nil)
 	}
 	s := make([]byte, base64.StdEncoding.DecodedLen(len(fields[1][2:])))
 	n, err := base64.StdEncoding.Decode(s, fields[1][2:])
 	if err != nil {
-		return nil, fmt.Errorf("invalid salt")
+		return nil, newAuthError("invalid salt", nil)
 	}
 	s = s[:n]
 
 	if !bytes.HasPrefix(fields[2], []byte("i=")) || len(fields[2]) < 3 {
-		return nil, fmt.Errorf("invalid iteration count")
+		return nil, newAuthError("invalid iteration count", nil)
 	}
 	i, err := strconv.Atoi(string(fields[2][2:]))
 	if err != nil {
-		return nil, fmt.Errorf("invalid iteration count")
+		return nil, newAuthError("invalid iteration count", nil)
 	}
 
 	clientFinalMessageWithoutProof := "c=biws,r=" + string(r)
@@ -167,21 +166,21 @@ func (c *scramSaslClient) step2(challenge []byte) ([]byte, error) {
 		hasE = bytes.HasPrefix(fields[0], []byte("e="))
 	}
 	if hasE {
-		return nil, fmt.Errorf(string(fields[0][2:]))
+		return nil, newAuthError(string(fields[0][2:]), nil)
 	}
 	if !hasV {
-		return nil, fmt.Errorf("invalid final message")
+		return nil, newAuthError("invalid final message", nil)
 	}
 
 	v := make([]byte, base64.StdEncoding.DecodedLen(len(fields[0][2:])))
 	n, err := base64.StdEncoding.Decode(v, fields[0][2:])
 	if err != nil {
-		return nil, fmt.Errorf("invalid server verification")
+		return nil, newAuthError("invalid server verification", nil)
 	}
 	v = v[:n]
 
 	if !bytes.Equal(c.serverSignature, v) {
-		return nil, fmt.Errorf("invalid server signature")
+		return nil, newAuthError("invalid server signature", nil)
 	}
 
 	return nil, nil
