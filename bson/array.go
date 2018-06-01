@@ -328,3 +328,9 @@ func (a *Array) MarshalBSON() ([]byte, error) {
 	}
 	return b, nil
 }
+
+// Iterator returns a ReaderIterator that can be used to iterate through the
+// elements of this Reader.
+func (a *Array) Iterator() (*ArrayIterator, error) {
+	return NewArrayIterator(a)
+}
