@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fc87524d_d70c7ac4",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-01T18:46:56Z",
+      "side": 1,
+      "message": "As a general thing, we should keep the length of the commit message\u0027s first line to 50 characters. If more context is needed, put it inside the body of the commit message.",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 137
+      },
+      "revId": "fd85b0db5aa4bc1d48f9235024b6ca0f3a125316",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "af7e9e69_a00c7e38",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-01T18:46:56Z",
+      "side": 1,
+      "message": "The word pool in several places in comments has been changed to errorPool, was this a find and replace error?",
+      "range": {
+        "startLine": 19,
+        "startChar": 26,
+        "endLine": 19,
+        "endChar": 35
+      },
+      "revId": "fd85b0db5aa4bc1d48f9235024b6ca0f3a125316",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
