@@ -425,9 +425,10 @@ func (opt OptHint) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptHint) countOption()   {}
-func (OptHint) findOption()    {}
-func (OptHint) findOneOption() {}
+func (OptHint) countOption()     {}
+func (OptHint) findOption()      {}
+func (OptHint) findOneOption()   {}
+func (OptHint) aggregateOption() {}
 
 // OptLimit is for internal use.
 type OptLimit int64
