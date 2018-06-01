@@ -37,7 +37,7 @@ func CreateAuthenticator(name string, cred *Cred) (Authenticator, error) {
 		return f(cred)
 	}
 
-	return nil, fmt.Errorf("unknown authenticator: %s", name)
+	return nil, &Error{fmt.Sprintf("unknown authenticator: %s", name), nil}
 }
 
 // RegisterAuthenticatorFactory registers the authenticator factory.
@@ -96,12 +96,12 @@ func Handshaker(appName string, h connection.Handshaker, authenticator Authentic
 	return connection.HandshakerFunc(func(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
 		desc, err := (&command.Handshake{Client: command.ClientDoc(appName)}).Handshake(ctx, addr, rw)
 		if err != nil {
-			return description.Server{}, err
+			return description.Server{}, &Error{"", err}
 		}
 
 		err = authenticator.Auth(ctx, desc, rw)
 		if err != nil {
-			return description.Server{}, err
+			return description.Server{}, &Error{"", err}
 		}
 		if h == nil {
 			return desc, nil

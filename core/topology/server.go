@@ -16,6 +16,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/address"
+	"github.com/mongodb/mongo-go-driver/core/auth"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -176,6 +177,10 @@ func (s *Server) Connection(ctx context.Context) (connection.Connection, error) 
 	}
 	conn, desc, err := s.pool.Get(ctx)
 	if err != nil {
+		if _, ok := err.(*auth.Error); ok {
+			// authentication error --> drain connection
+			_ = s.pool.Drain()
+		}
 		return nil, err
 	}
 	if desc != nil {
