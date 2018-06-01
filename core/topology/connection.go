@@ -16,7 +16,7 @@ import (
 
 // sconn is a wrapper around a connection.Connection. This type is returned by
 // a Server so that it can track network errors and when a non-timeout network
-// error is returned, the pool on the server can be cleared.
+// error is returned, the errorPool on the server can be cleared.
 type sconn struct {
 	connection.Connection
 	s  *Server
