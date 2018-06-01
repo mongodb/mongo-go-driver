@@ -11,8 +11,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/mongodb/mongo-go-driver/core/auth/internal/gssapi"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -23,7 +21,7 @@ const GSSAPI = "GSSAPI"
 
 func newGSSAPIAuthenticator(cred *Cred) (Authenticator, error) {
 	if cred.Source != "" && cred.Source != "$external" {
-		return nil, fmt.Errorf("GSSAPI source must be empty or $external")
+		return nil, &Error{"GSSAPI source must be empty or $external", nil}
 	}
 
 	return &GSSAPIAuthenticator{
@@ -47,7 +45,7 @@ func (a *GSSAPIAuthenticator) Auth(ctx context.Context, desc description.Server,
 	client, err := gssapi.New(desc.Addr.String(), a.Username, a.Password, a.PasswordSet, a.Props)
 
 	if err != nil {
-		return err
+		return newAuthError("", err)
 	}
 	return ConductSaslConversation(ctx, desc, rw, "$external", client)
 }

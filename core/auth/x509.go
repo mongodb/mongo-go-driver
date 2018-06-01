@@ -42,7 +42,7 @@ func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Se
 	ssdesc := description.SelectedServer{Server: desc}
 	_, err := authCmd.RoundTrip(ctx, ssdesc, rw)
 	if err != nil {
-		return err
+		return newAuthError("", err)
 	}
 
 	return nil
