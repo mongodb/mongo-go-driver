@@ -222,6 +222,54 @@ func TestArray(t *testing.T) {
 			})
 		}
 	})
+	t.Run("Iterator", func(t *testing.T) {
+		iteratorTests := []struct {
+			name   string
+			values [][]*Value
+		}{
+			{"one-one", tapag.oneOne()},
+			{"two-one", tapag.twoOne()},
+		}
+
+		for _, tc := range iteratorTests {
+			t.Run(tc.name, func(t *testing.T) {
+				a := NewArray()
+				for _, elems := range tc.values {
+					a.Prepend(elems...)
+				}
+
+				iter, err := a.Iterator()
+				if err != nil {
+					t.Errorf("Got error creating array iterator: %s", err)
+				}
+
+				for _, elem := range tc.values {
+					if !iter.Next() {
+						t.Errorf("ArrayIterator.Next() returned false")
+					}
+
+					if err = iter.Err(); err != nil {
+						t.Errorf("ArrayIterator.Err() returned non-nil error: %s", err)
+					}
+
+					for _, val := range elem {
+						got := iter.Value()
+						if !valueEqual(got, val) {
+							t.Errorf("Returned element does not match expected element. got %#v; want %#v", got, val)
+						}
+					}
+				}
+
+				if iter.Next() {
+					t.Errorf("ArrayIterator.Next() returned true. expected false")
+				}
+
+				if err = iter.Err(); err != nil {
+					t.Errorf("ArrayIterator.Err() returned non-nil error: %s", err)
+				}
+			})
+		}
+	})
 }
 
 type testArrayPrependAppendGenerator struct{}
