@@ -36,7 +36,7 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server
 	}
 
 	if err != nil {
-		return err
+		return newAuthError("error creating authenticator", err)
 	}
 
 	return actual.Auth(ctx, desc, rw)
