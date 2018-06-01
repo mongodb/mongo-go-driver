@@ -16,6 +16,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/address"
+	"github.com/mongodb/mongo-go-driver/core/auth"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -143,9 +144,9 @@ func (s *Server) Connect(ctx context.Context) error {
 
 // Disconnect closes sockets to the server referenced by this Server.
 // Subscriptions to this Server will be closed. Disconnect will shutdown
-// any monitoring goroutines, close the idle connection pool, and will
+// any monitoring goroutines, close the idle connection errorPool, and will
 // wait until all the in use connections have been returned to the connection
-// pool and are closed before returning. If the context expires via
+// errorPool and are closed before returning. If the context expires via
 // cancellation, deadline, or timeout before the in use connections have been
 // returned, the in use connections will be closed, resulting in the failure of
 // any in flight read or write operations. If this method returns with no
@@ -176,6 +177,10 @@ func (s *Server) Connection(ctx context.Context) (connection.Connection, error) 
 	}
 	conn, desc, err := s.pool.Get(ctx)
 	if err != nil {
+		if _, ok := err.(*auth.Error); ok {
+			// authentication error --> drain connection
+			_ = s.pool.Drain()
+		}
 		return nil, err
 	}
 	if desc != nil {
@@ -300,7 +305,7 @@ func (s *Server) update() {
 }
 
 // updateDescription handles updating the description on the Server, notifying
-// subscribers, and potentially draining the connection pool. The initial
+// subscribers, and potentially draining the connection errorPool. The initial
 // parameter is used to determine if this is the first description from the
 // server.
 func (s *Server) updateDescription(desc description.Server, initial bool) {
@@ -322,7 +327,7 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 	s.subLock.Unlock()
 
 	if initial {
-		// We don't clear the pool on the first update on the description.
+		// We don't clear the errorPool on the first update on the description.
 		return
 	}
 
@@ -405,11 +410,11 @@ func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 	return s.averageRTT
 }
 
-// Drain will drain the connection pool of this server. This is mainly here so the
-// pool for the server doesn't need to be directly exposed and so that when an error
-// is returned from reading or writing, a client can drain the pool for this server.
+// Drain will drain the connection errorPool of this server. This is mainly here so the
+// errorPool for the server doesn't need to be directly exposed and so that when an error
+// is returned from reading or writing, a client can drain the errorPool for this server.
 // This is exposed here so we don't have to wrap the Connection type and sniff responses
-// for errors that would cause the pool to be drained, which can in turn centralize the
+// for errors that would cause the errorPool to be drained, which can in turn centralize the
 // logic for handling errors in the Client type.
 func (s *Server) Drain() error { return s.pool.Drain() }
 

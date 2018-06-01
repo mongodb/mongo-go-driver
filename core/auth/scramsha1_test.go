@@ -47,8 +47,8 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\""
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\""
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 	require.True(t, authenticator.IsClientKeyNil())
 }
 
@@ -81,8 +81,8 @@ func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server response"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server response"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -115,8 +115,8 @@ func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
 
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -150,8 +150,8 @@ func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -185,8 +185,8 @@ func TestScramSHA1Authenticator_No_salt(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid salt"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid salt"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -220,8 +220,8 @@ func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -255,8 +255,8 @@ func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -297,8 +297,8 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server signature"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server signature"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -339,8 +339,8 @@ func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": server passed error"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": server passed error"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -381,8 +381,8 @@ func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid final message"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid final message"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }
@@ -429,8 +429,8 @@ func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
 	err := authenticator.Auth(context.Background(), description.Server{}, c)
 	require.Error(t, err)
 
-	errPrefix := "unable to authenticate using mechanism \"SCRAM-SHA-1\": unexpected server challenge"
-	require.True(t, strings.HasPrefix(err.Error(), errPrefix))
+	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": unexpected server challenge"
+	require.True(t, strings.Contains(err.Error(), errSubstring))
 
 	require.True(t, authenticator.IsClientKeyNil())
 }

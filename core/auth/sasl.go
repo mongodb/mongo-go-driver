@@ -75,7 +75,7 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 
 	err = bson.Unmarshal(rdr, &saslResp)
 	if err != nil {
-		return err
+		return &Error{"", err}
 	}
 
 	cid := saslResp.ConversationID
@@ -114,7 +114,7 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 
 		err = bson.Unmarshal(rdr, &saslResp)
 		if err != nil {
-			return err
+			return &Error{"", err}
 		}
 	}
 }

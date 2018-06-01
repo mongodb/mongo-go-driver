@@ -69,7 +69,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Serv
 
 	err = bson.Unmarshal(rdr, &getNonceResult)
 	if err != nil {
-		return err
+		return &Error{"", err}
 	}
 
 	cmd = command.Command{
