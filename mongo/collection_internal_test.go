@@ -1025,15 +1025,20 @@ func TestCollection_Aggregate(t *testing.T) {
 	}
 }
 
-func TestCollection_Aggregate_withOptions(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	t.Parallel()
-
+func testAggregateWithOptions(t *testing.T, createIndex bool, option option.AggregateOptioner) error {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
+
+	if createIndex {
+		indexView := coll.Indexes()
+		_, err := indexView.CreateOne(context.Background(), IndexModel{
+			Keys: bson.NewDocument(bson.EC.Int32("x", 1)),
+		})
+
+		if err != nil {
+			return err
+		}
+	}
 
 	pipeline := bson.NewArray(
 		bson.VC.DocumentFromElements(
@@ -1059,24 +1064,63 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 			),
 		))
 
-	cursor, err := coll.Aggregate(context.Background(), pipeline, Opt.AllowDiskUse(true))
-	require.Nil(t, err)
+	cursor, err := coll.Aggregate(context.Background(), pipeline, option)
+	if err != nil {
+		return err
+	}
 
 	for i := 2; i < 5; i++ {
 		var doc = bson.NewDocument()
 		cursor.Next(context.Background())
 		err = cursor.Decode(doc)
-		require.NoError(t, err)
-
-		require.Equal(t, doc.Len(), 1)
-		num, err := doc.LookupErr("x")
-		require.NoError(t, err)
-		if num.Type() != bson.TypeInt32 {
-			t.Errorf("Incorrect type for x. Got %s, but wanted Int32", num.Type())
-			t.FailNow()
+		if err != nil {
+			return err
 		}
-		require.Equal(t, int(num.Int32()), i)
+
+		if doc.Len() != 1 {
+			return fmt.Errorf("got doc len %d, expected 1", doc.Len())
+		}
+
+		num, err := doc.LookupErr("x")
+		if err != nil {
+			return err
+		}
+
+		if num.Type() != bson.TypeInt32 {
+			return fmt.Errorf("incorrect type for x. got %s, wanted Int32", num.Type())
+		}
+
+		if int(num.Int32()) != i {
+			return fmt.Errorf("unexpected value returned. got %d, expected %d", int(num.Int32()), i)
+		}
 	}
+
+	return nil
+}
+
+func TestCollection_Aggregate_IndexHint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	hint, err := Opt.Hint(bson.NewDocument(bson.EC.Int32("x", 1)))
+	require.NoError(t, err)
+
+	err = testAggregateWithOptions(t, true, hint)
+	require.NoError(t, err)
+}
+
+func TestCollection_Aggregate_withOptions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	err := testAggregateWithOptions(t, false, Opt.AllowDiskUse(true))
+	require.NoError(t, err)
 }
 
 func TestCollection_Count(t *testing.T) {
