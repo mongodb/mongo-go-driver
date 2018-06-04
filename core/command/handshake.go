@@ -23,7 +23,9 @@ import (
 //
 // The isMaster and buildInfo commands are used to build a server description.
 type Handshake struct {
-	Client *bson.Document
+	Client      *bson.Document
+	Compressors []string
+	ZlibLevel   int
 
 	ismstr  result.IsMaster
 	bldinfo result.BuildInfo
@@ -35,7 +37,7 @@ type Handshake struct {
 // second.
 func (h *Handshake) Encode() ([2]wiremessage.WireMessage, error) {
 	var wms [2]wiremessage.WireMessage
-	ismstr, err := (&IsMaster{Client: h.Client}).Encode()
+	ismstr, err := (&IsMaster{Client: h.Client, Compressors: h.Compressors}).Encode()
 	if err != nil {
 		return wms, err
 	}
