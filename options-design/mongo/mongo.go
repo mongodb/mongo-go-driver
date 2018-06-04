@@ -3,9 +3,9 @@ package mongo
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/clientopts"
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/dbopts"
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopts"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/clientopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/dbopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/option"
 )
 
@@ -18,7 +18,7 @@ import (
 type Client struct{}
 
 // NewClient creates a client from the given uri string.
-func NewClient(opts ...clientopts.Option) (*Client, error) { return nil, nil }
+func NewClient(opts ...clientopt.Option) (*Client, error) { return nil, nil }
 
 // Database returns a handle to a MongoDB database.
 func (c *Client) Database(name string) *Database { return nil }
@@ -38,7 +38,7 @@ func (db *Database) Collection(name string) *Collection { return nil }
 // RunCommand always returns a non-nil value. Errors are deferred until
 // RunCommandResult's Decode method is called. This allows easy chaining of the
 // methods.
-func (db *Database) RunCommand(ctx context.Context, cmd interface{}, opts ...dbopts.RunCommand) *DocumentResult {
+func (db *Database) RunCommand(ctx context.Context, cmd interface{}, opts ...dbopt.RunCommand) *DocumentResult {
 	return nil
 }
 
@@ -99,29 +99,29 @@ func (c *Collection) Distinct(ctx context.Context, fieldName string, filter inte
 }
 
 // Finds the documents, if any, matching the model.
-func (c *Collection) Find(ctx context.Context, filter interface{}, opts ...findopts.Find) (Cursor, error) {
+func (c *Collection) Find(ctx context.Context, filter interface{}, opts ...findopt.Find) (Cursor, error) {
 	return nil, nil
 }
 
 // FindOne finds a single document that matches the given filter.
-func (c *Collection) FindOne(ctx context.Context, filter interface{}, opts ...findopts.One) *DocumentResult {
+func (c *Collection) FindOne(ctx context.Context, filter interface{}, opts ...findopt.One) *DocumentResult {
 	return nil
 }
 
 // FindOneAndDelete finds a single document and deletes it, returning the
 // original.
-func (c *Collection) FindOneAndDelete(ctx context.Context, filter interface{}, opts ...findopts.DeleteOne) *DocumentResult {
+func (c *Collection) FindOneAndDelete(ctx context.Context, filter interface{}, opts ...findopt.DeleteOne) *DocumentResult {
 	return nil
 }
 
 // FindOneAndReplace finds a single document and replaces it, returning either
 //the original or the replaced document.
-func (c *Collection) FindOneAndReplace(ctx context.Context, filter interface{}, replacement interface{}, opts ...findopts.ReplaceOne) *DocumentResult {
+func (c *Collection) FindOneAndReplace(ctx context.Context, filter interface{}, replacement interface{}, opts ...findopt.ReplaceOne) *DocumentResult {
 	return nil
 }
 
 // FindOneAndUpdate finds a single document and updates it, returning either
 // the original or the updated document.
-func (c *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts ...findopts.UpdateOne) *DocumentResult {
+func (c *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}, update interface{}, opts ...findopt.UpdateOne) *DocumentResult {
 	return nil
 }

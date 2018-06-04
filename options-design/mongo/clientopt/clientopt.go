@@ -1,4 +1,4 @@
-package clientopts
+package clientopt
 
 import (
 	"context"

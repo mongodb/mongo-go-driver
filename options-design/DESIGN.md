@@ -65,58 +65,58 @@ API](https://en.wikipedia.org/wiki/Builder_pattern) for appending additional opt
 
 The namespaces are arranged to group together options that are most similar to each other. For
 instance, while findAndModify based operations are both read and write methods, they are placed in
-the findopts package because of a larger overlap of their options with the find and findOne
+the `findopt` package because of a larger overlap of their options with the find and findOne
 operation options.
 
 The namespace packages are:
-- aggregateopts
-- countopts
-- distinctopts
-- findopts
-- insertopts
-- deleteopts
-- replaceopts
-- updateopts
-- bulkwriteopts
-- clientopts
-- collectionopts
-- dbopts
-- indexopts
+- aggregateopt
+- countopt
+- distinctopt
+- findopt
+- insertopt
+- deleteopt
+- replaceopt
+- updateopt
+- bulkwriteopt
+- clientopt
+- collectionopt
+- dbopt
+- indexopt
 
 ### Interfaces
 The interfaces for each package are named to align with the collection methods to which they will be
-a parameter of. For example, the `insertopts.Many` interface is a parameter for the
+a parameter of. For example, the `insertopt.Many` interface is a parameter for the
 `collection.InsertMany` method. For packages that serve a single type, the design is similar but the
-naming may change. For example, to avoid import cycles, the `clientopts` package uses an interface
-called Option, and the `clientopts.Client` type is a struct that is used by the `mongo.NewClient`
+naming may change. For example, to avoid import cycles, the `clientopt` package uses an interface
+called Option, and the `clientopt.Client` type is a struct that is used by the `mongo.NewClient`
 method to construct the `mongo.Client` type.
 
 ### Functions
 Each namespace package will have a set of functions that return options for the interfaces contained
 in that package. Each of these functions will return a type that satisfies the interfaces for which
-the option is valid. For example, `insertopts.BypassDocumentValidation` returns a type that
-satisfies both the `insertopts.Many` and `insertopts.One` interfaces.
+the option is valid. For example, `insertopt.BypassDocumentValidation` returns a type that
+satisfies both the `insertopt.Many` and `insertopt.One` interfaces.
 
 ### Bundles
 For each interface in a package there is also a bundle. The purpose of the bundle, as described
 above, is to enable creating a group of options and to provide a discoverable way to find options
 that satisfy a given interface.
 
-Each bundle is named [interface name]Bundle, so the bundle type for the `insertopts.Many` interface
-is named `insertopts.ManyBundle`. For each of the bundle types there is a constructor function
+Each bundle is named [interface name]Bundle, so the bundle type for the `insertopt.Many` interface
+is named `insertopt.ManyBundle`. For each of the bundle types there is a constructor function
 called Bundle[interface name], with a variadic parameter of the interface and a return of the
-[interface name]Bundle type. For example, the function signature for the `insertopts.BundleMany`
+[interface name]Bundle type. For example, the function signature for the `insertopt.BundleMany`
 function would be:
 ```go
 func BundleMany(...Many) ManyBundle
 ```
 
 These bundle types also implement the interface they are associated with. For example, the
-`insertopts.ManyBundle` type implements the `insertopts.Many` interface. This allows the bundle to
+`insertopt.ManyBundle` type implements the `insertopt.Many` interface. This allows the bundle to
 be passed directly to methods or functions and for bundles to be nested.
 
 Each bundle with have methods that mirror the option functions in the package that return values
-valid for the interface of the bundle. For instance, the `insertopts.BundleMany` type will have a
+valid for the interface of the bundle. For instance, the `insertopt.BundleMany` type will have a
 `BypassDocumentValidation` method. Finally, each bundle with have a method to flatten the bundle
 into the options it was created from. This method is called Unbundle. The deduplicate parameter for
 this method will only return the last instance of an option, even if multiple were specified. The
@@ -168,9 +168,9 @@ keeps the mongo package simpler. This allows the mongo package to internally use
 to simplify implementation. For example:
 
 ```go
-func (coll *Collection) Foo(ctx context.Context, opts ...foopts.Foo) error {
-    optopts := fooopts.BundleFoo(opts...).Unbundle(true)
-    for _, opt := range optopts {
+func (coll *Collection) Foo(ctx context.Context, opt ...foopt.Foo) error {
+    optopt := fooopt.BundleFoo(opt...).Unbundle(true)
+    for _, opt := range optopt {
         // Do something with the options...
     }
 }
@@ -183,13 +183,13 @@ func (fb *FooBundle) Unbundle(deduplicate bool) []option.Optioner
 
 Operations that take both cursor options and their own options will return a slice of option.Option
 types. Operations that only take their own options will return a slice of their own option package
-type, for example the `findopts.ManyBundle.Unbundle` method will return `[]option.Optioner` while the
-`findopts.DeleteBundle.Unbundle` method will return `[]option.FindOneAndDeleteOptioner`.
+type, for example the `findopt.ManyBundle.Unbundle` method will return `[]option.Optioner` while the
+`findopt.DeleteBundle.Unbundle` method will return `[]option.FindOneAndDeleteOptioner`.
 
-As a special case, the clientopts package does not follow this pattern, and instead returns a
-`*clientopts.Client`. This is done because the clientopts package cannot import the mongo.Client
+As a special case, the clientopt package does not follow this pattern, and instead returns a
+`*clientopt.Client`. This is done because the clientopt package cannot import the mongo.Client
 type, so instead of returning options that take a `mongo.Client`, we just return a
-`*clientopts.Client` that the `mongo.NewClient` function can use to copy the final options to the
+`*clientopt.Client` that the `mongo.NewClient` function can use to copy the final options to the
 `mongo.Client` type.
 
 #### Debugging
