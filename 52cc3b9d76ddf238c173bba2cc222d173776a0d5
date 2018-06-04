@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "a69ecc1e_f1d33342",
+        "filename": "bson/array_iterator.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-04T17:18:23Z",
+      "side": 1,
+      "message": "I think new works well here actually.",
+      "parentUuid": "e0f4b573_44262e21",
+      "revId": "52cc3b9d76ddf238c173bba2cc222d173776a0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "759b9d21_c52a61cf",
         "filename": "bson/array_iterator.go",
         "patchSetId": 3
