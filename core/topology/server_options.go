@@ -13,6 +13,7 @@ import (
 )
 
 type serverConfig struct {
+	compressionOpts   []string // compression methods specified by client
 	connectionOpts    []connection.Option
 	appname           string
 	heartbeatInterval time.Duration
@@ -46,6 +47,14 @@ type ServerOption func(*serverConfig) error
 func WithConnectionOptions(fn func(...connection.Option) []connection.Option) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.connectionOpts = fn(cfg.connectionOpts...)
+		return nil
+	}
+}
+
+// WithCompressors configures the server's compression options.
+func WithCompressors(fn func([]string) []string) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.compressionOpts = fn(cfg.compressionOpts)
 		return nil
 	}
 }

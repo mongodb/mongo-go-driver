@@ -284,7 +284,8 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 		noerr(t, err)
 
 		connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-			return auth.Handshaker(cs.AppName, h, authenticator)
+			var compressors []string
+			return auth.Handshaker(cs.AppName, h, authenticator, compressors)
 		}))
 	}
 

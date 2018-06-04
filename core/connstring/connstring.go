@@ -37,6 +37,7 @@ type ConnString struct {
 	AuthMechanism                      string
 	AuthMechanismProperties            map[string]string
 	AuthSource                         string
+	Compressors                        []string
 	Connect                            ConnectMode
 	ConnectSet                         bool
 	ConnectTimeout                     time.Duration
@@ -353,6 +354,12 @@ func (p *parser) addOption(pair string) error {
 		}
 	case "authsource":
 		p.AuthSource = value
+	case "compressors":
+		compressors := strings.Split(value, ",")
+		if len(compressors) < 1 || len(compressors) > 2 {
+			return fmt.Errorf("must have 1 or 2 compressors")
+		}
+		p.Compressors = compressors
 	case "connect":
 		switch strings.ToLower(value) {
 		case "auto", "automatic":

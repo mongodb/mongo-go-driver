@@ -82,6 +82,7 @@ type ListDatabases struct {
 type IsMaster struct {
 	Arbiters            []string          `bson:"arbiters,omitempty"`
 	ArbiterOnly         bool              `bson:"arbiterOnly,omitempty"`
+	Compression         []string          `bson:"compression,omitempty"`
 	ElectionID          objectid.ObjectID `bson:"electionId,omitempty"`
 	Hidden              bool              `bson:"hidden,omitempty"`
 	Hosts               []string          `bson:"hosts,omitempty"`
