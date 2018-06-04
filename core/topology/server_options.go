@@ -13,12 +13,14 @@ import (
 )
 
 type serverConfig struct {
+	compressionOpts   []string // compression methods specified by client
 	connectionOpts    []connection.Option
 	appname           string
 	heartbeatInterval time.Duration
 	heartbeatTimeout  time.Duration
 	maxConns          uint16
 	maxIdleConns      uint16
+	zlibLevel         int
 }
 
 func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
