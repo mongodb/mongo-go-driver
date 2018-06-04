@@ -22,7 +22,8 @@ import (
 //
 // Since IsMaster can only be run on a connection, there is no Dispatch method.
 type IsMaster struct {
-	Client *bson.Document
+	Client      *bson.Document
+	Compressors []string
 
 	err error
 	res result.IsMaster
@@ -34,6 +35,15 @@ func (im *IsMaster) Encode() (wiremessage.WireMessage, error) {
 	if im.Client != nil {
 		cmd.Append(bson.EC.SubDocument("client", im.Client))
 	}
+
+	// always send compressors even if empty slice
+	array := bson.NewArray()
+	for _, compressor := range im.Compressors {
+		array.Append(bson.VC.String(compressor))
+	}
+
+	cmd.Append(bson.EC.Array("compression", array))
+
 	rdr, err := cmd.MarshalBSON()
 	if err != nil {
 		return nil, err
