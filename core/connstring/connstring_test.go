@@ -485,3 +485,33 @@ func TestWTimeout(t *testing.T) {
 		})
 	}
 }
+
+func TestCompressionOptions(t *testing.T) {
+	tests := []struct {
+		name        string
+		uriOptions  string
+		compressors []string
+		zlibLevel   int
+		err         bool
+	}{
+		{name: "SingleCompressor", uriOptions: "compressors=zlib", compressors: []string{"zlib"}},
+		{name: "BothCompressors", uriOptions: "compressors=snappy,zlib", compressors: []string{"snappy", "zlib"}},
+		{name: "ZlibWithLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=7", compressors: []string{"zlib"}, zlibLevel: 7},
+		{name: "DefaultZlibLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=-1", compressors: []string{"zlib"}, zlibLevel: 6},
+		{name: "InvalidZlibLevel", uriOptions: "compressors=zlib&zlibCompressionLevel=-2", compressors: []string{"zlib"}, err: true},
+	}
+
+	for _, tc := range tests {
+		uri := fmt.Sprintf("mongodb://localhost/?%s", tc.uriOptions)
+		t.Run(tc.name, func(t *testing.T) {
+			cs, err := connstring.Parse(uri)
+			if tc.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.compressors, cs.Compressors)
+				require.Equal(t, tc.zlibLevel, cs.ZlibLevel)
+			}
+		})
+	}
+}

@@ -32,6 +32,7 @@ type Server struct {
 
 	AverageRTT        time.Duration
 	AverageRTTSet     bool
+	Compression       []string // compression methods returned by server
 	CanonicalAddr     address.Address
 	ElectionID        objectid.ObjectID
 	GitVersion        string
@@ -58,6 +59,7 @@ func NewServer(addr address.Address, isMaster result.IsMaster, buildInfo result.
 		Addr: addr,
 
 		CanonicalAddr:   address.Address(isMaster.Me).Canonicalize(),
+		Compression:     isMaster.Compression,
 		ElectionID:      isMaster.ElectionID,
 		LastUpdateTime:  time.Now().UTC(),
 		LastWriteTime:   isMaster.LastWriteTimestamp,
