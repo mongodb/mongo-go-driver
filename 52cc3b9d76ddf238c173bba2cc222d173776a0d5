@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e0f4b573_44262e21",
+        "filename": "bson/array_iterator.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-04T15:09:55Z",
+      "side": 1,
+      "message": "I would use a literal constructor (e.g. `\u0026ArrayIterator{}` rather than new().",
+      "revId": "52cc3b9d76ddf238c173bba2cc222d173776a0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "759b9d21_c52a61cf",
+        "filename": "bson/array_iterator.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-04T15:09:55Z",
+      "side": 1,
+      "message": "should document the conditions when this might be nil.",
+      "revId": "52cc3b9d76ddf238c173bba2cc222d173776a0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
