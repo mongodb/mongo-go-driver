@@ -374,7 +374,9 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 		}
 
 		now := time.Now()
-		isMaster, err := (&command.IsMaster{}).RoundTrip(ctx, conn)
+
+		isMasterCmd := &command.IsMaster{Compressors: s.cfg.compressionOpts}
+		isMaster, err := isMasterCmd.RoundTrip(ctx, conn)
 		if err != nil {
 			saved = err
 			conn.Close()
@@ -383,7 +385,7 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 		}
 		delay := time.Since(now)
 
-		desc = description.NewServer(s.address, isMaster, result.BuildInfo{}).SetAverageRTT(s.updateAverageRTT(delay))
+		desc = description.NewServer(s.address, isMaster, result.BuildInfo{}, s.cfg.zlibLevel).SetAverageRTT(s.updateAverageRTT(delay))
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		set = true
 

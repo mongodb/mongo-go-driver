@@ -24,6 +24,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"bytes"
+	"compress/zlib"
+
+	"github.com/golang/snappy"
 	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -80,10 +84,89 @@ func (hf HandshakerFunc) Handshake(ctx context.Context, addr address.Address, rw
 	return hf(ctx, addr, rw)
 }
 
+// Compressor is the interface implemented by types that can compress and decompress wire messages. This is used
+// when sending and receiving messages to and from the server.
+type Compressor interface {
+	compressBytes(orig []byte) ([]byte, error)
+	uncompressBytes(compressed []byte) ([]byte, error)
+	compressorID() uint8
+}
+
+// implements Compressor interface
+type snappyCompressor struct {
+}
+
+type zlibCompressor struct {
+	level int
+}
+
+func (s snappyCompressor) compressBytes(orig []byte) ([]byte, error) {
+	return snappy.Encode(nil, orig), nil
+}
+
+func (s snappyCompressor) uncompressBytes(compressed []byte) ([]byte, error) {
+	decompressed, err := snappy.Decode(nil, compressed)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return decompressed, nil
+}
+
+func (s snappyCompressor) compressorID() uint8 {
+	return 1
+}
+
+func (z zlibCompressor) compressBytes(orig []byte) ([]byte, error) {
+	var buff bytes.Buffer
+	var empty []byte
+
+	w, err := zlib.NewWriterLevel(&buff, z.level)
+	defer func() {
+		_ = w.Close()
+	}()
+
+	if err != nil {
+		return empty, err
+	}
+
+	_, err = w.Write(orig)
+	if err != nil {
+		return empty, err
+	}
+
+	return buff.Bytes(), nil
+}
+
+func (z zlibCompressor) uncompressBytes(compressed []byte) ([]byte, error) {
+	reader := bytes.NewReader(compressed)
+	zlibReader, err := zlib.NewReader(reader)
+
+	if err != nil {
+		return []byte{}, err
+	}
+	defer func() {
+		_ = zlibReader.Close()
+	}()
+
+	var buffer []byte
+	_, err = zlibReader.Read(buffer)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return buffer, nil
+}
+
+func (z zlibCompressor) compressorID() uint8 {
+	return 2
+}
+
 type connection struct {
 	addr             address.Address
 	id               string
 	conn             net.Conn
+	compressor       Compressor
 	dead             bool
 	idleTimeout      time.Duration
 	idleDeadline     time.Time
@@ -92,6 +175,7 @@ type connection struct {
 	writeTimeout     time.Duration
 	readBuf          []byte
 	writeBuf         []byte
+	zlibLevel        int
 }
 
 // New opens a connection to a given Addr.
@@ -142,6 +226,19 @@ func New(ctx context.Context, addr address.Address, opts ...Option) (Connection,
 		d, err := cfg.handshaker.Handshake(ctx, c.addr, c)
 		if err != nil {
 			return nil, nil, err
+		}
+
+		if len(d.Compression) > 0 {
+			switch d.Compression[0] {
+			case "snappy":
+				c.compressor = snappyCompressor{}
+			case "zlib":
+				c.compressor = zlibCompressor{
+					level: c.zlibLevel,
+				}
+			}
+
+			c.zlibLevel = d.ZlibLevel
 		}
 		desc = &d
 	}
@@ -196,6 +293,93 @@ func (c *connection) Expired() bool {
 	return c.dead
 }
 
+func canCompress(cmd string) bool {
+	if cmd == "isMaster" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
+		cmd == "createUser" || cmd == "updateUser" || cmd == "copydbSaslStart" || cmd == "copydbgetnonce" || cmd == "copydb" {
+		return false
+	}
+	return true
+}
+
+func (c *connection) compressMessage(wm wiremessage.WireMessage) (wiremessage.Compressed, error) {
+	var requestID int32
+	var responseTo int32
+	var origOpcode wiremessage.OpCode
+
+	switch wm.(type) {
+	case wiremessage.Query:
+		queryMsg := wm.(wiremessage.Query)
+		firstElem, err := queryMsg.Query.ElementAt(0)
+
+		if err != nil {
+			return wiremessage.Compressed{}, err
+		}
+
+		key := firstElem.Key()
+		if !canCompress(key) {
+			return wiremessage.Compressed{}, nil
+		}
+		requestID = queryMsg.MsgHeader.RequestID
+		origOpcode = queryMsg.MsgHeader.OpCode
+		responseTo = queryMsg.MsgHeader.ResponseTo
+		// TODO: other types
+	}
+
+	// can compress
+	uncompressedBytes, err := wm.MarshalWireMessage()
+	if err != nil {
+		return wiremessage.Compressed{}, err
+	}
+
+	uncompressedBytes = uncompressedBytes[16:] // strip header
+	compressedBytes, err := c.compressor.compressBytes(uncompressedBytes)
+	if err != nil {
+		return wiremessage.Compressed{}, err
+	}
+
+	compressedMessage := wiremessage.Compressed{
+		MsgHeader: wiremessage.Header{
+			// MessageLength and OpCode will be set when marshalling wire message by SetDefaults()
+			RequestID:  requestID,
+			ResponseTo: responseTo,
+		},
+		OriginalOpCode:    origOpcode,
+		UncompressedSize:  int32(len(uncompressedBytes)), // length of uncompressed message excluding MsgHeader
+		CompressorID:      wiremessage.CompressorID(c.compressor.compressorID()),
+		CompressedMessage: compressedBytes,
+	}
+
+	return compressedMessage, nil
+}
+
+// returns []byte of uncompressed message with reconstructed header, original opcode, error
+func (c *connection) uncompressMessage(compressed wiremessage.Compressed) ([]byte, wiremessage.OpCode, error) {
+	uncompressedMessage, err := c.compressor.uncompressBytes(compressed.CompressedMessage)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	switch compressed.OriginalOpCode {
+	case wiremessage.OpReply:
+		var fullMessage []byte
+
+		// reconstruct original header
+		origHeader := wiremessage.Header{
+			MessageLength: int32(len(uncompressedMessage)),
+			RequestID:     compressed.MsgHeader.RequestID,
+			ResponseTo:    compressed.MsgHeader.ResponseTo,
+			OpCode:        wiremessage.OpReply,
+		}
+
+		fullMessage = origHeader.AppendHeader(fullMessage)
+		fullMessage = append(fullMessage, uncompressedMessage...)
+		return fullMessage, origHeader.OpCode, nil
+
+	default:
+		return nil, 0, fmt.Errorf("opcode %s not implemented", compressed.OriginalOpCode)
+	}
+}
+
 func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessage) error {
 	var err error
 	if c.dead {
@@ -235,7 +419,22 @@ func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMe
 	// Truncate the write buffer
 	c.writeBuf = c.writeBuf[:0]
 
-	c.writeBuf, err = wm.AppendWireMessage(c.writeBuf)
+	messageToWrite := wm
+	// Compress if possible
+	if c.compressor != nil {
+		compressed, err := c.compressMessage(wm)
+		if err != nil {
+			// TODO: error or proceed with uncompressed version?
+			return Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to compress wire message",
+			}
+		}
+		messageToWrite = compressed
+	}
+
+	c.writeBuf, err = messageToWrite.AppendWireMessage(c.writeBuf)
 	if err != nil {
 		return Error{
 			ConnectionID: c.id,
@@ -339,11 +538,39 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 		}
 	}
 
+	messageToDecode := c.readBuf
+	opcodeToCheck := hdr.OpCode
+
+	if hdr.OpCode == wiremessage.OpCompressed {
+		var compressed wiremessage.Compressed
+		err := compressed.UnmarshalWireMessage(c.readBuf)
+		if err != nil {
+			defer c.Close()
+			return nil, Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to decode OP_COMPRESSED",
+			}
+		}
+
+		uncompressed, origOpcode, err := c.uncompressMessage(compressed)
+		if err != nil {
+			defer c.Close()
+			return nil, Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to uncompress message",
+			}
+		}
+		messageToDecode = uncompressed
+		opcodeToCheck = origOpcode
+	}
+
 	var wm wiremessage.WireMessage
-	switch hdr.OpCode {
+	switch opcodeToCheck {
 	case wiremessage.OpReply:
 		var r wiremessage.Reply
-		err := r.UnmarshalWireMessage(c.readBuf)
+		err := r.UnmarshalWireMessage(messageToDecode)
 		if err != nil {
 			defer c.Close()
 			return nil, Error{
