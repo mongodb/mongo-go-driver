@@ -238,7 +238,7 @@ functions:
               fi
           fi
 
-          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} make evg-test
+          AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} make evg-test
 
   run-enterprise-auth-tests:
     - command: shell.exec
@@ -342,6 +342,21 @@ tasks:
             TOPOLOGY: "server"
             AUTH: "noauth"
             SSL: "nossl"
+
+    - name: test-standalone-noauth-nossl-compression
+      tags: ["test", "standalone", "compression"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+            MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
     - name: test-standalone-auth-ssl
       tags: ["test", "standalone"]
