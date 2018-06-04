@@ -55,6 +55,7 @@ const (
 	ErrHeader
 	ErrOpQuery
 	ErrOpReply
+	ErrOpCompressed
 )
 
 // OpCode represents a MongoDB wire protocol opcode.

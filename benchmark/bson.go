@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/pkg/errors"
+	"errors"
 )
 
 const (
