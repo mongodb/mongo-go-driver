@@ -177,18 +177,28 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			}
 
 			connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-				return auth.Handshaker(cs.AppName, h, authenticator)
+				return auth.Handshaker(cs.AppName, h, authenticator, cs.Compressors, cs.ZlibLevel)
 			}))
 		} else {
 			// We need to add a non-auth Handshaker to the connection options
 			connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-				return &command.Handshake{Client: command.ClientDoc(cs.AppName)}
+				return &command.Handshake{Client: command.ClientDoc(cs.AppName), Compressors: cs.Compressors}
 			}))
 		}
 
 		if len(connOpts) > 0 {
 			c.serverOpts = append(c.serverOpts, WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
 				return append(opts, connOpts...)
+			}))
+		}
+
+		if len(cs.Compressors) > 0 {
+			c.serverOpts = append(c.serverOpts, WithCompressors(func(opts []string) []string {
+				return append(opts, cs.Compressors...)
+			}))
+
+			c.serverOpts = append(c.serverOpts, WithZlibLevel(func(level int) int {
+				return cs.ZlibLevel
 			}))
 		}
 
