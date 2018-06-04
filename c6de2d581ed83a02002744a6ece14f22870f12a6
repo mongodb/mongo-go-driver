@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e1b1a4aa_25903087",
+        "filename": "core/auth/auth.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-04T14:06:47Z",
+      "side": 1,
+      "message": "I notice that you pass an empty string for the msg when you are just wrapping the error. That isn\u0027t going to play well with this output. I\u0027d suggest trying to figure out how to not pass empty output and if there are still any left, this message needs to get cleaned up to handle the case where msg is empty.\n\nFor instance, in this file on line 99, the msg could be \"handshake failure\" and line 104 could be \"auth failure\".",
+      "revId": "c6de2d581ed83a02002744a6ece14f22870f12a6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
