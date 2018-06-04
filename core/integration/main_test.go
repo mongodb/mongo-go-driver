@@ -33,6 +33,7 @@ func TestMain(m *testing.M) {
 	}
 
 	mongodbURI = addTLSConfigToURI(mongodbURI)
+	mongodbURI = addCompressorToURI(mongodbURI)
 
 	var err error
 	connectionString, err = connstring.Parse(mongodbURI)
@@ -75,6 +76,25 @@ func addTLSConfigToURI(uri string) string {
 	}
 
 	return uri + "ssl=true&sslCertificateAuthorityFile=" + caFile
+}
+
+func addCompressorToURI(uri string) string {
+	comp := os.Getenv("MONGO_GO_DRIVER_COMPRESSOR")
+	if len(comp) == 0 {
+		return uri
+	}
+
+	if !strings.ContainsRune(uri, '?') {
+		if uri[len(uri)-1] != '/' {
+			uri += "/"
+		}
+
+		uri += "?"
+	} else {
+		uri += "&"
+	}
+
+	return uri + "compressors=" + comp
 }
 
 type netconn struct {
