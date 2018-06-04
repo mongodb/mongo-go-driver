@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6998cfe6_ac770acb",
+        "filename": "bson/array.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 332,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-04T14:32:45Z",
+      "side": 1,
+      "message": "ArrayIterator?",
+      "range": {
+        "startLine": 332,
+        "startChar": 22,
+        "endLine": 332,
+        "endChar": 36
+      },
+      "revId": "b5e755aaa552aa13f66ab513b0b6ec30984083c4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5569c514_29bec467",
+        "filename": "bson/array.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 333,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-04T14:32:45Z",
+      "side": 1,
+      "message": "Array",
+      "range": {
+        "startLine": 333,
+        "startChar": 20,
+        "endLine": 333,
+        "endChar": 26
+      },
+      "revId": "b5e755aaa552aa13f66ab513b0b6ec30984083c4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
