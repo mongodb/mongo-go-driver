@@ -32,6 +32,8 @@ type Server struct {
 
 	AverageRTT        time.Duration
 	AverageRTTSet     bool
+	Compression       []string // compression methods returned by server
+	ClientCompression []string // compression methods supported by client
 	CanonicalAddr     address.Address
 	ElectionID        objectid.ObjectID
 	GitVersion        string
@@ -50,23 +52,27 @@ type Server struct {
 	Kind              ServerKind
 	WireVersion       *VersionRange
 	Version           Version
+	ZlibLevel         int
 }
 
 // NewServer creates a new server description from the given parameters.
-func NewServer(addr address.Address, isMaster result.IsMaster, buildInfo result.BuildInfo) Server {
+func NewServer(addr address.Address, isMaster result.IsMaster, buildInfo result.BuildInfo, zlibLevel int, clientCompression []string) Server {
 	i := Server{
 		Addr: addr,
 
-		CanonicalAddr:   address.Address(isMaster.Me).Canonicalize(),
-		ElectionID:      isMaster.ElectionID,
-		LastUpdateTime:  time.Now().UTC(),
-		LastWriteTime:   isMaster.LastWriteTimestamp,
-		MaxBatchCount:   isMaster.MaxWriteBatchSize,
-		MaxDocumentSize: isMaster.MaxBSONObjectSize,
-		MaxMessageSize:  isMaster.MaxMessageSizeBytes,
-		SetName:         isMaster.SetName,
-		SetVersion:      isMaster.SetVersion,
-		Tags:            tag.NewTagSetFromMap(isMaster.Tags),
+		CanonicalAddr:     address.Address(isMaster.Me).Canonicalize(),
+		Compression:       isMaster.Compression,
+		ClientCompression: clientCompression,
+		ElectionID:        isMaster.ElectionID,
+		LastUpdateTime:    time.Now().UTC(),
+		LastWriteTime:     isMaster.LastWriteTimestamp,
+		MaxBatchCount:     isMaster.MaxWriteBatchSize,
+		MaxDocumentSize:   isMaster.MaxBSONObjectSize,
+		MaxMessageSize:    isMaster.MaxMessageSizeBytes,
+		SetName:           isMaster.SetName,
+		SetVersion:        isMaster.SetVersion,
+		Tags:              tag.NewTagSetFromMap(isMaster.Tags),
+		ZlibLevel:         zlibLevel,
 	}
 
 	if !buildInfo.IsZero() {
