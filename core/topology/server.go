@@ -374,7 +374,9 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 		}
 
 		now := time.Now()
-		isMaster, err := (&command.IsMaster{}).RoundTrip(ctx, conn)
+
+		isMasterCmd := &command.IsMaster{Compressors: s.cfg.compressionOpts}
+		isMaster, err := isMasterCmd.RoundTrip(ctx, conn)
 		if err != nil {
 			saved = err
 			conn.Close()

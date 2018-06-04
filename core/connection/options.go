@@ -9,6 +9,8 @@ package connection
 import (
 	"net"
 	"time"
+
+	"github.com/mongodb/mongo-go-driver/core/compressors"
 )
 
 type config struct {
@@ -21,6 +23,7 @@ type config struct {
 	readTimeout    time.Duration
 	writeTimeout   time.Duration
 	tlsConfig      *TLSConfig
+	compressors    []compressors.Compressor
 }
 
 func newConfig(opts ...Option) (*config, error) {
@@ -53,6 +56,14 @@ type Option func(*config) error
 func WithAppName(fn func(string) string) Option {
 	return func(c *config) error {
 		c.appName = fn(c.appName)
+		return nil
+	}
+}
+
+// WithCompressors sets the compressors that can be used for communication.
+func WithCompressors(fn func([]compressors.Compressor) []compressors.Compressor) Option {
+	return func(c *config) error {
+		c.compressors = fn(c.compressors)
 		return nil
 	}
 }

@@ -15,6 +15,12 @@
 			"revisionTime": "2017-11-12T03:14:02Z"
 		},
 		{
+			"checksumSHA1": "h1d2lPZf6j2dW/mIqVnd1RdykDo=",
+			"path": "github.com/golang/snappy",
+			"revision": "2e65f85255dbc3072edf28d6b5b8efc472979f5a",
+			"revisionTime": "2018-05-18T05:39:59Z"
+		},
+		{
 			"checksumSHA1": "NBTjO+I9dQxJ3Hx61utfenJ4ctk=",
 			"path": "github.com/google/go-cmp/cmp",
 			"revision": "3af367b6b30c263d47e8895973edcca9a49cf029",

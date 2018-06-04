@@ -90,16 +90,29 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 // 	})
 // }
 
+// HandshakeOptions packages options that can be passed to the Handshaker() function
+type HandshakeOptions struct {
+	AppName       string
+	Authenticator Authenticator
+	Compressors   []string
+	ZlibLevel     int
+}
+
 // Handshaker creates a connection handshaker for the given authenticator. The
 // handshaker will handle calling isMaster and buildInfo.
-func Handshaker(appName string, h connection.Handshaker, authenticator Authenticator) connection.Handshaker {
+func Handshaker(h connection.Handshaker, options *HandshakeOptions) connection.Handshaker {
 	return connection.HandshakerFunc(func(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
-		desc, err := (&command.Handshake{Client: command.ClientDoc(appName)}).Handshake(ctx, addr, rw)
+		desc, err := (&command.Handshake{
+			Client:      command.ClientDoc(options.AppName),
+			Compressors: options.Compressors,
+			ZlibLevel:   options.ZlibLevel,
+		}).Handshake(ctx, addr, rw)
+
 		if err != nil {
 			return description.Server{}, newAuthError("handshake failure", err)
 		}
 
-		err = authenticator.Auth(ctx, desc, rw)
+		err = options.Authenticator.Auth(ctx, desc, rw)
 		if err != nil {
 			return description.Server{}, newAuthError("auth error", err)
 		}

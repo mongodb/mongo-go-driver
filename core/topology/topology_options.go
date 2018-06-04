@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/auth"
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/compressors"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 )
@@ -177,12 +178,40 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			}
 
 			connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-				return auth.Handshaker(cs.AppName, h, authenticator)
+				options := &auth.HandshakeOptions{
+					AppName:       cs.AppName,
+					Authenticator: authenticator,
+					Compressors:   cs.Compressors,
+					ZlibLevel:     cs.ZlibLevel,
+				}
+				return auth.Handshaker(h, options)
 			}))
 		} else {
 			// We need to add a non-auth Handshaker to the connection options
 			connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-				return &command.Handshake{Client: command.ClientDoc(cs.AppName)}
+				return &command.Handshake{Client: command.ClientDoc(cs.AppName), Compressors: cs.Compressors}
+			}))
+		}
+
+		if len(cs.Compressors) > 0 {
+			comp := make([]compressors.Compressor, 0, len(cs.Compressors))
+
+			for _, c := range cs.Compressors {
+				switch c {
+				case "snappy":
+					comp = append(comp, compressors.CreateSnappy())
+				case "zlib":
+					zlibComp, err := compressors.CreateZlib(cs.ZlibLevel)
+					if err != nil {
+						return err
+					}
+
+					comp = append(comp, zlibComp)
+				}
+			}
+
+			connOpts = append(connOpts, connection.WithCompressors(func(compressors []compressors.Compressor) []compressors.Compressor {
+				return append(compressors, comp...)
 			}))
 		}
 
@@ -190,6 +219,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			c.serverOpts = append(c.serverOpts, WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
 				return append(opts, connOpts...)
 			}))
+
 		}
 
 		return nil

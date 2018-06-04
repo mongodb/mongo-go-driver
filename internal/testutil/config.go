@@ -60,6 +60,17 @@ func AddTLSConfigToURI(uri string) string {
 	return AddOptionsToURI(uri, "ssl=true&sslCertificateAuthorityFile=", caFile)
 }
 
+// AddCompressorToUri checks for the environment variable indicating that the tests are being run with compression
+// enabled. If so, it returns a new URI with the necessary configuration
+func AddCompressorToUri(uri string) string {
+	comp := os.Getenv("MONGO_GO_DRIVER_COMPRESSOR")
+	if len(comp) == 0 {
+		return uri
+	}
+
+	return AddOptionsToURI(uri, "compressors=", comp)
+}
+
 // Topology gets the globally configured topology.
 func Topology(t *testing.T) *topology.Topology {
 	cs := ConnString(t)
@@ -110,6 +121,7 @@ func ConnString(t *testing.T) connstring.ConnString {
 		}
 
 		mongodbURI = AddTLSConfigToURI(mongodbURI)
+		mongodbURI = AddCompressorToUri(mongodbURI)
 
 		var err error
 		connectionString, err = connstring.Parse(mongodbURI)

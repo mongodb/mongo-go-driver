@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/address"
+	"github.com/mongodb/mongo-go-driver/core/compressors"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -84,17 +85,21 @@ type connection struct {
 	addr             address.Address
 	id               string
 	conn             net.Conn
+	compressBuf      []byte
+	compressor       compressors.Compressor                              // use for compressing messages
+	compressorMap    map[wiremessage.CompressorID]compressors.Compressor // use for uncompressing messages
 	dead             bool
 	idleTimeout      time.Duration
 	idleDeadline     time.Time
 	lifetimeDeadline time.Time
 	readTimeout      time.Duration
+	uncompressBuf    []byte
 	writeTimeout     time.Duration
 	readBuf          []byte
 	writeBuf         []byte
 }
 
-// New opens a connection to a given Addr.
+// New opens a connection to a given Addr
 //
 // The server description returned is nil if there was no handshaker provided.
 func New(ctx context.Context, addr address.Address, opts ...Option) (Connection, *description.Server, error) {
@@ -123,15 +128,27 @@ func New(ctx context.Context, addr address.Address, opts ...Option) (Connection,
 
 	id := fmt.Sprintf("%s[-%d]", addr, nextClientConnectionID())
 
+	connSnappy := compressors.CreateSnappy()
+	connZlib, err := compressors.CreateZlib(-1)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	c := &connection{
-		id:               id,
-		conn:             nc,
+		id:          id,
+		conn:        nc,
+		compressBuf: make([]byte, 256),
+		compressorMap: map[wiremessage.CompressorID]compressors.Compressor{
+			compressors.CompressorSnappy: connSnappy,
+			compressors.CompressorZLib:   connZlib,
+		},
 		addr:             addr,
 		idleTimeout:      cfg.idleTimeout,
 		lifetimeDeadline: lifetimeDeadline,
 		readTimeout:      cfg.readTimeout,
 		writeTimeout:     cfg.writeTimeout,
 		readBuf:          make([]byte, 256),
+		uncompressBuf:    make([]byte, 256),
 		writeBuf:         make([]byte, 0, 256),
 	}
 
@@ -143,6 +160,24 @@ func New(ctx context.Context, addr address.Address, opts ...Option) (Connection,
 		if err != nil {
 			return nil, nil, err
 		}
+
+		if len(d.Compression) > 0 {
+		clientMethodLoop:
+			for _, compressor := range cfg.compressors {
+				method := compressor.Name()
+
+				for _, serverMethod := range d.Compression {
+					if method != serverMethod {
+						continue
+					}
+
+					c.compressor = compressor // found matching compressor
+					break clientMethodLoop
+				}
+			}
+
+		}
+
 		desc = &d
 	}
 
@@ -196,6 +231,104 @@ func (c *connection) Expired() bool {
 	return c.dead
 }
 
+func canCompress(cmd string) bool {
+	if cmd == "isMaster" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
+		cmd == "createUser" || cmd == "updateUser" || cmd == "copydbSaslStart" || cmd == "copydbgetnonce" || cmd == "copydb" {
+		return false
+	}
+	return true
+}
+
+func (c *connection) compressMessage(wm wiremessage.WireMessage) (wiremessage.WireMessage, error) {
+	var requestID int32
+	var responseTo int32
+	var origOpcode wiremessage.OpCode
+
+	switch wm.(type) {
+	case wiremessage.Query:
+		queryMsg := wm.(wiremessage.Query)
+		firstElem, err := queryMsg.Query.ElementAt(0)
+
+		if err != nil {
+			return wiremessage.Compressed{}, err
+		}
+
+		key := firstElem.Key()
+		if !canCompress(key) {
+			return wm, nil // return original message because this command can't be compressed
+		}
+		requestID = queryMsg.MsgHeader.RequestID
+		origOpcode = wiremessage.OpQuery
+		responseTo = queryMsg.MsgHeader.ResponseTo
+	}
+
+	// can compress
+	uncompressedBytes, err := wm.MarshalWireMessage()
+	if err != nil {
+		return wiremessage.Compressed{}, err
+	}
+
+	uncompressedBytes = uncompressedBytes[16:] // strip header
+	c.compressBuf = c.compressBuf[:0]
+	compressedBytes, err := c.compressor.CompressBytes(uncompressedBytes, c.compressBuf)
+	if err != nil {
+		return wiremessage.Compressed{}, err
+	}
+
+	compressedMessage := wiremessage.Compressed{
+		MsgHeader: wiremessage.Header{
+			// MessageLength and OpCode will be set when marshalling wire message by SetDefaults()
+			RequestID:  requestID,
+			ResponseTo: responseTo,
+		},
+		OriginalOpCode:    origOpcode,
+		UncompressedSize:  int32(len(uncompressedBytes)), // length of uncompressed message excluding MsgHeader
+		CompressorID:      wiremessage.CompressorID(c.compressor.CompressorID()),
+		CompressedMessage: compressedBytes,
+	}
+
+	return compressedMessage, nil
+}
+
+// returns []byte of uncompressed message with reconstructed header, original opcode, error
+func (c *connection) uncompressMessage(compressed wiremessage.Compressed) ([]byte, wiremessage.OpCode, error) {
+	// server doesn't guarantee the same compression method will be used each time so the CompressorID field must be
+	// used to find the correct method for uncompressing data
+	uncompressor := c.compressorMap[compressed.CompressorID]
+
+	// reset uncompressBuf
+	c.uncompressBuf = c.uncompressBuf[:0]
+	if int(compressed.UncompressedSize) > cap(c.uncompressBuf) {
+		c.uncompressBuf = make([]byte, compressed.UncompressedSize)
+	}
+
+	uncompressedMessage, err := uncompressor.UncompressBytes(compressed.CompressedMessage, c.uncompressBuf)
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	switch compressed.OriginalOpCode {
+	case wiremessage.OpReply:
+		var fullMessage []byte
+
+		// reconstruct original header
+		origHeader := wiremessage.Header{
+			MessageLength: int32(len(uncompressedMessage)) + 16,
+			RequestID:     compressed.MsgHeader.RequestID,
+			ResponseTo:    compressed.MsgHeader.ResponseTo,
+			OpCode:        wiremessage.OpReply,
+		}
+
+		fullMessage = origHeader.AppendHeader(fullMessage)
+		fullMessage = append(fullMessage, uncompressedMessage...)
+		return fullMessage, origHeader.OpCode, nil
+
+	default:
+		return nil, 0, fmt.Errorf("opcode %s not implemented", compressed.OriginalOpCode)
+	}
+}
+
 func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessage) error {
 	var err error
 	if c.dead {
@@ -235,7 +368,21 @@ func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMe
 	// Truncate the write buffer
 	c.writeBuf = c.writeBuf[:0]
 
-	c.writeBuf, err = wm.AppendWireMessage(c.writeBuf)
+	messageToWrite := wm
+	// Compress if possible
+	if c.compressor != nil {
+		compressed, err := c.compressMessage(wm)
+		if err != nil {
+			return Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to compress wire message",
+			}
+		}
+		messageToWrite = compressed
+	}
+
+	c.writeBuf, err = messageToWrite.AppendWireMessage(c.writeBuf)
 	if err != nil {
 		return Error{
 			ConnectionID: c.id,
@@ -339,11 +486,39 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 		}
 	}
 
+	messageToDecode := c.readBuf
+	opcodeToCheck := hdr.OpCode
+
+	if hdr.OpCode == wiremessage.OpCompressed {
+		var compressed wiremessage.Compressed
+		err := compressed.UnmarshalWireMessage(c.readBuf)
+		if err != nil {
+			defer c.Close()
+			return nil, Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to decode OP_COMPRESSED",
+			}
+		}
+
+		uncompressed, origOpcode, err := c.uncompressMessage(compressed)
+		if err != nil {
+			defer c.Close()
+			return nil, Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to uncompress message",
+			}
+		}
+		messageToDecode = uncompressed
+		opcodeToCheck = origOpcode
+	}
+
 	var wm wiremessage.WireMessage
-	switch hdr.OpCode {
+	switch opcodeToCheck {
 	case wiremessage.OpReply:
 		var r wiremessage.Reply
-		err := r.UnmarshalWireMessage(c.readBuf)
+		err := r.UnmarshalWireMessage(messageToDecode)
 		if err != nil {
 			defer c.Close()
 			return nil, Error{
