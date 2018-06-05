@@ -1,4 +1,4 @@
-# Options Design
+# Options Design - [Design Ticket](https://jira.mongodb.org/browse/GODRIVER-444)
 This document details a new design for passing optional parameters to Driver API functions and
 methods. This document covers the motivation for the change, the high level design, and relevant
 implementation details. Alternate designs that were ultimately rejected are covered in the first
