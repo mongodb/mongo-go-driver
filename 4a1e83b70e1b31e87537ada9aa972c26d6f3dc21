@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "70bfe25a_5e66f01f",
+        "filename": "bson/array_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-05T14:11:57Z",
+      "side": 1,
+      "message": "Can we make this into a table test and do the iteration with two items in the array similar to the other tests?",
+      "range": {
+        "startLine": 225,
+        "startChar": 1,
+        "endLine": 229,
+        "endChar": 3
+      },
+      "revId": "4a1e83b70e1b31e87537ada9aa972c26d6f3dc21",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
