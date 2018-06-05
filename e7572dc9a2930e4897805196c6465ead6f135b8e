@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cd2398f3_8e211693",
+        "filename": "core/topology/server_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-05T14:15:42Z",
+      "side": 1,
+      "message": "I think we should be able to factor this down to one pool type that returns an err or nil depending on a boolean.",
+      "range": {
+        "startLine": 14,
+        "startChar": 0,
+        "endLine": 56,
+        "endChar": 1
+      },
+      "revId": "e7572dc9a2930e4897805196c6465ead6f135b8e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
