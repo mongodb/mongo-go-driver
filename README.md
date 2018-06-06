@@ -10,3 +10,5 @@ of all of the these.
 
 ## Design Documents
 [Options Design](options-design/DESIGN.md)
+
+[BSON Codec v2 Design](bson-codec-design/DESIGN.md)
