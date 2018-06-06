@@ -42,7 +42,10 @@ type testContainer struct {
 	Tests []testCase
 }
 
-const testsDir string = "../../data/connection-string/"
+const connstringTestsDir = "../../data/connection-string/"
+
+// Note a test supporting the deprecated gssapiServiceName property was removed from data/auth/auth_tests.json
+const authTestsDir = "../../data/auth/"
 
 func (h *host) toString() string {
 	switch h.Type {
@@ -77,8 +80,8 @@ func hostsToStrings(hosts []host) []string {
 	return out
 }
 
-func runTestsInFile(t *testing.T, filename string) {
-	filepath := path.Join(testsDir, filename)
+func runTestsInFile(t *testing.T, dirname string, filename string) {
+	filepath := path.Join(dirname, filename)
 	content, err := ioutil.ReadFile(filepath)
 	require.NoError(t, err)
 
@@ -106,7 +109,10 @@ func runTest(t *testing.T, filename string, test *testCase) {
 		}
 
 		require.Equal(t, test.URI, cs.Original)
-		require.Equal(t, hostsToStrings(test.Hosts), cs.Hosts)
+
+		if test.Hosts != nil {
+			require.Equal(t, hostsToStrings(test.Hosts), cs.Hosts)
+		}
 
 		if test.Auth != nil {
 			require.Equal(t, test.Auth.Username, cs.Username)
@@ -118,7 +124,11 @@ func runTest(t *testing.T, filename string, test *testCase) {
 				require.Equal(t, *test.Auth.Password, cs.Password)
 			}
 
-			require.Equal(t, test.Auth.DB, cs.Database)
+			if test.Auth.DB != cs.Database {
+				require.Equal(t, test.Auth.DB, cs.AuthSource)
+			} else {
+				require.Equal(t, test.Auth.DB, cs.Database)
+			}
 		}
 
 		// Check that all options are present.
@@ -140,14 +150,11 @@ func runTest(t *testing.T, filename string, test *testCase) {
 
 // Test case for all connection string spec tests.
 func TestConnStringSpec(t *testing.T) {
-	entries, err := ioutil.ReadDir(testsDir)
-	require.NoError(t, err)
+	for _, file := range testhelpers.FindJSONFilesInDir(t, connstringTestsDir) {
+		runTestsInFile(t, connstringTestsDir, file)
+	}
 
-	for _, entry := range entries {
-		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
-			continue
-		}
-
-		runTestsInFile(t, entry.Name())
+	for _, file := range testhelpers.FindJSONFilesInDir(t, authTestsDir) {
+		runTestsInFile(t, authTestsDir, file)
 	}
 }

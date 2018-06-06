@@ -247,6 +247,16 @@ func (p *parser) parse(original string) error {
 		}
 	}
 
+	err = p.setDefaultAuthParams(extractedDatabase.db)
+	if err != nil {
+		return err
+	}
+
+	err = p.validateAuth()
+	if err != nil {
+		return err
+	}
+
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if p.WNumberSet && p.WNumber == 0 && p.JSet && p.J {
 		return writeconcern.ErrInconsistent
@@ -257,6 +267,116 @@ func (p *parser) parse(original string) error {
 		p.WTimeoutSet = true
 	}
 
+	return nil
+}
+
+func (p *parser) setDefaultAuthParams(dbName string) error {
+	switch strings.ToLower(p.AuthMechanism) {
+	case "plain":
+		if p.AuthSource == "" {
+			p.AuthSource = dbName
+			if p.AuthSource == "" {
+				p.AuthSource = "$external"
+			}
+		}
+	case "gssapi":
+		if p.AuthMechanismProperties == nil {
+			p.AuthMechanismProperties = map[string]string{
+				"SERVICE_NAME": "mongodb",
+			}
+		} else if v, ok := p.AuthMechanismProperties["SERVICE_NAME"]; !ok || v == "" {
+			p.AuthMechanismProperties["SERVICE_NAME"] = "mongodb"
+		}
+		fallthrough
+	case "mongodb-x509":
+		if p.AuthSource == "" {
+			p.AuthSource = "$external"
+		} else if p.AuthSource != "$external" {
+			return fmt.Errorf("auth source must be $external")
+		}
+	case "mongodb-cr":
+		fallthrough
+	case "scram-sha-1":
+		fallthrough
+	case "scram-sha-256":
+		if p.AuthSource == "" {
+			p.AuthSource = dbName
+			if p.AuthSource == "" {
+				p.AuthSource = "admin"
+			}
+		}
+	case "":
+		if p.AuthSource == "" {
+			p.AuthSource = "admin"
+		}
+	default:
+		return fmt.Errorf("invalid auth mechanism")
+	}
+	return nil
+}
+
+func (p *parser) validateAuth() error {
+	switch strings.ToLower(p.AuthMechanism) {
+	case "mongodb-cr":
+		if p.Username == "" {
+			return fmt.Errorf("username required for MONGO-CR")
+		}
+		if p.Password == "" {
+			return fmt.Errorf("password required for MONGO-CR")
+		}
+		if p.AuthMechanismProperties != nil {
+			return fmt.Errorf("MONGO-CR cannot have mechanism properties")
+		}
+	case "mongodb-x509":
+		if p.Password != "" {
+			return fmt.Errorf("password cannot be specified for MONGO-X509")
+		}
+		if p.AuthMechanismProperties != nil {
+			return fmt.Errorf("MONGO-X509 cannot have mechanism properties")
+		}
+	case "gssapi":
+		if p.Username == "" {
+			return fmt.Errorf("username required for GSSAPI")
+		}
+		for k := range p.AuthMechanismProperties {
+			if k != "SERVICE_NAME" && k != "CANONICALIZE_HOST_NAME" && k != "SERVICE_REALM" {
+				return fmt.Errorf("invalid auth property for GSSAPI")
+			}
+		}
+	case "plain":
+		if p.Username == "" {
+			return fmt.Errorf("username required for PLAIN")
+		}
+		if p.Password == "" {
+			return fmt.Errorf("password required for PLAIN")
+		}
+		if p.AuthMechanismProperties != nil {
+			return fmt.Errorf("PLAIN cannot have mechanism properties")
+		}
+	case "scram-sha-1":
+		if p.Username == "" {
+			return fmt.Errorf("username required for SCRAM-SHA-1")
+		}
+		if p.Password == "" {
+			return fmt.Errorf("password required for SCRAM-SHA-1")
+		}
+		if p.AuthMechanismProperties != nil {
+			return fmt.Errorf("SCRAM-SHA-1 cannot have mechanism properties")
+		}
+	case "scram-sha-256":
+		if p.Username == "" {
+			return fmt.Errorf("username required for SCRAM-SHA-256")
+		}
+		if p.Password == "" {
+			return fmt.Errorf("password required for SCRAM-SHA-256")
+		}
+		if p.AuthMechanismProperties != nil {
+			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
+		}
+	case "":
+	default:
+		return fmt.Errorf("invalid auth mechanism")
+	}
 	return nil
 }
 
