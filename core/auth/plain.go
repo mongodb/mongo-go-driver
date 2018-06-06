@@ -16,10 +16,6 @@ import (
 const PLAIN = "PLAIN"
 
 func newPlainAuthenticator(cred *Cred) (Authenticator, error) {
-	if cred.Source != "" && cred.Source != "$external" {
-		return nil, newAuthError("PLAIN source must be empty or $external", nil)
-	}
-
 	return &PlainAuthenticator{
 		Username: cred.Username,
 		Password: cred.Password,
