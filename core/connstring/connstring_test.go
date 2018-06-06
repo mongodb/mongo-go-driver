@@ -49,11 +49,11 @@ func TestAuthMechanism(t *testing.T) {
 	}{
 		{s: "authMechanism=scram-sha-1", expected: "scram-sha-1"},
 		{s: "authMechanism=mongodb-CR", expected: "mongodb-CR"},
-		{s: "authMechanism=LDAP", expected: "LDAP"},
+		{s: "authMechanism=plain", expected: "plain"},
 	}
 
 	for _, test := range tests {
-		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		s := fmt.Sprintf("mongodb://user:pass@localhost/?%s", test.s)
 		t.Run(s, func(t *testing.T) {
 			cs, err := connstring.Parse(s)
 			if test.err {
