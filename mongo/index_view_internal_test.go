@@ -129,6 +129,51 @@ func TestIndexView_CreateOne(t *testing.T) {
 	require.True(t, found)
 }
 
+func TestIndexView_CreateOneWithIndexOptions(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	dbName, coll := getIndexableCollection(t)
+	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	indexView := coll.Indexes()
+
+	indexName, err := indexView.CreateOne(
+		context.Background(),
+		IndexModel{
+			Keys: bson.NewDocument(
+				bson.EC.Int32("foo", -1),
+			),
+			Options: NewIndexOptionsBuilder().setName("testname").build(),
+		},
+	)
+	require.NoError(t, err)
+	require.Equal(t, "testname", indexName)
+
+	cursor, err := indexView.List(context.Background())
+	require.NoError(t, err)
+
+	found := false
+	var index = index{}
+
+	for cursor.Next(context.Background()) {
+		err := cursor.Decode(&index)
+		require.NoError(t, err)
+
+		require.Equal(t, expectedNS, index.NS)
+
+		if index.Name == indexName {
+			require.Len(t, index.Key, 1)
+			require.Equal(t, -1, index.Key["foo"])
+			found = true
+		}
+	}
+	require.NoError(t, cursor.Err())
+	require.True(t, found)
+}
+
 func TestIndexView_CreateMany(t *testing.T) {
 	t.Parallel()
 
