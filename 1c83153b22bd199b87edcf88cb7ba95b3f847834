@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b4e8ebdc_c5836f3c",
+        "filename": "core/command/ismaster.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-06T20:24:33Z",
+      "side": 1,
+      "message": "I know I said we should do this, but now that I think about it, what matters is if we have compressors, so we could do:\n\n    if im.Compressors \u003e 0 {\n\nThat said, the spec says \"When no compression is enabled on the client, drivers SHOULD send an empty compression argument\", so we don\u0027t actually need this if case, we should always been sending the compression element, regardless of if we\u0027ve been provided with any compressors.",
+      "range": {
+        "startLine": 39,
+        "startChar": 4,
+        "endLine": 39,
+        "endChar": 25
+      },
+      "revId": "1c83153b22bd199b87edcf88cb7ba95b3f847834",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "73c1401d_4472fdb2",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-06T20:24:33Z",
+      "side": 1,
+      "message": "We can get some savings here by making a slice and then continually reusing it. We can add compressBuf and uncompressBuf properties to the snappyCompressor struct, reset the slice each time before we use it, and reassign the reset slice after we Encode:\n\n    type snappyCompressor struct {\n        compressBuf []byte\n    }\n\n    func (s snappCompressor) compressBytes(orig []byte) ([]byte, error) {\n        s.compressBuf \u003d s.compressBuf[:0]\n        s.compressBuf \u003d snappy.Encode(s.compressBuf, orig)\n        return s.compressBuf\n    }\n\nWe can share the buffer because a Connection is not thread safe, and at a slightly higher level we already share the readBuf and writeBuf. We can do a similar thing by reusing a bytes.Buffer and a zlib.Reader/Writer.",
+      "range": {
+        "startLine": 103,
+        "startChar": 22,
+        "endLine": 103,
+        "endChar": 25
+      },
+      "revId": "1c83153b22bd199b87edcf88cb7ba95b3f847834",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "be0a3275_9d571aa1",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 127,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-06T20:24:33Z",
+      "side": 1,
+      "message": "This isn\u0027t the correct usage of the writer for this context. We need to ensure the closing bytes are written to the buffer before we actually call buff.Bytes. We also want to make sure that the ending close succeeded, since there is a checksum written to the end of the compressed data. I think we can get reusability here as well by using the same bytes.Buffer and zlib.Writer, but calling Reset on both of them.",
+      "range": {
+        "startLine": 123,
+        "startChar": 1,
+        "endLine": 127,
+        "endChar": 24
+      },
+      "revId": "1c83153b22bd199b87edcf88cb7ba95b3f847834",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3f6c62d0_64ded2fc",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-06T20:24:33Z",
+      "side": 1,
+      "message": "This is a little more complicated because we need to select the first compressor that the user specified that is also in the list. We should not rely on the server returning the options in the order we specified them, so we should loop over the compressors the user specified, in the order they specified them, and see if they are in the returned list of compressors.",
+      "range": {
+        "startLine": 223,
+        "startChar": 0,
+        "endLine": 231,
+        "endChar": 3
+      },
+      "revId": "1c83153b22bd199b87edcf88cb7ba95b3f847834",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fe8059f3_f68cf13c",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-06T20:24:33Z",
+      "side": 1,
+      "message": "We\u0027ll want to return a signal error here like \"ErrCompressionProhibited\" so the code that calls this knows to send the original message. Alternatively, we should return a wiremessage.WireMessage and if we aren\u0027t allowed to compress the message we just return the original wiremessage.WireMessage.",
+      "range": {
+        "startLine": 309,
+        "startChar": 3,
+        "endLine": 309,
+        "endChar": 39
+      },
+      "revId": "1c83153b22bd199b87edcf88cb7ba95b3f847834",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "353ba5a1_6aff19b2",
+        "filename": "core/connstring/connstring.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 361,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-06T20:24:33Z",
+      "side": 1,
+      "message": "I\u0027m not sure if we need this check to be so specific. It\u0027s likely we\u0027ll add more compressors in the future.",
+      "range": {
+        "startLine": 359,
+        "startChar": 0,
+        "endLine": 361,
+        "endChar": 3
+      },
+      "revId": "1c83153b22bd199b87edcf88cb7ba95b3f847834",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
