@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "316b01b4_e1d006b3",
+        "filename": "mongo/index_options_builder.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-06T17:50:12Z",
+      "side": 1,
+      "message": "These methods should all be capital so they are public. From a naming perspective, we don\u0027t tend to use \"set\" or \"get\" on things unless necessary. For these methods it\u0027s fine to call them just the option, so for this one \"Background\".",
+      "range": {
+        "startLine": 17,
+        "startChar": 32,
+        "endLine": 17,
+        "endChar": 45
+      },
+      "revId": "63d34090b69ec76208c7aa1aff6839d248e4eb5c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e5ef5129_b76d863e",
+        "filename": "mongo/index_view_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 159,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-06T17:50:12Z",
+      "side": 1,
+      "message": "We don\u0027t need to do an assignment the the empty value here, instead we can just declare the variable. It will automatically be set to the zero value. So these lines would become\n\n    var found bool\n    var index index\n\nAlso, we generally shouldn\u0027t shadow types with variable names, e.g. we shouldn\u0027t call a variable index if the type is also called index. I see that we also do this in the above code which we missed on a code review before.",
+      "range": {
+        "startLine": 158,
+        "startChar": 0,
+        "endLine": 159,
+        "endChar": 20
+      },
+      "revId": "63d34090b69ec76208c7aa1aff6839d248e4eb5c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
