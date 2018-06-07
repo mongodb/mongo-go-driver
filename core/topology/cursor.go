@@ -145,6 +145,7 @@ func (c *cursor) getMore(ctx context.Context) {
 	c.current = 0
 
 	if c.id == 0 {
+		c.err = fmt.Errorf("cursor already closed")
 		return
 	}
 
