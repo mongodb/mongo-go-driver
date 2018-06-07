@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9428eca1_95b40535",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-07T20:05:42Z",
+      "side": 1,
+      "message": "Also, I think this is GODRIVER-125, not 421.",
+      "revId": "379932aa0731e5950de578b1e04f6dbf91d84b02",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6c6e9c1_129b2021",
+        "filename": "core/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-07T20:05:42Z",
+      "side": 1,
+      "message": "I think this may erroneously cause an issue when a query returns 0 results. The user will have to call Next() and ultimately fall down into here because there are 0 results and the cursor id is already 0 from the first batch. This error isn\u0027t accurate in that case because getting back 0 results is a expected and the result from Next() should just be false with no errors.",
+      "revId": "379932aa0731e5950de578b1e04f6dbf91d84b02",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
