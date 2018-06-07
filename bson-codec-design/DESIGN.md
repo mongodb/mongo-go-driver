@@ -18,7 +18,7 @@ inflexible to be as useful as initially intended.
 <dt>Decode</dt>
 <dd>The process of reading a BSON document from an <code>io.Reader</code> and converting it to a
 native Go type</dd>
-<dt>V1 Design </dt>
+<dt>v1 Design </dt>
 <dd>The initial design for the encoding and decoding functionality of the BSON library</dd>
 <dt>Proposed Design</dt>
 <dd>The design laid out in this document</dd>
@@ -67,6 +67,12 @@ reason to prevent users from registering codecs for internal types like `bson.El
 well. The registry will be used for all encoding and decoding operations, since the cost of calling
 `reflect.TypeOf` is inexpensive.
 
+There is a single type, `Registry`, that contains an instance of a `TypeRegistry` and
+`InterfaceRegistry`. The `Registry` type is used to find the required codec during codec processing.
+The `Registry` type will also have a generic codec registry, which only contains two codecs, one for
+structs and one for maps. These codecs are only used if both the `TypeRegistry` and the
+`InterfaceRegistry` do not return a codec. The user can override these generic codecs.
+
 #### No Global Registries
 The proposed design does not contain a global type nor a global interface registry. This is mainly
 because [package level variables are generally discouraged in
@@ -76,6 +82,19 @@ Decoder the registry is a parameter. The Marshal and Unmarshal global package fu
 altered and instead there will be Marshal and Unmarshal methods on the Registry type. The new
 Marshal and Unmarshal package functions will take a Registry as a parameter.
 
+Not having global registries means that the `Marshal` and `Unmarshal` functions deviate from the
+same named functions in the v1 design, the `mgo/bson` package, the `encoding/json` package, and the
+`encoding/xml` package. None of the aforementioned packages nor the v1 design allows a user to
+register handling for their own types. The main problem with having a global registry is that
+packages would likely auto register codecs for types and interfaces, which will then have global
+implications that might affect distant code and create subtle bugs that require a specific set of
+packages to observe. By not allowing global registries, the user has to explicitly register the
+types and interfaces that are handled, which makes it more difficult to make the same far reaching
+errors.
+
+To enable creation of default registries, the proposed design has a function called
+`NewDefaultRegistry` that handles registering the default type and interface codecs.
+
 #### Type Registry
 The type registry maps particular types to an instance of a codec. When performing an encode or
 decode, this registry will be consulted for the particular codec to use. During the processing the
@@ -83,25 +102,23 @@ types are used directly and not cast. This means that if a user wants to handle 
 that implements that interfaces, and a pointer to the type that implements that interface, they can
 do so by registering those three types with an associated codec. Users who want to handle interfaces
 instead of the underlying types can register the interface with the Interface Registry, which will
-be consulted before the Type Registry.
-
-The Type Registry will have two generic codecs, one for structs and one for maps. These will be used
-when a specific codec has not been registered for a struct or map type. These can be overriden when
-constructing the registry.
+be consulted after the Type Registry.
 
 #### Interface Registry
 The interface registry maps a particular interface to a codec. This registry is used to detect when
 a type implements the given interface and handles processing of that type. For instance, the `bson`
-package contains the `bson.Marshaler` and `bson.Unmarshaler` interfaces. When a type implements one
-of these interfaces, the codec processing is delegated to a codec registered in the Interface
-Registry, not the Type Registry. When performing codec processing, the Interface Registry is
-consulted first, checking to see the if the type implements one of the interfaces in the registry,
-if it does that codec is used, if none of the interfaces match, the type registry is consulted. The
-Interface Registry must be iterated in a stable order when processing. This ensures that if a
-type implements multiple interfaces, the first interface in the stable order is used. Since the
-Interface Registry is consulted before every type processing, users should ensure they do not
-register too many interfaces, as the cost increases greatly for each one that is added,
-especially if the users is using deeply nested types.
+package contains the `bson.Marshaler` and `bson.Unmarshaler` interfaces. Since an interface is less
+specific than a type, the Interface Registry is consulted after the Type registry. Therefore if type
+implements and interface and there is a codec registered for the type in the Type Registry and there
+is a codec registered for the interface in the Interface Registry, the codec in the Type Registry
+will be used. The Interface Registry must be iterated in a stable order when processing. This
+ensures that if a type implements multiple interfaces, the first interface in the stable order is
+used.
+
+#### Codecs
+A codec is an interface composed of two methods called `EncodeValue` and `DecodeValue`. Since a
+registry can be used by multiple goroutines, codecs should that they do not hold state between
+function invocations and should themselves be goroutine safe.
 
 ### Struct Tag Handling
 The struct codec will have a configurable struct tag handler which is responsible for parsing struct
@@ -121,7 +138,8 @@ name in the parent struct and an inlined struct. Conflict resolution for maps oc
 encoding and decoding process.</dd>
 <dt>omitempty</dt>
 <dd>Indicates that the field should only be encoded if it is not an empty slice or map, a nil
-pointer, nor the zero value for that type.</dd>
+pointer, nor the zero value for that type. If the type implements the `bson.Zeroer` interface, then
+that will be used to determine if the type is zero.</dd>
 <dt>minsize</dt>
 <dd>Indicates that an <code>int</code>, <code>int64</code>, <code>uint</code>, or
 <code>uint64</code> should be encoded to a BSON int32 instead of a BSON int64 when the value is
@@ -153,5 +171,7 @@ are supported by the `mgo/bson` package, including the `bson.M`, `bson.D`, `bson
 
 This library will handle registering the `bson.Getter` and `bson.Setter` interfaces with the
 Interface Registry.
+
+### Options and Error Handling
 
 ## Code
