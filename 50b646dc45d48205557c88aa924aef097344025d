@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "650e39c4_93727030",
+        "filename": "core/connstring/connstring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-07T17:15:34Z",
+      "side": 1,
+      "message": "This is a bit of a misleading name. While it does get the authSource, it also has some side effects. At the end of this, authSource will have been set, so perhaps it doesn\u0027t even need to be returned. Simply ensure that the authSource is set.",
+      "revId": "50b646dc45d48205557c88aa924aef097344025d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "33abcda0_b77e3001",
+        "filename": "core/connstring/connstring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-07T17:15:34Z",
+      "side": 1,
+      "message": "There are 3 auth mechanism properties supported for GSSAPI. It seems like we are validating that the other mechanisms don\u0027t have any, so it would make sense that we would validate that this one has only the ones supported by GSSAPI.",
+      "revId": "50b646dc45d48205557c88aa924aef097344025d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6bc12e82_d1d8cf1a",
+        "filename": "core/connstring/connstring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 340,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-07T17:15:34Z",
+      "side": 1,
+      "message": "This is a bit out of place as well... validation doesn\u0027t imply side effects. I believe you can probably refactor the \"getAuthSource\" function to instead be one about setting the defaults.",
+      "revId": "50b646dc45d48205557c88aa924aef097344025d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "26a46fa1_348f4f46",
+        "filename": "core/connstring/connstring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 486,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-07T17:15:34Z",
+      "side": 1,
+      "message": "I think we are fine to not implement this at all. I assume there is a test that wasn\u0027t passing. We should just ignore that test. Since we don\u0027t need to deal with backwards compatibility in this regard, no need to implement a deprecated thing.",
+      "revId": "50b646dc45d48205557c88aa924aef097344025d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
