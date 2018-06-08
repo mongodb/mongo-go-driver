@@ -162,6 +162,30 @@
       "revId": "50b646dc45d48205557c88aa924aef097344025d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "95842903_4de99a18",
+        "filename": "data/auth/auth_tests.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-08T17:33:57Z",
+      "side": 1,
+      "message": "Done, added to connstring_spec_tests.go",
+      "parentUuid": "45072ada_6ed7bbe2",
+      "range": {
+        "startLine": 122,
+        "startChar": 0,
+        "endLine": 139,
+        "endChar": 5
+      },
+      "revId": "50b646dc45d48205557c88aa924aef097344025d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
