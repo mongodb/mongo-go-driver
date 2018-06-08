@@ -25,38 +25,26 @@ import (
 type Handshake struct {
 	Client *bson.Document
 
-	ismstr  result.IsMaster
-	bldinfo result.BuildInfo
-	err     error
+	ismstr result.IsMaster
+	err    error
 }
 
-// Encode will encode the handshake commands into two wire messages. The wire
-// messages are ordered with the isMaster command first and the buildInfo command
-// second.
-func (h *Handshake) Encode() ([2]wiremessage.WireMessage, error) {
-	var wms [2]wiremessage.WireMessage
+// Encode will encode the handshake commands into a wire message containing isMaster
+func (h *Handshake) Encode() (wiremessage.WireMessage, error) {
+	var wm wiremessage.WireMessage
 	ismstr, err := (&IsMaster{Client: h.Client}).Encode()
 	if err != nil {
-		return wms, err
+		return wm, err
 	}
-	buildinfo, err := (&BuildInfo{}).Encode()
-	if err != nil {
-		return wms, err
-	}
-	wms[0], wms[1] = ismstr, buildinfo
-	return wms, nil
+	wm = ismstr
+	return wm, nil
 }
 
-// Decode will decode the wire messages. The order of the wire messages are
-// expected to be an isMaster response first and a buildInfo response second.
+// Decode will decode the wire messages.
 // Errors during decoding are deferred until either the Result or Err methods
 // are called.
-func (h *Handshake) Decode(wms [2]wiremessage.WireMessage) *Handshake {
-	h.ismstr, h.err = (&IsMaster{}).Decode(wms[0]).Result()
-	if h.err != nil {
-		return h
-	}
-	h.bldinfo, h.err = (&BuildInfo{}).Decode(wms[1]).Result()
+func (h *Handshake) Decode(wm wiremessage.WireMessage) *Handshake {
+	h.ismstr, h.err = (&IsMaster{}).Decode(wm).Result()
 	if h.err != nil {
 		return h
 	}
@@ -68,7 +56,7 @@ func (h *Handshake) Result(addr address.Address) (description.Server, error) {
 	if h.err != nil {
 		return description.Server{}, h.err
 	}
-	return description.NewServer(addr, h.ismstr, h.bldinfo), nil
+	return description.NewServer(addr, h.ismstr), nil
 }
 
 // Err returns the error set on this Handshake.
@@ -76,32 +64,23 @@ func (h *Handshake) Err() error { return h.err }
 
 // Handshake implements the connection.Handshaker interface. It is identical
 // to the RoundTrip methods on other types in this package. It will execute
-// the isMaster and buildInfo commands, using pipelining to enable a single
-// roundtrip.
+// the isMaster command.
 func (h *Handshake) Handshake(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
-	wms, err := h.Encode()
+	wm, err := h.Encode()
 	if err != nil {
 		return description.Server{}, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wms[0])
-	if err != nil {
-		return description.Server{}, err
-	}
-	err = rw.WriteWireMessage(ctx, wms[1])
+	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return description.Server{}, err
 	}
 
-	wms[0], err = rw.ReadWireMessage(ctx)
+	wm, err = rw.ReadWireMessage(ctx)
 	if err != nil {
 		return description.Server{}, err
 	}
-	wms[1], err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return description.Server{}, err
-	}
-	return h.Decode(wms).Result(addr)
+	return h.Decode(wm).Result(addr)
 }
 
 // ClientDoc creates a client information document for use in an isMaster
