@@ -34,7 +34,6 @@ type Server struct {
 	AverageRTTSet     bool
 	CanonicalAddr     address.Address
 	ElectionID        objectid.ObjectID
-	GitVersion        string
 	HeartbeatInterval time.Duration
 	LastError         error
 	LastUpdateTime    time.Time
@@ -49,11 +48,10 @@ type Server struct {
 	Tags              tag.Set
 	Kind              ServerKind
 	WireVersion       *VersionRange
-	Version           Version
 }
 
 // NewServer creates a new server description from the given parameters.
-func NewServer(addr address.Address, isMaster result.IsMaster, buildInfo result.BuildInfo) Server {
+func NewServer(addr address.Address, isMaster result.IsMaster) Server {
 	i := Server{
 		Addr: addr,
 
@@ -67,12 +65,6 @@ func NewServer(addr address.Address, isMaster result.IsMaster, buildInfo result.
 		SetName:         isMaster.SetName,
 		SetVersion:      isMaster.SetVersion,
 		Tags:            tag.NewTagSetFromMap(isMaster.Tags),
-	}
-
-	if !buildInfo.IsZero() {
-		i.GitVersion = buildInfo.GitVersion
-		i.Version.Desc = buildInfo.Version
-		i.Version.Parts = buildInfo.VersionArray
 	}
 
 	if i.CanonicalAddr == "" {

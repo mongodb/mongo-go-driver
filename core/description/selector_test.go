@@ -178,7 +178,7 @@ var readPrefTestPrimary = Server{
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 	Kind:              RSPrimary,
 	Tags:              tag.Set{tag.Tag{Name: "a", Value: "1"}},
-	Version:           Version{Parts: []uint8{3, 4, 0}},
+	WireVersion:       &VersionRange{Min: 3, Max: 5},
 }
 var readPrefTestSecondary1 = Server{
 	Addr:              address.Address("localhost:27018"),
@@ -187,7 +187,7 @@ var readPrefTestSecondary1 = Server{
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 	Kind:              RSSecondary,
 	Tags:              tag.Set{tag.Tag{Name: "a", Value: "1"}},
-	Version:           Version{Parts: []uint8{3, 4, 0}},
+	WireVersion:       &VersionRange{Min: 3, Max: 5},
 }
 var readPrefTestSecondary2 = Server{
 	Addr:              address.Address("localhost:27018"),
@@ -196,7 +196,7 @@ var readPrefTestSecondary2 = Server{
 	LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 	Kind:              RSSecondary,
 	Tags:              tag.Set{tag.Tag{Name: "a", Value: "2"}},
-	Version:           Version{Parts: []uint8{3, 4, 0}},
+	WireVersion:       &VersionRange{Min: 3, Max: 5},
 }
 var readPrefTestTopology = Topology{
 	Kind:    ReplicaSetWithPrimary,
@@ -215,7 +215,7 @@ func TestSelector_Sharded(t *testing.T) {
 		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 		Kind:              Mongos,
-		Version:           Version{Parts: []uint8{3, 4, 0}},
+		WireVersion:       &VersionRange{Min: 3, Max: 5},
 	}
 	c := Topology{
 		Kind:    Sharded,
@@ -241,7 +241,7 @@ func TestSelector_Single(t *testing.T) {
 		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 		Kind:              Mongos,
-		Version:           Version{Parts: []uint8{3, 4, 0}},
+		WireVersion:       &VersionRange{Min: 3, Max: 5},
 	}
 	c := Topology{
 		Kind:    Single,
@@ -674,7 +674,7 @@ func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 		Kind:              RSPrimary,
-		Version:           Version{Parts: []uint8{3, 4, 0}},
+		WireVersion:       &VersionRange{Min: 3, Max: 5},
 	}
 	c := Topology{
 		Kind:    ReplicaSetWithPrimary,
@@ -700,7 +700,7 @@ func TestSelector_Max_staleness_is_too_low(t *testing.T) {
 		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 		Kind:              RSPrimary,
-		Version:           Version{Parts: []uint8{3, 4, 0}},
+		WireVersion:       &VersionRange{Min: 3, Max: 5},
 	}
 	c := Topology{
 		Kind:    ReplicaSetWithPrimary,

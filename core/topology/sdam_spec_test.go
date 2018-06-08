@@ -86,7 +86,7 @@ func setUpFSM(t *testing.T, uri string) *fsm {
 
 func applyResponses(f *fsm, responses []response) error {
 	for _, response := range responses {
-		server := description.NewServer(address.Address(response.Host), response.IsMaster, result.BuildInfo{})
+		server := description.NewServer(address.Address(response.Host), response.IsMaster)
 		_, err := f.apply(server)
 
 		if err != nil {

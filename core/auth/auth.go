@@ -91,7 +91,7 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 // }
 
 // Handshaker creates a connection handshaker for the given authenticator. The
-// handshaker will handle calling isMaster and buildInfo.
+// handshaker will handle calling isMaster.
 func Handshaker(appName string, h connection.Handshaker, authenticator Authenticator) connection.Handshaker {
 	return connection.HandshakerFunc(func(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
 		desc, err := (&command.Handshake{Client: command.ClientDoc(appName)}).Handshake(ctx, addr, rw)
