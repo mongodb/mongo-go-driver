@@ -21,7 +21,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
@@ -383,7 +382,7 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 		}
 		delay := time.Since(now)
 
-		desc = description.NewServer(s.address, isMaster, result.BuildInfo{}).SetAverageRTT(s.updateAverageRTT(delay))
+		desc = description.NewServer(s.address, isMaster).SetAverageRTT(s.updateAverageRTT(delay))
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		set = true
 
