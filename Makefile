@@ -106,3 +106,15 @@ evg-test:
 .PHONY: evg-test-auth
 evg-test-auth:
 	go run -tags gssapi ./core/examples/count/main.go -uri $(MONGODB_URI)
+
+# benchmark specific targets and support
+perf:driver-test-data.tar.gz
+	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/data/perf/
+	@touch $@
+driver-test-data.tar.gz:
+	curl --retry 5 "https://s3.amazonaws.com/boxes.10gen.com/build/driver-test-data.tar.gz" -o driver-test-data.tar.gz --silent --max-time 120
+benchmark:perf
+	go test $(BUILD_TAGS) -benchmem -bench=. ./benchmark
+driver-benchmark:perf
+	@go run cmd/godriver-benchmark/main.go | tee perf.suite
+.PHONY:benchmark driver-benchmark
