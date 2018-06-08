@@ -240,6 +240,14 @@ functions:
 
           AUTH=${AUTH} SSL=${SSL} MONGODB_URI="${MONGODB_URI}" TOPOLOGY=${TOPOLOGY} make evg-test
 
+
+  send-perf-data:
+   - command: json.send
+     params:
+       name: perf
+       file: src/github.com/mongodb/mongo-go-driver/perf.json
+
+
   run-enterprise-auth-tests:
     - command: shell.exec
       type: test
@@ -289,7 +297,8 @@ pre:
 post:
   - command: gotest.parse_files
     params:
-      files: ["src/github.com/mongodb/mongo-go-driver/test.suite"]
+      files:
+        - "src/github.com/mongodb/mongo-go-driver/*.suite"
   - func: upload-mo-artifacts
   - func: cleanup
 
@@ -308,6 +317,7 @@ tasks:
           vars:
             targets: errcheck
 
+
     - name: sa-lint
       tags: ["static-analysis"]
       commands:
@@ -321,6 +331,14 @@ tasks:
         - func: run-make
           vars:
             targets: vet
+
+    - name: perf
+      tags: ["performance"]
+      commands:
+        - func: run-make
+          vars:
+            targets: driver-benchmark
+        - func: send-perf-data
 
     - name: sa-build-examples
       tags: ["static-analysis"]
@@ -509,6 +527,15 @@ buildvariants:
     GO_DIST: "/opt/golang/go1.9"
   tasks:
     - name: ".static-analysis"
+
+- name: perf
+  display_name: "Performance"
+  run_on:
+    - ubuntu1604-test
+  expansions:
+    GO_DIST: "/opt/golang/go1.9"
+  tasks:
+    - name: ".performance"
 
 - name: build-check
   display_name: "Compile Only Checks"
