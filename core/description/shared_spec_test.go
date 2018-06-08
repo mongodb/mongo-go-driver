@@ -189,8 +189,8 @@ func selectServers(t *testing.T, test *testCase) error {
 		}
 
 		// Max staleness can't be sent to servers older than 3.4.
-		if test.ReadPreference.MaxStaleness != nil {
-			server.Version = Version{Desc: "3.4.0", Parts: []uint8{3, 4, 0}}
+		if test.ReadPreference.MaxStaleness != nil && server.WireVersion == nil {
+			server.WireVersion = &VersionRange{Max: 5}
 		}
 
 		servers = append(servers, server)
