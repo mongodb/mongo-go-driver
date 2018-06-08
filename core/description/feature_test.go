@@ -35,7 +35,7 @@ func TestMaxStaleness(t *testing.T) {
 		t.Run(test.version.String(), func(t *testing.T) {
 			t.Parallel()
 
-			err := MaxStalenessSupported(test.version, test.wire)
+			err := MaxStalenessSupported(test.wire)
 			if test.expected {
 				require.NoError(t, err)
 			} else {
