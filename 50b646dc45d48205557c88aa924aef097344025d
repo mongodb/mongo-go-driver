@@ -139,6 +139,29 @@
       "revId": "50b646dc45d48205557c88aa924aef097344025d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "45072ada_6ed7bbe2",
+        "filename": "data/auth/auth_tests.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-08T17:27:56Z",
+      "side": 1,
+      "message": "We should probably leave a note somewhere that we\u0027ve altered this file so the next time that we sync these tests we don\u0027t bring this one back.",
+      "range": {
+        "startLine": 122,
+        "startChar": 0,
+        "endLine": 139,
+        "endChar": 5
+      },
+      "revId": "50b646dc45d48205557c88aa924aef097344025d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
