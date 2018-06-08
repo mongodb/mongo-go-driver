@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4d6529c1_f08bc5da",
+        "filename": "core/description/feature.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-08T19:35:16Z",
+      "side": 1,
+      "message": "Not sure what the exact version check for this should be, but this appears to satisfy the tests.",
+      "range": {
+        "startLine": 16,
+        "startChar": 27,
+        "endLine": 16,
+        "endChar": 69
+      },
+      "revId": "f1e298b6f7b189e96b13a3156b36a59eddebed0b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "79afe1c8_0eb52024",
+        "filename": "core/description/selector_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-08T19:35:16Z",
+      "side": 1,
+      "message": "These were picked to satisfy the tests, again not sure what they should be.",
+      "range": {
+        "startLine": 181,
+        "startChar": 34,
+        "endLine": 181,
+        "endChar": 48
+      },
+      "revId": "f1e298b6f7b189e96b13a3156b36a59eddebed0b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
