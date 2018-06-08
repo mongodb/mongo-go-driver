@@ -51,6 +51,12 @@
 			"revisionTime": "2016-05-04T02:26:26Z"
 		},
 		{
+			"checksumSHA1": "+/E1N8iDaHig2Gk4Y6Lhj1lKGco=",
+			"path": "github.com/montanaflynn/stats",
+			"revision": "1bf9dbcd8cbe1fdb75add3785b1d4a9a646269ab",
+			"revisionTime": "2017-12-01T20:20:39Z"
+		},
+		{
 			"checksumSHA1": "LuFv4/jlrmFNnDb/5SCSEPAM9vU=",
 			"path": "github.com/pmezard/go-difflib/difflib",
 			"revision": "792786c7400a136282c1664665ae0a8db921c6c2",
