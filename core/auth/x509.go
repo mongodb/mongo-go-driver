@@ -34,7 +34,7 @@ func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Se
 		bson.EC.String("mechanism", MongoDBX509),
 	)
 
-	if !desc.Version.AtLeast(3, 4) {
+	if desc.WireVersion.Max < 4 {
 		authRequestDoc.Append(bson.EC.String("user", a.User))
 	}
 

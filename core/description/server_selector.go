@@ -120,7 +120,7 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 		if _, set := rp.MaxStaleness(); set {
 			for _, s := range candidates {
 				if s.Kind != Unknown {
-					if err := MaxStalenessSupported(s.Version, s.WireVersion); err != nil {
+					if err := MaxStalenessSupported(s.WireVersion); err != nil {
 						return nil, err
 					}
 				}
