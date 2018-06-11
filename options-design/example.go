@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/insertopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/mongoopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/replaceopt"
 )
 
 func main() {
@@ -152,6 +153,22 @@ func delete(ctx context.Context, filter interface{}, collection *mongo.Collectio
 	var bundle *deleteopt.DeleteBundle
 
 	_, err = collection.DeleteOne(ctx, filter, bundle.Collation(nil))
+
+	return err
+}
+
+func replace(ctx context.Context, filter interface{}, replacement interface{}, collection *mongo.Collection) error {
+	var err error
+
+	_, err = collection.ReplaceOne(ctx, filter, replacement)
+
+	_, err = collection.ReplaceOne(ctx, filter, replacement, replaceopt.BundleReplace().Collation(nil))
+
+	_, err = collection.ReplaceOne(ctx, filter, replacement, replaceopt.Collation(nil))
+
+	var bundle *replaceopt.ReplaceBundle
+
+	_, err = collection.ReplaceOne(ctx, filter, replacement, bundle.Collation(nil))
 
 	return err
 }

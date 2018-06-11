@@ -11,6 +11,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/insertopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/options-design/option"
 )
 
@@ -83,7 +84,7 @@ func (c *Collection) UpdateMany(ctx context.Context, filter interface{}, update 
 }
 
 // ReplaceOne replaces a single document.
-func (c *Collection) ReplaceOne(ctx context.Context, filter interface{}, replacement interface{}, opts ...option.ReplaceOptioner) (*UpdateResult, error) {
+func (c *Collection) ReplaceOne(ctx context.Context, filter interface{}, replacement interface{}, opts ...replaceopt.Replace) (*UpdateResult, error) {
 	return nil, nil
 }
 
