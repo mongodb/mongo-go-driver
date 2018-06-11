@@ -10,7 +10,7 @@ type Count interface {
 }
 type CountBundle struct{}
 
-func (fb *CountBundle) count() {}
+func (cb *CountBundle) count() {}
 
 func BundleCount(...Count) *CountBundle {
 	return nil

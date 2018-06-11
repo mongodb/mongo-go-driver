@@ -7,6 +7,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/countopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/mongoopt"
 )
 
 func main() {
@@ -64,6 +66,28 @@ func count(ctx context.Context, filter interface{}, collection *mongo.Collection
 
 	bundle = countopt.BundleCount(countopt.Limit(10)).Skip(20)
 	_, err = collection.Count(ctx, filter, bundle, countopt.OptMaxTimeMs(50))
+
+	return err
+}
+
+func distinct(ctx context.Context, fieldName string, filter interface{}, collection *mongo.Collection) error {
+	var err error
+
+	_, err = collection.Distinct(ctx, fieldName, filter)
+
+	_, err = collection.Distinct(ctx, fieldName, filter, distinctopt.BundleDistinct().Collation(&mongoopt.Collation{}))
+
+	_, err = collection.Distinct(ctx, fieldName, filter, distinctopt.Collation(&mongoopt.Collation{}))
+
+	var bundle *distinctopt.DistinctBundle
+
+	_, err = collection.Distinct(ctx, fieldName, filter, bundle.Collation(&mongoopt.Collation{}))
+
+	_, err = collection.Distinct(ctx, fieldName, filter, bundle)
+
+	bundle = distinctopt.BundleDistinct(distinctopt.Collation(&mongoopt.Collation{}))
+
+	_, err = collection.Distinct(ctx, fieldName, filter, bundle, distinctopt.OptMaxTime(50))
 
 	return err
 }

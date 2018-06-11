@@ -8,6 +8,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/dbopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/option"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
 )
 
 // Client is the main type used to access MongoDB. A client is created from a
@@ -95,7 +96,7 @@ func (c *Collection) Count(ctx context.Context, filter interface{}, opts ...coun
 
 // Distinct finds the distinct values for a specified field across this
 // collection.
-func (c *Collection) Distinct(ctx context.Context, fieldName string, filter interface{}, opts ...option.DistinctOptioner) (Cursor, error) {
+func (c *Collection) Distinct(ctx context.Context, fieldName string, filter interface{}, opts ...distinctopt.Distinct) (Cursor, error) {
 	return nil, nil
 }
 
