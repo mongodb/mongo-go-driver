@@ -245,6 +245,25 @@ func TestIndexView_CreateOneWithCollationOption(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestIndexView_CreateOneWithNilKeys(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	_, coll := getIndexableCollection(t)
+	indexView := coll.Indexes()
+
+	_, err := indexView.CreateOne(
+		context.Background(),
+		IndexModel{
+			Keys: nil,
+		},
+	)
+	require.Error(t, err)
+}
+
 func TestIndexView_CreateMany(t *testing.T) {
 	t.Parallel()
 
