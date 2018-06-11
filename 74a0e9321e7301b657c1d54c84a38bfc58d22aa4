@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "153d2d81_7ad75598",
+        "filename": "core/auth/plain.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-11T13:35:04Z",
+      "side": 0,
+      "message": "According to https://github.com/mongodb/specifications/blob/master/source/auth/auth.rst#plain we do allow other auth sources.",
+      "range": {
+        "startLine": 19,
+        "startChar": 1,
+        "endLine": 21,
+        "endChar": 2
+      },
+      "revId": "74a0e9321e7301b657c1d54c84a38bfc58d22aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
