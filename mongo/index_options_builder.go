@@ -20,9 +20,9 @@ func (iob *IndexOptionsBuilder) Background(background bool) *IndexOptionsBuilder
 	return iob
 }
 
-// ExpireAfter sets the expireAfter option
-func (iob *IndexOptionsBuilder) ExpireAfter(expireAfter int32) *IndexOptionsBuilder {
-	iob.document.Append(bson.EC.Int32("expireAfter", expireAfter))
+// ExpireAfterSeconds sets the expireAfterSeconds option
+func (iob *IndexOptionsBuilder) ExpireAfterSeconds(expireAfterSeconds int32) *IndexOptionsBuilder {
+	iob.document.Append(bson.EC.Int32("expireAfterSeconds", expireAfterSeconds))
 	return iob
 }
 
