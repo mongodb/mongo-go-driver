@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/clientopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/dbopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/option"
@@ -88,7 +89,7 @@ func (c *Collection) Aggregate(ctx context.Context, pipeline interface{}, opts .
 }
 
 // Count returns the number of documents matching the filter.
-func (c *Collection) Count(ctx context.Context, filter interface{}, opts ...option.CountOptioner) (int64, error) {
+func (c *Collection) Count(ctx context.Context, filter interface{}, opts ...countopt.Count) (int64, error) {
 	return 0, nil
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/options-design/mongo"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/countopt"
 )
 
 func main() {
@@ -38,5 +39,31 @@ func find(ctx context.Context, filter interface{}, collection *mongo.Collection)
 
 	bundle = bundle.Skip(10)
 	_, err = collection.Find(ctx, filter, bundle.Sort(map[string]interface{}{"foo": -1}))
+	return err
+}
+
+func count(ctx context.Context, filter interface{}, collection *mongo.Collection) error {
+	var err error
+
+	// no options
+	_, err = collection.Count(ctx, filter)
+
+	// bundle
+	_, err = collection.Count(ctx, filter, countopt.BundleCount().Limit(5))
+
+	// use without bundle
+	_, err = collection.Count(ctx, filter, countopt.Limit(5))
+
+	// empty bundle
+	var bundle *countopt.CountBundle
+
+	// use without instance
+	_, err = collection.Count(ctx, filter, bundle.Limit(5))
+
+	_, err = collection.Count(ctx, filter, bundle)
+
+	bundle = countopt.BundleCount(countopt.Limit(10)).Skip(20)
+	_, err = collection.Count(ctx, filter, bundle, countopt.OptMaxTimeMs(50))
+
 	return err
 }
