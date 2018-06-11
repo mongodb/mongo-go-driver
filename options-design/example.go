@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/mongoopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/aggregateopt"
 )
 
 func main() {
@@ -89,5 +90,34 @@ func distinct(ctx context.Context, fieldName string, filter interface{}, collect
 
 	_, err = collection.Distinct(ctx, fieldName, filter, bundle, distinctopt.OptMaxTime(50))
 
+	return err
+}
+
+func aggregate(ctx context.Context, filter interface{}, collection *mongo.Collection) error {
+	var err error
+
+	// The basic use case, no options
+	_, err = collection.Aggregate(ctx, filter)
+
+	// A bundle can be created so that we can use it to discover which options are valid.
+	_, err = collection.Aggregate(ctx, filter, aggregateopt.BundleAggregate().AllowDiskUse(true))
+
+	// If we know what options are valid for which methods, we can just use the functions directly.
+	_, err = collection.Aggregate(ctx, filter, aggregateopt.AllowDiskUse(true))
+
+	// an empty bundle can be used as a namespace, the nil value is useful.
+	var bundle *aggregateopt.AggregateBundle
+
+	// We can use it without making an actual instance.
+	_, err = collection.Aggregate(ctx, filter, bundle.BatchSize(5))
+
+	bundle = aggregateopt.BundleAggregate(aggregateopt.AllowDiskUse(true))
+	_, err = collection.Aggregate(ctx, filter, bundle)
+
+	bundle = aggregateopt.BundleAggregate(aggregateopt.AllowDiskUse(true)).BatchSize(10)
+	_, err = collection.Aggregate(ctx, filter, bundle, aggregateopt.BatchSize(5))
+
+	bundle = bundle.MaxTime(10)
+	_, err = collection.Aggregate(ctx, filter, bundle.Comment("foo bar"))
 	return err
 }

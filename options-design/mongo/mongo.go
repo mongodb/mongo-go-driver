@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/option"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/aggregateopt"
 )
 
 // Client is the main type used to access MongoDB. A client is created from a
@@ -85,7 +86,7 @@ func (c *Collection) ReplaceOne(ctx context.Context, filter interface{}, replace
 }
 
 // Aggregate runs an aggregation framework pipeline.
-func (c *Collection) Aggregate(ctx context.Context, pipeline interface{}, opts ...option.AggregateOptioner) (Cursor, error) {
+func (c *Collection) Aggregate(ctx context.Context, pipeline interface{}, opts ...aggregateopt.Aggregate) (Cursor, error) {
 	return nil, nil
 }
 
