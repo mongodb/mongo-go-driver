@@ -10,6 +10,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/mongoopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/insertopt"
 )
 
 func main() {
@@ -119,5 +120,21 @@ func aggregate(ctx context.Context, filter interface{}, collection *mongo.Collec
 
 	bundle = bundle.MaxTime(10)
 	_, err = collection.Aggregate(ctx, filter, bundle.Comment("foo bar"))
+	return err
+}
+
+func insert(ctx context.Context, doc interface{}, collection *mongo.Collection) error {
+	var err error
+
+	_, err = collection.InsertOne(ctx, doc)
+
+	_, err = collection.InsertOne(ctx, doc, insertopt.BundleOne().BypassDocumentValidation(true))
+
+	_, err = collection.InsertOne(ctx, doc, insertopt.BypassDocumentValidation(true))
+
+	var bundle *insertopt.OneBundle
+
+	_, err = collection.InsertOne(ctx, doc, bundle.BypassDocumentValidation(true))
+
 	return err
 }

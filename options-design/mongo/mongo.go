@@ -10,6 +10,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/option"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/insertopt"
 )
 
 // Client is the main type used to access MongoDB. A client is created from a
@@ -50,13 +51,13 @@ type Collection struct{}
 
 // InsertOne inserts the provided document. If the provided document does not
 // have an "_id" field, one will be generated.
-func (c *Collection) InsertOne(ctx context.Context, doc interface{}, opts ...option.InsertOneOptioner) (*InsertOneResult, error) {
+func (c *Collection) InsertOne(ctx context.Context, doc interface{}, opts ...insertopt.One) (*InsertOneResult, error) {
 	return nil, nil
 }
 
 // InsertMany inserts the provided documents. If any of the documents are
 // missing an "_id" field, one will be generated.
-func (c *Collection) InsertMany(ctx context.Context, docs []interface{}, opts ...option.InsertManyOptioner) (*InsertManyResult, error) {
+func (c *Collection) InsertMany(ctx context.Context, docs []interface{}, opts ...insertopt.Many) (*InsertManyResult, error) {
 	return nil, nil
 }
 
