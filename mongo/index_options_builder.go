@@ -20,9 +20,9 @@ func (iob *IndexOptionsBuilder) Background(background bool) *IndexOptionsBuilder
 	return iob
 }
 
-// ExpireAfter sets the expireAfter option
-func (iob *IndexOptionsBuilder) ExpireAfter(expireAfter int32) *IndexOptionsBuilder {
-	iob.document.Append(bson.EC.Int32("expireAfter", expireAfter))
+// ExpireAfterSeconds sets the expireAfterSeconds option
+func (iob *IndexOptionsBuilder) ExpireAfterSeconds(expireAfterSeconds int32) *IndexOptionsBuilder {
+	iob.document.Append(bson.EC.Int32("expireAfterSeconds", expireAfterSeconds))
 	return iob
 }
 
@@ -39,8 +39,8 @@ func (iob *IndexOptionsBuilder) Sparse(sparse bool) *IndexOptionsBuilder {
 }
 
 // StorageEngine sets the storageEngine option
-func (iob *IndexOptionsBuilder) StorageEngine(storageEngine string) *IndexOptionsBuilder {
-	iob.document.Append(bson.EC.String("storageEngine", storageEngine))
+func (iob *IndexOptionsBuilder) StorageEngine(storageEngine *bson.Document) *IndexOptionsBuilder {
+	iob.document.Append(bson.EC.SubDocument("storageEngine", storageEngine))
 	return iob
 }
 
@@ -52,25 +52,25 @@ func (iob *IndexOptionsBuilder) Unique(unique bool) *IndexOptionsBuilder {
 
 // Version sets the verison option
 func (iob *IndexOptionsBuilder) Version(version int32) *IndexOptionsBuilder {
-	iob.document.Append(bson.EC.Int32("version", version))
+	iob.document.Append(bson.EC.Int32("v", version))
 	return iob
 }
 
 // DefaultLanguage sets the defaultLanguage option
 func (iob *IndexOptionsBuilder) DefaultLanguage(defaultLanguage string) *IndexOptionsBuilder {
-	iob.document.Append(bson.EC.String("defaultLanguage", defaultLanguage))
+	iob.document.Append(bson.EC.String("default_language", defaultLanguage))
 	return iob
 }
 
 // LanguageOverride sets the languageOverride option
 func (iob *IndexOptionsBuilder) LanguageOverride(languageOverride string) *IndexOptionsBuilder {
-	iob.document.Append(bson.EC.String("languageOverride", languageOverride))
+	iob.document.Append(bson.EC.String("language_override", languageOverride))
 	return iob
 }
 
 // TextVersion sets the textVersion option
 func (iob *IndexOptionsBuilder) TextVersion(textVersion int32) *IndexOptionsBuilder {
-	iob.document.Append(bson.EC.Int32("textVersion", textVersion))
+	iob.document.Append(bson.EC.Int32("textIndexVersion", textVersion))
 	return iob
 }
 
@@ -82,7 +82,7 @@ func (iob *IndexOptionsBuilder) Weights(weights *bson.Document) *IndexOptionsBui
 
 // SphereVersion sets the sphereVersion option
 func (iob *IndexOptionsBuilder) SphereVersion(sphereVersion int32) *IndexOptionsBuilder {
-	iob.document.Append(bson.EC.Int32("sphereVersion", sphereVersion))
+	iob.document.Append(bson.EC.Int32("2dsphereIndexVersion", sphereVersion))
 	return iob
 }
 
