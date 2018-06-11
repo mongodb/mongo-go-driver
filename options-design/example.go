@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/insertopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/mongoopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/replaceopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/updateopt"
 )
 
 func main() {
@@ -171,4 +172,21 @@ func replace(ctx context.Context, filter interface{}, replacement interface{}, c
 	_, err = collection.ReplaceOne(ctx, filter, replacement, bundle.Collation(nil))
 
 	return err
+}
+
+func update(ctx context.Context, filter interface{}, update interface{}, collection *mongo.Collection) error {
+	var err error
+
+	_, err = collection.UpdateOne(ctx, filter, update)
+
+	_, err = collection.UpdateOne(ctx, filter, update, updateopt.BundleUpdate().BypassDocumentValidation(true))
+
+	_, err = collection.UpdateOne(ctx, filter, update, updateopt.BypassDocumentValidation(true))
+
+	var bundle *updateopt.UpdateBundle
+
+	_, err = collection.UpdateOne(ctx, filter, update, bundle.BypassDocumentValidation(true))
+
+	bundle = bundle.Upsert(true)
+	_, err = collection.UpdateOne(ctx, filter, update, bundle.Collation(nil))
 }

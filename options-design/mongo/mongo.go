@@ -12,7 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/insertopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/replaceopt"
-	"github.com/mongodb/mongo-go-driver/options-design/option"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/updateopt"
 )
 
 // Client is the main type used to access MongoDB. A client is created from a
@@ -74,12 +74,12 @@ func (c *Collection) DeleteMany(ctx context.Context, filter interface{}, opts ..
 }
 
 // UpdateOne updates a single document.
-func (c *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...option.UpdateOptioner) (*UpdateResult, error) {
+func (c *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{}, opts ...updateopt.Update) (*UpdateResult, error) {
 	return nil, nil
 }
 
 // UpdateMany updates multiple documents.
-func (c *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{}, opts ...option.UpdateOptioner) (*UpdateResult, error) {
+func (c *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{}, opts ...updateopt.Update) (*UpdateResult, error) {
 	return nil, nil
 }
 
