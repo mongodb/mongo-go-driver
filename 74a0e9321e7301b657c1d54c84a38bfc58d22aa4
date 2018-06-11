@@ -46,6 +46,30 @@
       "revId": "74a0e9321e7301b657c1d54c84a38bfc58d22aa4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "88cbbccc_f62cee55",
+        "filename": "core/auth/plain.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-11T20:29:08Z",
+      "side": 0,
+      "message": "According to Sam Rossi we have an LDAP server for which we can test with $external, but we don\u0027t have anything else, so we can\u0027t actually test this with an integration test.  Should I write an integration test using $external anyway?",
+      "parentUuid": "7ffff95f_3d422eee",
+      "range": {
+        "startLine": 19,
+        "startChar": 1,
+        "endLine": 21,
+        "endChar": 2
+      },
+      "revId": "74a0e9321e7301b657c1d54c84a38bfc58d22aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
