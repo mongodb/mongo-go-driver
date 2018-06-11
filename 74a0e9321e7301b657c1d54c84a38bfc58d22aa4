@@ -22,6 +22,30 @@
       "revId": "74a0e9321e7301b657c1d54c84a38bfc58d22aa4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7ffff95f_3d422eee",
+        "filename": "core/auth/plain.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T14:30:19Z",
+      "side": 0,
+      "message": "Do we have a way of testing this with an integration test? Does the LDAP server we use for the enterprise test support different auth sources?",
+      "parentUuid": "153d2d81_7ad75598",
+      "range": {
+        "startLine": 19,
+        "startChar": 1,
+        "endLine": 21,
+        "endChar": 2
+      },
+      "revId": "74a0e9321e7301b657c1d54c84a38bfc58d22aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
