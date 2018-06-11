@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "05d01817_eca30a87",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-11T15:20:26Z",
+      "side": 1,
+      "message": "It\u0027s a weird interface choice to have a public interface with only private types. You can\u0027t implement it in other packages, you can\u0027t call it in other packages, but you can pass it around? It\u0027s not necessarily wrong, but it\u0027s weird, and I think worth addressing this decision explicitly. Otherwise make it private.",
+      "range": {
+        "startLine": 89,
+        "startChar": 0,
+        "endLine": 89,
+        "endChar": 4
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5053accf_dbca7143",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-11T15:20:26Z",
+      "side": 1,
+      "message": "I would have expected this to be a pointer receiver.",
+      "range": {
+        "startLine": 107,
+        "startChar": 6,
+        "endLine": 107,
+        "endChar": 7
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed09dbcb_3d96360f",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 184,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-11T15:20:26Z",
+      "side": 1,
+      "message": "I don\u0027t understand why this function needs to exist, you can just construct directly.",
+      "range": {
+        "startLine": 184,
+        "startChar": 0,
+        "endLine": 184,
+        "endChar": 4
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5ae0bb4a_375cbbb7",
+        "filename": "core/integration/compressor_test.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-11T15:20:26Z",
+      "side": 1,
+      "message": "this is probably functional, but isn\u0027t complete, and mongodb versions aren\u0027t super consistent. I\u0027ve written a number of different approaches to this, but here\u0027s my most recent. \nhttps://github.com/mongodb/curator/blob/master/versions.go\n\nThis method misses rcs and pre-release versions which the driver will regularly test in evergreen. Should decide if that\u0027s relevant. \n\nadditionally",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 4
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d0d9c293_9f81fbd8",
+        "filename": "core/integration/compressor_test.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-11T15:20:26Z",
+      "side": 1,
+      "message": "seems like it would be good to split this up into more isolated cases.\n\nadditionally, should add a coverage for the case where comperssion is disabled on the server and make sure the driver handles this negative case well.",
+      "range": {
+        "startLine": 47,
+        "startChar": 0,
+        "endLine": 47,
+        "endChar": 4
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b4a731bc_de537b8e",
+        "filename": "core/integration/server_test.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 289,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-11T15:20:26Z",
+      "side": 1,
+      "message": "I think you can just pass 0, []string{} rather than declaring the variables.",
+      "range": {
+        "startLine": 289,
+        "startChar": 41,
+        "endLine": 289,
+        "endChar": 54
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
