@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "bd80c892_ea0d65c8",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 12
+      },
+      "lineNbr": 346,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T16:10:23Z",
+      "side": 1,
+      "message": "We should add the rest of the test cases to ensure compression works across the board.",
+      "range": {
+        "startLine": 346,
+        "startChar": 6,
+        "endLine": 346,
+        "endChar": 52
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "05d01817_eca30a87",
         "filename": "core/connection/connection.go",
         "patchSetId": 12
@@ -48,6 +71,75 @@
     },
     {
       "key": {
+        "uuid": "5e495327_f1f0b80f",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T16:10:23Z",
+      "side": 1,
+      "message": "Since we\u0027re sharing the compressBuf we should use a pointer receiver.",
+      "range": {
+        "startLine": 107,
+        "startChar": 6,
+        "endLine": 107,
+        "endChar": 24
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bcd9bc33_6b95ce86",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T16:10:23Z",
+      "side": 1,
+      "message": "Is there a reason we\u0027re not making a shared decompress buf and reusing it?",
+      "range": {
+        "startLine": 114,
+        "startChar": 1,
+        "endLine": 114,
+        "endChar": 52
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cbe82f0e_202b7f09",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 126,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T16:10:23Z",
+      "side": 1,
+      "message": "Since we\u0027re sharing the compressBuf and uncompressBuf across invocations we should make this a pointer receiver.",
+      "range": {
+        "startLine": 126,
+        "startChar": 6,
+        "endLine": 126,
+        "endChar": 22
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ed09dbcb_3d96360f",
         "filename": "core/connection/connection.go",
         "patchSetId": 12
@@ -64,6 +156,98 @@
         "startChar": 0,
         "endLine": 184,
         "endChar": 4
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c95985e3_0bfadb65",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T16:10:23Z",
+      "side": 1,
+      "message": "Let\u0027s allocate initial buffers in this function. I think we can make them 256 bytes like the read and write buffers for the connection.",
+      "range": {
+        "startLine": 185,
+        "startChar": 1,
+        "endLine": 185,
+        "endChar": 26
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ef323bab_b0f19dbb",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 204,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T16:10:23Z",
+      "side": 1,
+      "message": "Let\u0027s allocate an initial uncompress buffer here as well.",
+      "range": {
+        "startLine": 200,
+        "startChar": 0,
+        "endLine": 204,
+        "endChar": 2
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b8ed68c3_6ea786a9",
+        "filename": "core/connstring/connstring.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 362,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T16:10:23Z",
+      "side": 1,
+      "message": "Is it valid for users to pass no compressors if they want to disable compression?",
+      "range": {
+        "startLine": 360,
+        "startChar": 2,
+        "endLine": 362,
+        "endChar": 3
+      },
+      "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81d7df6c_21432c0c",
+        "filename": "core/connstring/connstring_test.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 502,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T16:10:23Z",
+      "side": 1,
+      "message": "What happens if we specify \"compressors\u003dsnappy\u0026zlibCompressionLebel\u003d7\"? Should we return an error?",
+      "range": {
+        "startLine": 501,
+        "startChar": 126,
+        "endLine": 502,
+        "endChar": 2
       },
       "revId": "9d7fced16f5f45bc9de6d210568776f2bfe780d3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
