@@ -129,7 +129,7 @@ func TestIndexView_CreateOne(t *testing.T) {
 	require.True(t, found)
 }
 
-func TestIndexView_CreateOneWithIndexOptions(t *testing.T) {
+func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 	t.Parallel()
 
 	if testing.Short() {
@@ -172,6 +172,77 @@ func TestIndexView_CreateOneWithIndexOptions(t *testing.T) {
 	}
 	require.NoError(t, cursor.Err())
 	require.True(t, found)
+}
+
+// Omits collation option because it's incompatible with version option
+func TestIndexView_CreateOneWithAllOptions(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	_, coll := getIndexableCollection(t)
+	indexView := coll.Indexes()
+
+	_, err := indexView.CreateOne(
+		context.Background(),
+		IndexModel{
+			Keys: bson.NewDocument(
+				bson.EC.String("foo", "text"),
+			),
+			Options: NewIndexOptionsBuilder().
+				Background(false).
+				ExpireAfterSeconds(10).
+				Name("a").
+				Sparse(false).
+				Unique(false).
+				Version(1).
+				DefaultLanguage("english").
+				LanguageOverride("english").
+				TextVersion(1).
+				Weights(bson.NewDocument()).
+				SphereVersion(1).
+				Bits(32).
+				Max(10).
+				Min(1).
+				BucketSize(1).
+				PartialFilterExpression(bson.NewDocument()).
+				StorageEngine(bson.NewDocument(
+					bson.EC.SubDocument("wiredTiger", bson.NewDocument(
+						bson.EC.String("configString", "block_compressor=zlib"),
+					)),
+				)).
+				Build(),
+		},
+	)
+	require.NoError(t, err)
+}
+
+func TestIndexView_CreateOneWithCollationOption(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	_, coll := getIndexableCollection(t)
+	indexView := coll.Indexes()
+
+	_, err := indexView.CreateOne(
+		context.Background(),
+		IndexModel{
+			Keys: bson.NewDocument(
+				bson.EC.String("bar", "text"),
+			),
+			Options: NewIndexOptionsBuilder().
+				Collation(bson.NewDocument(
+					bson.EC.String("locale", "simple"),
+				)).
+				Build(),
+		},
+	)
+	require.NoError(t, err)
 }
 
 func TestIndexView_CreateMany(t *testing.T) {
