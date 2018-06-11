@@ -56,6 +56,10 @@ func (iv IndexView) CreateMany(ctx context.Context, opts []option.CreateIndexesO
 	indexes := bson.NewArray()
 
 	for _, model := range models {
+		if model.Keys == nil {
+			return nil, fmt.Errorf("index model keys cannot be nil")
+		}
+
 		name, err := getOrGenerateIndexName(model)
 		if err != nil {
 			return nil, err
