@@ -2,6 +2,75 @@
   "comments": [
     {
       "key": {
+        "uuid": "7aecc5d0_2963c3b4",
+        "filename": "core/auth/x509.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T14:56:34Z",
+      "side": 1,
+      "message": "According to https://github.com/mongodb/specifications/blob/master/source/auth/auth.rst#mongodb-x509 we need to send the username if the server version is 3.2 or below. According to https://github.com/mongodb/specifications/blob/master/source/wireversion-featurelist.rst the wire version for 3.2 is 4, so this check should be\n\n    if desc.WireVersion.Max \u003c\u003d 4\n\nAdditionally, we want to check the max wire version the server supports, not the minimum since the min wireversion is always 0.",
+      "range": {
+        "startLine": 37,
+        "startChar": 1,
+        "endLine": 37,
+        "endChar": 28
+      },
+      "revId": "f1e298b6f7b189e96b13a3156b36a59eddebed0b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ca6e0db8_94cf6bce",
+        "filename": "core/command/handshake.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T14:56:34Z",
+      "side": 1,
+      "message": "We don\u0027t need to return an array since we are only returning a single wiremessage.WireMessage.",
+      "range": {
+        "startLine": 33,
+        "startChar": 31,
+        "endLine": 33,
+        "endChar": 56
+      },
+      "revId": "f1e298b6f7b189e96b13a3156b36a59eddebed0b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ba0167c0_84ccd3d1",
+        "filename": "core/command/handshake.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T14:56:34Z",
+      "side": 1,
+      "message": "We are only sending one command, so we aren\u0027t pipelining anymore.",
+      "range": {
+        "startLine": 67,
+        "startChar": 23,
+        "endLine": 67,
+        "endChar": 71
+      },
+      "revId": "f1e298b6f7b189e96b13a3156b36a59eddebed0b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4d6529c1_f08bc5da",
         "filename": "core/description/feature.go",
         "patchSetId": 1
@@ -41,6 +110,53 @@
         "startChar": 34,
         "endLine": 181,
         "endChar": 48
+      },
+      "revId": "f1e298b6f7b189e96b13a3156b36a59eddebed0b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5e265e73_947f68bd",
+        "filename": "core/description/selector_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T14:56:34Z",
+      "side": 1,
+      "message": "I think a min of 0 would be more correct here.",
+      "parentUuid": "79afe1c8_0eb52024",
+      "range": {
+        "startLine": 181,
+        "startChar": 34,
+        "endLine": 181,
+        "endChar": 48
+      },
+      "revId": "f1e298b6f7b189e96b13a3156b36a59eddebed0b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e13687b0_9d36bd20",
+        "filename": "core/description/shared_spec_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 197,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-11T14:56:34Z",
+      "side": 1,
+      "message": "I\u0027m not sure what this is doing, but I think we can just ensure that we set Max to something 5 or above.",
+      "range": {
+        "startLine": 193,
+        "startChar": 3,
+        "endLine": 197,
+        "endChar": 4
       },
       "revId": "f1e298b6f7b189e96b13a3156b36a59eddebed0b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
