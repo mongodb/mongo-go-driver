@@ -1,9 +1,10 @@
 package distinctopt
 
 import (
+	"time"
+
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/mongoopt"
 	"github.com/mongodb/mongo-go-driver/options-design/option"
-	"time"
 )
 
 type Distinct interface {

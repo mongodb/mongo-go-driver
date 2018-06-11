@@ -1,8 +1,9 @@
 package aggregateopt
 
 import (
-	"github.com/mongodb/mongo-go-driver/options-design/option"
 	"time"
+
+	"github.com/mongodb/mongo-go-driver/options-design/option"
 )
 
 type Aggregate interface {
@@ -11,7 +12,7 @@ type Aggregate interface {
 
 type AggregateBundle struct{}
 
-func BundleAggregate(...Aggregate) *AggregateBundle{ return nil }
+func BundleAggregate(...Aggregate) *AggregateBundle { return nil }
 
 func (ab *AggregateBundle) AllowDiskUse(b bool) *AggregateBundle {
 	return nil
@@ -45,13 +46,13 @@ func (ab *AggregateBundle) Unbundle(deduplicate bool) []option.Optioner {
 	return nil
 }
 
-func AllowDiskUse(b bool) OptAllowDiskUse { return false }
-func BatchSize(i int32) OptBatchSize { return 0 }
+func AllowDiskUse(b bool) OptAllowDiskUse                         { return false }
+func BatchSize(i int32) OptBatchSize                              { return 0 }
 func BypassDocumentValidation(b bool) OptBypassDocumentValidation { return false }
-func Collation(c option.Collation) OptCollation { return OptCollation{} }
-func MaxTime(d time.Duration) OptMaxTime { return 0 }
-func Comment(s string) OptComment { return "" }
-func Hint(hint interface{}) OptHint { return OptHint{} }
+func Collation(c option.Collation) OptCollation                   { return OptCollation{} }
+func MaxTime(d time.Duration) OptMaxTime                          { return 0 }
+func Comment(s string) OptComment                                 { return "" }
+func Hint(hint interface{}) OptHint                               { return OptHint{} }
 
 func (ab *AggregateBundle) aggregate() {}
 
@@ -82,4 +83,3 @@ func (OptComment) aggregate() {}
 type OptHint option.OptHint
 
 func (OptHint) aggregate() {}
-

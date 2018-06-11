@@ -3,14 +3,15 @@ package mongo
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/clientopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/dbopt"
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
-	"github.com/mongodb/mongo-go-driver/options-design/option"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/insertopt"
+	"github.com/mongodb/mongo-go-driver/options-design/option"
 )
 
 // Client is the main type used to access MongoDB. A client is created from a
@@ -62,12 +63,12 @@ func (c *Collection) InsertMany(ctx context.Context, docs []interface{}, opts ..
 }
 
 // DeleteOne deletes a single document.
-func (c *Collection) DeleteOne(ctx context.Context, filter interface{}, opts ...option.DeleteOptioner) (*DeleteResult, error) {
+func (c *Collection) DeleteOne(ctx context.Context, filter interface{}, opts ...deleteopt.Delete) (*DeleteResult, error) {
 	return nil, nil
 }
 
 // DeleteMany deletes multiple documents.
-func (c *Collection) DeleteMany(ctx context.Context, filter interface{}, opts ...option.DeleteOptioner) (*DeleteResult, error) {
+func (c *Collection) DeleteMany(ctx context.Context, filter interface{}, opts ...deleteopt.Delete) (*DeleteResult, error) {
 	return nil, nil
 }
 

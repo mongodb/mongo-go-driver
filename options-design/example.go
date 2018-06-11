@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/options-design/mongo"
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/countopt"
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
-	"github.com/mongodb/mongo-go-driver/options-design/mongo/mongoopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/countopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/deleteopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/distinctopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/options-design/mongo/insertopt"
+	"github.com/mongodb/mongo-go-driver/options-design/mongo/mongoopt"
 )
 
 func main() {
@@ -135,6 +136,22 @@ func insert(ctx context.Context, doc interface{}, collection *mongo.Collection) 
 	var bundle *insertopt.OneBundle
 
 	_, err = collection.InsertOne(ctx, doc, bundle.BypassDocumentValidation(true))
+
+	return err
+}
+
+func delete(ctx context.Context, filter interface{}, collection *mongo.Collection) error {
+	var err error
+
+	_, err = collection.DeleteOne(ctx, filter)
+
+	_, err = collection.DeleteOne(ctx, filter, deleteopt.BundleDelete().Collation(nil))
+
+	_, err = collection.DeleteOne(ctx, filter, deleteopt.Collation(nil))
+
+	var bundle *deleteopt.DeleteBundle
+
+	_, err = collection.DeleteOne(ctx, filter, bundle.Collation(nil))
 
 	return err
 }
