@@ -117,8 +117,8 @@ used.
 
 #### Codecs
 A codec is an interface composed of two methods called `EncodeValue` and `DecodeValue`. Since a
-registry can be used by multiple goroutines, codecs should that they do not hold state between
-function invocations and should themselves be goroutine safe.
+registry can be used by multiple goroutines, codecs should ensure that they do not hold state
+between function invocations and should themselves be goroutine safe.
 
 ### Struct Tag Handling
 The struct codec will have a configurable struct tag handler which is responsible for parsing struct
