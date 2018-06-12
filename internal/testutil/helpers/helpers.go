@@ -20,7 +20,41 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/stretchr/testify/require"
+	"reflect"
 )
+
+// Test helpers
+
+// IsNil returns true if the object is nil
+func IsNil(object interface{}) bool {
+	if object == nil {
+		return true
+	}
+
+	value := reflect.ValueOf(object)
+	kind := value.Kind()
+
+	// checking to see if type is Chan, Func, Interface, Map, Ptr, or Slice
+	if kind >= reflect.Chan && kind <= reflect.Slice && value.IsNil() {
+		return true
+	}
+
+	return false
+}
+
+// RequireNotNil throws an error if var is nil
+func RequireNotNil(t *testing.T, variable interface{}, msgFormat string, msgVars ...interface{}) {
+	if IsNil(variable) {
+		t.Errorf(msgFormat, msgVars...)
+	}
+}
+
+// RequireNil throws an error if var is not nil
+func RequireNil(t *testing.T, variable interface{}, msgFormat string, msgVars ...interface{}) {
+	if !IsNil(variable) {
+		t.Errorf(msgFormat, msgVars...)
+	}
+}
 
 // FindJSONFilesInDir finds the JSON files in a directory.
 func FindJSONFilesInDir(t *testing.T, dir string) []string {
