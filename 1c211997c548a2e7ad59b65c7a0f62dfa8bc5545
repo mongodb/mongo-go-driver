@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "36562844_c9dcff58",
+        "filename": "core/auth/x509.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-12T15:33:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5705cf6c_630f6a15",
+      "range": {
+        "startLine": 37,
+        "startChar": 25,
+        "endLine": 37,
+        "endChar": 26
+      },
+      "revId": "1c211997c548a2e7ad59b65c7a0f62dfa8bc5545",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "19f539d7_9a7b1d08",
         "filename": "core/command/handshake.go",
         "patchSetId": 2
@@ -45,6 +69,30 @@
       "revId": "1c211997c548a2e7ad59b65c7a0f62dfa8bc5545",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0f1d4d95_8f19ee8c",
+        "filename": "core/command/handshake.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-12T15:33:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "19f539d7_9a7b1d08",
+      "range": {
+        "startLine": 34,
+        "startChar": 5,
+        "endLine": 34,
+        "endChar": 8
+      },
+      "revId": "1c211997c548a2e7ad59b65c7a0f62dfa8bc5545",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
