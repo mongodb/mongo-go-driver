@@ -1,0 +1,141 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bc775bcd_9498c371",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-12T02:27:40Z",
+      "side": 1,
+      "message": "Any reason we can\u0027t do Map encoding now too?",
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7efbc1f0_edc063b9",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-12T02:27:40Z",
+      "side": 1,
+      "message": "Where is the value of \u0027iters\u0027 determined?  I think the spec says that the benchmark should run for a minimum amount of time rather than a minimum number of iterations.",
+      "range": {
+        "startLine": 11,
+        "startChar": 46,
+        "endLine": 11,
+        "endChar": 51
+      },
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "98528144_83679a9a",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-12T02:27:40Z",
+      "side": 1,
+      "message": "Pull the loadSourceReader call out of this method so that the time it takes isn\u0027t included in the benchmark and, instead, pass \u0027r\u0027 into the method from caller.",
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "458e7551_a90c561f",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-12T02:27:40Z",
+      "side": 1,
+      "message": "Make a new map for each iteration.  That\u0027s a more realistic scenario than adding keys to a map that are already contained in the map",
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "29356d8b_757f0d06",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-12T02:27:40Z",
+      "side": 1,
+      "message": "Why are encoding benchmarks in the bson_decoder file?  I don\u0027t mind keeping them together, but the file name should change to reflect it.\n\nI suggest splitting this into two files\n\n1. bson_map.go for encoding and decoding into Go maps\n2. bson_struct.go for encoding and decoding into Go structs\n\nThis would fit better with bson_document.go and bson_reader.go",
+      "range": {
+        "startLine": 48,
+        "startChar": 0,
+        "endLine": 48,
+        "endChar": 4
+      },
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7c52ef09_1b6b68e0",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-12T02:27:40Z",
+      "side": 1,
+      "message": "Since the driver has, or will have, buffer pools, may be more realistic to allocate a buffer outside the loop and re-use it.",
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "741deb96_1fc6335c",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-12T02:27:40Z",
+      "side": 1,
+      "message": "Can we DRY this up with a helper function that can be used by the Flat, Deep, and Full?",
+      "range": {
+        "startLine": 111,
+        "startChar": 0,
+        "endLine": 111,
+        "endChar": 4
+      },
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
