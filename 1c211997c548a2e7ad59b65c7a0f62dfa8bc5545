@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5705cf6c_630f6a15",
+        "filename": "core/auth/x509.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T15:22:09Z",
+      "side": 1,
+      "message": "This should be \u003c\u003d or it should be \u003c 5",
+      "range": {
+        "startLine": 37,
+        "startChar": 25,
+        "endLine": 37,
+        "endChar": 26
+      },
+      "revId": "1c211997c548a2e7ad59b65c7a0f62dfa8bc5545",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "19f539d7_9a7b1d08",
+        "filename": "core/command/handshake.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T15:22:09Z",
+      "side": 1,
+      "message": "Minor but this variable and the others like it should be called \"wm\".",
+      "range": {
+        "startLine": 34,
+        "startChar": 5,
+        "endLine": 34,
+        "endChar": 8
+      },
+      "revId": "1c211997c548a2e7ad59b65c7a0f62dfa8bc5545",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
