@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ed317ad4_5dab07a4",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-12T21:38:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bc775bcd_9498c371",
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7efbc1f0_edc063b9",
         "filename": "benchmark/bson_decoder.go",
         "patchSetId": 4
@@ -42,6 +60,30 @@
     },
     {
       "key": {
+        "uuid": "1fb6831b_2d57769a",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-12T21:38:03Z",
+      "side": 1,
+      "message": "The spec says \"run for at least 1 minute and a minimum of either n iterations, with a timeout of 5 minutes.\" \n\nAdditionally, by passing iterations to these functions we integrate with go\u0027s native benchmark tool, and execute all of the tests in that framework (which is very good for development, and allows us to track more things like allocations...)",
+      "parentUuid": "7efbc1f0_edc063b9",
+      "range": {
+        "startLine": 11,
+        "startChar": 46,
+        "endLine": 11,
+        "endChar": 51
+      },
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "98528144_83679a9a",
         "filename": "benchmark/bson_decoder.go",
         "patchSetId": 4
@@ -59,6 +101,24 @@
     },
     {
       "key": {
+        "uuid": "5716a822_0574726a",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-12T21:38:03Z",
+      "side": 1,
+      "message": "Rather than do this as suggested, I\u0027ve given benchmark implementers the ability to start/stop/reset timing. I think there\u0027s a great deal of benefit in making behcnmarks easy to write, and conceptually compatible with go benchmark tools. To require each benchmark to implement a setup/run/teardown interface, raises the bar significantly, when in fact I think my changes are what we actually want.",
+      "parentUuid": "98528144_83679a9a",
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "458e7551_a90c561f",
         "filename": "benchmark/bson_decoder.go",
         "patchSetId": 4
@@ -73,6 +133,24 @@
       "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d46e7367_33ed210f",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-12T21:38:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "458e7551_a90c561f",
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -99,6 +177,30 @@
     },
     {
       "key": {
+        "uuid": "7b6ab07c_bf6bcfe6",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-12T21:38:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "29356d8b_757f0d06",
+      "range": {
+        "startLine": 48,
+        "startChar": 0,
+        "endLine": 48,
+        "endChar": 4
+      },
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7c52ef09_1b6b68e0",
         "filename": "benchmark/bson_decoder.go",
         "patchSetId": 4
@@ -113,6 +215,24 @@
       "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aa1a9f57_56d36034",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-12T21:38:03Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "7c52ef09_1b6b68e0",
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -136,6 +256,30 @@
       "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6aad96da_7c1ed773",
+        "filename": "benchmark/bson_decoder.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-12T21:38:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "741deb96_1fc6335c",
+      "range": {
+        "startLine": 111,
+        "startChar": 0,
+        "endLine": 111,
+        "endChar": 4
+      },
+      "revId": "b4cbd240f33998394ca2b920870aeadeee1f760d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
