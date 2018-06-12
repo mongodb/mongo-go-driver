@@ -189,4 +189,6 @@ func update(ctx context.Context, filter interface{}, update interface{}, collect
 
 	bundle = bundle.Upsert(true)
 	_, err = collection.UpdateOne(ctx, filter, update, bundle.Collation(nil))
+
+	return err
 }
