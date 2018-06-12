@@ -122,8 +122,7 @@ func NewDocumentEncoder() DocumentEncoder {
 	return &encoder{}
 }
 
-func convertTimeToInt64(t *time.Time) int64 {
-	if t == nil { return 0 }
+func convertTimeToInt64(t time.Time) int64 {
 	return t.Unix()*1000 + int64(t.Nanosecond()/1e6)
 }
 
@@ -443,10 +442,14 @@ func (e *encoder) encodeSliceAsArray(rval reflect.Value, minsize bool) ([]*Value
 			vals = append(vals, VC.Decimal128(t))
 			continue
 		case time.Time:
-			vals = append(vals, VC.DateTime(convertTimeToInt64(&t)))
+			vals = append(vals, VC.DateTime(convertTimeToInt64(t)))
 			continue
 		case *time.Time:
-			vals = append(vals, VC.DateTime(convertTimeToInt64(t)))
+			if t == nil {
+				vals = append(vals, VC.Null())
+			} else {
+				vals = append(vals, VC.DateTime(convertTimeToInt64(*t)))
+			}
 			continue
 		}
 
@@ -529,10 +532,14 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 			elems = append(elems, EC.Decimal128(key, t))
 			continue
 		case time.Time:
-			elems = append(elems, EC.DateTime(key, convertTimeToInt64(&t)))
+			elems = append(elems, EC.DateTime(key, convertTimeToInt64(t)))
 			continue
 		case *time.Time:
-			elems = append(elems, EC.DateTime(key, convertTimeToInt64(t)))
+			if t == nil {
+				elems = append(elems, EC.Null(key))
+			} else {
+				elems = append(elems, EC.DateTime(key, convertTimeToInt64(*t)))
+			}
 			continue
 		}
 		field = e.underlyingVal(field)
