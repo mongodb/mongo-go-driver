@@ -70,6 +70,30 @@
       "revId": "74a0e9321e7301b657c1d54c84a38bfc58d22aa4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0ead6c90_0ce65345",
+        "filename": "core/auth/plain.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T15:34:18Z",
+      "side": 0,
+      "message": "We already have a test we run against LDAP so I don\u0027t think that\u0027s necessary.",
+      "parentUuid": "88cbbccc_f62cee55",
+      "range": {
+        "startLine": 19,
+        "startChar": 1,
+        "endLine": 21,
+        "endChar": 2
+      },
+      "revId": "74a0e9321e7301b657c1d54c84a38bfc58d22aa4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
