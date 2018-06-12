@@ -1,0 +1,174 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b1385e5f_6aaa1f32",
+        "filename": "core/auth/auth.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "Can we wrap this in something like a new struct HandshakeOptions or something? Probably include the authenticator and appName as well. This could get unruly quickly.\n\nI\u0027m also wondering why the handshaker needs the zlibLevel at all, as that is a local configuration only needed in the connection itself. I see that it\u0027s being set on the description.Server, but I\u0027m not sure why that needs to be there either.\n\n@skriptble, thoughts?",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3c721773_41f8a292",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "Can we move the Compressor and the implementations to another file? compression.go? compressors.go?\n\nAlso, is it important that this be exported?",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c7bba62_6616997a",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 158,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "should we be using io.ReadFull here to ensure that we don\u0027t have a partial read? I notice we are ignoring the number of bytes rea which is only ok we are guaranteed that zlibReader ALWAYS reads in full.",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "34aa0905_344e2637",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 217,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "I feel like the opts should contain the configured compressors... already instantiated. That way, creating/configuring them (zlib) can be done at a higher level and this weird zlibLevel doesn\u0027t need to get passed around. It also means we don\u0027t need to create all the compressors all the time for all the different connections.\n\nI see that there are some local byte level caches going on, but that should be solvable by using the connection\u0027s readBuf and writeBuf rather than a compressor\u0027s...",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f7f69840_911c1789",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "remove empty line between err set and err check",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c5cc034_1b4aaf33",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "Didn\u0027t we just create one of these on 243?",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "99590a39_785b7803",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 287,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "Didn\u0027t we just create on of these on 244?\n\nAlso, I feel like this should be d.zlibLevel? We set this value later and then never use it again. I\u0027m unclear as to why we need a zlibLevel setting on the connection at all.",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "80d822ac_baa0c979",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 428,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "why does this not need to have 16 added to it for the length of the header? The compressed message doesn\u0027t contain this length, so it seems like that needs to be accounted for somewhere...",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2d0fe701_ed541442",
+        "filename": "core/description/server.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "Why is it important that the Server struct here have knowledge of compression? I don\u0027t believe this is used anywhere.",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de478bc4_7f298295",
+        "filename": "core/topology/server_options.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-12T21:43:06Z",
+      "side": 1,
+      "message": "2 things:\n1. Can these be a connection option instead of a server option?\n2. Wherever these options are, they can probably be instantiated Compressor instances.",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
