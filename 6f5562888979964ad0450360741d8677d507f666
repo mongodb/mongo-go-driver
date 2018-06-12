@@ -1,0 +1,257 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ca992879_e1c2f44c",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "This isn\u0027t really an option, maybe we should just make this \"next\"?",
+      "range": {
+        "startLine": 20,
+        "startChar": 1,
+        "endLine": 20,
+        "endChar": 11
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c1be55a4_e53c0744",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "This is a strange way to declare this. We can also probably just use a single global base bundle instance, e.g.\n\nvar aggregateBundle \u003d new(AggregateBundle)\n\nAt the top of the file, and then use that as the initial head variable.",
+      "range": {
+        "startLine": 25,
+        "startChar": 0,
+        "endLine": 26,
+        "endChar": 16
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c6c082a8_fc9e180e",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "It doesn\u0027t appear that this method currently handles nested bundles, which are valid in the design.",
+      "range": {
+        "startLine": 111,
+        "startChar": 0,
+        "endLine": 111,
+        "endChar": 4
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e2dd6c36_c83f4072",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "Any reason to not initialize this in the for loop? Also, temp isn\u0027t the best variable name.",
+      "range": {
+        "startLine": 117,
+        "startChar": 1,
+        "endLine": 117,
+        "endChar": 11
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9d728061_28496058",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "We can make this the struct{} since we aren\u0027t using the value, this saves some extra space.\n\n    optionsSet :\u003d make(map[string]struct{})",
+      "range": {
+        "startLine": 140,
+        "startChar": 31,
+        "endLine": 140,
+        "endChar": 35
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8fb9769e_7d6648a5",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "We can actually make the map type use reflect.Type as the key:\n\nType values are comparable, such as with the \u003d\u003d operator, so they can be used as map keys. Two Type values are equal if they represent identical types.\n- https://golang.org/pkg/reflect/#Type\n\nIt makes more sense to use the most type safe thing instead of distilling it down to something less type safe.",
+      "range": {
+        "startLine": 144,
+        "startChar": 2,
+        "endLine": 146,
+        "endChar": 36
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aa8e838e_ea618814",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "With the empty struct paradigm this becomes\n\n    optionsSet[optionType] \u003d struct{}{}",
+      "range": {
+        "startLine": 152,
+        "startChar": 27,
+        "endLine": 152,
+        "endChar": 31
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8d5094a7_88801db4",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "We should generally try to group the methods for a type with the other methods for that type.",
+      "range": {
+        "startLine": 191,
+        "startChar": 1,
+        "endLine": 193,
+        "endChar": 69
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fab3d200_93398cbf",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "We can make these cleaner by using the subtest feature of Go\u0027s testing framework. We can have one function \"TestAggregateOpt\" and then use\n    t.Run(\"MakeOptions\", func(t *testing.T) { ... })\n\nThis should make things a little cleaner to read. It also makes it easier to understand all these tests are for the same type.",
+      "range": {
+        "startLine": 9,
+        "startChar": 5,
+        "endLine": 9,
+        "endChar": 33
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "322e4153_340c94ca",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "While testify is used in other packages, we\u0027re trying to not use it in new packages since it has several issues (chiefly that it rewrites the output of Go test in a way that makes it difficult for tools to parse). Let\u0027s use t.Errorf directly. Feel free to make some helper functions, e.g. notNil.",
+      "range": {
+        "startLine": 13,
+        "startChar": 1,
+        "endLine": 13,
+        "endChar": 25
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2e3d4b27_9e06ae6d",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-12T21:05:56Z",
+      "side": 1,
+      "message": "Table tests generally have all of the information encoded in the struct, so that we can test it with a variety of use cases.",
+      "range": {
+        "startLine": 46,
+        "startChar": 1,
+        "endLine": 47,
+        "endChar": 102
+      },
+      "revId": "6f5562888979964ad0450360741d8677d507f666",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
