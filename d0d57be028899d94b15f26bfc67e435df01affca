@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "004c1eb6_d530f5dc",
+        "filename": "benchmark/bson_document.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-13T16:27:54Z",
+      "side": 1,
+      "message": "DRY up these as well.",
+      "range": {
+        "startLine": 10,
+        "startChar": 0,
+        "endLine": 10,
+        "endChar": 4
+      },
+      "revId": "d0d57be028899d94b15f26bfc67e435df01affca",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "839218e3_f5fb4060",
+        "filename": "benchmark/bson_reader.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-13T16:27:54Z",
+      "side": 1,
+      "message": "DRY these up as well",
+      "revId": "d0d57be028899d94b15f26bfc67e435df01affca",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
