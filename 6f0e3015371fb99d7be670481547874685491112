@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c22b427f_e8f9ce7f",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-13T20:00:36Z",
+      "side": 1,
+      "message": "There is a possibility in the future that we\u0027ll need this method to be public if a type not in this package needs to implement this, e.g. mongo.Session.",
+      "range": {
+        "startLine": 16,
+        "startChar": 1,
+        "endLine": 16,
+        "endChar": 14
+      },
+      "revId": "6f0e3015371fb99d7be670481547874685491112",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fe43422e_8bc59e79",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-13T20:00:36Z",
+      "side": 1,
+      "message": "Let\u0027s add a comment here that we\u0027re checking to ensure the type is one of: Chan,Func, Interface, Map, Ptr, or Slice.",
+      "range": {
+        "startLine": 15,
+        "startChar": 1,
+        "endLine": 15,
+        "endChar": 68
+      },
+      "revId": "6f0e3015371fb99d7be670481547874685491112",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6cef342f_7ffeb87e",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-13T20:00:36Z",
+      "side": 1,
+      "message": "Let\u0027s add a test here for unbundling a nested bundle.",
+      "range": {
+        "startLine": 64,
+        "startChar": 2,
+        "endLine": 64,
+        "endChar": 3
+      },
+      "revId": "6f0e3015371fb99d7be670481547874685491112",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
