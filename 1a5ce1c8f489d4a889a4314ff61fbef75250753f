@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d08a1366_336fcab7",
+        "filename": "benchmark/bson_document.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-13T16:58:31Z",
+      "side": 1,
+      "message": "I wouldn\u0027t think this would compile without the source string",
+      "range": {
+        "startLine": 104,
+        "startChar": 1,
+        "endLine": 104,
+        "endChar": 7
+      },
+      "revId": "1a5ce1c8f489d4a889a4314ff61fbef75250753f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6eb73d38_5f89c4a4",
+        "filename": "benchmark/bson_document.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-13T16:58:31Z",
+      "side": 1,
+      "message": "deep not flat",
+      "revId": "1a5ce1c8f489d4a889a4314ff61fbef75250753f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
