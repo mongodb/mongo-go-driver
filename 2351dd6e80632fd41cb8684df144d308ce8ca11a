@@ -1,0 +1,61 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "117c7e3a_cc6103a9",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-13T23:28:04Z",
+      "side": 1,
+      "message": "why isn\u0027t this a method on AggregateBundle?",
+      "range": {
+        "startLine": 117,
+        "startChar": 5,
+        "endLine": 117,
+        "endChar": 17
+      },
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "91c3783d_e24de81f",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-13T23:28:04Z",
+      "side": 1,
+      "message": "see above about making this mostly private.",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "53b1cb86_3ba2fc72",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-13T23:28:04Z",
+      "side": 1,
+      "message": "seems like we should just use testify for these helper functions, we\u0027re going to have to duplicate them for each options package.",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
