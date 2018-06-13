@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "bd349092_4c457aca",
+        "filename": "core/auth/auth.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-13T19:41:23Z",
+      "side": 1,
+      "message": "I think the parameters are getting a little crazy here, so I\u0027d agree with a struct of some sort.",
+      "parentUuid": "b1385e5f_6aaa1f32",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3c721773_41f8a292",
         "filename": "core/connection/connection.go",
         "patchSetId": 14
