@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -186,14 +187,14 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 	t.Run(test.Description, func(t *testing.T) {
 		pipeline := test.Operation.Arguments["pipeline"].([]interface{})
 
-		var opts []option.AggregateOptioner
+		opts := aggregateopt.BundleAggregate()
 
 		if batchSize, found := test.Operation.Arguments["batchSize"]; found {
-			opts = append(opts, Opt.BatchSize(int32(batchSize.(float64))))
+			opts = opts.BatchSize(int32(batchSize.(float64)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = opts.Collation(*collationFromMap(collation.(map[string]interface{})))
 		}
 
 		out := false
@@ -203,7 +204,7 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 			}
 		}
 
-		cursor, err := coll.Aggregate(context.Background(), pipeline, opts...)
+		cursor, err := coll.Aggregate(context.Background(), pipeline, opts)
 		require.NoError(t, err)
 
 		if !out {
