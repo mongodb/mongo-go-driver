@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "b001a514_2dd97000",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-14T16:08:46Z",
+      "side": 1,
+      "message": "I think this is supposed to be changed to mongoopt.Collation when we implement the mongoopt package. option.Collation is a placeholder for now.",
+      "parentUuid": "c228744c_25ade586",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "117c7e3a_cc6103a9",
         "filename": "mongo/aggregateopt/aggregateopt.go",
         "patchSetId": 5
