@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "c228744c_25ade586",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-14T16:01:50Z",
+      "side": 1,
+      "message": "isn\u0027t the whole point of these methods that they avoid needing to import the core/options package? if people need to import options to make aggreation options, then this reduces the utility of this interface.",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "117c7e3a_cc6103a9",
         "filename": "mongo/aggregateopt/aggregateopt.go",
         "patchSetId": 5
@@ -125,6 +142,24 @@
       "side": 1,
       "message": "Returning a private type from a public function is an antipattern and defining interfaces for each of the different combinations of interfaces that an option could satisfy is difficult to maintain. The comment here does not need be updated, as we should describe what the option is. I think this is mostly copied from the previous implementation of options where these were the comments.",
       "parentUuid": "ed94679e_8f260ed0",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "517bab1e_83321b1b",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-14T16:01:50Z",
+      "side": 1,
+      "message": "I\u0027m not suggesting a private type, I\u0027m suggesting a private implementation of a public interface. \n\nso:\n\nfunc Comment(s string) Aggregate {}\nfunc Hint(h interface{}) Aggregate {} \n\nand so forth, and then OptHint and OptComment can be private. I don\u0027t think users actually need to know about these types, and can\u0027t meaningfully use them (I think?)",
+      "parentUuid": "15f97189_537bed1d",
       "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
