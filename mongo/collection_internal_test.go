@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1005,7 +1006,7 @@ func TestCollection_Aggregate(t *testing.T) {
 			),
 		))
 
-	cursor, err := coll.Aggregate(context.Background(), pipeline)
+	cursor, err := coll.Aggregate(context.Background(), pipeline, aggregateopt.BundleAggregate())
 	require.Nil(t, err)
 
 	for i := 2; i < 5; i++ {
@@ -1025,7 +1026,7 @@ func TestCollection_Aggregate(t *testing.T) {
 	}
 }
 
-func testAggregateWithOptions(t *testing.T, createIndex bool, option option.AggregateOptioner) error {
+func testAggregateWithOptions(t *testing.T, createIndex bool, opts aggregateopt.Aggregate) error {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
@@ -1064,7 +1065,7 @@ func testAggregateWithOptions(t *testing.T, createIndex bool, option option.Aggr
 			),
 		))
 
-	cursor, err := coll.Aggregate(context.Background(), pipeline, option)
+	cursor, err := coll.Aggregate(context.Background(), pipeline, opts)
 	if err != nil {
 		return err
 	}
@@ -1107,10 +1108,9 @@ func TestCollection_Aggregate_IndexHint(t *testing.T) {
 
 	t.Parallel()
 
-	hint, err := Opt.Hint(bson.NewDocument(bson.EC.Int32("x", 1)))
-	require.NoError(t, err)
+	hint := aggregateopt.Hint(bson.NewDocument(bson.EC.Int32("x", 1)))
 
-	err = testAggregateWithOptions(t, true, hint)
+	err := testAggregateWithOptions(t, true, hint)
 	require.NoError(t, err)
 }
 
@@ -1121,7 +1121,7 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 
 	t.Parallel()
 
-	err := testAggregateWithOptions(t, false, Opt.AllowDiskUse(true))
+	err := testAggregateWithOptions(t, false, aggregateopt.AllowDiskUse(true))
 	require.NoError(t, err)
 }
 
