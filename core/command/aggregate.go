@@ -22,7 +22,7 @@ import (
 type Aggregate struct {
 	NS       Namespace
 	Pipeline *bson.Array
-	Opts     []option.AggregateOptioner
+	Opts     []option.Optioner
 	ReadPref *readpref.ReadPref
 
 	result Cursor

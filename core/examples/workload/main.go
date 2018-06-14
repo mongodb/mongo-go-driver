@@ -123,7 +123,7 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 			cmd := command.Aggregate{
 				NS:       ns,
 				Pipeline: pipeline,
-				Opts:     []option.AggregateOptioner{option.OptBatchSize(200)},
+				Opts:     []option.Optioner{option.OptBatchSize(200)},
 				ReadPref: rp,
 			}
 			cursor, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp), nil)

@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 )
 
 // ErrMissingResumeToken indicates that a change stream notification from the server did not
@@ -54,7 +55,7 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 			bson.NewDocument(
 				bson.EC.SubDocument("$changeStream", changeStreamOptions))))
 
-	cursor, err := coll.Aggregate(ctx, pipelineArr)
+	cursor, err := coll.Aggregate(ctx, pipelineArr, aggregateopt.BundleAggregate())
 	if err != nil {
 		return nil, err
 	}
