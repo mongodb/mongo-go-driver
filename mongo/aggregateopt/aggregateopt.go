@@ -13,7 +13,7 @@ var aggregateBundle = new(AggregateBundle)
 // Aggregate is options for the aggregate() function
 type Aggregate interface {
 	aggregate()
-	ConvertOption() option.Optioner
+	ConvertOption() option.AggregateOptioner
 }
 
 // AggregateBundle is a bundle of Aggregate options
@@ -26,7 +26,7 @@ type AggregateBundle struct {
 func (ab *AggregateBundle) aggregate() {}
 
 // ConvertOption implements the Aggregate interface
-func (ab *AggregateBundle) ConvertOption() option.Optioner { return nil }
+func (ab *AggregateBundle) ConvertOption() option.AggregateOptioner { return nil }
 
 // BundleAggregate bundles Aggregate options
 func BundleAggregate(opts ...Aggregate) *AggregateBundle {
@@ -135,7 +135,7 @@ func (ab *AggregateBundle) bundleLength() int {
 }
 
 // Unbundle transforms a bundle into a slice of options, optionally deduplicating
-func (ab *AggregateBundle) Unbundle(deduplicate bool) ([]option.Optioner, error) {
+func (ab *AggregateBundle) Unbundle(deduplicate bool) ([]option.AggregateOptioner, error) {
 
 	options, err := ab.unbundle()
 	if err != nil {
@@ -166,14 +166,14 @@ func (ab *AggregateBundle) Unbundle(deduplicate bool) ([]option.Optioner, error)
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (ab *AggregateBundle) unbundle() ([]option.Optioner, error) {
+func (ab *AggregateBundle) unbundle() ([]option.AggregateOptioner, error) {
 	if ab == nil {
 		return nil, nil
 	}
 
 	listLen := ab.bundleLength()
 
-	options := make([]option.Optioner, listLen)
+	options := make([]option.AggregateOptioner, listLen)
 	index := listLen - 1
 
 	for listHead := ab; listHead != nil && listHead.option != nil; listHead = listHead.next {
@@ -245,7 +245,7 @@ type OptAllowDiskUse option.OptAllowDiskUse
 func (OptAllowDiskUse) aggregate() {}
 
 // ConvertOption implements the Aggregate interface
-func (opt OptAllowDiskUse) ConvertOption() option.Optioner {
+func (opt OptAllowDiskUse) ConvertOption() option.AggregateOptioner {
 	return option.OptAllowDiskUse(opt)
 }
 
@@ -255,7 +255,7 @@ type OptBatchSize option.OptBatchSize
 func (OptBatchSize) aggregate() {}
 
 // ConvertOption implements the Aggregate interface
-func (opt OptBatchSize) ConvertOption() option.Optioner {
+func (opt OptBatchSize) ConvertOption() option.AggregateOptioner {
 	return option.OptBatchSize(opt)
 }
 
@@ -263,7 +263,7 @@ func (opt OptBatchSize) ConvertOption() option.Optioner {
 type OptBypassDocumentValidation option.OptBypassDocumentValidation
 
 // ConvertOption implements the Aggregate interface
-func (opt OptBypassDocumentValidation) ConvertOption() option.Optioner {
+func (opt OptBypassDocumentValidation) ConvertOption() option.AggregateOptioner {
 	return option.OptBypassDocumentValidation(opt)
 }
 
@@ -275,7 +275,7 @@ type OptCollation option.OptCollation
 func (OptCollation) aggregate() {}
 
 // ConvertOption implements the Aggregate interface
-func (opt OptCollation) ConvertOption() option.Optioner {
+func (opt OptCollation) ConvertOption() option.AggregateOptioner {
 	return option.OptCollation(opt)
 }
 
@@ -285,7 +285,7 @@ type OptMaxTime option.OptMaxTime
 func (OptMaxTime) aggregate() {}
 
 // ConvertOption implements the Aggregate interface
-func (opt OptMaxTime) ConvertOption() option.Optioner {
+func (opt OptMaxTime) ConvertOption() option.AggregateOptioner {
 	return option.OptMaxTime(opt)
 }
 
@@ -295,7 +295,7 @@ type OptComment option.OptComment
 func (OptComment) aggregate() {}
 
 // ConvertOption implements the Aggregate interface
-func (opt OptComment) ConvertOption() option.Optioner {
+func (opt OptComment) ConvertOption() option.AggregateOptioner {
 	return option.OptComment(opt)
 }
 
@@ -305,6 +305,6 @@ type OptHint option.OptHint
 func (OptHint) aggregate() {}
 
 // ConvertOption implements the Aggregate interface
-func (opt OptHint) ConvertOption() option.Optioner {
+func (opt OptHint) ConvertOption() option.AggregateOptioner {
 	return option.OptHint(opt)
 }
