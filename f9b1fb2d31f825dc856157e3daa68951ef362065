@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "92cafe0e_d751cd03",
+        "filename": "internal/testutil/helpers/helpers.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-14T19:06:04Z",
+      "side": 1,
+      "message": "Do these functions trip up our linters? We should probably give them some doc comments.",
+      "range": {
+        "startLine": 28,
+        "startChar": 0,
+        "endLine": 28,
+        "endChar": 4
+      },
+      "revId": "f9b1fb2d31f825dc856157e3daa68951ef362065",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3bc6397a_a95b3134",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-14T19:06:04Z",
+      "side": 1,
+      "message": "Let\u0027s add some tests that have deeper nesting, like a bundle made with at least 2 bundles that also have a nested bundle. I think that should cover the majority of cases here. We can add some duplicates for good measure as well.",
+      "range": {
+        "startLine": 110,
+        "startChar": 2,
+        "endLine": 110,
+        "endChar": 3
+      },
+      "revId": "f9b1fb2d31f825dc856157e3daa68951ef362065",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
