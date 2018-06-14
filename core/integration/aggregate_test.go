@@ -68,7 +68,7 @@ func TestCommandAggregate(t *testing.T) {
 				),
 				bson.VC.Document(bson.NewDocument(bson.EC.SubDocument("$sort", bson.NewDocument(bson.EC.Int32("_id", -1))))),
 			),
-			Opts: []option.AggregateOptioner{option.OptBatchSize(2)},
+			Opts: []option.Optioner{option.OptBatchSize(2)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
@@ -110,7 +110,7 @@ func TestCommandAggregate(t *testing.T) {
 		_, err = (&command.Aggregate{
 			NS:       command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bson.NewArray(),
-			Opts:     []option.AggregateOptioner{option.OptAllowDiskUse(true)},
+			Opts:     []option.Optioner{option.OptAllowDiskUse(true)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		if err != nil {
 			t.Errorf("Expected no error from allowing disk use, but got %v", err)
@@ -136,7 +136,7 @@ func TestCommandAggregate(t *testing.T) {
 		_, err = (&command.Aggregate{
 			NS:       command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bson.NewArray(),
-			Opts:     []option.AggregateOptioner{option.OptMaxTime(time.Millisecond)},
+			Opts:     []option.Optioner{option.OptMaxTime(time.Millisecond)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		if !strings.Contains(err.Error(), "operation exceeded time limit") {
 			t.Errorf("Expected time limit exceeded error, but got %v", err)

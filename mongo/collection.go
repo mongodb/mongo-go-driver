@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 )
 
 // Collection performs operations on a given collection.
@@ -419,7 +420,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // pipeline.
 func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
-	opts ...option.AggregateOptioner) (Cursor, error) {
+	opts ...aggregateopt.Aggregate) (Cursor, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -430,11 +431,18 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		return nil, err
 	}
 
+	// add all options to a bundle
+	bundledOpts := aggregateopt.BundleAggregate(opts...)
+	aggOpts, err := bundledOpts.Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Aggregate{
 		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Pipeline: pipelineArr,
-		Opts:     opts,
+		Opts:     aggOpts,
 		ReadPref: coll.readPreference,
 	}
 	return dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector, coll.writeConcern)
