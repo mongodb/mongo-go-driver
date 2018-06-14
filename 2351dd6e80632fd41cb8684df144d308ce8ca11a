@@ -202,6 +202,24 @@
     },
     {
       "key": {
+        "uuid": "2ba0957b_549598b1",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-14T18:19:34Z",
+      "side": 1,
+      "message": "That only works for a package that has a single interface, e.g. Aggregate, Count, etc... For ones that cover multiple interfaces, e.g. findopt, there would need to be an intersecting interface that covers all of the interface a particular option is valid for, e.g. insertopt.ManyOne, findopt.OneFind, findopt.DeleteOneReplaceOneUpdateOne. I don\u0027t find these interfaces to be particularly useful, nor do I find returning a public type to be problematic. They should be documented better, though.",
+      "parentUuid": "5967f43a_51c60555",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "53b1cb86_3ba2fc72",
         "filename": "mongo/aggregateopt/aggregateopt_test.go",
         "patchSetId": 5
