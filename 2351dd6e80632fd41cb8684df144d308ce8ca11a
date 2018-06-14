@@ -42,6 +42,24 @@
     },
     {
       "key": {
+        "uuid": "b3ea8d95_53b9f5b6",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 182,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-14T15:17:45Z",
+      "side": 1,
+      "message": "Yeah, mostly a style preference. I think overall that this is slightly clearer because you don\u0027t have to reference the optionsSet declaration to figure out what\u0027s going on. I lean slightly toward this style over setting and using the value.",
+      "parentUuid": "851062da_9837d86f",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "91c3783d_e24de81f",
         "filename": "mongo/aggregateopt/aggregateopt.go",
         "patchSetId": 5
@@ -77,6 +95,24 @@
     },
     {
       "key": {
+        "uuid": "15f97189_537bed1d",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-14T15:17:45Z",
+      "side": 1,
+      "message": "Returning a private type from a public function is an antipattern and defining interfaces for each of the different combinations of interfaces that an option could satisfy is difficult to maintain. The comment here does not need be updated, as we should describe what the option is. I think this is mostly copied from the previous implementation of options where these were the comments.",
+      "parentUuid": "ed94679e_8f260ed0",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "53b1cb86_3ba2fc72",
         "filename": "mongo/aggregateopt/aggregateopt_test.go",
         "patchSetId": 5
@@ -88,6 +124,24 @@
       "writtenOn": "2018-06-13T23:28:04Z",
       "side": 1,
       "message": "seems like we should just use testify for these helper functions, we\u0027re going to have to duplicate them for each options package.",
+      "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "32ff2f87_31be904c",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-14T15:17:45Z",
+      "side": 1,
+      "message": "Testify rewrites Go test output which messes with tools. The GODRIVER-251 epic is eventually what we will write. For now, we could put these in the testutils package.",
+      "parentUuid": "53b1cb86_3ba2fc72",
       "revId": "2351dd6e80632fd41cb8684df144d308ce8ca11a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
