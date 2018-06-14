@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ae419806_4ef5d904",
+        "filename": "mongo/aggregateopt/aggregateopt.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-14T19:40:27Z",
+      "side": 1,
+      "message": "It turns out that deduping recursively unbundling introduced a bug, so to simplify the operation while increasing readability, I factored out the recursive unbundling part.  This will just return the entire options slice, with duplicates, so deduping is done at once at the end of Unbundle() if needed.",
+      "revId": "7f768e95015628cca28b1c073398b7475e51d8c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
