@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bbd4c095_05bbab3b",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 7
+      },
+      "lineNbr": 342,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-15T19:25:12Z",
+      "side": 1,
+      "message": "Can we just remove these?",
+      "range": {
+        "startLine": 338,
+        "startChar": 8,
+        "endLine": 342,
+        "endChar": 26
+      },
+      "revId": "0debfed7971d42a4fafa281aef1980a828f9ea15",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
