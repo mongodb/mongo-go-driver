@@ -51,6 +51,24 @@
       "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7fe521d1_a87d1cf9",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-15T17:42:48Z",
+      "side": 1,
+      "message": "We considered this but this paragraph in the OP_COMPRESSED spec confused me:\n\n\"When MongoDB server receives a compressor it can support it MAY reply to any and all requests using the selected compressor, including the reply of the initial MongoDB Handshake. As each OP_COMPRESSED message contains the compressor ID, clients MUST NOT assume which compressor each message uses, but MUST decompress the message using the compressor identified in the OP_COMPRESSED opcode header.\"\n\nThis makes it seem like the server can use any compression method for responses if the driver supports compression, regardless of whether or not the driver is compressing messages. This would mean having to create both snappy and zlib compressors for ever connection regardless of what\u0027s in the config.",
+      "parentUuid": "83ee8044_52494553",
+      "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
