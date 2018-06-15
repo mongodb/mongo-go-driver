@@ -8,6 +8,7 @@ package auth
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
