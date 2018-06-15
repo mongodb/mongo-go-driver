@@ -7,11 +7,15 @@
 package option
 
 import (
+	"fmt"
+	"io"
+	"reflect"
+	"strconv"
 	"time"
 
-	"strconv"
-
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Optioner is the interface implemented by types that can be used as options
@@ -311,14 +315,64 @@ func (opt OptAllowPartialResults) String() string {
 	return "OptAllowPartialResults: " + strconv.FormatBool(bool(opt))
 }
 
+// TransformDocument handles transforming a document of an allowable type into
+// a *bson.Document. This method is called directly after most methods that
+// have one or more parameters that are documents.
+//
+// The supported types for document are:
+//
+//  bson.Marshaler
+//  bson.DocumentMarshaler
+//  bson.Reader
+//  []byte (must be a valid BSON document)
+//  io.Reader (only 1 BSON document will be read)
+//  A custom struct type
+//
+func TransformDocument(document interface{}) (*bson.Document, error) {
+	switch d := document.(type) {
+	case nil:
+		return bson.NewDocument(), nil
+	case *bson.Document:
+		return d, nil
+	case bson.Marshaler, bson.Reader, []byte, io.Reader:
+		return bson.NewDocumentEncoder().EncodeDocument(document)
+	case bson.DocumentMarshaler:
+		return d.MarshalBSONDocument()
+	default:
+		var kind reflect.Kind
+		if t := reflect.TypeOf(document); t.Kind() == reflect.Ptr {
+			kind = t.Elem().Kind()
+		}
+		if reflect.ValueOf(document).Kind() == reflect.Struct || kind == reflect.Struct {
+			return bson.NewDocumentEncoder().EncodeDocument(document)
+		}
+		if reflect.ValueOf(document).Kind() == reflect.Map &&
+			reflect.TypeOf(document).Key().Kind() == reflect.String {
+			return bson.NewDocumentEncoder().EncodeDocument(document)
+		}
+
+		return nil, fmt.Errorf("cannot transform type %s to a *bson.Document", reflect.TypeOf(document))
+	}
+}
+
 // OptArrayFilters is for internal use.
-type OptArrayFilters []*bson.Document
+//type OptArrayFilters []*bson.Document
+type OptArrayFilters []interface{}
 
 // Option implements the Optioner interface.
 func (opt OptArrayFilters) Option(d *bson.Document) error {
+	docs := make([]*bson.Document, 0, len(opt))
+	for _, f := range opt {
+		d, err := TransformDocument(f)
+		if err != nil {
+			return err
+		}
+		docs = append(docs, d)
+	}
+
 	arr := bson.NewArray()
-	for _, af := range opt {
-		arr.Append(bson.VC.Document(af))
+	for _, doc := range docs {
+		arr.Append(bson.VC.Document(doc))
 	}
 	d.Append(bson.EC.Array("arrayFilters", arr))
 	return nil
@@ -492,8 +546,9 @@ func (opt OptLimit) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptLimit) countOption() {}
-func (OptLimit) findOption()  {}
+func (OptLimit) countOption()   {}
+func (OptLimit) findOption()    {}
+func (OptLimit) findOneOption() {}
 
 // String implements the Stringer interface.
 func (opt OptLimit) String() string {
@@ -501,11 +556,18 @@ func (opt OptLimit) String() string {
 }
 
 // OptMax is for internal use.
-type OptMax struct{ Max *bson.Document }
+type OptMax struct {
+	Max interface{}
+}
 
 // Option implements the Optioner interface.
 func (opt OptMax) Option(d *bson.Document) error {
-	d.Append(bson.EC.SubDocument("max", opt.Max))
+	doc, err := TransformDocument(opt.Max)
+	if err != nil {
+		return err
+	}
+
+	d.Append(bson.EC.SubDocument("max", doc))
 	return nil
 }
 
@@ -579,11 +641,18 @@ func (opt OptMaxTime) String() string {
 }
 
 // OptMin is for internal use.
-type OptMin struct{ Min *bson.Document }
+type OptMin struct {
+	Min interface{}
+}
 
 // Option implements the Optioner interface.
 func (opt OptMin) Option(d *bson.Document) error {
-	d.Append(bson.EC.SubDocument("min", opt.Min))
+	doc, err := TransformDocument(opt.Min)
+	if err != nil {
+		return err
+	}
+
+	d.Append(bson.EC.SubDocument("min", doc))
 	return nil
 }
 
@@ -648,25 +717,20 @@ func (opt OptOrdered) String() string {
 
 // OptProjection is for internal use.
 type OptProjection struct {
-	Projection *bson.Document
-	find       bool
+	Projection interface{}
 }
 
 // Option implements the Optioner interface.
 func (opt OptProjection) Option(d *bson.Document) error {
-	var key = "fields"
-	if opt.find {
-		key = "projection"
+	var key = "projection"
+
+	doc, err := TransformDocument(opt.Projection)
+	if err != nil {
+		return err
 	}
-	d.Append(bson.EC.SubDocument(key, opt.Projection))
+
+	d.Append(bson.EC.SubDocument(key, doc))
 	return nil
-}
-
-// IsFind is for internal use.
-func (opt OptProjection) IsFind() OptProjection {
-	opt.find = true
-
-	return opt
 }
 
 func (OptProjection) findOption()              {}
@@ -680,13 +744,41 @@ func (opt OptProjection) String() string {
 	return "OptProjection"
 }
 
+// OptFields is for internal use.
+type OptFields struct {
+	Fields interface{}
+}
+
+// Option implements the Optioner interface.
+func (opt OptFields) Option(d *bson.Document) error {
+	var key = "fields"
+	doc, err := TransformDocument(opt.Fields)
+	if err != nil {
+		return err
+	}
+
+	d.Append(bson.EC.SubDocument(key, doc))
+	return nil
+}
+
+func (OptFields) findOneAndDeleteOption()  {}
+func (OptFields) findOneAndReplaceOption() {}
+func (OptFields) findOneAndUpdateOption()  {}
+
 // OptReadConcern is for internal use.
-type OptReadConcern struct{ ReadConcern *bson.Element }
+type OptReadConcern struct {
+	ReadConcern *readconcern.ReadConcern
+}
 
 // Option implements the Optioner interface.
 func (opt OptReadConcern) Option(d *bson.Document) error {
-	if _, err := d.LookupElementErr(opt.ReadConcern.Key()); err == bson.ErrElementNotFound {
-		d.Append(opt.ReadConcern)
+	element, err := opt.ReadConcern.MarshalBSONElement()
+	if err != nil {
+		return err
+	}
+
+	if _, err := d.LookupElementErr(element.Key()); err == bson.ErrElementNotFound {
+		d.Append(element)
 	}
 	return nil
 }
@@ -808,11 +900,18 @@ func (opt OptSnapshot) String() string {
 }
 
 // OptSort is for internal use.
-type OptSort struct{ Sort *bson.Document }
+type OptSort struct {
+	Sort interface{}
+}
 
 // Option implements the Optioner interface.
 func (opt OptSort) Option(d *bson.Document) error {
-	d.Append(bson.EC.SubDocument("sort", opt.Sort))
+	doc, err := TransformDocument(opt.Sort)
+	if err != nil {
+		return err
+	}
+
+	d.Append(bson.EC.SubDocument("sort", doc))
 	return nil
 }
 
@@ -848,15 +947,19 @@ func (opt OptUpsert) String() string {
 
 // OptWriteConcern is for internal use.
 type OptWriteConcern struct {
-	WriteConcern *bson.Element
-	Acknowledged bool
+	WriteConcern *writeconcern.WriteConcern
 }
 
 // Option implements the Optioner interface.
 func (opt OptWriteConcern) Option(d *bson.Document) error {
-	_, err := d.LookupElementErr(opt.WriteConcern.Key())
+	element, err := opt.WriteConcern.MarshalBSONElement()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.LookupElementErr(element.Key())
 	if err == bson.ErrElementNotFound {
-		d.Append(opt.WriteConcern)
+		d.Append(element)
 		return nil
 	}
 	return err
