@@ -19,17 +19,9 @@ import (
 var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
 
 func writeConcernOption(wc *writeconcern.WriteConcern) (option.OptWriteConcern, error) {
-	elem, err := wc.MarshalBSONElement()
-	if err != nil {
-		return option.OptWriteConcern{}, err
-	}
-	return option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}, nil
+	return option.OptWriteConcern{WriteConcern: wc}, nil
 }
 
 func readConcernOption(rc *readconcern.ReadConcern) (option.OptReadConcern, error) {
-	elem, err := rc.MarshalBSONElement()
-	if err != nil {
-		return option.OptReadConcern{}, err
-	}
-	return option.OptReadConcern{ReadConcern: elem}, nil
+	return option.OptReadConcern{ReadConcern: rc}, nil
 }
