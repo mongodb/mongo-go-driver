@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/stretchr/testify/require"
+	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 )
 
 func requireCursorLength(t *testing.T, cursor mongo.Cursor, length int) {
@@ -1176,7 +1177,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			findopt.Projection(projection),
 		)
 
 		// End Example 44
@@ -1217,7 +1218,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			findopt.Projection(projection),
 		)
 
 		// End Example 45
@@ -1257,7 +1258,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			findopt.Projection(projection),
 		)
 
 		// End Example 46
@@ -1298,7 +1299,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			findopt.Projection(projection),
 		)
 
 		// End Example 47
@@ -1342,7 +1343,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			findopt.Projection(projection),
 		)
 
 		// End Example 48
@@ -1388,7 +1389,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			findopt.Projection(projection),
 		)
 
 		// End Example 49
@@ -1448,7 +1449,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			findopt.Projection(projection),
 		)
 
 		// End Example 50
