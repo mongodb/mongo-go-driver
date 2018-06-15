@@ -87,6 +87,24 @@
       "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9f4f0a9d_c94add3b",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-15T20:18:21Z",
+      "side": 1,
+      "message": "Confirmed with the server team that this cannot happen, so we can use the compressors we created in the options.",
+      "parentUuid": "1f45216c_5798c542",
+      "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
