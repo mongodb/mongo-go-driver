@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "56af0aba_e3d07417",
+        "filename": "core/connection/compression.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-15T17:40:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "aa8006b7_1bdaa2b0",
+      "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "83ee8044_52494553",
         "filename": "core/connection/connection.go",
         "patchSetId": 15
