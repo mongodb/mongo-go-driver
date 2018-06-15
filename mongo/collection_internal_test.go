@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1231,11 +1232,9 @@ func TestCollection_Find_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	sort, err := Opt.Sort(bson.NewDocument(bson.EC.Int32("x", 1)))
-	require.NoError(t, err)
 	cursor, err := coll.Find(context.Background(),
 		nil,
-		sort,
+		findopt.Sort(bson.NewDocument(bson.EC.Int32("x", 1))),
 	)
 	require.Nil(t, err)
 
@@ -1322,7 +1321,7 @@ func TestCollection_FindOne_found_withOption(t *testing.T) {
 	var result = bson.NewDocument()
 	err := coll.FindOne(context.Background(),
 		filter,
-		Opt.Comment("here's a query for ya"),
+		findopt.Comment("here's a query for ya"),
 	).Decode(result)
 	require.Nil(t, err)
 	require.Equal(t, result.Len(), 2)
