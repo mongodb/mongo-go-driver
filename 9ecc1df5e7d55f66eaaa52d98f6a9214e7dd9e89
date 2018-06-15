@@ -173,6 +173,24 @@
     },
     {
       "key": {
+        "uuid": "3e9ccc9b_145b8373",
+        "filename": "core/description/server.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-15T14:12:30Z",
+      "side": 1,
+      "message": "The Server keeps a list of compression methods returned in the initial handshake so the connection object can figure out which compressor to use, if any. The Compression field is set in core/description/server.go NewServer() using the result of the isMaster command and is used in core/connection/connection.go line 163.",
+      "parentUuid": "2d0fe701_ed541442",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "de478bc4_7f298295",
         "filename": "core/topology/server_options.go",
         "patchSetId": 14
