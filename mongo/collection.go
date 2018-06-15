@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 )
 
 // Collection performs operations on a given collection.
@@ -514,7 +515,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	opts ...option.FindOptioner) (Cursor, error) {
+	opts ...findopt.Find) (Cursor, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -529,11 +530,16 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 	}
 
+	findOpts, err := findopt.BundleFind(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Find{
 		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Filter:   f,
-		Opts:     opts,
+		Opts:     findOpts,
 		ReadPref: coll.readPreference,
 	}
 	return dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
@@ -547,14 +553,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...option.FindOneOptioner) *DocumentResult {
-
-	findOpts := make([]option.FindOptioner, 0, len(opts))
-	for _, opt := range opts {
-		findOpts = append(findOpts, opt.(option.FindOptioner))
-	}
-
-	findOpts = append(findOpts, Opt.Limit(1))
+	opts ...findopt.One) *DocumentResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -568,6 +567,17 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 			return &DocumentResult{err: err}
 		}
 	}
+
+	findOneOpts, err := findopt.BundleOne(opts...).Unbundle(true)
+	if err != nil {
+		return &DocumentResult{err: err}
+	}
+
+	findOpts := make([]option.FindOptioner, len(findOneOpts))
+	for _, opt := range findOneOpts {
+		findOpts = append(findOpts, opt.(option.FindOptioner))
+	}
+	findOpts = append(findOpts, Opt.Limit(1))
 
 	oldns := coll.namespace()
 	cmd := command.Find{
@@ -594,7 +604,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
-	opts ...option.FindOneAndDeleteOptioner) *DocumentResult {
+	opts ...findopt.DeleteOne) *DocumentResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -609,13 +619,35 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		}
 	}
 
+	findOpts, err := findopt.BundleDeleteOne(opts...).Unbundle(true)
+	if err != nil {
+		return &DocumentResult{err: err}
+	}
+
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range findOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
+	}
+
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		findOpts = append(findOpts[:index], findOpts[index+1:]...)
+	}
+
 	oldns := coll.namespace()
 	cmd := command.FindOneAndDelete{
 		NS:    command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Query: f,
-		Opts:  opts,
+		Opts:  findOpts,
 	}
-	res, err := dispatch.FindOneAndDelete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+
+	res, err := dispatch.FindOneAndDelete(ctx, cmd, coll.client.topology, coll.writeSelector, wc)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -633,7 +665,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 // parameter into a *bson.Document. See TransformDocument for the list of
 // valid types for filter and replacement.
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...option.FindOneAndReplaceOptioner) *DocumentResult {
+	replacement interface{}, opts ...findopt.ReplaceOne) *DocumentResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -653,14 +685,36 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		return &DocumentResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
 	}
 
+	findOpts, err := findopt.BundleReplaceOne(opts...).Unbundle(true)
+
+	if err != nil {
+		return &DocumentResult{err: err}
+	}
+
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range findOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
+	}
+
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		findOpts = append(findOpts[:index], findOpts[index+1:]...)
+	}
+
 	oldns := coll.namespace()
 	cmd := command.FindOneAndReplace{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Query:       f,
 		Replacement: r,
-		Opts:        opts,
+		Opts:        findOpts,
 	}
-	res, err := dispatch.FindOneAndReplace(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	res, err := dispatch.FindOneAndReplace(ctx, cmd, coll.client.topology, coll.writeSelector, wc)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -678,7 +732,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 // into a *bson.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
-	update interface{}, opts ...option.FindOneAndUpdateOptioner) *DocumentResult {
+	update interface{}, opts ...findopt.UpdateOne) *DocumentResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -698,14 +752,35 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &DocumentResult{err: errors.New("update document must contain key beginning with '$")}
 	}
 
+	findOpts, err := findopt.BundleUpdateOne(opts...).Unbundle(true)
+	if err != nil {
+		return &DocumentResult{err: err}
+	}
+
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range findOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
+	}
+
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		findOpts = append(findOpts[:index], findOpts[index+1:]...)
+	}
+
 	oldns := coll.namespace()
 	cmd := command.FindOneAndUpdate{
 		NS:     command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Query:  f,
 		Update: u,
-		Opts:   opts,
+		Opts:   findOpts,
 	}
-	res, err := dispatch.FindOneAndUpdate(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	res, err := dispatch.FindOneAndUpdate(ctx, cmd, coll.client.topology, coll.writeSelector, wc)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
