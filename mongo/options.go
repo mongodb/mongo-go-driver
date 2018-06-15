@@ -40,15 +40,7 @@ func (Options) AllowPartialResults(b bool) option.OptAllowPartialResults {
 // *bson.Document. See TransformDocument for the list of valid types for
 // document.
 func (Options) ArrayFilters(filters ...interface{}) (option.OptArrayFilters, error) {
-	docs := make([]*bson.Document, 0, len(filters))
-	for _, f := range filters {
-		d, err := TransformDocument(f)
-		if err != nil {
-			return nil, err
-		}
-		docs = append(docs, d)
-	}
-	opt := option.OptArrayFilters(docs)
+	opt := option.OptArrayFilters(filters)
 	return opt, nil
 }
 
@@ -128,11 +120,7 @@ func (Options) Limit(i int64) option.OptLimit {
 // *bson.Document. See TransformDocument for the list of valid types for
 // max.
 func (Options) Max(max interface{}) (option.OptMax, error) {
-	doc, err := TransformDocument(max)
-	if err != nil {
-		return option.OptMax{}, err
-	}
-	opt := option.OptMax{Max: doc}
+	opt := option.OptMax{Max: max}
 	return opt, nil
 }
 
@@ -161,11 +149,7 @@ func (Options) MaxTime(duration time.Duration) option.OptMaxTime {
 // *bson.Document. See TransformDocument for the list of valid types for
 // min.
 func (Options) Min(min interface{}) (option.OptMin, error) {
-	doc, err := TransformDocument(min)
-	if err != nil {
-		return option.OptMin{}, err
-	}
-	opt := option.OptMin{Min: doc}
+	opt := option.OptMin{Min: min}
 	return opt, nil
 }
 
@@ -194,22 +178,13 @@ func (Options) Ordered(b bool) option.OptOrdered {
 // *bson.Document. See TransformDocument for the list of valid types for
 // projection.
 func (Options) Projection(projection interface{}) (option.OptProjection, error) {
-	doc, err := TransformDocument(projection)
-	if err != nil {
-		return option.OptProjection{}, nil
-	}
-	opt := option.OptProjection{Projection: doc}
+	opt := option.OptProjection{Projection: projection}
 	return opt, nil
 }
 
 // ReadConcern for replica sets and replica set shards determines which data to return from a query.
 func (Options) ReadConcern(readConcern *readconcern.ReadConcern) (option.OptReadConcern, error) {
-	elem, err := readConcern.MarshalBSONElement()
-	if err != nil {
-		return option.OptReadConcern{}, err
-	}
-
-	opt := option.OptReadConcern{ReadConcern: elem}
+	opt := option.OptReadConcern{ReadConcern: readConcern}
 	return opt, nil
 }
 
@@ -252,16 +227,8 @@ func (Options) Snapshot(b bool) option.OptSnapshot {
 }
 
 // Sort specifies order in which to return matching documents.
-//
-// This function uses TransformDocument to turn the sort parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
-// sort.
 func (Options) Sort(sort interface{}) (option.OptSort, error) {
-	doc, err := TransformDocument(sort)
-	if err != nil {
-		return option.OptSort{}, err
-	}
-	opt := option.OptSort{Sort: doc}
+	opt := option.OptSort{Sort: sort}
 	return opt, nil
 }
 
@@ -275,11 +242,6 @@ func (Options) Upsert(b bool) option.OptUpsert {
 // WriteConcern describes the level of acknowledgement requested from MongoDB for write operations
 // to a standalone mongod or to replica sets or to sharded clusters.
 func (Options) WriteConcern(writeConcern *writeconcern.WriteConcern) (option.OptWriteConcern, error) {
-	elem, err := writeConcern.MarshalBSONElement()
-	if err != nil {
-		return option.OptWriteConcern{}, err
-	}
-
-	opt := option.OptWriteConcern{WriteConcern: elem, Acknowledged: writeConcern.Acknowledged()}
+	opt := option.OptWriteConcern{WriteConcern: writeConcern}
 	return opt, nil
 }
