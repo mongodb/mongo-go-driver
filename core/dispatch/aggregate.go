@@ -38,24 +38,10 @@ func Aggregate(
 			return nil, err
 		}
 		if wc != nil {
-			elem, err := wc.MarshalBSONElement()
-			if err != nil {
-				return nil, err
-			}
-
-			opt := option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
+			opt := option.OptWriteConcern{WriteConcern: wc}
 			cmd.Opts = append(cmd.Opts, opt)
+			acknowledged = wc.Acknowledged()
 		}
-
-		for _, opt := range cmd.Opts {
-			wc, ok := opt.(option.OptWriteConcern)
-			if !ok {
-				continue
-			}
-			acknowledged = wc.Acknowledged
-			break
-		}
-
 	case false:
 		ss, err = topo.SelectServer(ctx, readSelector)
 		if err != nil {
