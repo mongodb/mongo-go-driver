@@ -299,7 +299,7 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 	var sizeBuf [4]byte
 	_, err := io.ReadFull(c.conn, sizeBuf[:])
 	if err != nil {
-		defer c.Close()
+		c.Close()
 		return nil, Error{
 			ConnectionID: c.id,
 			Wrapped:      err,
@@ -321,7 +321,7 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 
 	_, err = io.ReadFull(c.conn, c.readBuf[4:])
 	if err != nil {
-		defer c.Close()
+		c.Close()
 		return nil, Error{
 			ConnectionID: c.id,
 			Wrapped:      err,
@@ -331,7 +331,7 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 
 	hdr, err := wiremessage.ReadHeader(c.readBuf, 0)
 	if err != nil {
-		defer c.Close()
+		c.Close()
 		return nil, Error{
 			ConnectionID: c.id,
 			Wrapped:      err,
@@ -345,7 +345,7 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 		var r wiremessage.Reply
 		err := r.UnmarshalWireMessage(c.readBuf)
 		if err != nil {
-			defer c.Close()
+			c.Close()
 			return nil, Error{
 				ConnectionID: c.id,
 				Wrapped:      err,
@@ -354,7 +354,7 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 		}
 		wm = r
 	default:
-		defer c.Close()
+		c.Close()
 		return nil, Error{
 			ConnectionID: c.id,
 			message:      fmt.Sprintf("opcode %s not implemented", hdr.OpCode),
