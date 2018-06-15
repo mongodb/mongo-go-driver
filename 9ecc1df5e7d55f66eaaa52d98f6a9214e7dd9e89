@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "5caf7f46_0da8f27c",
+        "filename": "core/auth/auth.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-15T15:35:19Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bd349092_4c457aca",
+      "revId": "9ecc1df5e7d55f66eaaa52d98f6a9214e7dd9e89",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3c721773_41f8a292",
         "filename": "core/connection/connection.go",
         "patchSetId": 14
