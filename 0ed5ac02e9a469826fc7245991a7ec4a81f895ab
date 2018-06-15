@@ -16,6 +16,23 @@
       "revId": "0ed5ac02e9a469826fc7245991a7ec4a81f895ab",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "212c3cfb_897bf9e8",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 423,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-15T16:16:10Z",
+      "side": 1,
+      "message": "How do we pass 0 options? If you give nil, line 441 will panic.",
+      "revId": "0ed5ac02e9a469826fc7245991a7ec4a81f895ab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
