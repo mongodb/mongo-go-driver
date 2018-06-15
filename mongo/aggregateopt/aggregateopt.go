@@ -74,7 +74,7 @@ func (ab *AggregateBundle) BypassDocumentValidation(b bool) *AggregateBundle {
 	return bundle
 }
 
-//Collation adds an option to specify a Collation.
+// Collation adds an option to specify a Collation.
 func (ab *AggregateBundle) Collation(c option.Collation) *AggregateBundle {
 	bundle := &AggregateBundle{
 		option: OptCollation{Collation: &c},
@@ -136,7 +136,6 @@ func (ab *AggregateBundle) bundleLength() int {
 
 // Unbundle transforms a bundle into a slice of options, optionally deduplicating
 func (ab *AggregateBundle) Unbundle(deduplicate bool) ([]option.Optioner, error) {
-
 	options, err := ab.unbundle()
 	if err != nil {
 		return nil, err
