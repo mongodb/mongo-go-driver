@@ -69,6 +69,24 @@
       "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1f45216c_5798c542",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-15T18:41:00Z",
+      "side": 1,
+      "message": "If the driver doesn\u0027t indicate it can use snappy, the server _cannot_ send a snappy response. The .NET driver has this issue where supporting snappy requires taking an external dependency they aren\u0027t willing to take. Ff the server ever sent a snappy packet, it would always be destined to fail.\n\nHence, I believe that the paragraph you are citing indicates that the server can use any compressor for any response that the driver has indicated it supports. Which means that the packets passed in via cfg are the only ones the server will ever possible reply with. And since you already have them, you should just be able to construct a map from them and use as is.",
+      "parentUuid": "7fe521d1_a87d1cf9",
+      "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
