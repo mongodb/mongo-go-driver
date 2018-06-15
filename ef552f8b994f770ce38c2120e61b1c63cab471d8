@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "aa8006b7_1bdaa2b0",
+        "filename": "core/connection/compression.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-15T16:07:45Z",
+      "side": 1,
+      "message": "At this point, it looks like it is possible to isolate this file into it\u0027s own package as it depends on nothing and everything that requires it is already exported.",
+      "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "83ee8044_52494553",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-15T16:07:45Z",
+      "side": 1,
+      "message": "Can we not just use the ones from the config? loop through the cfg.compressors and add them to the map? The server will only reply with compressors we have indicated we support, which ultimately is what the user configured. Since compression is opt-in, most users won\u0027t turn it on which means we don\u0027t actually every create any compressors... ever.",
+      "revId": "ef552f8b994f770ce38c2120e61b1c63cab471d8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
