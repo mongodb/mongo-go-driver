@@ -442,9 +442,7 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 	indexView := coll.Indexes()
 	var opts []option.CreateIndexesOptioner
 	wc := writeconcern.New(writeconcern.W(1))
-	elem, err := wc.MarshalBSONElement()
-	require.NoError(t, err)
-	optwc := option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
+	optwc := option.OptWriteConcern{WriteConcern: wc}
 	opts = append(opts, optwc)
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
@@ -516,9 +514,7 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	indexView := coll.Indexes()
 	var opts []option.DropIndexesOptioner
 	wc := writeconcern.New(writeconcern.W(1))
-	elem, err := wc.MarshalBSONElement()
-	require.NoError(t, err)
-	optwc := option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
+	optwc := option.OptWriteConcern{WriteConcern: wc}
 	opts = append(opts, optwc)
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
