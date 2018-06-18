@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
 )
 
 // Collection performs operations on a given collection.
@@ -69,7 +70,7 @@ func (coll *Collection) namespace() command.Namespace {
 // TODO(skriptble): Determine if we should unwrap the value for the
 // InsertOneResult or just return the bson.Element or a bson.Value.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...option.InsertOneOptioner) (*InsertOneResult, error) {
+	opts ...insertopt.One) (*InsertOneResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -85,16 +86,18 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		return nil, err
 	}
 
-	newOptions := make([]option.InsertOptioner, 0, len(opts))
-	for _, opt := range opts {
-		newOptions = append(newOptions, opt)
+	// convert options into []option.InsertOptioner and dedup
+	oneOpts, err := insertopt.BundleOne(opts...).Unbundle(true)
+
+	if err != nil {
+		return nil, err
 	}
 
 	oldns := coll.namespace()
 	cmd := command.Insert{
 		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Docs: []*bson.Document{doc},
-		Opts: newOptions,
+		Opts: oneOpts,
 	}
 
 	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
@@ -116,7 +119,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // documents.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
-	opts ...option.InsertManyOptioner) (*InsertManyResult, error) {
+	opts ...insertopt.Many) (*InsertManyResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -139,16 +142,18 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		result[i] = insertedID
 	}
 
-	newOptions := make([]option.InsertOptioner, 0, len(opts))
-	for _, opt := range opts {
-		newOptions = append(newOptions, opt)
+	// convert options into []option.InsertOptioner and dedup
+	manyOpts, err := insertopt.BundleMany(opts...).Unbundle(true)
+
+	if err != nil {
+		return nil, err
 	}
 
 	oldns := coll.namespace()
 	cmd := command.Insert{
 		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Docs: docs,
-		Opts: newOptions,
+		Opts: manyOpts,
 	}
 
 	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
