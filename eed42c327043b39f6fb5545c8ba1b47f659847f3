@@ -117,6 +117,30 @@
     },
     {
       "key": {
+        "uuid": "8e5dcc7d_549e8bc5",
+        "filename": "core/compressors/compression.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 158,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-18T16:46:10Z",
+      "side": 1,
+      "message": "That seems unlikely. It\u0027s possible the proxy simply doesn\u0027t know about new compressors, so it shouldn\u0027t be validating the value here anyways. Would you rather have these constants defined in wireprotocol and then referenced from compressor? Compressor is the logical place for this.",
+      "parentUuid": "0a7264ab_026c57a6",
+      "range": {
+        "startLine": 153,
+        "startChar": 0,
+        "endLine": 158,
+        "endChar": 1
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a8ae7938_a2176e79",
         "filename": "core/connection/connection.go",
         "patchSetId": 17
