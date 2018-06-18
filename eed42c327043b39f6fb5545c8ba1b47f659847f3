@@ -189,6 +189,30 @@
     },
     {
       "key": {
+        "uuid": "4c2a2a64_87f5fb33",
+        "filename": "core/compressors/compression.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 158,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-18T17:05:56Z",
+      "side": 1,
+      "message": "I moved them here because I didn\u0027t know there would be uses outside of compressing/uncompressing regular wire messages. If users can get compressed bytes elsewhere, I can put these back in the wiremessage package.",
+      "parentUuid": "95ceff07_ea86be1a",
+      "range": {
+        "startLine": 153,
+        "startChar": 0,
+        "endLine": 158,
+        "endChar": 1
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a8ae7938_a2176e79",
         "filename": "core/connection/connection.go",
         "patchSetId": 17
