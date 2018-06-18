@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -151,9 +152,8 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 	doc := bson.NewDocument(bson.EC.ObjectID("_id", objectid.New()))
 	coll := createTestCollection(t, nil, nil)
 
-	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	require.NoError(t, err)
-	_, err = coll.InsertOne(context.Background(), doc, optwc)
+	optwc := insertopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	_, err := coll.InsertOne(context.Background(), doc, optwc)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
@@ -252,7 +252,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// without option ordered
-		_, err = coll.InsertMany(context.Background(), docs, option.OptOrdered(false))
+		_, err = coll.InsertMany(context.Background(), docs, insertopt.Ordered(false))
 		got, ok := err.(BulkWriteError)
 		if !ok {
 			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
@@ -299,13 +299,9 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 			bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
 		}
 
-		optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(42)))
-		if err != nil {
-			t.Errorf("could not create write concern: %+v", err)
-			t.FailNow()
-		}
+		optwc := insertopt.WriteConcern(writeconcern.New(writeconcern.W(42)))
 
-		_, err = coll.InsertMany(context.Background(), docs, optwc)
+		_, err := coll.InsertMany(context.Background(), docs, optwc)
 		if err == nil {
 			t.Errorf("write concern error not propagated from command: %+v", err)
 		}
@@ -336,9 +332,8 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 	}
 	coll := createTestCollection(t, nil, nil)
 
-	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	require.NoError(t, err)
-	_, err = coll.InsertMany(context.Background(), docs, optwc)
+	optwc := insertopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	_, err := coll.InsertMany(context.Background(), docs, optwc)
 	got, ok := err.(BulkWriteError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, BulkWriteError{}, err)
