@@ -16,6 +16,52 @@
       "revId": "7f768e95015628cca28b1c073398b7475e51d8c8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5261047e_c2f1262d",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:17:48Z",
+      "side": 1,
+      "message": "I\u0027m not sure if it\u0027ll help, but I think if we added a b3 and b4 where b3 is nested inside of b4 and then b4 is nested in the outerBundle would ensure that we can unwrap two or more nested bundles in a top level bundle.",
+      "range": {
+        "startLine": 22,
+        "startChar": 0,
+        "endLine": 22,
+        "endChar": 25
+      },
+      "revId": "7f768e95015628cca28b1c073398b7475e51d8c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a1a6f1d9_5c80030d",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:17:48Z",
+      "side": 1,
+      "message": "Where these just left over from some debugging?",
+      "range": {
+        "startLine": 148,
+        "startChar": 4,
+        "endLine": 148,
+        "endChar": 16
+      },
+      "revId": "7f768e95015628cca28b1c073398b7475e51d8c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
