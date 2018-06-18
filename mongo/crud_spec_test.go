@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/stretchr/testify/require"
 )
@@ -283,10 +284,14 @@ func deleteOneTest(t *testing.T, coll *Collection, test *testCase) {
 	t.Run(test.Description, func(t *testing.T) {
 		filter := test.Operation.Arguments["filter"].(map[string]interface{})
 
-		var opts []option.DeleteOptioner
+		//var opts []option.DeleteOptioner
+		var opts []deleteopt.Delete
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
+			//Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
+
+			mapCollation := collationFromMap(collation.(map[string]interface{}))
+			opts = append(opts, deleteopt.Collation(mapCollation))
 		}
 
 		actual, err := coll.DeleteOne(context.Background(), filter, opts...)
