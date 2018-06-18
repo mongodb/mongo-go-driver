@@ -141,6 +141,30 @@
     },
     {
       "key": {
+        "uuid": "95ceff07_ea86be1a",
+        "filename": "core/compressors/compression.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 158,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:53:13Z",
+      "side": 1,
+      "message": "I don\u0027t understand why we would define the wiremessage.CompressorID type in the wiremessage package and then the constants for that type in another package. It\u0027s also possible I got the compressed bytes from elsewhere and just want to construct a compressed message. I understand these things are unlikely, but I don\u0027t understand what we gain by having these defined here.",
+      "parentUuid": "8e5dcc7d_549e8bc5",
+      "range": {
+        "startLine": 153,
+        "startChar": 0,
+        "endLine": 158,
+        "endChar": 1
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a8ae7938_a2176e79",
         "filename": "core/connection/connection.go",
         "patchSetId": 17
