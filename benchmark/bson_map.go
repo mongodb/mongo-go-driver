@@ -3,10 +3,10 @@ package benchmark
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/pkg/errors"
 )
 
 func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet string) error {
