@@ -42,6 +42,30 @@
     },
     {
       "key": {
+        "uuid": "daf3d34b_f362b2b9",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-18T17:08:24Z",
+      "side": 1,
+      "message": "Good idea, we\u0027ll add it.",
+      "parentUuid": "5261047e_c2f1262d",
+      "range": {
+        "startLine": 22,
+        "startChar": 0,
+        "endLine": 22,
+        "endChar": 25
+      },
+      "revId": "7f768e95015628cca28b1c073398b7475e51d8c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a1a6f1d9_5c80030d",
         "filename": "mongo/aggregateopt/aggregateopt_test.go",
         "patchSetId": 8
@@ -53,6 +77,30 @@
       "writtenOn": "2018-06-18T16:17:48Z",
       "side": 1,
       "message": "Where these just left over from some debugging?",
+      "range": {
+        "startLine": 148,
+        "startChar": 4,
+        "endLine": 148,
+        "endChar": 16
+      },
+      "revId": "7f768e95015628cca28b1c073398b7475e51d8c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f011489b_34202702",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-18T17:08:24Z",
+      "side": 1,
+      "message": "Yeah, my bad, will delete.",
+      "parentUuid": "a1a6f1d9_5c80030d",
       "range": {
         "startLine": 148,
         "startChar": 4,
