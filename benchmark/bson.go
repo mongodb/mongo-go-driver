@@ -1,11 +1,11 @@
 package benchmark
 
 import (
+	"errors"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/pkg/errors"
 )
 
 const (
