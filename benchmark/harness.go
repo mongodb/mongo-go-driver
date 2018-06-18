@@ -14,9 +14,10 @@ const (
 	MinimumRuntime   = 10 * time.Second
 	MinIterations    = 100
 
-	hundred     = 100
-	thousand    = 10 * hundred
-	tenThousand = 10 * thousand
+	ten         = 10
+	hundred     = ten * ten
+	thousand    = ten * hundred
+	tenThousand = ten * thousand
 )
 
 type BenchCase func(context.Context, TimerManager, int) error
@@ -176,6 +177,30 @@ func getAllCases() []*CaseDefinition {
 			Bench:   BSONFlatStructTagsEncoding,
 			Count:   tenThousand,
 			Size:    75310000,
+			Runtime: StandardRuntime,
+		},
+		{
+			Bench:   SingleRunCommand,
+			Count:   tenThousand,
+			Size:    160000,
+			Runtime: StandardRuntime,
+		},
+		{
+			Bench:   SingleFindOneByID,
+			Count:   tenThousand,
+			Size:    16220000,
+			Runtime: StandardRuntime,
+		},
+		{
+			Bench:   SingleInsertSmallDocument,
+			Count:   tenThousand,
+			Size:    2750000,
+			Runtime: StandardRuntime,
+		},
+		{
+			Bench:   SingleInsertLargeDocument,
+			Count:   ten,
+			Size:    27310890,
 			Runtime: StandardRuntime,
 		},
 	}
