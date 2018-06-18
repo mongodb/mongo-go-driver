@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -396,7 +397,11 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(bson.EC.Int32("x", 0))
-	result, err := coll.DeleteOne(context.Background(), filter, Opt.Collation(&option.Collation{Locale: "en_US"}))
+
+	collationOpt := &option.Collation{
+		Locale: "en_US",
+	}
+	result, err := coll.DeleteOne(context.Background(), filter, deleteopt.Collation(collationOpt))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -449,9 +454,8 @@ func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
 	filter := bson.NewDocument(bson.EC.Int32("x", 1))
 	coll := createTestCollection(t, nil, nil)
 
-	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	require.NoError(t, err)
-	_, err = coll.DeleteOne(context.Background(), filter, optwc)
+	optwc := deleteopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	_, err := coll.DeleteOne(context.Background(), filter, optwc)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
