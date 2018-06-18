@@ -1,0 +1,188 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "467e4265_c4530cad",
+        "filename": "core/auth/auth.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:12:50Z",
+      "side": 1,
+      "message": "I don\u0027t think we need this, because this is never sent to the server.",
+      "range": {
+        "startLine": 98,
+        "startChar": 1,
+        "endLine": 98,
+        "endChar": 18
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a3aa8060_eb592ced",
+        "filename": "core/command/handshake.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:12:50Z",
+      "side": 1,
+      "message": "We don\u0027t do anything with this, so I think it\u0027s safe to remove.",
+      "range": {
+        "startLine": 28,
+        "startChar": 1,
+        "endLine": 28,
+        "endChar": 16
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "da2fa320_8ea094ba",
+        "filename": "core/command/handshake.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:12:50Z",
+      "side": 1,
+      "message": "We shouldn\u0027t be calling this anymore, so I think this just needs to be rebased on top of master.",
+      "range": {
+        "startLine": 44,
+        "startChar": 1,
+        "endLine": 47,
+        "endChar": 2
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e2e37370_318b7f8a",
+        "filename": "core/compressors/compression.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:12:50Z",
+      "side": 1,
+      "message": "We\u0027ve been naming packages as singular, so this should be the \"compressor\" package.",
+      "range": {
+        "startLine": 1,
+        "startChar": 8,
+        "endLine": 1,
+        "endChar": 19
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0a7264ab_026c57a6",
+        "filename": "core/compressors/compression.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 158,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:12:50Z",
+      "side": 1,
+      "message": "Is there a reason these have been moved to this package? From the driver implementation perspective, it might not make sense that these constants are in the wiremessage package, but for a user that is just using the wiremessage package, they shouldn\u0027t need to import the compressor package to get access to the list of compressor IDs.\n\nAn example of a user that might do this is a testing proxy that just needs to verify that the proper wiremessage has been sent, but doesn\u0027t actually need to do any unwrapping or decompressing of the message.",
+      "range": {
+        "startLine": 153,
+        "startChar": 0,
+        "endLine": 158,
+        "endChar": 1
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a8ae7938_a2176e79",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:12:50Z",
+      "side": 1,
+      "message": "We\u0027re allocating a slice here, can we add another buffer to the connection for this? I know we already have a bunch of buffers, but it seems like it would be useful to do here. Alternatively, we could reuse one of the buffers we already have, e.g. the writeBuf and then move the reset  in the WriteWireMessage method until after compressMessage is called.",
+      "range": {
+        "startLine": 263,
+        "startChar": 1,
+        "endLine": 263,
+        "endChar": 50
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ee2ed4ed_8b5d77e6",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 299,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:12:50Z",
+      "side": 1,
+      "message": "Not sure if it matters, but it seems weird that if we didn\u0027t grow the buffer, it\u0027s length if zero, but if we did grow it, it\u0027s length is the capacity.",
+      "range": {
+        "startLine": 299,
+        "startChar": 2,
+        "endLine": 299,
+        "endChar": 61
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b3c1738_832dc712",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T16:12:50Z",
+      "side": 1,
+      "message": "Can we leave a comment about why we\u0027re adding the 16 bytes? It\u0027ll be helpful for sometime in the future when someone\u0027s reading the code, while tired, and doesn\u0027t remember why there are 16 bytes missing somewhere :-)",
+      "range": {
+        "startLine": 314,
+        "startChar": 3,
+        "endLine": 314,
+        "endChar": 54
+      },
+      "revId": "eed42c327043b39f6fb5545c8ba1b47f659847f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
