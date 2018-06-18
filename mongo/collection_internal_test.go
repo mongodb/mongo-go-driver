@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -904,7 +905,7 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 	replacement := bson.NewDocument(bson.EC.Int32("y", 1))
 
-	result, err := coll.ReplaceOne(context.Background(), filter, replacement, Opt.Upsert(true))
+	result, err := coll.ReplaceOne(context.Background(), filter, replacement, replaceopt.Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -957,9 +958,8 @@ func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
 	update := bson.NewDocument(bson.EC.Double("pi", 3.14159))
 	coll := createTestCollection(t, nil, nil)
 
-	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	require.NoError(t, err)
-	_, err = coll.ReplaceOne(context.Background(), filter, update, optwc)
+	optwc := replaceopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	_, err := coll.ReplaceOne(context.Background(), filter, update, optwc)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})

@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 )
 
@@ -395,7 +396,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 // parameter into a *bson.Document. See TransformDocument for the list of
 // valid types for filter and replacement.
 func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...option.ReplaceOptioner) (*UpdateResult, error) {
+	replacement interface{}, opts ...replaceopt.Replace) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -415,8 +416,13 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
 	}
 
+	repOpts, err := replaceopt.BundleReplace(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
 	updateOptions := make([]option.UpdateOptioner, 0, len(opts))
-	for _, opt := range opts {
+	for _, opt := range repOpts {
 		updateOptions = append(updateOptions, opt)
 	}
 

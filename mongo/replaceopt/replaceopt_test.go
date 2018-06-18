@@ -1,0 +1,197 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+package replaceopt
+
+import (
+	"testing"
+
+	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+)
+
+var collation = option.Collation{}
+
+func createNestedReplaceBundle1(t *testing.T) *ReplaceBundle {
+	nestedBundle := BundleReplace(Upsert(false))
+	testhelpers.RequireNotNil(t, nestedBundle, "nested bundle was nil")
+
+	outerBundle := BundleReplace(Upsert(true), BypassDocumentValidation(true), nestedBundle, BypassDocumentValidation(false))
+	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
+
+	return outerBundle
+}
+
+// Test doubly nested bundle
+func createNestedReplaceBundle2(t *testing.T) *ReplaceBundle {
+	b1 := BundleReplace(Upsert(false))
+	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
+
+	b2 := BundleReplace(Collation(&collation), b1)
+	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
+
+	outerBundle := BundleReplace(Upsert(true), BypassDocumentValidation(true), b2, BypassDocumentValidation(false))
+	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
+
+	return outerBundle
+}
+
+// Test two top level nested bundles
+func createNestedReplaceBundle3(t *testing.T) *ReplaceBundle {
+	b1 := BundleReplace(Upsert(false))
+	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
+
+	b2 := BundleReplace(Collation(&collation), b1)
+	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
+
+	b3 := BundleReplace(Upsert(true))
+	testhelpers.RequireNotNil(t, b3, "nested bundle was nil")
+
+	b4 := BundleReplace(Collation(&collation), b3)
+	testhelpers.RequireNotNil(t, b4, "nested bundle was nil")
+
+	outerBundle := BundleReplace(b4, BypassDocumentValidation(true), b2, BypassDocumentValidation(false))
+	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
+
+	return outerBundle
+}
+
+func TestFindAndReplaceOpt(t *testing.T) {
+	var bundle1 *ReplaceBundle
+	bundle1 = bundle1.Upsert(true).BypassDocumentValidation(false)
+	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
+	bundle1Opts := []option.Optioner{
+		OptUpsert(true).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOption(),
+	}
+	bundle1DedupOpts := []option.Optioner{
+		OptUpsert(true).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOption(),
+	}
+
+	bundle2 := BundleReplace(Collation(&collation))
+	bundle2Opts := []option.Optioner{
+		OptCollation{&collation}.ConvertOption(),
+	}
+
+	bundle3 := BundleReplace().
+		Collation(&collation).
+		BypassDocumentValidation(true).
+		Upsert(false).
+		Upsert(true)
+
+	bundle3Opts := []option.Optioner{
+		OptCollation{&collation}.ConvertOption(),
+		OptBypassDocumentValidation(true).ConvertOption(),
+		OptUpsert(false).ConvertOption(),
+		OptUpsert(true).ConvertOption(),
+	}
+
+	bundle3DedupOpts := []option.Optioner{
+		OptCollation{&collation}.ConvertOption(),
+		OptBypassDocumentValidation(true).ConvertOption(),
+		OptUpsert(true).ConvertOption(),
+	}
+
+	nilBundle := BundleReplace()
+	var nilBundleOpts []option.Optioner
+
+	nestedBundle1 := createNestedReplaceBundle1(t)
+	nestedBundleOpts1 := []option.Optioner{
+		OptUpsert(true).ConvertOption(),
+		OptBypassDocumentValidation(true).ConvertOption(),
+		OptUpsert(false).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOption(),
+	}
+	nestedBundleDedupOpts1 := []option.Optioner{
+		OptUpsert(false).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOption(),
+	}
+
+	nestedBundle2 := createNestedReplaceBundle2(t)
+	nestedBundleOpts2 := []option.Optioner{
+		OptUpsert(true).ConvertOption(),
+		OptBypassDocumentValidation(true).ConvertOption(),
+		OptCollation{&collation}.ConvertOption(),
+		OptUpsert(false).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOption(),
+	}
+	nestedBundleDedupOpts2 := []option.Optioner{
+		OptCollation{&collation}.ConvertOption(),
+		OptUpsert(false).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOption(),
+	}
+
+	nestedBundle3 := createNestedReplaceBundle3(t)
+	nestedBundleOpts3 := []option.Optioner{
+		OptCollation{&collation}.ConvertOption(),
+		OptUpsert(true).ConvertOption(),
+		OptBypassDocumentValidation(true).ConvertOption(),
+		OptCollation{&collation}.ConvertOption(),
+		OptUpsert(false).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOption(),
+	}
+	nestedBundleDedupOpts3 := []option.Optioner{
+		OptCollation{&collation}.ConvertOption(),
+		OptUpsert(false).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOption(),
+	}
+
+	t.Run("MakeOptions", func(t *testing.T) {
+		head := bundle1
+
+		bundleLen := 0
+		for head != nil && head.option != nil {
+			bundleLen++
+			head = head.next
+		}
+
+		if bundleLen != len(bundle1Opts) {
+			t.Errorf("expected bundle length %d. got: %d", len(bundle1Opts), bundleLen)
+		}
+	})
+
+	t.Run("Unbundle", func(t *testing.T) {
+		var cases = []struct {
+			name         string
+			dedup        bool
+			bundle       *ReplaceBundle
+			expectedOpts []option.Optioner
+		}{
+			{"NilBundle", false, nilBundle, nilBundleOpts},
+			{"Bundle1", false, bundle1, bundle1Opts},
+			{"Bundle1Dedup", true, bundle1, bundle1DedupOpts},
+			{"Bundle2", false, bundle2, bundle2Opts},
+			{"Bundle2Dedup", true, bundle2, bundle2Opts},
+			{"Bundle3", false, bundle3, bundle3Opts},
+			{"Bundle3Dedup", true, bundle3, bundle3DedupOpts},
+			{"NestedBundle1_DedupFalse", false, nestedBundle1, nestedBundleOpts1},
+			{"NestedBundle1_DedupTrue", true, nestedBundle1, nestedBundleDedupOpts1},
+			{"NestedBundle2_DedupFalse", false, nestedBundle2, nestedBundleOpts2},
+			{"NestedBundle2_DedupTrue", true, nestedBundle2, nestedBundleDedupOpts2},
+			{"NestedBundle3_DedupFalse", false, nestedBundle3, nestedBundleOpts3},
+			{"NestedBundle3_DedupTrue", true, nestedBundle3, nestedBundleDedupOpts3},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				options, err := tc.bundle.Unbundle(tc.dedup)
+				testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
+
+				if len(options) != len(tc.expectedOpts) {
+					t.Errorf("options length does not match expected length. got %d expected %d", len(options),
+						len(tc.expectedOpts))
+				} else {
+					for i, opt := range options {
+						if opt != tc.expectedOpts[i] {
+							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
+						}
+					}
+				}
+			})
+		}
+	})
+}
