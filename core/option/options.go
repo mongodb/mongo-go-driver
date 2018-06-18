@@ -9,13 +9,14 @@ package option
 import (
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"strconv"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"fmt"
 	"io"
 	"reflect"
-	"fmt"
+	"strconv"
+
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Optioner is the interface implemented by types that can be used as options
