@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 )
 
 // Collection performs operations on a given collection.
@@ -291,7 +292,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 // into a *bson.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
-	options ...option.UpdateOptioner) (*UpdateResult, error) {
+	options ...updateopt.Update) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -311,7 +312,12 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		return nil, err
 	}
 
-	return coll.updateOrReplaceOne(ctx, f, u, options...)
+	updOpts, err := updateopt.BundleUpdate(options...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	return coll.updateOrReplaceOne(ctx, f, u, updOpts...)
 }
 
 // UpdateMany updates multiple documents in the collection. A user can supply
@@ -321,7 +327,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // into a *bson.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
-	opts ...option.UpdateOptioner) (*UpdateResult, error) {
+	opts ...updateopt.Update) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -349,11 +355,16 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		),
 	}
 
+	updOpts, err := updateopt.BundleUpdate(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Update{
 		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Docs: updateDocs,
-		Opts: opts,
+		Opts: updOpts,
 	}
 
 	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)

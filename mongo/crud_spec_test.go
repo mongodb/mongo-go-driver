@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -705,20 +706,19 @@ func updateManyTest(t *testing.T, coll *Collection, test *testCase) {
 		replaceFloatsWithInts(filter)
 		replaceFloatsWithInts(update)
 
-		var opts []option.UpdateOptioner
+		var opts []updateopt.Update
 
 		if arrayFilters, found := test.Operation.Arguments["arrayFilters"]; found {
-			arrayFiltersOpt, err := Opt.ArrayFilters(arrayFilters.([]interface{})...)
-			require.NoError(t, err)
-			opts = append(opts, arrayFiltersOpt)
+			arrayFiltersSlice := arrayFilters.([]interface{})
+			opts = append(opts, updateopt.ArrayFilters(arrayFiltersSlice...))
 		}
 
 		if upsert, found := test.Operation.Arguments["upsert"]; found {
-			opts = append(opts, Opt.Upsert(upsert.(bool)))
+			opts = append(opts, updateopt.Upsert(upsert.(bool)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, updateopt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.UpdateMany(context.Background(), filter, update, opts...)
@@ -763,20 +763,19 @@ func updateOneTest(t *testing.T, coll *Collection, test *testCase) {
 		replaceFloatsWithInts(filter)
 		replaceFloatsWithInts(update)
 
-		var opts []option.UpdateOptioner
+		var opts []updateopt.Update
 
 		if arrayFilters, found := test.Operation.Arguments["arrayFilters"]; found {
-			arrayFiltersOpt, err := Opt.ArrayFilters(arrayFilters.([]interface{})...)
-			require.NoError(t, err)
-			opts = append(opts, arrayFiltersOpt)
+			arrayFiltersSlice := arrayFilters.([]interface{})
+			opts = append(opts, updateopt.ArrayFilters(arrayFiltersSlice...))
 		}
 
 		if upsert, found := test.Operation.Arguments["upsert"]; found {
-			opts = append(opts, Opt.Upsert(upsert.(bool)))
+			opts = append(opts, updateopt.Upsert(upsert.(bool)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, updateopt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.UpdateOne(context.Background(), filter, update, opts...)

@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -638,7 +639,7 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 	update := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
-	result, err := coll.UpdateOne(context.Background(), filter, update, Opt.Upsert(true))
+	result, err := coll.UpdateOne(context.Background(), filter, update, updateopt.Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -698,9 +699,8 @@ func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
 	)
 	coll := createTestCollection(t, nil, nil)
 
-	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	require.NoError(t, err)
-	_, err = coll.UpdateOne(context.Background(), filter, update, optwc)
+	optwc := updateopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	_, err := coll.UpdateOne(context.Background(), filter, update, optwc)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
@@ -775,7 +775,7 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 	update := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
-	result, err := coll.UpdateMany(context.Background(), filter, update, Opt.Upsert(true))
+	result, err := coll.UpdateMany(context.Background(), filter, update, updateopt.Upsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -836,9 +836,8 @@ func TestCollection_UpdateMany_WriteConcernError(t *testing.T) {
 	)
 	coll := createTestCollection(t, nil, nil)
 
-	optwc, err := Opt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	require.NoError(t, err)
-	_, err = coll.UpdateMany(context.Background(), filter, update, optwc)
+	optwc := updateopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
+	_, err := coll.UpdateMany(context.Background(), filter, update, optwc)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
