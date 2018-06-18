@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
+	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
@@ -185,7 +186,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
-	opts ...option.DeleteOptioner) (*DeleteResult, error) {
+	opts ...deleteopt.Delete) (*DeleteResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -201,11 +202,16 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 			bson.EC.Int32("limit", 1)),
 	}
 
+	deleteOpts, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Delete{
 		NS:      command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Deletes: deleteDocs,
-		Opts:    opts,
+		Opts:    deleteOpts,
 	}
 
 	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
