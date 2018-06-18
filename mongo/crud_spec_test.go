@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/require"
 )
@@ -654,14 +655,14 @@ func replaceOneTest(t *testing.T, coll *Collection, test *testCase) {
 		replaceFloatsWithInts(filter)
 		replaceFloatsWithInts(replacement)
 
-		var opts []option.ReplaceOptioner
+		var opts []replaceopt.Replace
 
 		if upsert, found := test.Operation.Arguments["upsert"]; found {
-			opts = append(opts, Opt.Upsert(upsert.(bool)))
+			opts = append(opts, replaceopt.Upsert(upsert.(bool)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, replaceopt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actual, err := coll.ReplaceOne(context.Background(), filter, replacement, opts...)
