@@ -104,20 +104,8 @@ func ColName(t *testing.T) string {
 // ConnString gets the globally configured connection string.
 func ConnString(t *testing.T) connstring.ConnString {
 	connectionStringOnce.Do(func() {
-		mongodbURI := os.Getenv("MONGODB_URI")
-		if mongodbURI == "" {
-			mongodbURI = "mongodb://localhost:27017"
-		}
-
-		mongodbURI = AddTLSConfigToURI(mongodbURI)
-
-		var err error
-		connectionString, err = connstring.Parse(mongodbURI)
-		if err != nil {
-			connectionStringErr = err
-		}
+		connectionString, connectionStringErr = GetConnString()
 	})
-
 	if connectionStringErr != nil {
 		t.Fatal(connectionStringErr)
 	}
@@ -125,9 +113,28 @@ func ConnString(t *testing.T) connstring.ConnString {
 	return connectionString
 }
 
+func GetConnString() (connstring.ConnString, error) {
+	mongodbURI := os.Getenv("MONGODB_URI")
+	if mongodbURI == "" {
+		mongodbURI = "mongodb://localhost:27017"
+	}
+
+	mongodbURI = AddTLSConfigToURI(mongodbURI)
+
+	cs, err := connstring.Parse(mongodbURI)
+	if err != nil {
+		return connstring.ConnString{}, err
+	}
+
+	return cs, nil
+}
+
 // DBName gets the globally configured database name.
 func DBName(t *testing.T) string {
-	cs := ConnString(t)
+	return GetDBName(ConnString(t))
+}
+
+func GetDBName(cs connstring.ConnString) string {
 	if cs.Database != "" {
 		return cs.Database
 	}
