@@ -70,6 +70,30 @@
       "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "cc855866_939188e4",
+        "filename": "internal/testutil/config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-18T19:54:30Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "345b55a7_f53edcc7",
+      "range": {
+        "startLine": 116,
+        "startChar": 0,
+        "endLine": 116,
+        "endChar": 20
+      },
+      "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
