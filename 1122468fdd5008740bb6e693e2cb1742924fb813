@@ -46,6 +46,30 @@
       "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "345b55a7_f53edcc7",
+        "filename": "internal/testutil/config.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-18T18:52:27Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "63cd736c_09ad98cc",
+      "range": {
+        "startLine": 116,
+        "startChar": 0,
+        "endLine": 116,
+        "endChar": 20
+      },
+      "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
