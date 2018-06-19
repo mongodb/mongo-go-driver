@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 )
 
@@ -477,7 +478,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
-	opts ...option.DistinctOptioner) ([]interface{}, error) {
+	opts ...distinctopt.Distinct) ([]interface{}, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -492,12 +493,17 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		}
 	}
 
+	distinctOpts, err := distinctopt.BundleDistinct(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Distinct{
 		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Field:    fieldName,
 		Query:    f,
-		Opts:     opts,
+		Opts:     distinctOpts,
 		ReadPref: coll.readPreference,
 	}
 	res, err := dispatch.Distinct(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
