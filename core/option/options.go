@@ -173,6 +173,8 @@ type DropIndexesOptioner interface {
 	dropIndexesOption()
 }
 
+// TODO: add write concern and max time ms as CreateIndexesOptioner and DropIndexesOptioner
+// TODO: maxtimems for ListIndexesOptioner too
 var (
 	_ AggregateOptioner         = (*OptAllowDiskUse)(nil)
 	_ AggregateOptioner         = (*OptBatchSize)(nil)
@@ -188,12 +190,16 @@ var (
 	_ CountOptioner             = (*OptMaxTime)(nil)
 	_ CountOptioner             = (*OptReadConcern)(nil)
 	_ CountOptioner             = (*OptSkip)(nil)
+	_ CreateIndexesOptioner     = (*OptWriteConcern)(nil)
+	_ CreateIndexesOptioner     = (*OptMaxTime)(nil)
 	_ CursorOptioner            = OptBatchSize(0)
 	_ DeleteOptioner            = (*OptCollation)(nil)
 	_ DeleteOptioner            = (*OptWriteConcern)(nil)
 	_ DistinctOptioner          = (*OptCollation)(nil)
 	_ DistinctOptioner          = (*OptMaxTime)(nil)
 	_ DistinctOptioner          = (*OptReadConcern)(nil)
+	_ DropIndexesOptioner       = (*OptWriteConcern)(nil)
+	_ DropIndexesOptioner       = (*OptMaxTime)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptCollation)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptMaxTime)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptProjection)(nil)
@@ -266,6 +272,7 @@ var (
 	_ ListDatabasesOptioner     = OptNameOnly(false)
 	_ ListCollectionsOptioner   = OptNameOnly(false)
 	_ ListIndexesOptioner       = OptBatchSize(0)
+	_ ListIndexesOptioner       = (*OptMaxTime)(nil)
 	_ ReplaceOptioner           = (*OptBypassDocumentValidation)(nil)
 	_ ReplaceOptioner           = (*OptCollation)(nil)
 	_ ReplaceOptioner           = (*OptUpsert)(nil)

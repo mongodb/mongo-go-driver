@@ -60,6 +60,7 @@ func (db *Database) Name() string {
 }
 
 // Collection gets a handle for a given collection in the database.
+// TODO: add variadic option
 func (db *Database) Collection(name string) *Collection {
 	return newCollection(db, name)
 }
