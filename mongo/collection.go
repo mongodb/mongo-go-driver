@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
@@ -40,14 +41,18 @@ type Collection struct {
 	writeSelector  description.ServerSelector
 }
 
-func newCollection(db *Database, name string) *Collection {
+func newCollection(db *Database, name string, opts ...collectionopt.Option) *Collection {
+	collOpt, err := collectionopt.BundleCollection(opts...).Unbundle()
+	if err != nil {
+		return nil
+	}
 	coll := &Collection{
 		client:         db.client,
 		db:             db,
 		name:           name,
-		readPreference: db.readPreference,
-		readConcern:    db.readConcern,
-		writeConcern:   db.writeConcern,
+		readPreference: collOpt.ReadPreference,
+		readConcern:    collOpt.ReadConcern,
+		writeConcern:   collOpt.WriteConcern,
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
 	}
