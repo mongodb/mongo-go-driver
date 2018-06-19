@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 )
 
 // Database performs operations on a given database.
@@ -30,13 +31,33 @@ type Database struct {
 	writeSelector  description.ServerSelector
 }
 
-func newDatabase(client *Client, name string) *Database {
+func newDatabase(client *Client, name string, opts ...dbopt.Option) *Database {
+	dbOpt, err := dbopt.BundleDatabase(opts...).Unbundle()
+	if err != nil {
+		return nil
+	}
+
+	rc := client.readConcern
+	if dbOpt.ReadConcern != nil {
+		rc = dbOpt.ReadConcern
+	}
+
+	rp := client.readPreference
+	if dbOpt.ReadPreference != nil {
+		rp = dbOpt.ReadPreference
+	}
+
+	wc := client.writeConcern
+	if dbOpt.WriteConcern != nil {
+		wc = dbOpt.WriteConcern
+	}
+
 	db := &Database{
 		client:         client,
 		name:           name,
-		readPreference: client.readPreference,
-		readConcern:    client.readConcern,
-		writeConcern:   client.writeConcern,
+		readPreference: rp,
+		readConcern:    rc,
+		writeConcern:   wc,
 	}
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{
