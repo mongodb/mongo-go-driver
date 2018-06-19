@@ -3,8 +3,6 @@ package aggregateopt
 import (
 	"testing"
 
-	"fmt"
-
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
@@ -145,13 +143,10 @@ func TestAggregateOpt(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				fmt.Printf("------------------------%s-----------------------\n", tc.name)
 				options, err := tc.bundle.Unbundle(tc.dedup)
 				testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
 
 				if len(options) != len(tc.expectedOpts) {
-					fmt.Printf("%s\n", tc.expectedOpts)
-					fmt.Printf("%s\n", options)
 					t.Errorf("options length does not match expected length. got %d expected %d", len(options),
 						len(tc.expectedOpts))
 				} else {
