@@ -70,6 +70,25 @@ func (ob *OneBundle) WriteConcern(wc *writeconcern.WriteConcern) *OneBundle {
 	return bundle
 }
 
+// String implements the Stringer interface
+func (ob *OneBundle) String() string {
+	if ob == nil {
+		return ""
+	}
+
+	str := ""
+	for head := ob; head != nil && head.option != nil; head = head.next {
+		if converted, ok := head.option.(*OneBundle); ok {
+			str += converted.String()
+			continue
+		}
+
+		str += head.option.ConvertOneOption().String()
+	}
+
+	return str
+}
+
 // Calculates the total length of a bundle, accounting for nested bundles.
 func (ob *OneBundle) bundleLength() int {
 	if ob == nil {
@@ -222,6 +241,25 @@ func (mb *ManyBundle) WriteConcern(wc *writeconcern.WriteConcern) *ManyBundle {
 	}
 
 	return bundle
+}
+
+// String implements the Stringer interface
+func (mb *ManyBundle) String() string {
+	if mb == nil {
+		return ""
+	}
+
+	str := ""
+	for head := mb; head != nil && head.option != nil; head = head.next {
+		if converted, ok := head.option.(*ManyBundle); ok {
+			str += converted.String()
+			continue
+		}
+
+		str += head.option.ConvertManyOption().String()
+	}
+
+	return str
 }
 
 // Calculates the total length of a bundle, accounting for nested bundles.

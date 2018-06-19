@@ -215,7 +215,7 @@ func (ab *AggregateBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertOption().String()
+		str += head.option.ConvertOption().String() + "\n"
 	}
 
 	return str
