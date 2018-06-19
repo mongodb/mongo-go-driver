@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/stretchr/testify/require"
 )
@@ -317,10 +318,11 @@ func distinctTest(t *testing.T, coll *Collection, test *testCase) {
 			filter = filterArg.(map[string]interface{})
 		}
 
-		var opts []option.DistinctOptioner
+		var opts []distinctopt.Distinct
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
+			mapCollation := collationFromMap(collation.(map[string]interface{}))
+			opts = append(opts, distinctopt.Collation(mapCollation))
 		}
 
 		actual, err := coll.Distinct(context.Background(), fieldName, filter, opts...)
