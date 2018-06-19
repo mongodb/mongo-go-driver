@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1e2bf929_7c1a2e23",
+        "filename": "benchmark/single.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-19T19:06:08Z",
+      "side": 1,
+      "message": "From looking at the code it seems like err can be nil and there still be an problem with the server/command, and if this were the case we\u0027d be reporting bogus results. I\u0027m inclined to leave sanity checks (like this) in the code to protect the validity of the results we\u0027re reporting. \n\nThis is consistent with how the bson benchmarks check the length of the decoded objects just as a sanity check.",
+      "parentUuid": "b34ab215_ba9d55b6",
+      "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4afdfa44_72023e11",
         "filename": "benchmark/single.go",
         "patchSetId": 2
@@ -39,6 +57,30 @@
       "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8667a112_ee230207",
+        "filename": "benchmark/single.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-19T19:06:08Z",
+      "side": 1,
+      "message": "We can return a nil error, and have failed to actually insert the document. If this is the case, then the test isn\u0027t really valid, and those results are meaningless.",
+      "parentUuid": "4afdfa44_72023e11",
+      "range": {
+        "startLine": 87,
+        "startChar": 0,
+        "endLine": 87,
+        "endChar": 1
+      },
+      "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
