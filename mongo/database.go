@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 )
 
 // Database performs operations on a given database.
@@ -60,8 +61,8 @@ func (db *Database) Name() string {
 }
 
 // Collection gets a handle for a given collection in the database.
-func (db *Database) Collection(name string) *Collection {
-	return newCollection(db, name)
+func (db *Database) Collection(name string, opts ...collectionopt.Option) *Collection {
+	return newCollection(db, name, opts...)
 }
 
 // RunCommand runs a command on the database. A user can supply a custom
