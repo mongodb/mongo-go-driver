@@ -2,6 +2,46 @@
   "comments": [
     {
       "key": {
+        "uuid": "b34ab215_ba9d55b6",
+        "filename": "benchmark/single.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-19T18:43:30Z",
+      "side": 1,
+      "message": "This check seems like a correctness test, and is not relevant to a benchmark.  I suggest removing it.",
+      "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4afdfa44_72023e11",
+        "filename": "benchmark/single.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-19T18:43:30Z",
+      "side": 1,
+      "message": "Also seems like a correctness test.  If insert failed then err should be set.",
+      "range": {
+        "startLine": 87,
+        "startChar": 0,
+        "endLine": 87,
+        "endChar": 1
+      },
+      "revId": "1122468fdd5008740bb6e693e2cb1742924fb813",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c2de956c_0363674b",
         "filename": "internal/testutil/config.go",
         "patchSetId": 2
