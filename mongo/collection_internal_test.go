@@ -15,9 +15,12 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
@@ -29,7 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestCollection(t *testing.T, dbName *string, collName *string) *Collection {
+func createTestCollection(t *testing.T, dbName *string, collName *string, opts ...collectionopt.Option) *Collection {
 	if collName == nil {
 		coll := testutil.ColName(t)
 		collName = &coll
@@ -37,7 +40,7 @@ func createTestCollection(t *testing.T, dbName *string, collName *string) *Colle
 
 	db := createTestDatabase(t, dbName)
 
-	return db.Collection(*collName)
+	return db.Collection(*collName, opts...)
 }
 
 func initCollection(t *testing.T, coll *Collection) {
@@ -74,6 +77,73 @@ func TestCollection_initialize(t *testing.T) {
 	coll := createTestCollection(t, &dbName, &collName)
 	require.Equal(t, coll.name, collName)
 	require.NotNil(t, coll.db)
+}
+
+func compareColls(t *testing.T, expected *Collection, got *Collection) {
+	switch {
+	case expected.readPreference != got.readPreference:
+		t.Errorf("expected read preference %#v. got %#v", expected.readPreference, got.readPreference)
+	case expected.readConcern != got.readConcern:
+		t.Errorf("expected read concern %#v. got %#v", expected.readConcern, got.readConcern)
+	case expected.writeConcern != got.writeConcern:
+		t.Errorf("expected write concern %#v. got %#v", expected.writeConcern, got.writeConcern)
+	}
+}
+
+func TestCollection_Options(t *testing.T) {
+	name := "testDb_options"
+	rpPrimary := readpref.Primary()
+	rpSecondary := readpref.Secondary()
+	wc1 := writeconcern.New(writeconcern.W(5))
+	wc2 := writeconcern.New(writeconcern.W(10))
+	rcLocal := readconcern.Local()
+	rcMajority := readconcern.Majority()
+
+	opts := []collectionopt.Option{collectionopt.ReadPreference(rpPrimary), collectionopt.ReadConcern(rcLocal), collectionopt.WriteConcern(wc1),
+		collectionopt.ReadPreference(rpSecondary), collectionopt.ReadConcern(rcMajority), collectionopt.WriteConcern(wc2)}
+
+	dbName := "collection_internal_test_db1"
+
+	expectedColl := &Collection{
+		readConcern:    rcMajority,
+		readPreference: rpSecondary,
+		writeConcern:   wc2,
+	}
+
+	t.Run("IndividualOptions", func(t *testing.T) {
+		// if options specified multiple times, last instance should take precedence
+		coll := createTestCollection(t, &dbName, &name, opts...)
+		compareColls(t, expectedColl, coll)
+	})
+
+	t.Run("Bundle", func(t *testing.T) {
+		coll := createTestCollection(t, &dbName, &name, collectionopt.BundleCollection(opts...))
+		compareColls(t, expectedColl, coll)
+	})
+}
+
+func TestCollection_InheritOptions(t *testing.T) {
+	name := "testDb_options_inherit"
+	client := createTestClient(t)
+
+	rpPrimary := readpref.Primary()
+	rcLocal := readconcern.Local()
+	wc1 := writeconcern.New(writeconcern.W(10))
+
+	db := client.Database("collection_internal_test_db2")
+	db.readPreference = rpPrimary
+	db.readConcern = rcLocal
+	coll := db.Collection(name, collectionopt.WriteConcern(wc1))
+
+	// coll should inherit read preference and read concern from client
+	switch {
+	case coll.readPreference != rpPrimary:
+		t.Errorf("expected read preference primary. got %#v", coll.readPreference)
+	case coll.readConcern != rcLocal:
+		t.Errorf("expected read concern local. got %#v", coll.readConcern)
+	case coll.writeConcern != wc1:
+		t.Errorf("expected write concern %#v. got %#v", wc1, coll.writeConcern)
+	}
 }
 
 func TestCollection_namespace(t *testing.T) {
