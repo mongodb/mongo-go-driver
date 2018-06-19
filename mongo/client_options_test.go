@@ -10,6 +10,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +22,7 @@ func TestClientOptions_simple(t *testing.T) {
 	}
 
 	cs := testutil.ConnString(t)
-	client, err := NewClientWithOptions(cs.String(), ClientOpt.AppName("foo"))
+	client, err := NewClientWithOptions(cs.String(), clientopt.AppName("foo"))
 	require.NoError(t, err)
 
 	require.Equal(t, "foo", client.connString.AppName)
@@ -37,7 +38,7 @@ func TestClientOptions_deferToConnString(t *testing.T) {
 	cs := testutil.ConnString(t)
 	uri := testutil.AddOptionsToURI(cs.String(), "appname=bar")
 
-	client, err := NewClientWithOptions(uri, ClientOpt.AppName("foo"))
+	client, err := NewClientWithOptions(uri, clientopt.AppName("foo"))
 	require.NoError(t, err)
 
 	require.Equal(t, "bar", client.connString.AppName)
@@ -47,7 +48,7 @@ func TestClientOptions_doesNotAlterConnectionString(t *testing.T) {
 	t.Parallel()
 
 	cs := connstring.ConnString{}
-	client, err := newClient(cs, ClientOpt.AppName("foobar"))
+	client, err := newClient(cs, clientopt.AppName("foobar"))
 	require.NoError(t, err)
 	if cs.AppName != "" {
 		t.Errorf("Creating a new Client should not alter the original connection string, but it did. got %s; want <empty>", cs.AppName)
@@ -60,7 +61,7 @@ func TestClientOptions_doesNotAlterConnectionString(t *testing.T) {
 func TestClientOptions_chainAll(t *testing.T) {
 	t.Parallel()
 
-	opts := ClientOpt.
+	opts := clientopt.BundleClient().
 		AppName("foo").
 		AuthMechanism("MONGODB-X509").
 		AuthMechanismProperties(map[string]string{"foo": "bar"}).
@@ -95,17 +96,14 @@ func TestClientOptions_chainAll(t *testing.T) {
 		Username("admin").
 		WTimeout(2 * time.Second)
 
-	client := new(Client)
-	for opts.opt != nil {
-		err := opts.opt(client)
-		require.NoError(t, err)
-		opts = opts.next
-	}
+	client, err := opts.Unbundle(connstring.ConnString{})
+	require.NoError(t, err)
+	require.NotNil(t, client)
 }
 
 func TestClientOptions_CustomDialer(t *testing.T) {
 	td := &testDialer{d: &net.Dialer{}}
-	opts := ClientOpt.Dialer(td)
+	opts := clientopt.Dialer(td)
 	client, err := newClient(testutil.ConnString(t), opts)
 	require.NoError(t, err)
 	err = client.Connect(context.Background())

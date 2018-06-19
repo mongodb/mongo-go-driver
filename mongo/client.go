@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -36,7 +37,7 @@ type Client struct {
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
-func Connect(ctx context.Context, uri string, opts *ClientOptions) (*Client, error) {
+func Connect(ctx context.Context, uri string, opts clientopt.Option) (*Client, error) {
 	c, err := NewClientWithOptions(uri, opts)
 	if err != nil {
 		return nil, err
@@ -61,7 +62,7 @@ func NewClient(uri string) (*Client, error) {
 // NewClientWithOptions creates a new client to connect to to a cluster specified by the connection
 // string and the options manually passed in. If the same option is configured in both the
 // connection string and the manual options, the manual option will be ignored.
-func NewClientWithOptions(uri string, opts *ClientOptions) (*Client, error) {
+func NewClientWithOptions(uri string, opts clientopt.Option) (*Client, error) {
 	cs, err := connstring.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -94,20 +95,16 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	return c.topology.Disconnect(ctx)
 }
 
-func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
-	client := &Client{
-		connString:     cs,
-		localThreshold: defaultLocalThreshold,
+func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, error) {
+	clientOpt, err := clientopt.BundleClient(opts...).Unbundle(cs)
+	if err != nil {
+		return nil, err
 	}
 
-	if opts != nil {
-		for opts.opt != nil {
-			err := opts.opt(client)
-			if err != nil {
-				return nil, err
-			}
-			opts = opts.next
-		}
+	client := &Client{
+		topologyOptions: clientOpt.TopologyOptions,
+		connString:      clientOpt.ConnString,
+		localThreshold:  clientOpt.LocalThreshold,
 	}
 
 	topts := append(
