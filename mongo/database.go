@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
+	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 )
 
 // Database performs operations on a given database.
@@ -31,13 +32,33 @@ type Database struct {
 	writeSelector  description.ServerSelector
 }
 
-func newDatabase(client *Client, name string) *Database {
+func newDatabase(client *Client, name string, opts ...dbopt.Option) *Database {
+	dbOpt, err := dbopt.BundleDatabase(opts...).Unbundle()
+	if err != nil {
+		return nil
+	}
+
+	rc := client.readConcern
+	if dbOpt.ReadConcern != nil {
+		rc = dbOpt.ReadConcern
+	}
+
+	rp := client.readPreference
+	if dbOpt.ReadPreference != nil {
+		rp = dbOpt.ReadPreference
+	}
+
+	wc := client.writeConcern
+	if dbOpt.WriteConcern != nil {
+		wc = dbOpt.WriteConcern
+	}
+
 	db := &Database{
 		client:         client,
 		name:           name,
-		readPreference: client.readPreference,
-		readConcern:    client.readConcern,
-		writeConcern:   client.writeConcern,
+		readPreference: rp,
+		readConcern:    rc,
+		writeConcern:   wc,
 	}
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{
@@ -73,7 +94,11 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}) (bso
 		ctx = context.Background()
 	}
 
-	cmd := command.Command{DB: db.Name(), Command: runCommand}
+	cmd := command.Command{
+		DB:       db.Name(),
+		Command:  runCommand,
+		ReadPref: db.readPreference,
+	}
 	return dispatch.Command(ctx, cmd, db.client.topology, db.writeSelector)
 }
 
@@ -99,9 +124,10 @@ func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, 
 		ctx = context.Background()
 	}
 	cmd := command.ListCollections{
-		DB:     db.name,
-		Filter: filter,
-		Opts:   options,
+		DB:       db.name,
+		Filter:   filter,
+		Opts:     options,
+		ReadPref: db.readPreference,
 	}
 	cursor, err := dispatch.ListCollections(ctx, cmd, db.client.topology, db.readSelector)
 	if err != nil && !command.IsNotFound(err) {

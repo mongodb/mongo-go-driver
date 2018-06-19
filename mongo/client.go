@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
+	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -212,8 +213,8 @@ func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref
 }
 
 // Database returns a handle for a given database.
-func (c *Client) Database(name string) *Database {
-	return newDatabase(c, name)
+func (c *Client) Database(name string, opts ...dbopt.Option) *Database {
+	return newDatabase(c, name, opts...)
 }
 
 // ConnectionString returns the connection string of the cluster the client is connected to.

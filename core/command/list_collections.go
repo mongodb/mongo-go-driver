@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -23,8 +24,9 @@ type ListCollections struct {
 	Filter *bson.Document
 	Opts   []option.ListCollectionsOptioner
 
-	result Cursor
-	err    error
+	result   Cursor
+	ReadPref *readpref.ReadPref
+	err      error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -45,7 +47,7 @@ func (lc *ListCollections) Encode(desc description.SelectedServer) (wiremessage.
 		}
 	}
 
-	return (&Command{DB: lc.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{DB: lc.DB, Command: cmd, isWrite: true, ReadPref: lc.ReadPref}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
