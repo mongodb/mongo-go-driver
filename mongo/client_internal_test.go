@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"time"
+
+	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 )
 
 func createTestClient(t *testing.T) *Client {
@@ -47,6 +49,22 @@ func TestClient_Database(t *testing.T) {
 	db := c.Database(dbName)
 	require.Equal(t, db.Name(), dbName)
 	require.Exactly(t, c, db.Client())
+}
+
+func TestClientOptions(t *testing.T) {
+	t.Parallel()
+
+	c, err := NewClientWithOptions("mongodb://localhost",
+		clientopt.MaxConnIdleTime(200),
+		clientopt.ReplicaSet("test"),
+		clientopt.LocalThreshold(10),
+		clientopt.MaxConnIdleTime(100),
+		clientopt.LocalThreshold(20))
+	require.NoError(t, err)
+
+	require.Equal(t, time.Duration(20), c.connString.LocalThreshold)
+	require.Equal(t, time.Duration(100), c.connString.MaxConnIdleTime)
+	require.Equal(t, "test", c.connString.ReplicaSet)
 }
 
 func TestClient_TLSConnection(t *testing.T) {
