@@ -29,7 +29,7 @@ func (dd *DropDatabase) Encode(desc description.SelectedServer) (wiremessage.Wir
 		bson.EC.Int32("dropDatabase", 1),
 	)
 
-	return (&Command{DB: dd.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: true, DB: dd.DB, Command: cmd, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

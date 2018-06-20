@@ -45,7 +45,7 @@ func (ld *ListDatabases) Encode(desc description.SelectedServer) (wiremessage.Wi
 		}
 	}
 
-	return (&Command{DB: "admin", Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: true, DB: "admin", Command: cmd, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

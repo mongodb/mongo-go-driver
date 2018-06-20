@@ -72,7 +72,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}) (bso
 		ctx = context.Background()
 	}
 
-	cmd := command.Command{DB: db.Name(), Command: runCommand}
+	cmd := command.Command{Acknowledged: true, DB: db.Name(), Command: runCommand}
 	return dispatch.Command(ctx, cmd, db.client.topology, db.writeSelector)
 }
 

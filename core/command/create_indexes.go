@@ -44,7 +44,7 @@ func (ci *CreateIndexes) Encode(desc description.SelectedServer) (wiremessage.Wi
 		}
 	}
 
-	return (&Command{DB: ci.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: true, DB: ci.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

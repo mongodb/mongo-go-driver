@@ -7,8 +7,9 @@
 package auth_test
 
 import (
-	"context"
 	"testing"
+
+	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	. "github.com/mongodb/mongo-go-driver/core/auth"
@@ -45,57 +46,21 @@ func TestCreateAuthenticator(t *testing.T) {
 	}
 }
 
-type conn struct {
-	t        *testing.T
-	writeErr error
-	written  chan wiremessage.WireMessage
-	readResp chan wiremessage.WireMessage
-	readErr  chan error
-}
+func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload *bson.Document, dbName string) {
+	switch converted := wm.(type) {
+	case wiremessage.Query:
+		payloadBytes, err := expectedPayload.MarshalBSON()
+		if err != nil {
+			t.Fatalf("couldn't marshal query bson: %v", err)
+		}
+		require.True(t, reflect.DeepEqual([]byte(converted.Query), payloadBytes))
+	case wiremessage.Msg:
+		msgPayload := expectedPayload.Append(bson.EC.String("$db", dbName))
+		payloadBytes, err := msgPayload.MarshalBSON()
+		if err != nil {
+			t.Fatalf("couldn't marshal msg bson: %v", err)
+		}
 
-func (c *conn) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessage) error {
-	select {
-	case c.written <- wm:
-	default:
-		c.t.Error("could not write wiremessage to written channel")
-	}
-	return c.writeErr
-}
-
-func (c *conn) ReadWireMessage(ctx context.Context) (wiremessage.WireMessage, error) {
-	var wm wiremessage.WireMessage
-	var err error
-	select {
-	case wm = <-c.readResp:
-	case err = <-c.readErr:
-	case <-ctx.Done():
-	}
-	return wm, err
-}
-
-func (c *conn) Close() error {
-	return nil
-}
-
-func (c *conn) Expired() bool {
-	return false
-}
-
-func (c *conn) Alive() bool {
-	return true
-}
-
-func (c *conn) ID() string {
-	return "faked"
-}
-
-func makeReply(t *testing.T, doc *bson.Document) wiremessage.WireMessage {
-	rdr, err := doc.MarshalBSON()
-	if err != nil {
-		t.Fatalf("Could not create document: %v", err)
-	}
-	return wiremessage.Reply{
-		NumberReturned: 1,
-		Documents:      []bson.Reader{rdr},
+		require.True(t, reflect.DeepEqual([]byte(converted.Sections[0].(wiremessage.SectionBody).Document), payloadBytes))
 	}
 }

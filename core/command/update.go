@@ -20,9 +20,10 @@ import (
 //
 // The update command updates a set of documents with the database.
 type Update struct {
-	NS   Namespace
-	Docs []*bson.Document
-	Opts []option.UpdateOptioner
+	Acknowledged bool
+	NS           Namespace
+	Docs         []*bson.Document
+	Opts         []option.UpdateOptioner
 
 	result result.Update
 	err    error
@@ -56,7 +57,7 @@ func (u *Update) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		}
 	}
 
-	return (&Command{DB: u.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: u.Acknowledged, DB: u.NS.DB, Command: command, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
