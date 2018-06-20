@@ -30,7 +30,7 @@ func (di *DropCollection) Encode(desc description.SelectedServer) (wiremessage.W
 		bson.EC.String("drop", di.Collection),
 	)
 
-	return (&Command{DB: di.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: true, DB: di.DB, Command: cmd, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
