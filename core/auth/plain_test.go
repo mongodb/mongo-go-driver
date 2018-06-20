@@ -11,14 +11,13 @@ import (
 	"strings"
 	"testing"
 
-	"reflect"
-
 	"encoding/base64"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	. "github.com/mongodb/mongo-go-driver/core/auth"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/internal"
 )
 
 func TestPlainAuthenticator_Fails(t *testing.T) {
@@ -30,7 +29,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
@@ -38,9 +37,13 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		bson.EC.Boolean("done", true)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -60,22 +63,26 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 2)
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
 		bson.EC.Boolean("done", false)),
 	)
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
 		bson.EC.Boolean("done", true)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -95,36 +102,33 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
 		bson.EC.Boolean("done", true)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
 
-	if len(c.written) != 1 {
-		t.Fatalf("expected 1 messages to be sent but had %d", len(c.written))
+	if len(c.Written) != 1 {
+		t.Fatalf("expected 1 messages to be sent but had %d", len(c.Written))
 	}
 
-	saslStartRequest := (<-c.written).(wiremessage.Query)
 	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
-	expectedCmd, err := bson.NewDocument(
+	expectedCmd := bson.NewDocument(
 		bson.EC.Int32("saslStart", 1),
 		bson.EC.String("mechanism", "PLAIN"),
 		bson.EC.Binary("payload", payload),
-	).MarshalBSON()
-	if err != nil {
-		t.Fatalf("couldn't marshal bson: %v", err)
-	}
-
-	if !reflect.DeepEqual(saslStartRequest.Query, bson.Reader(expectedCmd)) {
-		t.Fatalf("saslStart command was incorrect. got %v; want %v", saslStartRequest.Query, bson.Reader(expectedCmd))
-	}
+	)
+	compareResponses(t, <-c.Written, expectedCmd, "$external")
 }

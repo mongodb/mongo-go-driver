@@ -9,31 +9,29 @@ package dispatch
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
 
-// Update handles the full cycle dispatch and execution of an update command against the provided
+// Write handles the full cycle dispatch and execution of a write command against the provided
 // topology.
-func Update(
+func Write(
 	ctx context.Context,
-	cmd command.Update,
+	cmd command.Write,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-) (result.Update, error) {
-
+) (bson.Reader, error) {
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
-		return result.Update{}, err
+		return nil, err
 	}
 
-	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
-		return result.Update{}, err
+		return nil, err
 	}
 
-	return cmd.RoundTrip(ctx, desc, conn)
+	return cmd.RoundTrip(ctx, ss.Description(), conn)
 }

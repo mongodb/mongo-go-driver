@@ -90,6 +90,24 @@ func ReadDocument(b []byte) (*Document, error) {
 	return doc, nil
 }
 
+// Copy makes a shallow copy of this document.
+func (d *Document) Copy() *Document {
+	if d == nil {
+		return nil
+	}
+
+	doc := &Document{
+		IgnoreNilInsert: d.IgnoreNilInsert,
+		elems:           make([]*Element, len(d.elems), cap(d.elems)),
+		index:           make([]uint32, len(d.index), cap(d.index)),
+	}
+
+	copy(doc.elems, d.elems)
+	copy(doc.index, d.index)
+
+	return doc
+}
+
 // Len returns the number of elements in the document.
 func (d *Document) Len() int {
 	if d == nil {

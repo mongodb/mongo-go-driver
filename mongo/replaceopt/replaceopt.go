@@ -10,7 +10,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -74,16 +73,6 @@ func (rb *ReplaceBundle) Collation(c *mongoopt.Collation) *ReplaceBundle {
 func (rb *ReplaceBundle) Upsert(b bool) *ReplaceBundle {
 	bundle := &ReplaceBundle{
 		option: Upsert(b),
-		next:   rb,
-	}
-
-	return bundle
-}
-
-// WriteConcern adds an option to specify the write concern.
-func (rb *ReplaceBundle) WriteConcern(wc *writeconcern.WriteConcern) *ReplaceBundle {
-	bundle := &ReplaceBundle{
-		option: WriteConcern(wc),
 		next:   rb,
 	}
 
@@ -214,13 +203,6 @@ func Upsert(b bool) OptUpsert {
 	return OptUpsert(b)
 }
 
-// WriteConcern specifies the write concern.
-func WriteConcern(wc *writeconcern.WriteConcern) OptWriteConcern {
-	return OptWriteConcern{
-		WriteConcern: wc,
-	}
-}
-
 // OptBypassDocumentValidation allows the write to opt-out of document-level validation.
 type OptBypassDocumentValidation option.OptBypassDocumentValidation
 
@@ -249,14 +231,4 @@ func (OptUpsert) replace() {}
 // ConvertReplaceOption implements the Replace interface
 func (opt OptUpsert) ConvertReplaceOption() option.ReplaceOptioner {
 	return option.OptUpsert(opt)
-}
-
-// OptWriteConcern specifies the write concern.
-type OptWriteConcern option.OptWriteConcern
-
-func (OptWriteConcern) replace() {}
-
-// ConvertReplaceOption implements the Replace interface
-func (opt OptWriteConcern) ConvertReplaceOption() option.ReplaceOptioner {
-	return option.OptWriteConcern(opt)
 }

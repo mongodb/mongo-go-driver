@@ -47,16 +47,16 @@ func AutoDropCollection(t *testing.T) {
 
 // DropCollection drops the collection in the test cluster.
 func DropCollection(t *testing.T, dbname, colname string) {
-	cmd := command.Command{DB: dbname, Command: bson.NewDocument(bson.EC.String("drop", colname))}
-	_, err := dispatch.Command(context.Background(), cmd, Topology(t), description.WriteSelector())
+	cmd := command.Write{DB: dbname, Command: bson.NewDocument(bson.EC.String("drop", colname))}
+	_, err := dispatch.Write(context.Background(), cmd, Topology(t), description.WriteSelector())
 	if err != nil && !command.IsNotFound(err) {
 		require.NoError(t, err)
 	}
 }
 
 func autoDropDB(t *testing.T, topo *topology.Topology) {
-	cmd := command.Command{DB: DBName(t), Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1))}
-	_, err := dispatch.Command(context.Background(), cmd, topo, description.WriteSelector())
+	cmd := command.Write{DB: DBName(t), Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1))}
+	_, err := dispatch.Write(context.Background(), cmd, topo, description.WriteSelector())
 	require.NoError(t, err)
 }
 
@@ -70,13 +70,13 @@ func InsertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern
 	cmd := command.Insert{NS: command.NewNamespace(dbname, colname), Docs: docs}
 
 	topo := Topology(t)
-	_, err := dispatch.Insert(context.Background(), cmd, topo, description.WriteSelector(), writeConcern)
+	_, err := dispatch.Insert(context.Background(), cmd, topo, description.WriteSelector())
 	require.NoError(t, err)
 }
 
 // EnableMaxTimeFailPoint turns on the max time fail point in the test cluster.
 func EnableMaxTimeFailPoint(t *testing.T, s *topology.Server) error {
-	cmd := command.Command{
+	cmd := command.Write{
 		DB: "admin",
 		Command: bson.NewDocument(
 			bson.EC.String("configureFailPoint", "maxTimeAlwaysTimeOut"),
@@ -92,7 +92,7 @@ func EnableMaxTimeFailPoint(t *testing.T, s *topology.Server) error {
 
 // DisableMaxTimeFailPoint turns off the max time fail point in the test cluster.
 func DisableMaxTimeFailPoint(t *testing.T, s *topology.Server) {
-	cmd := command.Command{
+	cmd := command.Write{
 		DB: "admin",
 		Command: bson.NewDocument(
 			bson.EC.String("configureFailPoint", "maxTimeAlwaysTimeOut"),

@@ -27,6 +27,14 @@ type ListIndexes struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (li *ListIndexes) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	encoded, err := li.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+	return encoded.Encode(desc)
+}
+
+func (li *ListIndexes) encode(desc description.SelectedServer) (*Read, error) {
 	cmd := bson.NewDocument(bson.EC.String("listIndexes", li.NS.Collection))
 
 	for _, opt := range li.Opts {
@@ -39,13 +47,16 @@ func (li *ListIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 		}
 	}
 
-	return (&Command{DB: li.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return &Read{
+		DB:      li.NS.DB,
+		Command: cmd,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListIndexes {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		if IsNotFound(err) {
 			li.result = emptyCursor{}
@@ -55,6 +66,10 @@ func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder,
 		return li
 	}
 
+	return li.decode(desc, cb, rdr)
+}
+
+func (li *ListIndexes) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *ListIndexes {
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range li.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)
@@ -65,7 +80,6 @@ func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder,
 	}
 
 	li.result, li.err = cb.BuildCursor(rdr, opts...)
-
 	return li
 }
 
@@ -81,19 +95,20 @@ func (li *ListIndexes) Result() (Cursor, error) {
 func (li *ListIndexes) Err() error { return li.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (li *ListIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
-	wm, err := li.Encode(desc)
+func (li *ListIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriteCloser) (Cursor, error) {
+	cmd, err := li.encode(desc)
 	if err != nil {
+		rw.Close()
 		return nil, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
+		if IsNotFound(err) {
+			return emptyCursor{}, nil
+		}
 		return nil, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return li.Decode(desc, cb, wm).Result()
+
+	return li.decode(desc, cb, rdr).Result()
 }
