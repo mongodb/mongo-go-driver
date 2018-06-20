@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "efdb5c05_ef6a9ca7",
+        "filename": "core/command/ismaster.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-20T15:46:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cb2c3030_f865e846",
+      "range": {
+        "startLine": 39,
+        "startChar": 16,
+        "endLine": 39,
+        "endChar": 26
+      },
+      "revId": "22102ca5611e98aaeaa9125a1273c8415a946bc6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6e55de63_fd8bbb3d",
         "filename": "core/connection/options.go",
         "patchSetId": 20
