@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3573d4a1_8ab07aa5",
+        "filename": "core/dispatch/delete.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-20T20:12:37Z",
+      "side": 1,
+      "message": "What if wc is nil? We should probably have the acknowledge :\u003d true above the previous if statement and move this declaration into the if statement.",
+      "range": {
+        "startLine": 42,
+        "startChar": 1,
+        "endLine": 42,
+        "endChar": 34
+      },
+      "revId": "42234a55c4737537e71992bc5bcac7af4af9eb62",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "edeea750_dd466e86",
+        "filename": "core/option/options.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 955,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-20T20:12:37Z",
+      "side": 1,
+      "message": "We don\u0027t really need to name this WriteConcern, we can just embed a *writeconcern.WriteConcern here.",
+      "range": {
+        "startLine": 955,
+        "startChar": 1,
+        "endLine": 955,
+        "endChar": 40
+      },
+      "revId": "42234a55c4737537e71992bc5bcac7af4af9eb62",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b6c04738_73197e48",
+        "filename": "mongo/collection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 587,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-20T20:12:37Z",
+      "side": 1,
+      "message": "This feels silly, but maybe there isn\u0027t a better way to do this? Could we just have findopt.BundleOne.Unbundle return a slice of option.FindOptioner?",
+      "range": {
+        "startLine": 578,
+        "startChar": 0,
+        "endLine": 587,
+        "endChar": 42
+      },
+      "revId": "42234a55c4737537e71992bc5bcac7af4af9eb62",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
