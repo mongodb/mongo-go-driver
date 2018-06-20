@@ -80,14 +80,15 @@ func (r *BenchResult) timings() []float64 {
 
 func (r *BenchResult) totalDuration() time.Duration {
 	var out time.Duration
-	for _, r := range r.Raw {
-		out += r.Duration
+	for _, trial := range r.Raw {
+		out += trial.Duration
 	}
 	return out
 }
 
 func (r *BenchResult) adjustResults(data float64) float64 { return float64(r.DataSize) / data }
 func (r *BenchResult) getThroughput(data float64) float64 { return float64(r.Operations) / data }
+func (r *BenchResult) roundedRuntime() time.Duration      { return roundDurationMS(r.Duration) }
 
 func (r *BenchResult) String() string {
 	return fmt.Sprintf("name=%s, trials=%d, secs=%s", r.Name, r.Trials, r.Duration)
@@ -112,4 +113,12 @@ type Result struct {
 	Duration   time.Duration
 	Iterations int
 	Error      error
+}
+
+func roundDurationMS(d time.Duration) time.Duration {
+	rounded := d.Round(time.Millisecond)
+	if rounded == 1<<63-1 {
+		return 0
+	}
+	return rounded
 }

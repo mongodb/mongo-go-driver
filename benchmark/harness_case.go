@@ -40,9 +40,12 @@ func (c *CaseDefinition) StopTimer() {
 	if c.startAt.IsZero() {
 		return
 	}
-
-	c.startAt = time.Time{}
 	c.Runtime += time.Since(c.startAt)
+	c.startAt = time.Time{}
+}
+
+func (c *CaseDefinition) roundedRuntime() time.Duration {
+	return roundDurationMS(c.Runtime)
 }
 
 func (c *CaseDefinition) Run(ctx context.Context) *BenchResult {
@@ -58,6 +61,7 @@ func (c *CaseDefinition) Run(ctx context.Context) *BenchResult {
 
 	fmt.Println("=== RUN", out.Name)
 	c.startAt = time.Now()
+
 	for {
 		if time.Since(c.startAt) > c.Runtime {
 			if out.Trials >= MinIterations {
@@ -66,10 +70,10 @@ func (c *CaseDefinition) Run(ctx context.Context) *BenchResult {
 				break
 			}
 		}
-
 		res := Result{
 			Iterations: c.Count,
 		}
+
 		c.StartTimer()
 		res.Error = c.Bench(ctx, c, c.Count)
 		c.StopTimer()
@@ -85,9 +89,9 @@ func (c *CaseDefinition) Run(ctx context.Context) *BenchResult {
 
 	out.Duration = out.totalDuration()
 	if out.HasErrors() {
-		fmt.Printf("--- FAIL: %s (%s)\n", out.Name, out.Duration.Round(time.Millisecond))
+		fmt.Printf("--- FAIL: %s (%s)\n", out.Name, out.roundedRuntime())
 	} else {
-		fmt.Printf("--- PASS: %s (%s)\n", out.Name, out.Duration.Round(time.Millisecond))
+		fmt.Printf("--- PASS: %s (%s)\n", out.Name, out.roundedRuntime())
 	}
 
 	return out
@@ -100,7 +104,6 @@ func (c *CaseDefinition) String() string {
 }
 
 func (c *CaseDefinition) Name() string { return getName(c.Bench) }
-
 func getName(i interface{}) string {
 	n := runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 	parts := strings.Split(n, ".")
