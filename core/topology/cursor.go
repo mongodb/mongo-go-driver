@@ -189,5 +189,6 @@ func (c *cursor) getMore(ctx context.Context) {
 		c.err = fmt.Errorf("BSON Type %s is not %s", batch.Value().Type(), bson.TypeArray)
 		return
 	}
+
 	return
 }

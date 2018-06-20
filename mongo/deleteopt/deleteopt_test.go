@@ -6,20 +6,24 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
-var wc1 = writeconcern.New(writeconcern.W(10))
-var wc2 = writeconcern.New(writeconcern.W(20))
 var c = &mongoopt.Collation{}
+var c1 = &mongoopt.Collation{
+	Locale: "string locale 1",
+}
+
+var c2 = &mongoopt.Collation{
+	Locale: "string locale 1",
+}
 
 func createNestedDeleteBundle1(t *testing.T) *DeleteBundle {
 	nestedBundle := BundleDelete(Collation(c))
 	testhelpers.RequireNotNil(t, nestedBundle, "nested bundle was nil")
 
-	outerBundle := BundleDelete(Collation(c), WriteConcern(wc1), nestedBundle)
+	outerBundle := BundleDelete(Collation(c), Collation(c1), nestedBundle)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
@@ -30,10 +34,10 @@ func createNestedDeleteBundle2(t *testing.T) *DeleteBundle {
 	b1 := BundleDelete(Collation(c))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleDelete(WriteConcern(wc2), b1)
+	b2 := BundleDelete(Collation(c2), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
-	outerBundle := BundleDelete(Collation(c), WriteConcern(wc1), b2)
+	outerBundle := BundleDelete(Collation(c), Collation(c1), b2)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
@@ -44,16 +48,16 @@ func createNestedDeleteBundle3(t *testing.T) *DeleteBundle {
 	b1 := BundleDelete(Collation(c))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleDelete(WriteConcern(wc2), b1)
+	b2 := BundleDelete(Collation(c2), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
 	b3 := BundleDelete(Collation(c))
 	testhelpers.RequireNotNil(t, b3, "nested bundle was nil")
 
-	b4 := BundleDelete(WriteConcern(wc2), b3)
+	b4 := BundleDelete(Collation(c2), b3)
 	testhelpers.RequireNotNil(t, b4, "nested bundle was nil")
 
-	outerBundle := BundleDelete(b4, WriteConcern(wc1), b2)
+	outerBundle := BundleDelete(b4, Collation(c1), b2)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
@@ -95,36 +99,33 @@ func TestDeleteOpt(t *testing.T) {
 	nestedBundle1 := createNestedDeleteBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
-		OptWriteConcern{wc1}.ConvertDeleteOption(),
+		OptCollation{c1.Convert()}.ConvertDeleteOption(),
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptWriteConcern{wc1}.ConvertDeleteOption(),
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
 	}
 
 	nestedBundle2 := createNestedDeleteBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
-		OptWriteConcern{wc1}.ConvertDeleteOption(),
-		OptWriteConcern{wc2}.ConvertDeleteOption(),
+		OptCollation{c1.Convert()}.ConvertDeleteOption(),
+		OptCollation{c2.Convert()}.ConvertDeleteOption(),
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertDeleteOption(),
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
 	}
 
 	nestedBundle3 := createNestedDeleteBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertDeleteOption(),
+		OptCollation{c2.Convert()}.ConvertDeleteOption(),
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
-		OptWriteConcern{wc1}.ConvertDeleteOption(),
-		OptWriteConcern{wc2}.ConvertDeleteOption(),
+		OptCollation{c1.Convert()}.ConvertDeleteOption(),
+		OptCollation{c2.Convert()}.ConvertDeleteOption(),
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertDeleteOption(),
 		OptCollation{c.Convert()}.ConvertDeleteOption(),
 	}
 
@@ -132,11 +133,9 @@ func TestDeleteOpt(t *testing.T) {
 		c := &mongoopt.Collation{
 			Locale: "string locale",
 		}
-		wc := writeconcern.New(writeconcern.W(1))
 
 		opts := []Delete{
 			Collation(c),
-			WriteConcern(wc),
 		}
 		bundle := BundleDelete(opts...)
 

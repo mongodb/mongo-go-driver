@@ -159,6 +159,7 @@ func (p *pool) Get(ctx context.Context) (Connection, *description.Server, error)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	return p.get(ctx)
 }
 

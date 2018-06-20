@@ -7,212 +7,118 @@
 package command
 
 import (
-	"bytes"
-	"context"
-	"fmt"
+	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/builder"
-	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
-// Command represents a generic database command.
-//
-// This can be used to send arbitrary commands to the database, e.g. runCommand.
-type Command struct {
-	DB       string
-	Command  interface{}
-	ReadPref *readpref.ReadPref
-	isWrite  bool
-
-	result bson.Reader
-	err    error
-}
-
-// Encode will encode this command into a wire message for the given server description.
-func (c *Command) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
-	// TODO(skriptble): When we do OP_MSG support we'll have to update this to read the
-	// wire version.
-	rdr, err := c.marshalCommand()
-	if err != nil {
-		return nil, err
-	}
-
-	if !c.isWrite {
-		rdr, err = c.addReadPref(c.ReadPref, desc.Server.Kind, rdr)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	query := wiremessage.Query{
-		MsgHeader:          wiremessage.Header{RequestID: wiremessage.NextRequestID()},
-		FullCollectionName: c.DB + ".$cmd",
-		Flags:              c.slaveOK(desc),
-		NumberToReturn:     -1,
-		Query:              rdr,
-	}
-
-	return query, nil
-}
-
-func (c *Command) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {
-	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
-		return wiremessage.SlaveOK
-	}
-
-	if c.ReadPref == nil {
-		// assume primary
-		return 0
-	}
-
-	if c.ReadPref.Mode() != readpref.PrimaryMode {
-		return wiremessage.SlaveOK
-	}
-
-	return 0
-}
-
-// addReadPref will add a read preference to the query document.
-//
-// NOTE: This method must always return either a valid bson.Reader or an error.
-func (c *Command) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, query bson.Reader) (bson.Reader, error) {
-	if kind != description.Mongos || rp == nil {
-		return query, nil
-	}
-
-	// simple Primary or SecondaryPreferred is communicated via slaveOk to Mongos.
-	if rp.Mode() == readpref.PrimaryMode || rp.Mode() == readpref.SecondaryPreferredMode {
-		if _, ok := rp.MaxStaleness(); !ok && len(rp.TagSets()) == 0 {
-			return query, nil
-		}
-	}
-
-	doc := bson.NewDocument()
-
-	switch rp.Mode() {
-	case readpref.PrimaryMode:
-		doc.Append(bson.EC.String("mode", "primary"))
-	case readpref.PrimaryPreferredMode:
-		doc.Append(bson.EC.String("mode", "primaryPreferred"))
-	case readpref.SecondaryPreferredMode:
-		doc.Append(bson.EC.String("mode", "secondaryPreferred"))
-	case readpref.SecondaryMode:
-		doc.Append(bson.EC.String("mode", "secondary"))
-	case readpref.NearestMode:
-		doc.Append(bson.EC.String("mode", "nearest"))
-	}
-
-	sets := make([]*bson.Value, 0, len(rp.TagSets()))
-	for _, ts := range rp.TagSets() {
-		if len(ts) == 0 {
-			continue
-		}
-		set := bson.NewDocument()
-		for _, t := range ts {
-			set.Append(bson.EC.String(t.Name, t.Value))
-		}
-		sets = append(sets, bson.VC.Document(set))
-	}
-	if len(sets) > 0 {
-		doc.Append(bson.EC.ArrayFromElements("tags", sets...))
-	}
-
-	if d, ok := rp.MaxStaleness(); ok {
-		doc.Append(bson.EC.Int32("maxStalenessSeconds", int32(d.Seconds())))
-	}
-
-	return bson.NewDocument(
-		bson.EC.SubDocumentFromReader("$query", query),
-		bson.EC.SubDocument("$readPreference", doc),
-	).MarshalBSON()
-}
-
-// Decode will decode the wire message using the provided server description. Errors during decoding
-// are deferred until either the Result or Err methods are called.
-func (c *Command) Decode(_ description.SelectedServer, wm wiremessage.WireMessage) *Command {
-	reply, ok := wm.(wiremessage.Reply)
-	if !ok {
-		c.err = fmt.Errorf("unsupported response wiremessage type %T", wm)
-		return c
-	}
-	c.result, c.err = decodeCommandOpReply(reply)
-	return c
-}
-
-// Result returns the result of a decoded wire message and server description.
-func (c *Command) Result() (bson.Reader, error) {
-	if c.err != nil {
-		return nil, c.err
-	}
-
-	return c.result, nil
-}
-
-// Err returns the error set on this command.
-func (c *Command) Err() error { return c.err }
-
-// RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (c *Command) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
-	wm, err := c.Encode(desc)
-	if err != nil {
-		return nil, err
-	}
-
-	err = rw.WriteWireMessage(ctx, wm)
-	if err != nil {
-		return nil, err
-	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return c.Decode(desc, wm).Result()
-}
-
-func (c *Command) marshalCommand() (bson.Reader, error) {
-	if c.Command == nil {
+func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
+	if cmd == nil {
 		return bson.Reader{5, 0, 0, 0, 0}, nil
 	}
 
-	var dataBytes bson.Reader
-	var err error
+	return cmd.MarshalBSON()
+}
 
-	switch t := c.Command.(type) {
-	// NOTE: bson.Document is covered by bson.Marshaler
-	case bson.Marshaler:
-		dataBytes, err = t.MarshalBSON()
-		if err != nil {
-			return nil, err
-		}
-	case bson.Reader:
-		_, err = t.Validate()
-		if err != nil {
-			return nil, err
-		}
-		dataBytes = t
-	case builder.DocumentBuilder:
-		dataBytes = make([]byte, t.RequiredBytes())
-		_, err = t.WriteDocument(dataBytes)
-		if err != nil {
-			return nil, err
-		}
-	case []byte:
-		_, err = bson.Reader(t).Validate()
-		if err != nil {
-			return nil, err
-		}
-		dataBytes = t
-	default:
-		var buf bytes.Buffer
-		err = bson.NewEncoder(&buf).Encode(c.Command)
-		if err != nil {
-			return nil, err
-		}
-		dataBytes = buf.Bytes()
+func addReadConcern(cmd *bson.Document, rc *readconcern.ReadConcern) error {
+	if rc == nil {
+		return nil
 	}
 
-	return dataBytes, nil
+	element, err := rc.MarshalBSONElement()
+	if err != nil {
+		return err
+	}
+
+	if _, err := cmd.LookupElementErr(element.Key()); err != nil {
+		cmd.Delete(element.Key())
+	}
+
+	cmd.Append(element)
+	return nil
 }
+
+func addWriteConcern(cmd *bson.Document, wc *writeconcern.WriteConcern) error {
+	if wc == nil {
+		return nil
+	}
+
+	element, err := wc.MarshalBSONElement()
+	if err != nil {
+		return err
+	}
+
+	if _, err := cmd.LookupElementErr(element.Key()); err != nil {
+		// doc already has write concern
+		cmd.Delete(element.Key())
+	}
+
+	cmd.Append(element)
+	return nil
+}
+
+// Remove command arguments for insert, update, and delete commands from the BSON document so they can be encoded
+// as a Section 1 payload in OP_MSG
+func opmsgRemoveArray(cmdDoc *bson.Document) (*bson.Array, string) {
+	var array *bson.Array
+	var id string
+
+	keys := []string{"documents", "updates", "deletes"}
+
+	for _, key := range keys {
+		val := cmdDoc.Lookup(key)
+		if val == nil {
+			continue
+		}
+
+		array = val.MutableArray()
+		cmdDoc.Delete(key)
+		id = key
+		break
+	}
+
+	return array, id
+}
+
+// Add the $db and $readPreference keys to the command
+// If the command has no read preference, pass nil for rpDoc
+func opmsgAddGlobals(cmd *bson.Document, dbName string, rpDoc *bson.Document) (bson.Reader, error) {
+	cmd.Append(bson.EC.String("$db", dbName))
+	if rpDoc != nil {
+		cmd.Append(bson.EC.SubDocument("$readPreference", rpDoc))
+	}
+
+	fullDocRdr, err := cmd.MarshalBSON()
+	if err != nil {
+		return nil, err
+	}
+
+	return fullDocRdr, nil
+}
+
+func opmsgCreateDocSequence(arr *bson.Array, identifier string) (wiremessage.SectionDocumentSequence, error) {
+	docSequence := wiremessage.SectionDocumentSequence{
+		PayloadType: wiremessage.DocumentSequence,
+		Identifier:  identifier,
+		Documents:   make([]bson.Reader, 0, arr.Len()),
+	}
+
+	iter, err := arr.Iterator()
+	if err != nil {
+		return wiremessage.SectionDocumentSequence{}, err
+	}
+
+	for iter.Next() {
+		docSequence.Documents = append(docSequence.Documents, iter.Value().ReaderDocument())
+	}
+
+	docSequence.Size = int32(docSequence.PayloadLen())
+	return docSequence, nil
+}
+
+// ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
+// write concern.
+var ErrUnacknowledgedWrite = errors.New("unacknowledged write")

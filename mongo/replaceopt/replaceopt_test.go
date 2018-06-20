@@ -12,7 +12,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
@@ -148,13 +147,11 @@ func TestReplaceOpt(t *testing.T) {
 		c := &mongoopt.Collation{
 			Locale: "string locale",
 		}
-		wc := writeconcern.New(writeconcern.W(1))
 
 		opts := []Replace{
 			BypassDocumentValidation(true),
 			Collation(c),
 			Upsert(false),
-			WriteConcern(wc),
 		}
 		bundle := BundleReplace(opts...)
 

@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
@@ -139,7 +138,6 @@ func TestFindAndUpdateOneOpt(t *testing.T) {
 		}
 		proj := Projection(true)
 		sort := Sort(true)
-		wc := writeconcern.New(writeconcern.W(10))
 
 		opts := []UpdateOne{
 			BypassDocumentValidation(false),
@@ -149,7 +147,6 @@ func TestFindAndUpdateOneOpt(t *testing.T) {
 			ReturnDocument(mongoopt.After),
 			Sort(sort),
 			Upsert(true),
-			WriteConcern(wc),
 		}
 		bundle := BundleUpdateOne(opts...)
 

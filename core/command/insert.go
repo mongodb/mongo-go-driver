@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // this is the amount of reserved buffer space in a message that the
@@ -27,9 +28,10 @@ const reservedCommandBufferBytes = 16 * 10 * 10 * 10
 // Since the Insert command does not return any value other than ok or
 // an error, this type has no Err method.
 type Insert struct {
-	NS   Namespace
-	Docs []*bson.Document
-	Opts []option.InsertOptioner
+	NS           Namespace
+	Docs         []*bson.Document
+	Opts         []option.InsertOptioner
+	WriteConcern *writeconcern.WriteConcern
 
 	result          result.Insert
 	err             error
@@ -106,7 +108,11 @@ func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		}
 	}
 
-	return (&Command{DB: i.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           i.NS.DB,
+		Command:      command,
+		WriteConcern: i.WriteConcern,
+	}).Encode(desc)
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -132,7 +138,7 @@ func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMess
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (i *Insert) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Insert {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		i.err = err
 		return i
@@ -153,6 +159,47 @@ func (i *Insert) Result() (result.Insert, error) {
 // Err returns the error set on this command.
 func (i *Insert) Err() error { return i.err }
 
+// send a series of wire messages to the server for this command
+// closes the ReadWriter after all messages have been sent and responses have been parsed
+func (i *Insert) sendMessages(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter, wms []wiremessage.WireMessage, acknowledged bool) (result.Insert, error) {
+
+	var err error
+	res := result.Insert{}
+
+	for _, wm := range wms {
+		err = rw.WriteWireMessage(ctx, wm)
+		if err != nil {
+			return res, err
+		}
+
+		// if this is an acknowledged write, wait for a response
+		// if this is an unacknowledged write, only wait for a response if using OP_QUERY, not OP_MSG
+		_, isQuery := wm.(wiremessage.Query)
+
+		if acknowledged || isQuery {
+			wm, err = rw.ReadWireMessage(ctx)
+			r, err := i.Decode(desc, wm).Result()
+			if err != nil {
+				return res, err
+			}
+
+			res.WriteErrors = append(res.WriteErrors, r.WriteErrors...)
+
+			if r.WriteConcernError != nil {
+				res.WriteConcernError = r.WriteConcernError
+			}
+
+			res.N += r.N
+		}
+
+		if !i.continueOnError && len(res.WriteErrors) > 0 {
+			return res, nil
+		}
+	}
+
+	return res, nil
+}
+
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (i *Insert) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Insert, error) {
 	res := result.Insert{}
@@ -162,33 +209,15 @@ func (i *Insert) RoundTrip(ctx context.Context, desc description.SelectedServer,
 		return res, err
 	}
 
-	for _, wm := range wms {
-		err = rw.WriteWireMessage(ctx, wm)
-		if err != nil {
-			return res, err
-		}
-		wm, err = rw.ReadWireMessage(ctx)
-		if err != nil {
-			return res, err
-		}
+	if !writeconcern.AckWrite(i.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
 
-		r, err := i.Decode(desc, wm).Result()
-		if err != nil {
-			return res, err
-		}
+			_, _ = i.sendMessages(ctx, desc, rw, wms, false)
+		}()
 
-		res.WriteErrors = append(res.WriteErrors, r.WriteErrors...)
-
-		if r.WriteConcernError != nil {
-			res.WriteConcernError = r.WriteConcernError
-		}
-
-		if !i.continueOnError && len(res.WriteErrors) > 0 {
-			return res, nil
-		}
-
-		res.N += r.N
+		return result.Insert{}, ErrUnacknowledgedWrite
 	}
 
-	return res, nil
+	return i.sendMessages(ctx, desc, rw, wms, true)
 }

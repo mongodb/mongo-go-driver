@@ -38,7 +38,7 @@ func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Se
 		authRequestDoc.Append(bson.EC.String("user", a.User))
 	}
 
-	authCmd := command.Command{DB: "$external", Command: authRequestDoc}
+	authCmd := command.Read{DB: "$external", Command: authRequestDoc}
 	ssdesc := description.SelectedServer{Server: desc}
 	_, err := authCmd.RoundTrip(ctx, ssdesc, rw)
 	if err != nil {

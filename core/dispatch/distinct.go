@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
@@ -23,20 +22,11 @@ func Distinct(
 	cmd command.Distinct,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	rc *readconcern.ReadConcern,
 ) (result.Distinct, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return result.Distinct{}, err
-	}
-
-	if rc != nil {
-		opt, err := readConcernOption(rc)
-		if err != nil {
-			return result.Distinct{}, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
 	}
 
 	desc := ss.Description()

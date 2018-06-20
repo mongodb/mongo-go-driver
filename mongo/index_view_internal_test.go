@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/indexopt"
 	"github.com/stretchr/testify/require"
 )
@@ -445,9 +444,8 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 	indexView := coll.Indexes()
 
 	var opts []indexopt.Create
-	wc := writeconcern.New(writeconcern.W(1))
-	optwc := indexopt.WriteConcern(wc)
-	opts = append(opts, optwc)
+	optMax := indexopt.MaxTime(1000)
+	opts = append(opts, optMax)
 
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
@@ -521,9 +519,8 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	indexView := coll.Indexes()
 
 	var opts []indexopt.Drop
-	wc := writeconcern.New(writeconcern.W(1))
-	optwc := indexopt.WriteConcern(wc)
-	opts = append(opts, optwc)
+	optMax := indexopt.MaxTime(1000)
+	opts = append(opts, optMax)
 
 	indexNames, err := indexView.CreateMany(
 		context.Background(),

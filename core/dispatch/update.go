@@ -23,22 +23,11 @@ func Update(
 	cmd command.Update,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
 ) (result.Update, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return result.Update{}, err
-	}
-
-	acknowledged := true
-	if wc != nil {
-		opt, err := writeConcernOption(wc)
-		if err != nil {
-			return result.Update{}, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
-		acknowledged = wc.Acknowledged()
 	}
 
 	desc := ss.Description()
@@ -47,13 +36,15 @@ func Update(
 		return result.Update{}, err
 	}
 
-	if !acknowledged {
+	if !writeconcern.AckWrite(cmd.WriteConcern) {
 		go func() {
 			defer func() { _ = recover() }()
 			defer conn.Close()
+
 			_, _ = cmd.RoundTrip(ctx, desc, conn)
 		}()
-		return result.Update{}, ErrUnacknowledgedWrite
+
+		return result.Update{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
 
