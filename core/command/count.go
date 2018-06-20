@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -21,10 +22,11 @@ import (
 //
 // The count command counts how many documents in a collection match the given query.
 type Count struct {
-	NS       Namespace
-	Query    *bson.Document
-	Opts     []option.CountOptioner
-	ReadPref *readpref.ReadPref
+	NS          Namespace
+	Query       *bson.Document
+	Opts        []option.CountOptioner
+	ReadPref    *readpref.ReadPref
+	ReadConcern *readconcern.ReadConcern
 
 	result int64
 	err    error
@@ -32,37 +34,55 @@ type Count struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (c *Count) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	cmd, err := c.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd.Encode(desc)
+}
+
+func (c *Count) encode(desc description.SelectedServer) (*Read, error) {
 	if err := c.NS.Validate(); err != nil {
 		return nil, err
 	}
 
 	command := bson.NewDocument(bson.EC.String("count", c.NS.Collection), bson.EC.SubDocument("query", c.Query))
-	for _, option := range c.Opts {
-		if option == nil {
+	for _, opt := range c.Opts {
+		if opt == nil {
 			continue
 		}
-		err := option.Option(command)
+		err := opt.Option(command)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return (&Command{DB: c.NS.DB, ReadPref: c.ReadPref, Command: command}).Encode(desc)
+	return &Read{
+		DB:          c.NS.DB,
+		ReadPref:    c.ReadPref,
+		Command:     command,
+		ReadConcern: c.ReadConcern,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (c *Count) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Count {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		c.err = err
 		return c
 	}
 
+	return c.decode(desc, rdr)
+}
+
+func (c *Count) decode(desc description.SelectedServer, rdr bson.Reader) *Count {
 	val, err := rdr.Lookup("n")
 	switch {
 	case err == bson.ErrElementNotFound:
-		c.err = errors.New("Invalid response from server, no 'n' field")
+		c.err = errors.New("invalid response from server, no 'n' field")
 		return c
 	case err != nil:
 		c.err = err
@@ -75,7 +95,7 @@ func (c *Count) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 	case bson.TypeInt64:
 		c.result = val.Value().Int64()
 	default:
-		c.err = errors.New("Invalid response from server, value field is not a number")
+		c.err = errors.New("invalid response from server, value field is not a number")
 	}
 
 	return c
@@ -93,19 +113,17 @@ func (c *Count) Result() (int64, error) {
 func (c *Count) Err() error { return c.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (c *Count) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (int64, error) {
-	wm, err := c.Encode(desc)
+func (c *Count) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (int64, error) {
+	cmd, err := c.encode(desc)
+	if err != nil {
+		rw.Close()
+		return 0, err
+	}
+
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return 0, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
-	if err != nil {
-		return 0, err
-	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return 0, err
-	}
-	return c.Decode(desc, wm).Result()
+	return c.decode(desc, rdr).Result()
 }

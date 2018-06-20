@@ -49,7 +49,7 @@ type ScramSHA1Authenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *ScramSHA1Authenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+func (a *ScramSHA1Authenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriteCloser) error {
 	client := &scramSaslClient{
 		username:       a.Username,
 		password:       a.Password,

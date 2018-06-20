@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -109,6 +110,16 @@ func (ab *AggregateBundle) Comment(s string) *AggregateBundle {
 func (ab *AggregateBundle) Hint(hint interface{}) *AggregateBundle {
 	bundle := &AggregateBundle{
 		option: Hint(hint),
+		next:   ab,
+	}
+
+	return bundle
+}
+
+// ReadConcern adds an option to specify the read concern.
+func (ab *AggregateBundle) ReadConcern(rc *readconcern.ReadConcern) *AggregateBundle {
+	bundle := &AggregateBundle{
+		option: ReadConcern(rc),
 		next:   ab,
 	}
 
@@ -259,6 +270,14 @@ func Hint(hint interface{}) OptHint {
 	return OptHint{hint}
 }
 
+// ReadConcern specifies the read concern.
+// Find, One
+func ReadConcern(rc *readconcern.ReadConcern) OptReadConcern {
+	return OptReadConcern{
+		ReadConcern: rc,
+	}
+}
+
 // OptAllowDiskUse allows aggregation stages to write to temporary files.
 type OptAllowDiskUse option.OptAllowDiskUse
 
@@ -327,4 +346,14 @@ func (OptHint) aggregate() {}
 // ConvertAggregateOption implements the Aggregate interface
 func (opt OptHint) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptHint(opt)
+}
+
+// OptReadConcern specifies the read concern.
+type OptReadConcern option.OptReadConcern
+
+func (OptReadConcern) aggregate() {}
+
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptReadConcern) ConvertAggregateOption() option.AggregateOptioner {
+	return option.OptReadConcern(opt)
 }
