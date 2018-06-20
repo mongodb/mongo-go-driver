@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
 
@@ -14,27 +13,27 @@ func createNestedBundle1Drop(t *testing.T) *DropBundle {
 	nested := BundleDrop(MaxTime(10))
 	testhelpers.RequireNotNil(t, nested, "nested bundle was nil")
 
-	outer := BundleDrop(MaxTime(10), WriteConcern(wc1), nested)
+	outer := BundleDrop(MaxTime(10), MaxTime(100), nested)
 	testhelpers.RequireNotNil(t, nested, "nested bundle was nil")
 
 	return outer
 }
 
 func createNestedBundle2Drop(t *testing.T) *DropBundle {
-	b1 := BundleDrop(WriteConcern(wc2))
+	b1 := BundleDrop(MaxTime(200))
 	testhelpers.RequireNotNil(t, b1, "b1 was nil")
 
 	b2 := BundleDrop(MaxTime(15), b1)
 	testhelpers.RequireNotNil(t, b2, "b2 was nil")
 
-	outer := BundleDrop(WriteConcern(wc1), MaxTime(20), b2)
+	outer := BundleDrop(MaxTime(100), MaxTime(20), b2)
 	testhelpers.RequireNotNil(t, outer, "outer was nil")
 
 	return outer
 }
 
 func createNestedBundle3Drop(t *testing.T) *DropBundle {
-	b1 := BundleDrop(WriteConcern(wc1))
+	b1 := BundleDrop(MaxTime(100))
 	testhelpers.RequireNotNil(t, b1, "b1 was nil")
 
 	b2 := BundleDrop(MaxTime(10), b1)
@@ -43,7 +42,7 @@ func createNestedBundle3Drop(t *testing.T) *DropBundle {
 	b3 := BundleDrop(MaxTime(11))
 	testhelpers.RequireNotNil(t, b3, "b3 was nil")
 
-	b4 := BundleDrop(WriteConcern(wc2), b3)
+	b4 := BundleDrop(MaxTime(200), b3)
 	testhelpers.RequireNotNil(t, b4, "b4 was nil")
 
 	outer := BundleDrop(b4, MaxTime(1), b2)
@@ -57,62 +56,56 @@ func TestDropOpt(t *testing.T) {
 	var nilOpts []option.DropIndexesOptioner
 
 	var bundle1 *DropBundle
-	bundle1 = bundle1.WriteConcern(wc1).WriteConcern(wc1)
+	bundle1 = bundle1.MaxTime(100).MaxTime(100)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.DropIndexesOptioner{
-		WriteConcern(wc1).ConvertDropOption(),
-		WriteConcern(wc1).ConvertDropOption(),
+		MaxTime(100).ConvertDropOption(),
+		MaxTime(100).ConvertDropOption(),
 	}
 	bundle1OptsDedup := []option.DropIndexesOptioner{
-		WriteConcern(wc1).ConvertDropOption(),
+		MaxTime(100).ConvertDropOption(),
 	}
 
-	bundle2 := BundleDrop(WriteConcern(wc1))
+	bundle2 := BundleDrop(MaxTime(100))
 	bundle2Opts := []option.DropIndexesOptioner{
-		WriteConcern(wc1).ConvertDropOption(),
+		MaxTime(100).ConvertDropOption(),
 	}
 
 	nested1 := createNestedBundle1Drop(t)
 	nestedOpts := []option.DropIndexesOptioner{
 		MaxTime(10).ConvertDropOption(),
-		WriteConcern(wc1).ConvertDropOption(),
+		MaxTime(100).ConvertDropOption(),
 		MaxTime(10).ConvertDropOption(),
 	}
 	nestedOptsDedup := []option.DropIndexesOptioner{
-		WriteConcern(wc1).ConvertDropOption(),
 		MaxTime(10).ConvertDropOption(),
 	}
 
 	nested2 := createNestedBundle2Drop(t)
 	nested2Opts := []option.DropIndexesOptioner{
-		WriteConcern(wc1).ConvertDropOption(),
+		MaxTime(100).ConvertDropOption(),
 		MaxTime(20).ConvertDropOption(),
 		MaxTime(15).ConvertDropOption(),
-		WriteConcern(wc2).ConvertDropOption(),
+		MaxTime(200).ConvertDropOption(),
 	}
 	nested2OptsDedup := []option.DropIndexesOptioner{
-		MaxTime(15).ConvertDropOption(),
-		WriteConcern(wc2).ConvertDropOption(),
+		MaxTime(200).ConvertDropOption(),
 	}
 
 	nested3 := createNestedBundle3Drop(t)
 	nested3Opts := []option.DropIndexesOptioner{
-		WriteConcern(wc2).ConvertDropOption(),
+		MaxTime(200).ConvertDropOption(),
 		MaxTime(11).ConvertDropOption(),
 		MaxTime(1).ConvertDropOption(),
 		MaxTime(10).ConvertDropOption(),
-		WriteConcern(wc1).ConvertDropOption(),
+		MaxTime(100).ConvertDropOption(),
 	}
 	nested3OptsDedup := []option.DropIndexesOptioner{
-		MaxTime(10).ConvertDropOption(),
-		WriteConcern(wc1).ConvertDropOption(),
+		MaxTime(100).ConvertDropOption(),
 	}
 
 	t.Run("TestAll", func(t *testing.T) {
-		wc := writeconcern.New(writeconcern.W(1))
-
 		opts := []Drop{
-			WriteConcern(wc),
 			MaxTime(5000),
 		}
 		bundle := BundleDrop(opts...)

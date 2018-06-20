@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -194,16 +193,6 @@ func (fb *FindBundle) OplogReplay(b bool) *FindBundle {
 func (fb *FindBundle) Projection(projection interface{}) *FindBundle {
 	bundle := &FindBundle{
 		option: Projection(projection),
-		next:   fb,
-	}
-
-	return bundle
-}
-
-// ReadConcern adds an option to set the read concern.
-func (fb *FindBundle) ReadConcern(rc *readconcern.ReadConcern) *FindBundle {
-	bundle := &FindBundle{
-		option: ReadConcern(rc),
 		next:   fb,
 	}
 

@@ -150,3 +150,8 @@ func (wc *WriteConcern) IsValid() bool {
 
 	return true
 }
+
+// AckWrite returns true if a write concern represents an acknowledged write
+func AckWrite(wc *WriteConcern) bool {
+	return wc == nil || wc.Acknowledged()
+}

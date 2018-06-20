@@ -7,7 +7,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
@@ -15,8 +14,13 @@ import (
 var resumeAfter1 = bson.NewDocument()
 var resumeAfter2 = bson.NewDocument()
 
-var rcLocal = readconcern.Local()
-var rcMajority = readconcern.Majority()
+var c1 = &mongoopt.Collation{
+	Locale: "string locale 1",
+}
+
+var c2 = &mongoopt.Collation{
+	Locale: "string locale 1",
+}
 
 func createNestedCsBundle(t *testing.T) *ChangeStreamBundle {
 	nestedBundle := BundleChangeStream(ResumeAfter(resumeAfter1), FullDocument(mongoopt.Default))
@@ -64,16 +68,16 @@ func createNestedCsBundle3(t *testing.T) *ChangeStreamBundle {
 
 func TestChangeStreamOpt(t *testing.T) {
 	var bundle1 *ChangeStreamBundle
-	bundle1 = bundle1.ReadConcern(rcLocal).FullDocument(mongoopt.Default).ReadConcern(rcMajority)
+	bundle1 = bundle1.Collation(c1).FullDocument(mongoopt.Default).Collation(c2)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.ChangeStreamOptioner{
-		ReadConcern(rcLocal).ConvertChangeStreamOption(),
+		Collation(c1).ConvertChangeStreamOption(),
 		FullDocument(mongoopt.Default).ConvertChangeStreamOption(),
-		ReadConcern(rcMajority).ConvertChangeStreamOption(),
+		Collation(c2).ConvertChangeStreamOption(),
 	}
 	bundle1DedupOpts := []option.ChangeStreamOptioner{
 		FullDocument(mongoopt.Default).ConvertChangeStreamOption(),
-		ReadConcern(rcMajority).ConvertChangeStreamOption(),
+		Collation(c2).ConvertChangeStreamOption(),
 	}
 
 	bundle2 := BundleChangeStream(BatchSize(1))
@@ -85,22 +89,22 @@ func TestChangeStreamOpt(t *testing.T) {
 		BatchSize(1).
 		FullDocument(mongoopt.Default).
 		BatchSize(2).
-		ReadConcern(rcLocal).
-		ReadConcern(rcMajority).
+		Collation(c1).
+		Collation(c2).
 		FullDocument(mongoopt.UpdateLookup)
 
 	bundle3Opts := []option.ChangeStreamOptioner{
 		OptBatchSize(1).ConvertChangeStreamOption(),
 		OptFullDocument(mongoopt.Default).ConvertChangeStreamOption(),
 		OptBatchSize(2).ConvertChangeStreamOption(),
-		OptReadConcern{ReadConcern: rcLocal}.ConvertChangeStreamOption(),
-		OptReadConcern{ReadConcern: rcMajority}.ConvertChangeStreamOption(),
+		OptCollation{Collation: c1.Convert()}.ConvertChangeStreamOption(),
+		OptCollation{Collation: c2.Convert()}.ConvertChangeStreamOption(),
 		OptFullDocument(mongoopt.UpdateLookup).ConvertChangeStreamOption(),
 	}
 
 	bundle3DedupOpts := []option.ChangeStreamOptioner{
 		OptBatchSize(2).ConvertChangeStreamOption(),
-		OptReadConcern{ReadConcern: rcMajority}.ConvertChangeStreamOption(),
+		OptCollation{Collation: c2.Convert()}.ConvertChangeStreamOption(),
 		OptFullDocument(mongoopt.UpdateLookup).ConvertChangeStreamOption(),
 	}
 
@@ -163,14 +167,12 @@ func TestChangeStreamOpt(t *testing.T) {
 		c := &mongoopt.Collation{
 			Locale: "string locale",
 		}
-		rc := readconcern.Local()
 
 		opts := []ChangeStream{
 			BatchSize(5),
 			Collation(c),
 			FullDocument(mongoopt.UpdateLookup),
 			MaxAwaitTime(5000),
-			ReadConcern(rc),
 			ResumeAfter(resumeAfter2),
 		}
 		bundle := BundleChangeStream(opts...)

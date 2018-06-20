@@ -24,7 +24,7 @@ func noerr(t *testing.T, err error) {
 
 func TestCommandEncode(t *testing.T) {
 	t.Run("sets slaveOk for non-primary read preference mode", func(t *testing.T) {
-		cmd := &Command{
+		cmd := &Read{
 			ReadPref: readpref.SecondaryPreferred(),
 		}
 		wm, err := cmd.Encode(description.SelectedServer{})
@@ -39,7 +39,7 @@ func TestCommandEncode(t *testing.T) {
 		}
 	})
 	t.Run("sets slaveOk for all write commands in direct mode", func(t *testing.T) {
-		cmd := &Command{isWrite: true}
+		cmd := &Write{}
 		wm, err := cmd.Encode(description.SelectedServer{Kind: description.Single})
 		noerr(t, err)
 		query, ok := wm.(wiremessage.Query)
@@ -52,7 +52,7 @@ func TestCommandEncode(t *testing.T) {
 		}
 	})
 	t.Run("sets slaveOK for all read commands in direct mode", func(t *testing.T) {
-		cmd := &Command{}
+		cmd := &Read{}
 		wm, err := cmd.Encode(description.SelectedServer{Kind: description.Single})
 		noerr(t, err)
 		query, ok := wm.(wiremessage.Query)
