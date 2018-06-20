@@ -33,7 +33,6 @@ func CreateIndexes(
 	if err != nil {
 		return result.CreateIndexes{}, err
 	}
-	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)
 }

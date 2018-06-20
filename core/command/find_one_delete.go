@@ -14,15 +14,17 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // FindOneAndDelete represents the findOneAndDelete operation.
 //
 // The findOneAndDelete command deletes a single document that matches a query and returns it.
 type FindOneAndDelete struct {
-	NS    Namespace
-	Query *bson.Document
-	Opts  []option.FindOneAndDeleteOptioner
+	NS           Namespace
+	Query        *bson.Document
+	Opts         []option.FindOneAndDeleteOptioner
+	WriteConcern *writeconcern.WriteConcern
 
 	result result.FindAndModify
 	err    error
@@ -40,23 +42,27 @@ func (f *FindOneAndDelete) Encode(desc description.SelectedServer) (wiremessage.
 		bson.EC.Boolean("remove", true),
 	)
 
-	for _, option := range f.Opts {
-		if option == nil {
+	for _, opt := range f.Opts {
+		if opt == nil {
 			continue
 		}
-		err := option.Option(command)
+		err := opt.Option(command)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           f.NS.DB,
+		Command:      command,
+		WriteConcern: f.WriteConcern,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (f *FindOneAndDelete) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *FindOneAndDelete {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		f.err = err
 		return f
@@ -78,12 +84,27 @@ func (f *FindOneAndDelete) Result() (result.FindAndModify, error) {
 func (f *FindOneAndDelete) Err() error { return f.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (f *FindOneAndDelete) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.FindAndModify, error) {
+func (f *FindOneAndDelete) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.FindAndModify, error) {
 	wm, err := f.Encode(desc)
 	if err != nil {
 		return result.FindAndModify{}, err
 	}
 
+	if !ackWrite(f.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer func() { _ = rw.Close() }()
+
+			err = rw.WriteWireMessage(ctx, wm)
+			if err != nil {
+				return
+			}
+			_, _ = rw.ReadWireMessage(ctx)
+		}()
+		return result.FindAndModify{}, ErrUnacknowledgedWrite
+	}
+
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return result.FindAndModify{}, err

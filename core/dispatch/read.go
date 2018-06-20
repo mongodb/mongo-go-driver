@@ -15,15 +15,14 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
 
-// Command handles the full cycle dispatch and execution of a command against the provided
+// Read handles the full cycle dispatch and execution of a read command against the provided
 // topology.
-func Command(
+func Read(
 	ctx context.Context,
-	cmd command.Command,
+	cmd command.Read,
 	topo *topology.Topology,
 	selector description.ServerSelector,
 ) (bson.Reader, error) {
-
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return nil, err
@@ -33,7 +32,6 @@ func Command(
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)
 }

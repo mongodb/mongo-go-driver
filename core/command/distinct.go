@@ -54,13 +54,17 @@ func (d *Distinct) Encode(desc description.SelectedServer) (wiremessage.WireMess
 		}
 	}
 
-	return (&Command{DB: d.NS.DB, ReadPref: d.ReadPref, Command: command}).Encode(desc)
+	return (&Read{
+		DB:       d.NS.DB,
+		ReadPref: d.ReadPref,
+		Command:  command,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (d *Distinct) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Distinct {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		d.err = err
 		return d
@@ -82,7 +86,9 @@ func (d *Distinct) Result() (result.Distinct, error) {
 func (d *Distinct) Err() error { return d.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (d *Distinct) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Distinct, error) {
+func (d *Distinct) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.Distinct, error) {
+	defer func() { _ = rw.Close() }()
+
 	wm, err := d.Encode(desc)
 	if err != nil {
 		return result.Distinct{}, err

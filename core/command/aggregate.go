@@ -14,16 +14,18 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Aggregate represents the aggregate command.
 //
 // The aggregate command performs an aggregation.
 type Aggregate struct {
-	NS       Namespace
-	Pipeline *bson.Array
-	Opts     []option.AggregateOptioner
-	ReadPref *readpref.ReadPref
+	NS           Namespace
+	Pipeline     *bson.Array
+	Opts         []option.AggregateOptioner
+	ReadPref     *readpref.ReadPref
+	WriteConcern *writeconcern.WriteConcern
 
 	result Cursor
 	err    error
@@ -61,7 +63,11 @@ func (a *Aggregate) Encode(desc description.SelectedServer) (wiremessage.WireMes
 		}
 	}
 
-	return (&Command{DB: a.NS.DB, Command: command, ReadPref: a.ReadPref}).Encode(desc)
+	return (&Read{
+		DB:       a.NS.DB,
+		Command:  command,
+		ReadPref: a.ReadPref,
+	}).Encode(desc)
 }
 
 // HasDollarOut returns true if the Pipeline field contains a $out stage.
@@ -92,7 +98,8 @@ func (a *Aggregate) HasDollarOut() bool {
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (a *Aggregate) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *Aggregate {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
+
 	if err != nil {
 		a.err = err
 		return a
@@ -124,13 +131,36 @@ func (a *Aggregate) Result() (Cursor, error) {
 func (a *Aggregate) Err() error { return a.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriteCloser) (Cursor, error) {
 	wm, err := a.Encode(desc)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	sendMsg := wm
+
+	// unacknowledged write
+	if converted, ok := wm.(wiremessage.Msg); ok && !ackWrite(a.WriteConcern) {
+		converted.FlagBits |= wiremessage.MoreToCome
+		sendMsg = converted
+	}
+
+	if !ackWrite(a.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer func() { _ = rw.Close() }()
+
+			err = rw.WriteWireMessage(ctx, sendMsg)
+			if err != nil {
+				return
+			}
+			_, _ = rw.ReadWireMessage(ctx)
+		}()
+		return nil, ErrUnacknowledgedWrite
+	}
+
+	defer func() { _ = rw.Close() }()
+	err = rw.WriteWireMessage(ctx, sendMsg)
 	if err != nil {
 		return nil, err
 	}

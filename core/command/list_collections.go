@@ -47,13 +47,18 @@ func (lc *ListCollections) Encode(desc description.SelectedServer) (wiremessage.
 		}
 	}
 
-	return (&Command{DB: lc.DB, Command: cmd, isWrite: true, ReadPref: lc.ReadPref}).Encode(desc)
+	return (&Read{
+		DB:       lc.DB,
+		Command:  cmd,
+		ReadPref: lc.ReadPref,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListCollections {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
+
 	if err != nil {
 		lc.err = err
 		return lc
@@ -85,7 +90,9 @@ func (lc *ListCollections) Result() (Cursor, error) {
 func (lc *ListCollections) Err() error { return lc.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (lc *ListCollections) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (lc *ListCollections) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriteCloser) (Cursor, error) {
+	defer func() { _ = rw.Close() }()
+
 	wm, err := lc.Encode(desc)
 	if err != nil {
 		return nil, err

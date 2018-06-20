@@ -79,12 +79,13 @@ func (gle *GetLastError) Result() (result.GetLastError, error) {
 func (gle *GetLastError) Err() error { return gle.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (gle *GetLastError) RoundTrip(ctx context.Context, rw wiremessage.ReadWriter) (result.GetLastError, error) {
+func (gle *GetLastError) RoundTrip(ctx context.Context, rw wiremessage.ReadWriteCloser) (result.GetLastError, error) {
 	wm, err := gle.Encode()
 	if err != nil {
 		return result.GetLastError{}, err
 	}
 
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return result.GetLastError{}, err

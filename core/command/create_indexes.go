@@ -14,17 +14,20 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // CreateIndexes represents the createIndexes command.
 //
 // The createIndexes command creates indexes for a namespace.
 type CreateIndexes struct {
-	NS      Namespace
-	Indexes *bson.Array
-	Opts    []option.CreateIndexesOptioner
-	result  result.CreateIndexes
-	err     error
+	NS           Namespace
+	Indexes      *bson.Array
+	Opts         []option.CreateIndexesOptioner
+	WriteConcern *writeconcern.WriteConcern
+
+	result result.CreateIndexes
+	err    error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -44,13 +47,17 @@ func (ci *CreateIndexes) Encode(desc description.SelectedServer) (wiremessage.Wi
 		}
 	}
 
-	return (&Command{DB: ci.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           ci.NS.DB,
+		Command:      cmd,
+		WriteConcern: ci.WriteConcern,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (ci *CreateIndexes) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *CreateIndexes {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		ci.err = err
 		return ci
@@ -72,12 +79,27 @@ func (ci *CreateIndexes) Result() (result.CreateIndexes, error) {
 func (ci *CreateIndexes) Err() error { return ci.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (ci *CreateIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.CreateIndexes, error) {
+func (ci *CreateIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.CreateIndexes, error) {
 	wm, err := ci.Encode(desc)
 	if err != nil {
 		return result.CreateIndexes{}, err
 	}
 
+	if !ackWrite(ci.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer func() { _ = rw.Close() }()
+
+			err = rw.WriteWireMessage(ctx, wm)
+			if err != nil {
+				return
+			}
+			wm, err = rw.ReadWireMessage(ctx)
+		}()
+		return result.CreateIndexes{}, ErrUnacknowledgedWrite
+	}
+
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return result.CreateIndexes{}, err

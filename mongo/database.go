@@ -104,12 +104,15 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		rp = db.readPreference // inherit from db if nothing specified in options
 	}
 
-	cmd := command.Command{
-		DB:       db.Name(),
-		Command:  runCommand,
-		ReadPref: rp,
+	runCmdDoc, err := TransformDocument(runCommand)
+	if err != nil {
+		return nil, err
 	}
-	return dispatch.Command(ctx, cmd, db.client.topology, db.writeSelector)
+	return dispatch.Read(ctx, command.Read{
+		DB:       db.Name(),
+		Command:  runCmdDoc,
+		ReadPref: rp,
+	}, db.client.topology, db.writeSelector)
 }
 
 // Drop drops this database from mongodb.

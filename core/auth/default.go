@@ -26,7 +26,7 @@ type DefaultAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriteCloser) error {
 	var actual Authenticator
 	var err error
 	if err = description.ScramSHA1Supported(desc.WireVersion); err != nil {

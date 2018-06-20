@@ -14,16 +14,18 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // FindOneAndUpdate represents the findOneAndUpdate operation.
 //
 // The findOneAndUpdate command modifies and returns a single document.
 type FindOneAndUpdate struct {
-	NS     Namespace
-	Query  *bson.Document
-	Update *bson.Document
-	Opts   []option.FindOneAndUpdateOptioner
+	NS           Namespace
+	Query        *bson.Document
+	Update       *bson.Document
+	Opts         []option.FindOneAndUpdateOptioner
+	WriteConcern *writeconcern.WriteConcern
 
 	result result.FindAndModify
 	err    error
@@ -51,13 +53,17 @@ func (f *FindOneAndUpdate) Encode(desc description.SelectedServer) (wiremessage.
 		}
 	}
 
-	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           f.NS.DB,
+		Command:      command,
+		WriteConcern: f.WriteConcern,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (f *FindOneAndUpdate) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *FindOneAndUpdate {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		f.err = err
 		return f
@@ -79,12 +85,27 @@ func (f *FindOneAndUpdate) Result() (result.FindAndModify, error) {
 func (f *FindOneAndUpdate) Err() error { return f.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (f *FindOneAndUpdate) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.FindAndModify, error) {
+func (f *FindOneAndUpdate) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.FindAndModify, error) {
 	wm, err := f.Encode(desc)
 	if err != nil {
 		return result.FindAndModify{}, err
 	}
 
+	if !ackWrite(f.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer func() { _ = rw.Close() }()
+
+			err = rw.WriteWireMessage(ctx, wm)
+			if err != nil {
+				return
+			}
+			_, _ = rw.ReadWireMessage(ctx)
+		}()
+		return result.FindAndModify{}, ErrUnacknowledgedWrite
+	}
+
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return result.FindAndModify{}, err

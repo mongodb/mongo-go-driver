@@ -69,13 +69,17 @@ func (f *Find) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 		command.Append(bson.EC.Boolean("singleBatch", true))
 	}
 
-	return (&Command{DB: f.NS.DB, ReadPref: f.ReadPref, Command: command}).Encode(desc)
+	return (&Read{
+		DB:       f.NS.DB,
+		ReadPref: f.ReadPref,
+		Command:  command,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (f *Find) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *Find {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		f.err = err
 		return f
@@ -106,7 +110,11 @@ func (f *Find) Result() (Cursor, error) {
 func (f *Find) Err() error { return f.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriteCloser) (Cursor, error) {
+	defer func() {
+		_ = rw.Close()
+	}()
+
 	wm, err := f.Encode(desc)
 	if err != nil {
 		return nil, err
@@ -120,5 +128,6 @@ func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, c
 	if err != nil {
 		return nil, err
 	}
+
 	return f.Decode(desc, cb, wm).Result()
 }
