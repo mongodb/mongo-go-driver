@@ -88,7 +88,7 @@ func Topology(t *testing.T) *topology.Topology {
 			c, err := s.Connection(context.Background())
 			require.NoError(t, err)
 
-			_, err = (&command.Command{
+			_, err = (&command.Write{
 				DB:      DBName(t),
 				Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 			}).RoundTrip(context.Background(), s.SelectedDescription(), c)

@@ -36,7 +36,7 @@ func TestCommand(t *testing.T) {
 	ctx := context.Background()
 	var result *bson.Document
 
-	cmd := &command.Command{
+	cmd := &command.Read{
 		DB:      "admin",
 		Command: bson.NewDocument(bson.EC.Int32("getnonce", 1)),
 	}
@@ -66,6 +66,8 @@ func TestCommand(t *testing.T) {
 	result.Reset()
 	cmd.Command = bson.NewDocument(bson.EC.Int32("ping", 1))
 
+	rw, err = server.Connection(ctx)
+	noerr(t, err)
 	rdr, err = cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
 	noerr(t, err)
 
@@ -86,11 +88,16 @@ func TestWriteCommands(t *testing.T) {
 			noerr(t, err)
 			conn, err := server.Connection(context.Background())
 			noerr(t, err)
+
 			cmd := &command.Insert{
-				NS:   command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
-				Docs: []*bson.Document{bson.NewDocument(bson.EC.String("_id", "helloworld"))},
+				WriteConcern: nil,
+				NS:           command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
+				Docs:         []*bson.Document{bson.NewDocument(bson.EC.String("_id", "helloworld"))},
 			}
 			_, err = cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+			noerr(t, err)
+
+			conn, err = server.Connection(context.Background())
 			noerr(t, err)
 			res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
 			noerr(t, err)

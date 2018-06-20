@@ -54,8 +54,8 @@ func main() {
 		dbname = "test"
 	}
 
-	cmd := command.Command{DB: dbname, Command: bson.NewDocument(bson.EC.String("count", *col))}
-	rdr, err := dispatch.Command(ctx, cmd, t, description.WriteSelector())
+	cmd := command.Read{DB: dbname, Command: bson.NewDocument(bson.EC.String("count", *col))}
+	rdr, err := dispatch.Read(ctx, cmd, t, description.WriteSelector())
 	if err != nil {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}

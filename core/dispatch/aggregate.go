@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -23,24 +22,17 @@ func Aggregate(
 	cmd command.Aggregate,
 	topo *topology.Topology,
 	readSelector, writeSelector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
 ) (command.Cursor, error) {
 
 	dollarOut := cmd.HasDollarOut()
 
 	var ss *topology.SelectedServer
 	var err error
-	acknowledged := true
 	switch dollarOut {
 	case true:
 		ss, err = topo.SelectServer(ctx, writeSelector)
 		if err != nil {
 			return nil, err
-		}
-		if wc != nil {
-			opt := option.OptWriteConcern{WriteConcern: wc}
-			cmd.Opts = append(cmd.Opts, opt)
-			acknowledged = wc.Acknowledged()
 		}
 	case false:
 		ss, err = topo.SelectServer(ctx, readSelector)
@@ -55,13 +47,15 @@ func Aggregate(
 		return nil, err
 	}
 
-	if !acknowledged {
+	if !writeconcern.AckWrite(cmd.WriteConcern) {
 		go func() {
 			defer func() { _ = recover() }()
 			defer conn.Close()
+
 			_, _ = cmd.RoundTrip(ctx, desc, ss, conn)
 		}()
-		return nil, ErrUnacknowledgedWrite
+
+		return nil, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
 
