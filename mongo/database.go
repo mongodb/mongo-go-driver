@@ -105,10 +105,12 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	}
 
 	cmd := command.Command{
-		DB:       db.Name(),
-		Command:  runCommand,
-		ReadPref: rp,
+		Acknowledged: true,
+		DB:           db.Name(),
+		Command:      runCommand,
+		ReadPref:     rp,
 	}
+
 	return dispatch.Command(ctx, cmd, db.client.topology, db.writeSelector)
 }
 

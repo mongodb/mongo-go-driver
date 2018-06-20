@@ -21,9 +21,10 @@ import (
 // The delete command executes a delete with a given set of delete documents
 // and options.
 type Delete struct {
-	NS      Namespace
-	Deletes []*bson.Document
-	Opts    []option.DeleteOptioner
+	Acknowledged bool
+	NS           Namespace
+	Deletes      []*bson.Document
+	Opts         []option.DeleteOptioner
 
 	result result.Delete
 	err    error
@@ -61,7 +62,7 @@ func (d *Delete) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		}
 	}
 
-	return (&Command{DB: d.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: d.Acknowledged, DB: d.NS.DB, Command: command, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

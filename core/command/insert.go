@@ -27,9 +27,10 @@ const reservedCommandBufferBytes = 16 * 10 * 10 * 10
 // Since the Insert command does not return any value other than ok or
 // an error, this type has no Err method.
 type Insert struct {
-	NS   Namespace
-	Docs []*bson.Document
-	Opts []option.InsertOptioner
+	Acknowledged bool
+	NS           Namespace
+	Docs         []*bson.Document
+	Opts         []option.InsertOptioner
 
 	result          result.Insert
 	err             error
@@ -106,7 +107,7 @@ func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		}
 	}
 
-	return (&Command{DB: i.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: i.Acknowledged, DB: i.NS.DB, Command: command, isWrite: true}).Encode(desc)
 }
 
 // Encode will encode this command into a wire message for the given server description.

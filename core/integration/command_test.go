@@ -86,9 +86,11 @@ func TestWriteCommands(t *testing.T) {
 			noerr(t, err)
 			conn, err := server.Connection(context.Background())
 			noerr(t, err)
+
 			cmd := &command.Insert{
-				NS:   command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
-				Docs: []*bson.Document{bson.NewDocument(bson.EC.String("_id", "helloworld"))},
+				Acknowledged: true,
+				NS:           command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
+				Docs:         []*bson.Document{bson.NewDocument(bson.EC.String("_id", "helloworld"))},
 			}
 			_, err = cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
 			noerr(t, err)

@@ -51,11 +51,14 @@ func Update(
 		go func() {
 			defer func() { _ = recover() }()
 			defer conn.Close()
+
+			cmd.Acknowledged = false
 			_, _ = cmd.RoundTrip(ctx, desc, conn)
 		}()
 		return result.Update{}, ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
 
+	cmd.Acknowledged = true
 	return cmd.RoundTrip(ctx, desc, conn)
 }

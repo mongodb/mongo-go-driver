@@ -120,5 +120,6 @@ func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, c
 	if err != nil {
 		return nil, err
 	}
+
 	return f.Decode(desc, cb, wm).Result()
 }

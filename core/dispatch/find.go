@@ -24,7 +24,6 @@ func Find(
 	selector description.ServerSelector,
 	rc *readconcern.ReadConcern,
 ) (command.Cursor, error) {
-
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return nil, err

@@ -23,7 +23,6 @@ func Command(
 	topo *topology.Topology,
 	selector description.ServerSelector,
 ) (bson.Reader, error) {
-
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return nil, err

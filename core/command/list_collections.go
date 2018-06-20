@@ -47,13 +47,14 @@ func (lc *ListCollections) Encode(desc description.SelectedServer) (wiremessage.
 		}
 	}
 
-	return (&Command{DB: lc.DB, Command: cmd, isWrite: true, ReadPref: lc.ReadPref}).Encode(desc)
+	return (&Command{Acknowledged: true, DB: lc.DB, Command: cmd, ReadPref: lc.ReadPref, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListCollections {
 	rdr, err := (&Command{}).Decode(desc, wm).Result()
+
 	if err != nil {
 		lc.err = err
 		return lc
