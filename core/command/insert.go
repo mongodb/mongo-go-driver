@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // this is the amount of reserved buffer space in a message that the
@@ -27,9 +28,10 @@ const reservedCommandBufferBytes = 16 * 10 * 10 * 10
 // Since the Insert command does not return any value other than ok or
 // an error, this type has no Err method.
 type Insert struct {
-	NS   Namespace
-	Docs []*bson.Document
-	Opts []option.InsertOptioner
+	NS           Namespace
+	Docs         []*bson.Document
+	Opts         []option.InsertOptioner
+	WriteConcern *writeconcern.WriteConcern
 
 	result          result.Insert
 	err             error
@@ -106,7 +108,11 @@ func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		}
 	}
 
-	return (&Command{DB: i.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           i.NS.DB,
+		Command:      command,
+		WriteConcern: i.WriteConcern,
+	}).Encode(desc)
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -132,7 +138,7 @@ func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMess
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (i *Insert) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Insert {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		i.err = err
 		return i
@@ -154,14 +160,51 @@ func (i *Insert) Result() (result.Insert, error) {
 func (i *Insert) Err() error { return i.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (i *Insert) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Insert, error) {
+func (i *Insert) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.Insert, error) {
 	res := result.Insert{}
 
 	wms, err := i.Encode(desc)
 	if err != nil {
+		rw.Close()
 		return res, err
 	}
 
+	if !ackWrite(i.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer rw.Close()
+
+			for _, wm := range wms {
+				err = rw.WriteWireMessage(ctx, wm)
+				if err != nil {
+					return
+				}
+
+				if _, ok := wm.(wiremessage.Query); ok {
+					wm, err = rw.ReadWireMessage(ctx) // only wait for response if OP_QUERY
+					r, err := i.Decode(desc, wm).Result()
+					if err != nil {
+						return
+					}
+
+					res.WriteErrors = append(res.WriteErrors, r.WriteErrors...)
+
+					if r.WriteConcernError != nil {
+						res.WriteConcernError = r.WriteConcernError
+					}
+
+					res.N += r.N
+				}
+
+				if !i.continueOnError && len(res.WriteErrors) > 0 {
+					return
+				}
+			}
+		}()
+		return result.Insert{}, ErrUnacknowledgedWrite
+	}
+
+	defer rw.Close()
 	for _, wm := range wms {
 		err = rw.WriteWireMessage(ctx, wm)
 		if err != nil {

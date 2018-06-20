@@ -30,7 +30,7 @@ type PlainAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *PlainAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+func (a *PlainAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriteCloser) error {
 	return ConductSaslConversation(ctx, desc, rw, "$external", &plainSaslClient{
 		username: a.Username,
 		password: a.Password,

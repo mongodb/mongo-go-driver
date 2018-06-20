@@ -116,19 +116,35 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 
 	// convert options into []option.InsertOptioner and dedup
 	oneOpts, err := insertopt.BundleOne(opts...).Unbundle(true)
-
 	if err != nil {
 		return nil, err
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Insert{
-		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs: []*bson.Document{doc},
-		Opts: oneOpts,
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range oneOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
 	}
 
-	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		oneOpts = append(oneOpts[:index], oneOpts[index+1:]...)
+	}
+
+	oldns := coll.namespace()
+	cmd := command.Insert{
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Docs:         []*bson.Document{doc},
+		Opts:         oneOpts,
+		WriteConcern: wc,
+	}
+
+	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector)
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrOne == 0 {
 		return nil, err
@@ -172,22 +188,38 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 
 	// convert options into []option.InsertOptioner and dedup
 	manyOpts, err := insertopt.BundleMany(opts...).Unbundle(true)
-
 	if err != nil {
 		return nil, err
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Insert{
-		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs: docs,
-		Opts: manyOpts,
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range manyOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
 	}
 
-	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		manyOpts = append(manyOpts[:index], manyOpts[index+1:]...)
+	}
+
+	oldns := coll.namespace()
+	cmd := command.Insert{
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Docs:         docs,
+		Opts:         manyOpts,
+		WriteConcern: wc,
+	}
+
+	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector)
 	switch err {
 	case nil:
-	case dispatch.ErrUnacknowledgedWrite:
+	case command.ErrUnacknowledgedWrite:
 		return &InsertManyResult{InsertedIDs: result}, ErrUnacknowledgedWrite
 	default:
 		return nil, err
@@ -229,14 +261,31 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Delete{
-		NS:      command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Deletes: deleteDocs,
-		Opts:    deleteOpts,
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range deleteOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
 	}
 
-	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		deleteOpts = append(deleteOpts[:index], deleteOpts[index+1:]...)
+	}
+
+	oldns := coll.namespace()
+	cmd := command.Delete{
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Deletes:      deleteDocs,
+		Opts:         deleteOpts,
+		WriteConcern: wc,
+	}
+
+	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector)
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrOne == 0 {
 		return nil, err
@@ -269,14 +318,31 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Delete{
-		NS:      command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Deletes: deleteDocs,
-		Opts:    deleteOpts,
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range deleteOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
 	}
 
-	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		deleteOpts = append(deleteOpts[:index], deleteOpts[index+1:]...)
+	}
+
+	oldns := coll.namespace()
+	cmd := command.Delete{
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Deletes:      deleteDocs,
+		Opts:         deleteOpts,
+		WriteConcern: wc,
+	}
+
+	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector)
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrMany == 0 {
 		return nil, err
@@ -299,15 +365,32 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		),
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Update{
-		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs: updateDocs,
-		Opts: opts,
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range opts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
 	}
 
-	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		opts = append(opts[:index], opts[index+1:]...)
+	}
+
+	oldns := coll.namespace()
+	cmd := command.Update{
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Docs:         updateDocs,
+		Opts:         opts,
+		WriteConcern: wc,
+	}
+
+	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector)
+	if err != nil && err != command.ErrUnacknowledgedWrite {
 		return nil, err
 	}
 	res := &UpdateResult{
@@ -401,15 +484,32 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		return nil, err
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Update{
-		NS:   command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs: updateDocs,
-		Opts: updOpts,
+	wc := coll.writeConcern
+	index := -1
+	for i, opt := range updOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			// found write concern option
+			wc = converted.WriteConcern
+			index = i
+			break
+		}
 	}
 
-	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector, coll.writeConcern)
-	if err != nil && err != dispatch.ErrUnacknowledgedWrite {
+	// if a write concern option was found, remove it from the slice
+	if index != -1 {
+		updOpts = append(updOpts[:index], updOpts[index+1:]...)
+	}
+
+	oldns := coll.namespace()
+	cmd := command.Update{
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Docs:         updateDocs,
+		Opts:         updOpts,
+		WriteConcern: wc,
+	}
+
+	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector)
+	if err != nil && err != command.ErrUnacknowledgedWrite {
 		return nil, err
 	}
 	res := &UpdateResult{
@@ -495,14 +595,40 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		return nil, err
 	}
 
+	// Extract and remove writeconcern and readconcern from options.
+	var newOpts []option.AggregateOptioner
+	var wc *writeconcern.WriteConcern
+	var rc *readconcern.ReadConcern
+	for _, opt := range aggOpts {
+		if converted, ok := opt.(option.OptWriteConcern); ok {
+			wc = converted.WriteConcern
+		} else if converted, ok := opt.(option.OptReadConcern); ok {
+			rc = converted.ReadConcern
+		} else {
+			newOpts = append(newOpts, opt)
+		}
+	}
+	aggOpts = newOpts
+
+	if wc == nil && coll.writeConcern != nil {
+		wc = coll.writeConcern
+	}
+
+	if rc == nil && coll.readConcern != nil {
+		rc = coll.readConcern
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Aggregate{
-		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Pipeline: pipelineArr,
-		Opts:     aggOpts,
-		ReadPref: coll.readPreference,
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Pipeline:     pipelineArr,
+		Opts:         aggOpts,
+		ReadPref:     coll.readPreference,
+		WriteConcern: wc,
+		ReadConcern:  rc,
 	}
-	return dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector, coll.writeConcern)
+
+	return dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector)
 }
 
 // Count gets the number of documents matching the filter. A user can supply a
@@ -528,14 +654,31 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
+	rc := coll.readConcern
+	index := -1
+	for i, opt := range countOpts {
+		if converted, ok := opt.(option.OptReadConcern); ok {
+			// found write concern option
+			rc = converted.ReadConcern
+			index = i
+			break
+		}
+	}
+
+	// if a read concern option was found, remove it from the slice
+	if index != -1 {
+		countOpts = append(countOpts[:index], countOpts[index+1:]...)
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Count{
-		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:    f,
-		Opts:     countOpts,
-		ReadPref: coll.readPreference,
+		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query:       f,
+		Opts:        countOpts,
+		ReadPref:    coll.readPreference,
+		ReadConcern: rc,
 	}
-	return dispatch.Count(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
+	return dispatch.Count(ctx, cmd, coll.client.topology, coll.readSelector)
 }
 
 // Distinct finds the distinct values for a specified field across a single
@@ -566,15 +709,32 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		return nil, err
 	}
 
+	rc := coll.readConcern
+	index := -1
+	for i, opt := range distinctOpts {
+		if converted, ok := opt.(option.OptReadConcern); ok {
+			// found write concern option
+			rc = converted.ReadConcern
+			index = i
+			break
+		}
+	}
+
+	// if a read concern option was found, remove it from the slice
+	if index != -1 {
+		distinctOpts = append(distinctOpts[:index], distinctOpts[index+1:]...)
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Distinct{
-		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Field:    fieldName,
-		Query:    f,
-		Opts:     distinctOpts,
-		ReadPref: coll.readPreference,
+		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Field:       fieldName,
+		Query:       f,
+		Opts:        distinctOpts,
+		ReadPref:    coll.readPreference,
+		ReadConcern: rc,
 	}
-	res, err := dispatch.Distinct(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
+	res, err := dispatch.Distinct(ctx, cmd, coll.client.topology, coll.readSelector)
 	if err != nil {
 		return nil, err
 	}
@@ -609,14 +769,31 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
+	rc := coll.readConcern
+	index := -1
+	for i, opt := range findOpts {
+		if converted, ok := opt.(option.OptReadConcern); ok {
+			// found write concern option
+			rc = converted.ReadConcern
+			index = i
+			break
+		}
+	}
+
+	// if a read concern option was found, remove it from the slice
+	if index != -1 {
+		findOpts = append(findOpts[:index], findOpts[index+1:]...)
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Find{
-		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Filter:   f,
-		Opts:     findOpts,
-		ReadPref: coll.readPreference,
+		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Filter:      f,
+		Opts:        findOpts,
+		ReadPref:    coll.readPreference,
+		ReadConcern: rc,
 	}
-	return dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
+	return dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector)
 }
 
 // FindOne returns up to one document that matches the model. A user can
@@ -648,14 +825,31 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	}
 	findOneOpts = append(findOneOpts, findopt.Limit(1).ConvertFindOption())
 
+	rc := coll.readConcern
+	index := -1
+	for i, opt := range findOneOpts {
+		if converted, ok := opt.(option.OptReadConcern); ok {
+			// found write concern option
+			rc = converted.ReadConcern
+			index = i
+			break
+		}
+	}
+
+	// if a read concern option was found, remove it from the slice
+	if index != -1 {
+		findOneOpts = append(findOneOpts[:index], findOneOpts[index+1:]...)
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Find{
-		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Filter:   f,
-		Opts:     findOneOpts,
-		ReadPref: coll.readPreference,
+		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Filter:      f,
+		Opts:        findOneOpts,
+		ReadPref:    coll.readPreference,
+		ReadConcern: rc,
 	}
-	cursor, err := dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)
+	cursor, err := dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -711,12 +905,13 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 
 	oldns := coll.namespace()
 	cmd := command.FindOneAndDelete{
-		NS:    command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query: f,
-		Opts:  findOpts,
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query:        f,
+		Opts:         findOpts,
+		WriteConcern: wc,
 	}
 
-	res, err := dispatch.FindOneAndDelete(ctx, cmd, coll.client.topology, coll.writeSelector, wc)
+	res, err := dispatch.FindOneAndDelete(ctx, cmd, coll.client.topology, coll.writeSelector)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -778,12 +973,13 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 
 	oldns := coll.namespace()
 	cmd := command.FindOneAndReplace{
-		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:       f,
-		Replacement: r,
-		Opts:        findOpts,
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query:        f,
+		Replacement:  r,
+		Opts:         findOpts,
+		WriteConcern: wc,
 	}
-	res, err := dispatch.FindOneAndReplace(ctx, cmd, coll.client.topology, coll.writeSelector, wc)
+	res, err := dispatch.FindOneAndReplace(ctx, cmd, coll.client.topology, coll.writeSelector)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -844,12 +1040,13 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 
 	oldns := coll.namespace()
 	cmd := command.FindOneAndUpdate{
-		NS:     command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:  f,
-		Update: u,
-		Opts:   findOpts,
+		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query:        f,
+		Update:       u,
+		Opts:         findOpts,
+		WriteConcern: wc,
 	}
-	res, err := dispatch.FindOneAndUpdate(ctx, cmd, coll.client.topology, coll.writeSelector, wc)
+	res, err := dispatch.FindOneAndUpdate(ctx, cmd, coll.client.topology, coll.writeSelector)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}

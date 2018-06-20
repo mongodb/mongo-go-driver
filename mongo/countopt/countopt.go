@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -89,6 +90,16 @@ func (cb *CountBundle) Hint(hint interface{}) *CountBundle {
 func (cb *CountBundle) MaxTimeMs(i int32) *CountBundle {
 	bundle := &CountBundle{
 		option: MaxTimeMs(i),
+		next:   cb,
+	}
+
+	return bundle
+}
+
+// ReadConcern adds an option to specify the read concern.
+func (cb *CountBundle) ReadConcern(rc *readconcern.ReadConcern) *CountBundle {
+	bundle := &CountBundle{
+		option: ReadConcern(rc),
 		next:   cb,
 	}
 
@@ -229,6 +240,14 @@ func MaxTimeMs(i int32) OptMaxTimeMs {
 	return OptMaxTimeMs(i)
 }
 
+// ReadConcern specifies the read concern.
+// Find, One
+func ReadConcern(rc *readconcern.ReadConcern) OptReadConcern {
+	return OptReadConcern{
+		ReadConcern: rc,
+	}
+}
+
 // OptCollation specifies a collation.
 type OptCollation option.OptCollation
 
@@ -278,3 +297,13 @@ func (opt OptMaxTimeMs) ConvertCountOption() option.CountOptioner {
 }
 
 func (OptMaxTimeMs) count() {}
+
+// OptReadConcern specifies the read concern.
+type OptReadConcern option.OptReadConcern
+
+func (OptReadConcern) count() {}
+
+// ConvertCountOption implements the Count interface.
+func (opt OptReadConcern) ConvertCountOption() option.CountOptioner {
+	return option.OptReadConcern(opt)
+}

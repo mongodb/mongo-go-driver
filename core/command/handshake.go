@@ -67,7 +67,7 @@ func (h *Handshake) Err() error { return h.err }
 // Handshake implements the connection.Handshaker interface. It is identical
 // to the RoundTrip methods on other types in this package. It will execute
 // the isMaster command.
-func (h *Handshake) Handshake(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
+func (h *Handshake) Handshake(ctx context.Context, addr address.Address, rw wiremessage.ReadWriteCloser) (description.Server, error) {
 	wm, err := h.Encode()
 	if err != nil {
 		return description.Server{}, err

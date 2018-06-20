@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -58,6 +59,16 @@ func (db *DistinctBundle) MaxTime(d time.Duration) *DistinctBundle {
 		option: MaxTime(d),
 		next:   db,
 	}
+	return bundle
+}
+
+// ReadConcern adds an option to specify the read concern.
+func (db *DistinctBundle) ReadConcern(rc *readconcern.ReadConcern) *DistinctBundle {
+	bundle := &DistinctBundle{
+		option: ReadConcern(rc),
+		next:   db,
+	}
+
 	return bundle
 }
 
@@ -180,6 +191,14 @@ func MaxTime(d time.Duration) OptMaxTime {
 	return OptMaxTime(d)
 }
 
+// ReadConcern specifies the read concern.
+// Find, One
+func ReadConcern(rc *readconcern.ReadConcern) OptReadConcern {
+	return OptReadConcern{
+		ReadConcern: rc,
+	}
+}
+
 // OptCollation specifies a collation
 type OptCollation option.OptCollation
 
@@ -198,4 +217,14 @@ func (OptMaxTime) distinct() {}
 // ConvertDistinctOption implements the Distinct interface.
 func (opt OptMaxTime) ConvertDistinctOption() option.DistinctOptioner {
 	return option.OptMaxTime(opt)
+}
+
+// OptReadConcern specifies the read concern.
+type OptReadConcern option.OptReadConcern
+
+func (OptReadConcern) distinct() {}
+
+// ConvertDistinctOption implements the Distinct interface.
+func (opt OptReadConcern) ConvertDistinctOption() option.DistinctOptioner {
+	return option.OptReadConcern(opt)
 }

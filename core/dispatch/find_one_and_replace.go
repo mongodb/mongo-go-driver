@@ -13,7 +13,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // FindOneAndReplace handles the full cycle dispatch and execution of a FindOneAndReplace command against the provided
@@ -23,22 +22,11 @@ func FindOneAndReplace(
 	cmd command.FindOneAndReplace,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
 ) (result.FindAndModify, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return result.FindAndModify{}, err
-	}
-
-	acknowledged := true
-	if wc != nil {
-		opt, err := writeConcernOption(wc)
-		if err != nil {
-			return result.FindAndModify{}, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
-		acknowledged = wc.Acknowledged()
 	}
 
 	desc := ss.Description()
@@ -47,17 +35,5 @@ func FindOneAndReplace(
 		return result.FindAndModify{}, err
 	}
 
-	if !acknowledged {
-		go func() {
-			defer func() {
-				_ = recover()
-			}()
-			defer conn.Close()
-			_, _ = cmd.RoundTrip(ctx, desc, conn)
-		}()
-		return result.FindAndModify{}, ErrUnacknowledgedWrite
-	}
-
-	defer conn.Close()
 	return cmd.RoundTrip(ctx, desc, conn)
 }
