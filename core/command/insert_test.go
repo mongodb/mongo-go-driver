@@ -26,8 +26,12 @@ func TestInsertCommandSplitting(t *testing.T) {
 		assert.Len(t, batches, 10)
 		for _, b := range batches {
 			assert.Len(t, b, 10)
-			wm, err := i.encodeBatch(b, ss)
+			cmd, err := i.encodeBatch(b, ss)
 			assert.NoError(t, err)
+
+			wm, err := cmd.Encode(ss)
+			assert.NoError(t, err)
+
 			assert.True(t, wm.Len() < 16*megabyte)
 		}
 	})
@@ -42,8 +46,12 @@ func TestInsertCommandSplitting(t *testing.T) {
 		assert.Len(t, batches, 50)
 		for _, b := range batches {
 			assert.Len(t, b, 2)
-			wm, err := i.encodeBatch(b, ss)
+			cmd, err := i.encodeBatch(b, ss)
 			assert.NoError(t, err)
+
+			wm, err := cmd.Encode(ss)
+			assert.NoError(t, err)
+
 			assert.True(t, wm.Len() < 16*megabyte)
 		}
 	})
@@ -59,8 +67,12 @@ func TestInsertCommandSplitting(t *testing.T) {
 			assert.Len(t, batches, 100)
 			for _, b := range batches {
 				assert.Len(t, b, 1)
-				wm, err := i.encodeBatch(b, ss)
+				cmd, err := i.encodeBatch(b, ss)
 				assert.NoError(t, err)
+
+				wm, err := cmd.Encode(ss)
+				assert.NoError(t, err)
+
 				assert.True(t, wm.Len() < 16*megabyte)
 			}
 		}

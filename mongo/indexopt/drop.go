@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 var dropBundle = new(DropBundle)
@@ -42,16 +41,6 @@ func (db *DropBundle) drop() {}
 
 // ConvertDropOption implements the Drop interface
 func (db *DropBundle) ConvertDropOption() option.DropIndexesOptioner { return nil }
-
-// WriteConcern adds an option to specify a write concern.
-func (db *DropBundle) WriteConcern(wc *writeconcern.WriteConcern) *DropBundle {
-	bundle := &DropBundle{
-		option: WriteConcern(wc),
-		next:   db,
-	}
-
-	return bundle
-}
 
 // MaxTime adds an option to specify the maximum amount of time to allow the query to run.
 func (db *DropBundle) MaxTime(d time.Duration) *DropBundle {

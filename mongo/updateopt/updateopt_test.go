@@ -12,7 +12,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
@@ -145,7 +144,6 @@ func TestUpdateOpt(t *testing.T) {
 	}
 
 	t.Run("TestAll", func(t *testing.T) {
-		wc := writeconcern.New(writeconcern.W(1))
 		filters := []interface{}{"filter1", "filter2"}
 		c := &mongoopt.Collation{
 			Locale: "string locale",
@@ -156,7 +154,6 @@ func TestUpdateOpt(t *testing.T) {
 			BypassDocumentValidation(true),
 			Collation(c),
 			Upsert(false),
-			WriteConcern(wc),
 		}
 
 		bundle := BundleUpdate(opts...)

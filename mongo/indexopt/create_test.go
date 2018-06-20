@@ -6,38 +6,34 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
-
-var wc1 = writeconcern.New(writeconcern.W(10))
-var wc2 = writeconcern.New(writeconcern.W(20))
 
 func createNestedBundle1(t *testing.T) *CreateBundle {
 	nested := BundleCreate(MaxTime(10))
 	testhelpers.RequireNotNil(t, nested, "nested bundle was nil")
 
-	outer := BundleCreate(MaxTime(10), WriteConcern(wc1), nested)
+	outer := BundleCreate(MaxTime(10), MaxTime(100), nested)
 	testhelpers.RequireNotNil(t, nested, "nested bundle was nil")
 
 	return outer
 }
 
 func createNestedBundle2(t *testing.T) *CreateBundle {
-	b1 := BundleCreate(WriteConcern(wc2))
+	b1 := BundleCreate(MaxTime(200))
 	testhelpers.RequireNotNil(t, b1, "b1 was nil")
 
 	b2 := BundleCreate(MaxTime(15), b1)
 	testhelpers.RequireNotNil(t, b2, "b2 was nil")
 
-	outer := BundleCreate(WriteConcern(wc1), MaxTime(20), b2)
+	outer := BundleCreate(MaxTime(100), MaxTime(20), b2)
 	testhelpers.RequireNotNil(t, outer, "outer was nil")
 
 	return outer
 }
 
 func createNestedBundle3(t *testing.T) *CreateBundle {
-	b1 := BundleCreate(WriteConcern(wc1))
+	b1 := BundleCreate(MaxTime(100))
 	testhelpers.RequireNotNil(t, b1, "b1 was nil")
 
 	b2 := BundleCreate(MaxTime(10), b1)
@@ -46,7 +42,7 @@ func createNestedBundle3(t *testing.T) *CreateBundle {
 	b3 := BundleCreate(MaxTime(11))
 	testhelpers.RequireNotNil(t, b3, "b3 was nil")
 
-	b4 := BundleCreate(WriteConcern(wc2), b3)
+	b4 := BundleCreate(MaxTime(200), b3)
 	testhelpers.RequireNotNil(t, b4, "b4 was nil")
 
 	outer := BundleCreate(b4, MaxTime(1), b2)
@@ -60,62 +56,56 @@ func TestCreateOpt(t *testing.T) {
 	var nilOpts []option.CreateIndexesOptioner
 
 	var bundle1 *CreateBundle
-	bundle1 = bundle1.WriteConcern(wc1).WriteConcern(wc1)
+	bundle1 = bundle1.MaxTime(100).MaxTime(100)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.CreateIndexesOptioner{
-		WriteConcern(wc1).ConvertCreateOption(),
-		WriteConcern(wc1).ConvertCreateOption(),
+		MaxTime(100).ConvertCreateOption(),
+		MaxTime(100).ConvertCreateOption(),
 	}
 	bundle1OptsDedup := []option.CreateIndexesOptioner{
-		WriteConcern(wc1).ConvertCreateOption(),
+		MaxTime(100).ConvertCreateOption(),
 	}
 
-	bundle2 := BundleCreate(WriteConcern(wc1))
+	bundle2 := BundleCreate(MaxTime(100))
 	bundle2Opts := []option.CreateIndexesOptioner{
-		WriteConcern(wc1).ConvertCreateOption(),
+		MaxTime(100).ConvertCreateOption(),
 	}
 
 	nested1 := createNestedBundle1(t)
 	nestedOpts := []option.CreateIndexesOptioner{
 		MaxTime(10).ConvertCreateOption(),
-		WriteConcern(wc1).ConvertCreateOption(),
+		MaxTime(100).ConvertCreateOption(),
 		MaxTime(10).ConvertCreateOption(),
 	}
 	nestedOptsDedup := []option.CreateIndexesOptioner{
-		WriteConcern(wc1).ConvertCreateOption(),
 		MaxTime(10).ConvertCreateOption(),
 	}
 
 	nested2 := createNestedBundle2(t)
 	nested2Opts := []option.CreateIndexesOptioner{
-		WriteConcern(wc1).ConvertCreateOption(),
+		MaxTime(100).ConvertCreateOption(),
 		MaxTime(20).ConvertCreateOption(),
 		MaxTime(15).ConvertCreateOption(),
-		WriteConcern(wc2).ConvertCreateOption(),
+		MaxTime(200).ConvertCreateOption(),
 	}
 	nested2OptsDedup := []option.CreateIndexesOptioner{
-		MaxTime(15).ConvertCreateOption(),
-		WriteConcern(wc2).ConvertCreateOption(),
+		MaxTime(200).ConvertCreateOption(),
 	}
 
 	nested3 := createNestedBundle3(t)
 	nested3Opts := []option.CreateIndexesOptioner{
-		WriteConcern(wc2).ConvertCreateOption(),
+		MaxTime(200).ConvertCreateOption(),
 		MaxTime(11).ConvertCreateOption(),
 		MaxTime(1).ConvertCreateOption(),
 		MaxTime(10).ConvertCreateOption(),
-		WriteConcern(wc1).ConvertCreateOption(),
+		MaxTime(100).ConvertCreateOption(),
 	}
 	nested3OptsDedup := []option.CreateIndexesOptioner{
-		MaxTime(10).ConvertCreateOption(),
-		WriteConcern(wc1).ConvertCreateOption(),
+		MaxTime(100).ConvertCreateOption(),
 	}
 
 	t.Run("TestAll", func(t *testing.T) {
-		wc := writeconcern.New(writeconcern.W(1))
-
 		opts := []Create{
-			WriteConcern(wc),
 			MaxTime(5000),
 		}
 		bundle := BundleCreate(opts...)

@@ -848,7 +848,6 @@ func verifyCursorResults(t *testing.T, cursor Cursor, result json.RawMessage) {
 
 	require.False(t, cursor.Next(context.Background()))
 	require.NoError(t, cursor.Err())
-
 }
 
 func collationFromMap(m map[string]interface{}) *mongoopt.Collation {

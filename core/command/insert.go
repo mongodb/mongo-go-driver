@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // this is the amount of reserved buffer space in a message that the
@@ -27,9 +28,10 @@ const reservedCommandBufferBytes = 16 * 10 * 10 * 10
 // Since the Insert command does not return any value other than ok or
 // an error, this type has no Err method.
 type Insert struct {
-	NS   Namespace
-	Docs []*bson.Document
-	Opts []option.InsertOptioner
+	NS           Namespace
+	Docs         []*bson.Document
+	Opts         []option.InsertOptioner
+	WriteConcern *writeconcern.WriteConcern
 
 	result          result.Insert
 	err             error
@@ -79,7 +81,27 @@ splitInserts:
 	return batches, nil
 }
 
-func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedServer) (wiremessage.WireMessage, error) {
+// Encode will encode this command into a wire message for the given server description.
+func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMessage, error) {
+	cmds, err := i.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+
+	wms := make([]wiremessage.WireMessage, len(cmds))
+	for _, cmd := range cmds {
+		wm, err := cmd.Encode(desc)
+		if err != nil {
+			return nil, err
+		}
+
+		wms = append(wms, wm)
+	}
+
+	return wms, nil
+}
+
+func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedServer) (*Write, error) {
 
 	command := bson.NewDocument(bson.EC.String("insert", i.NS.Collection))
 
@@ -106,12 +128,15 @@ func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		}
 	}
 
-	return (&Command{DB: i.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return &Write{
+		DB:           i.NS.DB,
+		Command:      command,
+		WriteConcern: i.WriteConcern,
+	}, nil
 }
 
-// Encode will encode this command into a wire message for the given server description.
-func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMessage, error) {
-	out := []wiremessage.WireMessage{}
+func (i *Insert) encode(desc description.SelectedServer) ([]*Write, error) {
+	out := []*Write{}
 	batches, err := i.split(int(desc.MaxBatchCount), int(desc.MaxDocumentSize))
 	if err != nil {
 		return nil, err
@@ -132,12 +157,16 @@ func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMess
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (i *Insert) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Insert {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		i.err = err
 		return i
 	}
 
+	return i.decode(desc, rdr)
+}
+
+func (i *Insert) decode(desc description.SelectedServer, rdr bson.Reader) *Insert {
 	i.err = bson.Unmarshal(rdr, &i.result)
 	return i
 }
@@ -156,23 +185,18 @@ func (i *Insert) Err() error { return i.err }
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (i *Insert) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Insert, error) {
 	res := result.Insert{}
-
-	wms, err := i.Encode(desc)
+	cmds, err := i.encode(desc)
 	if err != nil {
 		return res, err
 	}
 
-	for _, wm := range wms {
-		err = rw.WriteWireMessage(ctx, wm)
-		if err != nil {
-			return res, err
-		}
-		wm, err = rw.ReadWireMessage(ctx)
+	for _, cmd := range cmds {
+		rdr, err := cmd.RoundTrip(ctx, desc, rw)
 		if err != nil {
 			return res, err
 		}
 
-		r, err := i.Decode(desc, wm).Result()
+		r, err := i.decode(desc, rdr).Result()
 		if err != nil {
 			return res, err
 		}
@@ -183,11 +207,11 @@ func (i *Insert) RoundTrip(ctx context.Context, desc description.SelectedServer,
 			res.WriteConcernError = r.WriteConcernError
 		}
 
+		res.N += r.N
+
 		if !i.continueOnError && len(res.WriteErrors) > 0 {
 			return res, nil
 		}
-
-		res.N += r.N
 	}
 
 	return res, nil

@@ -13,27 +13,39 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
-// Command handles the full cycle dispatch and execution of a command against the provided
+// Write handles the full cycle dispatch and execution of a write command against the provided
 // topology.
-func Command(
+func Write(
 	ctx context.Context,
-	cmd command.Command,
+	cmd command.Write,
 	topo *topology.Topology,
 	selector description.ServerSelector,
 ) (bson.Reader, error) {
-
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return nil, err
 	}
 
+	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
 		return nil, err
 	}
+
+	if !writeconcern.AckWrite(cmd.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer conn.Close()
+
+			_, _ = cmd.RoundTrip(ctx, desc, conn)
+		}()
+
+		return nil, command.ErrUnacknowledgedWrite
+	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, ss.Description(), conn)
+	return cmd.RoundTrip(ctx, desc, conn)
 }

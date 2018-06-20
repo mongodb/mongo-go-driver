@@ -9,44 +9,30 @@ package dispatch
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
-// FindOneAndUpdate handles the full cycle dispatch and execution of a FindOneAndUpdate command against the provided
+// Read handles the full cycle dispatch and execution of a read command against the provided
 // topology.
-func FindOneAndUpdate(
+func Read(
 	ctx context.Context,
-	cmd command.FindOneAndUpdate,
+	cmd command.Read,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-) (result.FindAndModify, error) {
-
+) (bson.Reader, error) {
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
-		return result.FindAndModify{}, err
+		return nil, err
 	}
 
-	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
-		return result.FindAndModify{}, err
-	}
-
-	if !writeconcern.AckWrite(cmd.WriteConcern) {
-		go func() {
-			defer func() { _ = recover() }()
-			defer conn.Close()
-
-			_, _ = cmd.RoundTrip(ctx, desc, conn)
-		}()
-
-		return result.FindAndModify{}, command.ErrUnacknowledgedWrite
+		return nil, err
 	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, desc, conn)
+	return cmd.RoundTrip(ctx, ss.Description(), conn)
 }

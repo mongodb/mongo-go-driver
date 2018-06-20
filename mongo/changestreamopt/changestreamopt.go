@@ -7,7 +7,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -82,16 +81,6 @@ func (csb *ChangeStreamBundle) FullDocument(fd mongoopt.FullDocument) *ChangeStr
 func (csb *ChangeStreamBundle) MaxAwaitTime(d time.Duration) *ChangeStreamBundle {
 	bundle := &ChangeStreamBundle{
 		option: MaxAwaitTime(d),
-		next:   csb,
-	}
-
-	return bundle
-}
-
-// ReadConcern specifies a read concern.
-func (csb *ChangeStreamBundle) ReadConcern(rc *readconcern.ReadConcern) *ChangeStreamBundle {
-	bundle := &ChangeStreamBundle{
-		option: ReadConcern(rc),
 		next:   csb,
 	}
 
@@ -236,13 +225,6 @@ func MaxAwaitTime(d time.Duration) OptMaxAwaitTime {
 	return OptMaxAwaitTime(d)
 }
 
-// ReadConcern specifies the read concern.
-func ReadConcern(rc *readconcern.ReadConcern) OptReadConcern {
-	return OptReadConcern{
-		ReadConcern: rc,
-	}
-}
-
 // ResumeAfter specifies if a change stream should be resumed after stopping.
 func ResumeAfter(d *bson.Document) OptResumeAfter {
 	return OptResumeAfter{
@@ -288,16 +270,6 @@ func (OptMaxAwaitTime) changeStream() {}
 // ConvertChangeStreamOption implements the ChangeStream interface.
 func (opt OptMaxAwaitTime) ConvertChangeStreamOption() option.ChangeStreamOptioner {
 	return option.OptMaxAwaitTime(opt)
-}
-
-// OptReadConcern specifies a read concern.
-type OptReadConcern option.OptReadConcern
-
-func (OptReadConcern) changeStream() {}
-
-// ConvertChangeStreamOption implements the ChangeStream interface.
-func (opt OptReadConcern) ConvertChangeStreamOption() option.ChangeStreamOptioner {
-	return option.OptReadConcern(opt)
 }
 
 // OptResumeAfter specifies if the stream should be resumed after stopping.

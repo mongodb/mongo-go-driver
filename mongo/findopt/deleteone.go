@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -84,16 +83,6 @@ func (dob *DeleteOneBundle) Projection(projection interface{}) *DeleteOneBundle 
 func (dob *DeleteOneBundle) Sort(sort interface{}) *DeleteOneBundle {
 	bundle := &DeleteOneBundle{
 		option: Sort(sort),
-		next:   dob,
-	}
-
-	return bundle
-}
-
-// WriteConcern adds an option to specify the write concern.
-func (dob *DeleteOneBundle) WriteConcern(wc *writeconcern.WriteConcern) *DeleteOneBundle {
-	bundle := &DeleteOneBundle{
-		option: WriteConcern(wc),
 		next:   dob,
 	}
 
