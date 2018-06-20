@@ -95,11 +95,11 @@ func prep(ctx context.Context, c *topology.Topology) error {
 		bson.EC.SubDocument("q", bson.NewDocument()),
 		bson.EC.Int32("limit", 0),
 	)}
-	_, err = (&command.Delete{NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
+	_, err = (&command.Delete{Acknowledged: true, NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
 	if err != nil {
 		return err
 	}
-	_, err = (&command.Insert{NS: ns, Docs: docs}).RoundTrip(ctx, s.Description(), conn)
+	_, err = (&command.Insert{Acknowledged: true, NS: ns, Docs: docs}).RoundTrip(ctx, s.Description(), conn)
 	return err
 }
 
