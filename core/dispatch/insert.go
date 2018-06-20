@@ -13,7 +13,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Insert handles the full cycle dispatch and execution of an insert command against the provided
@@ -23,22 +22,10 @@ func Insert(
 	cmd command.Insert,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
 ) (result.Insert, error) {
-
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return result.Insert{}, err
-	}
-
-	acknowledged := true
-	if wc != nil {
-		opt, err := writeConcernOption(wc)
-		if err != nil {
-			return result.Insert{}, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
-		acknowledged = wc.Acknowledged()
 	}
 
 	desc := ss.Description()
@@ -46,16 +33,6 @@ func Insert(
 	if err != nil {
 		return result.Insert{}, err
 	}
-
-	if !acknowledged {
-		go func() {
-			defer func() { _ = recover() }()
-			defer conn.Close()
-			_, _ = cmd.RoundTrip(ctx, desc, conn)
-		}()
-		return result.Insert{}, ErrUnacknowledgedWrite
-	}
-	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }

@@ -33,7 +33,6 @@ func ListDatabases(
 	if err != nil {
 		return result.ListDatabases{}, err
 	}
-	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)
 }

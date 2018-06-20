@@ -124,7 +124,7 @@ func TestCommandAggregate(t *testing.T) {
 		conn, err := server.Connection(context.Background())
 		noerr(t, err)
 
-		_, err = (&command.Command{
+		_, err = (&command.Write{
 			DB: "admin",
 			Command: bson.NewDocument(
 				bson.EC.String("configureFailPoint", "maxTimeAlwaysTimeOut"),
@@ -142,7 +142,7 @@ func TestCommandAggregate(t *testing.T) {
 			t.Errorf("Expected time limit exceeded error, but got %v", err)
 		}
 
-		_, err = (&command.Command{
+		_, err = (&command.Write{
 			DB: "admin",
 			Command: bson.NewDocument(
 				bson.EC.String("configureFailPoint", "maxTimeAlwaysTimeOut"),

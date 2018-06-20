@@ -99,7 +99,7 @@ type HandshakeOptions struct {
 
 // Handshaker creates a connection handshaker for the given authenticator.
 func Handshaker(h connection.Handshaker, options *HandshakeOptions) connection.Handshaker {
-	return connection.HandshakerFunc(func(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
+	return connection.HandshakerFunc(func(ctx context.Context, addr address.Address, rw wiremessage.ReadWriteCloser) (description.Server, error) {
 		desc, err := (&command.Handshake{
 			Client:      command.ClientDoc(options.AppName),
 			Compressors: options.Compressors,
@@ -123,7 +123,7 @@ func Handshaker(h connection.Handshaker, options *HandshakeOptions) connection.H
 // Authenticator handles authenticating a connection.
 type Authenticator interface {
 	// Auth authenticates the connection.
-	Auth(context.Context, description.Server, wiremessage.ReadWriter) error
+	Auth(context.Context, description.Server, wiremessage.ReadWriteCloser) error
 }
 
 func newAuthError(msg string, inner error) error {

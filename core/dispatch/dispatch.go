@@ -7,16 +7,10 @@
 package dispatch
 
 import (
-	"errors"
-
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
-
-// ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
-// write concern.
-var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
 
 func writeConcernOption(wc *writeconcern.WriteConcern) (option.OptWriteConcern, error) {
 	return option.OptWriteConcern{WriteConcern: wc}, nil

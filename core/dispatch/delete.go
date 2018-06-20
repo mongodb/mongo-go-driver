@@ -13,7 +13,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Delete handles the full cycle dispatch and execution of a delete command against the provided
@@ -23,7 +22,6 @@ func Delete(
 	cmd command.Delete,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
 ) (result.Delete, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -31,31 +29,11 @@ func Delete(
 		return result.Delete{}, err
 	}
 
-	acknowledged := true
-	if wc != nil {
-		opt, err := writeConcernOption(wc)
-		if err != nil {
-			return result.Delete{}, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
-		acknowledged = wc.Acknowledged()
-	}
-
 	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
 		return result.Delete{}, err
 	}
-
-	if !acknowledged {
-		go func() {
-			defer func() { _ = recover() }()
-			defer conn.Close()
-			_, _ = cmd.RoundTrip(ctx, desc, conn)
-		}()
-		return result.Delete{}, ErrUnacknowledgedWrite
-	}
-	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }
