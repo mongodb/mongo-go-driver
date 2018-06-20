@@ -203,5 +203,23 @@ func getAllCases() []*CaseDefinition {
 			Size:    27310890,
 			Runtime: StandardRuntime,
 		},
+		{
+			Bench:   MultiFindMany,
+			Count:   tenThousand,
+			Size:    16220000,
+			Runtime: StandardRuntime,
+		},
+		{
+			Bench:   MultiInsertSmallDocument,
+			Count:   tenThousand,
+			Size:    2750000,
+			Runtime: StandardRuntime,
+		},
+		{
+			Bench:   MultiInsertLargeDocument,
+			Count:   ten,
+			Size:    27310890,
+			Runtime: StandardRuntime,
+		},
 	}
 }

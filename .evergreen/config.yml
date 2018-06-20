@@ -631,7 +631,7 @@ buildvariants:
 - name: perf
   display_name: "Performance"
   run_on:
-    - ubuntu1604-test
+    - ubuntu1604-build
   expansions:
     GO_DIST: "/opt/golang/go1.9"
   tasks:
