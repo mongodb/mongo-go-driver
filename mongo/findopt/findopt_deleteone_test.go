@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
 
@@ -135,13 +134,11 @@ func TestFindAndDeleteOneOpt(t *testing.T) {
 	t.Run("TestAll", func(t *testing.T) {
 		proj := Projection(true)
 		sort := Sort(true)
-		wc := writeconcern.New(writeconcern.W(10))
 
 		opts := []DeleteOne{
 			MaxTime(5),
 			Projection(proj),
 			Sort(sort),
-			WriteConcern(wc),
 		}
 		bundle := BundleDeleteOne(opts...)
 

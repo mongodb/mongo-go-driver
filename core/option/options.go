@@ -15,8 +15,6 @@ import (
 	"strconv"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Optioner is the interface implemented by types that can be used as options
@@ -180,29 +178,21 @@ var (
 	_ AggregateOptioner         = (*OptCollation)(nil)
 	_ AggregateOptioner         = (*OptComment)(nil)
 	_ AggregateOptioner         = (*OptMaxTime)(nil)
-	_ AggregateOptioner         = (*OptReadConcern)(nil)
-	_ AggregateOptioner         = (*OptWriteConcern)(nil)
 	_ CountOptioner             = (*OptCollation)(nil)
 	_ CountOptioner             = (*OptHint)(nil)
 	_ CountOptioner             = (*OptLimit)(nil)
 	_ CountOptioner             = (*OptMaxTime)(nil)
-	_ CountOptioner             = (*OptReadConcern)(nil)
 	_ CountOptioner             = (*OptSkip)(nil)
-	_ CreateIndexesOptioner     = (*OptWriteConcern)(nil)
 	_ CreateIndexesOptioner     = (*OptMaxTime)(nil)
 	_ CursorOptioner            = OptBatchSize(0)
 	_ DeleteOptioner            = (*OptCollation)(nil)
-	_ DeleteOptioner            = (*OptWriteConcern)(nil)
 	_ DistinctOptioner          = (*OptCollation)(nil)
 	_ DistinctOptioner          = (*OptMaxTime)(nil)
-	_ DistinctOptioner          = (*OptReadConcern)(nil)
-	_ DropIndexesOptioner       = (*OptWriteConcern)(nil)
 	_ DropIndexesOptioner       = (*OptMaxTime)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptCollation)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptMaxTime)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptProjection)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptSort)(nil)
-	_ FindOneAndDeleteOptioner  = (*OptWriteConcern)(nil)
 	_ FindOneAndReplaceOptioner = (*OptBypassDocumentValidation)(nil)
 	_ FindOneAndReplaceOptioner = (*OptCollation)(nil)
 	_ FindOneAndReplaceOptioner = (*OptMaxTime)(nil)
@@ -210,7 +200,6 @@ var (
 	_ FindOneAndReplaceOptioner = (*OptReturnDocument)(nil)
 	_ FindOneAndReplaceOptioner = (*OptSort)(nil)
 	_ FindOneAndReplaceOptioner = (*OptUpsert)(nil)
-	_ FindOneAndReplaceOptioner = (*OptWriteConcern)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptArrayFilters)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptBypassDocumentValidation)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptCollation)(nil)
@@ -219,7 +208,6 @@ var (
 	_ FindOneAndUpdateOptioner  = (*OptReturnDocument)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptSort)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptUpsert)(nil)
-	_ FindOneAndUpdateOptioner  = (*OptWriteConcern)(nil)
 	_ FindOptioner              = (*OptAllowPartialResults)(nil)
 	_ FindOptioner              = (*OptBatchSize)(nil)
 	_ FindOptioner              = (*OptCollation)(nil)
@@ -234,7 +222,6 @@ var (
 	_ FindOptioner              = (*OptNoCursorTimeout)(nil)
 	_ FindOptioner              = (*OptOplogReplay)(nil)
 	_ FindOptioner              = (*OptProjection)(nil)
-	_ FindOptioner              = (*OptReadConcern)(nil)
 	_ FindOptioner              = (*OptReturnKey)(nil)
 	_ FindOptioner              = (*OptShowRecordID)(nil)
 	_ FindOptioner              = (*OptSkip)(nil)
@@ -253,7 +240,6 @@ var (
 	_ FindOneOptioner           = (*OptNoCursorTimeout)(nil)
 	_ FindOneOptioner           = (*OptOplogReplay)(nil)
 	_ FindOneOptioner           = (*OptProjection)(nil)
-	_ FindOneOptioner           = (*OptReadConcern)(nil)
 	_ FindOneOptioner           = (*OptReturnKey)(nil)
 	_ FindOneOptioner           = (*OptShowRecordID)(nil)
 	_ FindOneOptioner           = (*OptSkip)(nil)
@@ -261,12 +247,9 @@ var (
 	_ FindOneOptioner           = (*OptSort)(nil)
 	_ InsertManyOptioner        = (*OptBypassDocumentValidation)(nil)
 	_ InsertManyOptioner        = (*OptOrdered)(nil)
-	_ InsertManyOptioner        = (*OptWriteConcern)(nil)
 	_ InsertOneOptioner         = (*OptBypassDocumentValidation)(nil)
-	_ InsertOneOptioner         = (*OptWriteConcern)(nil)
 	_ InsertOptioner            = (*OptBypassDocumentValidation)(nil)
 	_ InsertOptioner            = (*OptOrdered)(nil)
-	_ InsertOptioner            = (*OptWriteConcern)(nil)
 	_ ListDatabasesOptioner     = OptNameOnly(false)
 	_ ListCollectionsOptioner   = OptNameOnly(false)
 	_ ListIndexesOptioner       = OptBatchSize(0)
@@ -274,17 +257,14 @@ var (
 	_ ReplaceOptioner           = (*OptBypassDocumentValidation)(nil)
 	_ ReplaceOptioner           = (*OptCollation)(nil)
 	_ ReplaceOptioner           = (*OptUpsert)(nil)
-	_ ReplaceOptioner           = (*OptWriteConcern)(nil)
 	_ UpdateOptioner            = (*OptUpsert)(nil)
 	_ UpdateOptioner            = (*OptArrayFilters)(nil)
 	_ UpdateOptioner            = (*OptBypassDocumentValidation)(nil)
 	_ UpdateOptioner            = (*OptCollation)(nil)
-	_ UpdateOptioner            = (*OptWriteConcern)(nil)
 	_ ChangeStreamOptioner      = (*OptBatchSize)(nil)
 	_ ChangeStreamOptioner      = (*OptCollation)(nil)
 	_ ChangeStreamOptioner      = (*OptFullDocument)(nil)
 	_ ChangeStreamOptioner      = (*OptMaxAwaitTime)(nil)
-	_ ChangeStreamOptioner      = (*OptReadConcern)(nil)
 	_ ChangeStreamOptioner      = (*OptResumeAfter)(nil)
 )
 
@@ -775,36 +755,6 @@ func (opt OptFields) String() string {
 	return "OptFields"
 }
 
-// OptReadConcern is for internal use.
-type OptReadConcern struct {
-	ReadConcern *readconcern.ReadConcern
-}
-
-// Option implements the Optioner interface.
-func (opt OptReadConcern) Option(d *bson.Document) error {
-	element, err := opt.ReadConcern.MarshalBSONElement()
-	if err != nil {
-		return err
-	}
-
-	if _, err := d.LookupElementErr(element.Key()); err == bson.ErrElementNotFound {
-		d.Append(element)
-	}
-	return nil
-}
-
-func (OptReadConcern) aggregateOption()    {}
-func (OptReadConcern) changeStreamOption() {}
-func (OptReadConcern) countOption()        {}
-func (OptReadConcern) distinctOption()     {}
-func (OptReadConcern) findOption()         {}
-func (OptReadConcern) findOneOption()      {}
-
-// String implements the Stringer interface.
-func (opt OptReadConcern) String() string {
-	return "OptReadConcern"
-}
-
 // OptResumeAfter is for internal use.
 type OptResumeAfter struct{ ResumeAfter *bson.Document }
 
@@ -953,44 +903,6 @@ func (OptUpsert) updateOption()            {}
 // String implements the Stringer interface.
 func (opt OptUpsert) String() string {
 	return "OptUpsert: " + strconv.FormatBool(bool(opt))
-}
-
-// OptWriteConcern is for internal use.
-type OptWriteConcern struct {
-	*writeconcern.WriteConcern
-}
-
-// Option implements the Optioner interface.
-func (opt OptWriteConcern) Option(d *bson.Document) error {
-	element, err := opt.WriteConcern.MarshalBSONElement()
-	if err != nil {
-		return err
-	}
-
-	_, err = d.LookupElementErr(element.Key())
-	if err == bson.ErrElementNotFound {
-		d.Append(element)
-		return nil
-	}
-	return err
-}
-
-func (OptWriteConcern) aggregateOption()         {}
-func (OptWriteConcern) deleteOption()            {}
-func (OptWriteConcern) findOneAndUpdateOption()  {}
-func (OptWriteConcern) findOneAndReplaceOption() {}
-func (OptWriteConcern) findOneAndDeleteOption()  {}
-func (OptWriteConcern) insertOption()            {}
-func (OptWriteConcern) insertManyOption()        {}
-func (OptWriteConcern) insertOneOption()         {}
-func (OptWriteConcern) replaceOption()           {}
-func (OptWriteConcern) updateOption()            {}
-func (OptWriteConcern) createIndexesOption()     {}
-func (OptWriteConcern) dropIndexesOption()       {}
-
-// String implements the Stringer interface.
-func (opt OptWriteConcern) String() string {
-	return "OptWriteConcern"
 }
 
 // OptNameOnly is for internal use.

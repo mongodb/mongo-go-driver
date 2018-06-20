@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 var createBundle = new(CreateBundle)
@@ -42,16 +41,6 @@ func (cb *CreateBundle) create() {}
 
 // ConvertCreateOption implements the Create interface.
 func (cb *CreateBundle) ConvertCreateOption() option.CreateIndexesOptioner { return nil }
-
-// WriteConcern adds an option to specify a write concern.
-func (cb *CreateBundle) WriteConcern(wc *writeconcern.WriteConcern) *CreateBundle {
-	bundle := &CreateBundle{
-		option: WriteConcern(wc),
-		next:   cb,
-	}
-
-	return bundle
-}
 
 // MaxTime adds an option to specify the maximum amount of time to allow the query to run.
 func (cb *CreateBundle) MaxTime(d time.Duration) *CreateBundle {

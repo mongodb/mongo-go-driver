@@ -23,22 +23,11 @@ func FindOneAndDelete(
 	cmd command.FindOneAndDelete,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
 ) (result.FindAndModify, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return result.FindAndModify{}, err
-	}
-
-	acknowledged := true
-	if wc != nil {
-		opt, err := writeConcernOption(wc)
-		if err != nil {
-			return result.FindAndModify{}, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
-		acknowledged = wc.Acknowledged()
 	}
 
 	desc := ss.Description()
@@ -47,15 +36,15 @@ func FindOneAndDelete(
 		return result.FindAndModify{}, err
 	}
 
-	if !acknowledged {
+	if !writeconcern.AckWrite(cmd.WriteConcern) {
 		go func() {
-			defer func() {
-				_ = recover()
-			}()
+			defer func() { _ = recover() }()
 			defer conn.Close()
+
 			_, _ = cmd.RoundTrip(ctx, desc, conn)
 		}()
-		return result.FindAndModify{}, ErrUnacknowledgedWrite
+
+		return result.FindAndModify{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
 

@@ -23,22 +23,11 @@ func Delete(
 	cmd command.Delete,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
 ) (result.Delete, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return result.Delete{}, err
-	}
-
-	acknowledged := true
-	if wc != nil {
-		opt, err := writeConcernOption(wc)
-		if err != nil {
-			return result.Delete{}, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
-		acknowledged = wc.Acknowledged()
 	}
 
 	desc := ss.Description()
@@ -47,13 +36,15 @@ func Delete(
 		return result.Delete{}, err
 	}
 
-	if !acknowledged {
+	if !writeconcern.AckWrite(cmd.WriteConcern) {
 		go func() {
 			defer func() { _ = recover() }()
 			defer conn.Close()
+
 			_, _ = cmd.RoundTrip(ctx, desc, conn)
 		}()
-		return result.Delete{}, ErrUnacknowledgedWrite
+
+		return result.Delete{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
 
