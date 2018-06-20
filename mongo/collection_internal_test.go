@@ -226,10 +226,9 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	doc := bson.NewDocument(bson.EC.ObjectID("_id", objectid.New()))
-	coll := createTestCollection(t, nil, nil)
+	coll := createTestCollection(t, nil, nil, collectionopt.WriteConcern(writeconcern.New(writeconcern.W(25))))
 
-	optwc := insertopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	_, err := coll.InsertOne(context.Background(), doc, optwc)
+	_, err := coll.InsertOne(context.Background(), doc)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
@@ -375,8 +374,8 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 			bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
 		}
 
-		optwc := insertopt.WriteConcern(writeconcern.New(writeconcern.W(42)))
-		_, err := coll.InsertMany(context.Background(), docs, optwc)
+		copyColl := coll.CopyWriteConcern(writeconcern.New(writeconcern.W(42)))
+		_, err := copyColl.InsertMany(context.Background(), docs)
 		if err == nil {
 			t.Errorf("write concern error not propagated from command: %+v", err)
 		}
@@ -405,10 +404,9 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
 		bson.NewDocument(bson.EC.ObjectID("_id", objectid.New())),
 	}
-	coll := createTestCollection(t, nil, nil)
+	coll := createTestCollection(t, nil, nil, collectionopt.WriteConcern(writeconcern.New(writeconcern.W(25))))
 
-	optwc := insertopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	_, err := coll.InsertMany(context.Background(), docs, optwc)
+	_, err := coll.InsertMany(context.Background(), docs)
 	got, ok := err.(BulkWriteError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, BulkWriteError{}, err)
@@ -520,10 +518,9 @@ func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	filter := bson.NewDocument(bson.EC.Int32("x", 1))
-	coll := createTestCollection(t, nil, nil)
+	coll := createTestCollection(t, nil, nil, collectionopt.WriteConcern(writeconcern.New(writeconcern.W(25))))
 
-	optwc := deleteopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	_, err := coll.DeleteOne(context.Background(), filter, optwc)
+	_, err := coll.DeleteOne(context.Background(), filter)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
@@ -636,10 +633,9 @@ func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	filter := bson.NewDocument(bson.EC.Int32("x", 1))
-	coll := createTestCollection(t, nil, nil)
+	coll := createTestCollection(t, nil, nil, collectionopt.WriteConcern(writeconcern.New(writeconcern.W(25))))
 
-	optwc := deleteopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	_, err := coll.DeleteMany(context.Background(), filter, optwc)
+	_, err := coll.DeleteMany(context.Background(), filter)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
@@ -767,10 +763,9 @@ func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
 			bson.EC.Double("pi", 3.14159),
 		),
 	)
-	coll := createTestCollection(t, nil, nil)
+	coll := createTestCollection(t, nil, nil, collectionopt.WriteConcern(writeconcern.New(writeconcern.W(25))))
 
-	optwc := updateopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	_, err := coll.UpdateOne(context.Background(), filter, update, optwc)
+	_, err := coll.UpdateOne(context.Background(), filter, update)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
@@ -904,10 +899,9 @@ func TestCollection_UpdateMany_WriteConcernError(t *testing.T) {
 			bson.EC.Double("pi", 3.14159),
 		),
 	)
-	coll := createTestCollection(t, nil, nil)
+	coll := createTestCollection(t, nil, nil, collectionopt.WriteConcern(writeconcern.New(writeconcern.W(25))))
 
-	optwc := updateopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	_, err := coll.UpdateMany(context.Background(), filter, update, optwc)
+	_, err := coll.UpdateMany(context.Background(), filter, update)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
@@ -1025,10 +1019,9 @@ func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	filter := bson.NewDocument(bson.EC.String("_id", "foo"))
 	update := bson.NewDocument(bson.EC.Double("pi", 3.14159))
-	coll := createTestCollection(t, nil, nil)
+	coll := createTestCollection(t, nil, nil, collectionopt.WriteConcern(writeconcern.New(writeconcern.W(25))))
 
-	optwc := replaceopt.WriteConcern(writeconcern.New(writeconcern.W(25)))
-	_, err := coll.ReplaceOne(context.Background(), filter, update, optwc)
+	_, err := coll.ReplaceOne(context.Background(), filter, update)
 	got, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})

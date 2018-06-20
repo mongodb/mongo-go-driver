@@ -32,7 +32,6 @@ func ListCollections(
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, ss.Description(), ss, conn)
 }

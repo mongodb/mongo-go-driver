@@ -59,7 +59,7 @@ func TestCompression(t *testing.T) {
 	testutil.DropCollection(t, testutil.DBName(t), collOne)
 	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bson.NewDocument(bson.EC.String("name", "compression_test")))
 
-	cmd := &command.Command{
+	cmd := &command.Read{
 		DB:      testutil.DBName(t),
 		Command: bson.NewDocument(bson.EC.Int32("serverStatus", 1)),
 	}

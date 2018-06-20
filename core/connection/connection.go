@@ -69,15 +69,15 @@ var DefaultDialer Dialer = &net.Dialer{}
 // handshake over a provided ReadWriter. This is used during connection
 // initialization.
 type Handshaker interface {
-	Handshake(context.Context, address.Address, wiremessage.ReadWriter) (description.Server, error)
+	Handshake(context.Context, address.Address, wiremessage.ReadWriteCloser) (description.Server, error)
 }
 
 // HandshakerFunc is an adapter to allow the use of ordinary functions as
 // connection handshakers.
-type HandshakerFunc func(context.Context, address.Address, wiremessage.ReadWriter) (description.Server, error)
+type HandshakerFunc func(context.Context, address.Address, wiremessage.ReadWriteCloser) (description.Server, error)
 
 // Handshake implements the Handshaker interface.
-func (hf HandshakerFunc) Handshake(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
+func (hf HandshakerFunc) Handshake(ctx context.Context, addr address.Address, rw wiremessage.ReadWriteCloser) (description.Server, error) {
 	return hf(ctx, addr, rw)
 }
 
@@ -243,11 +243,9 @@ func (c *connection) compressMessage(wm wiremessage.WireMessage) (wiremessage.Wi
 	var responseTo int32
 	var origOpcode wiremessage.OpCode
 
-	switch wm.(type) {
+	switch converted := wm.(type) {
 	case wiremessage.Query:
-		queryMsg := wm.(wiremessage.Query)
-		firstElem, err := queryMsg.Query.ElementAt(0)
-
+		firstElem, err := converted.Query.ElementAt(0)
 		if err != nil {
 			return wiremessage.Compressed{}, err
 		}
@@ -256,9 +254,23 @@ func (c *connection) compressMessage(wm wiremessage.WireMessage) (wiremessage.Wi
 		if !canCompress(key) {
 			return wm, nil // return original message because this command can't be compressed
 		}
-		requestID = queryMsg.MsgHeader.RequestID
+		requestID = converted.MsgHeader.RequestID
 		origOpcode = wiremessage.OpQuery
-		responseTo = queryMsg.MsgHeader.ResponseTo
+		responseTo = converted.MsgHeader.ResponseTo
+	case wiremessage.Msg:
+		firstElem, err := converted.Sections[0].(wiremessage.SectionBody).Document.ElementAt(0)
+		if err != nil {
+			return wiremessage.Compressed{}, err
+		}
+
+		key := firstElem.Key()
+		if !canCompress(key) {
+			return wm, nil
+		}
+
+		requestID = converted.MsgHeader.RequestID
+		origOpcode = wiremessage.OpMsg
+		responseTo = converted.MsgHeader.ResponseTo
 	}
 
 	// can compress
@@ -309,25 +321,25 @@ func (c *connection) uncompressMessage(compressed wiremessage.Compressed) ([]byt
 		return nil, 0, err
 	}
 
+	origHeader := wiremessage.Header{
+		MessageLength: int32(len(uncompressedMessage)) + 16, // add 16 for original header
+		RequestID:     compressed.MsgHeader.RequestID,
+		ResponseTo:    compressed.MsgHeader.ResponseTo,
+	}
+
 	switch compressed.OriginalOpCode {
 	case wiremessage.OpReply:
-		var fullMessage []byte
-
-		// reconstruct original header
-		origHeader := wiremessage.Header{
-			MessageLength: int32(len(uncompressedMessage)) + 16, // add 16 for original header
-			RequestID:     compressed.MsgHeader.RequestID,
-			ResponseTo:    compressed.MsgHeader.ResponseTo,
-			OpCode:        wiremessage.OpReply,
-		}
-
-		fullMessage = origHeader.AppendHeader(fullMessage)
-		fullMessage = append(fullMessage, uncompressedMessage...)
-		return fullMessage, origHeader.OpCode, nil
-
+		origHeader.OpCode = wiremessage.OpReply
+	case wiremessage.OpMsg:
+		origHeader.OpCode = wiremessage.OpMsg
 	default:
 		return nil, 0, fmt.Errorf("opcode %s not implemented", compressed.OriginalOpCode)
 	}
+
+	var fullMessage []byte
+	fullMessage = origHeader.AppendHeader(fullMessage)
+	fullMessage = append(fullMessage, uncompressedMessage...)
+	return fullMessage, origHeader.OpCode, nil
 }
 
 func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessage) error {
@@ -529,6 +541,18 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 			}
 		}
 		wm = r
+	case wiremessage.OpMsg:
+		var reply wiremessage.Msg
+		err := reply.UnmarshalWireMessage(messageToDecode)
+		if err != nil {
+			c.Close()
+			return nil, Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to decode OP_MSG",
+			}
+		}
+		wm = reply
 	default:
 		c.Close()
 		return nil, Error{

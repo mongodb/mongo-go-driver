@@ -12,7 +12,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -115,16 +114,6 @@ func (rob *ReplaceOneBundle) Sort(sort interface{}) *ReplaceOneBundle {
 func (rob *ReplaceOneBundle) Upsert(b bool) *ReplaceOneBundle {
 	bundle := &ReplaceOneBundle{
 		option: Upsert(b),
-		next:   rob,
-	}
-
-	return bundle
-}
-
-// WriteConcern adds an option to specify the write concern.
-func (rob *ReplaceOneBundle) WriteConcern(wc *writeconcern.WriteConcern) *ReplaceOneBundle {
-	bundle := &ReplaceOneBundle{
-		option: WriteConcern(wc),
 		next:   rob,
 	}
 

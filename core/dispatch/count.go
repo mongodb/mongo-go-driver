@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
 
@@ -22,7 +21,6 @@ func Count(
 	cmd command.Count,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	rc *readconcern.ReadConcern,
 ) (int64, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -30,20 +28,11 @@ func Count(
 		return 0, err
 	}
 
-	if rc != nil {
-		opt, err := readConcernOption(rc)
-		if err != nil {
-			return 0, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
-	}
-
 	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
 		return 0, err
 	}
-	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }

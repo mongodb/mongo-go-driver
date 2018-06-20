@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
@@ -139,7 +138,6 @@ func TestFindAndReplaceOneOpt(t *testing.T) {
 		}
 		proj := Projection(true)
 		sort := Sort(true)
-		wc := writeconcern.New(writeconcern.W(10))
 
 		opts := []ReplaceOne{
 			Collation(c),
@@ -148,7 +146,6 @@ func TestFindAndReplaceOneOpt(t *testing.T) {
 			ReturnDocument(mongoopt.After),
 			Sort(sort),
 			Upsert(true),
-			WriteConcern(wc),
 		}
 		bundle := BundleReplaceOne(opts...)
 
