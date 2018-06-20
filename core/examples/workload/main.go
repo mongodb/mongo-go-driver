@@ -95,11 +95,11 @@ func prep(ctx context.Context, c *topology.Topology) error {
 		bson.EC.SubDocument("q", bson.NewDocument()),
 		bson.EC.Int32("limit", 0),
 	)}
-	_, err = (&command.Delete{NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
+	_, err = (&command.Delete{WriteConcern: nil, NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
 	if err != nil {
 		return err
 	}
-	_, err = (&command.Insert{NS: ns, Docs: docs}).RoundTrip(ctx, s.Description(), conn)
+	_, err = (&command.Insert{WriteConcern: nil, NS: ns, Docs: docs}).RoundTrip(ctx, s.Description(), conn)
 	return err
 }
 
@@ -126,7 +126,7 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 				Opts:     []option.AggregateOptioner{option.OptBatchSize(200)},
 				ReadPref: rp,
 			}
-			cursor, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp), nil)
+			cursor, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp))
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue

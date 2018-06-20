@@ -265,7 +265,6 @@ func listCollectionsTest(db *Database, cappedOnly bool) error {
 }
 
 func TestDatabase_ListCollections(t *testing.T) {
-	t.Parallel()
 	rpPrimary := readpref.Primary()
 	rpSecondary := readpref.Secondary()
 
@@ -290,7 +289,7 @@ func TestDatabase_ListCollections(t *testing.T) {
 			if os.Getenv("topology") != tt.expectedTopology {
 				t.Skip()
 			}
-			dbName := "db_list_collections"
+			dbName := tt.name
 			db := createTestDatabase(t, &dbName, dbopt.ReadPreference(tt.rp))
 
 			defer func() {

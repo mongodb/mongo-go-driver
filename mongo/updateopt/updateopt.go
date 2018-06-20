@@ -10,7 +10,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -84,16 +83,6 @@ func (ub *UpdateBundle) Collation(c *mongoopt.Collation) *UpdateBundle {
 func (ub *UpdateBundle) Upsert(b bool) *UpdateBundle {
 	bundle := &UpdateBundle{
 		option: Upsert(b),
-		next:   ub,
-	}
-
-	return bundle
-}
-
-// WriteConcern adds an option to set the write concern.
-func (ub *UpdateBundle) WriteConcern(wc *writeconcern.WriteConcern) *UpdateBundle {
-	bundle := &UpdateBundle{
-		option: WriteConcern(wc),
 		next:   ub,
 	}
 
@@ -226,11 +215,6 @@ func Upsert(b bool) OptUpsert {
 	return OptUpsert(b)
 }
 
-// WriteConcern specifies the write concern
-func WriteConcern(wc *writeconcern.WriteConcern) OptWriteConcern {
-	return OptWriteConcern{WriteConcern: wc}
-}
-
 // OptArrayFilters specifies which array elements an update should apply.
 type OptArrayFilters option.OptArrayFilters
 
@@ -269,14 +253,4 @@ func (OptUpsert) update() {}
 // ConvertUpdateOption implements the Update interface.
 func (opt OptUpsert) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptUpsert(opt)
-}
-
-// OptWriteConcern specifies the write concern.
-type OptWriteConcern option.OptWriteConcern
-
-func (opt OptWriteConcern) update() {}
-
-// ConvertUpdateOption implements the Update interface.
-func (opt OptWriteConcern) ConvertUpdateOption() option.UpdateOptioner {
-	return option.OptWriteConcern(opt)
 }

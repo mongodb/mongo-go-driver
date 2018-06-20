@@ -56,7 +56,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Serv
 		db = defaultAuthDB
 	}
 
-	cmd := command.Command{DB: db, Command: bson.NewDocument(bson.EC.Int32("getnonce", 1))}
+	cmd := command.Read{DB: db, Command: bson.NewDocument(bson.EC.Int32("getnonce", 1))}
 	ssdesc := description.SelectedServer{Server: desc}
 	rdr, err := cmd.RoundTrip(ctx, ssdesc, rw)
 	if err != nil {
@@ -72,7 +72,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Serv
 		return newAuthError("unmarshal error", err)
 	}
 
-	cmd = command.Command{
+	cmd = command.Read{
 		DB: db,
 		Command: bson.NewDocument(
 			bson.EC.Int32("authenticate", 1),

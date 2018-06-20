@@ -12,7 +12,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
@@ -108,7 +108,7 @@ const (
 // WriteConcernError will be returned over WriteErrors if both are present.
 func processWriteError(wce *result.WriteConcernError, wes []result.WriteError, err error) (returnResult, error) {
 	switch {
-	case err == dispatch.ErrUnacknowledgedWrite:
+	case err == command.ErrUnacknowledgedWrite:
 		return rrAll, ErrUnacknowledgedWrite
 	case err != nil:
 		return rrNone, err

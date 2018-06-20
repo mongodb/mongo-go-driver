@@ -4,7 +4,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -49,16 +48,6 @@ func BundleDelete(opts ...Delete) *DeleteBundle {
 func (db *DeleteBundle) Collation(c *mongoopt.Collation) *DeleteBundle {
 	bundle := &DeleteBundle{
 		option: Collation(c),
-		next:   db,
-	}
-
-	return bundle
-}
-
-// WriteConcern adds an option to specify a write concern.
-func (db *DeleteBundle) WriteConcern(wc *writeconcern.WriteConcern) *DeleteBundle {
-	bundle := &DeleteBundle{
-		option: WriteConcern(wc),
 		next:   db,
 	}
 
@@ -178,11 +167,6 @@ func Collation(c *mongoopt.Collation) OptCollation {
 	return OptCollation{Collation: c.Convert()}
 }
 
-// WriteConcern specifies a write concern.
-func WriteConcern(wc *writeconcern.WriteConcern) OptWriteConcern {
-	return OptWriteConcern{wc}
-}
-
 // OptCollation specifies a collation.
 type OptCollation option.OptCollation
 
@@ -191,14 +175,4 @@ func (OptCollation) delete() {}
 // ConvertDeleteOption implements the Delete interface.
 func (opt OptCollation) ConvertDeleteOption() option.DeleteOptioner {
 	return option.OptCollation(opt)
-}
-
-// OptWriteConcern specifies a write concern.
-type OptWriteConcern option.OptWriteConcern
-
-func (OptWriteConcern) delete() {}
-
-// ConvertDeleteOption implements the Delete interface.
-func (opt OptWriteConcern) ConvertDeleteOption() option.DeleteOptioner {
-	return option.OptWriteConcern(opt)
 }

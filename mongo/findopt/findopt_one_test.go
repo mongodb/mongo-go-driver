@@ -6,7 +6,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
@@ -156,7 +155,6 @@ func TestFindOneOpt(t *testing.T) {
 		c := &mongoopt.Collation{
 			Locale: "string locale",
 		}
-		rc := readconcern.Local()
 
 		opts := []One{
 			AllowPartialResults(true),
@@ -173,7 +171,6 @@ func TestFindOneOpt(t *testing.T) {
 			NoCursorTimeout(false),
 			OplogReplay(true),
 			Projection("projection for find"),
-			ReadConcern(rc),
 			ReturnKey(true),
 			ShowRecordID(false),
 			Skip(50),

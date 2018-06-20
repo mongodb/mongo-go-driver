@@ -10,7 +10,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 var insertOneBundle = new(OneBundle)
@@ -60,16 +59,6 @@ func BundleOne(opts ...One) *OneBundle {
 func (ob *OneBundle) BypassDocumentValidation(b bool) *OneBundle {
 	bundle := &OneBundle{
 		option: BypassDocumentValidation(b),
-		next:   ob,
-	}
-
-	return bundle
-}
-
-// WriteConcern adds an option to specify a write concern
-func (ob *OneBundle) WriteConcern(wc *writeconcern.WriteConcern) *OneBundle {
-	bundle := &OneBundle{
-		option: WriteConcern(wc),
 		next:   ob,
 	}
 
@@ -237,16 +226,6 @@ func (mb *ManyBundle) Ordered(b bool) *ManyBundle {
 	return bundle
 }
 
-// WriteConcern adds an option to specify a write concern
-func (mb *ManyBundle) WriteConcern(wc *writeconcern.WriteConcern) *ManyBundle {
-	bundle := &ManyBundle{
-		option: WriteConcern(wc),
-		next:   mb,
-	}
-
-	return bundle
-}
-
 // Calculates the total length of a bundle, accounting for nested bundles.
 func (mb *ManyBundle) bundleLength() int {
 	if mb == nil {
@@ -370,21 +349,11 @@ func Ordered(b bool) OptOrdered {
 	return OptOrdered(b)
 }
 
-// WriteConcern specifies a write concern
-func WriteConcern(wc *writeconcern.WriteConcern) OptWriteConcern {
-	return OptWriteConcern{
-		WriteConcern: wc,
-	}
-}
-
 // OptBypassDocumentValidation allows the write to opt-out of the document-level validation.
 type OptBypassDocumentValidation option.OptBypassDocumentValidation
 
 // OptOrdered if true and insert fails, returns without performing remaining writes, otherwise continues
 type OptOrdered option.OptOrdered
-
-// OptWriteConcern specifies a write concern
-type OptWriteConcern option.OptWriteConcern
 
 func (OptBypassDocumentValidation) insertMany() {}
 
@@ -393,15 +362,6 @@ func (OptBypassDocumentValidation) insertOne() {}
 // ConvertInsertOption implements the One,Many interface
 func (opt OptBypassDocumentValidation) ConvertInsertOption() option.InsertOptioner {
 	return option.OptBypassDocumentValidation(opt)
-}
-
-func (OptWriteConcern) insertOne() {}
-
-func (OptWriteConcern) insertMany() {}
-
-// ConvertInsertOption implements the One,Many interface
-func (opt OptWriteConcern) ConvertInsertOption() option.InsertOptioner {
-	return option.OptWriteConcern(opt)
 }
 
 func (OptOrdered) insertMany() {}

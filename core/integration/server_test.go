@@ -15,6 +15,8 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/auth"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/compressor"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
@@ -289,6 +291,10 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 				Authenticator: authenticator,
 			})
 		}))
+	} else {
+		connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
+			return &command.Handshake{Client: command.ClientDoc(cs.AppName), Compressors: cs.Compressors}
+		}))
 	}
 
 	if cs.SSL {
@@ -304,6 +310,24 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 		}
 
 		connOpts = append(connOpts, connection.WithTLSConfig(func(*connection.TLSConfig) *connection.TLSConfig { return tlsConfig }))
+	}
+
+	if len(cs.Compressors) > 0 {
+		comp := make([]compressor.Compressor, 0, len(cs.Compressors))
+
+		for _, c := range cs.Compressors {
+			switch c {
+			case "snappy":
+				comp = append(comp, compressor.CreateSnappy())
+			case "zlib":
+				zlibComp, _ := compressor.CreateZlib(cs.ZlibLevel)
+				comp = append(comp, zlibComp)
+			}
+		}
+
+		connOpts = append(connOpts, connection.WithCompressors(func(compressors []compressor.Compressor) []compressor.Compressor {
+			return append(compressors, comp...)
+		}))
 	}
 
 	if len(connOpts) > 0 {

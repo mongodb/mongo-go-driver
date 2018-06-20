@@ -11,14 +11,13 @@ import (
 	"strings"
 	"testing"
 
-	"reflect"
-
 	"encoding/base64"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	. "github.com/mongodb/mongo-go-driver/core/auth"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/internal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +33,7 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 	require.True(t, authenticator.IsClientKeyNil())
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
@@ -42,9 +41,13 @@ func TestScramSHA1Authenticator_Fails(t *testing.T) {
 		bson.EC.Boolean("done", true)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\""
@@ -69,16 +72,20 @@ func TestScramSHA1Authenticator_Missing_challenge_fields(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 1)
 	payload, _ := base64.StdEncoding.DecodeString("cz1yUTlaWTNNbnRCZXVQM0UxVERWQzR3PT0saT0xMDAwMA===")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server response"
@@ -104,16 +111,20 @@ func TestScramSHA1Authenticator_Invalid_server_nonce1(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 1)
 	payload, _ := base64.StdEncoding.DecodeString("bD0yMzJnLHM9clE5WlkzTW50QmV1UDNFMVREVkM0dz09LGk9MTAwMDA=")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
 	require.True(t, strings.Contains(err.Error(), errSubstring))
@@ -138,16 +149,20 @@ func TestScramSHA1Authenticator_Invalid_server_nonce2(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 1)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvLWQybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid nonce"
@@ -173,16 +188,20 @@ func TestScramSHA1Authenticator_No_salt(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 1)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxrPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw======")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid salt"
@@ -208,16 +227,20 @@ func TestScramSHA1Authenticator_No_iteration_count(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 1)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxrPXNkZg======")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
@@ -243,16 +266,20 @@ func TestScramSHA1Authenticator_Invalid_iteration_count(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 1)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPWFiYw====")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 1), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid iteration count"
@@ -278,23 +305,27 @@ func TestScramSHA1Authenticator_Invalid_server_signature(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 2)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTBh")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 2), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid server signature"
@@ -320,23 +351,27 @@ func TestScramSHA1Authenticator_Server_provided_error(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 2)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 	payload, _ = base64.StdEncoding.DecodeString("ZT1zZXJ2ZXIgcGFzc2VkIGVycm9y")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 2), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": server passed error"
@@ -362,23 +397,27 @@ func TestScramSHA1Authenticator_Invalid_final_message(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 2)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 	payload, _ = base64.StdEncoding.DecodeString("Zj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTBh")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 2), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": invalid final message"
@@ -404,29 +443,33 @@ func TestScramSHA1Authenticator_Extra_message(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 3)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", []byte{}),
 		bson.EC.Boolean("done", false)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 3), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 3), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.Error(t, err)
 
 	errSubstring := "unable to authenticate using mechanism \"SCRAM-SHA-1\": unexpected server challenge"
@@ -452,53 +495,46 @@ func TestScramSHA1Authenticator_Succeeds(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 2)
 	payload, _ := base64.StdEncoding.DecodeString("cj1meWtvK2QybGJiRmdPTlJ2OXFreGRhd0xIbytWZ2s3cXZVT0tVd3VXTElXZzRsLzlTcmFHTUhFRSxzPXJROVpZM01udEJldVAzRTFURFZDNHc9PSxpPTEwMDAw")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", false)),
 	)
 	payload, _ = base64.StdEncoding.DecodeString("dj1VTVdlSTI1SkQxeU5ZWlJNcFo0Vkh2aFo5ZTA9")
-	resps <- makeReply(t, bson.NewDocument(
+	resps <- internal.MakeReply(t, bson.NewDocument(
 		bson.EC.Int32("ok", 1),
 		bson.EC.Int32("conversationId", 1),
 		bson.EC.Binary("payload", payload),
 		bson.EC.Boolean("done", true)),
 	)
 
-	c := &conn{written: make(chan wiremessage.WireMessage, 2), readResp: resps}
+	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
 
-	err := authenticator.Auth(context.Background(), description.Server{}, c)
+	err := authenticator.Auth(context.Background(), description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}, c)
 	require.NoError(t, err)
 
-	require.Len(t, c.written, 2)
+	require.Len(t, c.Written, 2)
 
-	saslStartRequest := (<-c.written).(wiremessage.Query)
 	payload, _ = base64.RawStdEncoding.DecodeString("biwsbj11c2VyLHI9ZnlrbytkMmxiYkZnT05Sdjlxa3hkYXdM")
-	var expectedCmd bson.Reader
-	expectedCmd, err = bson.NewDocument(
+	expectedQueryCmd := bson.NewDocument(
 		bson.EC.Int32("saslStart", 1),
 		bson.EC.String("mechanism", "SCRAM-SHA-1"),
 		bson.EC.Binary("payload", payload),
-	).MarshalBSON()
-	if err != nil {
-		t.Fatalf("couldn't marshal bson: %v", err)
-	}
+	)
+	compareResponses(t, <-c.Written, expectedQueryCmd, "source")
 
-	require.True(t, reflect.DeepEqual(saslStartRequest.Query, expectedCmd))
-
-	saslContinueRequest := (<-c.written).(wiremessage.Query)
-	payload, _ = base64.RawStdEncoding.DecodeString("Yz1iaXdzLHI9ZnlrbytkMmxiYkZnT05Sdjlxa3hkYXdMSG8rVmdrN3F2VU9LVXd1V0xJV2c0bC85U3JhR01IRUUscD1NQzJUOEJ2Ym1XUmNrRHc4b1dsNUlWZ2h3Q1k9")
-	expectedCmd, err = bson.NewDocument(
+	continuePayload, _ := base64.RawStdEncoding.DecodeString("Yz1iaXdzLHI9ZnlrbytkMmxiYkZnT05Sdjlxa3hkYXdMSG8rVmdrN3F2VU9LVXd1V0xJV2c0bC85U3JhR01IRUUscD1NQzJUOEJ2Ym1XUmNrRHc4b1dsNUlWZ2h3Q1k9")
+	expectedQueryCmd = bson.NewDocument(
 		bson.EC.Int32("saslContinue", 1),
 		bson.EC.Int32("conversationId", 1),
-		bson.EC.Binary("payload", payload),
-	).MarshalBSON()
-	if err != nil {
-		t.Fatalf("couldn't marshal bson: %v", err)
-	}
-
-	require.True(t, reflect.DeepEqual(saslContinueRequest.Query, expectedCmd))
+		bson.EC.Binary("payload", continuePayload),
+	)
+	compareResponses(t, <-c.Written, expectedQueryCmd, "source")
 
 	require.False(t, authenticator.IsClientKeyNil())
 }
