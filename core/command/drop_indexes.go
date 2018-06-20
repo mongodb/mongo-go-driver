@@ -43,7 +43,7 @@ func (di *DropIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 		}
 	}
 
-	return (&Command{DB: di.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: true, DB: di.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

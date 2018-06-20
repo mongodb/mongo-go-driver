@@ -22,19 +22,129 @@ import (
 //
 // This can be used to send arbitrary commands to the database, e.g. runCommand.
 type Command struct {
-	DB       string
-	Command  interface{}
-	ReadPref *readpref.ReadPref
-	isWrite  bool
+	Acknowledged bool
+	DB           string
+	Command      interface{}
+	ReadPref     *readpref.ReadPref
+	isWrite      bool
 
 	result bson.Reader
 	err    error
 }
 
-// Encode will encode this command into a wire message for the given server description.
-func (c *Command) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
-	// TODO(skriptble): When we do OP_MSG support we'll have to update this to read the
-	// wire version.
+// Remove command arguments for insert, update, and delete commands from the BSON document so they can be encoded
+// as a Section 1 payload in OP_MSG
+func (c *Command) opmsgRemoveArray() (array *bson.Array, id string) {
+	if converted, ok := c.Command.(*bson.Document); ok {
+		keys := []string{"documents", "updates", "deletes"}
+
+		for _, key := range keys {
+			val := converted.Lookup(key)
+			if val == nil {
+				continue
+			}
+
+			array = val.MutableArray()
+			converted.Delete(key)
+			id = key
+			break
+		}
+	}
+
+	return
+}
+
+// Add the $db and $readPreference keys to the command
+// rdr is a bson.Reader for the initial marshaled command (does not contain $db and $readPreference keys)
+func (c *Command) opmsgAddGlobals(rdr bson.Reader, desc description.SelectedServer) (bson.Reader, error) {
+	// reconstruct command with $db and $readPreference keys
+	fullDoc := bson.NewDocument()
+	rdrIter, err := rdr.Iterator()
+	if err != nil {
+		return nil, err
+	}
+
+	for rdrIter.Next() {
+		fullDoc.Append(rdrIter.Element())
+	}
+
+	fullDoc.Append(bson.EC.String("$db", c.DB))
+	readPrefDoc := c.findReadPref(c.ReadPref, desc.Server.Kind)
+	if readPrefDoc != nil {
+		fullDoc.Append(bson.EC.SubDocument("$readPreference", readPrefDoc))
+	}
+
+	fullDocRdr, err := fullDoc.MarshalBSON()
+	if err != nil {
+		return nil, err
+	}
+
+	return fullDocRdr, nil
+}
+
+func (c *Command) opmsgCreateDocSequence(arr *bson.Array, identifier string) (wiremessage.SectionDocumentSequence, error) {
+	docSequence := wiremessage.SectionDocumentSequence{
+		Identifier: identifier,
+		Documents:  make([]bson.Reader, 0, arr.Len()),
+	}
+
+	iter, err := arr.Iterator()
+	if err != nil {
+		return wiremessage.SectionDocumentSequence{}, err
+	}
+
+	for iter.Next() {
+		docSequence.Documents = append(docSequence.Documents, iter.Value().ReaderDocument())
+	}
+
+	docSequence.Size = int32(docSequence.Len())
+	return docSequence, nil
+}
+
+// Encode c as OP_MSG
+func (c *Command) encodeOpMsg(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	arr, identifier := c.opmsgRemoveArray()
+
+	rdr, err := c.marshalCommand()
+	if err != nil {
+		return nil, err
+	}
+
+	msg := wiremessage.Msg{
+		MsgHeader: wiremessage.Header{RequestID: wiremessage.NextRequestID()},
+		Sections:  make([]wiremessage.Section, 0),
+	}
+
+	fullDocRdr, err := c.opmsgAddGlobals(rdr, desc)
+	if err != nil {
+		return nil, err
+	}
+
+	// type 0 doc
+	msg.Sections = append(msg.Sections, wiremessage.SectionBody{
+		Document: fullDocRdr,
+	})
+
+	// type 1 doc
+	if identifier != "" {
+		docSequence, err := c.opmsgCreateDocSequence(arr, identifier)
+		if err != nil {
+			return nil, err
+		}
+
+		msg.Sections = append(msg.Sections, docSequence)
+	}
+
+	// flags
+	if c.isWrite && !c.Acknowledged {
+		msg.FlagBits |= wiremessage.MoreToCome
+	}
+
+	return msg, nil
+}
+
+// Encode c as OP_QUERY
+func (c *Command) encodeOpQuery(desc description.SelectedServer) (wiremessage.WireMessage, error) {
 	rdr, err := c.marshalCommand()
 	if err != nil {
 		return nil, err
@@ -58,6 +168,15 @@ func (c *Command) Encode(desc description.SelectedServer) (wiremessage.WireMessa
 	return query, nil
 }
 
+// Encode will encode this command into a wire message for the given server description.
+func (c *Command) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	if desc.WireVersion.Max >= wiremessage.OPMSG_WIRE_VERSION {
+		return c.encodeOpMsg(desc)
+	}
+
+	return c.encodeOpQuery(desc)
+}
+
 func (c *Command) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {
 	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
 		return wiremessage.SlaveOK
@@ -75,18 +194,15 @@ func (c *Command) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag
 	return 0
 }
 
-// addReadPref will add a read preference to the query document.
-//
-// NOTE: This method must always return either a valid bson.Reader or an error.
-func (c *Command) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, query bson.Reader) (bson.Reader, error) {
+func (c *Command) findReadPref(rp *readpref.ReadPref, kind description.ServerKind) *bson.Document {
 	if kind != description.Mongos || rp == nil {
-		return query, nil
+		return nil
 	}
 
 	// simple Primary or SecondaryPreferred is communicated via slaveOk to Mongos.
 	if rp.Mode() == readpref.PrimaryMode || rp.Mode() == readpref.SecondaryPreferredMode {
 		if _, ok := rp.MaxStaleness(); !ok && len(rp.TagSets()) == 0 {
-			return query, nil
+			return nil
 		}
 	}
 
@@ -122,6 +238,18 @@ func (c *Command) addReadPref(rp *readpref.ReadPref, kind description.ServerKind
 
 	if d, ok := rp.MaxStaleness(); ok {
 		doc.Append(bson.EC.Int32("maxStalenessSeconds", int32(d.Seconds())))
+	}
+
+	return doc
+}
+
+// addReadPref will add a read preference to the query document.
+//
+// NOTE: This method must always return either a valid bson.Reader or an error.
+func (c *Command) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, query bson.Reader) (bson.Reader, error) {
+	doc := c.findReadPref(rp, kind)
+	if doc == nil {
+		return query, nil
 	}
 
 	return bson.NewDocument(

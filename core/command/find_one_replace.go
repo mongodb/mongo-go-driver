@@ -20,10 +20,11 @@ import (
 //
 // The findOneAndReplace command modifies and returns a single document.
 type FindOneAndReplace struct {
-	NS          Namespace
-	Query       *bson.Document
-	Replacement *bson.Document
-	Opts        []option.FindOneAndReplaceOptioner
+	Acknowledged bool
+	NS           Namespace
+	Query        *bson.Document
+	Replacement  *bson.Document
+	Opts         []option.FindOneAndReplaceOptioner
 
 	result result.FindAndModify
 	err    error
@@ -51,7 +52,7 @@ func (f *FindOneAndReplace) Encode(desc description.SelectedServer) (wiremessage
 		}
 	}
 
-	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{Acknowledged: f.Acknowledged, DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
