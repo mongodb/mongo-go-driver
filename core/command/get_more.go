@@ -39,13 +39,17 @@ func (gm *GetMore) Encode(desc description.SelectedServer) (wiremessage.WireMess
 			return nil, err
 		}
 	}
-	return (&Command{DB: gm.NS.DB, Command: cmd}).Encode(desc)
+
+	return (&Read{
+		DB:      gm.NS.DB,
+		Command: cmd,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (gm *GetMore) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *GetMore {
-	gm.result, gm.err = (&Command{}).Decode(desc, wm).Result()
+	gm.result, gm.err = (&Read{}).Decode(desc, wm).Result()
 	return gm
 }
 
@@ -61,12 +65,13 @@ func (gm *GetMore) Result() (bson.Reader, error) {
 func (gm *GetMore) Err() error { return gm.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (bson.Reader, error) {
 	wm, err := gm.Encode(desc)
 	if err != nil {
 		return nil, err
 	}
 
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return nil, err

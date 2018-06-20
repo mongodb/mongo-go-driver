@@ -14,16 +14,18 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // FindOneAndReplace represents the findOneAndReplace operation.
 //
 // The findOneAndReplace command modifies and returns a single document.
 type FindOneAndReplace struct {
-	NS          Namespace
-	Query       *bson.Document
-	Replacement *bson.Document
-	Opts        []option.FindOneAndReplaceOptioner
+	NS           Namespace
+	Query        *bson.Document
+	Replacement  *bson.Document
+	Opts         []option.FindOneAndReplaceOptioner
+	WriteConcern *writeconcern.WriteConcern
 
 	result result.FindAndModify
 	err    error
@@ -41,23 +43,27 @@ func (f *FindOneAndReplace) Encode(desc description.SelectedServer) (wiremessage
 		bson.EC.SubDocument("update", f.Replacement),
 	)
 
-	for _, option := range f.Opts {
-		if option == nil {
+	for _, opt := range f.Opts {
+		if opt == nil {
 			continue
 		}
-		err := option.Option(command)
+		err := opt.Option(command)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           f.NS.DB,
+		Command:      command,
+		WriteConcern: f.WriteConcern,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (f *FindOneAndReplace) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *FindOneAndReplace {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		f.err = err
 		return f
@@ -79,12 +85,27 @@ func (f *FindOneAndReplace) Result() (result.FindAndModify, error) {
 func (f *FindOneAndReplace) Err() error { return f.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (f *FindOneAndReplace) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.FindAndModify, error) {
+func (f *FindOneAndReplace) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.FindAndModify, error) {
 	wm, err := f.Encode(desc)
 	if err != nil {
 		return result.FindAndModify{}, err
 	}
 
+	if !ackWrite(f.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer func() { _ = rw.Close() }()
+
+			err = rw.WriteWireMessage(ctx, wm)
+			if err != nil {
+				return
+			}
+			_, _ = rw.ReadWireMessage(ctx)
+		}()
+		return result.FindAndModify{}, ErrUnacknowledgedWrite
+	}
+
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return result.FindAndModify{}, err

@@ -11,9 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Aggregate handles the full cycle dispatch and execution of an aggregate command against the provided
@@ -23,24 +21,17 @@ func Aggregate(
 	cmd command.Aggregate,
 	topo *topology.Topology,
 	readSelector, writeSelector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
 ) (command.Cursor, error) {
 
 	dollarOut := cmd.HasDollarOut()
 
 	var ss *topology.SelectedServer
 	var err error
-	acknowledged := true
 	switch dollarOut {
 	case true:
 		ss, err = topo.SelectServer(ctx, writeSelector)
 		if err != nil {
 			return nil, err
-		}
-		if wc != nil {
-			opt := option.OptWriteConcern{WriteConcern: wc}
-			cmd.Opts = append(cmd.Opts, opt)
-			acknowledged = wc.Acknowledged()
 		}
 	case false:
 		ss, err = topo.SelectServer(ctx, readSelector)
@@ -54,16 +45,6 @@ func Aggregate(
 	if err != nil {
 		return nil, err
 	}
-
-	if !acknowledged {
-		go func() {
-			defer func() { _ = recover() }()
-			defer conn.Close()
-			_, _ = cmd.RoundTrip(ctx, desc, ss, conn)
-		}()
-		return nil, ErrUnacknowledgedWrite
-	}
-	defer conn.Close()
 
 	return cmd.RoundTrip(ctx, desc, ss, conn)
 }

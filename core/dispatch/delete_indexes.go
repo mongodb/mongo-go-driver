@@ -33,7 +33,5 @@ func DropIndexes(
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
-
 	return cmd.RoundTrip(ctx, ss.Description(), conn)
 }

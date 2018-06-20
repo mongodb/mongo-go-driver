@@ -36,13 +36,17 @@ func (kc *KillCursors) Encode(desc description.SelectedServer) (wiremessage.Wire
 		bson.EC.String("killCursors", kc.NS.Collection),
 		bson.EC.ArrayFromElements("cursors", idVals...),
 	)
-	return (&Command{DB: kc.NS.DB, Command: cmd}).Encode(desc)
+
+	return (&Read{
+		DB:      kc.NS.DB,
+		Command: cmd,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (kc *KillCursors) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *KillCursors {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		kc.err = err
 		return kc
@@ -69,7 +73,9 @@ func (kc *KillCursors) Result() (result.KillCursors, error) {
 func (kc *KillCursors) Err() error { return kc.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (kc *KillCursors) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.KillCursors, error) {
+func (kc *KillCursors) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.KillCursors, error) {
+	defer func() { _ = rw.Close() }()
+
 	wm, err := kc.Encode(desc)
 	if err != nil {
 		return result.KillCursors{}, err

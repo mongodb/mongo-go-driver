@@ -12,13 +12,16 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // DropDatabase represents the DropDatabase command.
 //
 // The DropDatabases command drops database.
 type DropDatabase struct {
-	DB     string
+	DB           string
+	WriteConcern *writeconcern.WriteConcern
+
 	result bson.Reader
 	err    error
 }
@@ -29,13 +32,17 @@ func (dd *DropDatabase) Encode(desc description.SelectedServer) (wiremessage.Wir
 		bson.EC.Int32("dropDatabase", 1),
 	)
 
-	return (&Command{DB: dd.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           dd.DB,
+		Command:      cmd,
+		WriteConcern: dd.WriteConcern,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (dd *DropDatabase) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *DropDatabase {
-	dd.result, dd.err = (&Command{}).Decode(desc, wm).Result()
+	dd.result, dd.err = (&Write{}).Decode(desc, wm).Result()
 	return dd
 }
 
@@ -51,12 +58,27 @@ func (dd *DropDatabase) Result() (bson.Reader, error) {
 func (dd *DropDatabase) Err() error { return dd.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (dd *DropDatabase) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (dd *DropDatabase) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (bson.Reader, error) {
 	wm, err := dd.Encode(desc)
 	if err != nil {
 		return nil, err
 	}
 
+	if !ackWrite(dd.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer func() { _ = rw.Close() }()
+
+			err = rw.WriteWireMessage(ctx, wm)
+			if err != nil {
+				return
+			}
+			_, _ = rw.ReadWireMessage(ctx)
+		}()
+		return nil, ErrUnacknowledgedWrite
+	}
+
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return nil, err

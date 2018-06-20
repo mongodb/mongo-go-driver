@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Delete represents the delete command.
@@ -21,9 +22,10 @@ import (
 // The delete command executes a delete with a given set of delete documents
 // and options.
 type Delete struct {
-	NS      Namespace
-	Deletes []*bson.Document
-	Opts    []option.DeleteOptioner
+	NS           Namespace
+	Deletes      []*bson.Document
+	Opts         []option.DeleteOptioner
+	WriteConcern *writeconcern.WriteConcern
 
 	result result.Delete
 	err    error
@@ -61,13 +63,17 @@ func (d *Delete) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		}
 	}
 
-	return (&Command{DB: d.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           d.NS.DB,
+		Command:      command,
+		WriteConcern: d.WriteConcern,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (d *Delete) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Delete {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		d.err = err
 		return d
@@ -89,12 +95,27 @@ func (d *Delete) Result() (result.Delete, error) {
 func (d *Delete) Err() error { return d.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (d *Delete) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Delete, error) {
+func (d *Delete) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.Delete, error) {
 	wm, err := d.Encode(desc)
 	if err != nil {
 		return result.Delete{}, err
 	}
 
+	if !ackWrite(d.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer func() { _ = rw.Close() }()
+
+			err = rw.WriteWireMessage(ctx, wm)
+			if err != nil {
+				return
+			}
+			_, _ = rw.ReadWireMessage(ctx)
+		}()
+		return result.Delete{}, ErrUnacknowledgedWrite
+	}
+
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return result.Delete{}, err

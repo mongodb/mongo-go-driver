@@ -14,15 +14,17 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Update represents the update command.
 //
 // The update command updates a set of documents with the database.
 type Update struct {
-	NS   Namespace
-	Docs []*bson.Document
-	Opts []option.UpdateOptioner
+	NS           Namespace
+	Docs         []*bson.Document
+	Opts         []option.UpdateOptioner
+	WriteConcern *writeconcern.WriteConcern
 
 	result result.Update
 	err    error
@@ -56,13 +58,17 @@ func (u *Update) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		}
 	}
 
-	return (&Command{DB: u.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Write{
+		DB:           u.NS.DB,
+		Command:      command,
+		WriteConcern: u.WriteConcern,
+	}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (u *Update) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Update {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		u.err = err
 		return u
@@ -84,12 +90,27 @@ func (u *Update) Result() (result.Update, error) {
 func (u *Update) Err() error { return u.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (u *Update) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Update, error) {
+func (u *Update) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriteCloser) (result.Update, error) {
 	wm, err := u.Encode(desc)
 	if err != nil {
 		return result.Update{}, err
 	}
 
+	if !ackWrite(u.WriteConcern) {
+		go func() {
+			defer func() { _ = recover() }()
+			defer func() { _ = rw.Close() }()
+
+			err = rw.WriteWireMessage(ctx, wm)
+			if err != nil {
+				return
+			}
+			_, _ = rw.ReadWireMessage(ctx)
+		}()
+		return result.Update{}, ErrUnacknowledgedWrite
+	}
+
+	defer func() { _ = rw.Close() }()
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return result.Update{}, err
