@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7d6483b1_5d5cf01e",
+        "filename": "benchmark/multi.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-21T17:47:47Z",
+      "side": 1,
+      "message": "Just realized I don\u0027t quite understand this.  Since the caller is responsible for enforcing the execution time limit for the benchmark, it seems like the setup code (in this case up until line 40) will be included in that time limit.  If that\u0027s how it works, it seems wrong.  In the worst case the timed benchmark code won\u0027t execute at all.  Let me know if I\u0027m misunderstanding.  I\u0027m not too familiar with how context works",
+      "range": {
+        "startLine": 11,
+        "startChar": 1,
+        "endLine": 11,
+        "endChar": 4
+      },
+      "revId": "14ac968ab09f949d5760880f390b240707b3d3bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c539dced_5abd31b9",
+        "filename": "benchmark/multi.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-21T17:47:47Z",
+      "side": 1,
+      "message": "The spec says \"Retrieve (and discard) all documents from the cursor.\"  Since the go driver separates iteration from retrieval, this should call Cursor.Decode as well.",
+      "range": {
+        "startLine": 51,
+        "startChar": 0,
+        "endLine": 51,
+        "endChar": 1
+      },
+      "revId": "14ac968ab09f949d5760880f390b240707b3d3bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
