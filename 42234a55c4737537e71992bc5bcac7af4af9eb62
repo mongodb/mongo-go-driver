@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "f840c0fd_32fadba5",
+        "filename": "core/dispatch/delete.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-21T19:08:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3573d4a1_8ab07aa5",
+      "range": {
+        "startLine": 42,
+        "startChar": 1,
+        "endLine": 42,
+        "endChar": 34
+      },
+      "revId": "42234a55c4737537e71992bc5bcac7af4af9eb62",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "edeea750_dd466e86",
         "filename": "core/option/options.go",
         "patchSetId": 12
