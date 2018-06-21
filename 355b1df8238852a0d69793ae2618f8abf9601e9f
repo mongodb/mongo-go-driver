@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "73ab6f9a_c7ac101a",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-21T19:00:36Z",
+      "side": 1,
+      "message": "This should be changed similar to the other acknowledged instances.",
+      "range": {
+        "startLine": 45,
+        "startChar": 2,
+        "endLine": 45,
+        "endChar": 34
+      },
+      "revId": "355b1df8238852a0d69793ae2618f8abf9601e9f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
