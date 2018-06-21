@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "10f076f1_a3af7017",
+        "filename": "benchmark/multi.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-21T18:20:46Z",
+      "side": 1,
+      "message": "the tm.ResetTimeer() call zeros the time accounting before the actual measurement begins. \n\nthis context, and cancel ensures that we do any cleanup (e.g. the connection) if we return early because of an error.",
+      "parentUuid": "7d6483b1_5d5cf01e",
+      "range": {
+        "startLine": 11,
+        "startChar": 1,
+        "endLine": 11,
+        "endChar": 4
+      },
+      "revId": "14ac968ab09f949d5760880f390b240707b3d3bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c539dced_5abd31b9",
         "filename": "benchmark/multi.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2018-06-21T17:47:47Z",
       "side": 1,
       "message": "The spec says \"Retrieve (and discard) all documents from the cursor.\"  Since the go driver separates iteration from retrieval, this should call Cursor.Decode as well.",
+      "range": {
+        "startLine": 51,
+        "startChar": 0,
+        "endLine": 51,
+        "endChar": 1
+      },
+      "revId": "14ac968ab09f949d5760880f390b240707b3d3bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "823416ed_3ff0498a",
+        "filename": "benchmark/multi.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1014178
+      },
+      "writtenOn": "2018-06-21T18:20:46Z",
+      "side": 1,
+      "message": "cursor.Decode would force us to do bson serialization, which isn\u0027t a thing we do for any other tests. I suppose we could just read them out into bson.Readers? \n\nIf we iterate but don\u0027t retrieve isn\u0027t the only piece that we\u0027re missing the bson serialization (we have to pull the bytes off of the socket, which seems like this implementation is consistent with the spec.",
+      "parentUuid": "c539dced_5abd31b9",
       "range": {
         "startLine": 51,
         "startChar": 0,
