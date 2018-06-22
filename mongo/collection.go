@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
@@ -477,7 +478,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Count(ctx context.Context, filter interface{},
-	opts ...option.CountOptioner) (int64, error) {
+	opts ...countopt.Count) (int64, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -488,11 +489,16 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
+	countOpts, err := countopt.BundleCount(opts...).Unbundle(true)
+	if err != nil {
+		return 0, err
+	}
+
 	oldns := coll.namespace()
 	cmd := command.Count{
 		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Query:    f,
-		Opts:     opts,
+		Opts:     countOpts,
 		ReadPref: coll.readPreference,
 	}
 	return dispatch.Count(ctx, cmd, coll.client.topology, coll.readSelector, coll.readConcern)

@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
@@ -229,18 +230,18 @@ func countTest(t *testing.T, coll *Collection, test *testCase) {
 	t.Run(test.Description, func(t *testing.T) {
 		filter := test.Operation.Arguments["filter"].(map[string]interface{})
 
-		var opts []option.CountOptioner
+		var opts []countopt.Count
 
 		if skip, found := test.Operation.Arguments["skip"]; found {
-			opts = append(opts, Opt.Skip(int64(skip.(float64))))
+			opts = append(opts, countopt.Skip(int64(skip.(float64))))
 		}
 
 		if limit, found := test.Operation.Arguments["limit"]; found {
-			opts = append(opts, Opt.Limit(int64(limit.(float64))))
+			opts = append(opts, countopt.Limit(int64(limit.(float64))))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = append(opts, Opt.Collation(collationFromMap(collation.(map[string]interface{}))))
+			opts = append(opts, countopt.Collation(collationFromMap(collation.(map[string]interface{}))))
 		}
 
 		actualCount, err := coll.Count(context.Background(), filter, opts...)
