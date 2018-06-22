@@ -93,6 +93,30 @@
       "revId": "14ac968ab09f949d5760880f390b240707b3d3bc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "48e904d6_5e1a918f",
+        "filename": "benchmark/multi.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-22T17:26:39Z",
+      "side": 1,
+      "message": "We can use cursor.DecodeBytes here to just get the bytes back.",
+      "parentUuid": "823416ed_3ff0498a",
+      "range": {
+        "startLine": 51,
+        "startChar": 0,
+        "endLine": 51,
+        "endChar": 1
+      },
+      "revId": "14ac968ab09f949d5760880f390b240707b3d3bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
