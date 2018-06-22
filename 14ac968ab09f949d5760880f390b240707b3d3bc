@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "1eb63555_cc7e469b",
+        "filename": "benchmark/multi.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-22T19:05:45Z",
+      "side": 1,
+      "message": "Your comment doesn\u0027t address my concern.  We\u0027ve agreed though to defer this to a separate ticket.",
+      "parentUuid": "10f076f1_a3af7017",
+      "range": {
+        "startLine": 11,
+        "startChar": 1,
+        "endLine": 11,
+        "endChar": 4
+      },
+      "revId": "14ac968ab09f949d5760880f390b240707b3d3bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c539dced_5abd31b9",
         "filename": "benchmark/multi.go",
         "patchSetId": 1
@@ -132,6 +156,30 @@
       "side": 1,
       "message": "Done",
       "parentUuid": "48e904d6_5e1a918f",
+      "range": {
+        "startLine": 51,
+        "startChar": 0,
+        "endLine": 51,
+        "endChar": 1
+      },
+      "revId": "14ac968ab09f949d5760880f390b240707b3d3bc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "50d58a4a_70094b2b",
+        "filename": "benchmark/multi.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-06-22T19:05:45Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6e8ea6ca_d80ce33e",
       "range": {
         "startLine": 51,
         "startChar": 0,
