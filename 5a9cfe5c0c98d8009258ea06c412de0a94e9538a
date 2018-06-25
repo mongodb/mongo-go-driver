@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ab517711_63e5c0d2",
+        "filename": "mongo/crud_spec_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-25T20:37:06Z",
+      "side": 1,
+      "message": "Looks like there\u0027s one more line here.",
+      "range": {
+        "startLine": 292,
+        "startChar": 2,
+        "endLine": 292,
+        "endChar": 36
+      },
+      "revId": "5a9cfe5c0c98d8009258ea06c412de0a94e9538a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
