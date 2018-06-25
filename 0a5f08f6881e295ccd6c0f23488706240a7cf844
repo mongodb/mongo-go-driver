@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "55a081bb_a507f23f",
+        "filename": "mongo/client_internal_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-25T20:14:37Z",
+      "side": 1,
+      "message": "You should use unique strings for each of  the  different options. For instance, I could make this test pass by accidentally using the first username as  the replica set option.",
+      "revId": "0a5f08f6881e295ccd6c0f23488706240a7cf844",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1255fac2_37992753",
         "filename": "mongo/clientopt/clientopt.go",
         "patchSetId": 5
