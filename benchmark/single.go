@@ -41,6 +41,7 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 	if err != nil {
 		return err
 	}
+	defer db.Client().Disconnect(ctx)
 
 	cmd := bson.NewDocument(bson.EC.Boolean("ismaster", true))
 
@@ -116,6 +117,7 @@ func singleInsertCase(ctx context.Context, tm TimerManager, iters int, data stri
 	if err != nil {
 		return err
 	}
+	defer db.Client().Disconnect(ctx)
 
 	db = db.Client().Database("perftest")
 	if err = db.Drop(ctx); err != nil {

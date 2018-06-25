@@ -9,15 +9,19 @@ import (
 )
 
 const (
-	ExecutionTimeout = 5 * time.Minute
-	StandardRuntime  = time.Minute
-	MinimumRuntime   = 10 * time.Second
-	MinIterations    = 100
+	five            = 5
+	ten             = 2 * five
+	hundred         = ten * ten
+	thousand        = ten * hundred
+	tenThousand     = ten * thousand
+	hundredThousand = hundred * thousand
+	million         = hundred * hundredThousand
+	halfMillion     = five * hundredThousand
 
-	ten         = 10
-	hundred     = ten * ten
-	thousand    = ten * hundred
-	tenThousand = ten * thousand
+	ExecutionTimeout = five * time.Minute
+	StandardRuntime  = time.Minute
+	MinimumRuntime   = five * time.Second
+	MinIterations    = hundred
 )
 
 type BenchCase func(context.Context, TimerManager, int) error
@@ -36,16 +40,18 @@ func WrapCase(bench BenchCase) BenchFunction {
 func getAllCases() []*CaseDefinition {
 	return []*CaseDefinition{
 		{
-			Bench:   CanaryIncCase,
-			Count:   hundred,
-			Size:    -1,
-			Runtime: MinimumRuntime,
+			Bench:              CanaryIncCase,
+			Count:              million,
+			Size:               -1,
+			Runtime:            MinimumRuntime,
+			RequiredIterations: ten,
 		},
 		{
-			Bench:   GlobalCanaryIncCase,
-			Count:   hundred,
-			Size:    -1,
-			Runtime: MinimumRuntime,
+			Bench:              GlobalCanaryIncCase,
+			Count:              million,
+			Size:               -1,
+			Runtime:            MinimumRuntime,
+			RequiredIterations: ten,
 		},
 		{
 			Bench:   BSONFlatDocumentEncoding,
@@ -216,10 +222,11 @@ func getAllCases() []*CaseDefinition {
 			Runtime: StandardRuntime,
 		},
 		{
-			Bench:   MultiInsertLargeDocument,
-			Count:   ten,
-			Size:    27310890,
-			Runtime: StandardRuntime,
+			Bench:              MultiInsertLargeDocument,
+			Count:              ten,
+			Size:               27310890,
+			Runtime:            StandardRuntime,
+			RequiredIterations: tenThousand,
 		},
 	}
 }

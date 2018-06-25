@@ -109,6 +109,16 @@ func (r *BenchResult) HasErrors() bool {
 	return *r.hasErrors
 }
 
+func (r *BenchResult) errReport() []string {
+	errs := []string{}
+	for _, res := range r.Raw {
+		if res.Error != nil {
+			errs = append(errs, res.Error.Error())
+		}
+	}
+	return errs
+}
+
 type Result struct {
 	Duration   time.Duration
 	Iterations int

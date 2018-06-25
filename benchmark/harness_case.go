@@ -11,12 +11,16 @@ import (
 )
 
 type CaseDefinition struct {
-	Bench   BenchCase
-	Count   int
-	Size    int
-	Runtime time.Duration
+	Bench              BenchCase
+	Count              int
+	Size               int
+	RequiredIterations int
+	Runtime            time.Duration
 
-	startAt time.Time
+	cumulativeRuntime time.Duration
+	elapsed           time.Duration
+	startAt           time.Time
+	isRunning         bool
 }
 
 // TimerManager is a subset of the testing.B tool, used to manage
@@ -29,19 +33,21 @@ type TimerManager interface {
 
 func (c *CaseDefinition) ResetTimer() {
 	c.startAt = time.Now()
-	c.Runtime = 0
+	c.elapsed = 0
+	c.isRunning = true
 }
 
 func (c *CaseDefinition) StartTimer() {
 	c.startAt = time.Now()
+	c.isRunning = true
 }
 
 func (c *CaseDefinition) StopTimer() {
-	if c.startAt.IsZero() {
+	if !c.isRunning {
 		return
 	}
-	c.Runtime += time.Since(c.startAt)
-	c.startAt = time.Time{}
+	c.elapsed += time.Since(c.startAt)
+	c.isRunning = false
 }
 
 func (c *CaseDefinition) roundedRuntime() time.Duration {
@@ -56,20 +62,27 @@ func (c *CaseDefinition) Run(ctx context.Context) *BenchResult {
 		Operations: c.Count,
 	}
 	var cancel context.CancelFunc
-	ctx, cancel = context.WithTimeout(ctx, ExecutionTimeout)
+	ctx, cancel = context.WithTimeout(ctx, 2*ExecutionTimeout)
 	defer cancel()
 
 	fmt.Println("=== RUN", out.Name)
-	c.startAt = time.Now()
+	if c.RequiredIterations == 0 {
+		c.RequiredIterations = MinIterations
+	}
 
+benchRepeat:
 	for {
-		if time.Since(c.startAt) > c.Runtime {
-			if out.Trials >= MinIterations {
+		if ctx.Err() != nil {
+			break
+		}
+		if c.cumulativeRuntime >= c.Runtime {
+			if out.Trials >= c.RequiredIterations {
 				break
-			} else if ctx.Err() != nil {
+			} else if c.cumulativeRuntime >= ExecutionTimeout {
 				break
 			}
 		}
+
 		res := Result{
 			Iterations: c.Count,
 		}
@@ -77,18 +90,29 @@ func (c *CaseDefinition) Run(ctx context.Context) *BenchResult {
 		c.StartTimer()
 		res.Error = c.Bench(ctx, c, c.Count)
 		c.StopTimer()
-		res.Duration = c.Runtime
+		res.Duration = c.elapsed
+		c.cumulativeRuntime += res.Duration
 
-		if res.Error == context.Canceled {
-			break
+		switch res.Error {
+		case context.DeadlineExceeded:
+			break benchRepeat
+		case context.Canceled:
+			break benchRepeat
+		case nil:
+			out.Trials++
+			c.elapsed = 0
+			out.Raw = append(out.Raw, res)
+		default:
+			continue
 		}
 
-		out.Trials++
-		out.Raw = append(out.Raw, res)
 	}
 
 	out.Duration = out.totalDuration()
+	fmt.Printf("    --- REPORT: count=%d trials=%d requiredTrials=%d runtime=%s\n",
+		c.Count, out.Trials, c.RequiredIterations, c.Runtime)
 	if out.HasErrors() {
+		fmt.Printf("    --- ERRORS: %s\n", strings.Join(out.errReport(), "\n       "))
 		fmt.Printf("--- FAIL: %s (%s)\n", out.Name, out.roundedRuntime())
 	} else {
 		fmt.Printf("--- PASS: %s (%s)\n", out.Name, out.roundedRuntime())

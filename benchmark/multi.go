@@ -15,6 +15,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 	if err != nil {
 		return err
 	}
+	defer db.Client().Disconnect(ctx)
 
 	db = db.Client().Database("perftest")
 	if err = db.Drop(ctx); err != nil {
@@ -28,13 +29,13 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 
 	coll := db.Collection("corpus")
 
-	for i := 0; i < iters; i++ {
-		if _, err = coll.InsertOne(ctx, doc); err != nil {
-			return err
-		}
+	payload := make([]interface{}, iters)
+	for idx := range payload {
+		payload[idx] = *doc
+	}
 
-		// TODO: should be remove after resolving GODRIVER-468
-		_ = doc.Delete("_id")
+	if _, err = coll.InsertMany(ctx, payload); err != nil {
+		return err
 	}
 
 	tm.ResetTimer()
@@ -43,6 +44,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 	if err != nil {
 		return err
 	}
+	defer cursor.Close(ctx)
 
 	counter := 0
 	for cursor.Next(ctx) {
@@ -50,7 +52,8 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 		if err != nil {
 			return err
 		}
-		r, err := cursor.DecodeBytes()
+		var r bson.Reader
+		r, err = cursor.DecodeBytes()
 		if err != nil {
 			return err
 		}
@@ -87,6 +90,7 @@ func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data strin
 	if err != nil {
 		return err
 	}
+	defer db.Client().Disconnect(ctx)
 
 	db = db.Client().Database("perftest")
 	if err = db.Drop(ctx); err != nil {

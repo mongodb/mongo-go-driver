@@ -334,7 +334,13 @@ tasks:
 
     - name: perf
       tags: ["performance"]
+      exec_timeout_secs: 7200
       commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
         - func: run-make
           vars:
             targets: driver-benchmark
