@@ -15,6 +15,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +45,9 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("ismaster", 1)))
+	result, err := db.RunCommand(context.Background(), bson.NewDocument(
+		bson.EC.Int32("ismaster", 1),
+	), readpref.Primary())
 	require.NoError(t, err)
 
 	isMaster, err := result.Lookup("ismaster")
@@ -86,7 +89,7 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 			bson.EC.String("create", cappedName),
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
-		),
+		), readpref.Primary(),
 	)
 	if err != nil {
 		return "", "", err
