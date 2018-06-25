@@ -22,6 +22,30 @@
       "revId": "181ae56b157fa20f2fd4b10a8ecb32f10828daf8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b60f550d_23be01a8",
+        "filename": "core/option/options.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-25T15:34:38Z",
+      "side": 1,
+      "message": "Yeah, I think they were already implementing the correct interfacees.",
+      "parentUuid": "dd91d2d9_87289ccd",
+      "range": {
+        "startLine": 176,
+        "startChar": 0,
+        "endLine": 177,
+        "endChar": 46
+      },
+      "revId": "181ae56b157fa20f2fd4b10a8ecb32f10828daf8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
