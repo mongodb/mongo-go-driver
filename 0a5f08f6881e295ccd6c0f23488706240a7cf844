@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1255fac2_37992753",
+        "filename": "mongo/clientopt/clientopt.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-25T20:12:45Z",
+      "side": 1,
+      "message": "This should also include Username and Password (and then removed as a top-level option.",
+      "revId": "0a5f08f6881e295ccd6c0f23488706240a7cf844",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
