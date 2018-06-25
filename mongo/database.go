@@ -88,17 +88,12 @@ func (db *Database) Collection(name string, opts ...collectionopt.Option) *Colle
 
 // RunCommand runs a command on the database. A user can supply a custom
 // context to this method, or nil to default to context.Background().
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}) (bson.Reader, error) {
-
+func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, rp *readpref.ReadPref) (bson.Reader, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	cmd := command.Command{
-		DB:       db.Name(),
-		Command:  runCommand,
-		ReadPref: db.readPreference,
-	}
+	cmd := command.Command{DB: db.Name(), Command: runCommand, ReadPref: rp}
 	return dispatch.Command(ctx, cmd, db.client.topology, db.writeSelector)
 }
 
