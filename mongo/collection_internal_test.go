@@ -416,6 +416,7 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
 		),
+		rpPrimary,
 	)
 	require.NoError(t, err)
 	coll := db.Collection(testutil.ColName(t))
@@ -533,6 +534,7 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
 		),
+		rpPrimary,
 	)
 	require.NoError(t, err)
 	coll := db.Collection(testutil.ColName(t))

@@ -85,6 +85,7 @@ func getServerVersion(db *Database) (string, error) {
 	serverStatus, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("serverStatus", 1)),
+		rpPrimary,
 	)
 	if err != nil {
 		return "", err
@@ -141,12 +142,14 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 		_, _ = db.RunCommand(
 			context.Background(),
 			bson.NewDocument(bson.EC.String("drop", collName)),
+			rpPrimary,
 		)
 
 		if test.Outcome.Collection != nil && len(test.Outcome.Collection.Name) > 0 {
 			_, _ = db.RunCommand(
 				context.Background(),
 				bson.NewDocument(bson.EC.String("drop", test.Outcome.Collection.Name)),
+				rpPrimary,
 			)
 		}
 

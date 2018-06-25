@@ -44,7 +44,9 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("ismaster", 1)))
+	result, err := db.RunCommand(context.Background(), bson.NewDocument(
+		bson.EC.Int32("ismaster", 1),
+	), rpPrimary)
 	require.NoError(t, err)
 
 	isMaster, err := result.Lookup("ismaster")
@@ -86,7 +88,7 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 			bson.EC.String("create", cappedName),
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
-		),
+		), rpPrimary,
 	)
 	if err != nil {
 		return "", "", err

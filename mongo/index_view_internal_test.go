@@ -47,6 +47,7 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 		bson.NewDocument(
 			bson.EC.String("create", dbName),
 		),
+		rpPrimary,
 	)
 	require.NoError(t, err)
 

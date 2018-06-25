@@ -23,6 +23,8 @@ import (
 	"time"
 )
 
+var rpPrimary = readpref.Primary()
+
 func createTestClient(t *testing.T) *Client {
 	return &Client{
 		topology:       testutil.Topology(t),
@@ -65,7 +67,7 @@ func TestClient_TLSConnection(t *testing.T) {
 	c := createTestClient(t)
 	db := c.Database("test")
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("serverStatus", 1)))
+	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("serverStatus", 1)), rpPrimary)
 	require.NoError(t, err)
 
 	security, err := result.Lookup("security")
@@ -105,6 +107,7 @@ func TestClient_X509Auth(t *testing.T) {
 		bson.NewDocument(
 			bson.EC.String("dropUser", user),
 		),
+		rpPrimary,
 	)
 
 	_, err := db.RunCommand(
@@ -118,6 +121,7 @@ func TestClient_X509Auth(t *testing.T) {
 				),
 			),
 		),
+		rpPrimary,
 	)
 	require.NoError(t, err)
 
@@ -141,6 +145,7 @@ func TestClient_X509Auth(t *testing.T) {
 		bson.NewDocument(
 			bson.EC.Int32("connectionStatus", 1),
 		),
+		rpPrimary,
 	)
 	require.NoError(t, err)
 
