@@ -3,8 +3,12 @@ package findopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 func createNestedOneBundle1(t *testing.T) *OneBundle {
@@ -148,6 +152,50 @@ func TestFindOneOpt(t *testing.T) {
 		OptBatchSize(1000).ConvertFindOption(),
 	}
 
+	t.Run("TestAll", func(t *testing.T) {
+		c := &mongoopt.Collation{
+			Locale: "string locale",
+		}
+		rc := readconcern.Local()
+
+		opts := []One{
+			AllowPartialResults(true),
+			BatchSize(5),
+			Collation(c),
+			Comment("hello world testing find"),
+			CursorType(mongoopt.Tailable),
+			Hint("hint for find"),
+			Max("max for find"),
+			MaxAwaitTime(100),
+			MaxScan(1000),
+			MaxTime(5000),
+			Min("min for find"),
+			NoCursorTimeout(false),
+			OplogReplay(true),
+			Projection("projection for find"),
+			ReadConcern(rc),
+			ReturnKey(true),
+			ShowRecordID(false),
+			Skip(50),
+			Snapshot(false),
+			Sort("sort for find"),
+		}
+		bundle := BundleOne(opts...)
+
+		deleteOpts, err := bundle.Unbundle(true)
+		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
+
+		if len(deleteOpts) != len(opts) {
+			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
+		}
+
+		for i, opt := range opts {
+			if !reflect.DeepEqual(opt.ConvertFindOneOption(), deleteOpts[i]) {
+				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
+			}
+		}
+	})
+
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
 
@@ -194,7 +242,7 @@ func TestFindOneOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}

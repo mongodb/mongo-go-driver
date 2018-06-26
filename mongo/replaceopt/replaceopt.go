@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var replaceBundle = new(ReplaceBundle)
@@ -60,7 +61,7 @@ func (rb *ReplaceBundle) BypassDocumentValidation(b bool) *ReplaceBundle {
 }
 
 // Collation adds an option to specify a Collation.
-func (rb *ReplaceBundle) Collation(c *option.Collation) *ReplaceBundle {
+func (rb *ReplaceBundle) Collation(c *mongoopt.Collation) *ReplaceBundle {
 	bundle := &ReplaceBundle{
 		option: Collation(c),
 		next:   rb,
@@ -204,8 +205,8 @@ func BypassDocumentValidation(b bool) OptBypassDocumentValidation {
 }
 
 // Collation specifies a Collation.
-func Collation(c *option.Collation) OptCollation {
-	return OptCollation{Collation: c}
+func Collation(c *mongoopt.Collation) OptCollation {
+	return OptCollation{Collation: c.Convert()}
 }
 
 // Upsert specifies whether to insert a new document if it does not exist

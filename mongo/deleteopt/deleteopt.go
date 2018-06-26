@@ -5,6 +5,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var deleteBundle = new(DeleteBundle)
@@ -45,7 +46,7 @@ func BundleDelete(opts ...Delete) *DeleteBundle {
 }
 
 // Collation adds an option to specify a collation.
-func (db *DeleteBundle) Collation(c *option.Collation) *DeleteBundle {
+func (db *DeleteBundle) Collation(c *mongoopt.Collation) *DeleteBundle {
 	bundle := &DeleteBundle{
 		option: Collation(c),
 		next:   db,
@@ -173,8 +174,8 @@ func (db *DeleteBundle) String() string {
 }
 
 // Collation specifies a collation.
-func Collation(c *option.Collation) OptCollation {
-	return OptCollation{Collation: c}
+func Collation(c *mongoopt.Collation) OptCollation {
+	return OptCollation{Collation: c.Convert()}
 }
 
 // WriteConcern specifies a write concern.

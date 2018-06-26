@@ -14,7 +14,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -26,6 +25,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/assert"
@@ -466,7 +466,7 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 
 	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 
-	collationOpt := &option.Collation{
+	collationOpt := &mongoopt.Collation{
 		Locale: "en_US",
 	}
 	result, err := coll.DeleteOne(context.Background(), filter, deleteopt.Collation(collationOpt))
@@ -585,7 +585,7 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 	filter := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$lt", 1)))
 
-	result, err := coll.DeleteMany(context.Background(), filter, deleteopt.Collation(&option.Collation{Locale: "en_US"}))
+	result, err := coll.DeleteMany(context.Background(), filter, deleteopt.Collation(&mongoopt.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 }
@@ -1285,7 +1285,7 @@ func TestCollection_Distinct_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	results, err := coll.Distinct(context.Background(), "x", nil, distinctopt.Collation(&option.Collation{Locale: "en_US"}))
+	results, err := coll.Distinct(context.Background(), "x", nil, distinctopt.Collation(&mongoopt.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)})
 }

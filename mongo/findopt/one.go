@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var oneBundle = new(OneBundle)
@@ -70,7 +71,7 @@ func (ob *OneBundle) BatchSize(i int32) *OneBundle {
 }
 
 // Collation adds an option to specify a Collation.
-func (ob *OneBundle) Collation(collation *option.Collation) *OneBundle {
+func (ob *OneBundle) Collation(collation *mongoopt.Collation) *OneBundle {
 	bundle := &OneBundle{
 		option: Collation(collation),
 		next:   ob,
@@ -90,7 +91,7 @@ func (ob *OneBundle) Comment(s string) *OneBundle {
 }
 
 // CursorType adds an option to specify the type of cursor to use.
-func (ob *OneBundle) CursorType(ct option.CursorType) *OneBundle {
+func (ob *OneBundle) CursorType(ct mongoopt.CursorType) *OneBundle {
 	bundle := &OneBundle{
 		option: CursorType(ct),
 		next:   ob,
@@ -103,16 +104,6 @@ func (ob *OneBundle) CursorType(ct option.CursorType) *OneBundle {
 func (ob *OneBundle) Hint(hint interface{}) *OneBundle {
 	bundle := &OneBundle{
 		option: Hint(hint),
-		next:   ob,
-	}
-
-	return bundle
-}
-
-// Limit adds an option to set the limit on the number of results.
-func (ob *OneBundle) Limit(i int64) *OneBundle {
-	bundle := &OneBundle{
-		option: Limit(i),
 		next:   ob,
 	}
 
