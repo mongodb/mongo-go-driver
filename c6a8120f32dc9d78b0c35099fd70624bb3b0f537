@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "caddbd9a_133d3d17",
+        "filename": "mongo/clientopt/clientopt.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 341,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-26T18:30:47Z",
+      "side": 1,
+      "message": "This isn\u0027t setting username or password on the connection string.",
+      "revId": "c6a8120f32dc9d78b0c35099fd70624bb3b0f537",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
