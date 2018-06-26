@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "19b5d999_16536d70",
+        "filename": "mongo/clientopt/clientopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 350,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-26T19:40:51Z",
+      "side": 1,
+      "message": "So, I think we need some regression tests to ensure no one undoes this later.\n\nAnd since we are going to be doing that, there should be some unit tests for all the different client options to ensure they all get set and, more importantly, to ensure that in the future, they don\u0027t get stop getting set.",
+      "revId": "0d1e8c02926aaa1b7de1c8153dae038707dcba53",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
