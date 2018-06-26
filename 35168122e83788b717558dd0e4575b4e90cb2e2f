@@ -72,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "7a8d53bc_6962a65f",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-06-26T15:50:30Z",
+      "side": 1,
+      "message": "attempted to fix this in the latest patch set by not making these functions part of the Command struct. the new functions take extra params because they don\u0027t have a reference to the command anymore but they\u0027re better abstracted.",
+      "parentUuid": "1cf8cfae_4496134c",
+      "range": {
+        "startLine": 38,
+        "startChar": 18,
+        "endLine": 38,
+        "endChar": 34
+      },
+      "revId": "35168122e83788b717558dd0e4575b4e90cb2e2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "71b10c5c_0204687a",
         "filename": "core/command/command.go",
         "patchSetId": 3
