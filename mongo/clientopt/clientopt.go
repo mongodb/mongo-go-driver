@@ -347,6 +347,12 @@ func Auth(auth Credential) Option {
 			if len(c.ConnString.AuthSource) == 0 {
 				c.ConnString.AuthSource = auth.AuthSource
 			}
+			if len(c.ConnString.Username) == 0 {
+				c.ConnString.Username = auth.Username
+			}
+			if len(c.ConnString.Password) == 0 {
+				c.ConnString.Password = auth.Password
+			}
 			return nil
 		})
 }
