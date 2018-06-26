@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fe71e785_96e80f99",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-26T15:49:18Z",
+      "side": 1,
+      "message": "It looks like we\u0027re allocating an array here and then doing nothing with it, can we just declare the variable here so it\u0027s nil?",
+      "range": {
+        "startLine": 39,
+        "startChar": 10,
+        "endLine": 39,
+        "endChar": 25
+      },
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
