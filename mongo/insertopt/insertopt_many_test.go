@@ -3,60 +3,59 @@ package insertopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
 
-var wc1 = writeconcern.New(writeconcern.W(10))
-var wc2 = writeconcern.New(writeconcern.W(20))
-
-func createNestedOneBundle1(t *testing.T) *OneBundle {
-	nestedBundle := BundleOne(BypassDocumentValidation(false))
+func createNestedManyBundle1(t *testing.T) *ManyBundle {
+	nestedBundle := BundleMany(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, nestedBundle, "nested bundle was nil")
 
-	outerBundle := BundleOne(BypassDocumentValidation(true), WriteConcern(wc1), nestedBundle)
+	outerBundle := BundleMany(BypassDocumentValidation(true), WriteConcern(wc1), nestedBundle)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
 }
 
 // Test doubly nested bundle
-func createNestedOneBundle2(t *testing.T) *OneBundle {
-	b1 := BundleOne(BypassDocumentValidation(false))
+func createNestedManyBundle2(t *testing.T) *ManyBundle {
+	b1 := BundleMany(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleOne(WriteConcern(wc2), b1)
+	b2 := BundleMany(WriteConcern(wc2), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
-	outerBundle := BundleOne(BypassDocumentValidation(true), WriteConcern(wc1), b2)
+	outerBundle := BundleMany(BypassDocumentValidation(true), WriteConcern(wc1), b2)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
 }
 
 // Test two top level nested bundles
-func createNestedOneBundle3(t *testing.T) *OneBundle {
-	b1 := BundleOne(BypassDocumentValidation(false))
+func createNestedManyBundle3(t *testing.T) *ManyBundle {
+	b1 := BundleMany(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleOne(WriteConcern(wc2), b1)
+	b2 := BundleMany(WriteConcern(wc2), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
-	b3 := BundleOne(BypassDocumentValidation(true))
+	b3 := BundleMany(BypassDocumentValidation(true))
 	testhelpers.RequireNotNil(t, b3, "nested bundle was nil")
 
-	b4 := BundleOne(WriteConcern(wc2), b3)
+	b4 := BundleMany(WriteConcern(wc2), b3)
 	testhelpers.RequireNotNil(t, b4, "nested bundle was nil")
 
-	outerBundle := BundleOne(b4, WriteConcern(wc1), b2)
+	outerBundle := BundleMany(b4, WriteConcern(wc1), b2)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
 }
 
-func TestFindOneOpt(t *testing.T) {
-	var bundle1 *OneBundle
+func TestInsertManyOpt(t *testing.T) {
+	var bundle1 *ManyBundle
 	bundle1 = bundle1.BypassDocumentValidation(true).BypassDocumentValidation(false)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
@@ -67,12 +66,12 @@ func TestFindOneOpt(t *testing.T) {
 		BypassDocumentValidation(false).ConvertOneOption(),
 	}
 
-	bundle2 := BundleOne(BypassDocumentValidation(true))
+	bundle2 := BundleMany(BypassDocumentValidation(true))
 	bundle2Opts := []option.Optioner{
 		BypassDocumentValidation(true).ConvertOneOption(),
 	}
 
-	bundle3 := BundleOne().
+	bundle3 := BundleMany().
 		BypassDocumentValidation(false).
 		BypassDocumentValidation(true)
 
@@ -85,10 +84,10 @@ func TestFindOneOpt(t *testing.T) {
 		OptBypassDocumentValidation(true).ConvertOneOption(),
 	}
 
-	nilBundle := BundleOne()
+	nilBundle := BundleMany()
 	var nilBundleOpts []option.Optioner
 
-	nestedBundle1 := createNestedOneBundle1(t)
+	nestedBundle1 := createNestedManyBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
 		OptBypassDocumentValidation(true).ConvertOneOption(),
 		OptWriteConcern{wc1}.ConvertOneOption(),
@@ -99,7 +98,7 @@ func TestFindOneOpt(t *testing.T) {
 		OptBypassDocumentValidation(false).ConvertOneOption(),
 	}
 
-	nestedBundle2 := createNestedOneBundle2(t)
+	nestedBundle2 := createNestedManyBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
 		OptBypassDocumentValidation(true).ConvertOneOption(),
 		OptWriteConcern{wc1}.ConvertOneOption(),
@@ -111,7 +110,7 @@ func TestFindOneOpt(t *testing.T) {
 		OptBypassDocumentValidation(false).ConvertOneOption(),
 	}
 
-	nestedBundle3 := createNestedOneBundle3(t)
+	nestedBundle3 := createNestedManyBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
 		OptWriteConcern{wc2}.ConvertOneOption(),
 		OptBypassDocumentValidation(true).ConvertOneOption(),
@@ -138,11 +137,35 @@ func TestFindOneOpt(t *testing.T) {
 		}
 	})
 
+	t.Run("TestAll", func(t *testing.T) {
+		wc := writeconcern.New(writeconcern.W(1))
+
+		opts := []Many{
+			BypassDocumentValidation(true),
+			Ordered(false),
+			WriteConcern(wc),
+		}
+		bundle := BundleMany(opts...)
+
+		deleteOpts, err := bundle.Unbundle(true)
+		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
+
+		if len(deleteOpts) != len(opts) {
+			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
+		}
+
+		for i, opt := range opts {
+			if !reflect.DeepEqual(opt.ConvertManyOption(), deleteOpts[i]) {
+				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
+			}
+		}
+	})
+
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
 			name         string
 			dedup        bool
-			bundle       *OneBundle
+			bundle       *ManyBundle
 			expectedOpts []option.Optioner
 		}{
 			{"NilBundle", false, nilBundle, nilBundleOpts},
@@ -170,7 +193,7 @@ func TestFindOneOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}

@@ -60,7 +60,7 @@ func createNestedBundle3(t *testing.T) *CollectionBundle {
 	return outer
 }
 
-func TestDbOpt(t *testing.T) {
+func TestCollectionOpt(t *testing.T) {
 	nilBundle := BundleCollection()
 	var nilDb = &Collection{}
 
@@ -97,9 +97,9 @@ func TestDbOpt(t *testing.T) {
 
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
-			name   string
-			bundle *CollectionBundle
-			db     *Collection
+			name       string
+			bundle     *CollectionBundle
+			collection *Collection
 		}{
 			{"NilBundle", nilBundle, nilDb},
 			{"Bundle1", bundle1, bundle1Db},
@@ -111,15 +111,15 @@ func TestDbOpt(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				db, err := tc.bundle.Unbundle()
+				collection, err := tc.bundle.Unbundle()
 				testhelpers.RequireNil(t, err, "err unbundling db: %s", err)
 
 				switch {
-				case db.ReadConcern != tc.db.ReadConcern:
+				case collection.ReadConcern != tc.collection.ReadConcern:
 					t.Errorf("read concerns don't match")
-				case db.WriteConcern != tc.db.WriteConcern:
+				case collection.WriteConcern != tc.collection.WriteConcern:
 					t.Errorf("write concerns don't match")
-				case db.ReadPreference != tc.db.ReadPreference:
+				case collection.ReadPreference != tc.collection.ReadPreference:
 					t.Errorf("read preferences don't match")
 				}
 			})

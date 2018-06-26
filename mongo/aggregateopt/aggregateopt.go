@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var aggregateBundle = new(AggregateBundle)
@@ -47,7 +48,7 @@ func BundleAggregate(opts ...Aggregate) *AggregateBundle {
 // AllowDiskUse adds an option to allow aggregation stages to write to temporary files.
 func (ab *AggregateBundle) AllowDiskUse(b bool) *AggregateBundle {
 	bundle := &AggregateBundle{
-		option: OptAllowDiskUse(b),
+		option: AllowDiskUse(b),
 		next:   ab,
 	}
 
@@ -57,7 +58,7 @@ func (ab *AggregateBundle) AllowDiskUse(b bool) *AggregateBundle {
 // BatchSize adds an option to specify the number of documents to return in every batch.
 func (ab *AggregateBundle) BatchSize(i int32) *AggregateBundle {
 	bundle := &AggregateBundle{
-		option: OptBatchSize(i),
+		option: BatchSize(i),
 		next:   ab,
 	}
 
@@ -67,7 +68,7 @@ func (ab *AggregateBundle) BatchSize(i int32) *AggregateBundle {
 // BypassDocumentValidation adds an option to allow the write to opt-out of document-level validation.
 func (ab *AggregateBundle) BypassDocumentValidation(b bool) *AggregateBundle {
 	bundle := &AggregateBundle{
-		option: OptBypassDocumentValidation(b),
+		option: BypassDocumentValidation(b),
 		next:   ab,
 	}
 
@@ -75,9 +76,9 @@ func (ab *AggregateBundle) BypassDocumentValidation(b bool) *AggregateBundle {
 }
 
 // Collation adds an option to specify a Collation.
-func (ab *AggregateBundle) Collation(c option.Collation) *AggregateBundle {
+func (ab *AggregateBundle) Collation(c *mongoopt.Collation) *AggregateBundle {
 	bundle := &AggregateBundle{
-		option: OptCollation{Collation: &c},
+		option: Collation(c),
 		next:   ab,
 	}
 
@@ -87,7 +88,7 @@ func (ab *AggregateBundle) Collation(c option.Collation) *AggregateBundle {
 // MaxTime adds an option to specify the maximum amount of time to allow the query to run.
 func (ab *AggregateBundle) MaxTime(d time.Duration) *AggregateBundle {
 	bundle := &AggregateBundle{
-		option: OptMaxTime(d),
+		option: MaxTime(d),
 		next:   ab,
 	}
 
@@ -97,7 +98,7 @@ func (ab *AggregateBundle) MaxTime(d time.Duration) *AggregateBundle {
 // Comment adds an option to specify a string to help trace the operation through the database profiler, currentOp, and logs.
 func (ab *AggregateBundle) Comment(s string) *AggregateBundle {
 	bundle := &AggregateBundle{
-		option: OptComment(s),
+		option: Comment(s),
 		next:   ab,
 	}
 
@@ -107,7 +108,7 @@ func (ab *AggregateBundle) Comment(s string) *AggregateBundle {
 // Hint adds an option to specify the index to use for the aggregation.
 func (ab *AggregateBundle) Hint(hint interface{}) *AggregateBundle {
 	bundle := &AggregateBundle{
-		option: OptHint{hint},
+		option: Hint(hint),
 		next:   ab,
 	}
 
@@ -237,8 +238,10 @@ func BypassDocumentValidation(b bool) OptBypassDocumentValidation {
 }
 
 // Collation specifies a collation.
-func Collation(c option.Collation) OptCollation {
-	return OptCollation{Collation: &c}
+func Collation(c *mongoopt.Collation) OptCollation {
+	return OptCollation{
+		Collation: c.Convert(),
+	}
 }
 
 // MaxTime specifies the maximum amount of time to allow the query to run.

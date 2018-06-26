@@ -3,8 +3,11 @@ package aggregateopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 func createNestedBundle1(t *testing.T) *AggregateBundle {
@@ -148,6 +151,36 @@ func TestAggregateOpt(t *testing.T) {
 		OptBatchSize(1000).ConvertOption(),
 	}
 
+	t.Run("TestAll", func(t *testing.T) {
+		c := &mongoopt.Collation{
+			Locale: "string locale",
+		}
+
+		opts := []Aggregate{
+			AllowDiskUse(true),
+			BatchSize(5),
+			BypassDocumentValidation(false),
+			Collation(c),
+			Comment("hello world testing find"),
+			Hint("hint for find"),
+			MaxTime(5000),
+		}
+		bundle := BundleAggregate(opts...)
+
+		deleteOpts, err := bundle.Unbundle(true)
+		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
+
+		if len(deleteOpts) != len(opts) {
+			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
+		}
+
+		for i, opt := range opts {
+			if !reflect.DeepEqual(opt.ConvertOption(), deleteOpts[i]) {
+				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
+			}
+		}
+	})
+
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
 
@@ -194,7 +227,7 @@ func TestAggregateOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}
