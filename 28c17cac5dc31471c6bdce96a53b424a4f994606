@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b0599171_b0c55918",
+        "filename": "mongo/database.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-06-26T19:49:11Z",
+      "side": 1,
+      "message": "Why are we not creating an option package for this? Now we are going to require every user to provide a read preference to us. Also, are there any other options that should or may get added in the future?",
+      "revId": "28c17cac5dc31471c6bdce96a53b424a4f994606",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
