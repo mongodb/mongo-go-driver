@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var distinctBundle = new(DistinctBundle)
@@ -43,7 +44,7 @@ func BundleDistinct(opts ...Distinct) *DistinctBundle {
 }
 
 // Collation adds an option to specify a collation.
-func (db *DistinctBundle) Collation(collation *option.Collation) *DistinctBundle {
+func (db *DistinctBundle) Collation(collation *mongoopt.Collation) *DistinctBundle {
 	bundle := &DistinctBundle{
 		option: Collation(collation),
 		next:   db,
@@ -168,9 +169,9 @@ func (db *DistinctBundle) String() string {
 }
 
 // Collation specifies a collation.
-func Collation(collation *option.Collation) OptCollation {
+func Collation(collation *mongoopt.Collation) OptCollation {
 	return OptCollation{
-		Collation: collation,
+		Collation: collation.Convert(),
 	}
 }
 

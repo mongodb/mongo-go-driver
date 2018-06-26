@@ -3,8 +3,12 @@ package findopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 func createNestedReplaceOneBundle1(t *testing.T) *ReplaceOneBundle {
@@ -129,6 +133,39 @@ func TestFindAndReplaceOneOpt(t *testing.T) {
 		OptMaxTime(1000).ConvertReplaceOneOption(),
 	}
 
+	t.Run("TestAll", func(t *testing.T) {
+		c := &mongoopt.Collation{
+			Locale: "string locale",
+		}
+		proj := Projection(true)
+		sort := Sort(true)
+		wc := writeconcern.New(writeconcern.W(10))
+
+		opts := []ReplaceOne{
+			Collation(c),
+			MaxTime(5),
+			Projection(proj),
+			ReturnDocument(mongoopt.After),
+			Sort(sort),
+			Upsert(true),
+			WriteConcern(wc),
+		}
+		bundle := BundleReplaceOne(opts...)
+
+		deleteOpts, err := bundle.Unbundle(true)
+		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
+
+		if len(deleteOpts) != len(opts) {
+			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
+		}
+
+		for i, opt := range opts {
+			if !reflect.DeepEqual(opt.ConvertReplaceOneOption(), deleteOpts[i]) {
+				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
+			}
+		}
+	})
+
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
 
@@ -175,7 +212,7 @@ func TestFindAndReplaceOneOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}

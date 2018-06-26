@@ -9,11 +9,15 @@ package replaceopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
-var collation = option.Collation{}
+var collation = &mongoopt.Collation{}
 
 func createNestedReplaceBundle1(t *testing.T) *ReplaceBundle {
 	nestedBundle := BundleReplace(Upsert(false))
@@ -30,7 +34,7 @@ func createNestedReplaceBundle2(t *testing.T) *ReplaceBundle {
 	b1 := BundleReplace(Upsert(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleReplace(Collation(&collation), b1)
+	b2 := BundleReplace(Collation(collation), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
 	outerBundle := BundleReplace(Upsert(true), BypassDocumentValidation(true), b2, BypassDocumentValidation(false))
@@ -44,13 +48,13 @@ func createNestedReplaceBundle3(t *testing.T) *ReplaceBundle {
 	b1 := BundleReplace(Upsert(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleReplace(Collation(&collation), b1)
+	b2 := BundleReplace(Collation(collation), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
 	b3 := BundleReplace(Upsert(true))
 	testhelpers.RequireNotNil(t, b3, "nested bundle was nil")
 
-	b4 := BundleReplace(Collation(&collation), b3)
+	b4 := BundleReplace(Collation(collation), b3)
 	testhelpers.RequireNotNil(t, b4, "nested bundle was nil")
 
 	outerBundle := BundleReplace(b4, BypassDocumentValidation(true), b2, BypassDocumentValidation(false))
@@ -59,7 +63,7 @@ func createNestedReplaceBundle3(t *testing.T) *ReplaceBundle {
 	return outerBundle
 }
 
-func TestFindAndReplaceOpt(t *testing.T) {
+func TestReplaceOpt(t *testing.T) {
 	var bundle1 *ReplaceBundle
 	bundle1 = bundle1.Upsert(true).BypassDocumentValidation(false)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
@@ -72,26 +76,26 @@ func TestFindAndReplaceOpt(t *testing.T) {
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
 
-	bundle2 := BundleReplace(Collation(&collation))
+	bundle2 := BundleReplace(Collation(collation))
 	bundle2Opts := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 	}
 
 	bundle3 := BundleReplace().
-		Collation(&collation).
+		Collation(collation).
 		BypassDocumentValidation(true).
 		Upsert(false).
 		Upsert(true)
 
 	bundle3Opts := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptBypassDocumentValidation(true).ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptUpsert(true).ConvertOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptBypassDocumentValidation(true).ConvertOption(),
 		OptUpsert(true).ConvertOption(),
 	}
@@ -115,30 +119,58 @@ func TestFindAndReplaceOpt(t *testing.T) {
 	nestedBundleOpts2 := []option.Optioner{
 		OptUpsert(true).ConvertOption(),
 		OptBypassDocumentValidation(true).ConvertOption(),
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
 
 	nestedBundle3 := createNestedReplaceBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(true).ConvertOption(),
 		OptBypassDocumentValidation(true).ConvertOption(),
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
+
+	t.Run("TestAll", func(t *testing.T) {
+		c := &mongoopt.Collation{
+			Locale: "string locale",
+		}
+		wc := writeconcern.New(writeconcern.W(1))
+
+		opts := []Replace{
+			BypassDocumentValidation(true),
+			Collation(c),
+			Upsert(false),
+			WriteConcern(wc),
+		}
+		bundle := BundleReplace(opts...)
+
+		deleteOpts, err := bundle.Unbundle(true)
+		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
+
+		if len(deleteOpts) != len(opts) {
+			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
+		}
+
+		for i, opt := range opts {
+			if !reflect.DeepEqual(opt.ConvertOption(), deleteOpts[i]) {
+				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
+			}
+		}
+	})
 
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
@@ -186,7 +218,7 @@ func TestFindAndReplaceOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}

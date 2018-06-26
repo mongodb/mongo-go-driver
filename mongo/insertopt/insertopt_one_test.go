@@ -1,4 +1,4 @@
-package countopt
+package insertopt
 
 import (
 	"testing"
@@ -6,163 +6,125 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
-func createNestedCountBundle1(t *testing.T) *CountBundle {
-	nestedBundle := BundleCount(Skip(5))
+var wc1 = writeconcern.New(writeconcern.W(10))
+var wc2 = writeconcern.New(writeconcern.W(20))
+
+func createNestedOneBundle1(t *testing.T) *OneBundle {
+	nestedBundle := BundleOne(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, nestedBundle, "nested bundle was nil")
 
-	outerBundle := BundleCount(Skip(10), Limit(500), nestedBundle, MaxTimeMs(1000))
+	outerBundle := BundleOne(BypassDocumentValidation(true), WriteConcern(wc1), nestedBundle)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
 }
 
 // Test doubly nested bundle
-func createNestedCountBundle2(t *testing.T) *CountBundle {
-	b1 := BundleCount(Skip(5))
+func createNestedOneBundle2(t *testing.T) *OneBundle {
+	b1 := BundleOne(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleCount(Limit(100), b1)
+	b2 := BundleOne(WriteConcern(wc2), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
-	outerBundle := BundleCount(Skip(10), Limit(500), b2, MaxTimeMs(1000))
+	outerBundle := BundleOne(BypassDocumentValidation(true), WriteConcern(wc1), b2)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
 }
 
 // Test two top level nested bundles
-func createNestedCountBundle3(t *testing.T) *CountBundle {
-	b1 := BundleCount(Skip(5))
+func createNestedOneBundle3(t *testing.T) *OneBundle {
+	b1 := BundleOne(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleCount(Limit(100), b1)
+	b2 := BundleOne(WriteConcern(wc2), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
-	b3 := BundleCount(Skip(10))
+	b3 := BundleOne(BypassDocumentValidation(true))
 	testhelpers.RequireNotNil(t, b3, "nested bundle was nil")
 
-	b4 := BundleCount(Limit(100), b3)
+	b4 := BundleOne(WriteConcern(wc2), b3)
 	testhelpers.RequireNotNil(t, b4, "nested bundle was nil")
 
-	outerBundle := BundleCount(b4, Limit(500), b2, MaxTimeMs(1000))
+	outerBundle := BundleOne(b4, WriteConcern(wc1), b2)
 	testhelpers.RequireNotNil(t, outerBundle, "outer bundle was nil")
 
 	return outerBundle
 }
 
-func TestCountOpt(t *testing.T) {
-	var bundle1 *CountBundle
-	bundle1 = bundle1.MaxTimeMs(5).Skip(10).MaxTimeMs(15)
+func TestInsertOneOpt(t *testing.T) {
+	var bundle1 *OneBundle
+	bundle1 = bundle1.BypassDocumentValidation(true).BypassDocumentValidation(false)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		MaxTimeMs(5).ConvertOption(),
-		Skip(10).ConvertOption(),
-		MaxTimeMs(15).ConvertOption(),
+		BypassDocumentValidation(true).ConvertOneOption(),
+		BypassDocumentValidation(false).ConvertOneOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		Skip(10).ConvertOption(),
-		MaxTimeMs(15).ConvertOption(),
+		BypassDocumentValidation(false).ConvertOneOption(),
 	}
 
-	bundle2 := BundleCount(MaxTimeMs(1))
+	bundle2 := BundleOne(BypassDocumentValidation(true))
 	bundle2Opts := []option.Optioner{
-		OptMaxTimeMs(1).ConvertOption(),
+		BypassDocumentValidation(true).ConvertOneOption(),
 	}
 
-	bundle3 := BundleCount().
-		MaxTimeMs(1).
-		MaxTimeMs(2).
-		Limit(6).
-		Limit(10)
+	bundle3 := BundleOne().
+		BypassDocumentValidation(false).
+		BypassDocumentValidation(true)
 
 	bundle3Opts := []option.Optioner{
-		OptMaxTimeMs(1).ConvertOption(),
-		OptMaxTimeMs(2).ConvertOption(),
-		OptLimit(6).ConvertOption(),
-		OptLimit(10).ConvertOption(),
+		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptBypassDocumentValidation(true).ConvertOneOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptMaxTimeMs(2).ConvertOption(),
-		OptLimit(10).ConvertOption(),
+		OptBypassDocumentValidation(true).ConvertOneOption(),
 	}
 
-	nilBundle := BundleCount()
+	nilBundle := BundleOne()
 	var nilBundleOpts []option.Optioner
 
-	nestedBundle1 := createNestedCountBundle1(t)
+	nestedBundle1 := createNestedOneBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptSkip(10).ConvertOption(),
-		OptLimit(500).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptBypassDocumentValidation(true).ConvertOneOption(),
+		OptWriteConcern{wc1}.ConvertOneOption(),
+		OptBypassDocumentValidation(false).ConvertOneOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptLimit(500).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptWriteConcern{wc1}.ConvertOneOption(),
+		OptBypassDocumentValidation(false).ConvertOneOption(),
 	}
 
-	nestedBundle2 := createNestedCountBundle2(t)
+	nestedBundle2 := createNestedOneBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptSkip(10).ConvertOption(),
-		OptLimit(500).ConvertOption(),
-		OptLimit(100).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptBypassDocumentValidation(true).ConvertOneOption(),
+		OptWriteConcern{wc1}.ConvertOneOption(),
+		OptWriteConcern{wc2}.ConvertOneOption(),
+		OptBypassDocumentValidation(false).ConvertOneOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptLimit(100).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptWriteConcern{wc2}.ConvertOneOption(),
+		OptBypassDocumentValidation(false).ConvertOneOption(),
 	}
 
-	nestedBundle3 := createNestedCountBundle3(t)
+	nestedBundle3 := createNestedOneBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptLimit(100).ConvertOption(),
-		OptSkip(10).ConvertOption(),
-		OptLimit(500).ConvertOption(),
-		OptLimit(100).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptWriteConcern{wc2}.ConvertOneOption(),
+		OptBypassDocumentValidation(true).ConvertOneOption(),
+		OptWriteConcern{wc1}.ConvertOneOption(),
+		OptWriteConcern{wc2}.ConvertOneOption(),
+		OptBypassDocumentValidation(false).ConvertOneOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptLimit(100).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptWriteConcern{wc2}.ConvertOneOption(),
+		OptBypassDocumentValidation(false).ConvertOneOption(),
 	}
-
-	t.Run("TestAll", func(t *testing.T) {
-		c := &mongoopt.Collation{
-			Locale: "string locale",
-		}
-
-		opts := []Count{
-			Collation(c),
-			Limit(100),
-			Skip(50),
-			Hint("hint for find"),
-			MaxTimeMs(500),
-		}
-		bundle := BundleCount(opts...)
-
-		deleteOpts, err := bundle.Unbundle(true)
-		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
-
-		if len(deleteOpts) != len(opts) {
-			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
-		}
-
-		for i, opt := range opts {
-			if !reflect.DeepEqual(opt.ConvertOption(), deleteOpts[i]) {
-				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
-			}
-		}
-	})
 
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
@@ -178,11 +140,34 @@ func TestCountOpt(t *testing.T) {
 		}
 	})
 
+	t.Run("TestAll", func(t *testing.T) {
+		wc := writeconcern.New(writeconcern.W(1))
+
+		opts := []One{
+			BypassDocumentValidation(true),
+			WriteConcern(wc),
+		}
+		bundle := BundleOne(opts...)
+
+		deleteOpts, err := bundle.Unbundle(true)
+		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
+
+		if len(deleteOpts) != len(opts) {
+			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
+		}
+
+		for i, opt := range opts {
+			if !reflect.DeepEqual(opt.ConvertOneOption(), deleteOpts[i]) {
+				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
+			}
+		}
+	})
+
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
 			name         string
 			dedup        bool
-			bundle       *CountBundle
+			bundle       *OneBundle
 			expectedOpts []option.Optioner
 		}{
 			{"NilBundle", false, nilBundle, nilBundleOpts},

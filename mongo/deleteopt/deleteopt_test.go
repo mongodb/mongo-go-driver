@@ -3,14 +3,17 @@ package deleteopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var wc1 = writeconcern.New(writeconcern.W(10))
 var wc2 = writeconcern.New(writeconcern.W(20))
-var c = &option.Collation{}
+var c = &mongoopt.Collation{}
 
 func createNestedDeleteBundle1(t *testing.T) *DeleteBundle {
 	nestedBundle := BundleDelete(Collation(c))
@@ -78,12 +81,12 @@ func TestDeleteOpt(t *testing.T) {
 		Collation(c)
 
 	bundle3Opts := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	nilBundle := BundleDelete()
@@ -91,39 +94,65 @@ func TestDeleteOpt(t *testing.T) {
 
 	nestedBundle1 := createNestedDeleteBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 		OptWriteConcern{wc1}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
 		OptWriteConcern{wc1}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	nestedBundle2 := createNestedDeleteBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 		OptWriteConcern{wc1}.ConvertOption(),
 		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
 		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	nestedBundle3 := createNestedDeleteBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
 		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 		OptWriteConcern{wc1}.ConvertOption(),
 		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
 		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
+
+	t.Run("TestAll", func(t *testing.T) {
+		c := &mongoopt.Collation{
+			Locale: "string locale",
+		}
+		wc := writeconcern.New(writeconcern.W(1))
+
+		opts := []Delete{
+			Collation(c),
+			WriteConcern(wc),
+		}
+		bundle := BundleDelete(opts...)
+
+		deleteOpts, err := bundle.Unbundle(true)
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(deleteOpts) != len(opts) {
+			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
+		}
+
+		for i, opt := range opts {
+			if !reflect.DeepEqual(opt.ConvertOption(), deleteOpts[i]) {
+				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
+			}
+		}
+	})
 
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
@@ -172,7 +201,7 @@ func TestDeleteOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}

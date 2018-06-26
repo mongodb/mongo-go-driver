@@ -4,7 +4,7 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var countBundle = new(CountBundle)
@@ -46,21 +46,19 @@ func BundleCount(opts ...Count) *CountBundle {
 }
 
 // Collation specifies a collation.
-func (cb *CountBundle) Collation(c *option.Collation) *CountBundle {
+func (cb *CountBundle) Collation(c *mongoopt.Collation) *CountBundle {
 	bundle := &CountBundle{
-		option: OptCollation{
-			Collation: c,
-		},
-		next: cb,
+		option: Collation(c),
+		next:   cb,
 	}
 
 	return bundle
 }
 
 // Limit adds an option to limit the maximum number of documents to count.
-func (cb *CountBundle) Limit(i int32) *CountBundle {
+func (cb *CountBundle) Limit(i int64) *CountBundle {
 	bundle := &CountBundle{
-		option: OptLimit(i),
+		option: Limit(i),
 		next:   cb,
 	}
 
@@ -68,9 +66,9 @@ func (cb *CountBundle) Limit(i int32) *CountBundle {
 }
 
 // Skip adds an option to specify the number of documents to skip before counting.
-func (cb *CountBundle) Skip(i int32) *CountBundle {
+func (cb *CountBundle) Skip(i int64) *CountBundle {
 	bundle := &CountBundle{
-		option: OptSkip(i),
+		option: Skip(i),
 		next:   cb,
 	}
 
@@ -80,7 +78,7 @@ func (cb *CountBundle) Skip(i int32) *CountBundle {
 // Hint adds an option to specify the index to use.
 func (cb *CountBundle) Hint(hint interface{}) *CountBundle {
 	bundle := &CountBundle{
-		option: OptHint{hint},
+		option: Hint(hint),
 		next:   cb,
 	}
 
@@ -90,17 +88,7 @@ func (cb *CountBundle) Hint(hint interface{}) *CountBundle {
 // MaxTimeMs adds an option to specify the maximum amount of time to allow the operation to run.
 func (cb *CountBundle) MaxTimeMs(i int32) *CountBundle {
 	bundle := &CountBundle{
-		option: OptMaxTimeMs(i),
-		next:   cb,
-	}
-
-	return bundle
-}
-
-// ReadConcern adds an option to specify a read concern.
-func (cb *CountBundle) ReadConcern(rc *readconcern.ReadConcern) *CountBundle {
-	bundle := &CountBundle{
-		option: OptReadConcern{rc},
+		option: MaxTimeMs(i),
 		next:   cb,
 	}
 
@@ -215,8 +203,10 @@ func (cb *CountBundle) String() string {
 }
 
 // Collation specifies a Collation.
-func Collation(collation *option.Collation) OptCollation {
-	return OptCollation{collation}
+func Collation(collation *mongoopt.Collation) OptCollation {
+	return OptCollation{
+		Collation: collation.Convert(),
+	}
 }
 
 // Limit limits the maximum number of documents to count.
@@ -237,13 +227,6 @@ func Hint(hint interface{}) OptHint {
 // MaxTimeMs specifies the maximum amount of time to allow the operation to run.
 func MaxTimeMs(i int32) OptMaxTimeMs {
 	return OptMaxTimeMs(i)
-}
-
-// ReadConcern specifies a read concern.
-func ReadConcern(rc *readconcern.ReadConcern) OptReadConcern {
-	return OptReadConcern{
-		ReadConcern: rc,
-	}
 }
 
 // OptCollation specifies a collation.
@@ -295,13 +278,3 @@ func (opt OptMaxTimeMs) ConvertOption() option.CountOptioner {
 }
 
 func (OptMaxTimeMs) count() {}
-
-// OptReadConcern specifies a read concern.
-type OptReadConcern option.OptReadConcern
-
-// ConvertOption implements the Count interface.
-func (opt OptReadConcern) ConvertOption() option.CountOptioner {
-	return option.OptReadConcern(opt)
-}
-
-func (OptReadConcern) count() {}

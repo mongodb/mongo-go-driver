@@ -18,6 +18,17 @@ var wc2 = writeconcern.New(writeconcern.W(20))
 var rpPrimary = readpref.Primary()
 var rpSeconadary = readpref.Secondary()
 
+func requireDbEqual(t *testing.T, expected *Database, actual *Database) {
+	switch {
+	case expected.ReadConcern != actual.ReadConcern:
+		t.Errorf("read concerns don't match")
+	case expected.WriteConcern != actual.WriteConcern:
+		t.Errorf("write concerns don't match")
+	case expected.ReadPreference != actual.ReadPreference:
+		t.Errorf("read preferences don't match")
+	}
+}
+
 func createNestedBundle1(t *testing.T) *DatabaseBundle {
 	nested := BundleDatabase(ReadConcern(rcMajority))
 	testhelpers.RequireNotNil(t, nested, "nested bundle was nil")
@@ -103,6 +114,22 @@ func TestDbOpt(t *testing.T) {
 		WriteConcern:   wc1,
 	}
 
+	t.Run("TestAll", func(t *testing.T) {
+		opts := []Option{
+			ReadConcern(rcLocal),
+			WriteConcern(wc1),
+			ReadPreference(rpPrimary),
+		}
+
+		db, err := BundleDatabase(opts...).Unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+		requireDbEqual(t, db, &Database{
+			ReadConcern:    rcLocal,
+			WriteConcern:   wc1,
+			ReadPreference: rpPrimary,
+		})
+	})
+
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
 			name   string
@@ -122,15 +149,7 @@ func TestDbOpt(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				db, err := tc.bundle.Unbundle()
 				testhelpers.RequireNil(t, err, "err unbundling db: %s", err)
-
-				switch {
-				case db.ReadConcern != tc.db.ReadConcern:
-					t.Errorf("read concerns don't match")
-				case db.WriteConcern != tc.db.WriteConcern:
-					t.Errorf("write concerns don't match")
-				case db.ReadPreference != tc.db.ReadPreference:
-					t.Errorf("read preferences don't match")
-				}
+				requireDbEqual(t, db, tc.db)
 			})
 		}
 	})

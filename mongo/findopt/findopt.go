@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var (
@@ -51,7 +52,6 @@ var (
 	_ One        = (*OptComment)(nil)
 	_ One        = (*OptCursorType)(nil)
 	_ One        = (*OptHint)(nil)
-	_ One        = (*OptLimit)(nil)
 	_ One        = (*OptMax)(nil)
 	_ One        = (*OptMaxAwaitTime)(nil)
 	_ One        = (*OptMaxScan)(nil)
@@ -115,13 +115,15 @@ func BypassDocumentValidation(b bool) OptBypassDocumentValidation {
 
 // Collation specifies a Collation.
 // Find, One, DeleteOne, ReplaceOne, UpdateOne
-func Collation(collation *option.Collation) OptCollation {
-	return OptCollation{collation}
+func Collation(collation *mongoopt.Collation) OptCollation {
+	return OptCollation{
+		Collation: collation.Convert(),
+	}
 }
 
 // CursorType specifies the type of cursor to use.
 // Find, One
-func CursorType(ct option.CursorType) OptCursorType {
+func CursorType(ct mongoopt.CursorType) OptCursorType {
 	return OptCursorType(ct)
 }
 
@@ -203,7 +205,7 @@ func ReadConcern(rc *readconcern.ReadConcern) OptReadConcern {
 
 // ReturnDocument specifies whether to return the updated or original document.
 // ReplaceOne, UpdateOne
-func ReturnDocument(rd option.ReturnDocument) OptReturnDocument {
+func ReturnDocument(rd mongoopt.ReturnDocument) OptReturnDocument {
 	return OptReturnDocument(rd)
 }
 
@@ -418,7 +420,6 @@ func (opt OptHint) ConvertFindOneOption() option.FindOptioner {
 type OptLimit option.OptLimit
 
 func (OptLimit) find() {}
-func (OptLimit) one()  {}
 
 // ConvertFindOption implements the Find interface.
 func (opt OptLimit) ConvertFindOption() option.FindOptioner {

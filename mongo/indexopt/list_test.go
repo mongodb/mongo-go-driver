@@ -3,6 +3,8 @@ package indexopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
@@ -105,12 +107,33 @@ func TestListOpt(t *testing.T) {
 		BatchSize(5).ConvertListOption(),
 	}
 
+	t.Run("TestAll", func(t *testing.T) {
+		opts := []List{
+			BatchSize(5),
+			MaxTime(5000),
+		}
+		bundle := BundleList(opts...)
+
+		deleteOpts, err := bundle.Unbundle(true)
+		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
+
+		if len(deleteOpts) != len(opts) {
+			t.Errorf("expected unbundled opts len %d. got %d", len(opts), len(deleteOpts))
+		}
+
+		for i, opt := range opts {
+			if !reflect.DeepEqual(opt.ConvertListOption(), deleteOpts[i]) {
+				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
+			}
+		}
+	})
+
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
-			name   string
-			bundle *ListBundle
-			dedup  bool
-			opts   []option.ListIndexesOptioner
+			name         string
+			bundle       *ListBundle
+			dedup        bool
+			expectedOpts []option.ListIndexesOptioner
 		}{
 			{"NilBundle", nilBundle, false, nilOpts},
 			{"Bundle1", bundle1, false, bundle1Opts},
@@ -130,13 +153,13 @@ func TestListOpt(t *testing.T) {
 				opts, err := tc.bundle.Unbundle(tc.dedup)
 				testhelpers.RequireNil(t, err, "err unbundling db: %s", err)
 
-				if len(opts) != len(tc.opts) {
-					t.Errorf("opts len mismatch. expected %d, got %d", len(tc.opts), len(opts))
+				if len(opts) != len(tc.expectedOpts) {
+					t.Errorf("expectedOpts len mismatch. expected %d, got %d", len(tc.expectedOpts), len(opts))
 				}
 
 				for i, opt := range opts {
-					if opt != tc.opts[i] {
-						t.Errorf("expected: %s\nreceived: %s", opt, tc.opts[i])
+					if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
+						t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 					}
 				}
 			})

@@ -18,6 +18,17 @@ var wc2 = writeconcern.New(writeconcern.W(20))
 var rpPrimary = readpref.Primary()
 var rpSeconadary = readpref.Secondary()
 
+func requireCollectionEqual(t *testing.T, expected *Collection, actual *Collection) {
+	switch {
+	case expected.ReadConcern != actual.ReadConcern:
+		t.Errorf("read concerns don't match")
+	case expected.WriteConcern != actual.WriteConcern:
+		t.Errorf("write concerns don't match")
+	case expected.ReadPreference != actual.ReadPreference:
+		t.Errorf("read preferences don't match")
+	}
+}
+
 func createNestedBundle1(t *testing.T) *CollectionBundle {
 	nested := BundleCollection(ReadConcern(rcMajority))
 	testhelpers.RequireNotNil(t, nested, "nested bundle was nil")
@@ -60,7 +71,7 @@ func createNestedBundle3(t *testing.T) *CollectionBundle {
 	return outer
 }
 
-func TestDbOpt(t *testing.T) {
+func TestCollectionOpt(t *testing.T) {
 	nilBundle := BundleCollection()
 	var nilDb = &Collection{}
 
@@ -95,11 +106,27 @@ func TestDbOpt(t *testing.T) {
 		WriteConcern:   wc1,
 	}
 
+	t.Run("TestAll", func(t *testing.T) {
+		opts := []Option{
+			ReadConcern(rcLocal),
+			WriteConcern(wc1),
+			ReadPreference(rpPrimary),
+		}
+
+		db, err := BundleCollection(opts...).Unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+		requireCollectionEqual(t, db, &Collection{
+			ReadConcern:    rcLocal,
+			WriteConcern:   wc1,
+			ReadPreference: rpPrimary,
+		})
+	})
+
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
-			name   string
-			bundle *CollectionBundle
-			db     *Collection
+			name       string
+			bundle     *CollectionBundle
+			collection *Collection
 		}{
 			{"NilBundle", nilBundle, nilDb},
 			{"Bundle1", bundle1, bundle1Db},
@@ -111,15 +138,15 @@ func TestDbOpt(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				db, err := tc.bundle.Unbundle()
+				collection, err := tc.bundle.Unbundle()
 				testhelpers.RequireNil(t, err, "err unbundling db: %s", err)
 
 				switch {
-				case db.ReadConcern != tc.db.ReadConcern:
+				case collection.ReadConcern != tc.collection.ReadConcern:
 					t.Errorf("read concerns don't match")
-				case db.WriteConcern != tc.db.WriteConcern:
+				case collection.WriteConcern != tc.collection.WriteConcern:
 					t.Errorf("write concerns don't match")
-				case db.ReadPreference != tc.db.ReadPreference:
+				case collection.ReadPreference != tc.collection.ReadPreference:
 					t.Errorf("read preferences don't match")
 				}
 			})
