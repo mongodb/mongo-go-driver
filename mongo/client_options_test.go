@@ -71,6 +71,13 @@ func TestClientOptions_chainAll(t *testing.T) {
 		readpref.WithTagSets(tag.NewTagSetsFromMaps([]map[string]string{{"nyc": "1"}})...),
 		readpref.WithMaxStaleness(2*time.Second),
 	)
+	rc := readconcern.New(readconcern.Level("majority"))
+	wc := writeconcern.New(
+		writeconcern.J(true),
+		writeconcern.WTagSet("majority"),
+		writeconcern.W(3),
+		writeconcern.WTimeout(2*time.Second),
+	)
 	require.NoError(t, err)
 	opts := clientopt.BundleClient().
 		AppName("foo").
@@ -90,7 +97,7 @@ func TestClientOptions_chainAll(t *testing.T) {
 		MaxConnIdleTime(30 * time.Second).
 		MaxConnsPerHost(150).
 		MaxIdleConnsPerHost(20).
-		ReadConcern(readconcern.New(readconcern.Level("majority"))).
+		ReadConcern(rc).
 		ReadPreference(rp).
 		ReplicaSet("foo").
 		ServerSelectionTimeout(time.Second).
@@ -99,20 +106,64 @@ func TestClientOptions_chainAll(t *testing.T) {
 		SSL(&clientopt.SSLOpt{
 			Enabled:                      true,
 			ClientCertificateKeyFile:     "client.pem",
-			ClientCertificateKeyPassword: func() string { return "password" },
+			ClientCertificateKeyPassword: nil,
 			Insecure:                     false,
 			CaFile:                       "ca.pem",
 		}).
-		WriteConcern(writeconcern.New(
-			writeconcern.J(true),
-			writeconcern.WTagSet("majority"),
-			writeconcern.W(3),
-			writeconcern.WTimeout(2*time.Second),
-		))
+		WriteConcern(wc)
+
+	expectedClient := &clientopt.Client{
+		TopologyOptions: nil,
+		ConnString: connstring.ConnString{
+			AppName:                 "foo",
+			AuthMechanism:           "MONGODB-X509",
+			AuthMechanismProperties: map[string]string{"foo": "bar"},
+			AuthSource:              "$external",
+			Username:                "admin",
+			Password:                "supersecurepassword",
+			ConnectTimeout:          500 * time.Millisecond,
+			ConnectTimeoutSet:       true,
+			HeartbeatInterval:       15 * time.Second,
+			HeartbeatIntervalSet:    true,
+			Hosts: []string{
+				"mongodb://localhost:27018",
+				"mongodb://localhost:27019",
+			},
+			LocalThresholdSet:         true,
+			LocalThreshold:            time.Second,
+			MaxConnIdleTime:           30 * time.Second,
+			MaxConnIdleTimeSet:        true,
+			MaxConnsPerHost:           150,
+			MaxConnsPerHostSet:        true,
+			MaxIdleConnsPerHost:       20,
+			MaxIdleConnsPerHostSet:    true,
+			ReplicaSet:                "foo",
+			ServerSelectionTimeoutSet: true,
+			ServerSelectionTimeout:    time.Second,
+			Connect:                   connstring.AutoConnect,
+			ConnectSet:                true,
+			SocketTimeout:             2 * time.Second,
+			SocketTimeoutSet:          true,
+			SSL:                       true,
+			SSLSet:                    true,
+			SSLClientCertificateKeyFile:        "client.pem",
+			SSLClientCertificateKeyFileSet:     true,
+			SSLClientCertificateKeyPassword:    nil,
+			SSLClientCertificateKeyPasswordSet: true,
+			SSLInsecure:                        false,
+			SSLInsecureSet:                     true,
+			SSLCaFile:                          "ca.pem",
+			SSLCaFileSet:                       true,
+		},
+		ReadConcern:    rc,
+		ReadPreference: rp,
+		WriteConcern:   wc,
+	}
 
 	client, err := opts.Unbundle(connstring.ConnString{})
 	require.NoError(t, err)
 	require.NotNil(t, client)
+	require.Equal(t, expectedClient, client)
 }
 
 func TestClientOptions_CustomDialer(t *testing.T) {
