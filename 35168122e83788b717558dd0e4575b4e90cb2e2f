@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "585a46fb_2e60b5a2",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-26T15:03:41Z",
+      "side": 1,
+      "message": "In general, using named returns is an anti-pattern because it makes code more difficult to reason about.",
+      "range": {
+        "startLine": 38,
+        "startChar": 38,
+        "endLine": 38,
+        "endChar": 66
+      },
+      "revId": "35168122e83788b717558dd0e4575b4e90cb2e2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1cf8cfae_4496134c",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-26T15:03:41Z",
+      "side": 1,
+      "message": "I feel like we should better abstract OP_MSG from the command.Command struct.",
+      "range": {
+        "startLine": 38,
+        "startChar": 18,
+        "endLine": 38,
+        "endChar": 34
+      },
+      "revId": "35168122e83788b717558dd0e4575b4e90cb2e2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "71b10c5c_0204687a",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-26T15:03:41Z",
+      "side": 1,
+      "message": "Is there a reason we aren\u0027t using bson.ReadDocument here?",
+      "range": {
+        "startLine": 62,
+        "startChar": 0,
+        "endLine": 70,
+        "endChar": 2
+      },
+      "revId": "35168122e83788b717558dd0e4575b4e90cb2e2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
