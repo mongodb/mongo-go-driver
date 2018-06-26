@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var replaceOneBundle = new(ReplaceOneBundle)
@@ -61,7 +62,7 @@ func (rob *ReplaceOneBundle) BypassDocumentValidation(b bool) *ReplaceOneBundle 
 }
 
 // Collation adds an option to specify a Collation.
-func (rob *ReplaceOneBundle) Collation(collation *option.Collation) *ReplaceOneBundle {
+func (rob *ReplaceOneBundle) Collation(collation *mongoopt.Collation) *ReplaceOneBundle {
 	bundle := &ReplaceOneBundle{
 		option: Collation(collation),
 		next:   rob,
@@ -91,7 +92,7 @@ func (rob *ReplaceOneBundle) Projection(projection interface{}) *ReplaceOneBundl
 }
 
 // ReturnDocument adds an option to specify whether to return the updated or original document.
-func (rob *ReplaceOneBundle) ReturnDocument(rd option.ReturnDocument) *ReplaceOneBundle {
+func (rob *ReplaceOneBundle) ReturnDocument(rd mongoopt.ReturnDocument) *ReplaceOneBundle {
 	bundle := &ReplaceOneBundle{
 		option: ReturnDocument(rd),
 		next:   rob,

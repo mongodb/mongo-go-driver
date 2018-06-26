@@ -3,6 +3,8 @@ package indexopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
@@ -111,10 +113,10 @@ func TestCreateOpt(t *testing.T) {
 
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
-			name   string
-			bundle *CreateBundle
-			dedup  bool
-			opts   []option.CreateIndexesOptioner
+			name         string
+			bundle       *CreateBundle
+			dedup        bool
+			expectedOpts []option.CreateIndexesOptioner
 		}{
 			{"NilBundle", nilBundle, false, nilOpts},
 			{"Bundle1", bundle1, false, bundle1Opts},
@@ -134,13 +136,13 @@ func TestCreateOpt(t *testing.T) {
 				opts, err := tc.bundle.Unbundle(tc.dedup)
 				testhelpers.RequireNil(t, err, "err unbundling db: %s", err)
 
-				if len(opts) != len(tc.opts) {
-					t.Errorf("opts len mismatch. expected %d, got %d", len(tc.opts), len(opts))
+				if len(opts) != len(tc.expectedOpts) {
+					t.Errorf("expectedOpts len mismatch. expected %d, got %d", len(tc.expectedOpts), len(opts))
 				}
 
 				for i, opt := range opts {
-					if opt != tc.opts[i] {
-						t.Errorf("expected: %s\nreceived: %s", opt, tc.opts[i])
+					if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
+						t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 					}
 				}
 			})

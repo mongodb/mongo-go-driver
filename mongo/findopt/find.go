@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var findBundle = new(FindBundle)
@@ -70,7 +71,7 @@ func (fb *FindBundle) BatchSize(i int32) *FindBundle {
 }
 
 // Collation adds an option to specify a Collation
-func (fb *FindBundle) Collation(collation *option.Collation) *FindBundle {
+func (fb *FindBundle) Collation(collation *mongoopt.Collation) *FindBundle {
 	bundle := &FindBundle{
 		option: Collation(collation),
 		next:   fb,
@@ -90,7 +91,7 @@ func (fb *FindBundle) Comment(s string) *FindBundle {
 }
 
 // CursorType adds an option to specify the type of cursor to use.
-func (fb *FindBundle) CursorType(ct option.CursorType) *FindBundle {
+func (fb *FindBundle) CursorType(ct mongoopt.CursorType) *FindBundle {
 	bundle := &FindBundle{
 		option: CursorType(ct),
 		next:   fb,

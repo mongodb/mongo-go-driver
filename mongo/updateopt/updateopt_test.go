@@ -9,11 +9,14 @@ package updateopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
-var collation = option.Collation{}
+var collation = &mongoopt.Collation{}
 
 func createNestedUpdateBundle1(t *testing.T) *UpdateBundle {
 	nestedBundle := BundleUpdate(Upsert(false))
@@ -30,7 +33,7 @@ func createNestedUpdateBundle2(t *testing.T) *UpdateBundle {
 	b1 := BundleUpdate(Upsert(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleUpdate(Collation(&collation), b1)
+	b2 := BundleUpdate(Collation(collation), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
 	outerBundle := BundleUpdate(Upsert(true), BypassDocumentValidation(true), b2, BypassDocumentValidation(false))
@@ -44,13 +47,13 @@ func createNestedUpdateBundle3(t *testing.T) *UpdateBundle {
 	b1 := BundleUpdate(Upsert(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
-	b2 := BundleUpdate(Collation(&collation), b1)
+	b2 := BundleUpdate(Collation(collation), b1)
 	testhelpers.RequireNotNil(t, b2, "nested bundle was nil")
 
 	b3 := BundleUpdate(Upsert(true))
 	testhelpers.RequireNotNil(t, b3, "nested bundle was nil")
 
-	b4 := BundleUpdate(Collation(&collation), b3)
+	b4 := BundleUpdate(Collation(collation), b3)
 	testhelpers.RequireNotNil(t, b4, "nested bundle was nil")
 
 	outerBundle := BundleUpdate(b4, BypassDocumentValidation(true), b2, BypassDocumentValidation(false))
@@ -72,26 +75,26 @@ func TestFindAndUpdateOpt(t *testing.T) {
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
 
-	bundle2 := BundleUpdate(Collation(&collation))
+	bundle2 := BundleUpdate(Collation(collation))
 	bundle2Opts := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 	}
 
 	bundle3 := BundleUpdate().
-		Collation(&collation).
+		Collation(collation).
 		BypassDocumentValidation(true).
 		Upsert(false).
 		Upsert(true)
 
 	bundle3Opts := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptBypassDocumentValidation(true).ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptUpsert(true).ConvertOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptBypassDocumentValidation(true).ConvertOption(),
 		OptUpsert(true).ConvertOption(),
 	}
@@ -115,27 +118,27 @@ func TestFindAndUpdateOpt(t *testing.T) {
 	nestedBundleOpts2 := []option.Optioner{
 		OptUpsert(true).ConvertOption(),
 		OptBypassDocumentValidation(true).ConvertOption(),
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
 
 	nestedBundle3 := createNestedUpdateBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(true).ConvertOption(),
 		OptBypassDocumentValidation(true).ConvertOption(),
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptCollation{&collation}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertOption(),
 		OptUpsert(false).ConvertOption(),
 		OptBypassDocumentValidation(false).ConvertOption(),
 	}
@@ -186,7 +189,7 @@ func TestFindAndUpdateOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}

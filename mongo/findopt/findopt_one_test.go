@@ -3,6 +3,8 @@ package findopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
@@ -194,7 +196,7 @@ func TestFindOneOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}

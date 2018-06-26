@@ -3,11 +3,14 @@ package distinctopt
 import (
 	"testing"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
-var c = &option.Collation{}
+var c = &mongoopt.Collation{}
 
 func createNestedDistinctBundle1(t *testing.T) *DistinctBundle {
 	nestedBundle := BundleDistinct(Collation(c))
@@ -75,12 +78,12 @@ func TestDistinctOpt(t *testing.T) {
 		Collation(c)
 
 	bundle3Opts := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	nilBundle := BundleDistinct()
@@ -88,38 +91,38 @@ func TestDistinctOpt(t *testing.T) {
 
 	nestedBundle1 := createNestedDistinctBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 		OptMaxTime(5).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
 		OptMaxTime(5).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	nestedBundle2 := createNestedDistinctBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 		OptMaxTime(5).ConvertOption(),
 		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
 		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	nestedBundle3 := createNestedDistinctBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
 		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 		OptMaxTime(5).ConvertOption(),
 		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
 		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c.Convert()}.ConvertOption(),
 	}
 
 	t.Run("MakeOptions", func(t *testing.T) {
@@ -169,7 +172,7 @@ func TestDistinctOpt(t *testing.T) {
 						len(tc.expectedOpts))
 				} else {
 					for i, opt := range options {
-						if opt != tc.expectedOpts[i] {
+						if !reflect.DeepEqual(opt, tc.expectedOpts[i]) {
 							t.Errorf("expected: %s\nreceived: %s", opt, tc.expectedOpts[i])
 						}
 					}

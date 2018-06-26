@@ -12,13 +12,13 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/require"
@@ -200,7 +200,7 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = opts.Collation(*collationFromMap(collation.(map[string]interface{})))
+			opts = opts.Collation(collationFromMap(collation.(map[string]interface{})))
 		}
 
 		out := false
@@ -461,9 +461,9 @@ func findOneAndReplaceTest(t *testing.T, coll *Collection, test *testCase) {
 		if returnDocument, found := test.Operation.Arguments["returnDocument"]; found {
 			switch returnDocument.(string) {
 			case "After":
-				opts = append(opts, findopt.ReturnDocument(option.After))
+				opts = append(opts, findopt.ReturnDocument(mongoopt.After))
 			case "Before":
-				opts = append(opts, findopt.ReturnDocument(option.Before))
+				opts = append(opts, findopt.ReturnDocument(mongoopt.Before))
 			}
 		}
 
@@ -532,9 +532,9 @@ func findOneAndUpdateTest(t *testing.T, coll *Collection, test *testCase) {
 		if returnDocument, found := test.Operation.Arguments["returnDocument"]; found {
 			switch returnDocument.(string) {
 			case "After":
-				opts = append(opts, findopt.ReturnDocument(option.After))
+				opts = append(opts, findopt.ReturnDocument(mongoopt.After))
 			case "Before":
-				opts = append(opts, findopt.ReturnDocument(option.Before))
+				opts = append(opts, findopt.ReturnDocument(mongoopt.Before))
 			}
 		}
 
@@ -851,8 +851,8 @@ func verifyCursorResults(t *testing.T, cursor Cursor, result json.RawMessage) {
 
 }
 
-func collationFromMap(m map[string]interface{}) *option.Collation {
-	var collation option.Collation
+func collationFromMap(m map[string]interface{}) *mongoopt.Collation {
+	var collation mongoopt.Collation
 
 	if locale, found := m["locale"]; found {
 		collation.Locale = locale.(string)
