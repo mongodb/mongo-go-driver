@@ -132,7 +132,7 @@ func TestCollection_InsertOne_WriteError(t *testing.T) {
 		t.FailNow()
 	}
 	if got[0].Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
 	}
 
 }
@@ -158,7 +158,7 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
 	if got.Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
 	}
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
@@ -262,7 +262,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 			t.FailNow()
 		}
 		if got.WriteErrors[0].Code != want.Code {
-			t.Errorf("Did not recieve the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+			t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
 		}
 	})
 	t.Run("insert_batch_ordered_write_error", func(t *testing.T) {
@@ -283,7 +283,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 			t.FailNow()
 		}
 		if got.WriteErrors[0].Code != want.Code {
-			t.Errorf("Did not recieve the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+			t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
 		}
 
 	})
@@ -343,7 +343,7 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, BulkWriteError{}, err)
 	}
 	if got.WriteConcernError.Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.WriteConcernError.Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteConcernError.Code, want.Code)
 	}
 	if got.WriteConcernError.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.WriteConcernError.Message, want.Message)
@@ -430,7 +430,7 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 		t.FailNow()
 	}
 	if got[0].Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
 	}
 }
 
@@ -455,7 +455,7 @@ func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
 	if got.Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
 	}
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
@@ -547,7 +547,7 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 		t.FailNow()
 	}
 	if got[0].Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
 	}
 }
 
@@ -572,7 +572,7 @@ func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
 	if got.Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
 	}
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
@@ -673,7 +673,7 @@ func TestCollection_UpdateOne_WriteError(t *testing.T) {
 		t.FailNow()
 	}
 	if got[0].Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
 	}
 }
 
@@ -704,7 +704,7 @@ func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
 	if got.Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
 	}
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
@@ -810,7 +810,7 @@ func TestCollection_UpdateMany_WriteError(t *testing.T) {
 		t.FailNow()
 	}
 	if got[0].Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got[0].Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
 	}
 
 }
@@ -842,7 +842,7 @@ func TestCollection_UpdateMany_WriteConcernError(t *testing.T) {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
 	if got.Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
 	}
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
@@ -937,7 +937,7 @@ func TestCollection_ReplaceOne_WriteError(t *testing.T) {
 	case 66: // mongod v3.6
 	case 16837: //mongod v3.4, mongod v3.2
 	default:
-		t.Errorf("Did not recieve the correct error code. got %d; want (one of) %d", got[0].Code, []int{66, 16837})
+		t.Errorf("Did not receive the correct error code. got %d; want (one of) %d", got[0].Code, []int{66, 16837})
 		fmt.Printf("%#v\n", got)
 	}
 }
@@ -964,7 +964,7 @@ func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
 	if got.Code != want.Code {
-		t.Errorf("Did not recieve the correct error code. got %d; want %d", got.Code, want.Code)
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
 	}
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)

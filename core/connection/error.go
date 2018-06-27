@@ -24,7 +24,7 @@ func (e Error) Error() string {
 	return fmt.Sprintf("connection(%s) %s", e.ConnectionID, e.message)
 }
 
-// NetworkError represents an error that ocurred while reading from or writing
+// NetworkError represents an error that occurred while reading from or writing
 // to a network socket.
 type NetworkError struct {
 	ConnectionID string

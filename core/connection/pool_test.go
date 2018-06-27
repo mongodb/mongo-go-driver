@@ -35,7 +35,7 @@ func TestPool(t *testing.T) {
 		t.Run("size cannot be larger than capcity", func(t *testing.T) {
 			_, err := NewPool(address.Address(""), 5, 1)
 			if err != ErrSizeLargerThanCapacity {
-				t.Errorf("Should recieve error when size is larger than capacity. got %v; want %v", err, ErrSizeLargerThanCapacity)
+				t.Errorf("Should receive error when size is larger than capacity. got %v; want %v", err, ErrSizeLargerThanCapacity)
 			}
 		})
 	})
@@ -640,7 +640,7 @@ func TestPool(t *testing.T) {
 			noerr(t, err)
 			err = c1.Close()
 			if err != nil {
-				t.Errorf("Conneciton Close should not error after Pool is Disconnected, but got error: %v", err)
+				t.Errorf("Connection Close should not error after Pool is Disconnected, but got error: %v", err)
 			}
 		})
 		t.Run("Does not return to pool twice", func(t *testing.T) {

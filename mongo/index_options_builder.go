@@ -50,7 +50,7 @@ func (iob *IndexOptionsBuilder) Unique(unique bool) *IndexOptionsBuilder {
 	return iob
 }
 
-// Version sets the verison option
+// Version sets the version option
 func (iob *IndexOptionsBuilder) Version(version int32) *IndexOptionsBuilder {
 	iob.document.Append(bson.EC.Int32("v", version))
 	return iob

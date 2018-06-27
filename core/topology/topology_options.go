@@ -18,7 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 )
 
-// Option is a configuraiton option for a topology.
+// Option is a configuration option for a topology.
 type Option func(*config) error
 
 type config struct {

@@ -20,7 +20,7 @@ import (
 // write concern.
 var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
 
-// WriteError is a non-write concern failure that occured as a result of a write
+// WriteError is a non-write concern failure that occurred as a result of a write
 // operation.
 type WriteError struct {
 	Index   int
@@ -30,7 +30,7 @@ type WriteError struct {
 
 func (we WriteError) Error() string { return we.Message }
 
-// WriteErrors is a group of non-write concern failures that occured as a result
+// WriteErrors is a group of non-write concern failures that occurred as a result
 // of a write operation.
 type WriteErrors []WriteError
 
@@ -55,7 +55,7 @@ func writeErrorsFromResult(rwes []result.WriteError) WriteErrors {
 	return wes
 }
 
-// WriteConcernError is a write concern failure that occured as a result of a
+// WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {
 	Code    int
