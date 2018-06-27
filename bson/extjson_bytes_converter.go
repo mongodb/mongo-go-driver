@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -50,8 +51,11 @@ func ToExtJSON(canonical bool, bson []byte) (string, error) {
 }
 
 func (w *extJSONWriter) writeStringLiteral(s string) error {
-	s = `"` + s + `"`
-	_, err := w.Write([]byte(s))
+	b, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(b)
 
 	return err
 }
