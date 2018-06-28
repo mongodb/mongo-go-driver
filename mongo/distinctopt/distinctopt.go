@@ -12,7 +12,7 @@ var distinctBundle = new(DistinctBundle)
 // Distinct is options for the distinct command.
 type Distinct interface {
 	distinct()
-	ConvertOption() option.DistinctOptioner
+	ConvertDistinctOption() option.DistinctOptioner
 }
 
 // DistinctBundle is a bundle of Distinct options.
@@ -23,8 +23,8 @@ type DistinctBundle struct {
 
 func (db *DistinctBundle) distinct() {}
 
-// ConvertOption implements the Distinct interface
-func (db *DistinctBundle) ConvertOption() option.DistinctOptioner { return nil }
+// ConvertDistinctOption implements the Distinct interface
+func (db *DistinctBundle) ConvertDistinctOption() option.DistinctOptioner { return nil }
 
 // BundleDistinct bundles Distinct options.
 func BundleDistinct(opts ...Distinct) *DistinctBundle {
@@ -141,7 +141,7 @@ func (db *DistinctBundle) unbundle() ([]option.DistinctOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertOption()
+		options[index] = listHead.option.ConvertDistinctOption()
 		index--
 	}
 
@@ -161,7 +161,7 @@ func (db *DistinctBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertOption().String() + "\n"
+		str += head.option.ConvertDistinctOption().String() + "\n"
 	}
 
 	return str
@@ -184,8 +184,8 @@ type OptCollation option.OptCollation
 
 func (OptCollation) distinct() {}
 
-// ConvertOption implements the Distinct interface.
-func (opt OptCollation) ConvertOption() option.DistinctOptioner {
+// ConvertDistinctOption implements the Distinct interface.
+func (opt OptCollation) ConvertDistinctOption() option.DistinctOptioner {
 	return option.OptCollation(opt)
 }
 
@@ -194,7 +194,7 @@ type OptMaxTime option.OptMaxTime
 
 func (OptMaxTime) distinct() {}
 
-// ConvertOption implements the Distinct interface.
-func (opt OptMaxTime) ConvertOption() option.DistinctOptioner {
+// ConvertDistinctOption implements the Distinct interface.
+func (opt OptMaxTime) ConvertDistinctOption() option.DistinctOptioner {
 	return option.OptMaxTime(opt)
 }

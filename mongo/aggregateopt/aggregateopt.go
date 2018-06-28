@@ -13,7 +13,7 @@ var aggregateBundle = new(AggregateBundle)
 // Aggregate is options for the aggregate() function
 type Aggregate interface {
 	aggregate()
-	ConvertOption() option.AggregateOptioner
+	ConvertAggregateOption() option.AggregateOptioner
 }
 
 // AggregateBundle is a bundle of Aggregate options
@@ -25,8 +25,8 @@ type AggregateBundle struct {
 // Implement the Aggregate interface
 func (ab *AggregateBundle) aggregate() {}
 
-// ConvertOption implements the Aggregate interface
-func (ab *AggregateBundle) ConvertOption() option.AggregateOptioner { return nil }
+// ConvertAggregateOption implements the Aggregate interface
+func (ab *AggregateBundle) ConvertAggregateOption() option.AggregateOptioner { return nil }
 
 // BundleAggregate bundles Aggregate options
 func BundleAggregate(opts ...Aggregate) *AggregateBundle {
@@ -195,7 +195,7 @@ func (ab *AggregateBundle) unbundle() ([]option.AggregateOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertOption()
+		options[index] = listHead.option.ConvertAggregateOption()
 		index--
 	}
 
@@ -215,7 +215,7 @@ func (ab *AggregateBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertOption().String() + "\n"
+		str += head.option.ConvertAggregateOption().String() + "\n"
 	}
 
 	return str
@@ -261,8 +261,8 @@ type OptAllowDiskUse option.OptAllowDiskUse
 
 func (OptAllowDiskUse) aggregate() {}
 
-// ConvertOption implements the Aggregate interface
-func (opt OptAllowDiskUse) ConvertOption() option.AggregateOptioner {
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptAllowDiskUse) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptAllowDiskUse(opt)
 }
 
@@ -271,16 +271,16 @@ type OptBatchSize option.OptBatchSize
 
 func (OptBatchSize) aggregate() {}
 
-// ConvertOption implements the Aggregate interface
-func (opt OptBatchSize) ConvertOption() option.AggregateOptioner {
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptBatchSize) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptBatchSize(opt)
 }
 
 // OptBypassDocumentValidation allows the write to opt-out of document-level validation.
 type OptBypassDocumentValidation option.OptBypassDocumentValidation
 
-// ConvertOption implements the Aggregate interface
-func (opt OptBypassDocumentValidation) ConvertOption() option.AggregateOptioner {
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptBypassDocumentValidation) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptBypassDocumentValidation(opt)
 }
 
@@ -291,8 +291,8 @@ type OptCollation option.OptCollation
 
 func (OptCollation) aggregate() {}
 
-// ConvertOption implements the Aggregate interface
-func (opt OptCollation) ConvertOption() option.AggregateOptioner {
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptCollation) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptCollation(opt)
 }
 
@@ -301,8 +301,8 @@ type OptMaxTime option.OptMaxTime
 
 func (OptMaxTime) aggregate() {}
 
-// ConvertOption implements the Aggregate interface
-func (opt OptMaxTime) ConvertOption() option.AggregateOptioner {
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptMaxTime) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptMaxTime(opt)
 }
 
@@ -311,8 +311,8 @@ type OptComment option.OptComment
 
 func (OptComment) aggregate() {}
 
-// ConvertOption implements the Aggregate interface
-func (opt OptComment) ConvertOption() option.AggregateOptioner {
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptComment) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptComment(opt)
 }
 
@@ -321,7 +321,7 @@ type OptHint option.OptHint
 
 func (OptHint) aggregate() {}
 
-// ConvertOption implements the Aggregate interface
-func (opt OptHint) ConvertOption() option.AggregateOptioner {
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptHint) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptHint(opt)
 }

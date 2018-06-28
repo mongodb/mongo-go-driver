@@ -58,16 +58,16 @@ func TestDistinctOpt(t *testing.T) {
 	bundle1 = bundle1.Collation(c).Collation(c)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		Collation(c).ConvertOption(),
-		Collation(c).ConvertOption(),
+		Collation(c).ConvertDistinctOption(),
+		Collation(c).ConvertDistinctOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		Collation(c).ConvertOption(),
+		Collation(c).ConvertDistinctOption(),
 	}
 
 	bundle2 := BundleDistinct(Collation(c))
 	bundle2Opts := []option.Optioner{
-		Collation(c).ConvertOption(),
+		Collation(c).ConvertDistinctOption(),
 	}
 
 	bundle3 := BundleDistinct().
@@ -75,12 +75,12 @@ func TestDistinctOpt(t *testing.T) {
 		Collation(c)
 
 	bundle3Opts := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c}.ConvertDistinctOption(),
+		OptCollation{c}.ConvertDistinctOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c}.ConvertDistinctOption(),
 	}
 
 	nilBundle := BundleDistinct()
@@ -88,38 +88,38 @@ func TestDistinctOpt(t *testing.T) {
 
 	nestedBundle1 := createNestedDistinctBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
-		OptMaxTime(5).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c}.ConvertDistinctOption(),
+		OptMaxTime(5).ConvertDistinctOption(),
+		OptCollation{c}.ConvertDistinctOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptMaxTime(5).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptMaxTime(5).ConvertDistinctOption(),
+		OptCollation{c}.ConvertDistinctOption(),
 	}
 
 	nestedBundle2 := createNestedDistinctBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
-		OptMaxTime(5).ConvertOption(),
-		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c}.ConvertDistinctOption(),
+		OptMaxTime(5).ConvertDistinctOption(),
+		OptMaxTime(10).ConvertDistinctOption(),
+		OptCollation{c}.ConvertDistinctOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptMaxTime(10).ConvertDistinctOption(),
+		OptCollation{c}.ConvertDistinctOption(),
 	}
 
 	nestedBundle3 := createNestedDistinctBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
-		OptMaxTime(5).ConvertOption(),
-		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptMaxTime(10).ConvertDistinctOption(),
+		OptCollation{c}.ConvertDistinctOption(),
+		OptMaxTime(5).ConvertDistinctOption(),
+		OptMaxTime(10).ConvertDistinctOption(),
+		OptCollation{c}.ConvertDistinctOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptMaxTime(10).ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptMaxTime(10).ConvertDistinctOption(),
+		OptCollation{c}.ConvertDistinctOption(),
 	}
 
 	t.Run("MakeOptions", func(t *testing.T) {

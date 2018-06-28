@@ -61,16 +61,16 @@ func TestDeleteOpt(t *testing.T) {
 	bundle1 = bundle1.Collation(c).Collation(c)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		Collation(c).ConvertOption(),
-		Collation(c).ConvertOption(),
+		Collation(c).ConvertDeleteOption(),
+		Collation(c).ConvertDeleteOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		Collation(c).ConvertOption(),
+		Collation(c).ConvertDeleteOption(),
 	}
 
 	bundle2 := BundleDelete(Collation(c))
 	bundle2Opts := []option.Optioner{
-		Collation(c).ConvertOption(),
+		Collation(c).ConvertDeleteOption(),
 	}
 
 	bundle3 := BundleDelete().
@@ -78,12 +78,12 @@ func TestDeleteOpt(t *testing.T) {
 		Collation(c)
 
 	bundle3Opts := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c}.ConvertDeleteOption(),
+		OptCollation{c}.ConvertDeleteOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c}.ConvertDeleteOption(),
 	}
 
 	nilBundle := BundleDelete()
@@ -91,38 +91,38 @@ func TestDeleteOpt(t *testing.T) {
 
 	nestedBundle1 := createNestedDeleteBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
-		OptWriteConcern{wc1}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c}.ConvertDeleteOption(),
+		OptWriteConcern{wc1}.ConvertDeleteOption(),
+		OptCollation{c}.ConvertDeleteOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptWriteConcern{wc1}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptWriteConcern{wc1}.ConvertDeleteOption(),
+		OptCollation{c}.ConvertDeleteOption(),
 	}
 
 	nestedBundle2 := createNestedDeleteBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptCollation{c}.ConvertOption(),
-		OptWriteConcern{wc1}.ConvertOption(),
-		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptCollation{c}.ConvertDeleteOption(),
+		OptWriteConcern{wc1}.ConvertDeleteOption(),
+		OptWriteConcern{wc2}.ConvertDeleteOption(),
+		OptCollation{c}.ConvertDeleteOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptWriteConcern{wc2}.ConvertDeleteOption(),
+		OptCollation{c}.ConvertDeleteOption(),
 	}
 
 	nestedBundle3 := createNestedDeleteBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
-		OptWriteConcern{wc1}.ConvertOption(),
-		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptWriteConcern{wc2}.ConvertDeleteOption(),
+		OptCollation{c}.ConvertDeleteOption(),
+		OptWriteConcern{wc1}.ConvertDeleteOption(),
+		OptWriteConcern{wc2}.ConvertDeleteOption(),
+		OptCollation{c}.ConvertDeleteOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOption(),
-		OptCollation{c}.ConvertOption(),
+		OptWriteConcern{wc2}.ConvertDeleteOption(),
+		OptCollation{c}.ConvertDeleteOption(),
 	}
 
 	t.Run("MakeOptions", func(t *testing.T) {
