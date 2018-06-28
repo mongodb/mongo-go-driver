@@ -19,7 +19,7 @@ var replaceBundle = new(ReplaceBundle)
 // Replace is options for the replace() function
 type Replace interface {
 	replace()
-	ConvertOption() option.ReplaceOptioner
+	ConvertReplaceOption() option.ReplaceOptioner
 }
 
 // ReplaceBundle is a bundle of Replace options
@@ -31,8 +31,8 @@ type ReplaceBundle struct {
 // Implement the Replace interface
 func (rb *ReplaceBundle) replace() {}
 
-// ConvertOption implements the Replace interface
-func (rb *ReplaceBundle) ConvertOption() option.ReplaceOptioner { return nil }
+// ConvertReplaceOption implements the Replace interface
+func (rb *ReplaceBundle) ConvertReplaceOption() option.ReplaceOptioner { return nil }
 
 // BundleReplace bundles Replace options
 func BundleReplace(opts ...Replace) *ReplaceBundle {
@@ -103,7 +103,7 @@ func (rb *ReplaceBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertOption().String() + "\n"
+		str += head.option.ConvertReplaceOption().String() + "\n"
 	}
 
 	return str
@@ -191,7 +191,7 @@ func (rb *ReplaceBundle) unbundle() ([]option.ReplaceOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertOption()
+		options[index] = listHead.option.ConvertReplaceOption()
 		index--
 	}
 
@@ -226,8 +226,8 @@ type OptBypassDocumentValidation option.OptBypassDocumentValidation
 
 func (OptBypassDocumentValidation) replace() {}
 
-// ConvertOption implements the Replace interface
-func (opt OptBypassDocumentValidation) ConvertOption() option.ReplaceOptioner {
+// ConvertReplaceOption implements the Replace interface
+func (opt OptBypassDocumentValidation) ConvertReplaceOption() option.ReplaceOptioner {
 	return option.OptBypassDocumentValidation(opt)
 }
 
@@ -236,8 +236,8 @@ type OptCollation option.OptCollation
 
 func (OptCollation) replace() {}
 
-// ConvertOption implements the replace interface
-func (opt OptCollation) ConvertOption() option.ReplaceOptioner {
+// ConvertReplaceOption implements the replace interface
+func (opt OptCollation) ConvertReplaceOption() option.ReplaceOptioner {
 	return option.OptCollation(opt)
 }
 
@@ -246,8 +246,8 @@ type OptUpsert option.OptUpsert
 
 func (OptUpsert) replace() {}
 
-// ConvertOption implements the Replace interface
-func (opt OptUpsert) ConvertOption() option.ReplaceOptioner {
+// ConvertReplaceOption implements the Replace interface
+func (opt OptUpsert) ConvertReplaceOption() option.ReplaceOptioner {
 	return option.OptUpsert(opt)
 }
 
@@ -256,7 +256,7 @@ type OptWriteConcern option.OptWriteConcern
 
 func (OptWriteConcern) replace() {}
 
-// ConvertOption implements the Replace interface
-func (opt OptWriteConcern) ConvertOption() option.ReplaceOptioner {
+// ConvertReplaceOption implements the Replace interface
+func (opt OptWriteConcern) ConvertReplaceOption() option.ReplaceOptioner {
 	return option.OptWriteConcern(opt)
 }

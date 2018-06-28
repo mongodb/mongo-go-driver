@@ -13,7 +13,7 @@ import (
 var wc1 = writeconcern.New(writeconcern.W(10))
 var wc2 = writeconcern.New(writeconcern.W(20))
 
-func createNestedOneBundle1(t *testing.T) *OneBundle {
+func createNestedInsertOneBundle1(t *testing.T) *OneBundle {
 	nestedBundle := BundleOne(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, nestedBundle, "nested bundle was nil")
 
@@ -24,7 +24,7 @@ func createNestedOneBundle1(t *testing.T) *OneBundle {
 }
 
 // Test doubly nested bundle
-func createNestedOneBundle2(t *testing.T) *OneBundle {
+func createNestedInsertOneBundle2(t *testing.T) *OneBundle {
 	b1 := BundleOne(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
@@ -38,7 +38,7 @@ func createNestedOneBundle2(t *testing.T) *OneBundle {
 }
 
 // Test two top level nested bundles
-func createNestedOneBundle3(t *testing.T) *OneBundle {
+func createNestedInsertOneBundle3(t *testing.T) *OneBundle {
 	b1 := BundleOne(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
@@ -57,21 +57,21 @@ func createNestedOneBundle3(t *testing.T) *OneBundle {
 	return outerBundle
 }
 
-func TestInsertOneOpt(t *testing.T) {
+func TestInsertInsertOneOpt(t *testing.T) {
 	var bundle1 *OneBundle
 	bundle1 = bundle1.BypassDocumentValidation(true).BypassDocumentValidation(false)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		BypassDocumentValidation(true).ConvertOneOption(),
-		BypassDocumentValidation(false).ConvertOneOption(),
+		BypassDocumentValidation(true).ConvertInsertOption(),
+		BypassDocumentValidation(false).ConvertInsertOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		BypassDocumentValidation(false).ConvertOneOption(),
+		BypassDocumentValidation(false).ConvertInsertOption(),
 	}
 
 	bundle2 := BundleOne(BypassDocumentValidation(true))
 	bundle2Opts := []option.Optioner{
-		BypassDocumentValidation(true).ConvertOneOption(),
+		BypassDocumentValidation(true).ConvertInsertOption(),
 	}
 
 	bundle3 := BundleOne().
@@ -79,51 +79,51 @@ func TestInsertOneOpt(t *testing.T) {
 		BypassDocumentValidation(true)
 
 	bundle3Opts := []option.Optioner{
-		OptBypassDocumentValidation(false).ConvertOneOption(),
-		OptBypassDocumentValidation(true).ConvertOneOption(),
+		OptBypassDocumentValidation(false).ConvertInsertOption(),
+		OptBypassDocumentValidation(true).ConvertInsertOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptBypassDocumentValidation(true).ConvertOneOption(),
+		OptBypassDocumentValidation(true).ConvertInsertOption(),
 	}
 
 	nilBundle := BundleOne()
 	var nilBundleOpts []option.Optioner
 
-	nestedBundle1 := createNestedOneBundle1(t)
+	nestedBundle1 := createNestedInsertOneBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptBypassDocumentValidation(true).ConvertOneOption(),
-		OptWriteConcern{wc1}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptBypassDocumentValidation(true).ConvertInsertOption(),
+		OptWriteConcern{wc1}.ConvertInsertOption(),
+		OptBypassDocumentValidation(false).ConvertInsertOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptWriteConcern{wc1}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptWriteConcern{wc1}.ConvertInsertOption(),
+		OptBypassDocumentValidation(false).ConvertInsertOption(),
 	}
 
-	nestedBundle2 := createNestedOneBundle2(t)
+	nestedBundle2 := createNestedInsertOneBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptBypassDocumentValidation(true).ConvertOneOption(),
-		OptWriteConcern{wc1}.ConvertOneOption(),
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptBypassDocumentValidation(true).ConvertInsertOption(),
+		OptWriteConcern{wc1}.ConvertInsertOption(),
+		OptWriteConcern{wc2}.ConvertInsertOption(),
+		OptBypassDocumentValidation(false).ConvertInsertOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptWriteConcern{wc2}.ConvertInsertOption(),
+		OptBypassDocumentValidation(false).ConvertInsertOption(),
 	}
 
-	nestedBundle3 := createNestedOneBundle3(t)
+	nestedBundle3 := createNestedInsertOneBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(true).ConvertOneOption(),
-		OptWriteConcern{wc1}.ConvertOneOption(),
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptWriteConcern{wc2}.ConvertInsertOption(),
+		OptBypassDocumentValidation(true).ConvertInsertOption(),
+		OptWriteConcern{wc1}.ConvertInsertOption(),
+		OptWriteConcern{wc2}.ConvertInsertOption(),
+		OptBypassDocumentValidation(false).ConvertInsertOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptWriteConcern{wc2}.ConvertInsertOption(),
+		OptBypassDocumentValidation(false).ConvertInsertOption(),
 	}
 
 	t.Run("MakeOptions", func(t *testing.T) {
@@ -157,7 +157,7 @@ func TestInsertOneOpt(t *testing.T) {
 		}
 
 		for i, opt := range opts {
-			if !reflect.DeepEqual(opt.ConvertOneOption(), deleteOpts[i]) {
+			if !reflect.DeepEqual(opt.ConvertInsertOption(), deleteOpts[i]) {
 				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
 			}
 		}
