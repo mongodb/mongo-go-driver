@@ -87,7 +87,7 @@ func (coll *Collection) namespace() command.Namespace {
 	return command.NewNamespace(coll.db.name, coll.name)
 }
 
-// InsertOne inserts a single document into the collection. A user can supply
+// One inserts a single document into the collection. A user can supply
 // a custom context to this method, or nil to default to context.Background().
 //
 // This method uses TransformDocument to turn the document parameter into a
@@ -135,7 +135,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	return &InsertOneResult{InsertedID: insertedID}, err
 }
 
-// InsertMany inserts the provided documents. A user can supply a custom context to this
+// Many inserts the provided documents. A user can supply a custom context to this
 // method.
 //
 // Currently, batching is not implemented for this operation. Because of this, extremely large
