@@ -13,19 +13,19 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
-var oneBundle = new(OneBundle)
-var manyBundle = new(ManyBundle)
+var insertOneBundle = new(OneBundle)
+var insertManyBundle = new(ManyBundle)
 
-// One is options for InsertOne
+// One is options for InsertInsertOne
 type One interface {
-	one()
-	ConvertOneOption() option.InsertOptioner
+	insertOne()
+	ConvertInsertOption() option.InsertOptioner
 }
 
-// Many is optinos for InsertMany
+// Many is options for InsertInsertMany
 type Many interface {
-	many()
-	ConvertManyOption() option.InsertOptioner
+	insertMany()
+	ConvertInsertOption() option.InsertOptioner
 }
 
 // OneBundle is a bundle of One options
@@ -35,14 +35,14 @@ type OneBundle struct {
 }
 
 // Implement the One interface
-func (ob *OneBundle) one() {}
+func (ob *OneBundle) insertOne() {}
 
-// ConvertOneOption implements the One interface
-func (ob *OneBundle) ConvertOneOption() option.InsertOptioner { return nil }
+// ConvertInsertOption implements the One interface
+func (ob *OneBundle) ConvertInsertOption() option.InsertOptioner { return nil }
 
 // BundleOne bundles One options
 func BundleOne(opts ...One) *OneBundle {
-	head := oneBundle
+	head := insertOneBundle
 
 	for _, opt := range opts {
 		newBundle := OneBundle{
@@ -163,7 +163,7 @@ func (ob *OneBundle) unbundle() ([]option.InsertOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertOneOption()
+		options[index] = listHead.option.ConvertInsertOption()
 		index--
 	}
 
@@ -183,13 +183,13 @@ func (ob *OneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertOneOption().String() + "\n"
+		str += head.option.ConvertInsertOption().String() + "\n"
 	}
 
 	return str
 }
 
-// ManyBundle is a bundle of InsertMany options
+// ManyBundle is a bundle of InsertInsertMany options
 type ManyBundle struct {
 	option Many
 	next   *ManyBundle
@@ -197,7 +197,7 @@ type ManyBundle struct {
 
 // BundleMany bundles Many options
 func BundleMany(opts ...Many) *ManyBundle {
-	head := manyBundle
+	head := insertManyBundle
 
 	for _, opt := range opts {
 		newBundle := ManyBundle{
@@ -212,10 +212,10 @@ func BundleMany(opts ...Many) *ManyBundle {
 }
 
 // Implement the Many interface
-func (mb *ManyBundle) many() {}
+func (mb *ManyBundle) insertMany() {}
 
-// ConvertManyOption implements the Many interface
-func (mb *ManyBundle) ConvertManyOption() option.InsertOptioner { return nil }
+// ConvertInsertOption implements the Many interface
+func (mb *ManyBundle) ConvertInsertOption() option.InsertOptioner { return nil }
 
 // BypassDocumentValidation adds an option allowing the write to opt-out of the document-level validation.
 func (mb *ManyBundle) BypassDocumentValidation(b bool) *ManyBundle {
@@ -334,7 +334,7 @@ func (mb *ManyBundle) unbundle() ([]option.InsertOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertManyOption()
+		options[index] = listHead.option.ConvertInsertOption()
 		index--
 	}
 
@@ -354,7 +354,7 @@ func (mb *ManyBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertManyOption().String() + "\n"
+		str += head.option.ConvertInsertOption().String() + "\n"
 	}
 
 	return str
@@ -386,37 +386,27 @@ type OptOrdered option.OptOrdered
 // OptWriteConcern specifies a write concern
 type OptWriteConcern option.OptWriteConcern
 
-func (OptBypassDocumentValidation) one() {}
+func (OptBypassDocumentValidation) insertMany() {}
 
-// ConvertOneOption implements the One interface
-func (opt OptBypassDocumentValidation) ConvertOneOption() option.InsertOptioner {
+func (OptBypassDocumentValidation) insertOne() {}
+
+// ConvertInsertOption implements the One,Many interface
+func (opt OptBypassDocumentValidation) ConvertInsertOption() option.InsertOptioner {
 	return option.OptBypassDocumentValidation(opt)
 }
 
-func (OptWriteConcern) one() {}
+func (OptWriteConcern) insertOne() {}
 
-// ConvertOneOption implements the One interface
-func (opt OptWriteConcern) ConvertOneOption() option.InsertOptioner {
+func (OptWriteConcern) insertMany() {}
+
+// ConvertInsertOption implements the One,Many interface
+func (opt OptWriteConcern) ConvertInsertOption() option.InsertOptioner {
 	return option.OptWriteConcern(opt)
 }
 
-func (OptWriteConcern) many() {}
+func (OptOrdered) insertMany() {}
 
-// ConvertManyOption implements the Many interface
-func (opt OptWriteConcern) ConvertManyOption() option.InsertOptioner {
-	return option.OptWriteConcern(opt)
-}
-
-func (OptBypassDocumentValidation) many() {}
-
-// ConvertManyOption implements the Many interface
-func (opt OptBypassDocumentValidation) ConvertManyOption() option.InsertOptioner {
-	return option.OptBypassDocumentValidation(opt)
-}
-
-func (OptOrdered) many() {}
-
-// ConvertManyOption implements the Many interface
-func (opt OptOrdered) ConvertManyOption() option.InsertOptioner {
+// ConvertInsertOption implements the Many interface
+func (opt OptOrdered) ConvertInsertOption() option.InsertOptioner {
 	return option.OptOrdered(opt)
 }

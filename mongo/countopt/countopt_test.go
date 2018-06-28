@@ -59,18 +59,18 @@ func TestCountOpt(t *testing.T) {
 	bundle1 = bundle1.MaxTimeMs(5).Skip(10).MaxTimeMs(15)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		MaxTimeMs(5).ConvertOption(),
-		Skip(10).ConvertOption(),
-		MaxTimeMs(15).ConvertOption(),
+		MaxTimeMs(5).ConvertCountOption(),
+		Skip(10).ConvertCountOption(),
+		MaxTimeMs(15).ConvertCountOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		Skip(10).ConvertOption(),
-		MaxTimeMs(15).ConvertOption(),
+		Skip(10).ConvertCountOption(),
+		MaxTimeMs(15).ConvertCountOption(),
 	}
 
 	bundle2 := BundleCount(MaxTimeMs(1))
 	bundle2Opts := []option.Optioner{
-		OptMaxTimeMs(1).ConvertOption(),
+		OptMaxTimeMs(1).ConvertCountOption(),
 	}
 
 	bundle3 := BundleCount().
@@ -80,15 +80,15 @@ func TestCountOpt(t *testing.T) {
 		Limit(10)
 
 	bundle3Opts := []option.Optioner{
-		OptMaxTimeMs(1).ConvertOption(),
-		OptMaxTimeMs(2).ConvertOption(),
-		OptLimit(6).ConvertOption(),
-		OptLimit(10).ConvertOption(),
+		OptMaxTimeMs(1).ConvertCountOption(),
+		OptMaxTimeMs(2).ConvertCountOption(),
+		OptLimit(6).ConvertCountOption(),
+		OptLimit(10).ConvertCountOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptMaxTimeMs(2).ConvertOption(),
-		OptLimit(10).ConvertOption(),
+		OptMaxTimeMs(2).ConvertCountOption(),
+		OptLimit(10).ConvertCountOption(),
 	}
 
 	nilBundle := BundleCount()
@@ -96,44 +96,44 @@ func TestCountOpt(t *testing.T) {
 
 	nestedBundle1 := createNestedCountBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptSkip(10).ConvertOption(),
-		OptLimit(500).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptSkip(10).ConvertCountOption(),
+		OptLimit(500).ConvertCountOption(),
+		OptSkip(5).ConvertCountOption(),
+		OptMaxTimeMs(1000).ConvertCountOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptLimit(500).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptLimit(500).ConvertCountOption(),
+		OptSkip(5).ConvertCountOption(),
+		OptMaxTimeMs(1000).ConvertCountOption(),
 	}
 
 	nestedBundle2 := createNestedCountBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptSkip(10).ConvertOption(),
-		OptLimit(500).ConvertOption(),
-		OptLimit(100).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptSkip(10).ConvertCountOption(),
+		OptLimit(500).ConvertCountOption(),
+		OptLimit(100).ConvertCountOption(),
+		OptSkip(5).ConvertCountOption(),
+		OptMaxTimeMs(1000).ConvertCountOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptLimit(100).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptLimit(100).ConvertCountOption(),
+		OptSkip(5).ConvertCountOption(),
+		OptMaxTimeMs(1000).ConvertCountOption(),
 	}
 
 	nestedBundle3 := createNestedCountBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptLimit(100).ConvertOption(),
-		OptSkip(10).ConvertOption(),
-		OptLimit(500).ConvertOption(),
-		OptLimit(100).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptLimit(100).ConvertCountOption(),
+		OptSkip(10).ConvertCountOption(),
+		OptLimit(500).ConvertCountOption(),
+		OptLimit(100).ConvertCountOption(),
+		OptSkip(5).ConvertCountOption(),
+		OptMaxTimeMs(1000).ConvertCountOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptLimit(100).ConvertOption(),
-		OptSkip(5).ConvertOption(),
-		OptMaxTimeMs(1000).ConvertOption(),
+		OptLimit(100).ConvertCountOption(),
+		OptSkip(5).ConvertCountOption(),
+		OptMaxTimeMs(1000).ConvertCountOption(),
 	}
 
 	t.Run("TestAll", func(t *testing.T) {
@@ -158,7 +158,7 @@ func TestCountOpt(t *testing.T) {
 		}
 
 		for i, opt := range opts {
-			if !reflect.DeepEqual(opt.ConvertOption(), deleteOpts[i]) {
+			if !reflect.DeepEqual(opt.ConvertCountOption(), deleteOpts[i]) {
 				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
 			}
 		}
