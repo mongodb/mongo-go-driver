@@ -27,6 +27,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
+	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -491,7 +492,7 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
 		),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 	coll := db.Collection(testutil.ColName(t))
@@ -608,7 +609,7 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
 		),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 	coll := db.Collection(testutil.ColName(t))

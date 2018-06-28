@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
+	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -114,7 +115,7 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	result, err := db.RunCommand(context.Background(), bson.NewDocument(
 		bson.EC.Int32("ismaster", 1),
-	), rpPrimary)
+	), runcmdopt.ReadPreference(rpPrimary))
 	require.NoError(t, err)
 
 	isMaster, err := result.Lookup("ismaster")
@@ -156,7 +157,7 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 			bson.EC.String("create", cappedName),
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
-		), rpPrimary,
+		),
 	)
 	if err != nil {
 		return "", "", err

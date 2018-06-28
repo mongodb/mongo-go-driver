@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/indexopt"
+	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +48,7 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 		bson.NewDocument(
 			bson.EC.String("create", dbName),
 		),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 

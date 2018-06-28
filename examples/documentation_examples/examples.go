@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
 )
 
 var rpPrimary = readpref.Primary()
@@ -60,7 +61,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
@@ -162,7 +163,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
@@ -353,7 +354,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
@@ -518,7 +519,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
@@ -746,7 +747,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
@@ -978,7 +979,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
@@ -1059,7 +1060,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
@@ -1494,7 +1495,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
@@ -1794,7 +1795,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 	_, err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-		rpPrimary,
+		runcmdopt.ReadPreference(rpPrimary),
 	)
 	require.NoError(t, err)
 
