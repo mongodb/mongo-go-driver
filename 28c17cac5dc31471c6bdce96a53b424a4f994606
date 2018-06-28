@@ -16,6 +16,24 @@
       "revId": "28c17cac5dc31471c6bdce96a53b424a4f994606",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "76320cf0_41f4054a",
+        "filename": "mongo/database.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-28T18:22:19Z",
+      "side": 1,
+      "message": "I was wondering this too, but read preference seemed like the only option one would provide to RunCommand. If there are others then I think we should add dbopt.RunCommand or something similar.",
+      "parentUuid": "b0599171_b0c55918",
+      "revId": "28c17cac5dc31471c6bdce96a53b424a4f994606",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
