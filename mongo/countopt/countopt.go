@@ -12,7 +12,7 @@ var countBundle = new(CountBundle)
 // Count is options for the count() function
 type Count interface {
 	count()
-	ConvertOption() option.CountOptioner
+	ConvertCountOption() option.CountOptioner
 }
 
 // CountBundle is a bundle of Count options
@@ -24,8 +24,8 @@ type CountBundle struct {
 // Implement the Count interface
 func (cb *CountBundle) count() {}
 
-// ConvertOption implements the Count interface
-func (cb *CountBundle) ConvertOption() option.CountOptioner {
+// ConvertCountOption implements the Count interface
+func (cb *CountBundle) ConvertCountOption() option.CountOptioner {
 	return nil
 }
 
@@ -176,7 +176,7 @@ func (cb *CountBundle) unbundle() ([]option.CountOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertOption()
+		options[index] = listHead.option.ConvertCountOption()
 		index--
 	}
 
@@ -196,7 +196,7 @@ func (cb *CountBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertOption().String()
+		str += head.option.ConvertCountOption().String()
 	}
 
 	return str
@@ -234,16 +234,16 @@ type OptCollation option.OptCollation
 
 func (OptCollation) count() {}
 
-// ConvertOption implements the Count interface.
-func (opt OptCollation) ConvertOption() option.CountOptioner {
+// ConvertCountOption implements the Count interface.
+func (opt OptCollation) ConvertCountOption() option.CountOptioner {
 	return option.OptCollation(opt)
 }
 
 // OptLimit limits the maximum number of documents to count.
 type OptLimit option.OptLimit
 
-// ConvertOption implements the Count interface.
-func (opt OptLimit) ConvertOption() option.CountOptioner {
+// ConvertCountOption implements the Count interface.
+func (opt OptLimit) ConvertCountOption() option.CountOptioner {
 	return option.OptLimit(opt)
 }
 
@@ -252,8 +252,8 @@ func (OptLimit) count() {}
 // OptSkip specifies the number of documents to skip before counting.
 type OptSkip option.OptSkip
 
-// ConvertOption implements the Count interface.
-func (opt OptSkip) ConvertOption() option.CountOptioner {
+// ConvertCountOption implements the Count interface.
+func (opt OptSkip) ConvertCountOption() option.CountOptioner {
 	return option.OptSkip(opt)
 }
 
@@ -262,8 +262,8 @@ func (OptSkip) count() {}
 // OptHint specifies the index to use.
 type OptHint option.OptHint
 
-// ConvertOption implements the Count interface.
-func (opt OptHint) ConvertOption() option.CountOptioner {
+// ConvertCountOption implements the Count interface.
+func (opt OptHint) ConvertCountOption() option.CountOptioner {
 	return option.OptHint(opt)
 }
 
@@ -272,8 +272,8 @@ func (OptHint) count() {}
 // OptMaxTimeMs specifies the maximum amount of time to allow the operation to run.
 type OptMaxTimeMs option.OptMaxTime
 
-// ConvertOption implements the Count interface.
-func (opt OptMaxTimeMs) ConvertOption() option.CountOptioner {
+// ConvertCountOption implements the Count interface.
+func (opt OptMaxTimeMs) ConvertCountOption() option.CountOptioner {
 	return option.OptMaxTime(opt)
 }
 

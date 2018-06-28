@@ -97,7 +97,7 @@ func (coll *Collection) namespace() command.Namespace {
 // TODO(skriptble): Determine if we should unwrap the value for the
 // InsertOneResult or just return the bson.Element or a bson.Value.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...insertopt.One) (*InsertOneResult, error) {
+	opts ...insertopt.InsertOne) (*InsertOneResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -146,7 +146,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // documents.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
-	opts ...insertopt.Many) (*InsertManyResult, error) {
+	opts ...insertopt.InsertMany) (*InsertManyResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
