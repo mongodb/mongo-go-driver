@@ -59,18 +59,18 @@ func TestAggregateOpt(t *testing.T) {
 	bundle1 = bundle1.BypassDocumentValidation(true).Comment("hello world").BypassDocumentValidation(false)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		BypassDocumentValidation(true).ConvertOption(),
-		Comment("hello world").ConvertOption(),
-		BypassDocumentValidation(false).ConvertOption(),
+		BypassDocumentValidation(true).ConvertAggregateOption(),
+		Comment("hello world").ConvertAggregateOption(),
+		BypassDocumentValidation(false).ConvertAggregateOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		Comment("hello world").ConvertOption(),
-		BypassDocumentValidation(false).ConvertOption(),
+		Comment("hello world").ConvertAggregateOption(),
+		BypassDocumentValidation(false).ConvertAggregateOption(),
 	}
 
 	bundle2 := BundleAggregate(BatchSize(1))
 	bundle2Opts := []option.Optioner{
-		OptBatchSize(1).ConvertOption(),
+		OptBatchSize(1).ConvertAggregateOption(),
 	}
 
 	bundle3 := BundleAggregate().
@@ -82,18 +82,18 @@ func TestAggregateOpt(t *testing.T) {
 		Comment("World")
 
 	bundle3Opts := []option.Optioner{
-		OptBatchSize(1).ConvertOption(),
-		OptComment("Hello").ConvertOption(),
-		OptBatchSize(2).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
-		OptBypassDocumentValidation(true).ConvertOption(),
-		OptComment("World").ConvertOption(),
+		OptBatchSize(1).ConvertAggregateOption(),
+		OptComment("Hello").ConvertAggregateOption(),
+		OptBatchSize(2).ConvertAggregateOption(),
+		OptBypassDocumentValidation(false).ConvertAggregateOption(),
+		OptBypassDocumentValidation(true).ConvertAggregateOption(),
+		OptComment("World").ConvertAggregateOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptBatchSize(2).ConvertOption(),
-		OptBypassDocumentValidation(true).ConvertOption(),
-		OptComment("World").ConvertOption(),
+		OptBatchSize(2).ConvertAggregateOption(),
+		OptBypassDocumentValidation(true).ConvertAggregateOption(),
+		OptComment("World").ConvertAggregateOption(),
 	}
 
 	nilBundle := BundleAggregate()
@@ -101,54 +101,54 @@ func TestAggregateOpt(t *testing.T) {
 
 	nestedBundle1 := createNestedBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptAllowDiskUse(true).ConvertOption(),
-		OptMaxTime(500).ConvertOption(),
-		OptAllowDiskUse(false).ConvertOption(),
-		OptComment("hello world nested").ConvertOption(),
-		OptBatchSize(1000).ConvertOption(),
+		OptAllowDiskUse(true).ConvertAggregateOption(),
+		OptMaxTime(500).ConvertAggregateOption(),
+		OptAllowDiskUse(false).ConvertAggregateOption(),
+		OptComment("hello world nested").ConvertAggregateOption(),
+		OptBatchSize(1000).ConvertAggregateOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptMaxTime(500).ConvertOption(),
-		OptAllowDiskUse(false).ConvertOption(),
-		OptComment("hello world nested").ConvertOption(),
-		OptBatchSize(1000).ConvertOption(),
+		OptMaxTime(500).ConvertAggregateOption(),
+		OptAllowDiskUse(false).ConvertAggregateOption(),
+		OptComment("hello world nested").ConvertAggregateOption(),
+		OptBatchSize(1000).ConvertAggregateOption(),
 	}
 
 	nestedBundle2 := createNestedBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptAllowDiskUse(true).ConvertOption(),
-		OptMaxTime(500).ConvertOption(),
-		OptMaxTime(100).ConvertOption(),
-		OptAllowDiskUse(false).ConvertOption(),
-		OptComment("nest1").ConvertOption(),
-		OptComment("nest2").ConvertOption(),
-		OptBatchSize(1000).ConvertOption(),
+		OptAllowDiskUse(true).ConvertAggregateOption(),
+		OptMaxTime(500).ConvertAggregateOption(),
+		OptMaxTime(100).ConvertAggregateOption(),
+		OptAllowDiskUse(false).ConvertAggregateOption(),
+		OptComment("nest1").ConvertAggregateOption(),
+		OptComment("nest2").ConvertAggregateOption(),
+		OptBatchSize(1000).ConvertAggregateOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptMaxTime(100).ConvertOption(),
-		OptAllowDiskUse(false).ConvertOption(),
-		OptComment("nest2").ConvertOption(),
-		OptBatchSize(1000).ConvertOption(),
+		OptMaxTime(100).ConvertAggregateOption(),
+		OptAllowDiskUse(false).ConvertAggregateOption(),
+		OptComment("nest2").ConvertAggregateOption(),
+		OptBatchSize(1000).ConvertAggregateOption(),
 	}
 
 	nestedBundle3 := createNestedBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptMaxTime(100).ConvertOption(),
-		OptAllowDiskUse(true).ConvertOption(),
-		OptComment("nest3").ConvertOption(),
-		OptComment("nest4").ConvertOption(),
-		OptMaxTime(500).ConvertOption(),
-		OptMaxTime(100).ConvertOption(),
-		OptAllowDiskUse(false).ConvertOption(),
-		OptComment("nest1").ConvertOption(),
-		OptComment("nest2").ConvertOption(),
-		OptBatchSize(1000).ConvertOption(),
+		OptMaxTime(100).ConvertAggregateOption(),
+		OptAllowDiskUse(true).ConvertAggregateOption(),
+		OptComment("nest3").ConvertAggregateOption(),
+		OptComment("nest4").ConvertAggregateOption(),
+		OptMaxTime(500).ConvertAggregateOption(),
+		OptMaxTime(100).ConvertAggregateOption(),
+		OptAllowDiskUse(false).ConvertAggregateOption(),
+		OptComment("nest1").ConvertAggregateOption(),
+		OptComment("nest2").ConvertAggregateOption(),
+		OptBatchSize(1000).ConvertAggregateOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptMaxTime(100).ConvertOption(),
-		OptAllowDiskUse(false).ConvertOption(),
-		OptComment("nest2").ConvertOption(),
-		OptBatchSize(1000).ConvertOption(),
+		OptMaxTime(100).ConvertAggregateOption(),
+		OptAllowDiskUse(false).ConvertAggregateOption(),
+		OptComment("nest2").ConvertAggregateOption(),
+		OptBatchSize(1000).ConvertAggregateOption(),
 	}
 
 	t.Run("TestAll", func(t *testing.T) {
@@ -175,7 +175,7 @@ func TestAggregateOpt(t *testing.T) {
 		}
 
 		for i, opt := range opts {
-			if !reflect.DeepEqual(opt.ConvertOption(), deleteOpts[i]) {
+			if !reflect.DeepEqual(opt.ConvertAggregateOption(), deleteOpts[i]) {
 				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
 			}
 		}

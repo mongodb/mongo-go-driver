@@ -19,7 +19,7 @@ var updateBundle = new(UpdateBundle)
 // Update is options for the update() function
 type Update interface {
 	update()
-	ConvertOption() option.UpdateOptioner
+	ConvertUpdateOption() option.UpdateOptioner
 }
 
 // UpdateBundle bundles One options
@@ -31,8 +31,8 @@ type UpdateBundle struct {
 // Implement the Update interface
 func (ub *UpdateBundle) update() {}
 
-// ConvertOption implements the Update interface
-func (ub *UpdateBundle) ConvertOption() option.UpdateOptioner { return nil }
+// ConvertUpdateOption implements the Update interface
+func (ub *UpdateBundle) ConvertUpdateOption() option.UpdateOptioner { return nil }
 
 // BundleUpdate bundles Update options
 func BundleUpdate(opts ...Update) *UpdateBundle {
@@ -111,7 +111,7 @@ func (ub *UpdateBundle) String() string {
 			str += converted.String()
 			continue
 		}
-		str += head.option.ConvertOption().String() + "\n"
+		str += head.option.ConvertUpdateOption().String() + "\n"
 	}
 	return str
 }
@@ -198,7 +198,7 @@ func (ub *UpdateBundle) unbundle() ([]option.UpdateOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertOption()
+		options[index] = listHead.option.ConvertUpdateOption()
 		index--
 	}
 
@@ -236,8 +236,8 @@ type OptArrayFilters option.OptArrayFilters
 
 func (OptArrayFilters) update() {}
 
-// ConvertOption implements the Update interface
-func (opt OptArrayFilters) ConvertOption() option.UpdateOptioner {
+// ConvertUpdateOption implements the Update interface
+func (opt OptArrayFilters) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptArrayFilters(opt)
 }
 
@@ -246,8 +246,8 @@ type OptBypassDocumentValidation option.OptBypassDocumentValidation
 
 func (OptBypassDocumentValidation) update() {}
 
-// ConvertOption implements the Update interface
-func (opt OptBypassDocumentValidation) ConvertOption() option.UpdateOptioner {
+// ConvertUpdateOption implements the Update interface
+func (opt OptBypassDocumentValidation) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptBypassDocumentValidation(opt)
 }
 
@@ -256,8 +256,8 @@ type OptCollation option.OptCollation
 
 func (OptCollation) update() {}
 
-// ConvertOption implements the Update interface.
-func (opt OptCollation) ConvertOption() option.UpdateOptioner {
+// ConvertUpdateOption implements the Update interface.
+func (opt OptCollation) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptCollation(opt)
 }
 
@@ -266,8 +266,8 @@ type OptUpsert option.OptUpsert
 
 func (OptUpsert) update() {}
 
-// ConvertOption implements the Update interface.
-func (opt OptUpsert) ConvertOption() option.UpdateOptioner {
+// ConvertUpdateOption implements the Update interface.
+func (opt OptUpsert) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptUpsert(opt)
 }
 
@@ -276,7 +276,7 @@ type OptWriteConcern option.OptWriteConcern
 
 func (opt OptWriteConcern) update() {}
 
-// ConvertOption implements the Update interface.
-func (opt OptWriteConcern) ConvertOption() option.UpdateOptioner {
+// ConvertUpdateOption implements the Update interface.
+func (opt OptWriteConcern) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptWriteConcern(opt)
 }

@@ -13,7 +13,7 @@ var deleteBundle = new(DeleteBundle)
 // Delete is options for the delete() function.
 type Delete interface {
 	delete()
-	ConvertOption() option.DeleteOptioner
+	ConvertDeleteOption() option.DeleteOptioner
 }
 
 // DeleteBundle is a bundle of Delete options
@@ -24,8 +24,8 @@ type DeleteBundle struct {
 
 func (db *DeleteBundle) delete() {}
 
-// ConvertOption implements the Delete interface.
-func (db *DeleteBundle) ConvertOption() option.DeleteOptioner {
+// ConvertDeleteOption implements the Delete interface.
+func (db *DeleteBundle) ConvertDeleteOption() option.DeleteOptioner {
 	return nil
 }
 
@@ -147,7 +147,7 @@ func (db *DeleteBundle) unbundle() ([]option.DeleteOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertOption()
+		options[index] = listHead.option.ConvertDeleteOption()
 		index--
 	}
 
@@ -167,7 +167,7 @@ func (db *DeleteBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertOption().String() + "\n"
+		str += head.option.ConvertDeleteOption().String() + "\n"
 	}
 
 	return str
@@ -188,8 +188,8 @@ type OptCollation option.OptCollation
 
 func (OptCollation) delete() {}
 
-// ConvertOption implements the Delete interface.
-func (opt OptCollation) ConvertOption() option.DeleteOptioner {
+// ConvertDeleteOption implements the Delete interface.
+func (opt OptCollation) ConvertDeleteOption() option.DeleteOptioner {
 	return option.OptCollation(opt)
 }
 
@@ -198,7 +198,7 @@ type OptWriteConcern option.OptWriteConcern
 
 func (OptWriteConcern) delete() {}
 
-// ConvertOption implements the Delete interface.
-func (opt OptWriteConcern) ConvertOption() option.DeleteOptioner {
+// ConvertDeleteOption implements the Delete interface.
+func (opt OptWriteConcern) ConvertDeleteOption() option.DeleteOptioner {
 	return option.OptWriteConcern(opt)
 }
