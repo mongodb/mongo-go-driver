@@ -249,12 +249,19 @@ func listCollectionsTest(db *Database, cappedOnly bool) error {
 		)
 	}
 
-	cursor, err := db.ListCollections(context.Background(), filter)
-	if err != nil {
-		return err
+	for i := 0; i < 10; i++ {
+		cursor, err := db.ListCollections(context.Background(), filter)
+		if err != nil {
+			return err
+		}
+
+		err = verifyListCollections(cursor, uncappedName, cappedName, cappedOnly)
+		if err == nil {
+			return nil
+		}
 	}
 
-	return verifyListCollections(cursor, uncappedName, cappedName, cappedOnly)
+	return err // all tests failed
 }
 
 func TestDatabase_ListCollections(t *testing.T) {
