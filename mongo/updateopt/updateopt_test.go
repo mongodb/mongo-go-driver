@@ -68,17 +68,17 @@ func TestUpdateOpt(t *testing.T) {
 	bundle1 = bundle1.Upsert(true).BypassDocumentValidation(false)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		OptUpsert(true).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
+		OptUpsert(true).ConvertUpdateOption(),
+		OptBypassDocumentValidation(false).ConvertUpdateOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		OptUpsert(true).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
+		OptUpsert(true).ConvertUpdateOption(),
+		OptBypassDocumentValidation(false).ConvertUpdateOption(),
 	}
 
 	bundle2 := BundleUpdate(Collation(collation))
 	bundle2Opts := []option.Optioner{
-		OptCollation{collation.Convert()}.ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertUpdateOption(),
 	}
 
 	bundle3 := BundleUpdate().
@@ -88,16 +88,16 @@ func TestUpdateOpt(t *testing.T) {
 		Upsert(true)
 
 	bundle3Opts := []option.Optioner{
-		OptCollation{collation.Convert()}.ConvertOption(),
-		OptBypassDocumentValidation(true).ConvertOption(),
-		OptUpsert(false).ConvertOption(),
-		OptUpsert(true).ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertUpdateOption(),
+		OptBypassDocumentValidation(true).ConvertUpdateOption(),
+		OptUpsert(false).ConvertUpdateOption(),
+		OptUpsert(true).ConvertUpdateOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptCollation{collation.Convert()}.ConvertOption(),
-		OptBypassDocumentValidation(true).ConvertOption(),
-		OptUpsert(true).ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertUpdateOption(),
+		OptBypassDocumentValidation(true).ConvertUpdateOption(),
+		OptUpsert(true).ConvertUpdateOption(),
 	}
 
 	nilBundle := BundleUpdate()
@@ -105,43 +105,43 @@ func TestUpdateOpt(t *testing.T) {
 
 	nestedBundle1 := createNestedUpdateBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptUpsert(true).ConvertOption(),
-		OptBypassDocumentValidation(true).ConvertOption(),
-		OptUpsert(false).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
+		OptUpsert(true).ConvertUpdateOption(),
+		OptBypassDocumentValidation(true).ConvertUpdateOption(),
+		OptUpsert(false).ConvertUpdateOption(),
+		OptBypassDocumentValidation(false).ConvertUpdateOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptUpsert(false).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
+		OptUpsert(false).ConvertUpdateOption(),
+		OptBypassDocumentValidation(false).ConvertUpdateOption(),
 	}
 
 	nestedBundle2 := createNestedUpdateBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptUpsert(true).ConvertOption(),
-		OptBypassDocumentValidation(true).ConvertOption(),
-		OptCollation{collation.Convert()}.ConvertOption(),
-		OptUpsert(false).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
+		OptUpsert(true).ConvertUpdateOption(),
+		OptBypassDocumentValidation(true).ConvertUpdateOption(),
+		OptCollation{collation.Convert()}.ConvertUpdateOption(),
+		OptUpsert(false).ConvertUpdateOption(),
+		OptBypassDocumentValidation(false).ConvertUpdateOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptCollation{collation.Convert()}.ConvertOption(),
-		OptUpsert(false).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertUpdateOption(),
+		OptUpsert(false).ConvertUpdateOption(),
+		OptBypassDocumentValidation(false).ConvertUpdateOption(),
 	}
 
 	nestedBundle3 := createNestedUpdateBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptCollation{collation.Convert()}.ConvertOption(),
-		OptUpsert(true).ConvertOption(),
-		OptBypassDocumentValidation(true).ConvertOption(),
-		OptCollation{collation.Convert()}.ConvertOption(),
-		OptUpsert(false).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertUpdateOption(),
+		OptUpsert(true).ConvertUpdateOption(),
+		OptBypassDocumentValidation(true).ConvertUpdateOption(),
+		OptCollation{collation.Convert()}.ConvertUpdateOption(),
+		OptUpsert(false).ConvertUpdateOption(),
+		OptBypassDocumentValidation(false).ConvertUpdateOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptCollation{collation.Convert()}.ConvertOption(),
-		OptUpsert(false).ConvertOption(),
-		OptBypassDocumentValidation(false).ConvertOption(),
+		OptCollation{collation.Convert()}.ConvertUpdateOption(),
+		OptUpsert(false).ConvertUpdateOption(),
+		OptBypassDocumentValidation(false).ConvertUpdateOption(),
 	}
 
 	t.Run("TestAll", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestUpdateOpt(t *testing.T) {
 		}
 
 		for i, opt := range opts {
-			if !reflect.DeepEqual(opt.ConvertOption(), deleteOpts[i]) {
+			if !reflect.DeepEqual(opt.ConvertUpdateOption(), deleteOpts[i]) {
 				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
 			}
 		}

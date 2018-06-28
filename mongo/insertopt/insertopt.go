@@ -13,39 +13,39 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
-var oneBundle = new(OneBundle)
-var manyBundle = new(ManyBundle)
+var insertOneBundle = new(InsertOneBundle)
+var insertManyBundle = new(InsertManyBundle)
 
-// One is options for InsertOne
-type One interface {
-	one()
-	ConvertOneOption() option.InsertOptioner
+// InsertOne is options for InsertInsertOne
+type InsertOne interface {
+	insertOne()
+	ConvertInsertOneOption() option.InsertOptioner
 }
 
-// Many is optinos for InsertMany
-type Many interface {
-	many()
-	ConvertManyOption() option.InsertOptioner
+// InsertMany is options for InsertInsertMany
+type InsertMany interface {
+	insertMany()
+	ConvertInsertManyOption() option.InsertOptioner
 }
 
-// OneBundle is a bundle of One options
-type OneBundle struct {
-	option One
-	next   *OneBundle
+// InsertOneBundle is a bundle of InsertOne options
+type InsertOneBundle struct {
+	option InsertOne
+	next   *InsertOneBundle
 }
 
-// Implement the One interface
-func (ob *OneBundle) one() {}
+// Implement the InsertOne interface
+func (ob *InsertOneBundle) insertOne() {}
 
-// ConvertOneOption implements the One interface
-func (ob *OneBundle) ConvertOneOption() option.InsertOptioner { return nil }
+// ConvertInsertOneOption implements the InsertOne interface
+func (ob *InsertOneBundle) ConvertInsertOneOption() option.InsertOptioner { return nil }
 
-// BundleOne bundles One options
-func BundleOne(opts ...One) *OneBundle {
-	head := oneBundle
+// BundleOne bundles InsertOne options
+func BundleOne(opts ...InsertOne) *InsertOneBundle {
+	head := insertOneBundle
 
 	for _, opt := range opts {
-		newBundle := OneBundle{
+		newBundle := InsertOneBundle{
 			option: opt,
 			next:   head,
 		}
@@ -57,8 +57,8 @@ func BundleOne(opts ...One) *OneBundle {
 }
 
 // BypassDocumentValidation adds an option allowing the write to opt-out of the document-level validation.
-func (ob *OneBundle) BypassDocumentValidation(b bool) *OneBundle {
-	bundle := &OneBundle{
+func (ob *InsertOneBundle) BypassDocumentValidation(b bool) *InsertOneBundle {
+	bundle := &InsertOneBundle{
 		option: BypassDocumentValidation(b),
 		next:   ob,
 	}
@@ -67,8 +67,8 @@ func (ob *OneBundle) BypassDocumentValidation(b bool) *OneBundle {
 }
 
 // WriteConcern adds an option to specify a write concern
-func (ob *OneBundle) WriteConcern(wc *writeconcern.WriteConcern) *OneBundle {
-	bundle := &OneBundle{
+func (ob *InsertOneBundle) WriteConcern(wc *writeconcern.WriteConcern) *InsertOneBundle {
+	bundle := &InsertOneBundle{
 		option: WriteConcern(wc),
 		next:   ob,
 	}
@@ -77,14 +77,14 @@ func (ob *OneBundle) WriteConcern(wc *writeconcern.WriteConcern) *OneBundle {
 }
 
 // Calculates the total length of a bundle, accounting for nested bundles.
-func (ob *OneBundle) bundleLength() int {
+func (ob *InsertOneBundle) bundleLength() int {
 	if ob == nil {
 		return 0
 	}
 
 	bundleLen := 0
 	for ; ob != nil && ob.option != nil; ob = ob.next {
-		if converted, ok := ob.option.(*OneBundle); ok {
+		if converted, ok := ob.option.(*InsertOneBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
@@ -103,7 +103,7 @@ func (ob *OneBundle) bundleLength() int {
 // if we actually deduplicate options.
 //
 // Since a bundle can be recursive, this method will unwind all recursive bundles.
-func (ob *OneBundle) Unbundle(deduplicate bool) ([]option.InsertOptioner, error) {
+func (ob *InsertOneBundle) Unbundle(deduplicate bool) ([]option.InsertOptioner, error) {
 	options, err := ob.unbundle()
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (ob *OneBundle) Unbundle(deduplicate bool) ([]option.InsertOptioner, error)
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (ob *OneBundle) unbundle() ([]option.InsertOptioner, error) {
+func (ob *InsertOneBundle) unbundle() ([]option.InsertOptioner, error) {
 	if ob == nil {
 		return nil, nil
 	}
@@ -145,7 +145,7 @@ func (ob *OneBundle) unbundle() ([]option.InsertOptioner, error) {
 
 	for listHead := ob; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
-		if converted, ok := listHead.option.(*OneBundle); ok {
+		if converted, ok := listHead.option.(*InsertOneBundle); ok {
 			nestedOptions, err := converted.unbundle()
 			if err != nil {
 				return nil, err
@@ -163,7 +163,7 @@ func (ob *OneBundle) unbundle() ([]option.InsertOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertOneOption()
+		options[index] = listHead.option.ConvertInsertOneOption()
 		index--
 	}
 
@@ -171,36 +171,36 @@ func (ob *OneBundle) unbundle() ([]option.InsertOptioner, error) {
 }
 
 // String implements the Stringer interface
-func (ob *OneBundle) String() string {
+func (ob *InsertOneBundle) String() string {
 	if ob == nil {
 		return ""
 	}
 
 	str := ""
 	for head := ob; head != nil && head.option != nil; head = head.next {
-		if converted, ok := head.option.(*OneBundle); ok {
+		if converted, ok := head.option.(*InsertOneBundle); ok {
 			str += converted.String()
 			continue
 		}
 
-		str += head.option.ConvertOneOption().String() + "\n"
+		str += head.option.ConvertInsertOneOption().String() + "\n"
 	}
 
 	return str
 }
 
-// ManyBundle is a bundle of InsertMany options
-type ManyBundle struct {
-	option Many
-	next   *ManyBundle
+// InsertManyBundle is a bundle of InsertInsertMany options
+type InsertManyBundle struct {
+	option InsertMany
+	next   *InsertManyBundle
 }
 
-// BundleMany bundles Many options
-func BundleMany(opts ...Many) *ManyBundle {
-	head := manyBundle
+// BundleMany bundles InsertMany options
+func BundleMany(opts ...InsertMany) *InsertManyBundle {
+	head := insertManyBundle
 
 	for _, opt := range opts {
-		newBundle := ManyBundle{
+		newBundle := InsertManyBundle{
 			option: opt,
 			next:   head,
 		}
@@ -211,15 +211,15 @@ func BundleMany(opts ...Many) *ManyBundle {
 	return head
 }
 
-// Implement the Many interface
-func (mb *ManyBundle) many() {}
+// Implement the InsertMany interface
+func (mb *InsertManyBundle) insertMany() {}
 
-// ConvertManyOption implements the Many interface
-func (mb *ManyBundle) ConvertManyOption() option.InsertOptioner { return nil }
+// ConvertInsertManyOption implements the InsertMany interface
+func (mb *InsertManyBundle) ConvertInsertManyOption() option.InsertOptioner { return nil }
 
 // BypassDocumentValidation adds an option allowing the write to opt-out of the document-level validation.
-func (mb *ManyBundle) BypassDocumentValidation(b bool) *ManyBundle {
-	bundle := &ManyBundle{
+func (mb *InsertManyBundle) BypassDocumentValidation(b bool) *InsertManyBundle {
+	bundle := &InsertManyBundle{
 		option: BypassDocumentValidation(b),
 		next:   mb,
 	}
@@ -228,8 +228,8 @@ func (mb *ManyBundle) BypassDocumentValidation(b bool) *ManyBundle {
 }
 
 // Ordered adds an option that if true and insert fails, returns without performing remaining writes, otherwise continues
-func (mb *ManyBundle) Ordered(b bool) *ManyBundle {
-	bundle := &ManyBundle{
+func (mb *InsertManyBundle) Ordered(b bool) *InsertManyBundle {
+	bundle := &InsertManyBundle{
 		option: Ordered(b),
 		next:   mb,
 	}
@@ -238,8 +238,8 @@ func (mb *ManyBundle) Ordered(b bool) *ManyBundle {
 }
 
 // WriteConcern adds an option to specify a write concern
-func (mb *ManyBundle) WriteConcern(wc *writeconcern.WriteConcern) *ManyBundle {
-	bundle := &ManyBundle{
+func (mb *InsertManyBundle) WriteConcern(wc *writeconcern.WriteConcern) *InsertManyBundle {
+	bundle := &InsertManyBundle{
 		option: WriteConcern(wc),
 		next:   mb,
 	}
@@ -248,14 +248,14 @@ func (mb *ManyBundle) WriteConcern(wc *writeconcern.WriteConcern) *ManyBundle {
 }
 
 // Calculates the total length of a bundle, accounting for nested bundles.
-func (mb *ManyBundle) bundleLength() int {
+func (mb *InsertManyBundle) bundleLength() int {
 	if mb == nil {
 		return 0
 	}
 
 	bundleLen := 0
 	for ; mb != nil && mb.option != nil; mb = mb.next {
-		if converted, ok := mb.option.(*ManyBundle); ok {
+		if converted, ok := mb.option.(*InsertManyBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
@@ -274,7 +274,7 @@ func (mb *ManyBundle) bundleLength() int {
 // if we actually deduplicate options.
 //
 // Since a bundle can be recursive, this method will unwind all recursive bundles.
-func (mb *ManyBundle) Unbundle(deduplicate bool) ([]option.InsertOptioner, error) {
+func (mb *InsertManyBundle) Unbundle(deduplicate bool) ([]option.InsertOptioner, error) {
 	options, err := mb.unbundle()
 	if err != nil {
 		return nil, err
@@ -304,7 +304,7 @@ func (mb *ManyBundle) Unbundle(deduplicate bool) ([]option.InsertOptioner, error
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (mb *ManyBundle) unbundle() ([]option.InsertOptioner, error) {
+func (mb *InsertManyBundle) unbundle() ([]option.InsertOptioner, error) {
 	if mb == nil {
 		return nil, nil
 	}
@@ -316,7 +316,7 @@ func (mb *ManyBundle) unbundle() ([]option.InsertOptioner, error) {
 
 	for listHead := mb; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
-		if converted, ok := listHead.option.(*ManyBundle); ok {
+		if converted, ok := listHead.option.(*InsertManyBundle); ok {
 			nestedOptions, err := converted.unbundle()
 			if err != nil {
 				return nil, err
@@ -334,7 +334,7 @@ func (mb *ManyBundle) unbundle() ([]option.InsertOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertManyOption()
+		options[index] = listHead.option.ConvertInsertManyOption()
 		index--
 	}
 
@@ -342,19 +342,19 @@ func (mb *ManyBundle) unbundle() ([]option.InsertOptioner, error) {
 }
 
 // String implements the Stringer interface
-func (mb *ManyBundle) String() string {
+func (mb *InsertManyBundle) String() string {
 	if mb == nil {
 		return ""
 	}
 
 	str := ""
 	for head := mb; head != nil && head.option != nil; head = head.next {
-		if converted, ok := head.option.(*ManyBundle); ok {
+		if converted, ok := head.option.(*InsertManyBundle); ok {
 			str += converted.String()
 			continue
 		}
 
-		str += head.option.ConvertManyOption().String() + "\n"
+		str += head.option.ConvertInsertManyOption().String() + "\n"
 	}
 
 	return str
@@ -386,37 +386,37 @@ type OptOrdered option.OptOrdered
 // OptWriteConcern specifies a write concern
 type OptWriteConcern option.OptWriteConcern
 
-func (OptBypassDocumentValidation) one() {}
+func (OptBypassDocumentValidation) insertOne() {}
 
-// ConvertOneOption implements the One interface
-func (opt OptBypassDocumentValidation) ConvertOneOption() option.InsertOptioner {
+// ConvertInsertOneOption implements the InsertOne interface
+func (opt OptBypassDocumentValidation) ConvertInsertOneOption() option.InsertOptioner {
 	return option.OptBypassDocumentValidation(opt)
 }
 
-func (OptWriteConcern) one() {}
+func (OptWriteConcern) insertOne() {}
 
-// ConvertOneOption implements the One interface
-func (opt OptWriteConcern) ConvertOneOption() option.InsertOptioner {
+// ConvertInsertOneOption implements the InsertOne interface
+func (opt OptWriteConcern) ConvertInsertOneOption() option.InsertOptioner {
 	return option.OptWriteConcern(opt)
 }
 
-func (OptWriteConcern) many() {}
+func (OptWriteConcern) insertMany() {}
 
-// ConvertManyOption implements the Many interface
-func (opt OptWriteConcern) ConvertManyOption() option.InsertOptioner {
+// ConvertInsertManyOption implements the InsertMany interface
+func (opt OptWriteConcern) ConvertInsertManyOption() option.InsertOptioner {
 	return option.OptWriteConcern(opt)
 }
 
-func (OptBypassDocumentValidation) many() {}
+func (OptBypassDocumentValidation) insertMany() {}
 
-// ConvertManyOption implements the Many interface
-func (opt OptBypassDocumentValidation) ConvertManyOption() option.InsertOptioner {
+// ConvertInsertManyOption implements the InsertMany interface
+func (opt OptBypassDocumentValidation) ConvertInsertManyOption() option.InsertOptioner {
 	return option.OptBypassDocumentValidation(opt)
 }
 
-func (OptOrdered) many() {}
+func (OptOrdered) insertMany() {}
 
-// ConvertManyOption implements the Many interface
-func (opt OptOrdered) ConvertManyOption() option.InsertOptioner {
+// ConvertInsertManyOption implements the InsertMany interface
+func (opt OptOrdered) ConvertInsertManyOption() option.InsertOptioner {
 	return option.OptOrdered(opt)
 }

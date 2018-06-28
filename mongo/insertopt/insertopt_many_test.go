@@ -10,7 +10,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
 
-func createNestedManyBundle1(t *testing.T) *ManyBundle {
+func createNestedInsertManyBundle1(t *testing.T) *InsertManyBundle {
 	nestedBundle := BundleMany(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, nestedBundle, "nested bundle was nil")
 
@@ -21,7 +21,7 @@ func createNestedManyBundle1(t *testing.T) *ManyBundle {
 }
 
 // Test doubly nested bundle
-func createNestedManyBundle2(t *testing.T) *ManyBundle {
+func createNestedInsertManyBundle2(t *testing.T) *InsertManyBundle {
 	b1 := BundleMany(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
@@ -35,7 +35,7 @@ func createNestedManyBundle2(t *testing.T) *ManyBundle {
 }
 
 // Test two top level nested bundles
-func createNestedManyBundle3(t *testing.T) *ManyBundle {
+func createNestedInsertManyBundle3(t *testing.T) *InsertManyBundle {
 	b1 := BundleMany(BypassDocumentValidation(false))
 	testhelpers.RequireNotNil(t, b1, "nested bundle was nil")
 
@@ -55,20 +55,20 @@ func createNestedManyBundle3(t *testing.T) *ManyBundle {
 }
 
 func TestInsertManyOpt(t *testing.T) {
-	var bundle1 *ManyBundle
+	var bundle1 *InsertManyBundle
 	bundle1 = bundle1.BypassDocumentValidation(true).BypassDocumentValidation(false)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		BypassDocumentValidation(true).ConvertOneOption(),
-		BypassDocumentValidation(false).ConvertOneOption(),
+		BypassDocumentValidation(true).ConvertInsertManyOption(),
+		BypassDocumentValidation(false).ConvertInsertManyOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		BypassDocumentValidation(false).ConvertOneOption(),
+		BypassDocumentValidation(false).ConvertInsertManyOption(),
 	}
 
 	bundle2 := BundleMany(BypassDocumentValidation(true))
 	bundle2Opts := []option.Optioner{
-		BypassDocumentValidation(true).ConvertOneOption(),
+		BypassDocumentValidation(true).ConvertInsertManyOption(),
 	}
 
 	bundle3 := BundleMany().
@@ -76,51 +76,51 @@ func TestInsertManyOpt(t *testing.T) {
 		BypassDocumentValidation(true)
 
 	bundle3Opts := []option.Optioner{
-		OptBypassDocumentValidation(false).ConvertOneOption(),
-		OptBypassDocumentValidation(true).ConvertOneOption(),
+		OptBypassDocumentValidation(false).ConvertInsertManyOption(),
+		OptBypassDocumentValidation(true).ConvertInsertManyOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
-		OptBypassDocumentValidation(true).ConvertOneOption(),
+		OptBypassDocumentValidation(true).ConvertInsertManyOption(),
 	}
 
 	nilBundle := BundleMany()
 	var nilBundleOpts []option.Optioner
 
-	nestedBundle1 := createNestedManyBundle1(t)
+	nestedBundle1 := createNestedInsertManyBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptBypassDocumentValidation(true).ConvertOneOption(),
-		OptWriteConcern{wc1}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptBypassDocumentValidation(true).ConvertInsertManyOption(),
+		OptWriteConcern{wc1}.ConvertInsertManyOption(),
+		OptBypassDocumentValidation(false).ConvertInsertManyOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptWriteConcern{wc1}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptWriteConcern{wc1}.ConvertInsertManyOption(),
+		OptBypassDocumentValidation(false).ConvertInsertManyOption(),
 	}
 
-	nestedBundle2 := createNestedManyBundle2(t)
+	nestedBundle2 := createNestedInsertManyBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptBypassDocumentValidation(true).ConvertOneOption(),
-		OptWriteConcern{wc1}.ConvertOneOption(),
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptBypassDocumentValidation(true).ConvertInsertManyOption(),
+		OptWriteConcern{wc1}.ConvertInsertManyOption(),
+		OptWriteConcern{wc2}.ConvertInsertManyOption(),
+		OptBypassDocumentValidation(false).ConvertInsertManyOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptWriteConcern{wc2}.ConvertInsertManyOption(),
+		OptBypassDocumentValidation(false).ConvertInsertManyOption(),
 	}
 
-	nestedBundle3 := createNestedManyBundle3(t)
+	nestedBundle3 := createNestedInsertManyBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(true).ConvertOneOption(),
-		OptWriteConcern{wc1}.ConvertOneOption(),
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptWriteConcern{wc2}.ConvertInsertManyOption(),
+		OptBypassDocumentValidation(true).ConvertInsertManyOption(),
+		OptWriteConcern{wc1}.ConvertInsertManyOption(),
+		OptWriteConcern{wc2}.ConvertInsertManyOption(),
+		OptBypassDocumentValidation(false).ConvertInsertManyOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptWriteConcern{wc2}.ConvertOneOption(),
-		OptBypassDocumentValidation(false).ConvertOneOption(),
+		OptWriteConcern{wc2}.ConvertInsertManyOption(),
+		OptBypassDocumentValidation(false).ConvertInsertManyOption(),
 	}
 
 	t.Run("MakeOptions", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestInsertManyOpt(t *testing.T) {
 	t.Run("TestAll", func(t *testing.T) {
 		wc := writeconcern.New(writeconcern.W(1))
 
-		opts := []Many{
+		opts := []InsertMany{
 			BypassDocumentValidation(true),
 			Ordered(false),
 			WriteConcern(wc),
@@ -155,7 +155,7 @@ func TestInsertManyOpt(t *testing.T) {
 		}
 
 		for i, opt := range opts {
-			if !reflect.DeepEqual(opt.ConvertManyOption(), deleteOpts[i]) {
+			if !reflect.DeepEqual(opt.ConvertInsertManyOption(), deleteOpts[i]) {
 				t.Errorf("opt mismatch. expected %#v, got %#v", opt, deleteOpts[i])
 			}
 		}
@@ -165,7 +165,7 @@ func TestInsertManyOpt(t *testing.T) {
 		var cases = []struct {
 			name         string
 			dedup        bool
-			bundle       *ManyBundle
+			bundle       *InsertManyBundle
 			expectedOpts []option.Optioner
 		}{
 			{"NilBundle", false, nilBundle, nilBundleOpts},
