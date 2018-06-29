@@ -23,6 +23,16 @@ type AggregateBundle struct {
 	next   *AggregateBundle
 }
 
+// AggregateSessionOpt is an aggregate session option.
+type AggregateSessionOpt option.OptSession
+
+func (AggregateSessionOpt) aggregate() {}
+
+// ConvertAggregateOption implements the Aggregate interface.
+func (opt AggregateSessionOpt) ConvertAggregateOption() option.AggregateOptioner {
+	return option.OptSession(opt)
+}
+
 // Implement the Aggregate interface
 func (ab *AggregateBundle) aggregate() {}
 

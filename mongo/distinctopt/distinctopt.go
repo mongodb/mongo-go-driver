@@ -22,6 +22,16 @@ type DistinctBundle struct {
 	next   *DistinctBundle
 }
 
+// DistinctSessionOpt is a distinct session option.
+type DistinctSessionOpt option.OptSession
+
+func (DistinctSessionOpt) distinct() {}
+
+// ConvertDistinctOption implements the Distinct interface.
+func (opt DistinctSessionOpt) ConvertDistinctOption() option.DistinctOptioner {
+	return option.OptSession(opt)
+}
+
 func (db *DistinctBundle) distinct() {}
 
 // ConvertDistinctOption implements the Distinct interface

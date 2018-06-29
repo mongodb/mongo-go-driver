@@ -30,6 +30,14 @@ type UpdateOneBundle struct {
 	next   *UpdateOneBundle
 }
 
+// UpdateOneSessionOpt is a updateOne session option.
+type UpdateOneSessionOpt struct{}
+
+func (UpdateOneSessionOpt) updateOne() {}
+
+// ConvertUpdateOneOption implements the UpdateOne interface.
+func (UpdateOneSessionOpt) ConvertUpdateOneOption() option.FindOneAndUpdateOptioner { return nil }
+
 // BundleUpdateOne bundles FindOneAndUpdate options
 func BundleUpdateOne(opts ...UpdateOne) *UpdateOneBundle {
 	head := updateOneBundle

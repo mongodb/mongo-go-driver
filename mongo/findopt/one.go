@@ -29,6 +29,16 @@ type OneBundle struct {
 	next   *OneBundle
 }
 
+// FindOneSessionOpt is a FindOne session option.
+type FindOneSessionOpt option.OptSession
+
+func (FindOneSessionOpt) one() {}
+
+// ConvertFindOneOption implements the FindOne interface.
+func (opt FindOneSessionOpt) ConvertFindOneOption() option.FindOptioner {
+	return option.OptSession(opt)
+}
+
 // BundleOne bundles FindOne options
 func BundleOne(opts ...One) *OneBundle {
 	head := oneBundle

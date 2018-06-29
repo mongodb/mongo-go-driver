@@ -22,6 +22,16 @@ type DeleteBundle struct {
 	next   *DeleteBundle
 }
 
+// DeleteSessionOpt is a delete session option.
+type DeleteSessionOpt option.OptSession
+
+func (DeleteSessionOpt) delete() {}
+
+// ConvertDeleteOption implements the Delete interface.
+func (opt DeleteSessionOpt) ConvertDeleteOption() option.DeleteOptioner {
+	return option.OptSession(opt)
+}
+
 func (db *DeleteBundle) delete() {}
 
 // ConvertDeleteOption implements the Delete interface.
