@@ -1,0 +1,75 @@
+package command
+
+import (
+	"context"
+
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+)
+
+// StartSession represents a startSession command
+type StartSession struct {
+	Clock  *session.ClusterClock
+	result result.StartSession
+	err    error
+}
+
+// Encode will encode this command into a wiremessage for the given server description.
+func (ss *StartSession) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	cmd := ss.encode(desc)
+	return cmd.Encode(desc)
+}
+
+func (ss *StartSession) encode(desc description.SelectedServer) *Write {
+	cmd := bson.NewDocument(bson.EC.Int32("startSession", 1))
+	return &Write{
+		Clock:   ss.Clock,
+		DB:      "admin",
+		Command: cmd,
+	}
+}
+
+// Decode will decode the wire message using the provided server description. Errors during decoding are deferred until
+// either the Result or Err methods are called.
+func (ss *StartSession) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *StartSession {
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
+	if err != nil {
+		ss.err = err
+		return ss
+	}
+
+	return ss.decode(desc, rdr)
+}
+
+func (ss *StartSession) decode(desc description.SelectedServer, rdr bson.Reader) *StartSession {
+	ss.err = bson.Unmarshal(rdr, &ss.result)
+	return ss
+}
+
+// Result returns the result of a decoded wire message and server description.
+func (ss *StartSession) Result() (result.StartSession, error) {
+	if ss.err != nil {
+		return result.StartSession{}, ss.err
+	}
+
+	return ss.result, nil
+}
+
+// Err returns the error set on this command
+func (ss *StartSession) Err() error {
+	return ss.err
+}
+
+// RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter
+func (ss *StartSession) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.StartSession, error) {
+	cmd := ss.encode(desc)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
+	if err != nil {
+		return result.StartSession{}, err
+	}
+
+	return ss.decode(desc, rdr).Result()
+}

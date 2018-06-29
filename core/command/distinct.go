@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -29,6 +30,8 @@ type Distinct struct {
 	Opts        []option.DistinctOptioner
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Clock       *session.ClusterClock
+	Session     *session.Client
 
 	result result.Distinct
 	err    error
@@ -67,10 +70,12 @@ func (d *Distinct) encode(desc description.SelectedServer) (*Read, error) {
 	}
 
 	return &Read{
+		Clock:       d.Clock,
 		DB:          d.NS.DB,
 		ReadPref:    d.ReadPref,
 		Command:     command,
 		ReadConcern: d.ReadConcern,
+		Session:     d.Session,
 	}, nil
 }
 
