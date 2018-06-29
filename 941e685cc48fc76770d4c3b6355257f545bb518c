@@ -70,6 +70,30 @@
       "revId": "941e685cc48fc76770d4c3b6355257f545bb518c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3ccba434_b2d9963f",
+        "filename": "mongo/insertopt/insertopt.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-29T15:18:00Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "903cbf51_5933b38c",
+      "range": {
+        "startLine": 20,
+        "startChar": 5,
+        "endLine": 20,
+        "endChar": 14
+      },
+      "revId": "941e685cc48fc76770d4c3b6355257f545bb518c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
