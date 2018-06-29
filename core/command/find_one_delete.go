@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -25,6 +26,8 @@ type FindOneAndDelete struct {
 	Query        *bson.Document
 	Opts         []option.FindOneAndDeleteOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result result.FindAndModify
 	err    error
@@ -62,9 +65,11 @@ func (f *FindOneAndDelete) encode(desc description.SelectedServer) (*Write, erro
 	}
 
 	return &Write{
+		Clock:        f.Clock,
 		DB:           f.NS.DB,
 		Command:      command,
 		WriteConcern: f.WriteConcern,
+		Session:      f.Session,
 	}, nil
 }
 
@@ -82,6 +87,10 @@ func (f *FindOneAndDelete) Decode(desc description.SelectedServer, wm wiremessag
 
 func (f *FindOneAndDelete) decode(desc description.SelectedServer, rdr bson.Reader) *FindOneAndDelete {
 	f.result, f.err = unmarshalFindAndModifyResult(rdr)
+	if f.err != nil {
+		return f
+	}
+
 	return f
 }
 

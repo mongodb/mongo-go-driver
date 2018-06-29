@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,8 +20,11 @@ import (
 //
 // The listIndexes command lists the indexes for a namespace.
 type ListIndexes struct {
-	NS     Namespace
-	Opts   []option.ListIndexesOptioner
+	Clock   *session.ClusterClock
+	NS      Namespace
+	Opts    []option.ListIndexesOptioner
+	Session *session.Client
+
 	result Cursor
 	err    error
 }
@@ -48,12 +52,14 @@ func (li *ListIndexes) encode(desc description.SelectedServer) (*Read, error) {
 	}
 
 	return &Read{
+		Clock:   li.Clock,
 		DB:      li.NS.DB,
 		Command: cmd,
+		Session: li.Session,
 	}, nil
 }
 
-// Decode will decode the wire message using the provided server description. Errors during decoding
+// Decode will decode the wire message using the provided server description. Errors during decoling
 // are deferred until either the Result or Err methods are called.
 func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListIndexes {
 	rdr, err := (&Read{}).Decode(desc, wm).Result()
@@ -79,7 +85,7 @@ func (li *ListIndexes) decode(desc description.SelectedServer, cb CursorBuilder,
 		opts = append(opts, curOpt)
 	}
 
-	li.result, li.err = cb.BuildCursor(rdr, opts...)
+	li.result, li.err = cb.BuildCursor(rdr, li.Session, li.Clock, opts...)
 	return li
 }
 

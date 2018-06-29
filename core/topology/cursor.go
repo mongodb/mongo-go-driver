@@ -15,19 +15,22 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 type cursor struct {
-	namespace command.Namespace
-	current   int
-	batch     *bson.Array
-	id        int64
-	err       error
-	server    *Server
-	opts      []option.CursorOptioner
+	clientSession *session.Client
+	clock         *session.ClusterClock
+	namespace     command.Namespace
+	current       int
+	batch         *bson.Array
+	id            int64
+	err           error
+	server        *Server
+	opts          []option.CursorOptioner
 }
 
-func newCursor(result bson.Reader, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
+func newCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
 	cur, err := result.Lookup("cursor")
 	if err != nil {
 		return nil, err
@@ -42,8 +45,10 @@ func newCursor(result bson.Reader, server *Server, opts ...option.CursorOptioner
 	}
 	var elem *bson.Element
 	c := &cursor{
-		current: -1,
-		server:  server,
+		clientSession: clientSession,
+		clock:         clock,
+		current:       -1,
+		server:        server,
 	}
 	var ok bool
 	for itr.Next() {
@@ -129,14 +134,17 @@ func (c *cursor) Close(ctx context.Context) error {
 		return err
 	}
 
-	_, err = (&command.KillCursors{NS: c.namespace, IDs: []int64{c.id}}).RoundTrip(ctx, c.server.SelectedDescription(), conn)
+	_, err = (&command.KillCursors{
+		Clock: c.clock,
+		NS:    c.namespace,
+		IDs:   []int64{c.id},
+	}).RoundTrip(ctx, c.server.SelectedDescription(), conn)
 	if err != nil {
 		_ = conn.Close() // The command response error is more important here
 		return err
 	}
 
 	c.id = 0
-
 	return conn.Close()
 }
 
@@ -154,7 +162,13 @@ func (c *cursor) getMore(ctx context.Context) {
 		return
 	}
 
-	response, err := (&command.GetMore{ID: c.id, NS: c.namespace, Opts: c.opts}).RoundTrip(ctx, c.server.SelectedDescription(), conn)
+	response, err := (&command.GetMore{
+		Clock:   c.clock,
+		ID:      c.id,
+		NS:      c.namespace,
+		Opts:    c.opts,
+		Session: c.clientSession,
+	}).RoundTrip(ctx, c.server.SelectedDescription(), conn)
 	if err != nil {
 		_ = conn.Close() // The command response error is more important here
 		c.err = err

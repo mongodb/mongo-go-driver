@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -18,6 +19,8 @@ type Read struct {
 	Command     *bson.Document
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Clock       *session.ClusterClock
+	Session     *session.Client
 
 	result bson.Reader
 	err    error
@@ -162,25 +165,23 @@ func (r *Read) encodeOpQuery(desc description.SelectedServer, cmd *bson.Document
 	return query, nil
 }
 
-func (r *Read) decodeOpMsg(wm wiremessage.WireMessage) *Read {
+func (r *Read) decodeOpMsg(wm wiremessage.WireMessage) {
 	msg, ok := wm.(wiremessage.Msg)
 	if !ok {
 		r.err = fmt.Errorf("unsupported response wiremessage type %T", wm)
-		return r
+		return
 	}
 
 	r.result, r.err = decodeCommandOpMsg(msg)
-	return r
 }
 
-func (r *Read) decodeOpReply(wm wiremessage.WireMessage) *Read {
+func (r *Read) decodeOpReply(wm wiremessage.WireMessage) {
 	reply, ok := wm.(wiremessage.Reply)
 	if !ok {
 		r.err = fmt.Errorf("unsupported response wiremessage type %T", wm)
-		return r
+		return
 	}
 	r.result, r.err = decodeCommandOpReply(reply)
-	return r
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -191,6 +192,12 @@ func (r *Read) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 		return nil, err
 	}
 
+	err = addSessionID(cmd, desc, r.Session)
+	if err != nil {
+		return nil, err
+	}
+
+	addClusterTime(cmd, desc, r.Session, r.Clock)
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return r.encodeOpQuery(desc, cmd)
 	}
@@ -203,10 +210,21 @@ func (r *Read) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 func (r *Read) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Read {
 	switch wm.(type) {
 	case wiremessage.Reply:
-		return r.decodeOpReply(wm)
+		r.decodeOpReply(wm)
 	default:
-		return r.decodeOpMsg(wm)
+		r.decodeOpMsg(wm)
 	}
+
+	if r.err != nil {
+		// decode functions set error if an invalid response document was returned or if the OK flag in the response was 0
+		// if the OK flag was 0, a type Error is returned. otherwise, a special type is returned
+		if _, ok := r.err.(Error); !ok {
+			return r // for missing/invalid response docs, don't update cluster times
+		}
+	}
+
+	updateClusterTimes(r.Session, r.Clock, r.result)
+	return r
 }
 
 // Result returns the result of a decoded wire message and server description.
@@ -239,5 +257,8 @@ func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, r
 		return nil, err
 	}
 
+	if r.Session != nil {
+		r.Session.UpdateUseTime()
+	}
 	return r.Decode(desc, wm).Result()
 }

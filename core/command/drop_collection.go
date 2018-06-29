@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -22,6 +23,8 @@ type DropCollection struct {
 	DB           string
 	Collection   string
 	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result bson.Reader
 	err    error
@@ -43,16 +46,28 @@ func (dc *DropCollection) encode(desc description.SelectedServer) (*Write, error
 	)
 
 	return &Write{
+		Clock:        dc.Clock,
 		WriteConcern: dc.WriteConcern,
 		DB:           dc.DB,
 		Command:      cmd,
+		Session:      dc.Session,
 	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (dc *DropCollection) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *DropCollection {
-	dc.result, dc.err = (&Write{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
+	if err != nil {
+		dc.err = err
+		return dc
+	}
+
+	return dc.decode(desc, rdr)
+}
+
+func (dc *DropCollection) decode(desc description.SelectedServer, rdr bson.Reader) *DropCollection {
+	dc.result = rdr
 	return dc
 }
 
@@ -61,6 +76,7 @@ func (dc *DropCollection) Result() (bson.Reader, error) {
 	if dc.err != nil {
 		return nil, dc.err
 	}
+
 	return dc.result, nil
 }
 
@@ -74,10 +90,10 @@ func (dc *DropCollection) RoundTrip(ctx context.Context, desc description.Select
 		return nil, err
 	}
 
-	dc.result, err = cmd.RoundTrip(ctx, desc, rw)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
 	}
 
-	return dc.Result()
+	return dc.decode(desc, rdr).Result()
 }
