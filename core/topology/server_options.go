@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/connection"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 type serverConfig struct {
+	clock             *session.ClusterClock
 	compressionOpts   []string
 	connectionOpts    []connection.Option
 	appname           string
@@ -91,6 +93,14 @@ func WithMaxConnections(fn func(uint16) uint16) ServerOption {
 func WithMaxIdleConnections(fn func(uint16) uint16) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.maxIdleConns = fn(cfg.maxIdleConns)
+		return nil
+	}
+}
+
+// WithClock configures the ClusterClock for the server to use.
+func WithClock(fn func(clock *session.ClusterClock) *session.ClusterClock) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.clock = fn(cfg.clock)
 		return nil
 	}
 }
