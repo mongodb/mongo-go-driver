@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
@@ -420,8 +421,8 @@ func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 func (s *Server) Drain() error { return s.pool.Drain() }
 
 // BuildCursor implements the command.CursorBuilder interface for the Server type.
-func (s *Server) BuildCursor(result bson.Reader, opts ...option.CursorOptioner) (command.Cursor, error) {
-	return newCursor(result, s, opts...)
+func (s *Server) BuildCursor(result bson.Reader, clientSession *session.Client, opts ...option.CursorOptioner) (command.Cursor, error) {
+	return newCursor(result, clientSession, s, opts...)
 }
 
 // ServerSubscription represents a subscription to the description.Server updates for
