@@ -154,7 +154,8 @@ func (c *cursor) getMore(ctx context.Context) {
 		return
 	}
 
-	response, err := (&command.GetMore{ID: c.id, NS: c.namespace, Opts: c.opts}).RoundTrip(ctx, c.server.SelectedDescription(), conn)
+	// TODO: look at cluster time returned
+	response, _, err := (&command.GetMore{ID: c.id, NS: c.namespace, Opts: c.opts}).RoundTrip(ctx, c.server.SelectedDescription(), conn)
 	if err != nil {
 		_ = conn.Close() // The command response error is more important here
 		c.err = err

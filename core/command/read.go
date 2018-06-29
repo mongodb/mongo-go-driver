@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -18,6 +19,7 @@ type Read struct {
 	Command     *bson.Document
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Session     *session.Client
 
 	result bson.Reader
 	err    error
@@ -191,6 +193,18 @@ func (r *Read) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 		return nil, err
 	}
 
+	err = addSessionID(cmd, r.Session)
+	if err != nil {
+		return nil, err
+	}
+
+	if r.Session != nil {
+		err = addClusterTime(cmd, desc, r.Session.ClusterTime)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return r.encodeOpQuery(desc, cmd)
 	}
@@ -239,5 +253,8 @@ func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, r
 		return nil, err
 	}
 
+	if r.Session != nil {
+		r.Session.UpdateUseTime()
+	}
 	return r.Decode(desc, wm).Result()
 }
