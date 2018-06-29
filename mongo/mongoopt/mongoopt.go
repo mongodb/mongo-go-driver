@@ -53,3 +53,15 @@ const (
 	// After specifies that findAndUpdate should return the document as it is after the update.
 	After
 )
+
+// FullDocument specifies whether a change stream should include a copy of the entire document that was changed from
+// some time after the change occurred.
+type FullDocument string
+
+const (
+	// Default does not include a document copy
+	Default FullDocument = "default"
+	// UpdateLookup includes a delta describing the changes to the document and a copy of the entire document that
+	// was changed
+	UpdateLookup FullDocument = "updateLookup"
+)

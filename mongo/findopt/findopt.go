@@ -426,11 +426,6 @@ func (opt OptLimit) ConvertFindOption() option.FindOptioner {
 	return option.OptLimit(opt)
 }
 
-// ConvertFindOneOption implements the One interface.
-func (opt OptLimit) ConvertFindOneOption() option.FindOptioner {
-	return option.OptLimit(opt)
-}
-
 // OptMax sets an exclusive upper bound for a specific index.
 type OptMax option.OptMax
 

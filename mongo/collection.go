@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
@@ -645,7 +646,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
-	findOneOpts = append(findOneOpts, Opt.Limit(1))
+	findOneOpts = append(findOneOpts, findopt.Limit(1).ConvertFindOption())
 
 	oldns := coll.namespace()
 	cmd := command.Find{
@@ -860,7 +861,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 // This method is preferred to running a raw aggregation with a $changeStream stage because it
 // supports resumability in the case of some errors.
 func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
-	opts ...option.ChangeStreamOptioner) (Cursor, error) {
+	opts ...changestreamopt.ChangeStream) (Cursor, error) {
 	return newChangeStream(ctx, coll, pipeline, opts...)
 }
 
