@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f77c18e7_0dbd9418",
+        "filename": "mongo/mongoopt/mongoopt.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-29T15:11:44Z",
+      "side": 1,
+      "message": "You have to declare the type in a const block for every definition, unless you are using iota. UpdateLookup is of type \"string\" not \"FullDocument\": https://play.golang.org/p/LiMEE1BaUUd.",
+      "range": {
+        "startLine": 66,
+        "startChar": 1,
+        "endLine": 66,
+        "endChar": 30
+      },
+      "revId": "8c224a99db21484db8a4861cfeb92b73dd73ee63",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
