@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,8 +21,10 @@ import (
 //
 // The listDatabases command lists the databases in a MongoDB deployment.
 type ListDatabases struct {
-	Filter *bson.Document
-	Opts   []option.ListDatabasesOptioner
+	Clock   *session.ClusterClock
+	Filter  *bson.Document
+	Opts    []option.ListDatabasesOptioner
+	Session *session.Client
 
 	result result.ListDatabases
 	err    error
@@ -54,8 +57,10 @@ func (ld *ListDatabases) encode(desc description.SelectedServer) (*Read, error) 
 	}
 
 	return &Read{
+		Clock:   ld.Clock,
 		DB:      "admin",
 		Command: cmd,
+		Session: ld.Session,
 	}, nil
 }
 

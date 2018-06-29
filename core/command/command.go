@@ -10,10 +10,42 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
+
+func responseClusterTime(response bson.Reader) *bson.Document {
+	clusterTime, err := response.Lookup("$clusterTime")
+	if err != nil {
+		// $clusterTime not included by the server
+		return nil
+	}
+
+	return bson.NewDocument(clusterTime)
+}
+
+func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, response bson.Reader) error {
+	clusterTime := responseClusterTime(response)
+	if clusterTime == nil {
+		return nil
+	}
+
+	if sess != nil {
+		err := sess.AdvanceClusterTime(clusterTime)
+		if err != nil {
+			return err
+		}
+	}
+
+	if clock != nil {
+		clock.AdvanceClusterTime(clusterTime)
+	}
+
+	return nil
+}
 
 func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
 	if cmd == nil {
@@ -23,6 +55,50 @@ func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
 	return cmd.MarshalBSON()
 }
 
+// add a session ID to a BSON doc representing a command
+func addSessionID(cmd *bson.Document, desc description.SelectedServer, client *session.Client) error {
+	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
+		return nil
+	}
+
+	if _, err := cmd.LookupElementErr("lsid"); err != nil {
+		cmd.Delete("lsid")
+	}
+
+	cmd.Append(bson.EC.SubDocument("lsid", client.SessionID))
+	return nil
+}
+
+func addClusterTime(cmd *bson.Document, desc description.SelectedServer, sess *session.Client, clock *session.ClusterClock) error {
+	if (clock == nil && sess == nil) || !description.SessionsSupported(desc.WireVersion) {
+		return nil
+	}
+
+	var clusterTime *bson.Document
+	if clock != nil {
+		clusterTime = clock.GetClusterTime()
+	}
+
+	if sess != nil {
+		if clusterTime == nil {
+			clusterTime = sess.ClusterTime
+		} else {
+			clusterTime = session.MaxClusterTime(clusterTime, sess.ClusterTime)
+		}
+	}
+
+	if clusterTime == nil {
+		return nil
+	}
+
+	if _, err := cmd.LookupElementErr("$clusterTime"); err != nil {
+		cmd.Delete("$clusterTime")
+	}
+
+	return cmd.Concat(clusterTime)
+}
+
+// add a read concern to a BSON doc representing a command
 func addReadConcern(cmd *bson.Document, rc *readconcern.ReadConcern) error {
 	if rc == nil {
 		return nil
@@ -41,6 +117,7 @@ func addReadConcern(cmd *bson.Document, rc *readconcern.ReadConcern) error {
 	return nil
 }
 
+// add a write concern to a BSON doc representing a command
 func addWriteConcern(cmd *bson.Document, wc *writeconcern.WriteConcern) error {
 	if wc == nil {
 		return nil
