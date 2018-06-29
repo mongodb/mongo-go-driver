@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -29,6 +30,7 @@ type Distinct struct {
 	Opts        []option.DistinctOptioner
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Session     *session.Client
 
 	result result.Distinct
 	err    error

@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,10 +20,11 @@ import (
 //
 // The listIndexes command lists the indexes for a namespace.
 type ListIndexes struct {
-	NS     Namespace
-	Opts   []option.ListIndexesOptioner
-	result Cursor
-	err    error
+	NS      Namespace
+	Opts    []option.ListIndexesOptioner
+	Session *session.Client
+	result  Cursor
+	err     error
 }
 
 // Encode will encode this command into a wire message for the given server description.

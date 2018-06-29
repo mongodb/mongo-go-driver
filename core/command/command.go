@@ -11,6 +11,8 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -21,6 +23,20 @@ func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
 	}
 
 	return cmd.MarshalBSON()
+}
+
+// Command represents a generic database command.
+//
+// This can be used to send arbitrary commands to the database, e.g. runCommand.
+type Command struct {
+	DB       string
+	Command  interface{}
+	ReadPref *readpref.ReadPref
+	Session  *session.Client
+	isWrite  bool
+
+	result bson.Reader
+	err    error
 }
 
 func addReadConcern(cmd *bson.Document, rc *readconcern.ReadConcern) error {

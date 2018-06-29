@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -26,6 +27,7 @@ type Delete struct {
 	Deletes      []*bson.Document
 	Opts         []option.DeleteOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result result.Delete
 	err    error

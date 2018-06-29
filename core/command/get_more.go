@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,9 +20,10 @@ import (
 //
 // The getMore command retrieves additional documents from a cursor.
 type GetMore struct {
-	ID   int64
-	NS   Namespace
-	Opts []option.CursorOptioner
+	ID      int64
+	NS      Namespace
+	Opts    []option.CursorOptioner
+	Session *session.Client
 
 	result bson.Reader
 	err    error

@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,9 +21,10 @@ import (
 //
 // The listCollections command lists the collections in a database.
 type ListCollections struct {
-	DB     string
-	Filter *bson.Document
-	Opts   []option.ListCollectionsOptioner
+	DB      string
+	Filter  *bson.Document
+	Opts    []option.ListCollectionsOptioner
+	Session *session.Client
 
 	result   Cursor
 	ReadPref *readpref.ReadPref

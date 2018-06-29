@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -26,6 +27,7 @@ type Find struct {
 	Opts        []option.FindOptioner
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Session     *session.Client
 
 	result Cursor
 	err    error

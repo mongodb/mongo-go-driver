@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -26,6 +27,7 @@ type FindOneAndReplace struct {
 	Replacement  *bson.Document
 	Opts         []option.FindOneAndReplaceOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result result.FindAndModify
 	err    error
