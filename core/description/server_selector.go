@@ -95,6 +95,24 @@ func (ls *latencySelector) SelectServer(t Topology, candidates []Server) ([]Serv
 	}
 }
 
+// DataBearingSelector selects all data bearing servers.
+func DataBearingSelector() ServerSelector {
+	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
+		switch t.Kind {
+		case Single:
+			return nil, nil
+		default:
+			result := []Server{}
+			for _, candidate := range candidates {
+				if candidate.DataBearing() {
+					result = append(result, candidate)
+				}
+			}
+			return result, nil
+		}
+	})
+}
+
 // WriteSelector selects all the writable servers.
 func WriteSelector() ServerSelector {
 	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {

@@ -11,8 +11,9 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 )
 
 // Aggregate handles the full cycle dispatch and execution of an aggregate command against the provided
@@ -22,6 +23,8 @@ func Aggregate(
 	cmd command.Aggregate,
 	topo *topology.Topology,
 	readSelector, writeSelector description.ServerSelector,
+	clientID uuid.UUID,
+	pool *session.Pool,
 ) (command.Cursor, error) {
 
 	dollarOut := cmd.HasDollarOut()
@@ -30,11 +33,13 @@ func Aggregate(
 	var err error
 	switch dollarOut {
 	case true:
+		writeSelector = addDataBearingSelector(writeSelector, topo)
 		ss, err = topo.SelectServer(ctx, writeSelector)
 		if err != nil {
 			return nil, err
 		}
 	case false:
+		readSelector = addDataBearingSelector(readSelector, topo)
 		ss, err = topo.SelectServer(ctx, readSelector)
 		if err != nil {
 			return nil, err
@@ -47,17 +52,15 @@ func Aggregate(
 		return nil, err
 	}
 
-	if !writeconcern.AckWrite(cmd.WriteConcern) {
-		go func() {
-			defer func() { _ = recover() }()
-			defer conn.Close()
-
-			_, _ = cmd.RoundTrip(ctx, desc, ss, conn)
-		}()
-
-		return nil, command.ErrUnacknowledgedWrite
-	}
 	defer conn.Close()
+
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.Description().SessionTimeoutMinutes != 0 {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return cmd.RoundTrip(ctx, desc, ss, conn)
 }
