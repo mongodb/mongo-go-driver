@@ -2,8 +2,9 @@ package session
 
 // Pool is a pool of server sessions that can be reused.
 type Pool struct {
-	Head *ServerSession
-	Tail *ServerSession
+	Head           *ServerSession
+	Tail           *ServerSession
+	SessionTimeout int
 }
 
 // GetSession retrieves an unexpired session from the pool.

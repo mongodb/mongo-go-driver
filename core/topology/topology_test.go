@@ -17,6 +17,13 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 )
 
+func noerr(t *testing.T, err error) {
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+		t.FailNow()
+	}
+}
+
 func TestServerSelection(t *testing.T) {
 	var selectFirst description.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
 		if len(candidates) == 0 {
@@ -30,12 +37,6 @@ func TestServerSelection(t *testing.T) {
 	var errSelectionError = errors.New("encountered an error in the selector")
 	var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return nil, errSelectionError
-	}
-	noerr := func(t *testing.T, err error) {
-		if err != nil {
-			t.Errorf("Unepexted error: %v", err)
-			t.FailNow()
-		}
 	}
 
 	t.Run("Success", func(t *testing.T) {
@@ -218,6 +219,92 @@ func TestServerSelection(t *testing.T) {
 		noerr(t, err)
 		if ss.Kind != description.Single {
 			t.Errorf("findServer does not properly set the topology description kind. got %v; want %v", ss.Kind, description.Single)
+		}
+	})
+}
+
+func TestSessionTimeout(t *testing.T) {
+	t.Run("UpdateSessionTimeout", func(t *testing.T) {
+		topo, err := New()
+		noerr(t, err)
+		doneCh := make(chan struct{}, 1)
+
+		// update topology and signal when done
+		go func() {
+			topo.changeswg.Add(1)
+			topo.update()
+			doneCh <- struct{}{}
+		}()
+
+		topo.changes <- description.Server{
+			SessionTimeoutMinutes: 30,
+		}
+		topo.done <- struct{}{}
+
+		select {
+		case <-doneCh:
+			currDesc := topo.desc.Load().(description.Topology)
+			if currDesc.SessionTimeoutMinutes != 30 {
+				t.Errorf("session timeout minutes mismatch. got: %d. expected: 30", currDesc.SessionTimeoutMinutes)
+			}
+		}
+	})
+	t.Run("MultipleUpdates", func(t *testing.T) {
+		topo, err := New()
+		noerr(t, err)
+		doneCh := make(chan struct{}, 2)
+
+		// update topology and signal when done
+		go func() {
+			topo.changeswg.Add(1)
+			topo.update()
+			doneCh <- struct{}{}
+		}()
+
+		topo.changes <- description.Server{
+			SessionTimeoutMinutes: 30,
+		}
+		// should update because new timeout is lower
+		topo.changes <- description.Server{
+			SessionTimeoutMinutes: 20,
+		}
+		topo.done <- struct{}{}
+
+		select {
+		case <-doneCh:
+			currDesc := topo.desc.Load().(description.Topology)
+			if currDesc.SessionTimeoutMinutes != 20 {
+				t.Errorf("session timeout minutes mismatch. got: %d. expected: 20", currDesc.SessionTimeoutMinutes)
+			}
+		}
+	})
+	t.Run("NoUpdate", func(t *testing.T) {
+		topo, err := New()
+		noerr(t, err)
+		doneCh := make(chan struct{}, 2)
+
+		// update topology and signal when done
+		go func() {
+			topo.changeswg.Add(1)
+			topo.update()
+			doneCh <- struct{}{}
+		}()
+
+		topo.changes <- description.Server{
+			SessionTimeoutMinutes: 20,
+		}
+		// should update because new timeout is lower
+		topo.changes <- description.Server{
+			SessionTimeoutMinutes: 30,
+		}
+		topo.done <- struct{}{}
+
+		select {
+		case <-doneCh:
+			currDesc := topo.desc.Load().(description.Topology)
+			if currDesc.SessionTimeoutMinutes != 20 {
+				t.Errorf("session timeout minutes mismatch. got: %d. expected: 20", currDesc.SessionTimeoutMinutes)
+			}
 		}
 	})
 }
