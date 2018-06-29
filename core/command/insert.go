@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -28,10 +29,12 @@ const reservedCommandBufferBytes = 16 * 10 * 10 * 10
 // Since the Insert command does not return any value other than ok or
 // an error, this type has no Err method.
 type Insert struct {
+	Clock        *session.ClusterClock
 	NS           Namespace
 	Docs         []*bson.Document
 	Opts         []option.InsertOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result          result.Insert
 	err             error
@@ -129,9 +132,11 @@ func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 	}
 
 	return &Write{
+		Clock:        i.Clock,
 		DB:           i.NS.DB,
 		Command:      command,
 		WriteConcern: i.WriteConcern,
+		Session:      i.Session,
 	}, nil
 }
 
@@ -168,6 +173,10 @@ func (i *Insert) Decode(desc description.SelectedServer, wm wiremessage.WireMess
 
 func (i *Insert) decode(desc description.SelectedServer, rdr bson.Reader) *Insert {
 	i.err = bson.Unmarshal(rdr, &i.result)
+	if i.err != nil {
+		return i
+	}
+
 	return i
 }
 

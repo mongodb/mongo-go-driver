@@ -20,6 +20,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 // ErrSubscribeAfterClosed is returned when a user attempts to subscribe to a
@@ -61,6 +62,9 @@ type Topology struct {
 	changes   chan description.Server
 	changeswg sync.WaitGroup
 
+	poolDescChan chan description.Topology
+	SessionPool  *session.Pool
+
 	// This should really be encapsulated into it's own type. This will likely
 	// require a redesign so we can share a minimum of data between the
 	// subscribers and the topology.
@@ -87,13 +91,16 @@ func New(opts ...Option) (*Topology, error) {
 		return nil, err
 	}
 
+	poolDescChan := make(chan description.Topology, 1)
 	t := &Topology{
-		cfg:         cfg,
-		done:        make(chan struct{}),
-		fsm:         newFSM(),
-		changes:     make(chan description.Server),
-		subscribers: make(map[uint64]chan description.Topology),
-		servers:     make(map[address.Address]*Server),
+		cfg:          cfg,
+		done:         make(chan struct{}),
+		fsm:          newFSM(),
+		changes:      make(chan description.Server),
+		subscribers:  make(map[uint64]chan description.Topology),
+		servers:      make(map[address.Address]*Server),
+		poolDescChan: poolDescChan,
+		SessionPool:  session.NewPool(poolDescChan),
 	}
 	t.desc.Store(description.Topology{})
 
@@ -120,9 +127,9 @@ func (t *Topology) Connect(ctx context.Context) error {
 	var err error
 	t.serversLock.Lock()
 	for _, a := range t.cfg.seedList {
-		address := address.Address(a).Canonicalize()
-		t.fsm.Servers = append(t.fsm.Servers, description.Server{Addr: address})
-		err = t.addServer(ctx, address)
+		addr := address.Address(a).Canonicalize()
+		t.fsm.Servers = append(t.fsm.Servers, description.Server{Addr: addr})
+		err = t.addServer(ctx, addr)
 	}
 	t.serversLock.Unlock()
 
@@ -142,8 +149,8 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 
 	t.serversLock.Lock()
 	t.serversClosed = true
-	for address, server := range t.servers {
-		t.removeServer(ctx, address, server)
+	for addr, server := range t.servers {
+		t.removeServer(ctx, addr, server)
 	}
 	t.serversLock.Unlock()
 
@@ -209,6 +216,11 @@ func (t *Topology) RequestImmediateCheck() {
 	t.serversLock.Unlock()
 }
 
+// SupportsSessions returns true if the topology supports sessions.
+func (t *Topology) SupportsSessions() bool {
+	return t.Description().SessionTimeoutMinutes != 0 && t.Description().Kind != description.Single
+}
+
 // SelectServer selects a server given a selector.SelectServer complies with the
 // server selection spec, and will time out after severSelectionTimeout or when the
 // parent context is done.
@@ -237,7 +249,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		}
 
 		selected := suitable[rand.Intn(len(suitable))]
-		selectedS, err := t.findServer(selected)
+		selectedS, err := t.FindServer(selected)
 		switch {
 		case err != nil:
 			return nil, err
@@ -252,9 +264,9 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 	}
 }
 
-// findServer will attempt to find a server that fits the given server description.
+// FindServer will attempt to find a server that fits the given server description.
 // This method will return nil, nil if a matching server could not be found.
-func (t *Topology) findServer(selected description.Server) (*SelectedServer, error) {
+func (t *Topology) FindServer(selected description.Server) (*SelectedServer, error) {
 	if atomic.LoadInt32(&t.connectionstate) != connected {
 		return nil, ErrTopologyClosed
 	}
@@ -323,7 +335,6 @@ func (t *Topology) update() {
 			}
 
 			t.desc.Store(current)
-
 			t.subLock.Lock()
 			for _, ch := range t.subscribers {
 				// We drain the description if there's one in the channel
@@ -334,6 +345,15 @@ func (t *Topology) update() {
 				ch <- current
 			}
 			t.subLock.Unlock()
+
+			// Also write the description to the pool description channel
+			// Drain the description if there is one pending in the channel
+			select {
+			case <-t.poolDescChan:
+			default:
+			}
+			t.poolDescChan <- current
+
 		case <-t.done:
 			t.subLock.Lock()
 			for id, ch := range t.subscribers {
@@ -398,6 +418,7 @@ func (t *Topology) addServer(ctx context.Context, addr address.Address) error {
 		for c := range sub.C {
 			t.changes <- c
 		}
+
 		t.wg.Done()
 	}()
 
