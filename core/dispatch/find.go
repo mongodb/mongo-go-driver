@@ -11,7 +11,9 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 )
 
 // Find handles the full cycle dispatch and execution of a find command against the provided
@@ -21,7 +23,10 @@ func Find(
 	cmd command.Find,
 	topo *topology.Topology,
 	selector description.ServerSelector,
+	clientID uuid.UUID,
+	pool *session.Pool,
 ) (command.Cursor, error) {
+
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return nil, err
@@ -33,6 +38,14 @@ func Find(
 		return nil, err
 	}
 	defer conn.Close()
+
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.SupportsSessions() {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return cmd.RoundTrip(ctx, desc, ss, conn)
 }

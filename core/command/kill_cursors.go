@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,8 +20,9 @@ import (
 //
 // The killCursors command kills a set of cursors.
 type KillCursors struct {
-	NS  Namespace
-	IDs []int64
+	Clock *session.ClusterClock
+	NS    Namespace
+	IDs   []int64
 
 	result result.KillCursors
 	err    error
@@ -46,6 +48,7 @@ func (kc *KillCursors) encode(desc description.SelectedServer) (*Read, error) {
 	)
 
 	return &Read{
+		Clock:   kc.Clock,
 		DB:      kc.NS.DB,
 		Command: cmd,
 	}, nil

@@ -76,6 +76,9 @@ func (im *IsMaster) Decode(wm wiremessage.WireMessage) *IsMaster {
 		im.err = err
 		return im
 	}
+
+	// Reconstructs the $clusterTime doc after decode
+	im.res.ClusterTime = bson.NewDocument(bson.EC.SubDocument("$clusterTime", im.res.ClusterTime))
 	return im
 }
 
