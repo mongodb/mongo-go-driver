@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
+	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
 )
 
 // Database performs operations on a given database.
@@ -88,16 +89,25 @@ func (db *Database) Collection(name string, opts ...collectionopt.Option) *Colle
 
 // RunCommand runs a command on the database. A user can supply a custom
 // context to this method, or nil to default to context.Background().
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}) (bson.Reader, error) {
+func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...runcmdopt.Option) (bson.Reader, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	runCmd, err := runcmdopt.BundleRunCmd(opts...).Unbundle()
+	if err != nil {
+		return nil, err
+	}
+	rp := runCmd.ReadPreference
+	if rp == nil {
+		rp = db.readPreference // inherit from db if nothing specified in options
+	}
+
 	cmd := command.Command{
 		DB:       db.Name(),
 		Command:  runCommand,
-		ReadPref: db.readPreference,
+		ReadPref: rp,
 	}
 	return dispatch.Command(ctx, cmd, db.client.topology, db.writeSelector)
 }
