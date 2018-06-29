@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -28,6 +29,7 @@ type Aggregate struct {
 	ReadPref     *readpref.ReadPref
 	WriteConcern *writeconcern.WriteConcern
 	ReadConcern  *readconcern.ReadConcern
+	Session      *session.Client
 
 	result Cursor
 	err    error
@@ -89,6 +91,7 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 		Command:     command,
 		ReadPref:    a.ReadPref,
 		ReadConcern: a.ReadConcern,
+		Session:     a.Session,
 	}, nil
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -27,6 +28,7 @@ type Count struct {
 	Opts        []option.CountOptioner
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Session     *session.Client
 
 	result int64
 	err    error
@@ -63,6 +65,7 @@ func (c *Count) encode(desc description.SelectedServer) (*Read, error) {
 		ReadPref:    c.ReadPref,
 		Command:     command,
 		ReadConcern: c.ReadConcern,
+		Session:     c.Session,
 	}, nil
 }
 

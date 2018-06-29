@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -25,6 +26,7 @@ type Update struct {
 	Docs         []*bson.Document
 	Opts         []option.UpdateOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result result.Update
 	err    error
@@ -70,6 +72,7 @@ func (u *Update) encode(desc description.SelectedServer) (*Write, error) {
 		DB:           u.NS.DB,
 		Command:      command,
 		WriteConcern: u.WriteConcern,
+		Session:      u.Session,
 	}, nil
 }
 
