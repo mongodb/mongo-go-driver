@@ -9,13 +9,21 @@ package option
 import (
 	"time"
 
+	"fmt"
+	"io"
+	"reflect"
+	"strconv"
+
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Optioner is the interface implemented by types that can be used as options
 // to a command.
 type Optioner interface {
 	Option(*bson.Document) error
+	String() string
 }
 
 // FindOptioner is the interface implemented by types that can be used as
@@ -180,12 +188,16 @@ var (
 	_ CountOptioner             = (*OptMaxTime)(nil)
 	_ CountOptioner             = (*OptReadConcern)(nil)
 	_ CountOptioner             = (*OptSkip)(nil)
+	_ CreateIndexesOptioner     = (*OptWriteConcern)(nil)
+	_ CreateIndexesOptioner     = (*OptMaxTime)(nil)
 	_ CursorOptioner            = OptBatchSize(0)
 	_ DeleteOptioner            = (*OptCollation)(nil)
 	_ DeleteOptioner            = (*OptWriteConcern)(nil)
 	_ DistinctOptioner          = (*OptCollation)(nil)
 	_ DistinctOptioner          = (*OptMaxTime)(nil)
 	_ DistinctOptioner          = (*OptReadConcern)(nil)
+	_ DropIndexesOptioner       = (*OptWriteConcern)(nil)
+	_ DropIndexesOptioner       = (*OptMaxTime)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptCollation)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptMaxTime)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptProjection)(nil)
@@ -258,6 +270,7 @@ var (
 	_ ListDatabasesOptioner     = OptNameOnly(false)
 	_ ListCollectionsOptioner   = OptNameOnly(false)
 	_ ListIndexesOptioner       = OptBatchSize(0)
+	_ ListIndexesOptioner       = (*OptMaxTime)(nil)
 	_ ReplaceOptioner           = (*OptBypassDocumentValidation)(nil)
 	_ ReplaceOptioner           = (*OptCollation)(nil)
 	_ ReplaceOptioner           = (*OptUpsert)(nil)
@@ -286,6 +299,11 @@ func (opt OptAllowDiskUse) Option(d *bson.Document) error {
 
 func (opt OptAllowDiskUse) aggregateOption() {}
 
+// String implements the Stringer interface.
+func (opt OptAllowDiskUse) String() string {
+	return "OptAllowDiskUse: " + strconv.FormatBool(bool(opt))
+}
+
 // OptAllowPartialResults is for internal use.
 type OptAllowPartialResults bool
 
@@ -298,17 +316,76 @@ func (opt OptAllowPartialResults) Option(d *bson.Document) error {
 func (opt OptAllowPartialResults) findOption()    {}
 func (opt OptAllowPartialResults) findOneOption() {}
 
+func (opt OptAllowPartialResults) String() string {
+	return "OptAllowPartialResults: " + strconv.FormatBool(bool(opt))
+}
+
+// TransformDocument handles transforming a document of an allowable type into
+// a *bson.Document. This method is called directly after most methods that
+// have one or more parameters that are documents.
+//
+// The supported types for document are:
+//
+//  bson.Marshaler
+//  bson.DocumentMarshaler
+//  bson.Reader
+//  []byte (must be a valid BSON document)
+//  io.Reader (only 1 BSON document will be read)
+//  A custom struct type
+//
+func TransformDocument(document interface{}) (*bson.Document, error) {
+	switch d := document.(type) {
+	case nil:
+		return bson.NewDocument(), nil
+	case *bson.Document:
+		return d, nil
+	case bson.Marshaler, bson.Reader, []byte, io.Reader:
+		return bson.NewDocumentEncoder().EncodeDocument(document)
+	case bson.DocumentMarshaler:
+		return d.MarshalBSONDocument()
+	default:
+		var kind reflect.Kind
+		if t := reflect.TypeOf(document); t.Kind() == reflect.Ptr {
+			kind = t.Elem().Kind()
+		}
+		if reflect.ValueOf(document).Kind() == reflect.Struct || kind == reflect.Struct {
+			return bson.NewDocumentEncoder().EncodeDocument(document)
+		}
+		if reflect.ValueOf(document).Kind() == reflect.Map &&
+			reflect.TypeOf(document).Key().Kind() == reflect.String {
+			return bson.NewDocumentEncoder().EncodeDocument(document)
+		}
+
+		return nil, fmt.Errorf("cannot transform type %s to a *bson.Document", reflect.TypeOf(document))
+	}
+}
+
 // OptArrayFilters is for internal use.
-type OptArrayFilters []*bson.Document
+//type OptArrayFilters []*bson.Document
+type OptArrayFilters []interface{}
 
 // Option implements the Optioner interface.
 func (opt OptArrayFilters) Option(d *bson.Document) error {
+	docs := make([]*bson.Document, 0, len(opt))
+	for _, f := range opt {
+		d, err := TransformDocument(f)
+		if err != nil {
+			return err
+		}
+		docs = append(docs, d)
+	}
+
 	arr := bson.NewArray()
-	for _, af := range opt {
-		arr.Append(bson.VC.Document(af))
+	for _, doc := range docs {
+		arr.Append(bson.VC.Document(doc))
 	}
 	d.Append(bson.EC.Array("arrayFilters", arr))
 	return nil
+}
+
+// String implements the Stringer interface.
+func (opt OptArrayFilters) String() string {
+	return "OptArrayFilters"
 }
 
 func (OptArrayFilters) findOneAndUpdateOption() {}
@@ -330,6 +407,11 @@ func (OptBatchSize) findOneOption()      {}
 func (OptBatchSize) listIndexesOption()  {}
 func (OptBatchSize) cursorOption()       {}
 
+// String implements the Stringer interface.
+func (opt OptBatchSize) String() string {
+	return "OptBatchSize: " + strconv.FormatInt(int64(opt), 10)
+}
+
 // OptBypassDocumentValidation is for internal use.
 type OptBypassDocumentValidation bool
 
@@ -347,6 +429,11 @@ func (OptBypassDocumentValidation) insertOption()            {}
 func (OptBypassDocumentValidation) insertOneOption()         {}
 func (OptBypassDocumentValidation) replaceOption()           {}
 func (OptBypassDocumentValidation) updateOption()            {}
+
+// String implements the Stringer interface.
+func (opt OptBypassDocumentValidation) String() string {
+	return "OptBypassDocumentValidation: " + strconv.FormatBool(bool(opt))
+}
 
 // OptCollation is for internal use.
 type OptCollation struct{ Collation *Collation }
@@ -370,6 +457,11 @@ func (OptCollation) findOneAndUpdateOption()  {}
 func (OptCollation) replaceOption()           {}
 func (OptCollation) updateOption()            {}
 
+// String implements the Stringer interface.
+func (opt OptCollation) String() string {
+	return "OptCollation"
+}
+
 // OptComment is for internal use.
 type OptComment string
 
@@ -382,6 +474,11 @@ func (opt OptComment) Option(d *bson.Document) error {
 func (OptComment) aggregateOption() {}
 func (OptComment) findOption()      {}
 func (OptComment) findOneOption()   {}
+
+// String implements the Stringer interface.
+func (opt OptComment) String() string {
+	return "OptComment: " + string(opt)
+}
 
 // OptCursorType is for internal use.
 type OptCursorType CursorType
@@ -400,6 +497,11 @@ func (opt OptCursorType) Option(d *bson.Document) error {
 func (OptCursorType) findOption()    {}
 func (OptCursorType) findOneOption() {}
 
+// String implements the Stringer interface.
+func (opt OptCursorType) String() string {
+	return "OptCursorType " + strconv.FormatInt(int64(opt), 10)
+}
+
 // OptFullDocument is for internal use.
 type OptFullDocument string
 
@@ -410,6 +512,11 @@ func (opt OptFullDocument) Option(d *bson.Document) error {
 }
 
 func (OptFullDocument) changeStreamOption() {}
+
+// String implements the Stringer interface.
+func (opt OptFullDocument) String() string {
+	return "OptFullDocument: " + string(opt)
+}
 
 // OptHint is for internal use.
 type OptHint struct{ Hint interface{} }
@@ -430,6 +537,11 @@ func (OptHint) findOption()      {}
 func (OptHint) findOneOption()   {}
 func (OptHint) aggregateOption() {}
 
+// String implements the Stringer interface.
+func (opt OptHint) String() string {
+	return "OptHint"
+}
+
 // OptLimit is for internal use.
 type OptLimit int64
 
@@ -439,20 +551,38 @@ func (opt OptLimit) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptLimit) countOption() {}
-func (OptLimit) findOption()  {}
+func (OptLimit) countOption()   {}
+func (OptLimit) findOption()    {}
+func (OptLimit) findOneOption() {}
+
+// String implements the Stringer interface.
+func (opt OptLimit) String() string {
+	return "OptLimit: " + strconv.FormatInt(int64(opt), 10)
+}
 
 // OptMax is for internal use.
-type OptMax struct{ Max *bson.Document }
+type OptMax struct {
+	Max interface{}
+}
 
 // Option implements the Optioner interface.
 func (opt OptMax) Option(d *bson.Document) error {
-	d.Append(bson.EC.SubDocument("max", opt.Max))
+	doc, err := TransformDocument(opt.Max)
+	if err != nil {
+		return err
+	}
+
+	d.Append(bson.EC.SubDocument("max", doc))
 	return nil
 }
 
 func (OptMax) findOption()    {}
 func (OptMax) findOneOption() {}
+
+// String implements the Stringer interface.
+func (opt OptMax) String() string {
+	return "OptMax"
+}
 
 // OptMaxAwaitTime is for internal use.
 type OptMaxAwaitTime time.Duration
@@ -467,6 +597,11 @@ func (OptMaxAwaitTime) changeStreamOption() {}
 func (OptMaxAwaitTime) findOption()         {}
 func (OptMaxAwaitTime) findOneOption()      {}
 
+// String implements the Stringer interface.
+func (opt OptMaxAwaitTime) String() string {
+	return "OptMaxAwaitTime: " + strconv.FormatInt(int64(opt), 10)
+}
+
 // OptMaxScan is for internal use.
 type OptMaxScan int64
 
@@ -478,6 +613,11 @@ func (opt OptMaxScan) Option(d *bson.Document) error {
 
 func (OptMaxScan) findOption()    {}
 func (OptMaxScan) findOneOption() {}
+
+// String implements the Stringer interface.
+func (opt OptMaxScan) String() string {
+	return "OptMaxScan: " + strconv.FormatInt(int64(opt), 10)
+}
 
 // OptMaxTime is for internal use.
 type OptMaxTime time.Duration
@@ -500,17 +640,34 @@ func (OptMaxTime) listIndexesOption()       {}
 func (OptMaxTime) dropIndexesOption()       {}
 func (OptMaxTime) createIndexesOption()     {}
 
+// String implements the Stringer interface.
+func (opt OptMaxTime) String() string {
+	return "OptMaxTime: " + strconv.FormatInt(int64(opt), 10)
+}
+
 // OptMin is for internal use.
-type OptMin struct{ Min *bson.Document }
+type OptMin struct {
+	Min interface{}
+}
 
 // Option implements the Optioner interface.
 func (opt OptMin) Option(d *bson.Document) error {
-	d.Append(bson.EC.SubDocument("min", opt.Min))
+	doc, err := TransformDocument(opt.Min)
+	if err != nil {
+		return err
+	}
+
+	d.Append(bson.EC.SubDocument("min", doc))
 	return nil
 }
 
 func (OptMin) findOption()    {}
 func (OptMin) findOneOption() {}
+
+// String implements the Stringer interface.
+func (opt OptMin) String() string {
+	return "OptMin"
+}
 
 // OptNoCursorTimeout is for internal use.
 type OptNoCursorTimeout bool
@@ -524,6 +681,11 @@ func (opt OptNoCursorTimeout) Option(d *bson.Document) error {
 func (OptNoCursorTimeout) findOption()    {}
 func (OptNoCursorTimeout) findOneOption() {}
 
+// String implements the Stringer interface.
+func (opt OptNoCursorTimeout) String() string {
+	return "OptNoCursorTimeout: " + strconv.FormatBool(bool(opt))
+}
+
 // OptOplogReplay is for internal use.
 type OptOplogReplay bool
 
@@ -535,6 +697,11 @@ func (opt OptOplogReplay) Option(d *bson.Document) error {
 
 func (OptOplogReplay) findOption()    {}
 func (OptOplogReplay) findOneOption() {}
+
+// String implements the Stringer interface.
+func (opt OptOplogReplay) String() string {
+	return "OptOplogReplay: " + strconv.FormatBool(bool(opt))
+}
 
 // OptOrdered is for internal use.
 type OptOrdered bool
@@ -548,27 +715,27 @@ func (opt OptOrdered) Option(d *bson.Document) error {
 func (OptOrdered) insertManyOption() {}
 func (OptOrdered) insertOption()     {}
 
+// String implements the Stringer interface.
+func (opt OptOrdered) String() string {
+	return "OptOrdered: " + strconv.FormatBool(bool(opt))
+}
+
 // OptProjection is for internal use.
 type OptProjection struct {
-	Projection *bson.Document
-	find       bool
+	Projection interface{}
 }
 
 // Option implements the Optioner interface.
 func (opt OptProjection) Option(d *bson.Document) error {
-	var key = "fields"
-	if opt.find {
-		key = "projection"
+	var key = "projection"
+
+	doc, err := TransformDocument(opt.Projection)
+	if err != nil {
+		return err
 	}
-	d.Append(bson.EC.SubDocument(key, opt.Projection))
+
+	d.Append(bson.EC.SubDocument(key, doc))
 	return nil
-}
-
-// IsFind is for internal use.
-func (opt OptProjection) IsFind() OptProjection {
-	opt.find = true
-
-	return opt
 }
 
 func (OptProjection) findOption()              {}
@@ -577,13 +744,51 @@ func (OptProjection) findOneAndDeleteOption()  {}
 func (OptProjection) findOneAndReplaceOption() {}
 func (OptProjection) findOneAndUpdateOption()  {}
 
+// String implements the Stringer interface.
+func (opt OptProjection) String() string {
+	return "OptProjection"
+}
+
+// OptFields is for internal use.
+type OptFields struct {
+	Fields interface{}
+}
+
+// Option implements the Optioner interface.
+func (opt OptFields) Option(d *bson.Document) error {
+	var key = "fields"
+	doc, err := TransformDocument(opt.Fields)
+	if err != nil {
+		return err
+	}
+
+	d.Append(bson.EC.SubDocument(key, doc))
+	return nil
+}
+
+func (OptFields) findOneAndDeleteOption()  {}
+func (OptFields) findOneAndReplaceOption() {}
+func (OptFields) findOneAndUpdateOption()  {}
+
+// String implements the Stringer interface.
+func (opt OptFields) String() string {
+	return "OptFields"
+}
+
 // OptReadConcern is for internal use.
-type OptReadConcern struct{ ReadConcern *bson.Element }
+type OptReadConcern struct {
+	ReadConcern *readconcern.ReadConcern
+}
 
 // Option implements the Optioner interface.
 func (opt OptReadConcern) Option(d *bson.Document) error {
-	if _, err := d.LookupElementErr(opt.ReadConcern.Key()); err == bson.ErrElementNotFound {
-		d.Append(opt.ReadConcern)
+	element, err := opt.ReadConcern.MarshalBSONElement()
+	if err != nil {
+		return err
+	}
+
+	if _, err := d.LookupElementErr(element.Key()); err == bson.ErrElementNotFound {
+		d.Append(element)
 	}
 	return nil
 }
@@ -594,6 +799,11 @@ func (OptReadConcern) countOption()        {}
 func (OptReadConcern) distinctOption()     {}
 func (OptReadConcern) findOption()         {}
 func (OptReadConcern) findOneOption()      {}
+
+// String implements the Stringer interface.
+func (opt OptReadConcern) String() string {
+	return "OptReadConcern"
+}
 
 // OptResumeAfter is for internal use.
 type OptResumeAfter struct{ ResumeAfter *bson.Document }
@@ -608,6 +818,11 @@ func (opt OptResumeAfter) Option(d *bson.Document) error {
 
 func (OptResumeAfter) changeStreamOption() {}
 
+// String implements the Stringer interface.
+func (opt OptResumeAfter) String() string {
+	return "OptResumeAfter"
+}
+
 // OptReturnDocument is for internal use.
 type OptReturnDocument ReturnDocument
 
@@ -619,6 +834,11 @@ func (opt OptReturnDocument) Option(d *bson.Document) error {
 
 func (OptReturnDocument) findOneAndReplaceOption() {}
 func (OptReturnDocument) findOneAndUpdateOption()  {}
+
+// String implements the Stringer interface.
+func (opt OptReturnDocument) String() string {
+	return "OptReturnDocument: " + strconv.FormatInt(int64(opt), 10)
+}
 
 // OptReturnKey is for internal use.
 type OptReturnKey bool
@@ -632,6 +852,11 @@ func (opt OptReturnKey) Option(d *bson.Document) error {
 func (OptReturnKey) findOption()    {}
 func (OptReturnKey) findOneOption() {}
 
+// String implements the Stringer interface.
+func (opt OptReturnKey) String() string {
+	return "OptReturnKey: " + strconv.FormatBool(bool(opt))
+}
+
 // OptShowRecordID is for internal use.
 type OptShowRecordID bool
 
@@ -643,6 +868,11 @@ func (opt OptShowRecordID) Option(d *bson.Document) error {
 
 func (OptShowRecordID) findOption()    {}
 func (OptShowRecordID) findOneOption() {}
+
+// String implements the Stringer interface.
+func (opt OptShowRecordID) String() string {
+	return "OptShowRecordId: " + strconv.FormatBool(bool(opt))
+}
 
 // OptSkip is for internal use.
 type OptSkip int64
@@ -657,6 +887,11 @@ func (OptSkip) countOption()   {}
 func (OptSkip) findOption()    {}
 func (OptSkip) findOneOption() {}
 
+// String implements the Stringer interface.
+func (opt OptSkip) String() string {
+	return "OptSkip: " + strconv.FormatInt(int64(opt), 10)
+}
+
 // OptSnapshot is for internal use.
 type OptSnapshot bool
 
@@ -669,12 +904,24 @@ func (opt OptSnapshot) Option(d *bson.Document) error {
 func (OptSnapshot) findOption()    {}
 func (OptSnapshot) findOneOption() {}
 
+// String implements the Stringer interface.
+func (opt OptSnapshot) String() string {
+	return "OptSnapshot: " + strconv.FormatBool(bool(opt))
+}
+
 // OptSort is for internal use.
-type OptSort struct{ Sort *bson.Document }
+type OptSort struct {
+	Sort interface{}
+}
 
 // Option implements the Optioner interface.
 func (opt OptSort) Option(d *bson.Document) error {
-	d.Append(bson.EC.SubDocument("sort", opt.Sort))
+	doc, err := TransformDocument(opt.Sort)
+	if err != nil {
+		return err
+	}
+
+	d.Append(bson.EC.SubDocument("sort", doc))
 	return nil
 }
 
@@ -683,6 +930,11 @@ func (OptSort) findOneOption()           {}
 func (OptSort) findOneAndDeleteOption()  {}
 func (OptSort) findOneAndReplaceOption() {}
 func (OptSort) findOneAndUpdateOption()  {}
+
+// String implements the Stringer interface.
+func (opt OptSort) String() string {
+	return "OptSort"
+}
 
 // OptUpsert is for internal use.
 type OptUpsert bool
@@ -698,17 +950,26 @@ func (OptUpsert) findOneAndUpdateOption()  {}
 func (OptUpsert) replaceOption()           {}
 func (OptUpsert) updateOption()            {}
 
+// String implements the Stringer interface.
+func (opt OptUpsert) String() string {
+	return "OptUpsert: " + strconv.FormatBool(bool(opt))
+}
+
 // OptWriteConcern is for internal use.
 type OptWriteConcern struct {
-	WriteConcern *bson.Element
-	Acknowledged bool
+	*writeconcern.WriteConcern
 }
 
 // Option implements the Optioner interface.
 func (opt OptWriteConcern) Option(d *bson.Document) error {
-	_, err := d.LookupElementErr(opt.WriteConcern.Key())
+	element, err := opt.WriteConcern.MarshalBSONElement()
+	if err != nil {
+		return err
+	}
+
+	_, err = d.LookupElementErr(element.Key())
 	if err == bson.ErrElementNotFound {
-		d.Append(opt.WriteConcern)
+		d.Append(element)
 		return nil
 	}
 	return err
@@ -727,6 +988,11 @@ func (OptWriteConcern) updateOption()            {}
 func (OptWriteConcern) createIndexesOption()     {}
 func (OptWriteConcern) dropIndexesOption()       {}
 
+// String implements the Stringer interface.
+func (opt OptWriteConcern) String() string {
+	return "OptWriteConcern"
+}
+
 // OptNameOnly is for internal use.
 type OptNameOnly bool
 
@@ -738,3 +1004,8 @@ func (opt OptNameOnly) Option(d *bson.Document) error {
 
 func (OptNameOnly) listDatabasesOption()   {}
 func (OptNameOnly) listCollectionsOption() {}
+
+// String implements the Stringer interface.
+func (opt OptNameOnly) String() string {
+	return "OptNameOnly: " + strconv.FormatBool(bool(opt))
+}

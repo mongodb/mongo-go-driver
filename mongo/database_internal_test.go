@@ -15,18 +15,22 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 	"github.com/stretchr/testify/require"
 )
 
-func createTestDatabase(t *testing.T, name *string) *Database {
+func createTestDatabase(t *testing.T, name *string, opts ...dbopt.Option) *Database {
 	if name == nil {
 		db := testutil.DBName(t)
 		name = &db
 	}
 
 	client := createTestClient(t)
-	return client.Database(*name)
+	return client.Database(*name, opts...)
 }
 
 func TestDatabase_initialize(t *testing.T) {
@@ -37,6 +41,70 @@ func TestDatabase_initialize(t *testing.T) {
 	db := createTestDatabase(t, &name)
 	require.Equal(t, db.name, name)
 	require.NotNil(t, db.client)
+}
+
+func compareDbs(t *testing.T, expected *Database, got *Database) {
+	switch {
+	case expected.readPreference != got.readPreference:
+		t.Errorf("expected read preference %#v. got %#v", expected.readPreference, got.readPreference)
+	case expected.readConcern != got.readConcern:
+		t.Errorf("expected read concern %#v. got %#v", expected.readConcern, got.readConcern)
+	case expected.writeConcern != got.writeConcern:
+		t.Errorf("expected write concern %#v. got %#v", expected.writeConcern, got.writeConcern)
+	}
+}
+
+func TestDatabase_Options(t *testing.T) {
+	name := "testDb_options"
+	rpPrimary := readpref.Primary()
+	rpSecondary := readpref.Secondary()
+	wc1 := writeconcern.New(writeconcern.W(5))
+	wc2 := writeconcern.New(writeconcern.W(10))
+	rcLocal := readconcern.Local()
+	rcMajority := readconcern.Majority()
+
+	opts := []dbopt.Option{dbopt.ReadPreference(rpPrimary), dbopt.ReadConcern(rcLocal), dbopt.WriteConcern(wc1),
+		dbopt.ReadPreference(rpSecondary), dbopt.ReadConcern(rcMajority), dbopt.WriteConcern(wc2)}
+
+	expectedDb := &Database{
+		readConcern:    rcMajority,
+		readPreference: rpSecondary,
+		writeConcern:   wc2,
+	}
+
+	t.Run("IndividualOptions", func(t *testing.T) {
+		// if options specified multiple times, last instance should take precedence
+		db := createTestDatabase(t, &name, opts...)
+		compareDbs(t, expectedDb, db)
+	})
+
+	t.Run("Bundle", func(t *testing.T) {
+		db := createTestDatabase(t, &name, dbopt.BundleDatabase(opts...))
+		compareDbs(t, expectedDb, db)
+	})
+}
+
+func TestDatabase_InheritOptions(t *testing.T) {
+	name := "testDb_options_inherit"
+	client := createTestClient(t)
+
+	rpPrimary := readpref.Primary()
+	rcLocal := readconcern.Local()
+	client.readPreference = rpPrimary
+	client.readConcern = rcLocal
+
+	wc1 := writeconcern.New(writeconcern.W(10))
+	db := client.Database(name, dbopt.WriteConcern(wc1))
+
+	// db should inherit read preference and read concern from client
+	switch {
+	case db.readPreference != rpPrimary:
+		t.Errorf("expected read preference primary. got %#v", db.readPreference)
+	case db.readConcern != rcLocal:
+		t.Errorf("expected read concern local. got %#v", db.readConcern)
+	case db.writeConcern != wc1:
+		t.Errorf("expected write concern %#v. got %#v", wc1, db.writeConcern)
+	}
 }
 
 func TestDatabase_RunCommand(t *testing.T) {
@@ -181,29 +249,40 @@ func listCollectionsTest(db *Database, cappedOnly bool) error {
 		)
 	}
 
-	cursor, err := db.ListCollections(context.Background(), filter)
-	if err != nil {
-		return err
+	for i := 0; i < 10; i++ {
+		cursor, err := db.ListCollections(context.Background(), filter)
+		if err != nil {
+			return err
+		}
+
+		err = verifyListCollections(cursor, uncappedName, cappedName, cappedOnly)
+		if err == nil {
+			return nil
+		}
 	}
 
-	return verifyListCollections(cursor, uncappedName, cappedName, cappedOnly)
+	return err // all tests failed
 }
 
 func TestDatabase_ListCollections(t *testing.T) {
-	// TODO(GODRIVER-272): Add tests for the replica_set topology using the secondary read preference
 	t.Parallel()
+	rpPrimary := readpref.Primary()
+	rpSecondary := readpref.Secondary()
 
 	var listCollectionsTable = []struct {
 		name             string
 		expectedTopology string
 		cappedOnly       bool
+		rp               *readpref.ReadPref
 	}{
-		{"standalone_nofilter", "server", false},
-		{"standalone_filter", "server", true},
-		{"replicaset_nofilter", "replica_set", false},
-		{"replicaset_filter", "replica_set", true},
-		{"sharded_nofilter", "sharded_cluster", false},
-		{"sharded_filter", "sharded_cluster", true},
+		{"standalone_nofilter", "server", false, rpPrimary},
+		{"standalone_filter", "server", true, rpPrimary},
+		{"replicaset_nofilter", "replica_set", false, rpPrimary},
+		{"replicaset_filter", "replica_set", true, rpPrimary},
+		{"replicaset_secondary_nofilter", "replica_set", false, rpSecondary},
+		{"replicaset_secondary_filter", "replica_set", true, rpSecondary},
+		{"sharded_nofilter", "sharded_cluster", false, rpPrimary},
+		{"sharded_filter", "sharded_cluster", true, rpPrimary},
 	}
 
 	for _, tt := range listCollectionsTable {
@@ -212,7 +291,7 @@ func TestDatabase_ListCollections(t *testing.T) {
 				t.Skip()
 			}
 			dbName := "db_list_collections"
-			db := createTestDatabase(t, &dbName)
+			db := createTestDatabase(t, &dbName, dbopt.ReadPreference(tt.rp))
 
 			defer func() {
 				err := db.Drop(context.Background())

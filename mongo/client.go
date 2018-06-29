@@ -20,6 +20,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
+	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -36,8 +38,8 @@ type Client struct {
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
-func Connect(ctx context.Context, uri string, opts *ClientOptions) (*Client, error) {
-	c, err := NewClientWithOptions(uri, opts)
+func Connect(ctx context.Context, uri string, opts ...clientopt.Option) (*Client, error) {
+	c, err := NewClientWithOptions(uri, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -61,13 +63,13 @@ func NewClient(uri string) (*Client, error) {
 // NewClientWithOptions creates a new client to connect to to a cluster specified by the connection
 // string and the options manually passed in. If the same option is configured in both the
 // connection string and the manual options, the manual option will be ignored.
-func NewClientWithOptions(uri string, opts *ClientOptions) (*Client, error) {
+func NewClientWithOptions(uri string, opts ...clientopt.Option) (*Client, error) {
 	cs, err := connstring.Parse(uri)
 	if err != nil {
 		return nil, err
 	}
 
-	return newClient(cs, opts)
+	return newClient(cs, opts...)
 }
 
 // NewClientFromConnString creates a new client to connect to a cluster, with configuration
@@ -94,20 +96,16 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	return c.topology.Disconnect(ctx)
 }
 
-func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
-	client := &Client{
-		connString:     cs,
-		localThreshold: defaultLocalThreshold,
+func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, error) {
+	clientOpt, err := clientopt.BundleClient(opts...).Unbundle(cs)
+	if err != nil {
+		return nil, err
 	}
 
-	if opts != nil {
-		for opts.opt != nil {
-			err := opts.opt(client)
-			if err != nil {
-				return nil, err
-			}
-			opts = opts.next
-		}
+	client := &Client{
+		topologyOptions: clientOpt.TopologyOptions,
+		connString:      clientOpt.ConnString,
+		localThreshold:  defaultLocalThreshold,
 	}
 
 	topts := append(
@@ -120,19 +118,23 @@ func newClient(cs connstring.ConnString, opts *ClientOptions) (*Client, error) {
 	}
 	client.topology = topo
 
-	client.readConcern = readConcernFromConnString(&client.connString)
-	client.writeConcern = writeConcernFromConnString(&client.connString)
-
-	rp, err := readPreferenceFromConnString(&client.connString)
-	if err != nil {
-		return nil, err
+	if client.readConcern == nil {
+		client.readConcern = readConcernFromConnString(&client.connString)
 	}
-	if rp != nil {
-		client.readPreference = rp
-	} else {
-		client.readPreference = readpref.Primary()
+	if client.writeConcern == nil {
+		client.writeConcern = writeConcernFromConnString(&client.connString)
 	}
-
+	if client.readPreference == nil {
+		rp, err := readPreferenceFromConnString(&client.connString)
+		if err != nil {
+			return nil, err
+		}
+		if rp != nil {
+			client.readPreference = rp
+		} else {
+			client.readPreference = readpref.Primary()
+		}
+	}
 	return client, nil
 }
 
@@ -211,8 +213,8 @@ func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref
 }
 
 // Database returns a handle for a given database.
-func (c *Client) Database(name string) *Database {
-	return newDatabase(c, name)
+func (c *Client) Database(name string, opts ...dbopt.Option) *Database {
+	return newDatabase(c, name, opts...)
 }
 
 // ConnectionString returns the connection string of the cluster the client is connected to.

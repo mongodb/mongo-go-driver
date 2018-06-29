@@ -56,7 +56,7 @@ func (f *Find) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 			batchSize = int32(t)
 			err = opt.Option(command)
 		case option.OptProjection:
-			err = t.IsFind().Option(command)
+			err = t.Option(command)
 		default:
 			err = opt.Option(command)
 		}
