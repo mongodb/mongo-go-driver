@@ -11,9 +11,35 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
+
+// extract cluster time from the entire server response
+func responseClusterTime(response bson.Reader) (*bson.Document, error) {
+	clusterTime, err := response.Lookup("$clusterTime")
+	if err != nil {
+		// server didn't return $clusterTime
+		return nil, nil
+	}
+
+	return ResponseClusterTime(clusterTime.Value().MutableDocument())
+}
+
+// ResponseClusterTime extracts the cluster time from a server response as a bson document
+// The document has 1 element with key clusterTime and a bson timestamp as the value
+func ResponseClusterTime(response *bson.Document) (*bson.Document, error) {
+	clusterTime, err := response.LookupErr("clusterTime")
+	if err != nil {
+		return nil, err
+	}
+
+	epoch, ordinal := clusterTime.Timestamp()
+	return bson.NewDocument(
+		bson.EC.Timestamp("clusterTime", epoch, ordinal),
+	), nil
+}
 
 func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
 	if cmd == nil {
@@ -23,6 +49,21 @@ func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
 	return cmd.MarshalBSON()
 }
 
+// add a session ID to a BSON doc representing a command
+func addSessionID(cmd *bson.Document, client *session.Client) error {
+	if client == nil {
+		return nil
+	}
+
+	if _, err := cmd.LookupElementErr("lsid"); err != nil {
+		cmd.Delete("lsid")
+	}
+
+	cmd.Append(bson.EC.SubDocument("lsid", client.SessionID))
+	return nil
+}
+
+// add a read concern to a BSON doc representing a command
 func addReadConcern(cmd *bson.Document, rc *readconcern.ReadConcern) error {
 	if rc == nil {
 		return nil
@@ -41,6 +82,7 @@ func addReadConcern(cmd *bson.Document, rc *readconcern.ReadConcern) error {
 	return nil
 }
 
+// add a write concern to a BSON doc representing a command
 func addWriteConcern(cmd *bson.Document, wc *writeconcern.WriteConcern) error {
 	if wc == nil {
 		return nil

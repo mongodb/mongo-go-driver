@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -26,9 +27,11 @@ type Find struct {
 	Opts        []option.FindOptioner
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Session     *session.Client
 
-	result Cursor
-	err    error
+	result            Cursor
+	resultClusterTime *bson.Document
+	err               error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -85,6 +88,7 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 		ReadPref:    f.ReadPref,
 		Command:     command,
 		ReadConcern: f.ReadConcern,
+		Session:     f.Session,
 	}, nil
 }
 
@@ -101,6 +105,13 @@ func (f *Find) Decode(desc description.SelectedServer, cb CursorBuilder, wm wire
 }
 
 func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *Find {
+	clusterTime, err := responseClusterTime(rdr)
+	if err != nil {
+		f.err = err
+		return f
+	}
+	f.resultClusterTime = clusterTime
+
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range f.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)
@@ -115,26 +126,26 @@ func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bso
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (f *Find) Result() (Cursor, error) {
+func (f *Find) Result() (Cursor, *bson.Document, error) {
 	if f.err != nil {
-		return nil, f.err
+		return nil, nil, f.err
 	}
-	return f.result, nil
+	return f.result, f.resultClusterTime, nil
 }
 
 // Err returns the error set on this command.
 func (f *Find) Err() error { return f.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, *bson.Document, error) {
 	cmd, err := f.encode(desc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return f.decode(desc, cb, rdr).Result()

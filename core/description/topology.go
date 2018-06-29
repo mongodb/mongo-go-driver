@@ -15,8 +15,9 @@ import (
 
 // Topology represents a description of a mongodb topology
 type Topology struct {
-	Servers []Server
-	Kind    TopologyKind
+	Servers               []Server
+	Kind                  TopologyKind
+	SessionTimeoutMinutes uint32
 }
 
 // Server returns the server for the given address. Returns false if the server

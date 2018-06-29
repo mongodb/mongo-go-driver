@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,12 +20,14 @@ import (
 //
 // The getMore command retrieves additional documents from a cursor.
 type GetMore struct {
-	ID   int64
-	NS   Namespace
-	Opts []option.CursorOptioner
+	ID      int64
+	NS      Namespace
+	Opts    []option.CursorOptioner
+	Session *session.Client
 
-	result bson.Reader
-	err    error
+	result            bson.Reader
+	resultClusterTime *bson.Document
+	err               error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -52,38 +55,56 @@ func (gm *GetMore) encode(desc description.SelectedServer) (*Read, error) {
 	return &Read{
 		DB:      gm.NS.DB,
 		Command: cmd,
+		Session: gm.Session,
 	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (gm *GetMore) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *GetMore {
-	gm.result, gm.err = (&Read{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
+	if err != nil {
+		gm.err = err
+		return gm
+	}
+
+	return gm.decode(desc, rdr)
+}
+
+func (gm *GetMore) decode(desc description.SelectedServer, rdr bson.Reader) *GetMore {
+	clusterTime, err := responseClusterTime(rdr)
+	if err != nil {
+		gm.err = err
+		return gm
+	}
+	gm.resultClusterTime = clusterTime
+
+	gm.result = rdr
 	return gm
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (gm *GetMore) Result() (bson.Reader, error) {
+func (gm *GetMore) Result() (bson.Reader, *bson.Document, error) {
 	if gm.err != nil {
-		return nil, gm.err
+		return nil, nil, gm.err
 	}
-	return gm.result, nil
+	return gm.result, gm.resultClusterTime, nil
 }
 
 // Err returns the error set on this command.
 func (gm *GetMore) Err() error { return gm.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, *bson.Document, error) {
 	cmd, err := gm.encode(desc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return rdr, nil
+	return gm.decode(desc, rdr).Result()
 }

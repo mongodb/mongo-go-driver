@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -25,6 +26,7 @@ type CreateIndexes struct {
 	Indexes      *bson.Array
 	Opts         []option.CreateIndexesOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result result.CreateIndexes
 	err    error
@@ -60,6 +62,7 @@ func (ci *CreateIndexes) encode(desc description.SelectedServer) (*Write, error)
 		DB:           ci.NS.DB,
 		Command:      cmd,
 		WriteConcern: ci.WriteConcern,
+		Session:      ci.Session,
 	}, nil
 }
 

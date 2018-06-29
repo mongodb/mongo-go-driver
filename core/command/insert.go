@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -32,6 +33,7 @@ type Insert struct {
 	Docs         []*bson.Document
 	Opts         []option.InsertOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result          result.Insert
 	err             error
@@ -132,6 +134,7 @@ func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		DB:           i.NS.DB,
 		Command:      command,
 		WriteConcern: i.WriteConcern,
+		Session:      i.Session,
 	}, nil
 }
 

@@ -323,7 +323,6 @@ func (t *Topology) update() {
 			}
 
 			t.desc.Store(current)
-
 			t.subLock.Lock()
 			for _, ch := range t.subscribers {
 				// We drain the description if there's one in the channel

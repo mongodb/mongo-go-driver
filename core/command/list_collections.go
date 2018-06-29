@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,13 +21,15 @@ import (
 //
 // The listCollections command lists the collections in a database.
 type ListCollections struct {
-	DB     string
-	Filter *bson.Document
-	Opts   []option.ListCollectionsOptioner
-
-	result   Cursor
+	DB       string
+	Filter   *bson.Document
+	Opts     []option.ListCollectionsOptioner
 	ReadPref *readpref.ReadPref
-	err      error
+	Session  *session.Client
+
+	result            Cursor
+	resultClusterTime *bson.Document
+	err               error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -59,10 +62,11 @@ func (lc *ListCollections) encode(desc description.SelectedServer) (*Read, error
 		DB:       lc.DB,
 		Command:  cmd,
 		ReadPref: lc.ReadPref,
+		Session:  lc.Session,
 	}, nil
 }
 
-// Decode will decode the wire message using the provided server description. Errors during decoding
+// Decode will decode the wire message using the provided server description. Errors during decolcng
 // are deferred until either the Result or Err methods are called.
 func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListCollections {
 	rdr, err := (&Read{}).Decode(desc, wm).Result()
@@ -74,6 +78,13 @@ func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuil
 }
 
 func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *ListCollections {
+	clusterTime, err := responseClusterTime(rdr)
+	if err != nil {
+		lc.err = err
+		return lc
+	}
+	lc.resultClusterTime = clusterTime
+
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range lc.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)
@@ -89,26 +100,26 @@ func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuil
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (lc *ListCollections) Result() (Cursor, error) {
+func (lc *ListCollections) Result() (Cursor, *bson.Document, error) {
 	if lc.err != nil {
-		return nil, lc.err
+		return nil, nil, lc.err
 	}
-	return lc.result, nil
+	return lc.result, lc.resultClusterTime, nil
 }
 
 // Err returns the error set on this command.
 func (lc *ListCollections) Err() error { return lc.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (lc *ListCollections) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (lc *ListCollections) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, *bson.Document, error) {
 	cmd, err := lc.encode(desc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return lc.decode(desc, cb, rdr).Result()

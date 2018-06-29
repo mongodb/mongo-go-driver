@@ -9,6 +9,7 @@ package dispatch
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/topology"
@@ -21,16 +22,16 @@ func ListCollections(
 	cmd command.ListCollections,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-) (command.Cursor, error) {
+) (command.Cursor, *bson.Document, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	conn, err := ss.Connection(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer conn.Close()
 
