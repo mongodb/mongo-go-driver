@@ -126,7 +126,7 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 				Opts:     []option.AggregateOptioner{option.OptBatchSize(200)},
 				ReadPref: rp,
 			}
-			cursor, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp))
+			cursor, _, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp))
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue

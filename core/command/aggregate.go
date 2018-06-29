@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -22,15 +23,18 @@ import (
 //
 // The aggregate command performs an aggregation.
 type Aggregate struct {
+	ClusterTime  *bson.Document
 	NS           Namespace
 	Pipeline     *bson.Array
 	Opts         []option.AggregateOptioner
 	ReadPref     *readpref.ReadPref
 	WriteConcern *writeconcern.WriteConcern
 	ReadConcern  *readconcern.ReadConcern
+	Session      *session.Client
 
-	result Cursor
-	err    error
+	result            Cursor
+	resultClusterTime *bson.Document
+	err               error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -85,10 +89,12 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 	}
 
 	return &Read{
+		ClusterTime: a.ClusterTime,
 		DB:          a.NS.DB,
 		Command:     command,
 		ReadPref:    a.ReadPref,
 		ReadConcern: a.ReadConcern,
+		Session:     a.Session,
 	}, nil
 }
 
@@ -139,32 +145,35 @@ func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rd
 		opts = append(opts, curOpt)
 	}
 
-	a.result, a.err = cb.BuildCursor(rdr, opts...)
-
+	a.resultClusterTime = responseClusterTime(rdr)
+	if a.Session != nil {
+		a.Session.AdvanceClusterTime(a.resultClusterTime)
+	}
+	a.result, a.err = cb.BuildCursor(rdr, a.Session, opts...)
 	return a
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (a *Aggregate) Result() (Cursor, error) {
+func (a *Aggregate) Result() (Cursor, *bson.Document, error) {
 	if a.err != nil {
-		return nil, a.err
+		return nil, nil, a.err
 	}
-	return a.result, nil
+	return a.result, a.resultClusterTime, nil
 }
 
 // Err returns the error set on this command.
 func (a *Aggregate) Err() error { return a.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, *bson.Document, error) {
 	cmd, err := a.encode(desc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return a.decode(desc, cb, rdr).Result()
