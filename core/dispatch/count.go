@@ -9,6 +9,7 @@ package dispatch
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/topology"
@@ -21,17 +22,17 @@ func Count(
 	cmd command.Count,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-) (int64, error) {
+) (int64, *bson.Document, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	defer conn.Close()
 
