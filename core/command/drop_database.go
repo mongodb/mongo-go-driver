@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -21,6 +22,7 @@ import (
 type DropDatabase struct {
 	DB           string
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result bson.Reader
 	err    error
@@ -45,6 +47,7 @@ func (dd *DropDatabase) encode(desc description.SelectedServer) (*Write, error) 
 		DB:           dd.DB,
 		Command:      cmd,
 		WriteConcern: dd.WriteConcern,
+		Session:      dd.Session,
 	}, nil
 }
 
