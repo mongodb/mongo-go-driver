@@ -22,6 +22,30 @@
       "revId": "941e685cc48fc76770d4c3b6355257f545bb518c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "abf18637_a482c815",
+        "filename": "mongo/insertopt/insertopt.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-06-29T15:05:32Z",
+      "side": 1,
+      "message": "I did a blanket replace.  Changed it back.",
+      "parentUuid": "8d8ab045_185150dc",
+      "range": {
+        "startLine": 20,
+        "startChar": 5,
+        "endLine": 20,
+        "endChar": 14
+      },
+      "revId": "941e685cc48fc76770d4c3b6355257f545bb518c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
