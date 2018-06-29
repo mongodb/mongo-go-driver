@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -27,9 +28,11 @@ type Count struct {
 	Opts        []option.CountOptioner
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Session     *session.Client
 
-	result int64
-	err    error
+	result            int64
+	resultClusterTime *bson.Document
+	err               error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -63,6 +66,7 @@ func (c *Count) encode(desc description.SelectedServer) (*Read, error) {
 		ReadPref:    c.ReadPref,
 		Command:     command,
 		ReadConcern: c.ReadConcern,
+		Session:     c.Session,
 	}, nil
 }
 
@@ -79,6 +83,8 @@ func (c *Count) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 }
 
 func (c *Count) decode(desc description.SelectedServer, rdr bson.Reader) *Count {
+	c.resultClusterTime = responseClusterTime(rdr)
+
 	val, err := rdr.Lookup("n")
 	switch {
 	case err == bson.ErrElementNotFound:
@@ -102,26 +108,26 @@ func (c *Count) decode(desc description.SelectedServer, rdr bson.Reader) *Count 
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (c *Count) Result() (int64, error) {
+func (c *Count) Result() (int64, *bson.Document, error) {
 	if c.err != nil {
-		return 0, c.err
+		return 0, nil, c.err
 	}
-	return c.result, nil
+	return c.result, c.resultClusterTime, nil
 }
 
 // Err returns the error set on this command.
 func (c *Count) Err() error { return c.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (c *Count) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (int64, error) {
+func (c *Count) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (int64, *bson.Document, error) {
 	cmd, err := c.encode(desc)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	return c.decode(desc, rdr).Result()

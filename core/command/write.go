@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"errors"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -16,6 +19,7 @@ type Write struct {
 	DB           string
 	Command      *bson.Document
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result bson.Reader
 	err    error
@@ -117,6 +121,22 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 		return nil, err
 	}
 
+	if !writeconcern.AckWrite(w.WriteConcern) {
+		// unack write with explicit session --> raise an error
+		// unack write with implicit session --> do not send session ID (implicit session shouldn't have been created
+		// in the first place)
+
+		if w.Session != nil && w.Session.SessionType == session.Explicit {
+			return nil, errors.New("explicit sessions cannot be used with unacknowledged writes")
+		}
+	} else {
+		// only encode session ID for acknowledged writes
+		err = addSessionID(cmd, w.Session)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return w.encodeOpQuery(desc, cmd)
 	}
@@ -173,5 +193,8 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 		return nil, err
 	}
 
+	if w.Session != nil {
+		w.Session.UpdateUseTime()
+	}
 	return w.Decode(desc, wm).Result()
 }
