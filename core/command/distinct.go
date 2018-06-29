@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -23,12 +24,14 @@ import (
 // The distinct command returns the distinct values for a specified field
 // across a single collection.
 type Distinct struct {
+	ClusterTime *bson.Document
 	NS          Namespace
 	Field       string
 	Query       *bson.Document
 	Opts        []option.DistinctOptioner
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Session     *session.Client
 
 	result result.Distinct
 	err    error
@@ -67,10 +70,12 @@ func (d *Distinct) encode(desc description.SelectedServer) (*Read, error) {
 	}
 
 	return &Read{
+		ClusterTime: d.ClusterTime,
 		DB:          d.NS.DB,
 		ReadPref:    d.ReadPref,
 		Command:     command,
 		ReadConcern: d.ReadConcern,
+		Session:     d.Session,
 	}, nil
 }
 
@@ -88,6 +93,13 @@ func (d *Distinct) Decode(desc description.SelectedServer, wm wiremessage.WireMe
 
 func (d *Distinct) decode(desc description.SelectedServer, rdr bson.Reader) *Distinct {
 	d.err = bson.Unmarshal(rdr, &d.result)
+	if d.err != nil {
+		return d
+	}
+
+	if d.Session != nil {
+		d.Session.AdvanceClusterTime(d.result.ClusterTime)
+	}
 	return d
 }
 

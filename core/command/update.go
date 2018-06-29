@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -21,10 +22,12 @@ import (
 //
 // The update command updates a set of documents with the database.
 type Update struct {
+	ClusterTime  *bson.Document
 	NS           Namespace
 	Docs         []*bson.Document
 	Opts         []option.UpdateOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result result.Update
 	err    error
@@ -67,9 +70,11 @@ func (u *Update) encode(desc description.SelectedServer) (*Write, error) {
 	}
 
 	return &Write{
+		ClusterTime:  u.ClusterTime,
 		DB:           u.NS.DB,
 		Command:      command,
 		WriteConcern: u.WriteConcern,
+		Session:      u.Session,
 	}, nil
 }
 
@@ -86,6 +91,13 @@ func (u *Update) Decode(desc description.SelectedServer, wm wiremessage.WireMess
 
 func (u *Update) decode(desc description.SelectedServer, rdr bson.Reader) *Update {
 	u.err = bson.Unmarshal(rdr, &u.result)
+	if u.err != nil {
+		return u
+	}
+
+	if u.Session != nil {
+		u.Session.AdvanceClusterTime(u.result.ClusterTime)
+	}
 	return u
 }
 

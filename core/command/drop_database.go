@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -19,11 +20,14 @@ import (
 //
 // The DropDatabases command drops database.
 type DropDatabase struct {
+	ClusterTime  *bson.Document
 	DB           string
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
-	result bson.Reader
-	err    error
+	result            bson.Reader
+	resultClusterTime *bson.Document
+	err               error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -42,41 +46,58 @@ func (dd *DropDatabase) encode(desc description.SelectedServer) (*Write, error) 
 	)
 
 	return &Write{
+		ClusterTime:  dd.ClusterTime,
 		DB:           dd.DB,
 		Command:      cmd,
 		WriteConcern: dd.WriteConcern,
+		Session:      dd.Session,
 	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (dd *DropDatabase) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *DropDatabase {
-	dd.result, dd.err = (&Write{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
+	if err != nil {
+		dd.err = err
+		return dd
+	}
+
+	return dd.decode(desc, rdr)
+}
+
+func (dd *DropDatabase) decode(desc description.SelectedServer, rdr bson.Reader) *DropDatabase {
+	dd.resultClusterTime = responseClusterTime(rdr)
+	if dd.Session != nil {
+		dd.Session.AdvanceClusterTime(dd.resultClusterTime)
+	}
+
+	dd.result = rdr
 	return dd
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (dd *DropDatabase) Result() (bson.Reader, error) {
+func (dd *DropDatabase) Result() (bson.Reader, *bson.Document, error) {
 	if dd.err != nil {
-		return nil, dd.err
+		return nil, nil, dd.err
 	}
-	return dd.result, nil
+	return dd.result, dd.resultClusterTime, nil
 }
 
 // Err returns the error set on this command.
 func (dd *DropDatabase) Err() error { return dd.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (dd *DropDatabase) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (dd *DropDatabase) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, *bson.Document, error) {
 	cmd, err := dd.encode(desc)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	dd.result, err = cmd.RoundTrip(ctx, desc, rw)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return dd.Result()
+	return dd.decode(desc, rdr).Result()
 }

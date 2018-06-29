@@ -18,8 +18,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 // ErrSubscribeAfterClosed is returned when a user attempts to subscribe to a
@@ -57,9 +59,10 @@ type Topology struct {
 
 	done chan struct{}
 
-	fsm       *fsm
-	changes   chan description.Server
-	changeswg sync.WaitGroup
+	fsm                *fsm
+	changes            chan description.Server
+	changeswg          sync.WaitGroup
+	clusterTimeChanges chan *bson.Document
 
 	// This should really be encapsulated into it's own type. This will likely
 	// require a redesign so we can share a minimum of data between the
@@ -68,6 +71,9 @@ type Topology struct {
 	currentSubscriberID uint64
 	subscriptionsClosed bool
 	subLock             sync.Mutex
+
+	clusterTimeSubscribers map[uint64]chan *bson.Document
+	currentCtSubscriberId  uint64
 
 	// We should redesign how we connect and handle individal servers. This is
 	// too difficult to maintain and it's rather easy to accidentally access
@@ -120,9 +126,9 @@ func (t *Topology) Connect(ctx context.Context) error {
 	var err error
 	t.serversLock.Lock()
 	for _, a := range t.cfg.seedList {
-		address := address.Address(a).Canonicalize()
-		t.fsm.Servers = append(t.fsm.Servers, description.Server{Addr: address})
-		err = t.addServer(ctx, address)
+		addr := address.Address(a).Canonicalize()
+		t.fsm.Servers = append(t.fsm.Servers, description.Server{Addr: addr})
+		err = t.addServer(ctx, addr)
 	}
 	t.serversLock.Unlock()
 
@@ -142,8 +148,8 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 
 	t.serversLock.Lock()
 	t.serversClosed = true
-	for address, server := range t.servers {
-		t.removeServer(ctx, address, server)
+	for addr, server := range t.servers {
+		t.removeServer(ctx, addr, server)
 	}
 	t.serversLock.Unlock()
 
@@ -190,6 +196,30 @@ func (t *Topology) Subscribe() (*Subscription, error) {
 	t.currentSubscriberID++
 
 	return &Subscription{
+		C:  ch,
+		t:  t,
+		id: id,
+	}, nil
+}
+
+// SubscribeClusterTime returns a ClusterTimeSubscription on which all updated cluster times will be sent. The channel
+// of the subscription will have a buffer size of 1.
+func (t *Topology) SubscribeClusterTime() (*CTSubscription, error) {
+	if atomic.LoadInt32(&t.connectionstate) != connected {
+		return nil, errors.New("cannot subscribe to Topology that is not connected")
+	}
+	ch := make(chan *bson.Document, 1)
+	t.subLock.Lock()
+	defer t.subLock.Unlock()
+	if t.subscriptionsClosed {
+		return nil, ErrSubscribeAfterClosed
+	}
+
+	id := t.currentCtSubscriberId
+	t.clusterTimeSubscribers[id] = ch
+	t.currentCtSubscriberId++
+
+	return &CTSubscription{
 		C:  ch,
 		t:  t,
 		id: id,
@@ -323,7 +353,6 @@ func (t *Topology) update() {
 			}
 
 			t.desc.Store(current)
-
 			t.subLock.Lock()
 			for _, ch := range t.subscribers {
 				// We drain the description if there's one in the channel
@@ -334,11 +363,29 @@ func (t *Topology) update() {
 				ch <- current
 			}
 			t.subLock.Unlock()
+		case newClusterTime := <-t.clusterTimeChanges:
+			t.subLock.Lock()
+			for _, ch := range t.clusterTimeSubscribers {
+				// Drain the cluster time in the channel if there is one
+				// Put back the larger cluster time into the channel
+
+				select {
+				case oldTime := <-ch:
+					ch <- session.MaxClusterTime(newClusterTime, oldTime)
+				default:
+					ch <- newClusterTime // no old time on channel
+				}
+			}
+			t.subLock.Unlock()
 		case <-t.done:
 			t.subLock.Lock()
 			for id, ch := range t.subscribers {
 				close(ch)
 				delete(t.subscribers, id)
+			}
+			for id, ch := range t.clusterTimeSubscribers {
+				close(ch)
+				delete(t.clusterTimeSubscribers, id)
 			}
 			t.subscriptionsClosed = true
 			t.subLock.Unlock()
@@ -393,11 +440,27 @@ func (t *Topology) addServer(ctx context.Context, addr address.Address) error {
 		return err
 	}
 
+	var ctSub *ServerCTSubscription
+	ctSub, err = svr.SubscribeClusterTime()
+	if err != nil {
+		return err
+	}
+
 	t.wg.Add(1)
 	go func() {
 		for c := range sub.C {
 			t.changes <- c
 		}
+
+		t.wg.Done()
+	}()
+
+	t.wg.Add(1)
+	go func() {
+		for c := range ctSub.C {
+			t.clusterTimeChanges <- c
+		}
+
 		t.wg.Done()
 	}()
 
@@ -413,6 +476,13 @@ func (t *Topology) removeServer(ctx context.Context, addr address.Address, serve
 // Subscription.
 type Subscription struct {
 	C  <-chan description.Topology
+	t  *Topology
+	id uint64
+}
+
+// CTSubscription is a subscription to updates to the cluster time.
+type CTSubscription struct {
+	C  <-chan *bson.Document
 	t  *Topology
 	id uint64
 }
@@ -433,6 +503,26 @@ func (s *Subscription) Unsubscribe() error {
 
 	close(ch)
 	delete(s.t.subscribers, s.id)
+
+	return nil
+}
+
+// Unsubscribe unsubscribes this CTSubscription from updates and closes the
+// subscription channel.
+func (cts *CTSubscription) Unsubscribe() error {
+	cts.t.subLock.Lock()
+	defer cts.t.subLock.Unlock()
+	if cts.t.subscriptionsClosed {
+		return nil
+	}
+
+	ch, ok := cts.t.clusterTimeSubscribers[cts.id]
+	if !ok {
+		return nil
+	}
+
+	close(ch)
+	delete(cts.t.clusterTimeSubscribers, cts.id)
 
 	return nil
 }

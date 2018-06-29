@@ -22,16 +22,16 @@ func DropCollection(
 	cmd command.DropCollection,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-) (bson.Reader, error) {
+) (bson.Reader, *bson.Document, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	conn, err := ss.Connection(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer conn.Close()
 
