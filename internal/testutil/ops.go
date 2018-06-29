@@ -19,6 +19,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/stretchr/testify/require"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 // AutoCreateIndexes creates an index in the test cluster.
@@ -36,7 +38,15 @@ func AutoCreateIndexes(t *testing.T, keys []string) {
 		NS:      command.NewNamespace(DBName(t), ColName(t)),
 		Indexes: bson.NewArray(bson.VC.Document(indexes)),
 	}
-	_, err := dispatch.CreateIndexes(context.Background(), cmd, Topology(t), description.WriteSelector())
+	id, _ := uuid.New()
+	_, err := dispatch.CreateIndexes(
+		context.Background(),
+		cmd,
+		Topology(t),
+		description.WriteSelector(),
+		id,
+		&session.Pool{},
+	)
 	require.NoError(t, err)
 }
 
@@ -48,7 +58,15 @@ func AutoDropCollection(t *testing.T) {
 // DropCollection drops the collection in the test cluster.
 func DropCollection(t *testing.T, dbname, colname string) {
 	cmd := command.Write{DB: dbname, Command: bson.NewDocument(bson.EC.String("drop", colname))}
-	_, err := dispatch.Write(context.Background(), cmd, Topology(t), description.WriteSelector())
+	id, _ := uuid.New()
+	_, err := dispatch.Write(
+		context.Background(),
+		cmd,
+		Topology(t),
+		description.WriteSelector(),
+		id,
+		&session.Pool{},
+	)
 	if err != nil && !command.IsNotFound(err) {
 		require.NoError(t, err)
 	}
@@ -56,7 +74,15 @@ func DropCollection(t *testing.T, dbname, colname string) {
 
 func autoDropDB(t *testing.T, topo *topology.Topology) {
 	cmd := command.Write{DB: DBName(t), Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1))}
-	_, err := dispatch.Write(context.Background(), cmd, topo, description.WriteSelector())
+	id, _ := uuid.New()
+	_, err := dispatch.Write(
+		context.Background(),
+		cmd,
+		topo,
+		description.WriteSelector(),
+		id,
+		&session.Pool{},
+	)
 	require.NoError(t, err)
 }
 
@@ -70,7 +96,15 @@ func InsertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern
 	cmd := command.Insert{NS: command.NewNamespace(dbname, colname), Docs: docs}
 
 	topo := Topology(t)
-	_, err := dispatch.Insert(context.Background(), cmd, topo, description.WriteSelector())
+	id, _ := uuid.New()
+	_, err := dispatch.Insert(
+		context.Background(),
+		cmd,
+		topo,
+		description.WriteSelector(),
+		id,
+		&session.Pool{},
+	)
 	require.NoError(t, err)
 }
 

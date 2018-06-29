@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -24,6 +25,8 @@ type DropIndexes struct {
 	Index        string
 	Opts         []option.DropIndexesOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result bson.Reader
 	err    error
@@ -56,16 +59,28 @@ func (di *DropIndexes) encode(desc description.SelectedServer) (*Write, error) {
 	}
 
 	return &Write{
+		Clock:        di.Clock,
 		DB:           di.NS.DB,
 		Command:      cmd,
 		WriteConcern: di.WriteConcern,
+		Session:      di.Session,
 	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (di *DropIndexes) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *DropIndexes {
-	di.result, di.err = (&Write{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
+	if err != nil {
+		di.err = err
+		return di
+	}
+
+	return di.decode(desc, rdr)
+}
+
+func (di *DropIndexes) decode(desc description.SelectedServer, rdr bson.Reader) *DropIndexes {
+	di.result = rdr
 	return di
 }
 
@@ -74,6 +89,7 @@ func (di *DropIndexes) Result() (bson.Reader, error) {
 	if di.err != nil {
 		return nil, di.err
 	}
+
 	return di.result, nil
 }
 

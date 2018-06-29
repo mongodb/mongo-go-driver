@@ -12,7 +12,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
@@ -23,7 +25,10 @@ func Write(
 	cmd command.Write,
 	topo *topology.Topology,
 	selector description.ServerSelector,
+	clientID uuid.UUID,
+	pool *session.Pool,
 ) (bson.Reader, error) {
+
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return nil, err
@@ -46,6 +51,15 @@ func Write(
 		return nil, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
+
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.SupportsSessions() {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer cmd.Session.EndSession()
+	}
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }

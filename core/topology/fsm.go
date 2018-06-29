@@ -36,9 +36,29 @@ func (f *fsm) apply(s description.Server) (description.Topology, error) {
 	newServers := make([]description.Server, len(f.Servers))
 	copy(newServers, f.Servers)
 
+	oldMinutes := f.SessionTimeoutMinutes
 	f.Topology = description.Topology{
 		Kind:    f.Kind,
 		Servers: newServers,
+	}
+
+	// For data bearing servers, set SessionTimeoutMinutes to the lowest among them
+	if oldMinutes == 0 {
+		// If timeout currently 0, check all servers to see if any still don't have a timeout
+		// If they all have timeout, pick the lowest.
+		timeout := s.SessionTimeoutMinutes
+		for _, server := range f.Servers {
+			if server.DataBearing() && server.SessionTimeoutMinutes < timeout {
+				timeout = server.SessionTimeoutMinutes
+			}
+		}
+		f.SessionTimeoutMinutes = timeout
+	} else {
+		if s.DataBearing() && oldMinutes > s.SessionTimeoutMinutes {
+			f.SessionTimeoutMinutes = s.SessionTimeoutMinutes
+		} else {
+			f.SessionTimeoutMinutes = oldMinutes
+		}
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {

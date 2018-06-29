@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -26,6 +27,8 @@ type FindOneAndUpdate struct {
 	Update       *bson.Document
 	Opts         []option.FindOneAndUpdateOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result result.FindAndModify
 	err    error
@@ -63,9 +66,11 @@ func (f *FindOneAndUpdate) encode(desc description.SelectedServer) (*Write, erro
 	}
 
 	return &Write{
+		Clock:        f.Clock,
 		DB:           f.NS.DB,
 		Command:      command,
 		WriteConcern: f.WriteConcern,
+		Session:      f.Session,
 	}, nil
 }
 

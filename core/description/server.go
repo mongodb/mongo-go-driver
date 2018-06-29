@@ -30,25 +30,26 @@ type SelectedServer struct {
 type Server struct {
 	Addr address.Address
 
-	AverageRTT        time.Duration
-	AverageRTTSet     bool
-	Compression       []string // compression methods returned by server
-	CanonicalAddr     address.Address
-	ElectionID        objectid.ObjectID
-	HeartbeatInterval time.Duration
-	LastError         error
-	LastUpdateTime    time.Time
-	LastWriteTime     time.Time
-	MaxBatchCount     uint32
-	MaxDocumentSize   uint32
-	MaxMessageSize    uint32
-	Members           []address.Address
-	ReadOnly          bool
-	SetName           string
-	SetVersion        uint32
-	Tags              tag.Set
-	Kind              ServerKind
-	WireVersion       *VersionRange
+	AverageRTT            time.Duration
+	AverageRTTSet         bool
+	Compression           []string // compression methods returned by server
+	CanonicalAddr         address.Address
+	ElectionID            objectid.ObjectID
+	HeartbeatInterval     time.Duration
+	LastError             error
+	LastUpdateTime        time.Time
+	LastWriteTime         time.Time
+	MaxBatchCount         uint32
+	MaxDocumentSize       uint32
+	MaxMessageSize        uint32
+	Members               []address.Address
+	ReadOnly              bool
+	SessionTimeoutMinutes uint32
+	SetName               string
+	SetVersion            uint32
+	Tags                  tag.Set
+	Kind                  ServerKind
+	WireVersion           *VersionRange
 }
 
 // NewServer creates a new server description from the given parameters.
@@ -56,17 +57,18 @@ func NewServer(addr address.Address, isMaster result.IsMaster) Server {
 	i := Server{
 		Addr: addr,
 
-		CanonicalAddr:   address.Address(isMaster.Me).Canonicalize(),
-		Compression:     isMaster.Compression,
-		ElectionID:      isMaster.ElectionID,
-		LastUpdateTime:  time.Now().UTC(),
-		LastWriteTime:   isMaster.LastWriteTimestamp,
-		MaxBatchCount:   isMaster.MaxWriteBatchSize,
-		MaxDocumentSize: isMaster.MaxBSONObjectSize,
-		MaxMessageSize:  isMaster.MaxMessageSizeBytes,
-		SetName:         isMaster.SetName,
-		SetVersion:      isMaster.SetVersion,
-		Tags:            tag.NewTagSetFromMap(isMaster.Tags),
+		CanonicalAddr:         address.Address(isMaster.Me).Canonicalize(),
+		Compression:           isMaster.Compression,
+		ElectionID:            isMaster.ElectionID,
+		LastUpdateTime:        time.Now().UTC(),
+		LastWriteTime:         isMaster.LastWriteTimestamp,
+		MaxBatchCount:         isMaster.MaxWriteBatchSize,
+		MaxDocumentSize:       isMaster.MaxBSONObjectSize,
+		MaxMessageSize:        isMaster.MaxMessageSizeBytes,
+		SessionTimeoutMinutes: isMaster.LogicalSessionTimeoutMinutes,
+		SetName:               isMaster.SetName,
+		SetVersion:            isMaster.SetVersion,
+		Tags:                  tag.NewTagSetFromMap(isMaster.Tags),
 	}
 
 	if i.CanonicalAddr == "" {
@@ -128,4 +130,12 @@ func (s Server) SetAverageRTT(rtt time.Duration) Server {
 	}
 
 	return s
+}
+
+// DataBearing returns true if the server is a data bearing server.
+func (s Server) DataBearing() bool {
+	return s.Kind == RSPrimary ||
+		s.Kind == RSSecondary ||
+		s.Kind == Mongos ||
+		s.Kind == Standalone
 }
