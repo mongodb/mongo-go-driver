@@ -445,7 +445,11 @@ func (e *encoder) encodeSliceAsArray(rval reflect.Value, minsize bool) ([]*Value
 			vals = append(vals, VC.DateTime(convertTimeToInt64(t)))
 			continue
 		case *time.Time:
-			vals = append(vals, VC.DateTime(convertTimeToInt64(*t)))
+			if t == nil {
+				vals = append(vals, VC.Null())
+			} else {
+				vals = append(vals, VC.DateTime(convertTimeToInt64(*t)))
+			}
 			continue
 		}
 
@@ -531,7 +535,11 @@ func (e *encoder) encodeStruct(val reflect.Value) ([]*Element, error) {
 			elems = append(elems, EC.DateTime(key, convertTimeToInt64(t)))
 			continue
 		case *time.Time:
-			elems = append(elems, EC.DateTime(key, convertTimeToInt64(*t)))
+			if t == nil {
+				elems = append(elems, EC.Null(key))
+			} else {
+				elems = append(elems, EC.DateTime(key, convertTimeToInt64(*t)))
+			}
 			continue
 		}
 		field = e.underlyingVal(field)
