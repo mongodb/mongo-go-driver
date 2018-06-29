@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -27,9 +28,10 @@ const reservedCommandBufferBytes = 16 * 10 * 10 * 10
 // Since the Insert command does not return any value other than ok or
 // an error, this type has no Err method.
 type Insert struct {
-	NS   Namespace
-	Docs []*bson.Document
-	Opts []option.InsertOptioner
+	NS      Namespace
+	Docs    []*bson.Document
+	Opts    []option.InsertOptioner
+	Session *session.Client
 
 	result          result.Insert
 	err             error
@@ -106,7 +108,7 @@ func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		}
 	}
 
-	return (&Command{DB: i.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{DB: i.NS.DB, Command: command, Session: i.Session, isWrite: true}).Encode(desc)
 }
 
 // Encode will encode this command into a wire message for the given server description.

@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -24,6 +25,7 @@ type FindOneAndReplace struct {
 	Query       *bson.Document
 	Replacement *bson.Document
 	Opts        []option.FindOneAndReplaceOptioner
+	Session     *session.Client
 
 	result result.FindAndModify
 	err    error
@@ -51,7 +53,7 @@ func (f *FindOneAndReplace) Encode(desc description.SelectedServer) (wiremessage
 		}
 	}
 
-	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{DB: f.NS.DB, Command: command, Session: f.Session, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

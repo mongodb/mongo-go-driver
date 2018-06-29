@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,10 +21,11 @@ import (
 //
 // The findOneAndUpdate command modifies and returns a single document.
 type FindOneAndUpdate struct {
-	NS     Namespace
-	Query  *bson.Document
-	Update *bson.Document
-	Opts   []option.FindOneAndUpdateOptioner
+	NS      Namespace
+	Query   *bson.Document
+	Update  *bson.Document
+	Opts    []option.FindOneAndUpdateOptioner
+	Session *session.Client
 
 	result result.FindAndModify
 	err    error
@@ -51,7 +53,7 @@ func (f *FindOneAndUpdate) Encode(desc description.SelectedServer) (wiremessage.
 		}
 	}
 
-	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{DB: f.NS.DB, Command: command, Session: f.Session, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

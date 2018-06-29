@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -27,6 +28,7 @@ type Distinct struct {
 	Query    *bson.Document
 	Opts     []option.DistinctOptioner
 	ReadPref *readpref.ReadPref
+	Session  *session.Client
 
 	result result.Distinct
 	err    error
@@ -54,7 +56,7 @@ func (d *Distinct) Encode(desc description.SelectedServer) (wiremessage.WireMess
 		}
 	}
 
-	return (&Command{DB: d.NS.DB, ReadPref: d.ReadPref, Command: command}).Encode(desc)
+	return (&Command{DB: d.NS.DB, ReadPref: d.ReadPref, Command: command, Session: d.Session}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
