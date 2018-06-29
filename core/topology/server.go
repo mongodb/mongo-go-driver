@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
@@ -78,7 +79,10 @@ type Server struct {
 	subLock             sync.Mutex
 	subscribers         map[uint64]chan description.Server
 	currentSubscriberID uint64
-	subscriptionsClosed bool
+
+	clusterTimeSubscribers map[uint64]chan *bson.Document
+	currentCtSubscriberId  uint64
+	subscriptionsClosed    bool
 }
 
 // ConnectServer creates a new Server and then initializes it using the
@@ -233,6 +237,32 @@ func (s *Server) Subscribe() (*ServerSubscription, error) {
 	return ss, nil
 }
 
+// SubscribeClusterTime returns a ClusterTimeSubscription which has a channel on which all updated cluster times
+// will be sent. The channel will have a buffer size of 1.
+func (s *Server) SubscribeClusterTime() (*ServerCTSubscription, error) {
+	if atomic.LoadInt32(&s.connectionstate) != connected {
+		return nil, ErrSubscribeAfterClosed
+	}
+	ch := make(chan *bson.Document, 1)
+	s.subLock.Lock()
+	defer s.subLock.Unlock()
+	if s.subscriptionsClosed {
+		return nil, ErrSubscribeAfterClosed
+	}
+
+	id := s.currentCtSubscriberId
+	s.clusterTimeSubscribers[id] = ch
+	s.currentCtSubscriberId++
+
+	cts := &ServerCTSubscription{
+		C:  ch,
+		s:  s,
+		id: id,
+	}
+
+	return cts, nil
+}
+
 // RequestImmediateCheck will cause the server to send a heartbeat immediately
 // instead of waiting for the heartbeat timeout.
 func (s *Server) RequestImmediateCheck() {
@@ -265,8 +295,9 @@ func (s *Server) update() {
 	var conn connection.Connection
 	var desc description.Server
 
-	desc, conn = s.heartbeat(nil)
+	desc, clusterTime, conn := s.heartbeat(nil)
 	s.updateDescription(desc, true)
+	s.updateClusterTime(clusterTime)
 
 	closeServer := func() {
 		doneOnce = true
@@ -274,6 +305,10 @@ func (s *Server) update() {
 		for id, c := range s.subscribers {
 			close(c)
 			delete(s.subscribers, id)
+		}
+		for id, c := range s.clusterTimeSubscribers {
+			close(c)
+			delete(s.clusterTimeSubscribers, id)
 		}
 		s.subscriptionsClosed = true
 		s.subLock.Unlock()
@@ -298,9 +333,27 @@ func (s *Server) update() {
 			return
 		}
 
-		desc, conn = s.heartbeat(conn)
+		desc, clusterTime, conn = s.heartbeat(conn)
 		s.updateDescription(desc, false)
+		s.updateClusterTime(clusterTime)
 	}
+}
+
+func (s *Server) updateClusterTime(clusterTime *bson.Document) {
+	defer func() {
+		_ = recover()
+	}()
+
+	s.subLock.Lock()
+	for _, c := range s.clusterTimeSubscribers {
+		select {
+		case oldTime := <-c:
+			c <- session.MaxClusterTime(oldTime, clusterTime)
+		default:
+			c <- clusterTime
+		}
+	}
+	s.subLock.Unlock()
 }
 
 // updateDescription handles updating the description on the Server, notifying
@@ -337,12 +390,13 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 }
 
 // heartbeat sends a heartbeat to the server using the given connection. The connection can be nil.
-func (s *Server) heartbeat(conn connection.Connection) (description.Server, connection.Connection) {
+func (s *Server) heartbeat(conn connection.Connection) (description.Server, *bson.Document, connection.Connection) {
 	const maxRetry = 2
 	var saved error
 	var desc description.Server
 	var set bool
 	var err error
+	var clusterTime *bson.Document
 	ctx := context.Background()
 	for i := 1; i <= maxRetry; i++ {
 		if conn != nil && conn.Expired() {
@@ -388,6 +442,7 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		set = true
 
+		clusterTime = isMaster.ClusterTime
 		break
 	}
 
@@ -398,7 +453,7 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 		}
 	}
 
-	return desc, conn
+	return desc, clusterTime, conn
 }
 
 func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
@@ -420,14 +475,21 @@ func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 func (s *Server) Drain() error { return s.pool.Drain() }
 
 // BuildCursor implements the command.CursorBuilder interface for the Server type.
-func (s *Server) BuildCursor(result bson.Reader, opts ...option.CursorOptioner) (command.Cursor, error) {
-	return newCursor(result, s, opts...)
+func (s *Server) BuildCursor(result bson.Reader, clientSession *session.Client, opts ...option.CursorOptioner) (command.Cursor, error) {
+	return newCursor(result, clientSession, s, opts...)
 }
 
 // ServerSubscription represents a subscription to the description.Server updates for
 // a specific server.
 type ServerSubscription struct {
 	C  <-chan description.Server
+	s  *Server
+	id uint64
+}
+
+// ServerCTSubscription represents a subscription to the description.Server updates for a specific server.
+type ServerCTSubscription struct {
+	C  <-chan *bson.Document
 	s  *Server
 	id uint64
 }
@@ -448,6 +510,26 @@ func (ss *ServerSubscription) Unsubscribe() error {
 
 	close(ch)
 	delete(ss.s.subscribers, ss.id)
+
+	return nil
+}
+
+// Unsubscribe unsubscribes this ServerCTSubscription from updates and closes the
+// subscription channel.
+func (scts *ServerCTSubscription) Unsubscribe() error {
+	scts.s.subLock.Lock()
+	defer scts.s.subLock.Unlock()
+	if scts.s.subscriptionsClosed {
+		return nil
+	}
+
+	ch, ok := scts.s.clusterTimeSubscribers[scts.id]
+	if !ok {
+		return nil
+	}
+
+	close(ch)
+	delete(scts.s.clusterTimeSubscribers, scts.id)
 
 	return nil
 }

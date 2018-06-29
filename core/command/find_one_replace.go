@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -21,11 +22,13 @@ import (
 //
 // The findOneAndReplace command modifies and returns a single document.
 type FindOneAndReplace struct {
+	ClusterTime  *bson.Document
 	NS           Namespace
 	Query        *bson.Document
 	Replacement  *bson.Document
 	Opts         []option.FindOneAndReplaceOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result result.FindAndModify
 	err    error
@@ -63,9 +66,11 @@ func (f *FindOneAndReplace) encode(desc description.SelectedServer) (*Write, err
 	}
 
 	return &Write{
+		ClusterTime:  f.ClusterTime,
 		DB:           f.NS.DB,
 		Command:      command,
 		WriteConcern: f.WriteConcern,
+		Session:      f.Session,
 	}, nil
 }
 
@@ -83,6 +88,13 @@ func (f *FindOneAndReplace) Decode(desc description.SelectedServer, wm wiremessa
 
 func (f *FindOneAndReplace) decode(desc description.SelectedServer, rdr bson.Reader) *FindOneAndReplace {
 	f.result, f.err = unmarshalFindAndModifyResult(rdr)
+	if f.err != nil {
+		return f
+	}
+
+	if f.Session != nil {
+		f.Session.AdvanceClusterTime(f.result.ClusterTime)
+	}
 	return f
 }
 

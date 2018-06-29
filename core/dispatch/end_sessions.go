@@ -9,31 +9,32 @@ package dispatch
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
 
-// ListIndexes handles the full cycle dispatch and execution of a listIndexes command against the provided
+// EndSessions handles the full cycle dispatch and execution of an endSessions command against the provided
 // topology.
-func ListIndexes(
+func EndSesions(
 	ctx context.Context,
-	cmd command.ListIndexes,
+	cmd command.EndSessions,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-) (command.Cursor, *bson.Document, error) {
+) ([]result.EndSessions, []error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
-		return nil, nil, err
+		return nil, []error{err}
 	}
 
+	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, []error{err}
 	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, ss.Description(), ss, conn)
+	return cmd.RoundTrip(ctx, desc, conn)
 }

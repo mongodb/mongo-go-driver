@@ -12,7 +12,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Aggregate handles the full cycle dispatch and execution of an aggregate command against the provided
@@ -47,17 +46,6 @@ func Aggregate(
 		return nil, err
 	}
 
-	if !writeconcern.AckWrite(cmd.WriteConcern) {
-		go func() {
-			defer func() { _ = recover() }()
-			defer conn.Close()
-
-			_, _ = cmd.RoundTrip(ctx, desc, ss, conn)
-		}()
-
-		return nil, command.ErrUnacknowledgedWrite
-	}
 	defer conn.Close()
-
 	return cmd.RoundTrip(ctx, desc, ss, conn)
 }
