@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -26,6 +27,8 @@ type Find struct {
 	Opts        []option.FindOptioner
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
+	Clock       *session.ClusterClock
+	Session     *session.Client
 
 	result Cursor
 	err    error
@@ -81,10 +84,12 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 	}
 
 	return &Read{
+		Clock:       f.Clock,
 		DB:          f.NS.DB,
 		ReadPref:    f.ReadPref,
 		Command:     command,
 		ReadConcern: f.ReadConcern,
+		Session:     f.Session,
 	}, nil
 }
 
@@ -110,7 +115,7 @@ func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bso
 		opts = append(opts, curOpt)
 	}
 
-	f.result, f.err = cb.BuildCursor(rdr, opts...)
+	f.result, f.err = cb.BuildCursor(rdr, f.Session, f.Clock, opts...)
 	return f
 }
 
@@ -119,6 +124,7 @@ func (f *Find) Result() (Cursor, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
+
 	return f.result, nil
 }
 

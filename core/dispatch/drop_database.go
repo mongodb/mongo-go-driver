@@ -12,7 +12,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 )
 
 // DropDatabase handles the full cycle dispatch and execution of a dropDatabase
@@ -22,7 +24,11 @@ func DropDatabase(
 	cmd command.DropDatabase,
 	topo *topology.Topology,
 	selector description.ServerSelector,
+	clientID uuid.UUID,
+	pool *session.Pool,
 ) (bson.Reader, error) {
+
+	selector = addDataBearingSelector(selector, topo)
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
@@ -34,6 +40,15 @@ func DropDatabase(
 		return nil, err
 	}
 	defer conn.Close()
+
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.Description().SessionTimeoutMinutes != 0 {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer cmd.Session.EndSession()
+	}
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)
 }
