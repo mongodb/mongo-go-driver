@@ -322,6 +322,11 @@ func (t *Topology) update() {
 				continue
 			}
 
+			// only update SessionTimeoutMinutes if new value is lower than previously seen value
+			currDesc := t.Description()
+			if currDesc.SessionTimeoutMinutes != 0 && currDesc.SessionTimeoutMinutes < current.SessionTimeoutMinutes {
+				current.SessionTimeoutMinutes = currDesc.SessionTimeoutMinutes
+			}
 			t.desc.Store(current)
 
 			t.subLock.Lock()

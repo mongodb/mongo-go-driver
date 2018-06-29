@@ -1,9 +1,13 @@
 package session
 
+import "github.com/mongodb/mongo-go-driver/core/description"
+
 // Pool is a pool of server sessions that can be reused.
 type Pool struct {
-	Head *ServerSession
-	Tail *ServerSession
+	DescChannel    chan description.Topology // channel to read topology descriptions to update the session timeout
+	Head           *ServerSession
+	Tail           *ServerSession
+	SessionTimeout int
 }
 
 // GetSession retrieves an unexpired session from the pool.

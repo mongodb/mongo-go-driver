@@ -36,9 +36,16 @@ func (f *fsm) apply(s description.Server) (description.Topology, error) {
 	newServers := make([]description.Server, len(f.Servers))
 	copy(newServers, f.Servers)
 
+	oldMinutes := f.SessionTimeoutMinutes
 	f.Topology = description.Topology{
 		Kind:    f.Kind,
 		Servers: newServers,
+	}
+
+	if oldMinutes != 0 && oldMinutes < f.SessionTimeoutMinutes {
+		f.SessionTimeoutMinutes = oldMinutes
+	} else {
+		f.SessionTimeoutMinutes = s.SessionTimeoutMinutes
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {
