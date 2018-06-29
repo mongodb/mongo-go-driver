@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -26,6 +27,8 @@ type Delete struct {
 	Deletes      []*bson.Document
 	Opts         []option.DeleteOptioner
 	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result result.Delete
 	err    error
@@ -73,9 +76,11 @@ func (d *Delete) encode(desc description.SelectedServer) (*Write, error) {
 	}
 
 	return &Write{
+		Clock:        d.Clock,
 		DB:           d.NS.DB,
 		Command:      command,
 		WriteConcern: d.WriteConcern,
+		Session:      d.Session,
 	}, nil
 }
 
@@ -93,6 +98,10 @@ func (d *Delete) Decode(desc description.SelectedServer, wm wiremessage.WireMess
 
 func (d *Delete) decode(desc description.SelectedServer, rdr bson.Reader) *Delete {
 	d.err = bson.Unmarshal(rdr, &d.result)
+	if d.err != nil {
+		return d
+	}
+
 	return d
 }
 

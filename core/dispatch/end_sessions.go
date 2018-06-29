@@ -11,41 +11,30 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 )
 
-// Aggregate handles the full cycle dispatch and execution of an aggregate command against the provided
+// EndSessions handles the full cycle dispatch and execution of an endSessions command against the provided
 // topology.
-func Aggregate(
+func EndSessions(
 	ctx context.Context,
-	cmd command.Aggregate,
+	cmd command.EndSessions,
 	topo *topology.Topology,
-	readSelector, writeSelector description.ServerSelector,
-) (command.Cursor, error) {
+	selector description.ServerSelector,
+) ([]result.EndSessions, []error) {
 
-	dollarOut := cmd.HasDollarOut()
-
-	var ss *topology.SelectedServer
-	var err error
-	switch dollarOut {
-	case true:
-		ss, err = topo.SelectServer(ctx, writeSelector)
-		if err != nil {
-			return nil, err
-		}
-	case false:
-		ss, err = topo.SelectServer(ctx, readSelector)
-		if err != nil {
-			return nil, err
-		}
+	ss, err := topo.SelectServer(ctx, selector)
+	if err != nil {
+		return nil, []error{err}
 	}
 
 	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
-		return nil, err
+		return nil, []error{err}
 	}
-
 	defer conn.Close()
-	return cmd.RoundTrip(ctx, desc, ss, conn)
+
+	return cmd.RoundTrip(ctx, desc, conn)
 }

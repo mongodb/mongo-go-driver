@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"errors"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
@@ -16,6 +19,8 @@ type Write struct {
 	DB           string
 	Command      *bson.Document
 	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result bson.Reader
 	err    error
@@ -88,31 +93,50 @@ func (w *Write) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {
 	return 0
 }
 
-func (w *Write) decodeOpReply(wm wiremessage.WireMessage) *Write {
+func (w *Write) decodeOpReply(wm wiremessage.WireMessage) {
 	reply, ok := wm.(wiremessage.Reply)
 	if !ok {
 		w.err = fmt.Errorf("unsupported response wiremessage type %T", wm)
-		return w
+		return
 	}
 	w.result, w.err = decodeCommandOpReply(reply)
-	return w
 }
 
-func (w *Write) decodeOpMsg(wm wiremessage.WireMessage) *Write {
+func (w *Write) decodeOpMsg(wm wiremessage.WireMessage) {
 	msg, ok := wm.(wiremessage.Msg)
 	if !ok {
 		w.err = fmt.Errorf("unsupported response wiremessage type %T", wm)
-		return w
+		return
 	}
 
 	w.result, w.err = decodeCommandOpMsg(msg)
-	return w
 }
 
 // Encode will encode this command into a wire message for the given server description.
 func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
 	cmd := w.Command.Copy()
 	err := addWriteConcern(cmd, w.WriteConcern)
+	if err != nil {
+		return nil, err
+	}
+
+	if !writeconcern.AckWrite(w.WriteConcern) {
+		// unack write with explicit session --> raise an error
+		// unack write with implicit session --> do not send session ID (implicit session shouldn't have been created
+		// in the first place)
+
+		if w.Session != nil && w.Session.SessionType == session.Explicit {
+			return nil, errors.New("explicit sessions cannot be used with unacknowledged writes")
+		}
+	} else {
+		// only encode session ID for acknowledged writes
+		err = addSessionID(cmd, desc, w.Session)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err = addClusterTime(cmd, desc, w.Session, w.Clock)
 	if err != nil {
 		return nil, err
 	}
@@ -129,10 +153,19 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 func (w *Write) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Write {
 	switch wm.(type) {
 	case wiremessage.Reply:
-		return w.decodeOpReply(wm)
+		w.decodeOpReply(wm)
 	default:
-		return w.decodeOpMsg(wm)
+		w.decodeOpMsg(wm)
 	}
+
+	if w.err != nil {
+		if _, ok := w.err.(Error); !ok {
+			return w
+		}
+	}
+
+	updateClusterTimes(w.Session, w.Clock, w.result)
+	return w
 }
 
 // Result returns the result of a decoded wire message and server description.
@@ -173,5 +206,8 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 		return nil, err
 	}
 
+	if w.Session != nil {
+		w.Session.UpdateUseTime()
+	}
 	return w.Decode(desc, wm).Result()
 }

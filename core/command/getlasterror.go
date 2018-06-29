@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -26,6 +27,9 @@ import (
 // Since GetLastError only makes sense in the context of
 // a single connection, there is no Dispatch method.
 type GetLastError struct {
+	Clock   *session.ClusterClock
+	Session *session.Client
+
 	err error
 	res result.GetLastError
 }
@@ -44,8 +48,10 @@ func (gle *GetLastError) encode() (*Read, error) {
 	cmd := bson.NewDocument(bson.EC.Int32("getLastError", 1))
 
 	return &Read{
+		Clock:    gle.Clock,
 		DB:       "admin",
 		ReadPref: readpref.Secondary(),
+		Session:  gle.Session,
 		Command:  cmd,
 	}, nil
 }
