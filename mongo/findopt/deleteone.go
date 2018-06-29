@@ -212,3 +212,13 @@ func (dob *DeleteOneBundle) String() string {
 
 	return str
 }
+
+// DeleteOneSessionOpt is a deleteOne session option.
+type DeleteOneSessionOpt option.OptSession
+
+func (DeleteOneSessionOpt) deleteOne() {}
+
+// ConvertDeleteOneOption implements the DeleteOne interface.
+func (opt DeleteOneSessionOpt) ConvertDeleteOneOption() option.FindOneAndDeleteOptioner {
+	return option.OptSession(opt)
+}

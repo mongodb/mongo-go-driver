@@ -202,3 +202,13 @@ func (OptWriteConcern) delete() {}
 func (opt OptWriteConcern) ConvertDeleteOption() option.DeleteOptioner {
 	return option.OptWriteConcern(opt)
 }
+
+// DeleteSessionOpt is a delete session option.
+type DeleteSessionOpt option.OptSession
+
+func (DeleteSessionOpt) delete() {}
+
+// ConvertDeleteOption implements the Delete interface.
+func (opt DeleteSessionOpt) ConvertDeleteOption() option.DeleteOptioner {
+	return option.OptSession(opt)
+}

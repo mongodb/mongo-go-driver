@@ -363,3 +363,13 @@ func (ob *OneBundle) String() string {
 
 	return str
 }
+
+// FindOneSessionOpt is a FindOne session option.
+type FindOneSessionOpt option.OptSession
+
+func (FindOneSessionOpt) one() {}
+
+// ConvertFindOneOption implements the FindOne interface.
+func (opt FindOneSessionOpt) ConvertFindOneOption() option.FindOptioner {
+	return option.OptSession(opt)
+}

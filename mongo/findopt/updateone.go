@@ -253,3 +253,13 @@ func (uob *UpdateOneBundle) String() string {
 
 	return str
 }
+
+// UpdateOneSessionOpt is a updateOne session option.
+type UpdateOneSessionOpt option.OptSession
+
+func (UpdateOneSessionOpt) updateOne() {}
+
+// ConvertUpdateOneOption implements the UpdateOne interface.
+func (opt UpdateOneSessionOpt) ConvertUpdateOneOption() option.FindOneAndUpdateOptioner {
+	return option.OptSession(opt)
+}
