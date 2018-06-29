@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1b04536f_6514c9de",
+        "filename": "mongo/runcmdopt/runcmdopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-06-29T15:06:07Z",
+      "side": 1,
+      "message": "I think we just need to update the documentation comments here, this type represents a run command.",
+      "range": {
+        "startLine": 19,
+        "startChar": 23,
+        "endLine": 19,
+        "endChar": 31
+      },
+      "revId": "8fcad84b3cecd007d0ac2c1451ccb9d8819ee297",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
