@@ -16,6 +16,8 @@ import (
 // unmarshalFindAndModifyResult turns the provided bson.Reader into a findAndModify result.
 func unmarshalFindAndModifyResult(rdr bson.Reader) (result.FindAndModify, error) {
 	var res result.FindAndModify
+	res.ClusterTime = responseClusterTime(rdr)
+
 	val, err := rdr.Lookup("value")
 	switch {
 	case err == bson.ErrElementNotFound:
