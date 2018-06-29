@@ -30,6 +30,14 @@ type ReplaceOneBundle struct {
 	next   *ReplaceOneBundle
 }
 
+// ReplaceOneSessionOpt is a replaceOne session option.
+type ReplaceOneSessionOpt struct{}
+
+func (ReplaceOneSessionOpt) replaceOne() {}
+
+// ConvertReplaceOneOption implements the ReplaceOne interface.
+func (ReplaceOneSessionOpt) ConvertReplaceOneOption() option.FindOneAndReplaceOptioner { return nil }
+
 // BundleReplaceOne bundles FindOneAndReplace options
 func BundleReplaceOne(opts ...ReplaceOne) *ReplaceOneBundle {
 	head := replaceOneBundle

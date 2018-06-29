@@ -29,6 +29,14 @@ type DeleteOneBundle struct {
 	next   *DeleteOneBundle
 }
 
+// DeleteOneSessionOpt is a deleteOne session option.
+type DeleteOneSessionOpt struct{}
+
+func (DeleteOneSessionOpt) deleteOne() {}
+
+// ConvertDeleteOneOption implements the DeleteOne interface.
+func (DeleteOneSessionOpt) ConvertDeleteOneOption() option.FindOneAndDeleteOptioner { return nil }
+
 // BundleDeleteOne bundles FindOneAndDelete options
 func BundleDeleteOne(opts ...DeleteOne) *DeleteOneBundle {
 	head := deleteOneBundle

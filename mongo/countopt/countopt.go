@@ -21,6 +21,14 @@ type CountBundle struct {
 	next   *CountBundle
 }
 
+// CountSessionOpt is a count session option.
+type CountSessionOpt struct{}
+
+func (CountSessionOpt) count() {}
+
+// ConvertCountOption implmements the Count interface.
+func (CountSessionOpt) ConvertCountOption() option.CountOptioner { return nil }
+
 // Implement the Count interface
 func (cb *CountBundle) count() {}
 

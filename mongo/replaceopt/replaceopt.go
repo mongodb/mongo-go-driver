@@ -28,6 +28,14 @@ type ReplaceBundle struct {
 	next   *ReplaceBundle
 }
 
+// ReplaceSessionOpt is a replace session option.
+type ReplaceSessionOpt struct{}
+
+func (ReplaceSessionOpt) replace() {}
+
+// ConvertReplaceOption implements the Replace interface.
+func (ReplaceSessionOpt) ConvertReplaceOption() option.ReplaceOptioner { return nil }
+
 // Implement the Replace interface
 func (rb *ReplaceBundle) replace() {}
 

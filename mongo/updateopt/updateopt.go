@@ -28,6 +28,14 @@ type UpdateBundle struct {
 	next   *UpdateBundle
 }
 
+// UpdateSessionOpt is a update session option.
+type UpdateSessionOpt struct{}
+
+func (UpdateSessionOpt) update() {}
+
+// ConvertUpdateOption implements the Update interface.
+func (UpdateSessionOpt) ConvertUpdateOption() option.UpdateOptioner { return nil }
+
 // Implement the Update interface
 func (ub *UpdateBundle) update() {}
 

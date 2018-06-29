@@ -29,6 +29,14 @@ type FindBundle struct {
 	next   *FindBundle
 }
 
+// FindSessionOpt is a find session option.
+type FindSessionOpt struct{}
+
+func (FindSessionOpt) find() {}
+
+// ConvertFindOption implements the Find interface.
+func (FindSessionOpt) ConvertFindOption() option.FindOptioner { return nil }
+
 // BundleFind bundles Find options
 func BundleFind(opts ...Find) *FindBundle {
 	head := findBundle

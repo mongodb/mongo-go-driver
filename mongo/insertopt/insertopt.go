@@ -34,6 +34,15 @@ type OneBundle struct {
 	next   *OneBundle
 }
 
+// InsertSessionOpt is a one,many session option.
+type InsertSessionOpt struct{}
+
+func (InsertSessionOpt) insertOne()  {}
+func (InsertSessionOpt) insertMany() {}
+
+// ConvertInsertOption implements the One interface.
+func (InsertSessionOpt) ConvertInsertOption() option.InsertOptioner { return nil }
+
 // Implement the One interface
 func (ob *OneBundle) insertOne() {}
 
