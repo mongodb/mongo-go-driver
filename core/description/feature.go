@@ -29,3 +29,8 @@ func ScramSHA1Supported(wireVersion *VersionRange) error {
 
 	return nil
 }
+
+// SessionsSupported returns true of the given server version indicates that it supports sessions.
+func SessionsSupported(wireVersion *VersionRange) bool {
+	return wireVersion != nil && wireVersion.Max >= 6
+}

@@ -12,7 +12,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
@@ -23,6 +25,8 @@ func Update(
 	cmd command.Update,
 	topo *topology.Topology,
 	selector description.ServerSelector,
+	clientID uuid.UUID,
+	pool *session.Pool,
 ) (result.Update, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -47,6 +51,15 @@ func Update(
 		return result.Update{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
+
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.SupportsSessions() {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return result.Update{}, err
+		}
+		defer cmd.Session.EndSession()
+	}
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }

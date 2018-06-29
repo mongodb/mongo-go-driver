@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,13 +21,15 @@ import (
 //
 // The listCollections command lists the collections in a database.
 type ListCollections struct {
-	DB     string
-	Filter *bson.Document
-	Opts   []option.ListCollectionsOptioner
-
-	result   Cursor
+	Clock    *session.ClusterClock
+	DB       string
+	Filter   *bson.Document
+	Opts     []option.ListCollectionsOptioner
 	ReadPref *readpref.ReadPref
-	err      error
+	Session  *session.Client
+
+	result Cursor
+	err    error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -56,13 +59,15 @@ func (lc *ListCollections) encode(desc description.SelectedServer) (*Read, error
 	}
 
 	return &Read{
+		Clock:    lc.Clock,
 		DB:       lc.DB,
 		Command:  cmd,
 		ReadPref: lc.ReadPref,
+		Session:  lc.Session,
 	}, nil
 }
 
-// Decode will decode the wire message using the provided server description. Errors during decoding
+// Decode will decode the wire message using the provided server description. Errors during decolcng
 // are deferred until either the Result or Err methods are called.
 func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListCollections {
 	rdr, err := (&Read{}).Decode(desc, wm).Result()
@@ -74,6 +79,7 @@ func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuil
 }
 
 func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *ListCollections {
+
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range lc.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)
@@ -83,7 +89,7 @@ func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuil
 		opts = append(opts, curOpt)
 	}
 
-	lc.result, lc.err = cb.BuildCursor(rdr, opts...)
+	lc.result, lc.err = cb.BuildCursor(rdr, lc.Session, lc.Clock, opts...)
 
 	return lc
 }

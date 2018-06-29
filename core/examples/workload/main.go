@@ -24,7 +24,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 )
 
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")
@@ -120,13 +122,20 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 				),
 			)
 
+			id, _ := uuid.New()
 			cmd := command.Aggregate{
 				NS:       ns,
 				Pipeline: pipeline,
 				Opts:     []option.AggregateOptioner{option.OptBatchSize(200)},
 				ReadPref: rp,
 			}
-			cursor, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp))
+			cursor, err := dispatch.Aggregate(
+				ctx, cmd, c,
+				description.ReadPrefSelector(rp),
+				description.ReadPrefSelector(rp),
+				id,
+				&session.Pool{},
+			)
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue
