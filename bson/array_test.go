@@ -34,7 +34,7 @@ func TestArray(t *testing.T) {
 				defer func() {
 					r := recover()
 					if r != nil {
-						t.Errorf("Recieved unexpected panic from nil insert. got %#v; want %#v", r, nil)
+						t.Errorf("Received unexpected panic from nil insert. got %#v; want %#v", r, nil)
 					}
 				}()
 				want := NewArray()

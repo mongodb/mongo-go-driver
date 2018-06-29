@@ -106,7 +106,7 @@ func TestDocument(t *testing.T) {
 				defer func() {
 					r := recover()
 					if r != nil {
-						t.Errorf("Recieved unexpected panic from nil insert. got %#v; want %#v", r, nil)
+						t.Errorf("Received unexpected panic from nil insert. got %#v; want %#v", r, nil)
 					}
 				}()
 				want := NewDocument()
@@ -964,7 +964,7 @@ func TestDocument(t *testing.T) {
 				t.Errorf("Unexpected error while converting document to extended json: %v", err)
 			}
 			if got != want {
-				t.Errorf("Did not recieve expected result. got %s; want %s", got, want)
+				t.Errorf("Did not receive expected result. got %s; want %s", got, want)
 			}
 		})
 		t.Run("Relaxed", func(t *testing.T) {
@@ -975,7 +975,7 @@ func TestDocument(t *testing.T) {
 				t.Errorf("Unexpected error while converting document to extended json: %v", err)
 			}
 			if got != want {
-				t.Errorf("Did not recieve expected result. got %s; want %s", got, want)
+				t.Errorf("Did not receive expected result. got %s; want %s", got, want)
 			}
 		})
 	})
