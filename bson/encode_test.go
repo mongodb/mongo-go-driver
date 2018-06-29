@@ -1100,17 +1100,18 @@ func TestZeoerInterfaceUsedByDecoder(t *testing.T) {
 
 }
 
-type timePrtStruct struct { TimePtrField *time.Time }
-func TestRegressionNoDereferenceNilTimePtr (t *testing.T) {
+type timePrtStruct struct{ TimePtrField *time.Time }
+
+func TestRegressionNoDereferenceNilTimePtr(t *testing.T) {
 	enc := &encoder{}
 
-	assert.NotPanics(t, func () {
+	assert.NotPanics(t, func() {
 		res, err := enc.encodeStruct(reflect.ValueOf(timePrtStruct{}))
 		assert.Len(t, res, 1)
 		assert.Nil(t, err)
 	})
 
-	assert.NotPanics(t, func () {
+	assert.NotPanics(t, func() {
 		res, err := enc.encodeSliceAsArray(reflect.ValueOf([]*time.Time{nil, nil, nil}), false)
 		assert.Len(t, res, 3)
 		assert.Nil(t, err)
