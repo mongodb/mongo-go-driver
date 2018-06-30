@@ -16,6 +16,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
@@ -182,27 +183,35 @@ var (
 	_ AggregateOptioner         = (*OptMaxTime)(nil)
 	_ AggregateOptioner         = (*OptReadConcern)(nil)
 	_ AggregateOptioner         = (*OptWriteConcern)(nil)
+	_ AggregateOptioner         = (*OptSession)(nil)
 	_ CountOptioner             = (*OptCollation)(nil)
 	_ CountOptioner             = (*OptHint)(nil)
 	_ CountOptioner             = (*OptLimit)(nil)
 	_ CountOptioner             = (*OptMaxTime)(nil)
 	_ CountOptioner             = (*OptReadConcern)(nil)
 	_ CountOptioner             = (*OptSkip)(nil)
+	_ CountOptioner             = (*OptSession)(nil)
 	_ CreateIndexesOptioner     = (*OptWriteConcern)(nil)
 	_ CreateIndexesOptioner     = (*OptMaxTime)(nil)
+	_ CreateIndexesOptioner     = (*OptSession)(nil)
 	_ CursorOptioner            = OptBatchSize(0)
+	_ CursorOptioner            = (*OptSession)(nil)
 	_ DeleteOptioner            = (*OptCollation)(nil)
 	_ DeleteOptioner            = (*OptWriteConcern)(nil)
+	_ DeleteOptioner            = (*OptSession)(nil)
 	_ DistinctOptioner          = (*OptCollation)(nil)
 	_ DistinctOptioner          = (*OptMaxTime)(nil)
 	_ DistinctOptioner          = (*OptReadConcern)(nil)
+	_ DistinctOptioner          = (*OptSession)(nil)
 	_ DropIndexesOptioner       = (*OptWriteConcern)(nil)
 	_ DropIndexesOptioner       = (*OptMaxTime)(nil)
+	_ DropIndexesOptioner       = (*OptSession)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptCollation)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptMaxTime)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptProjection)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptSort)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptWriteConcern)(nil)
+	_ FindOneAndDeleteOptioner  = (*OptSession)(nil)
 	_ FindOneAndReplaceOptioner = (*OptBypassDocumentValidation)(nil)
 	_ FindOneAndReplaceOptioner = (*OptCollation)(nil)
 	_ FindOneAndReplaceOptioner = (*OptMaxTime)(nil)
@@ -211,6 +220,7 @@ var (
 	_ FindOneAndReplaceOptioner = (*OptSort)(nil)
 	_ FindOneAndReplaceOptioner = (*OptUpsert)(nil)
 	_ FindOneAndReplaceOptioner = (*OptWriteConcern)(nil)
+	_ FindOneAndReplaceOptioner = (*OptSession)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptArrayFilters)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptBypassDocumentValidation)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptCollation)(nil)
@@ -220,6 +230,7 @@ var (
 	_ FindOneAndUpdateOptioner  = (*OptSort)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptUpsert)(nil)
 	_ FindOneAndUpdateOptioner  = (*OptWriteConcern)(nil)
+	_ FindOneAndUpdateOptioner  = (*OptSession)(nil)
 	_ FindOptioner              = (*OptAllowPartialResults)(nil)
 	_ FindOptioner              = (*OptBatchSize)(nil)
 	_ FindOptioner              = (*OptCollation)(nil)
@@ -240,6 +251,7 @@ var (
 	_ FindOptioner              = (*OptSkip)(nil)
 	_ FindOptioner              = (*OptSnapshot)(nil)
 	_ FindOptioner              = (*OptSort)(nil)
+	_ FindOptioner              = (*OptSession)(nil)
 	_ FindOneOptioner           = (*OptAllowPartialResults)(nil)
 	_ FindOneOptioner           = (*OptBatchSize)(nil)
 	_ FindOneOptioner           = (*OptCollation)(nil)
@@ -259,33 +271,43 @@ var (
 	_ FindOneOptioner           = (*OptSkip)(nil)
 	_ FindOneOptioner           = (*OptSnapshot)(nil)
 	_ FindOneOptioner           = (*OptSort)(nil)
+	_ FindOneOptioner           = (*OptSession)(nil)
 	_ InsertManyOptioner        = (*OptBypassDocumentValidation)(nil)
 	_ InsertManyOptioner        = (*OptOrdered)(nil)
 	_ InsertManyOptioner        = (*OptWriteConcern)(nil)
+	_ InsertManyOptioner        = (*OptSession)(nil)
 	_ InsertOneOptioner         = (*OptBypassDocumentValidation)(nil)
 	_ InsertOneOptioner         = (*OptWriteConcern)(nil)
+	_ InsertOneOptioner         = (*OptSession)(nil)
 	_ InsertOptioner            = (*OptBypassDocumentValidation)(nil)
 	_ InsertOptioner            = (*OptOrdered)(nil)
 	_ InsertOptioner            = (*OptWriteConcern)(nil)
+	_ InsertOptioner            = (*OptSession)(nil)
 	_ ListDatabasesOptioner     = OptNameOnly(false)
+	_ ListDatabasesOptioner     = (*OptSession)(nil)
 	_ ListCollectionsOptioner   = OptNameOnly(false)
+	_ ListCollectionsOptioner   = (*OptSession)(nil)
 	_ ListIndexesOptioner       = OptBatchSize(0)
 	_ ListIndexesOptioner       = (*OptMaxTime)(nil)
+	_ ListIndexesOptioner       = (*OptSession)(nil)
 	_ ReplaceOptioner           = (*OptBypassDocumentValidation)(nil)
 	_ ReplaceOptioner           = (*OptCollation)(nil)
 	_ ReplaceOptioner           = (*OptUpsert)(nil)
 	_ ReplaceOptioner           = (*OptWriteConcern)(nil)
+	_ ReplaceOptioner           = (*OptSession)(nil)
 	_ UpdateOptioner            = (*OptUpsert)(nil)
 	_ UpdateOptioner            = (*OptArrayFilters)(nil)
 	_ UpdateOptioner            = (*OptBypassDocumentValidation)(nil)
 	_ UpdateOptioner            = (*OptCollation)(nil)
 	_ UpdateOptioner            = (*OptWriteConcern)(nil)
+	_ UpdateOptioner            = (*OptSession)(nil)
 	_ ChangeStreamOptioner      = (*OptBatchSize)(nil)
 	_ ChangeStreamOptioner      = (*OptCollation)(nil)
 	_ ChangeStreamOptioner      = (*OptFullDocument)(nil)
 	_ ChangeStreamOptioner      = (*OptMaxAwaitTime)(nil)
 	_ ChangeStreamOptioner      = (*OptReadConcern)(nil)
 	_ ChangeStreamOptioner      = (*OptResumeAfter)(nil)
+	_ ChangeStreamOptioner      = (*OptSession)(nil)
 )
 
 // OptAllowDiskUse is for internal use.
@@ -1008,4 +1030,42 @@ func (OptNameOnly) listCollectionsOption() {}
 // String implements the Stringer interface.
 func (opt OptNameOnly) String() string {
 	return "OptNameOnly: " + strconv.FormatBool(bool(opt))
+}
+
+// OptSession is for internal use
+type OptSession struct {
+	*session.ClientSession
+}
+
+// Option implements the Optioner interface.
+func (opt OptSession) Option(d *bson.Document) error {
+	d.Append(bson.EC.SubDocument("lsid", opt.SessionID))
+	return nil
+}
+
+func (OptSession) findOption()              {}
+func (OptSession) findOneOption()           {}
+func (OptSession) countOption()             {}
+func (OptSession) deleteOption()            {}
+func (OptSession) updateOption()            {}
+func (OptSession) replaceOption()           {}
+func (OptSession) distinctOption()          {}
+func (OptSession) aggregateOption()         {}
+func (OptSession) insertOption()            {}
+func (OptSession) insertOneOption()         {}
+func (OptSession) insertManyOption()        {}
+func (OptSession) findOneAndDeleteOption()  {}
+func (OptSession) findOneAndUpdateOption()  {}
+func (OptSession) findOneAndReplaceOption() {}
+func (OptSession) changeStreamOption()      {}
+func (OptSession) listIndexesOption()       {}
+func (OptSession) listDatabasesOption()     {}
+func (OptSession) listCollectionsOption()   {}
+func (OptSession) cursorOption()            {}
+func (OptSession) createIndexesOption()     {}
+func (OptSession) dropIndexesOption()       {}
+
+// String implements the Stringer interface
+func (opt OptSession) String() string {
+	return "OptSession: " + opt.SessionID.String()
 }
