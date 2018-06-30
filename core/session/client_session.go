@@ -1,16 +1,6 @@
 package session
 
-import (
-	"time"
-
-	"github.com/mongodb/mongo-go-driver/bson"
-)
-
-// ServerSession is an open session with the server.
-type ServerSession struct {
-	SessionID *bson.Document
-	LastUsed  time.Time
-}
+import "github.com/mongodb/mongo-go-driver/bson"
 
 // ClientSession is a session for clients to run commands.
 type ClientSession struct {
@@ -22,6 +12,7 @@ type ClientSession struct {
 // NewClientSession creates a ClientSession.
 func NewClientSession(servSess *ServerSession) *ClientSession {
 	return &ClientSession{
+		SessionID:     servSess.SessionID,
 		serverSession: servSess,
 	}
 }
