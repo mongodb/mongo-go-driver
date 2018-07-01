@@ -11,12 +11,12 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/buger/jsonparser"
 	"github.com/mongodb/mongo-go-driver/bson/builder"
-	"github.com/mongodb/mongo-go-driver/bson/internal/jsonparser"
 )
 
 type docElementParser func([]byte, []byte, jsonparser.ValueType, int) error
-type arrayElementParser func(int, []byte, jsonparser.ValueType, int) error
+type arrayElementParser func([]byte, jsonparser.ValueType, int, error)
 
 // ParseExtJSONObject parses a JSON object string into a *Document.
 func ParseExtJSONObject(s string) (*Document, error) {
@@ -180,9 +180,11 @@ func parseDocElement(b *builder.DocumentBuilder, ext bool) docElementParser {
 }
 
 func parseArrayElement(b *builder.ArrayBuilder, ext bool) arrayElementParser {
-	return func(index int, value []byte, dataType jsonparser.ValueType, offset int) error {
-		name := strconv.FormatInt(int64(index), 10)
+	var index int64
+	return func(value []byte, dataType jsonparser.ValueType, offset int, _ error) {
+		name := strconv.FormatInt(index, 10)
+		index++
 
-		return parseDocElement(&b.DocumentBuilder, ext)([]byte(name), value, dataType, offset)
+		_ = parseDocElement(&b.DocumentBuilder, ext)([]byte(name), value, dataType, offset)
 	}
 }

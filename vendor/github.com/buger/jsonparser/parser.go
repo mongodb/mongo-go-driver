@@ -1,9 +1,3 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
 package jsonparser
 
 import (
@@ -12,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 )
 
 // Errors
@@ -63,8 +56,8 @@ func findKeyStart(data []byte, key string) (int, error) {
 	}
 	var stackbuf [unescapeStackBufSize]byte // stack-allocated array for allocation-free unescaping of small strings
 
-	if ku, err := Unescape([]byte(key), stackbuf[:]); err == nil {
-		key = string(ku)
+	if ku, err := Unescape(StringToBytes(key), stackbuf[:]); err == nil {
+		key = bytesToString(&ku)
 	}
 
 	for i < ln {
@@ -99,7 +92,7 @@ func findKeyStart(data []byte, key string) (int, error) {
 				}
 			}
 
-			if data[i] == ':' && len(key) == len(k) && string(k) == key {
+			if data[i] == ':' && len(key) == len(k) && bytesToString(&k) == key {
 				return keyBegin - 1, nil
 			}
 
@@ -112,6 +105,17 @@ func findKeyStart(data []byte, key string) (int, error) {
 	}
 
 	return -1, KeyPathNotFoundError
+}
+
+func tokenStart(data []byte) int {
+	for i := len(data) - 1; i >= 0; i-- {
+		switch data[i] {
+		case '\n', '\r', '\t', ',', '{', '[':
+			return i
+		}
+	}
+
+	return 0
 }
 
 // Find position of next character which is not whitespace
@@ -279,7 +283,7 @@ func searchKeys(data []byte, keys ...string) int {
 				var valueFound []byte
 				var valueOffset int
 				var curI = i
-				_, _ = ArrayEach(data[i:], func(_ int, value []byte, dataType ValueType, offset int) error {
+				ArrayEach(data[i:], func(value []byte, dataType ValueType, offset int, err error) {
 					if curIdx == aIdx {
 						valueFound = value
 						valueOffset = offset
@@ -289,8 +293,6 @@ func searchKeys(data []byte, keys ...string) int {
 						}
 					}
 					curIdx += 1
-
-					return nil
 				})
 
 				if valueFound == nil {
@@ -399,7 +401,7 @@ func EachKey(data []byte, cb func(int, []byte, ValueType, error), paths ...[]str
 						return -1
 					}
 
-					pathsBuf[level-1] = string(keyUnesc)
+					pathsBuf[level-1] = bytesToString(&keyUnesc)
 					for pi, p := range paths {
 						if len(p) != level || pathFlags&bitwiseFlags[pi+1] != 0 || !equalStr(&keyUnesc, p[level-1]) || !sameTree(p, pathsBuf[:level]) {
 							continue
@@ -471,7 +473,7 @@ func EachKey(data []byte, cb func(int, []byte, ValueType, error), paths ...[]str
 				level++
 
 				var curIdx int
-				arrOff, _ := ArrayEach(data[i:], func(_ int, value []byte, dataType ValueType, offset int) error {
+				arrOff, _ := ArrayEach(data[i:], func(value []byte, dataType ValueType, offset int, err error) {
 					if arrIdxFlags&bitwiseFlags[curIdx+1] != 0 {
 						for pi, p := range paths {
 							if pIdxFlags&bitwiseFlags[pi+1] != 0 {
@@ -493,8 +495,6 @@ func EachKey(data []byte, cb func(int, []byte, ValueType, error), paths ...[]str
 					}
 
 					curIdx += 1
-
-					return nil
 				})
 
 				if pathsMatched == len(paths) {
@@ -563,23 +563,42 @@ var (
 
 func createInsertComponent(keys []string, setValue []byte, comma, object bool) []byte {
 	var buffer bytes.Buffer
+	isIndex := string(keys[0][0]) == "["
 	if comma {
 		buffer.WriteString(",")
 	}
-	if object {
-		buffer.WriteString("{")
-	}
-	buffer.WriteString("\"")
-	buffer.WriteString(keys[0])
-	buffer.WriteString("\":")
-	for i := 1; i < len(keys); i++ {
-		buffer.WriteString("{\"")
-		buffer.WriteString(keys[i])
+	if isIndex {
+		buffer.WriteString("[")
+	} else {
+		if object {
+			buffer.WriteString("{")
+		}
+		buffer.WriteString("\"")
+		buffer.WriteString(keys[0])
 		buffer.WriteString("\":")
 	}
+
+	for i := 1; i < len(keys); i++ {
+		if string(keys[i][0]) == "[" {
+			buffer.WriteString("[")
+		} else {
+			buffer.WriteString("{\"")
+			buffer.WriteString(keys[i])
+			buffer.WriteString("\":")
+		}
+	}
 	buffer.Write(setValue)
-	buffer.WriteString(strings.Repeat("}", len(keys)-1))
-	if object {
+	for i := len(keys) - 1; i > 0; i-- {
+		if string(keys[i][0]) == "[" {
+			buffer.WriteString("]")
+		} else {
+			buffer.WriteString("}")
+		}
+	}
+	if isIndex {
+		buffer.WriteString("]")
+	}
+	if object && !isIndex {
 		buffer.WriteString("}")
 	}
 	return buffer.Bytes()
@@ -629,6 +648,8 @@ func Delete(data []byte, keys ...string) []byte {
 
 		if data[endOffset+tokEnd] == ","[0] {
 			endOffset += tokEnd + 1
+		} else if data[endOffset+tokEnd] == " "[0] && len(data) > endOffset+tokEnd+1 && data[endOffset+tokEnd+1] == ","[0] {
+			endOffset += tokEnd + 2
 		} else if data[endOffset+tokEnd] == "}"[0] && data[tokStart] == ","[0] {
 			keyOffset = tokStart
 		}
@@ -649,7 +670,18 @@ func Delete(data []byte, keys ...string) []byte {
 		}
 	}
 
-	data = append(data[:keyOffset], data[endOffset:]...)
+	// We need to remove remaining trailing comma if we delete las element in the object
+	prevTok := lastToken(data[:keyOffset])
+	remainedValue := data[endOffset:]
+
+	var newOffset int
+	if nextToken(remainedValue) > -1 && remainedValue[nextToken(remainedValue)] == '}' && data[prevTok] == ',' {
+		newOffset = prevTok
+	} else {
+		newOffset = prevTok + 1
+	}
+
+	data = append(data[:newOffset], data[endOffset:]...)
 	return data
 }
 
@@ -844,7 +876,7 @@ func internalGet(data []byte, keys ...string) (value []byte, dataType ValueType,
 }
 
 // ArrayEach is used when iterating arrays, accepts a callback function with the same return arguments as `Get`.
-func ArrayEach(data []byte, cb func(index int, value []byte, dataType ValueType, offset int) error, keys ...string) (offset int, err error) {
+func ArrayEach(data []byte, cb func(value []byte, dataType ValueType, offset int, err error), keys ...string) (offset int, err error) {
 	if len(data) == 0 {
 		return -1, MalformedObjectError
 	}
@@ -882,7 +914,6 @@ func ArrayEach(data []byte, cb func(index int, value []byte, dataType ValueType,
 		return offset, nil
 	}
 
-	i := 0
 	for true {
 		v, t, o, e := Get(data[offset:])
 
@@ -895,7 +926,7 @@ func ArrayEach(data []byte, cb func(index int, value []byte, dataType ValueType,
 		}
 
 		if t != NotExist {
-			_ = cb(i, v, t, offset+o-len(v))
+			cb(v, t, offset+o-len(v), e)
 		}
 
 		if e != nil {
@@ -919,7 +950,6 @@ func ArrayEach(data []byte, cb func(index int, value []byte, dataType ValueType,
 		}
 
 		offset++
-		i++
 	}
 
 	return offset, nil
@@ -1040,7 +1070,7 @@ func GetUnsafeString(data []byte, keys ...string) (val string, err error) {
 		return "", e
 	}
 
-	return string(v), nil
+	return bytesToString(&v), nil
 }
 
 // GetString returns the value retrieved by `Get`, cast to a string if possible, trying to properly handle escape and utf8 symbols

@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/buger/jsonparser"
 	"github.com/mongodb/mongo-go-driver/bson/builder"
-	"github.com/mongodb/mongo-go-driver/bson/internal/jsonparser"
 )
 
 type parseState struct {
