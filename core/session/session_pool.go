@@ -33,12 +33,12 @@ func NewPool(descChan <-chan description.Topology) *Pool {
 }
 
 // GetSession retrieves an unexpired session from the pool.
-func (p *Pool) GetSession() *Server {
+func (p *Pool) GetSession() (*Server, error) {
 	p.Mutex.Lock() // prevent changing SessionTimeout while seeing if sessions have expired
+	defer p.Mutex.Unlock()
 
 	// empty pool
 	if p.Head == nil && p.Tail == nil {
-		p.Mutex.Unlock()
 		return newServerSession()
 	}
 
@@ -56,19 +56,18 @@ func (p *Pool) GetSession() *Server {
 			p.Head.next.prev = nil
 		}
 		p.Head = p.Head.next
-		p.Mutex.Unlock()
-		return session
+		return session, nil
 	}
 
 	// no valid session found
 	p.Tail = nil // empty list
-	p.Mutex.Unlock()
 	return newServerSession()
 }
 
 // ReturnSession returns a session to the pool if it has not expired.
 func (p *Pool) ReturnSession(ss *Server) {
 	p.Mutex.Lock()
+	defer p.Mutex.Unlock()
 
 	// check sessions at end of queue for expired
 	// stop checking after hitting the first valid session
@@ -83,7 +82,6 @@ func (p *Pool) ReturnSession(ss *Server) {
 	// session expired
 	if ss.expired(p.SessionTimeout) {
 		ss.endSession()
-		p.Mutex.Unlock()
 		return
 	}
 
@@ -97,7 +95,6 @@ func (p *Pool) ReturnSession(ss *Server) {
 	if p.Tail == nil {
 		p.Head = newNode
 		p.Tail = newNode
-		p.Mutex.Unlock()
 		return
 	}
 
@@ -105,17 +102,18 @@ func (p *Pool) ReturnSession(ss *Server) {
 	newNode.next = p.Head
 	p.Head.prev = newNode
 	p.Head = newNode
-	p.Mutex.Unlock()
 }
 
 func (p *Pool) update() {
-	select {
-	case desc := <-p.DescChannel:
-		p.Mutex.Lock()
-		p.SessionTimeout = desc.SessionTimeoutMinutes
-		p.Mutex.Unlock()
-	default:
-		// no new description waiting --> no update
+	for {
+		select {
+		case desc := <-p.DescChannel:
+			p.Mutex.Lock()
+			p.SessionTimeout = desc.SessionTimeoutMinutes
+			p.Mutex.Unlock()
+		default:
+			// no new description waiting --> no update
+		}
 	}
 }
 

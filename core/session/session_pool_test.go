@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 )
 
 func TestSessionPool(t *testing.T) {
@@ -11,17 +12,21 @@ func TestSessionPool(t *testing.T) {
 		descChan := make(chan description.Topology)
 		p := NewPool(descChan)
 
-		first := p.GetSession()
+		first, err := p.GetSession()
+		testhelpers.RequireNil(t, err, "error getting session", err)
 		firstID := first.SessionID
 
-		second := p.GetSession()
+		second, err := p.GetSession()
+		testhelpers.RequireNil(t, err, "error getting session", err)
 		secondID := second.SessionID
 
 		p.ReturnSession(first)
 		p.ReturnSession(second)
 
-		sess := p.GetSession()
-		nextSess := p.GetSession()
+		sess, err := p.GetSession()
+		testhelpers.RequireNil(t, err, "error getting session", err)
+		nextSess, err := p.GetSession()
+		testhelpers.RequireNil(t, err, "error getting session", err)
 
 		if sess.SessionID != secondID {
 			t.Errorf("first sesssion ID mismatch. got %s expected %s", sess.SessionID, secondID)
