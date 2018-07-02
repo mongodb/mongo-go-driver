@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -24,6 +25,7 @@ type Delete struct {
 	NS      Namespace
 	Deletes []*bson.Document
 	Opts    []option.DeleteOptioner
+	Session *session.ClientSession
 
 	result result.Delete
 	err    error
@@ -61,7 +63,7 @@ func (d *Delete) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		}
 	}
 
-	return (&Command{DB: d.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{DB: d.NS.DB, Command: command, Session: d.Session, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

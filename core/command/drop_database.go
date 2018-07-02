@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -18,9 +19,10 @@ import (
 //
 // The DropDatabases command drops database.
 type DropDatabase struct {
-	DB     string
-	result bson.Reader
-	err    error
+	DB      string
+	Session *session.ClientSession
+	result  bson.Reader
+	err     error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -29,7 +31,7 @@ func (dd *DropDatabase) Encode(desc description.SelectedServer) (wiremessage.Wir
 		bson.EC.Int32("dropDatabase", 1),
 	)
 
-	return (&Command{DB: dd.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{DB: dd.DB, Command: cmd, Session: dd.Session, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

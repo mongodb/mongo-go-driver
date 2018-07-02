@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/builder"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -25,6 +26,7 @@ type Command struct {
 	DB       string
 	Command  interface{}
 	ReadPref *readpref.ReadPref
+	Session  *session.ClientSession
 	isWrite  bool
 
 	result bson.Reader

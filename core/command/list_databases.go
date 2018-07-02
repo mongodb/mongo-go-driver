@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,8 +21,9 @@ import (
 //
 // The listDatabases command lists the databases in a MongoDB deployment.
 type ListDatabases struct {
-	Filter *bson.Document
-	Opts   []option.ListDatabasesOptioner
+	Filter  *bson.Document
+	Opts    []option.ListDatabasesOptioner
+	Session *session.ClientSession
 
 	result result.ListDatabases
 	err    error
@@ -45,7 +47,7 @@ func (ld *ListDatabases) Encode(desc description.SelectedServer) (wiremessage.Wi
 		}
 	}
 
-	return (&Command{DB: "admin", Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{DB: "admin", Command: cmd, Session: ld.Session, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

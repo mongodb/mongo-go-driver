@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,11 +20,12 @@ import (
 //
 // The dropIndexes command drops indexes for a namespace.
 type DropIndexes struct {
-	NS     Namespace
-	Index  string
-	Opts   []option.DropIndexesOptioner
-	result bson.Reader
-	err    error
+	NS      Namespace
+	Index   string
+	Opts    []option.DropIndexesOptioner
+	Session *session.ClientSession
+	result  bson.Reader
+	err     error
 }
 
 // Encode will encode this command into a wire message for the given server description.
@@ -43,7 +45,7 @@ func (di *DropIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 		}
 	}
 
-	return (&Command{DB: di.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{DB: di.NS.DB, Command: cmd, Session: di.Session, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

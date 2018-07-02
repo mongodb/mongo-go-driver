@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,9 +20,10 @@ import (
 //
 // The getMore command retrieves additional documents from a cursor.
 type GetMore struct {
-	ID   int64
-	NS   Namespace
-	Opts []option.CursorOptioner
+	ID      int64
+	NS      Namespace
+	Opts    []option.CursorOptioner
+	Session *session.ClientSession
 
 	result bson.Reader
 	err    error
@@ -39,7 +41,7 @@ func (gm *GetMore) Encode(desc description.SelectedServer) (wiremessage.WireMess
 			return nil, err
 		}
 	}
-	return (&Command{DB: gm.NS.DB, Command: cmd}).Encode(desc)
+	return (&Command{DB: gm.NS.DB, Command: cmd, Session: gm.Session}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

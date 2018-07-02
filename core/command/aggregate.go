@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -24,6 +25,7 @@ type Aggregate struct {
 	Pipeline *bson.Array
 	Opts     []option.AggregateOptioner
 	ReadPref *readpref.ReadPref
+	Session  *session.ClientSession
 
 	result Cursor
 	err    error
@@ -61,7 +63,7 @@ func (a *Aggregate) Encode(desc description.SelectedServer) (wiremessage.WireMes
 		}
 	}
 
-	return (&Command{DB: a.NS.DB, Command: command, ReadPref: a.ReadPref}).Encode(desc)
+	return (&Command{DB: a.NS.DB, Command: command, ReadPref: a.ReadPref, Session: a.Session}).Encode(desc)
 }
 
 // HasDollarOut returns true if the Pipeline field contains a $out stage.

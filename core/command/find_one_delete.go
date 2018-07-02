@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,9 +21,10 @@ import (
 //
 // The findOneAndDelete command deletes a single document that matches a query and returns it.
 type FindOneAndDelete struct {
-	NS    Namespace
-	Query *bson.Document
-	Opts  []option.FindOneAndDeleteOptioner
+	NS      Namespace
+	Query   *bson.Document
+	Opts    []option.FindOneAndDeleteOptioner
+	Session *session.ClientSession
 
 	result result.FindAndModify
 	err    error
@@ -50,7 +52,7 @@ func (f *FindOneAndDelete) Encode(desc description.SelectedServer) (wiremessage.
 		}
 	}
 
-	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return (&Command{DB: f.NS.DB, Command: command, Session: f.Session, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

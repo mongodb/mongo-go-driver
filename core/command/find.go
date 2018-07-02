@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -24,6 +25,7 @@ type Find struct {
 	Filter   *bson.Document
 	Opts     []option.FindOptioner
 	ReadPref *readpref.ReadPref
+	Session  *session.ClientSession
 
 	result Cursor
 	err    error
@@ -69,7 +71,7 @@ func (f *Find) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 		command.Append(bson.EC.Boolean("singleBatch", true))
 	}
 
-	return (&Command{DB: f.NS.DB, ReadPref: f.ReadPref, Command: command}).Encode(desc)
+	return (&Command{DB: f.NS.DB, ReadPref: f.ReadPref, Session: f.Session, Command: command}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

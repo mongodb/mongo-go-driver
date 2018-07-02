@@ -15,7 +15,7 @@ type Node struct {
 
 // Pool is a pool of server sessions that can be reused.
 type Pool struct {
-	DescChannel    chan description.Topology // channel to read topology descriptions to update the session timeout
+	DescChannel    <-chan description.Topology // channel to read topology descriptions to update the session timeout
 	Head           *Node
 	Tail           *Node
 	SessionTimeout uint32
@@ -23,7 +23,7 @@ type Pool struct {
 }
 
 // NewPool creates a new server session pool
-func NewPool(descChan chan description.Topology) *Pool {
+func NewPool(descChan <-chan description.Topology) *Pool {
 	p := &Pool{
 		DescChannel: descChan,
 	}

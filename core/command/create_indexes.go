@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -23,6 +24,7 @@ type CreateIndexes struct {
 	NS      Namespace
 	Indexes *bson.Array
 	Opts    []option.CreateIndexesOptioner
+	Session *session.ClientSession
 	result  result.CreateIndexes
 	err     error
 }
@@ -44,7 +46,7 @@ func (ci *CreateIndexes) Encode(desc description.SelectedServer) (wiremessage.Wi
 		}
 	}
 
-	return (&Command{DB: ci.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return (&Command{DB: ci.NS.DB, Command: cmd, Session: ci.Session, isWrite: true}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

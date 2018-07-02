@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -25,6 +26,7 @@ type Count struct {
 	Query    *bson.Document
 	Opts     []option.CountOptioner
 	ReadPref *readpref.ReadPref
+	Session  *session.ClientSession
 
 	result int64
 	err    error
@@ -47,7 +49,7 @@ func (c *Count) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 		}
 	}
 
-	return (&Command{DB: c.NS.DB, ReadPref: c.ReadPref, Command: command}).Encode(desc)
+	return (&Command{DB: c.NS.DB, ReadPref: c.ReadPref, Command: command, Session: c.Session}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
