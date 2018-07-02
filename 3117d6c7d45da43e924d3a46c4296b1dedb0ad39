@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "39ed4ac8_e65a921b",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T22:42:35Z",
+      "side": 1,
+      "message": "After discussing offline, we came the conclusion that it makes sense to separate command.Command into command.Read and command.Write. The following tickets contains the details: https://jira.mongodb.org/browse/GODRIVER-482",
+      "parentUuid": "06188a01_037044dc",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "072016c4_88d9c3a5",
         "filename": "core/command/command.go",
         "patchSetId": 4
