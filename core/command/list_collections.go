@@ -24,7 +24,7 @@ type ListCollections struct {
 	DB      string
 	Filter  *bson.Document
 	Opts    []option.ListCollectionsOptioner
-	Session *session.ClientSession
+	Session *session.Client
 
 	result   Cursor
 	ReadPref *readpref.ReadPref

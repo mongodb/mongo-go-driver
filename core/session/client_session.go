@@ -2,27 +2,27 @@ package session
 
 import "github.com/mongodb/mongo-go-driver/bson"
 
-// ClientSession is a session for clients to run commands.
-type ClientSession struct {
+// Client is a session for clients to run commands.
+type Client struct {
 	ClusterTime   *bson.Document
 	SessionID     *bson.Document
-	serverSession *ServerSession
+	serverSession *Server
 }
 
-// NewClientSession creates a ClientSession.
-func NewClientSession(servSess *ServerSession) *ClientSession {
-	return &ClientSession{
+// NewClientSession creates a Client.
+func NewClientSession(servSess *Server) *Client {
+	return &Client{
 		SessionID:     servSess.SessionID,
 		serverSession: servSess,
 	}
 }
 
 // AdvanceClusterTime updates the session's cluster time.
-func (cs *ClientSession) AdvanceClusterTime(clusterTime *bson.Document) {
+func (cs *Client) AdvanceClusterTime(clusterTime *bson.Document) {
 
 }
 
 // EndSession closes the session.
-func (cs *ClientSession) EndSession() {
+func (cs *Client) EndSession() {
 
 }

@@ -25,7 +25,7 @@ type Find struct {
 	Filter   *bson.Document
 	Opts     []option.FindOptioner
 	ReadPref *readpref.ReadPref
-	Session  *session.ClientSession
+	Session  *session.Client
 
 	result Cursor
 	err    error

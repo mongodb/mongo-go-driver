@@ -26,7 +26,7 @@ type Command struct {
 	DB       string
 	Command  interface{}
 	ReadPref *readpref.ReadPref
-	Session  *session.ClientSession
+	Session  *session.Client
 	isWrite  bool
 
 	result bson.Reader

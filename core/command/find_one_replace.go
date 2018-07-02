@@ -25,7 +25,7 @@ type FindOneAndReplace struct {
 	Query       *bson.Document
 	Replacement *bson.Document
 	Opts        []option.FindOneAndReplaceOptioner
-	Session     *session.ClientSession
+	Session     *session.Client
 
 	result result.FindAndModify
 	err    error

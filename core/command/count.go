@@ -26,7 +26,7 @@ type Count struct {
 	Query    *bson.Document
 	Opts     []option.CountOptioner
 	ReadPref *readpref.ReadPref
-	Session  *session.ClientSession
+	Session  *session.Client
 
 	result int64
 	err    error

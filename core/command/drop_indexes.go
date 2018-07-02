@@ -23,7 +23,7 @@ type DropIndexes struct {
 	NS      Namespace
 	Index   string
 	Opts    []option.DropIndexesOptioner
-	Session *session.ClientSession
+	Session *session.Client
 	result  bson.Reader
 	err     error
 }

@@ -24,7 +24,7 @@ type FindOneAndDelete struct {
 	NS      Namespace
 	Query   *bson.Document
 	Opts    []option.FindOneAndDeleteOptioner
-	Session *session.ClientSession
+	Session *session.Client
 
 	result result.FindAndModify
 	err    error

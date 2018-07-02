@@ -22,7 +22,7 @@ import (
 type ListIndexes struct {
 	NS      Namespace
 	Opts    []option.ListIndexesOptioner
-	Session *session.ClientSession
+	Session *session.Client
 	result  Cursor
 	err     error
 }

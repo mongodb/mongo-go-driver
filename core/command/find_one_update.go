@@ -25,7 +25,7 @@ type FindOneAndUpdate struct {
 	Query   *bson.Document
 	Update  *bson.Document
 	Opts    []option.FindOneAndUpdateOptioner
-	Session *session.ClientSession
+	Session *session.Client
 
 	result result.FindAndModify
 	err    error

@@ -25,7 +25,7 @@ type Delete struct {
 	NS      Namespace
 	Deletes []*bson.Document
 	Opts    []option.DeleteOptioner
-	Session *session.ClientSession
+	Session *session.Client
 
 	result result.Delete
 	err    error

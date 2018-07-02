@@ -7,20 +7,20 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 )
 
-// ServerSession is an open session with the server.
-type ServerSession struct {
+// Server is an open session with the server.
+type Server struct {
 	SessionID *bson.Document
 	LastUsed  time.Time
 }
 
 // returns whether or not a session has expired given a timeout in minutes
 // a session is considered expired if it has less than 1 minute left before becoming stale
-func (ss *ServerSession) expired(timeoutMinutes uint32) bool {
+func (ss *Server) expired(timeoutMinutes uint32) bool {
 	timeUnused := time.Since(ss.LastUsed).Minutes()
 	return timeUnused > float64(timeoutMinutes-1)
 }
 
-func (ss *ServerSession) endSession() {
+func (ss *Server) endSession() {
 
 }
 
@@ -32,8 +32,8 @@ func genUUID() *bson.Document {
 	)
 }
 
-func newServerSession() *ServerSession {
-	return &ServerSession{
+func newServerSession() *Server {
+	return &Server{
 		SessionID: genUUID(),
 	}
 }

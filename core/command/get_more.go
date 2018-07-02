@@ -23,7 +23,7 @@ type GetMore struct {
 	ID      int64
 	NS      Namespace
 	Opts    []option.CursorOptioner
-	Session *session.ClientSession
+	Session *session.Client
 
 	result bson.Reader
 	err    error

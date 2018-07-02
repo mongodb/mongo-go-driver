@@ -1034,7 +1034,7 @@ func (opt OptNameOnly) String() string {
 
 // OptSession is for internal use
 type OptSession struct {
-	*session.ClientSession
+	*session.Client
 }
 
 // Option implements the Optioner interface.

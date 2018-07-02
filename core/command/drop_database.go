@@ -20,7 +20,7 @@ import (
 // The DropDatabases command drops database.
 type DropDatabase struct {
 	DB      string
-	Session *session.ClientSession
+	Session *session.Client
 	result  bson.Reader
 	err     error
 }

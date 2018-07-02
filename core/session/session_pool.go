@@ -8,7 +8,7 @@ import (
 
 // Node represents a server session in a linked list
 type Node struct {
-	*ServerSession
+	*Server
 	next *Node
 	prev *Node
 }
@@ -33,7 +33,7 @@ func NewPool(descChan <-chan description.Topology) *Pool {
 }
 
 // GetSession retrieves an unexpired session from the pool.
-func (p *Pool) GetSession() *ServerSession {
+func (p *Pool) GetSession() *Server {
 	p.Mutex.Lock() // prevent changing SessionTimeout while seeing if sessions have expired
 
 	// empty pool
@@ -51,7 +51,7 @@ func (p *Pool) GetSession() *ServerSession {
 		}
 
 		// found unexpired session
-		session := p.Head.ServerSession
+		session := p.Head.Server
 		if p.Head.next != nil {
 			p.Head.next.prev = nil
 		}
@@ -67,7 +67,7 @@ func (p *Pool) GetSession() *ServerSession {
 }
 
 // ReturnSession returns a session to the pool if it has not expired.
-func (p *Pool) ReturnSession(ss *ServerSession) {
+func (p *Pool) ReturnSession(ss *Server) {
 	p.Mutex.Lock()
 
 	// check sessions at end of queue for expired
@@ -88,9 +88,9 @@ func (p *Pool) ReturnSession(ss *ServerSession) {
 	}
 
 	newNode := &Node{
-		ServerSession: ss,
-		next:          nil,
-		prev:          nil,
+		Server: ss,
+		next:   nil,
+		prev:   nil,
 	}
 
 	// empty list

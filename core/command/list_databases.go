@@ -23,7 +23,7 @@ import (
 type ListDatabases struct {
 	Filter  *bson.Document
 	Opts    []option.ListDatabasesOptioner
-	Session *session.ClientSession
+	Session *session.Client
 
 	result result.ListDatabases
 	err    error

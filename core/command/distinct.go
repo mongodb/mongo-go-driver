@@ -28,7 +28,7 @@ type Distinct struct {
 	Query    *bson.Document
 	Opts     []option.DistinctOptioner
 	ReadPref *readpref.ReadPref
-	Session  *session.ClientSession
+	Session  *session.Client
 
 	result result.Distinct
 	err    error

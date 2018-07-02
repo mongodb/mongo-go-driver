@@ -25,7 +25,7 @@ type Aggregate struct {
 	Pipeline *bson.Array
 	Opts     []option.AggregateOptioner
 	ReadPref *readpref.ReadPref
-	Session  *session.ClientSession
+	Session  *session.Client
 
 	result Cursor
 	err    error

@@ -21,7 +21,7 @@ import (
 type DropCollection struct {
 	DB         string
 	Collection string
-	Session    *session.ClientSession
+	Session    *session.Client
 	result     bson.Reader
 	err        error
 }

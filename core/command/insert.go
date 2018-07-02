@@ -31,7 +31,7 @@ type Insert struct {
 	NS      Namespace
 	Docs    []*bson.Document
 	Opts    []option.InsertOptioner
-	Session *session.ClientSession
+	Session *session.Client
 
 	result          result.Insert
 	err             error

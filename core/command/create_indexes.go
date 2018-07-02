@@ -24,7 +24,7 @@ type CreateIndexes struct {
 	NS      Namespace
 	Indexes *bson.Array
 	Opts    []option.CreateIndexesOptioner
-	Session *session.ClientSession
+	Session *session.Client
 	result  result.CreateIndexes
 	err     error
 }
