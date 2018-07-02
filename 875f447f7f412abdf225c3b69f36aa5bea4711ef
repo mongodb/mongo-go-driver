@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "421c75f8_ece9a450",
+        "filename": "core/session/server_session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T18:23:41Z",
+      "side": 1,
+      "message": "Instead of vendoring yet another dependency, we can create a version 4 UUID ourselves using the crypto/rand package. There are some good pointers for that in this post: https://stackoverflow.com/questions/15130321/is-there-a-method-to-generate-a-uuid-with-go-language",
+      "range": {
+        "startLine": 28,
+        "startChar": 1,
+        "endLine": 29,
+        "endChar": 0
+      },
+      "revId": "875f447f7f412abdf225c3b69f36aa5bea4711ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d8082a3b_63f35373",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T18:23:41Z",
+      "side": 1,
+      "message": "It might be easier to just use a defer call right after we acquire the mutex to ensure we don\u0027t forget to unlock if this method changes in the future.",
+      "range": {
+        "startLine": 58,
+        "startChar": 2,
+        "endLine": 58,
+        "endChar": 18
+      },
+      "revId": "875f447f7f412abdf225c3b69f36aa5bea4711ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "913fbb7d_90809e8e",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T18:23:41Z",
+      "side": 1,
+      "message": "Should we be doing this if we just made a new list? This will make the list a ring, so when we get a session the next time, we\u0027ll return this one, but then point to this same node again for the next session, meaning it would be possible to two invocations to get the same session.",
+      "range": {
+        "startLine": 102,
+        "startChar": 0,
+        "endLine": 104,
+        "endChar": 17
+      },
+      "revId": "875f447f7f412abdf225c3b69f36aa5bea4711ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4faf7966_f59e386f",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T18:23:41Z",
+      "side": 1,
+      "message": "Shouldn\u0027t this be in a loop? Presumably we want to continually update the session timeout minutes whenever the topology is updated.",
+      "range": {
+        "startLine": 109,
+        "startChar": 0,
+        "endLine": 116,
+        "endChar": 2
+      },
+      "revId": "875f447f7f412abdf225c3b69f36aa5bea4711ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
