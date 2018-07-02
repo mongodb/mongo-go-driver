@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "f9c002f3_350ce019",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T20:53:07Z",
+      "side": 1,
+      "message": "Got it. Thanks. \n\nSo, the issue with this thing is that it defaults to false. Which means that anyone creating a Command that forgets to set this flag will not get a response, which is very much not the correct default. Perhaps using an actual WriteConcern object here would be better.",
+      "parentUuid": "0f9cdb7b_32b92faa",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fe71e785_96e80f99",
         "filename": "core/command/command.go",
         "patchSetId": 4
@@ -159,6 +177,24 @@
       "side": 1,
       "message": "Yes, findReadPref first checks if the read pref is nil and returns nil if it is. The read pref should be nil for write commands.",
       "parentUuid": "997bc825_bbd5d3d6",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89634fbd_44e8525d",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T20:53:07Z",
+      "side": 1,
+      "message": "I asked because in the OP_QUERY case, we check before calling a related method. I realize these are different though as opmsgAddGlobals needs this, even if it doesn\u0027t use it. I\u0027m big on consistency, so it feels weird.",
+      "parentUuid": "910e02b3_081e5069",
       "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
