@@ -231,6 +231,24 @@
       "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f84e8b92_b4b5c591",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T20:17:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c02bad9c_a9eb39db",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
