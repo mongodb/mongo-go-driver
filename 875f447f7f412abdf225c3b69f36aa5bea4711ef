@@ -71,6 +71,30 @@
     },
     {
       "key": {
+        "uuid": "5c18df49_f186f317",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T18:33:27Z",
+      "side": 1,
+      "message": "Fixed in a later commit. I forgot the return statement in the previous clause.",
+      "parentUuid": "913fbb7d_90809e8e",
+      "range": {
+        "startLine": 102,
+        "startChar": 0,
+        "endLine": 104,
+        "endChar": 17
+      },
+      "revId": "875f447f7f412abdf225c3b69f36aa5bea4711ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4faf7966_f59e386f",
         "filename": "core/session/session_pool.go",
         "patchSetId": 1
@@ -91,6 +115,30 @@
       "revId": "875f447f7f412abdf225c3b69f36aa5bea4711ef",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5ad57a81_280412b3",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T18:33:27Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4faf7966_f59e386f",
+      "range": {
+        "startLine": 109,
+        "startChar": 0,
+        "endLine": 116,
+        "endChar": 2
+      },
+      "revId": "875f447f7f412abdf225c3b69f36aa5bea4711ef",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
