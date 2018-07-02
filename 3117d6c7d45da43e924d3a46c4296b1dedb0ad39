@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "0f9cdb7b_32b92faa",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T20:32:59Z",
+      "side": 1,
+      "message": "Looking at the code for writeconcern.Acknowledged(), I\u0027m seeing that it only returns false if the value for wc.v is 0 and when it adds itself to the command, it adds wc.v as a document with key \"w\" so the command does have w\u003d0.",
+      "parentUuid": "5b397713_37a4b678",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fe71e785_96e80f99",
         "filename": "core/command/command.go",
         "patchSetId": 4
