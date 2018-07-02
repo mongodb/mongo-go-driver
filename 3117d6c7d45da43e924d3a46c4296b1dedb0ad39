@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "5b397713_37a4b678",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T20:16:52Z",
+      "side": 1,
+      "message": "Yeah. From the spec: \"Clients doing unacknowledged writes MUST set the moreToCome flag, and MUST set the writeConcern to w\u003d0.\" Now that I think about it, I\u0027m not sure we\u0027re explicitly seting writeconcern to w\u003d0, so this is something we can look into.",
+      "parentUuid": "072016c4_88d9c3a5",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fe71e785_96e80f99",
         "filename": "core/command/command.go",
         "patchSetId": 4
@@ -76,6 +94,24 @@
     },
     {
       "key": {
+        "uuid": "4e7fa00c_8325d815",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T20:16:52Z",
+      "side": 1,
+      "message": "This was done because we weren\u0027t sure if c.Command was a *bson.Document (it\u0027s declared as an interface{} in the struct) and we didn\u0027t know how to add a field to it if it isn\u0027t a BSON doc.",
+      "parentUuid": "0b754b64_91969152",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "997bc825_bbd5d3d6",
         "filename": "core/command/command.go",
         "patchSetId": 4
@@ -87,6 +123,24 @@
       "writtenOn": "2018-07-02T18:47:04Z",
       "side": 1,
       "message": "Do we do this regardless of whether it\u0027s a read or a write?",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "910e02b3_081e5069",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T20:16:52Z",
+      "side": 1,
+      "message": "Yes, findReadPref first checks if the read pref is nil and returns nil if it is. The read pref should be nil for write commands.",
+      "parentUuid": "997bc825_bbd5d3d6",
       "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -110,6 +164,24 @@
     },
     {
       "key": {
+        "uuid": "071e1ade_aeaa72da",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T20:16:52Z",
+      "side": 1,
+      "message": "c.Acknowledged is set in dispatch by checking the Acknowledged() function of the write concern. See the quote from the spec in the comment above.",
+      "parentUuid": "e45ade07_dae2fcfe",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "26c3a0af_de27d19b",
         "filename": "core/command/command.go",
         "patchSetId": 4
@@ -124,6 +196,24 @@
       "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e7e2c2a6_7f350891",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-02T20:16:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "26c3a0af_de27d19b",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
