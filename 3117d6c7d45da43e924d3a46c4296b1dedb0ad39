@@ -2,6 +2,40 @@
   "comments": [
     {
       "key": {
+        "uuid": "06188a01_037044dc",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T18:47:04Z",
+      "side": 1,
+      "message": "This is probably more for Kris.\n\nIt feels to me like breaking this up into two different command structs (read and write) could get us some advantages. For example, ReadCommand wouldn\u0027t need to care about removing arrays and what not and wouldn\u0027t need to care about Acknowledged status or isWrite.\n\nWriteCommand wouldn\u0027t need a read preference.\n\nAn alternative would be to have 2 ctors (NewReadCommand, NewWriteCommand) that take their respective fields rather than using struct initializers.",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "072016c4_88d9c3a5",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T18:47:04Z",
+      "side": 1,
+      "message": "I\u0027m not I understand what this means. I notice that in the dispatch.* methods, it is getting set to false when the write concern is not acknowledged, but later we set the MoreToCome flag based on this value. Are these the same thing? Does setting MoreToCome on a write request indicate that we don\u0027t care about a response?",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fe71e785_96e80f99",
         "filename": "core/command/command.go",
         "patchSetId": 4
@@ -19,6 +53,91 @@
         "endLine": 39,
         "endChar": 25
       },
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0b754b64_91969152",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T18:47:04Z",
+      "side": 1,
+      "message": "So we marshal to a reader... then on 119 (in opmsgAddGlobals), we turn it into a bson.Document and then back to a reader. I assume there is overhead here, probably in multiple ways (memory and efficiency). Is this something to be concerned about? This is directly in the \"I\u0027m going to hit this code for every single request\" path.",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "997bc825_bbd5d3d6",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T18:47:04Z",
+      "side": 1,
+      "message": "Do we do this regardless of whether it\u0027s a read or a write?",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e45ade07_dae2fcfe",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 141,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T18:47:04Z",
+      "side": 1,
+      "message": "So, the fact that a write is not acknowledged means there is more to come? Is this different than an unacknowledged writer concern, because users can set an unacknowledged write concern. If they do, how does that play out here?",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "26c3a0af_de27d19b",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T18:47:04Z",
+      "side": 1,
+      "message": "I don\u0027t understand this name... it doesn\u0027t appear to be \"finding\" a read preference. Looks more like it\u0027s creating one.",
+      "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c02bad9c_a9eb39db",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-02T18:47:04Z",
+      "side": 1,
+      "message": "OP_REPLY?",
       "revId": "3117d6c7d45da43e924d3a46c4296b1dedb0ad39",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
