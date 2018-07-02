@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b73b4e31_dd19ad6e",
+        "filename": "core/topology/topology.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 329,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T18:07:22Z",
+      "side": 1,
+      "message": "Didn\u0027t we already do this in the fsm?",
+      "range": {
+        "startLine": 325,
+        "startChar": 3,
+        "endLine": 329,
+        "endChar": 4
+      },
+      "revId": "832764968d99b57ca84804eee98e894f8bac643a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4262114b_7809eb19",
+        "filename": "core/topology/topology_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T18:07:22Z",
+      "side": 1,
+      "message": "We should have a timeout case here to ensure that this doesn\u0027t wait forever (or the test timeout period). The same goes for the other cases.",
+      "range": {
+        "startLine": 244,
+        "startChar": 2,
+        "endLine": 245,
+        "endChar": 16
+      },
+      "revId": "832764968d99b57ca84804eee98e894f8bac643a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
