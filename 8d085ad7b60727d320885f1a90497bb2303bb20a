@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "db041747_5d2a3751",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T18:28:02Z",
+      "side": 1,
+      "message": "Let\u0027s just use defer statements to avoid this.",
+      "range": {
+        "startLine": 41,
+        "startChar": 2,
+        "endLine": 41,
+        "endChar": 18
+      },
+      "revId": "8d085ad7b60727d320885f1a90497bb2303bb20a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
