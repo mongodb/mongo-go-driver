@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c8d83eba_86fb19f3",
+        "filename": "core/session/session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-02T18:00:21Z",
+      "side": 1,
+      "message": "I\u0027m not sure if we need to call it \"ServerSession\", since it will be referred to as \"session.ServerSession\" which stutters. I think it\u0027s okay if we just call this \"Server\" so when used it\u0027ll be \"session.Server\". The same goes for ClientSession.",
+      "range": {
+        "startLine": 10,
+        "startChar": 5,
+        "endLine": 10,
+        "endChar": 18
+      },
+      "revId": "30fc98a364fdabbd3043e0e9e909dc2b3c3e4786",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
