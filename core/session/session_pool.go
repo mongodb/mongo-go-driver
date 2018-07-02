@@ -28,7 +28,7 @@ func NewPool(descChan chan description.Topology) *Pool {
 		DescChannel: descChan,
 	}
 
-	go p.update()
+	//go p.update()
 	return p
 }
 
@@ -38,6 +38,7 @@ func (p *Pool) GetSession() *ServerSession {
 
 	// empty pool
 	if p.Head == nil && p.Tail == nil {
+		p.Mutex.Unlock()
 		return newServerSession()
 	}
 
@@ -71,7 +72,7 @@ func (p *Pool) ReturnSession(ss *ServerSession) {
 
 	// check sessions at end of queue for expired
 	// stop checking after hitting the first valid session
-	for p.Tail != nil && !p.Tail.expired(p.SessionTimeout) {
+	for p.Tail != nil && p.Tail.expired(p.SessionTimeout) {
 		p.Tail.endSession()
 		if p.Tail.prev != nil {
 			p.Tail.prev.next = nil
@@ -96,6 +97,8 @@ func (p *Pool) ReturnSession(ss *ServerSession) {
 	if p.Tail == nil {
 		p.Head = newNode
 		p.Tail = newNode
+		p.Mutex.Unlock()
+		return
 	}
 
 	// at least 1 valid session in list
@@ -114,4 +117,14 @@ func (p *Pool) update() {
 	default:
 		// no new description waiting --> no update
 	}
+}
+
+func (p *Pool) String() string {
+	s := ""
+
+	for head := p.Head; head != nil; head = head.next {
+		s += head.SessionID.String() + "\n"
+	}
+
+	return s
 }
