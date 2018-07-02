@@ -42,7 +42,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, error) {
 		Servers: newServers,
 	}
 
-	if oldMinutes != 0 && oldMinutes < f.SessionTimeoutMinutes {
+	if oldMinutes != 0 && oldMinutes < s.SessionTimeoutMinutes {
 		f.SessionTimeoutMinutes = oldMinutes
 	} else {
 		f.SessionTimeoutMinutes = s.SessionTimeoutMinutes

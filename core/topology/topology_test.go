@@ -24,6 +24,11 @@ func noerr(t *testing.T, err error) {
 	}
 }
 
+func timeout(c chan bool) {
+	time.Sleep(2 * time.Second)
+	c <- true
+}
+
 func TestServerSelection(t *testing.T) {
 	var selectFirst description.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
 		if len(candidates) == 0 {
@@ -236,6 +241,9 @@ func TestSessionTimeout(t *testing.T) {
 			doneCh <- struct{}{}
 		}()
 
+		timeoutChan := make(chan bool, 1)
+		go timeout(timeoutChan)
+
 		topo.changes <- description.Server{
 			SessionTimeoutMinutes: 30,
 		}
@@ -247,6 +255,8 @@ func TestSessionTimeout(t *testing.T) {
 			if currDesc.SessionTimeoutMinutes != 30 {
 				t.Errorf("session timeout minutes mismatch. got: %d. expected: 30", currDesc.SessionTimeoutMinutes)
 			}
+		case <-timeoutChan:
+			t.Errorf("test case timed out")
 		}
 	})
 	t.Run("MultipleUpdates", func(t *testing.T) {
@@ -260,6 +270,9 @@ func TestSessionTimeout(t *testing.T) {
 			topo.update()
 			doneCh <- struct{}{}
 		}()
+
+		timeoutChan := make(chan bool, 1)
+		go timeout(timeoutChan)
 
 		topo.changes <- description.Server{
 			SessionTimeoutMinutes: 30,
@@ -276,6 +289,8 @@ func TestSessionTimeout(t *testing.T) {
 			if currDesc.SessionTimeoutMinutes != 20 {
 				t.Errorf("session timeout minutes mismatch. got: %d. expected: 20", currDesc.SessionTimeoutMinutes)
 			}
+		case <-timeoutChan:
+			t.Errorf("test case timed out")
 		}
 	})
 	t.Run("NoUpdate", func(t *testing.T) {
@@ -289,6 +304,9 @@ func TestSessionTimeout(t *testing.T) {
 			topo.update()
 			doneCh <- struct{}{}
 		}()
+
+		timeoutChan := make(chan bool, 1)
+		go timeout(timeoutChan)
 
 		topo.changes <- description.Server{
 			SessionTimeoutMinutes: 20,
@@ -305,6 +323,8 @@ func TestSessionTimeout(t *testing.T) {
 			if currDesc.SessionTimeoutMinutes != 20 {
 				t.Errorf("session timeout minutes mismatch. got: %d. expected: 20", currDesc.SessionTimeoutMinutes)
 			}
+		case <-timeoutChan:
+			t.Errorf("test case timed out")
 		}
 	})
 }
