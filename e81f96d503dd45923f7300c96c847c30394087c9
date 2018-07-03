@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a8d79bf7_3f34f871",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T15:25:08Z",
+      "side": 1,
+      "message": "Now that this is a loop we don\u0027t want this here. It\u0027ll make the loop spin, burning CPU cycles, instead of waiting for something from the p.DescChannel.",
+      "range": {
+        "startLine": 114,
+        "startChar": 2,
+        "endLine": 115,
+        "endChar": 46
+      },
+      "revId": "e81f96d503dd45923f7300c96c847c30394087c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
