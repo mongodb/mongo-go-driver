@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9b24bc58_4a69f48d",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T15:29:31Z",
+      "side": 1,
+      "message": "This should be \"NewClient\".",
+      "range": {
+        "startLine": 13,
+        "startChar": 5,
+        "endLine": 13,
+        "endChar": 21
+      },
+      "revId": "96de5817d0fd45d125844be94031a03fec3e28dc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3b4f9aca_7c4b5d4f",
+        "filename": "core/session/server_session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T15:29:31Z",
+      "side": 1,
+      "message": "This should be \"newServer\".",
+      "range": {
+        "startLine": 35,
+        "startChar": 5,
+        "endLine": 35,
+        "endChar": 21
+      },
+      "revId": "96de5817d0fd45d125844be94031a03fec3e28dc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
