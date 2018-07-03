@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f0ece77d_e7d5aae1",
+        "filename": "core/command/aggregate.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 144,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T20:49:13Z",
+      "side": 1,
+      "message": "I don\u0027t know if we should do this. I think it would be wise to see what other drivers that have implemented this are doing. I think the server always sends back a response to the aggregate command since it isn\u0027t a write command.",
+      "range": {
+        "startLine": 144,
+        "startChar": 2,
+        "endLine": 144,
+        "endChar": 46
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6ce92b83_644ff265",
+        "filename": "core/command/create_indexes.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T20:49:13Z",
+      "side": 1,
+      "message": "We should just add wiremessage.ReadWriteCloser to the white list for err check, this is quite ugly.",
+      "range": {
+        "startLine": 91,
+        "startChar": 3,
+        "endLine": 91,
+        "endChar": 36
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "197db326_45f65abe",
+        "filename": "core/command/delete.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T20:49:13Z",
+      "side": 1,
+      "message": "We should only do this if we don\u0027t have an OP_MSG wiremessage.",
+      "range": {
+        "startLine": 113,
+        "startChar": 3,
+        "endLine": 113,
+        "endChar": 33
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "56a9ef45_9630f1bb",
+        "filename": "core/command/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T20:49:13Z",
+      "side": 1,
+      "message": "I think we can remove a lot of this error tracking.",
+      "range": {
+        "startLine": 177,
+        "startChar": 4,
+        "endLine": 201,
+        "endChar": 16
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "48513ec8_5c1f3869",
+        "filename": "mongo/collection.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T20:49:13Z",
+      "side": 1,
+      "message": "While this works, I think it might be a little confusing for people not using the mongo package that the write concern on the command isn\u0027t automatically turned into an option and placed in the serialized command.",
+      "range": {
+        "startLine": 123,
+        "startChar": 1,
+        "endLine": 133,
+        "endChar": 2
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "653031b4_ca019d0c",
+        "filename": "mongo/collection.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 631,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-03T20:49:13Z",
+      "side": 1,
+      "message": "This block of code makes me wonder if we should have readconcern on the command itself, but it isn\u0027t of the same level as read preference or write concern.",
+      "range": {
+        "startLine": 620,
+        "startChar": 0,
+        "endLine": 631,
+        "endChar": 0
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
