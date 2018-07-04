@@ -95,6 +95,30 @@
     },
     {
       "key": {
+        "uuid": "a0a45d57_0d6154dc",
+        "filename": "core/command/delete.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-04T17:25:34Z",
+      "side": 1,
+      "message": "How does \"Delete\" know? I guess it can check the type of the wire message, but now we have to check the type of the wire message everywhere... which means this is getting a bit out of control. This logic needs to be centralized somewhere. And it seems like it already is (inside command.Write). But we create a command.Write to encode and decode, but not to round trip. It feels like there is some advantage we could get here if we re-used that code.",
+      "parentUuid": "197db326_45f65abe",
+      "range": {
+        "startLine": 113,
+        "startChar": 3,
+        "endLine": 113,
+        "endChar": 33
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "56a9ef45_9630f1bb",
         "filename": "core/command/insert.go",
         "patchSetId": 8
@@ -118,6 +142,30 @@
     },
     {
       "key": {
+        "uuid": "951818a5_d1a55505",
+        "filename": "core/command/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-04T17:25:34Z",
+      "side": 1,
+      "message": "can you elaborate? Which errors in here don\u0027t need to be handled?",
+      "parentUuid": "56a9ef45_9630f1bb",
+      "range": {
+        "startLine": 177,
+        "startChar": 4,
+        "endLine": 201,
+        "endChar": 16
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "48513ec8_5c1f3869",
         "filename": "mongo/collection.go",
         "patchSetId": 8
@@ -129,6 +177,30 @@
       "writtenOn": "2018-07-03T20:49:13Z",
       "side": 1,
       "message": "While this works, I think it might be a little confusing for people not using the mongo package that the write concern on the command isn\u0027t automatically turned into an option and placed in the serialized command.",
+      "range": {
+        "startLine": 123,
+        "startChar": 1,
+        "endLine": 133,
+        "endChar": 2
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "11583178_1e3e6513",
+        "filename": "mongo/collection.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-04T17:25:34Z",
+      "side": 1,
+      "message": "While that is something to think about, people not using the mongo package have taken on the responsibility of handling this type of situation. My suggestion to combat this would be to simply remove the core\u0027s notion of a write concern option. The ONLY way to provide a write concern (read pref? read concern?) is to provide on this struct itself. That way, no confusion.",
+      "parentUuid": "48513ec8_5c1f3869",
       "range": {
         "startLine": 123,
         "startChar": 1,
