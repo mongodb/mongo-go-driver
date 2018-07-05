@@ -214,6 +214,30 @@
     },
     {
       "key": {
+        "uuid": "b71fe59d_6c2b1565",
+        "filename": "core/command/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-05T15:48:00Z",
+      "side": 1,
+      "message": "ah yes, I see... this is unacknowledged. Technically, since this is unacknowldedged, even the ones with returns should be checked. We should just send everything.  @jeff would be able to give a better understanding of what should happen here.",
+      "parentUuid": "911393e3_251d2755",
+      "range": {
+        "startLine": 177,
+        "startChar": 4,
+        "endLine": 201,
+        "endChar": 16
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "48513ec8_5c1f3869",
         "filename": "mongo/collection.go",
         "patchSetId": 8
@@ -273,6 +297,30 @@
       "side": 1,
       "message": "I don\u0027t think we should have anyone who uses the Core API get in the situation where the write concern used to evaluate what we do with a command and the write concern serialized into options are different.",
       "parentUuid": "11583178_1e3e6513",
+      "range": {
+        "startLine": 123,
+        "startChar": 1,
+        "endLine": 133,
+        "endChar": 2
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9eeff20f_388bb95c",
+        "filename": "mongo/collection.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-05T15:48:00Z",
+      "side": 1,
+      "message": "Hence why I suggested removing the option itself and requiring it be provided on the struct itself.",
+      "parentUuid": "b4ad2e3d_5557d004",
       "range": {
         "startLine": 123,
         "startChar": 1,
