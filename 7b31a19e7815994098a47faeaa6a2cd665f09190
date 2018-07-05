@@ -238,6 +238,30 @@
     },
     {
       "key": {
+        "uuid": "16eb68c8_87abc941",
+        "filename": "core/command/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-05T17:57:01Z",
+      "side": 1,
+      "message": "There is no need to check write concern error or track anything in res for unacknowledged writes.  However, it seems like this code could be pulled out into a common subroutine shared by both the acknowledged and unacknowledged cases.",
+      "parentUuid": "b71fe59d_6c2b1565",
+      "range": {
+        "startLine": 177,
+        "startChar": 4,
+        "endLine": 201,
+        "endChar": 16
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "48513ec8_5c1f3869",
         "filename": "mongo/collection.go",
         "patchSetId": 8
