@@ -119,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "5a388ef9_6e4e8e28",
+        "filename": "core/command/delete.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-05T15:22:50Z",
+      "side": 1,
+      "message": "We can refactor the code to avoid repetition, but right now this code is wrong and will cause both goroutine and connection leaks. We likely need to add an \"encode\" and \"decode\" method that only does the part of the processing that results in a command.Write or the result from decoding a command.Write.",
+      "parentUuid": "a0a45d57_0d6154dc",
+      "range": {
+        "startLine": 113,
+        "startChar": 3,
+        "endLine": 113,
+        "endChar": 33
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "56a9ef45_9630f1bb",
         "filename": "core/command/insert.go",
         "patchSetId": 8
@@ -166,6 +190,30 @@
     },
     {
       "key": {
+        "uuid": "911393e3_251d2755",
+        "filename": "core/command/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-05T15:22:50Z",
+      "side": 1,
+      "message": "The ones that don\u0027t result in a return. We don\u0027t need to track the result.Insert instance since we don\u0027t do anything with it after this goroutine finishes.",
+      "parentUuid": "951818a5_d1a55505",
+      "range": {
+        "startLine": 177,
+        "startChar": 4,
+        "endLine": 201,
+        "endChar": 16
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "48513ec8_5c1f3869",
         "filename": "mongo/collection.go",
         "patchSetId": 8
@@ -201,6 +249,30 @@
       "side": 1,
       "message": "While that is something to think about, people not using the mongo package have taken on the responsibility of handling this type of situation. My suggestion to combat this would be to simply remove the core\u0027s notion of a write concern option. The ONLY way to provide a write concern (read pref? read concern?) is to provide on this struct itself. That way, no confusion.",
       "parentUuid": "48513ec8_5c1f3869",
+      "range": {
+        "startLine": 123,
+        "startChar": 1,
+        "endLine": 133,
+        "endChar": 2
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b4ad2e3d_5557d004",
+        "filename": "mongo/collection.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-05T15:22:50Z",
+      "side": 1,
+      "message": "I don\u0027t think we should have anyone who uses the Core API get in the situation where the write concern used to evaluate what we do with a command and the write concern serialized into options are different.",
+      "parentUuid": "11583178_1e3e6513",
       "range": {
         "startLine": 123,
         "startChar": 1,
