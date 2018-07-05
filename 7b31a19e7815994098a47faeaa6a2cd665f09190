@@ -143,6 +143,30 @@
     },
     {
       "key": {
+        "uuid": "0c165cd8_5556b5d0",
+        "filename": "core/command/delete.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-05T18:31:48Z",
+      "side": 1,
+      "message": "The latest patches have refactored code to use Write.RoundTrip and Read.RoundTrip, which were updated to check the type of the wiremessage before calling ReadWireMessage().",
+      "parentUuid": "5a388ef9_6e4e8e28",
+      "range": {
+        "startLine": 113,
+        "startChar": 3,
+        "endLine": 113,
+        "endChar": 33
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "56a9ef45_9630f1bb",
         "filename": "core/command/insert.go",
         "patchSetId": 8
@@ -357,6 +381,30 @@
     },
     {
       "key": {
+        "uuid": "a7c678a0_43b0c13c",
+        "filename": "mongo/collection.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-05T18:31:48Z",
+      "side": 1,
+      "message": "We had to keep the ReadConcern, WriteConcern, and ReadPreference options in core so that they could implement the Convert functions in the mongo option packages. The updated collection.go code removes these options, so they\u0027re not used for serialization and are passed to the structs directly.",
+      "parentUuid": "9eeff20f_388bb95c",
+      "range": {
+        "startLine": 123,
+        "startChar": 1,
+        "endLine": 133,
+        "endChar": 2
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "653031b4_ca019d0c",
         "filename": "mongo/collection.go",
         "patchSetId": 8
@@ -392,6 +440,30 @@
       "side": 1,
       "message": "We could; though we liked it this way since we didn\u0027t need to pull ReadConcern out like we did for WriteConcern and look at it, so it seemed nicer to just wrap it in an option and store it away at this level",
       "parentUuid": "653031b4_ca019d0c",
+      "range": {
+        "startLine": 620,
+        "startChar": 0,
+        "endLine": 631,
+        "endChar": 0
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "742cedca_ed0fba91",
+        "filename": "mongo/collection.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 631,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-05T18:31:48Z",
+      "side": 1,
+      "message": "We ended up having ReadConcern on the command itself and treated it the same way as ReadPreference and WriteConcern.",
+      "parentUuid": "0e5aa287_3a2571d3",
       "range": {
         "startLine": 620,
         "startChar": 0,
