@@ -233,6 +233,30 @@
       "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e5aa287_3a2571d3",
+        "filename": "mongo/collection.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 631,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-05T13:31:44Z",
+      "side": 1,
+      "message": "We could; though we liked it this way since we didn\u0027t need to pull ReadConcern out like we did for WriteConcern and look at it, so it seemed nicer to just wrap it in an option and store it away at this level",
+      "parentUuid": "653031b4_ca019d0c",
+      "range": {
+        "startLine": 620,
+        "startChar": 0,
+        "endLine": 631,
+        "endChar": 0
+      },
+      "revId": "7b31a19e7815994098a47faeaa6a2cd665f09190",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }

@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "b97e7eca_85bcecbf",
+        "filename": "core/dispatch/count.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-05T13:31:44Z",
+      "side": 0,
+      "message": "It\u0027s being added in collection.go as an option",
+      "parentUuid": "1e1dd656_298fd593",
+      "range": {
+        "startLine": 25,
+        "startChar": 1,
+        "endLine": 25,
+        "endChar": 28
+      },
+      "revId": "fff8c98e325fa0c123220662024befb893f480bf",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4ff78727_f04e8b89",
         "filename": "core/dispatch/distinct.go",
         "patchSetId": 8
@@ -36,6 +60,30 @@
       "writtenOn": "2018-07-03T20:49:13Z",
       "side": 0,
       "message": "Same as count.",
+      "range": {
+        "startLine": 26,
+        "startChar": 1,
+        "endLine": 26,
+        "endChar": 29
+      },
+      "revId": "fff8c98e325fa0c123220662024befb893f480bf",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "42d47db1_e958cea6",
+        "filename": "core/dispatch/distinct.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-05T13:31:44Z",
+      "side": 0,
+      "message": "In collection.go",
+      "parentUuid": "4ff78727_f04e8b89",
       "range": {
         "startLine": 26,
         "startChar": 1,
