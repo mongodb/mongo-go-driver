@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "563fe95d_ef654a0f",
+        "filename": "core/command/read.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 230,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-05T20:44:30Z",
+      "side": 1,
+      "message": "function-\u003emethod.",
+      "range": {
+        "startLine": 230,
+        "startChar": 0,
+        "endLine": 230,
+        "endChar": 78
+      },
+      "revId": "a0514d485cf578af7581c3c69b41414951eb7aa1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ca311069_979a4331",
+        "filename": "core/command/write.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-05T20:44:30Z",
+      "side": 1,
+      "message": "I\u0027m not sure if we should alter the Command property here, but if we are we should document such in Write. Also, having the first one win here means that a user can\u0027t change the write concern and then encode the message again. I don\u0027t know how much of a use case that is, but it could be useful in some edge cases.",
+      "range": {
+        "startLine": 94,
+        "startChar": 2,
+        "endLine": 94,
+        "endChar": 27
+      },
+      "revId": "a0514d485cf578af7581c3c69b41414951eb7aa1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7c8b27ee_b35823d7",
+        "filename": "mongo/collection.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-05T20:44:30Z",
+      "side": 1,
+      "message": "For this I was thinking something more along the lines of a \"Clone\" method that would take a variadic slice of collectionopt.Option instances.",
+      "range": {
+        "startLine": 94,
+        "startChar": 0,
+        "endLine": 113,
+        "endChar": 1
+      },
+      "revId": "a0514d485cf578af7581c3c69b41414951eb7aa1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
