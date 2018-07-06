@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "73af8c36_6b5298ce",
+        "filename": "core/command/write.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 166,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-06T18:40:21Z",
+      "side": 1,
+      "message": "Instead of checking for an unacknowledged write via write concern, we should probably just check the moreToCome bit since that\u0027s more definitive than the write concern (even though both should be in sync with each other).",
+      "range": {
+        "startLine": 166,
+        "startChar": 5,
+        "endLine": 166,
+        "endChar": 43
+      },
+      "revId": "be6cb1eafaf1cb968309e19d1602217e78de62d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
