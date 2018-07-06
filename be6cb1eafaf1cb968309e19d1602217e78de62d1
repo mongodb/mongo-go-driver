@@ -22,6 +22,30 @@
       "revId": "be6cb1eafaf1cb968309e19d1602217e78de62d1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a82e73c5_577f07bc",
+        "filename": "core/command/write.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 166,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-06T18:44:00Z",
+      "side": 1,
+      "message": "Fixed in 15.",
+      "parentUuid": "73af8c36_6b5298ce",
+      "range": {
+        "startLine": 166,
+        "startChar": 5,
+        "endLine": 166,
+        "endChar": 43
+      },
+      "revId": "be6cb1eafaf1cb968309e19d1602217e78de62d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
