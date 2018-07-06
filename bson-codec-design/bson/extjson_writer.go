@@ -1,6 +1,7 @@
 package bson
 
 import (
+	"errors"
 	"io"
 
 	"github.com/mongodb/mongo-go-driver/bson-codec-design/bson/decimal"
@@ -8,6 +9,15 @@ import (
 )
 
 type extJSONValueWriter struct{}
+
+// NewBSONValueWriter creates a ValueWriter that writes Extended JSON to w.
+func NewExtJSONValueWriter(w io.Writer) (ValueWriter, error) {
+	if w == nil {
+		return nil, errors.New("cannot create a ValueWriter from a nil io.Writer")
+	}
+
+	return newExtJSONWriter(w), nil
+}
 
 func newExtJSONWriter(io.Writer) *extJSONValueWriter { return nil }
 

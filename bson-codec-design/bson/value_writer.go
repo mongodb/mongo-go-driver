@@ -1,6 +1,7 @@
 package bson
 
 import (
+	"errors"
 	"io"
 
 	"github.com/mongodb/mongo-go-driver/bson-codec-design/bson/decimal"
@@ -8,6 +9,14 @@ import (
 )
 
 type valueWriter struct{}
+
+// NewBSONValueWriter creates a ValueWriter that writes BSON to w.
+func NewBSONValueWriter(w io.Writer) (ValueWriter, error) {
+	if w == nil {
+		return nil, errors.New("cannot create a ValueWriter from a nil io.Writer")
+	}
+	return newValueWriter(w), nil
+}
 
 func newValueWriter(io.Writer) *valueWriter { return nil }
 

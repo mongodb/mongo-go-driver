@@ -52,9 +52,19 @@ type ValueWriter interface {
 type writer []byte
 
 func (w *writer) Write(p []byte) (int, error) {
-	return 0, nil
+	index := len(*w)
+	return w.WriteAt(p, int64(index))
 }
 
 func (w *writer) WriteAt(p []byte, off int64) (int, error) {
+	if int64(len(p)) > int64(cap(*w))-off {
+		buf := make([]byte, 2*cap(*w)+len(p))
+		copy(buf, *w)
+		*w = buf
+	}
+
+	*w = []byte(*w)[:off+int64(len(p))]
+	copy([]byte(*w)[off:], p)
+	return len(p), nil
 	return 0, nil
 }
