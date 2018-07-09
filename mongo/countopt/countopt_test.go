@@ -141,14 +141,18 @@ func TestCountOpt(t *testing.T) {
 			Locale: "string locale",
 		}
 
-		opts := []Count{
+		opts := []CountOption{
 			Collation(c),
 			Limit(100),
 			Skip(50),
 			Hint("hint for find"),
 			MaxTimeMs(500),
 		}
-		bundle := BundleCount(opts...)
+		params := make([]Count, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleCount(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
