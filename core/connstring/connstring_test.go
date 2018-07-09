@@ -66,6 +66,31 @@ func TestAuthMechanism(t *testing.T) {
 	}
 }
 
+func TestAuthSource(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected string
+		err      bool
+	}{
+		{s: "foobar?authSource=bazqux", expected: "bazqux"},
+		{s: "foobar", expected: "foobar"},
+		{s: "", expected: "admin"},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://user:pass@localhost/%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.AuthSource)
+			}
+		})
+	}
+}
+
 func TestConnect(t *testing.T) {
 	tests := []struct {
 		s        string

@@ -310,7 +310,10 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 		}
 	case "":
 		if p.AuthSource == "" {
-			p.AuthSource = "admin"
+			p.AuthSource = dbName
+			if p.AuthSource == "" {
+				p.AuthSource = "admin"
+			}
 		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
