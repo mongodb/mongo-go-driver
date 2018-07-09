@@ -139,7 +139,7 @@ func TestFindAndReplaceOneOpt(t *testing.T) {
 		proj := Projection(true)
 		sort := Sort(true)
 
-		opts := []ReplaceOne{
+		opts := []ReplaceOneOption{
 			Collation(c),
 			MaxTime(5),
 			Projection(proj),
@@ -147,7 +147,11 @@ func TestFindAndReplaceOneOpt(t *testing.T) {
 			Sort(sort),
 			Upsert(true),
 		}
-		bundle := BundleReplaceOne(opts...)
+		params := make([]ReplaceOne, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleReplaceOne(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
