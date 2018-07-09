@@ -10,15 +10,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var updateBundle = new(UpdateBundle)
 
-// Update is options for the update() function
+// Update represents all passable params for the update() function.
 type Update interface {
 	update()
+}
+
+// UpdateOption represents the options for the update() function.
+type UpdateOption interface {
+	Update
 	ConvertUpdateOption() option.UpdateOptioner
+}
+
+// UpdateSession is the session for the update() function
+type UpdateSession interface {
+	Update
+	ConvertUpdateSession() *session.Client
 }
 
 // UpdateBundle bundles One options
@@ -100,7 +112,9 @@ func (ub *UpdateBundle) String() string {
 			str += converted.String()
 			continue
 		}
-		str += head.option.ConvertUpdateOption().String() + "\n"
+		if conv, ok := head.option.(UpdateOption); !ok {
+			str += conv.ConvertUpdateOption().String() + "\n"
+		}
 	}
 	return str
 }
@@ -187,12 +201,34 @@ func (ub *UpdateBundle) unbundle() ([]option.UpdateOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertUpdateOption()
-		index--
+		if conv, ok := listHead.option.(UpdateOption); ok {
+			options[index] = conv.ConvertUpdateOption()
+			index--
+		}
 	}
 
 	return options, nil
 
+}
+
+// RetrieveSession retrieves the option that wraps a mongosession.
+func (ub *UpdateBundle) RetrieveSession() *session.Client {
+	if ub == nil {
+		return nil
+	}
+
+	for head := ub; head != nil && head.option != nil; head = head.next {
+		switch t := head.option.(type) {
+		case *UpdateBundle:
+			if res := t.RetrieveSession(); res != nil {
+				return res
+			}
+		case UpdateSession:
+			return t.ConvertUpdateSession()
+		}
+	}
+
+	return nil
 }
 
 // ArrayFilters specifies which array elements an update should apply.
@@ -253,4 +289,14 @@ func (OptUpsert) update() {}
 // ConvertUpdateOption implements the Update interface.
 func (opt OptUpsert) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptUpsert(opt)
+}
+
+// UpdateSessionOpt is an update mongosession option.
+type UpdateSessionOpt struct{}
+
+func (UpdateSessionOpt) update() {}
+
+// ConvertUpdateSession implements the UpdateSession interface.
+func (UpdateSessionOpt) ConvertUpdateSession() *session.Client {
+	return nil
 }

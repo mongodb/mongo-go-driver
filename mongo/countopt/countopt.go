@@ -4,15 +4,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var countBundle = new(CountBundle)
 
-// Count is options for the count() function
+// Count represents all passable params for the count() function.
 type Count interface {
 	count()
+}
+
+// CountOption represents the options for the count() function.
+type CountOption interface {
+	Count
 	ConvertCountOption() option.CountOptioner
+}
+
+// CountSession is the session for the count() function
+type CountSession interface {
+	Count
+	ConvertCountSession() *session.Client
 }
 
 // CountBundle is a bundle of Count options
@@ -96,14 +108,14 @@ func (cb *CountBundle) MaxTimeMs(i int32) *CountBundle {
 }
 
 // Unbundle transforms a bundle into a slice of options, optionally deduplicating.
-func (cb *CountBundle) Unbundle(deduplicate bool) ([]option.CountOptioner, error) {
-	options, err := cb.unbundle()
+func (cb *CountBundle) Unbundle(deduplicate bool) ([]option.CountOptioner, *session.Client, error) {
+	options, sess, err := cb.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -122,7 +134,7 @@ func (cb *CountBundle) Unbundle(deduplicate bool) ([]option.CountOptioner, error
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Calculates the total length of a bundle, accounting for nested bundles.
@@ -146,11 +158,12 @@ func (cb *CountBundle) bundleLength() int {
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (cb *CountBundle) unbundle() ([]option.CountOptioner, error) {
+func (cb *CountBundle) unbundle() ([]option.CountOptioner, *session.Client, error) {
 	if cb == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := cb.bundleLength()
 
 	options := make([]option.CountOptioner, listLen)
@@ -159,9 +172,12 @@ func (cb *CountBundle) unbundle() ([]option.CountOptioner, error) {
 	for listHead := cb; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*CountBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -176,11 +192,16 @@ func (cb *CountBundle) unbundle() ([]option.CountOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertCountOption()
-		index--
+		switch t := listHead.option.(type) {
+		case CountOption:
+			options[index] = t.ConvertCountOption()
+			index--
+		case CountSession:
+			sess = t.ConvertCountSession()
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -196,7 +217,9 @@ func (cb *CountBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertCountOption().String()
+		if conv, ok := head.option.(CountOption); !ok {
+			str += conv.ConvertCountOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -278,3 +301,13 @@ func (opt OptMaxTimeMs) ConvertCountOption() option.CountOptioner {
 }
 
 func (OptMaxTimeMs) count() {}
+
+// CountSessionOpt is an count mongosession option.
+type CountSessionOpt struct{}
+
+func (CountSessionOpt) count() {}
+
+// ConvertCountSession implements the CountSession interface.
+func (CountSessionOpt) ConvertCountSession() *session.Client {
+	return nil
+}

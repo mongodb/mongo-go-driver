@@ -10,21 +10,44 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 var insertOneBundle = new(OneBundle)
 var insertManyBundle = new(ManyBundle)
 
-// One is options for InsertInsertOne
+// One represents all passable params for the insertOne() function.
 type One interface {
 	insertOne()
+}
+
+// OneOption represents the options for the insertOne() function.
+type OneOption interface {
+	One
 	ConvertInsertOption() option.InsertOptioner
 }
 
-// Many is options for InsertInsertMany
+// OneSession is the session for the insertOne() function
+type OneSession interface {
+	One
+	ConvertInsertSession() *session.Client
+}
+
+// Many represents all passable params for the insertMany() function.
 type Many interface {
 	insertMany()
+}
+
+// ManyOption represents the options for the insertMany() function.
+type ManyOption interface {
+	Many
 	ConvertInsertOption() option.InsertOptioner
+}
+
+// ManySession is the session for the insertMany() function
+type ManySession interface {
+	Many
+	ConvertInsertSession() *session.Client
 }
 
 // OneBundle is a bundle of One options
@@ -152,8 +175,10 @@ func (ob *OneBundle) unbundle() ([]option.InsertOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertInsertOption()
-		index--
+		if conv, ok := listHead.option.(OneOption); ok {
+			options[index] = conv.ConvertInsertOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -172,7 +197,9 @@ func (ob *OneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertInsertOption().String() + "\n"
+		if conv, ok := head.option.(OneOption); !ok {
+			str += conv.ConvertInsertOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -313,8 +340,10 @@ func (mb *ManyBundle) unbundle() ([]option.InsertOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertInsertOption()
-		index--
+		if conv, ok := listHead.option.(ManyOption); ok {
+			options[index] = conv.ConvertInsertOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -333,10 +362,52 @@ func (mb *ManyBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertInsertOption().String() + "\n"
+		if conv, ok := head.option.(ManyOption); !ok {
+			str += conv.ConvertInsertOption().String() + "\n"
+		}
 	}
 
 	return str
+}
+
+// RetrieveSession retrieves the option that wraps a mongosession.
+func (ob *OneBundle) RetrieveSession() *session.Client {
+	if ob == nil {
+		return nil
+	}
+
+	for head := ob; head != nil && head.option != nil; head = head.next {
+		switch t := head.option.(type) {
+		case *OneBundle:
+			if res := t.RetrieveSession(); res != nil {
+				return res
+			}
+		case OneSession:
+			return t.ConvertInsertSession()
+		}
+	}
+
+	return nil
+}
+
+// RetrieveSession retrieves the option that wraps a mongosession.
+func (mb *ManyBundle) RetrieveSession() *session.Client {
+	if mb == nil {
+		return nil
+	}
+
+	for head := mb; head != nil && head.option != nil; head = head.next {
+		switch t := head.option.(type) {
+		case *ManyBundle:
+			if res := t.RetrieveSession(); res != nil {
+				return res
+			}
+		case ManySession:
+			return t.ConvertInsertSession()
+		}
+	}
+
+	return nil
 }
 
 // BypassDocumentValidation allows the write to opt-out of the document-level validation.
@@ -369,4 +440,15 @@ func (OptOrdered) insertMany() {}
 // ConvertInsertOption implements the Many interface
 func (opt OptOrdered) ConvertInsertOption() option.InsertOptioner {
 	return option.OptOrdered(opt)
+}
+
+// InsertSessionOpt is a one,many mongosession option.
+type InsertSessionOpt struct{}
+
+func (InsertSessionOpt) insertOne()  {}
+func (InsertSessionOpt) insertMany() {}
+
+// ConvertInsertSession implements the InsertSession interface.
+func (opt InsertSessionOpt) ConvertInsertSession() *session.Client {
+	return nil
 }

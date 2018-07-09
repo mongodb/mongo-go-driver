@@ -11,15 +11,27 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var findBundle = new(FindBundle)
 
-// Find is an interface for find options
+// Find represents all passable params for the find() function.
 type Find interface {
 	find()
+}
+
+// FindOption represents the options for the find() function.
+type FindOption interface {
+	Find
 	ConvertFindOption() option.FindOptioner
+}
+
+// FindSession is the session for the find() function
+type FindSession interface {
+	Find
+	ConvertFindSession() *session.Client
 }
 
 // FindBundle is a bundle of Find options
@@ -337,8 +349,10 @@ func (fb *FindBundle) unbundle() ([]option.FindOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertFindOption()
-		index--
+		if conv, ok := listHead.option.(FindOption); ok {
+			options[index] = conv.ConvertFindOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -358,8 +372,30 @@ func (fb *FindBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertFindOption().String() + "\n"
+		if conv, ok := head.option.(FindOption); !ok {
+			str += conv.ConvertFindOption().String() + "\n"
+		}
 	}
 
 	return str
+}
+
+// RetrieveSession retrieves the option that wraps a mongosession.
+func (fb *FindBundle) RetrieveSession() *session.Client {
+	if fb == nil {
+		return nil
+	}
+
+	for head := fb; head != nil && head.option != nil; head = head.next {
+		switch t := head.option.(type) {
+		case *FindBundle:
+			if res := t.RetrieveSession(); res != nil {
+				return res
+			}
+		case FindSession:
+			return t.ConvertFindSession()
+		}
+	}
+
+	return nil
 }
