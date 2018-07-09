@@ -10,15 +10,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var replaceBundle = new(ReplaceBundle)
 
-// Replace is options for the replace() function
+// Replace represents all passable params for the replace() function.
 type Replace interface {
 	replace()
+}
+
+// ReplaceOption represents the options for the replace() function.
+type ReplaceOption interface {
+	Replace
 	ConvertReplaceOption() option.ReplaceOptioner
+}
+
+// ReplaceSession is the session for the replace() function
+type ReplaceSession interface {
+	Replace
+	ConvertReplaceSession() *session.Client
 }
 
 // ReplaceBundle is a bundle of Replace options
@@ -92,7 +104,9 @@ func (rb *ReplaceBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertReplaceOption().String() + "\n"
+		if conv, ok := head.option.(ReplaceOption); !ok {
+			str += conv.ConvertReplaceOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -119,15 +133,15 @@ func (rb *ReplaceBundle) bundleLength() int {
 }
 
 // Unbundle transforms a bundle into a slice of options, optionally deduplicating
-func (rb *ReplaceBundle) Unbundle(deduplicate bool) ([]option.ReplaceOptioner, error) {
+func (rb *ReplaceBundle) Unbundle(deduplicate bool) ([]option.ReplaceOptioner, *session.Client, error) {
 
-	options, err := rb.unbundle()
+	options, sess, err := rb.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -146,15 +160,16 @@ func (rb *ReplaceBundle) Unbundle(deduplicate bool) ([]option.ReplaceOptioner, e
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (rb *ReplaceBundle) unbundle() ([]option.ReplaceOptioner, error) {
+func (rb *ReplaceBundle) unbundle() ([]option.ReplaceOptioner, *session.Client, error) {
 	if rb == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := rb.bundleLength()
 
 	options := make([]option.ReplaceOptioner, listLen)
@@ -163,9 +178,12 @@ func (rb *ReplaceBundle) unbundle() ([]option.ReplaceOptioner, error) {
 	for listHead := rb; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ReplaceBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -180,12 +198,16 @@ func (rb *ReplaceBundle) unbundle() ([]option.ReplaceOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertReplaceOption()
-		index--
+		switch t := listHead.option.(type) {
+		case ReplaceOption:
+			options[index] = t.ConvertReplaceOption()
+			index--
+		case ReplaceSession:
+			sess = t.ConvertReplaceSession()
+		}
 	}
 
-	return options, nil
-
+	return options, sess, nil
 }
 
 // BypassDocumentValidation allows the write to opt-out of document-level validation.
@@ -231,4 +253,14 @@ func (OptUpsert) replace() {}
 // ConvertReplaceOption implements the Replace interface
 func (opt OptUpsert) ConvertReplaceOption() option.ReplaceOptioner {
 	return option.OptUpsert(opt)
+}
+
+// ReplaceSessionOpt is an replace session option.
+type ReplaceSessionOpt struct{}
+
+func (ReplaceSessionOpt) replace() {}
+
+// ConvertReplaceSession implements the ReplaceSession interface.
+func (ReplaceSessionOpt) ConvertReplaceSession() *session.Client {
+	return nil
 }

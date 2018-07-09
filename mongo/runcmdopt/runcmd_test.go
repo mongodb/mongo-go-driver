@@ -56,7 +56,7 @@ func TestRunCmdOpt(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				rc, err := tc.bundle.Unbundle()
+				rc, _, err := tc.bundle.Unbundle()
 				testhelpers.RequireNil(t, err, "err unbundling rc: %s", err)
 
 				switch {
