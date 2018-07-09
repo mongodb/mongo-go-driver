@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 // BatchSize specifes the number of documents to return in each batch.
@@ -48,4 +49,16 @@ func (OptBatchSize) list() {}
 // ConvertListOption implements the List interface.
 func (opt OptBatchSize) ConvertListOption() option.ListIndexesOptioner {
 	return option.OptBatchSize(opt)
+}
+
+// IndexSessionOpt is an indexSession option.
+type IndexSessionOpt struct{}
+
+func (IndexSessionOpt) create() {}
+func (IndexSessionOpt) drop()   {}
+func (IndexSessionOpt) list()   {}
+
+// ConvertIndexSession implements the DropIndexSession interface.
+func (IndexSessionOpt) ConvertIndexSession() *session.Client {
+	return nil
 }

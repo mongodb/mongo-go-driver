@@ -134,12 +134,16 @@ func TestDeleteOpt(t *testing.T) {
 			Locale: "string locale",
 		}
 
-		opts := []Delete{
+		opts := []DeleteOption{
 			Collation(c),
 		}
-		bundle := BundleDelete(opts...)
+		params := make([]Delete, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleDelete(params...)
 
-		deleteOpts, err := bundle.Unbundle(true)
+		deleteOpts, _, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
 
 		if len(deleteOpts) != len(opts) {
@@ -191,7 +195,7 @@ func TestDeleteOpt(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				options, err := tc.bundle.Unbundle(tc.dedup)
+				options, _, err := tc.bundle.Unbundle(tc.dedup)
 
 				testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
 
