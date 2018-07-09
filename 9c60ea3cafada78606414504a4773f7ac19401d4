@@ -34,6 +34,24 @@
       "revId": "9c60ea3cafada78606414504a4773f7ac19401d4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7f82f788_3d9cbd29",
+        "filename": "core/command/insert.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-09T17:38:21Z",
+      "side": 1,
+      "message": "Isn\u0027t this broken? We can\u0027t run a goroutine in here, since dispatch.Insert will close the connection as soon as this method returns since it is also running a goroutine.",
+      "parentUuid": "4341d178_31969e3f",
+      "revId": "9c60ea3cafada78606414504a4773f7ac19401d4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
