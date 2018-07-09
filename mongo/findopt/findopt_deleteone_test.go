@@ -135,12 +135,16 @@ func TestFindAndDeleteOneOpt(t *testing.T) {
 		proj := Projection(true)
 		sort := Sort(true)
 
-		opts := []DeleteOne{
+		opts := []DeleteOneOption{
 			MaxTime(5),
 			Projection(proj),
 			Sort(sort),
 		}
-		bundle := BundleDeleteOne(opts...)
+		params := make([]DeleteOne, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleDeleteOne(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)

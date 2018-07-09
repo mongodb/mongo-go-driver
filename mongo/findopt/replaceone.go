@@ -12,15 +12,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var replaceOneBundle = new(ReplaceOneBundle)
 
-// ReplaceOne is an interface for FindOneAndReplace options
+// ReplaceOne represents all passable params for the replaceOne() function.
 type ReplaceOne interface {
 	replaceOne()
+}
+
+// ReplaceOneOption represents the options for the replaceOne() function.
+type ReplaceOneOption interface {
+	ReplaceOne
 	ConvertReplaceOneOption() option.FindOneAndReplaceOptioner
+}
+
+// ReplaceOneSession is the session for the replaceOne() function
+type ReplaceOneSession interface {
+	ReplaceOne
+	ConvertReplaceOneSession() *session.Client
 }
 
 // ReplaceOneBundle is a bundle of FindOneAndReplace options
@@ -147,14 +159,14 @@ func (rob *ReplaceOneBundle) bundleLength() int {
 // if we actually deduplicate options.
 //
 // Since a FindBundle can be recursive, this method will unwind all recursive FindBundles.
-func (rob *ReplaceOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndReplaceOptioner, error) {
-	options, err := rob.unbundle()
+func (rob *ReplaceOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndReplaceOptioner, *session.Client, error) {
+	options, sess, err := rob.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -173,15 +185,16 @@ func (rob *ReplaceOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndRepl
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (rob *ReplaceOneBundle) unbundle() ([]option.FindOneAndReplaceOptioner, error) {
+func (rob *ReplaceOneBundle) unbundle() ([]option.FindOneAndReplaceOptioner, *session.Client, error) {
 	if rob == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := rob.bundleLength()
 
 	options := make([]option.FindOneAndReplaceOptioner, listLen)
@@ -190,9 +203,12 @@ func (rob *ReplaceOneBundle) unbundle() ([]option.FindOneAndReplaceOptioner, err
 	for listHead := rob; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ReplaceOneBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -207,11 +223,16 @@ func (rob *ReplaceOneBundle) unbundle() ([]option.FindOneAndReplaceOptioner, err
 			continue
 		}
 
-		options[index] = listHead.option.ConvertReplaceOneOption()
-		index--
+		switch t := listHead.option.(type) {
+		case ReplaceOneOption:
+			options[index] = t.ConvertReplaceOneOption()
+			index--
+		case ReplaceOneSession:
+			sess = t.ConvertReplaceOneSession()
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -227,8 +248,11 @@ func (rob *ReplaceOneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertReplaceOneOption().String() + "\n"
+		if conv, ok := head.option.(ReplaceOneOption); !ok {
+			str += conv.ConvertReplaceOneOption().String() + "\n"
+		}
 	}
 
 	return str
 }
+

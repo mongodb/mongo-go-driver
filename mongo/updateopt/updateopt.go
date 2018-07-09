@@ -10,15 +10,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var updateBundle = new(UpdateBundle)
 
-// Update is options for the update() function
+// Update represents all passable params for the update() function.
 type Update interface {
 	update()
+}
+
+// UpdateOption represents the options for the update() function.
+type UpdateOption interface {
+	Update
 	ConvertUpdateOption() option.UpdateOptioner
+}
+
+// UpdateSession is the session for the update() function
+type UpdateSession interface {
+	Update
+	ConvertUpdateSession() *session.Client
 }
 
 // UpdateBundle bundles One options
@@ -100,7 +112,9 @@ func (ub *UpdateBundle) String() string {
 			str += converted.String()
 			continue
 		}
-		str += head.option.ConvertUpdateOption().String() + "\n"
+		if conv, ok := head.option.(UpdateOption); !ok {
+			str += conv.ConvertUpdateOption().String() + "\n"
+		}
 	}
 	return str
 }
@@ -126,15 +140,15 @@ func (ub *UpdateBundle) bundleLength() int {
 }
 
 // Unbundle transforms a bundle into a slice of options, optionally deduplicating
-func (ub *UpdateBundle) Unbundle(deduplicate bool) ([]option.UpdateOptioner, error) {
+func (ub *UpdateBundle) Unbundle(deduplicate bool) ([]option.UpdateOptioner, *session.Client, error) {
 
-	options, err := ub.unbundle()
+	options, sess, err := ub.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -153,15 +167,16 @@ func (ub *UpdateBundle) Unbundle(deduplicate bool) ([]option.UpdateOptioner, err
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (ub *UpdateBundle) unbundle() ([]option.UpdateOptioner, error) {
+func (ub *UpdateBundle) unbundle() ([]option.UpdateOptioner, *session.Client, error) {
 	if ub == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := ub.bundleLength()
 
 	options := make([]option.UpdateOptioner, listLen)
@@ -170,9 +185,12 @@ func (ub *UpdateBundle) unbundle() ([]option.UpdateOptioner, error) {
 	for listHead := ub; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*UpdateBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -187,11 +205,16 @@ func (ub *UpdateBundle) unbundle() ([]option.UpdateOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertUpdateOption()
-		index--
+		switch t := listHead.option.(type) {
+		case UpdateOption:
+			options[index] = t.ConvertUpdateOption()
+			index--
+		case UpdateSession:
+			sess = t.ConvertUpdateSession()
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 
 }
 
@@ -253,4 +276,14 @@ func (OptUpsert) update() {}
 // ConvertUpdateOption implements the Update interface.
 func (opt OptUpsert) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptUpsert(opt)
+}
+
+// UpdateSessionOpt is an update mongosession option.
+type UpdateSessionOpt struct{}
+
+func (UpdateSessionOpt) update() {}
+
+// ConvertUpdateSession implements the UpdateSession interface.
+func (UpdateSessionOpt) ConvertUpdateSession() *session.Client {
+	return nil
 }
