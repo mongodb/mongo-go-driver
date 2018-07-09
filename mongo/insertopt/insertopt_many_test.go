@@ -137,11 +137,15 @@ func TestInsertManyOpt(t *testing.T) {
 	})
 
 	t.Run("TestAll", func(t *testing.T) {
-		opts := []Many{
+		opts := []ManyOption{
 			BypassDocumentValidation(true),
 			Ordered(false),
 		}
-		bundle := BundleMany(opts...)
+		params := make([]Many, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleMany(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
