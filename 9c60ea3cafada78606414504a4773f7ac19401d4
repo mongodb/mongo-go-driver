@@ -52,6 +52,24 @@
       "revId": "9c60ea3cafada78606414504a4773f7ac19401d4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "64f99d89_2a63d29c",
+        "filename": "core/command/insert.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-09T17:48:40Z",
+      "side": 1,
+      "message": "Yeah, it was broken. Should be fixed in set 18.",
+      "parentUuid": "7f82f788_3d9cbd29",
+      "revId": "9c60ea3cafada78606414504a4773f7ac19401d4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
