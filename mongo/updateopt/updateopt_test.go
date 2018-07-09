@@ -149,14 +149,17 @@ func TestUpdateOpt(t *testing.T) {
 			Locale: "string locale",
 		}
 
-		opts := []Update{
+		opts := []UpdateOption{
 			ArrayFilters(filters),
 			BypassDocumentValidation(true),
 			Collation(c),
 			Upsert(false),
 		}
-
-		bundle := BundleUpdate(opts...)
+		params := make([]Update, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleUpdate(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
