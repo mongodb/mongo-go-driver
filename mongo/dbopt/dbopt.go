@@ -5,6 +5,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
@@ -34,6 +35,27 @@ type DatabaseBundle struct {
 func (*DatabaseBundle) dbOption() {}
 
 func (optionFunc) dbOption() {}
+
+// DropDB represents all possible params for the dropDatabase() function
+type DropDB interface {
+	dropDB()
+}
+
+// DropDBSession is the session for the dropDatabase() function.
+type DropDBSession interface {
+	DropDB
+	ConvertDropDBSession() *session.Client
+}
+
+// DropDBSessionOpt is a dropDatabase session option.
+type DropDBSessionOpt struct{}
+
+func (DropDBSessionOpt) dropDB() {}
+
+// ConvertDropDBSession implements the DropDBSession interface.
+func (DropDBSessionOpt) ConvertDropDBSession() *session.Client {
+	return nil
+}
 
 // BundleDatabase bundles database options
 func BundleDatabase(opts ...Option) *DatabaseBundle {
