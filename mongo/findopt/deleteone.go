@@ -11,15 +11,27 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var deleteOneBundle = new(DeleteOneBundle)
 
-// DeleteOne is an interface for FindOneAndDelete options
+// DeleteOne represents all passable params for the deleteOne() function.
 type DeleteOne interface {
 	deleteOne()
+}
+
+// DeleteOneOption represents the options for the deleteOne() function.
+type DeleteOneOption interface {
+	DeleteOne
 	ConvertDeleteOneOption() option.FindOneAndDeleteOptioner
+}
+
+// DeleteOneSession is the session for the deleteOne() function
+type DeleteOneSession interface {
+	DeleteOne
+	ConvertDeleteOneSession() *session.Client
 }
 
 // DeleteOneBundle is a bundle of FindOneAndDelete options
@@ -125,7 +137,7 @@ func (dob *DeleteOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndDelet
 	return options, nil
 }
 
-// Calculates the total length of a bundle, accounting for nested bundles.
+// Calculates the total length of a bundle, acdeleteOneing for nested bundles.
 func (dob *DeleteOneBundle) bundleLength() int {
 	if dob == nil {
 		return 0
@@ -176,8 +188,10 @@ func (dob *DeleteOneBundle) unbundle() ([]option.FindOneAndDeleteOptioner, error
 			continue
 		}
 
-		options[index] = listHead.option.ConvertDeleteOneOption()
-		index--
+		if conv, ok := listHead.option.(DeleteOneOption); ok {
+			options[index] = conv.ConvertDeleteOneOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -196,7 +210,9 @@ func (dob *DeleteOneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertDeleteOneOption().String() + "\n"
+		if conv, ok := head.option.(DeleteOneOption); !ok {
+			str += conv.ConvertDeleteOneOption().String() + "\n"
+		}
 	}
 
 	return str

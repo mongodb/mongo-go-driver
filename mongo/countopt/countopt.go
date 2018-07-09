@@ -4,15 +4,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var countBundle = new(CountBundle)
 
-// Count is options for the count() function
+// Count represents all passable params for the count() function.
 type Count interface {
 	count()
+}
+
+// CountOption represents the options for the count() function.
+type CountOption interface {
+	Count
 	ConvertCountOption() option.CountOptioner
+}
+
+// CountSession is the session for the count() function
+type CountSession interface {
+	Count
+	ConvertCountSession() *session.Client
 }
 
 // CountBundle is a bundle of Count options
@@ -176,8 +188,10 @@ func (cb *CountBundle) unbundle() ([]option.CountOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertCountOption()
-		index--
+		if conv, ok := listHead.option.(CountOption); ok {
+			options[index] = conv.ConvertCountOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -196,7 +210,9 @@ func (cb *CountBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertCountOption().String()
+		if conv, ok := head.option.(CountOption); !ok {
+			str += conv.ConvertCountOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -278,3 +294,13 @@ func (opt OptMaxTimeMs) ConvertCountOption() option.CountOptioner {
 }
 
 func (OptMaxTimeMs) count() {}
+
+// CountSessionOpt is an count mongosession option.
+type CountSessionOpt struct{}
+
+func (CountSessionOpt) count() {}
+
+// ConvertCountSession implements the CountSession interface.
+func (CountSessionOpt) ConvertCountSession() *session.Client {
+	return nil
+}

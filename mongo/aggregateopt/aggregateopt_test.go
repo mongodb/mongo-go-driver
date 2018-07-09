@@ -156,7 +156,7 @@ func TestAggregateOpt(t *testing.T) {
 			Locale: "string locale",
 		}
 
-		opts := []Aggregate{
+		opts := []AggregateOption{
 			AllowDiskUse(true),
 			BatchSize(5),
 			BypassDocumentValidation(false),
@@ -165,7 +165,11 @@ func TestAggregateOpt(t *testing.T) {
 			Hint("hint for find"),
 			MaxTime(5000),
 		}
-		bundle := BundleAggregate(opts...)
+		params := make([]Aggregate, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleAggregate(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)

@@ -10,15 +10,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var updateBundle = new(UpdateBundle)
 
-// Update is options for the update() function
+// Update represents all passable params for the update() function.
 type Update interface {
 	update()
+}
+
+// UpdateOption represents the options for the update() function.
+type UpdateOption interface {
+	Update
 	ConvertUpdateOption() option.UpdateOptioner
+}
+
+// UpdateSession is the session for the update() function
+type UpdateSession interface {
+	Update
+	ConvertUpdateSession() *session.Client
 }
 
 // UpdateBundle bundles One options
@@ -100,12 +112,14 @@ func (ub *UpdateBundle) String() string {
 			str += converted.String()
 			continue
 		}
-		str += head.option.ConvertUpdateOption().String() + "\n"
+		if conv, ok := head.option.(UpdateOption); !ok {
+			str += conv.ConvertUpdateOption().String() + "\n"
+		}
 	}
 	return str
 }
 
-// Calculates the total length of a bundle, accounting for nested bundles.
+// Calculates the total length of a bundle, acupdateing for nested bundles.
 func (ub *UpdateBundle) bundleLength() int {
 	if ub == nil {
 		return 0
@@ -187,8 +201,10 @@ func (ub *UpdateBundle) unbundle() ([]option.UpdateOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertUpdateOption()
-		index--
+		if conv, ok := listHead.option.(UpdateOption); ok {
+			options[index] = conv.ConvertUpdateOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -253,4 +269,14 @@ func (OptUpsert) update() {}
 // ConvertUpdateOption implements the Update interface.
 func (opt OptUpsert) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptUpsert(opt)
+}
+
+// UpdateSessionOpt is an update mongosession option.
+type UpdateSessionOpt struct{}
+
+func (UpdateSessionOpt) update() {}
+
+// ConvertUpdateSession implements the UpdateSession interface.
+func (UpdateSessionOpt) ConvertUpdateSession() *session.Client {
+	return nil
 }
