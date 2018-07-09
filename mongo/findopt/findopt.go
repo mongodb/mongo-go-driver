@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
@@ -702,4 +703,38 @@ func (opt OptUpsert) ConvertReplaceOneOption() option.FindOneAndReplaceOptioner 
 // ConvertUpdateOneOption implements the UpdateOne interface.
 func (opt OptUpsert) ConvertUpdateOneOption() option.FindOneAndUpdateOptioner {
 	return option.OptUpsert(opt)
+}
+
+// FindSessionOpt is an find session option.
+type FindSessionOpt struct{}
+
+func (FindSessionOpt) find()       {}
+func (FindSessionOpt) one()        {}
+func (FindSessionOpt) deleteOne()  {}
+func (FindSessionOpt) replaceOne() {}
+func (FindSessionOpt) updateOne()  {}
+
+// ConvertFindSession implements FindSession interface.
+func (FindSessionOpt) ConvertFindSession() *session.Client {
+	return nil
+}
+
+// ConvertFindOneSession implements FindOneSession interface.
+func (FindSessionOpt) ConvertFindOneSession() *session.Client {
+	return nil
+}
+
+// ConvertDeleteOneSession implements DeleteOneSession interface.
+func (FindSessionOpt) ConvertDeleteOneSession() *session.Client {
+	return nil
+}
+
+// ConvertReplaceOneSession implements ReplaceOneSession interface.
+func (FindSessionOpt) ConvertReplaceOneSession() *session.Client {
+	return nil
+}
+
+// ConvertUpdateOneSession implements UpdateOneSession interface.
+func (FindSessionOpt) ConvertUpdateOneSession() *session.Client {
+	return nil
 }
