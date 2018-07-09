@@ -5,14 +5,26 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 var listBundle = new(ListBundle)
 
-// List is options for the listIndexes command
+// List represents all passable params for the list() function.
 type List interface {
 	list()
+}
+
+// ListOption represents the options for the list() function.
+type ListOption interface {
+	List
 	ConvertListOption() option.ListIndexesOptioner
+}
+
+// ListIndexSession is the session for the list() function
+type ListIndexSession interface {
+	List
+	ConvertIndexSession() *session.Client
 }
 
 // ListBundle is a bundle of List options.
@@ -67,14 +79,14 @@ func (lb *ListBundle) MaxTime(d time.Duration) *ListBundle {
 //
 // The deduplicate parameter is used to determine if the bundle is just flattened or
 // if we actually deduplicate options.
-func (lb *ListBundle) Unbundle(deduplicate bool) ([]option.ListIndexesOptioner, error) {
-	options, err := lb.unbundle()
+func (lb *ListBundle) Unbundle(deduplicate bool) ([]option.ListIndexesOptioner, *session.Client, error) {
+	options, sess, err := lb.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -91,7 +103,7 @@ func (lb *ListBundle) Unbundle(deduplicate bool) ([]option.ListIndexesOptioner, 
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Calculates the total length of a bundle, accounting for nested bundles.
@@ -114,11 +126,12 @@ func (lb *ListBundle) bundleLength() int {
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (lb *ListBundle) unbundle() ([]option.ListIndexesOptioner, error) {
+func (lb *ListBundle) unbundle() ([]option.ListIndexesOptioner, *session.Client, error) {
 	if lb == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := lb.bundleLength()
 	options := make([]option.ListIndexesOptioner, listLen)
 	index := listLen - 1
@@ -126,9 +139,12 @@ func (lb *ListBundle) unbundle() ([]option.ListIndexesOptioner, error) {
 	for listHead := lb; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ListBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -142,11 +158,17 @@ func (lb *ListBundle) unbundle() ([]option.ListIndexesOptioner, error) {
 			index -= len(nestedOptions)
 			continue
 		}
-		options[index] = listHead.option.ConvertListOption()
-		index--
+
+		switch t := listHead.option.(type) {
+		case ListOption:
+			options[index] = t.ConvertListOption()
+			index--
+		case ListIndexSession:
+			sess = t.ConvertIndexSession()
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -162,7 +184,9 @@ func (lb *ListBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertListOption().String() + "\n"
+		if conv, ok := head.option.(ListOption); !ok {
+			str += conv.ConvertListOption().String() + "\n"
+		}
 	}
 
 	return str

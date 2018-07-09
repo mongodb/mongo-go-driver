@@ -105,12 +105,16 @@ func TestCreateOpt(t *testing.T) {
 	}
 
 	t.Run("TestAll", func(t *testing.T) {
-		opts := []Create{
+		opts := []CreateOption{
 			MaxTime(5000),
 		}
-		bundle := BundleCreate(opts...)
+		params := make([]Create, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleCreate(params...)
 
-		deleteOpts, err := bundle.Unbundle(true)
+		deleteOpts, _, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
 
 		if len(deleteOpts) != len(opts) {
@@ -146,7 +150,7 @@ func TestCreateOpt(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				opts, err := tc.bundle.Unbundle(tc.dedup)
+				opts, _, err := tc.bundle.Unbundle(tc.dedup)
 				testhelpers.RequireNil(t, err, "err unbundling db: %s", err)
 
 				if len(opts) != len(tc.expectedOpts) {
