@@ -134,10 +134,14 @@ func TestInsertInsertOneOpt(t *testing.T) {
 	})
 
 	t.Run("TestAll", func(t *testing.T) {
-		opts := []One{
+		opts := []OneOption{
 			BypassDocumentValidation(true),
 		}
-		bundle := BundleOne(opts...)
+		params := make([]One, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleOne(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)

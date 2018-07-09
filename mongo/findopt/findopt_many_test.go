@@ -156,7 +156,7 @@ func TestFindOpt(t *testing.T) {
 			Locale: "string locale",
 		}
 
-		opts := []Find{
+		opts := []FindOption{
 			AllowPartialResults(true),
 			BatchSize(5),
 			Collation(c),
@@ -178,7 +178,11 @@ func TestFindOpt(t *testing.T) {
 			Snapshot(false),
 			Sort("sort for find"),
 		}
-		bundle := BundleFind(opts...)
+		params := make([]Find, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleFind(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
