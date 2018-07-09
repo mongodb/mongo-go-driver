@@ -12,15 +12,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var updateOneBundle = new(UpdateOneBundle)
 
-// UpdateOne is an interface for FindOneAndUpdate options
+// UpdateOne represents all passable params for the updateOne() function.
 type UpdateOne interface {
 	updateOne()
+}
+
+// UpdateOneOption represents the options for the updateOne() function.
+type UpdateOneOption interface {
+	UpdateOne
 	ConvertUpdateOneOption() option.FindOneAndUpdateOptioner
+}
+
+// UpdateOneSession is the session for the updateOne() function
+type UpdateOneSession interface {
+	UpdateOne
+	ConvertUpdateOneSession() *session.Client
 }
 
 // UpdateOneBundle is a bundle of FindOneAndUpdate options
@@ -217,8 +229,10 @@ func (uob *UpdateOneBundle) unbundle() ([]option.FindOneAndUpdateOptioner, error
 			continue
 		}
 
-		options[index] = listHead.option.ConvertUpdateOneOption()
-		index--
+		if conv, ok := listHead.option.(UpdateOneOption); ok {
+			options[index] = conv.ConvertUpdateOneOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -237,8 +251,30 @@ func (uob *UpdateOneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertUpdateOneOption().String() + "\n"
+		if conv, ok := head.option.(UpdateOneOption); !ok {
+			str += conv.ConvertUpdateOneOption().String() + "\n"
+		}
 	}
 
 	return str
+}
+
+// RetrieveSession retrieves the option that wraps a mongosession.
+func (uob *UpdateOneBundle) RetrieveSession() *session.Client {
+	if uob == nil {
+		return nil
+	}
+
+	for head := uob; head != nil && head.option != nil; head = head.next {
+		switch t := head.option.(type) {
+		case *UpdateOneBundle:
+			if res := t.RetrieveSession(); res != nil {
+				return res
+			}
+		case UpdateOneSession:
+			return t.ConvertUpdateOneSession()
+		}
+	}
+
+	return nil
 }

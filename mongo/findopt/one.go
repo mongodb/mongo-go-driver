@@ -11,15 +11,27 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var oneBundle = new(OneBundle)
 
-// One is an interface for FindOne options
+// One represents all passable params for the one() function.
 type One interface {
 	one()
+}
+
+// FindOneOption represents the options for the findOne() function.
+type FindOneOption interface {
+	One
 	ConvertFindOneOption() option.FindOptioner
+}
+
+// FindOneSession is the session for the findOne() function
+type FindOneSession interface {
+	One
+	ConvertFindOneSession() *session.Client
 }
 
 // OneBundle is a bundle of FindOne options
@@ -327,8 +339,10 @@ func (ob *OneBundle) unbundle() ([]option.FindOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertFindOneOption()
-		index--
+		if conv, ok := listHead.option.(FindOneOption); ok {
+			options[index] = conv.ConvertFindOneOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -347,8 +361,30 @@ func (ob *OneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertFindOneOption().String() + "\n"
+		if conv, ok := head.option.(FindOneOption); !ok {
+			str += conv.ConvertFindOneOption().String() + "\n"
+		}
 	}
 
 	return str
+}
+
+// RetrieveSession retrieves the option that wraps a mongosession.
+func (ob *OneBundle) RetrieveSession() *session.Client {
+	if ob == nil {
+		return nil
+	}
+
+	for head := ob; head != nil && head.option != nil; head = head.next {
+		switch t := head.option.(type) {
+		case *OneBundle:
+			if res := t.RetrieveSession(); res != nil {
+				return res
+			}
+		case FindOneSession:
+			return t.ConvertFindOneSession()
+		}
+	}
+
+	return nil
 }
