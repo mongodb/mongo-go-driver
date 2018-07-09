@@ -5,14 +5,26 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 var createBundle = new(CreateBundle)
 
-// Create is options for the createIndexes command.
+// Create represents all passable params for the create() function.
 type Create interface {
 	create()
+}
+
+// CreateOption represents the options for the create() function.
+type CreateOption interface {
+	Create
 	ConvertCreateOption() option.CreateIndexesOptioner
+}
+
+// CreateIndexSession is the session for the create() function
+type CreateIndexSession interface {
+	Create
+	ConvertIndexSession() *session.Client
 }
 
 // CreateBundle is a bundle of Create options
@@ -57,14 +69,14 @@ func (cb *CreateBundle) MaxTime(d time.Duration) *CreateBundle {
 //
 // The deduplicate parameter is used to determine if the bundle is just flattened or
 // if we actually deduplicate options.
-func (cb *CreateBundle) Unbundle(deduplicate bool) ([]option.CreateIndexesOptioner, error) {
-	options, err := cb.unbundle()
+func (cb *CreateBundle) Unbundle(deduplicate bool) ([]option.CreateIndexesOptioner, *session.Client, error) {
+	options, sess, err := cb.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -81,7 +93,7 @@ func (cb *CreateBundle) Unbundle(deduplicate bool) ([]option.CreateIndexesOption
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Calculates the total length of a bundle, accounting for nested bundles.
@@ -104,11 +116,12 @@ func (cb *CreateBundle) bundleLength() int {
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (cb *CreateBundle) unbundle() ([]option.CreateIndexesOptioner, error) {
+func (cb *CreateBundle) unbundle() ([]option.CreateIndexesOptioner, *session.Client, error) {
 	if cb == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := cb.bundleLength()
 	options := make([]option.CreateIndexesOptioner, listLen)
 	index := listLen - 1
@@ -116,9 +129,12 @@ func (cb *CreateBundle) unbundle() ([]option.CreateIndexesOptioner, error) {
 	for listHead := cb; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*CreateBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -132,11 +148,17 @@ func (cb *CreateBundle) unbundle() ([]option.CreateIndexesOptioner, error) {
 			index -= len(nestedOptions)
 			continue
 		}
-		options[index] = listHead.option.ConvertCreateOption()
-		index--
+
+		switch t := listHead.option.(type) {
+		case CreateOption:
+			options[index] = t.ConvertCreateOption()
+			index--
+		case CreateIndexSession:
+			sess = t.ConvertIndexSession()
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -152,7 +174,9 @@ func (cb *CreateBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertCreateOption().String() + "\n"
+		if conv, ok := head.option.(CreateOption); !ok {
+			str += conv.ConvertCreateOption().String() + "\n"
+		}
 	}
 
 	return str
