@@ -139,7 +139,7 @@ func TestFindAndUpdateOneOpt(t *testing.T) {
 		proj := Projection(true)
 		sort := Sort(true)
 
-		opts := []UpdateOne{
+		opts := []UpdateOneOption{
 			BypassDocumentValidation(false),
 			Collation(c),
 			MaxTime(5),
@@ -148,7 +148,11 @@ func TestFindAndUpdateOneOpt(t *testing.T) {
 			Sort(sort),
 			Upsert(true),
 		}
-		bundle := BundleUpdateOne(opts...)
+		params := make([]UpdateOne, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleUpdateOne(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)

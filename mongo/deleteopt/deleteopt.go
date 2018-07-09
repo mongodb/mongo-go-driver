@@ -4,15 +4,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var deleteBundle = new(DeleteBundle)
 
-// Delete is options for the delete() function.
+// Delete represents all passable params for the delete() function.
 type Delete interface {
 	delete()
+}
+
+// DeleteOption represents the options for the delete() function.
+type DeleteOption interface {
+	Delete
 	ConvertDeleteOption() option.DeleteOptioner
+}
+
+// DeleteSession is the session for the delete() function
+type DeleteSession interface {
+	Delete
+	ConvertDeleteSession() *session.Client
 }
 
 // DeleteBundle is a bundle of Delete options
@@ -136,8 +148,10 @@ func (db *DeleteBundle) unbundle() ([]option.DeleteOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertDeleteOption()
-		index--
+		if conv, ok := listHead.option.(DeleteOption); ok {
+			options[index] = conv.ConvertDeleteOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -156,7 +170,9 @@ func (db *DeleteBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertDeleteOption().String() + "\n"
+		if conv, ok := head.option.(DeleteOption); !ok {
+			str += conv.ConvertDeleteOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -175,4 +191,14 @@ func (OptCollation) delete() {}
 // ConvertDeleteOption implements the Delete interface.
 func (opt OptCollation) ConvertDeleteOption() option.DeleteOptioner {
 	return option.OptCollation(opt)
+}
+
+// DeleteSessionOpt is an delete mongosession option.
+type DeleteSessionOpt struct{}
+
+func (DeleteSessionOpt) delete() {}
+
+// ConvertDeleteSession implements the DeleteSession interface.
+func (DeleteSessionOpt) ConvertDeleteSession() *session.Client {
+	return nil
 }

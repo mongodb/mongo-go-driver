@@ -10,15 +10,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var replaceBundle = new(ReplaceBundle)
 
-// Replace is options for the replace() function
+// Replace represents all passable params for the replace() function.
 type Replace interface {
 	replace()
+}
+
+// ReplaceOption represents the options for the replace() function.
+type ReplaceOption interface {
+	Replace
 	ConvertReplaceOption() option.ReplaceOptioner
+}
+
+// ReplaceSession is the session for the replace() function
+type ReplaceSession interface {
+	Replace
+	ConvertReplaceSession() *session.Client
 }
 
 // ReplaceBundle is a bundle of Replace options
@@ -92,7 +104,9 @@ func (rb *ReplaceBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertReplaceOption().String() + "\n"
+		if conv, ok := head.option.(ReplaceOption); !ok {
+			str += conv.ConvertReplaceOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -180,8 +194,10 @@ func (rb *ReplaceBundle) unbundle() ([]option.ReplaceOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertReplaceOption()
-		index--
+		if conv, ok := listHead.option.(ReplaceOption); ok {
+			options[index] = conv.ConvertReplaceOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -231,4 +247,14 @@ func (OptUpsert) replace() {}
 // ConvertReplaceOption implements the Replace interface
 func (opt OptUpsert) ConvertReplaceOption() option.ReplaceOptioner {
 	return option.OptUpsert(opt)
+}
+
+// ReplaceSessionOpt is an replace mongosession option.
+type ReplaceSessionOpt struct{}
+
+func (ReplaceSessionOpt) replace() {}
+
+// ConvertReplaceSession implements the ReplaceSession interface.
+func (ReplaceSessionOpt) ConvertReplaceSession() *session.Client {
+	return nil
 }

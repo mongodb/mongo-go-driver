@@ -5,15 +5,27 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var distinctBundle = new(DistinctBundle)
 
-// Distinct is options for the distinct command.
+// Distinct represents all passable params for the distinct() function.
 type Distinct interface {
 	distinct()
+}
+
+// DistinctOption represents the options for the distinct() function.
+type DistinctOption interface {
+	Distinct
 	ConvertDistinctOption() option.DistinctOptioner
+}
+
+// DistinctSession is the session for the distinct() function
+type DistinctSession interface {
+	Distinct
+	ConvertDistinctSession() *session.Client
 }
 
 // DistinctBundle is a bundle of Distinct options.
@@ -142,8 +154,10 @@ func (db *DistinctBundle) unbundle() ([]option.DistinctOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertDistinctOption()
-		index--
+		if conv, ok := listHead.option.(DistinctOption); ok {
+			options[index] = conv.ConvertDistinctOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -162,7 +176,9 @@ func (db *DistinctBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertDistinctOption().String() + "\n"
+		if conv, ok := head.option.(DistinctOption); !ok {
+			str += conv.ConvertDistinctOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -198,4 +214,14 @@ func (OptMaxTime) distinct() {}
 // ConvertDistinctOption implements the Distinct interface.
 func (opt OptMaxTime) ConvertDistinctOption() option.DistinctOptioner {
 	return option.OptMaxTime(opt)
+}
+
+// DistinctSessionOpt is an distinct mongosession option.
+type DistinctSessionOpt struct{}
+
+func (DistinctSessionOpt) distinct() {}
+
+// ConvertDistinctSession implements the DistinctSession interface.
+func (DistinctSessionOpt) ConvertDistinctSession() *session.Client {
+	return nil
 }
