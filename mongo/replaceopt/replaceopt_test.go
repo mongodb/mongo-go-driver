@@ -148,12 +148,16 @@ func TestReplaceOpt(t *testing.T) {
 			Locale: "string locale",
 		}
 
-		opts := []Replace{
+		opts := []ReplaceOption{
 			BypassDocumentValidation(true),
 			Collation(c),
 			Upsert(false),
 		}
-		bundle := BundleReplace(opts...)
+		params := make([]Replace, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleReplace(params...)
 
 		deleteOpts, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
