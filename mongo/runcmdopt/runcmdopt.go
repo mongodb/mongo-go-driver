@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 var runCmdBundle = new(RunCmdBundle)
@@ -11,6 +12,12 @@ var runCmdBundle = new(RunCmdBundle)
 // Option represents a RunCommand option.
 type Option interface {
 	runCmdOption()
+}
+
+// RunCmdSession is the session for the runCommand() function
+type RunCmdSession interface {
+	Option
+	ConvertRunCmdSession() *session.Client
 }
 
 // optionFunc adds the option to the RunCmd instance.
@@ -55,38 +62,45 @@ func (rcb *RunCmdBundle) ReadPreference(rp *readpref.ReadPref) *RunCmdBundle {
 }
 
 // Unbundle unbundles the options, returning a RunCmd instance.
-func (rcb *RunCmdBundle) Unbundle() (*RunCmd, error) {
+func (rcb *RunCmdBundle) Unbundle() (*RunCmd, *session.Client, error) {
 	database := &RunCmd{}
-	err := rcb.unbundle(database)
+	sess, err := rcb.unbundle(database)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return database, nil
+	return database, sess, nil
 }
 
 // Helper that recursively unwraps the bundle.
-func (rcb *RunCmdBundle) unbundle(database *RunCmd) error {
+func (rcb *RunCmdBundle) unbundle(database *RunCmd) (*session.Client, error) {
 	if rcb == nil {
-		return nil
+		return nil, nil
 	}
 
+	var sess *session.Client
 	for head := rcb; head != nil && head.option != nil; head = head.next {
 		var err error
 		switch opt := head.option.(type) {
 		case *RunCmdBundle:
-			err = opt.unbundle(database) // add all bundle's options to database
+			s, e := opt.unbundle(database) // add all bundle's options to database
+			if s != nil {
+				sess = s
+			}
+			err = e
 		case optionFunc:
 			err = opt(database) // add option to database
+		case RunCmdSession:
+			sess = opt.ConvertRunCmdSession()
 		default:
-			return nil
+			return sess, nil
 		}
 		if err != nil {
-			return err
+			return sess, err
 		}
 	}
 
-	return nil
+	return sess, nil
 }
 
 // String implements the Stringer interface
@@ -117,4 +131,14 @@ func ReadPreference(rp *readpref.ReadPref) Option {
 			}
 			return nil
 		})
+}
+
+// RunCmdSessionOpt is a RunCommand session option.
+type RunCmdSessionOpt struct{}
+
+func (RunCmdSessionOpt) runCmdOption() {}
+
+// ConvertRunCmdSession implements the RunCmdSession interface.
+func (RunCmdSessionOpt) ConvertRunCmdSession() *session.Client {
+	return nil
 }
