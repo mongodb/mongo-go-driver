@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package aggregateopt
 
 import (
@@ -6,15 +12,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var aggregateBundle = new(AggregateBundle)
 
-// Aggregate is options for the aggregate() function
+// Aggregate represents all passable params for the aggregate() function.
 type Aggregate interface {
 	aggregate()
+}
+
+// AggregateOption represents the options for the aggregate() function.
+type AggregateOption interface {
+	Aggregate
 	ConvertAggregateOption() option.AggregateOptioner
+}
+
+// AggregateSession is the session for the aggregate() function
+type AggregateSession interface {
+	Aggregate
+	ConvertAggregateSession() *session.Client
 }
 
 // AggregateBundle is a bundle of Aggregate options
@@ -129,21 +147,23 @@ func (ab *AggregateBundle) bundleLength() int {
 			continue
 		}
 
-		bundleLen++
+		if _, ok := ab.option.(AggregateSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
 }
 
 // Unbundle transforms a bundle into a slice of options, optionally deduplicating
-func (ab *AggregateBundle) Unbundle(deduplicate bool) ([]option.AggregateOptioner, error) {
-	options, err := ab.unbundle()
+func (ab *AggregateBundle) Unbundle(deduplicate bool) ([]option.AggregateOptioner, *session.Client, error) {
+	options, sess, err := ab.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -162,15 +182,16 @@ func (ab *AggregateBundle) Unbundle(deduplicate bool) ([]option.AggregateOptione
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (ab *AggregateBundle) unbundle() ([]option.AggregateOptioner, error) {
+func (ab *AggregateBundle) unbundle() ([]option.AggregateOptioner, *session.Client, error) {
 	if ab == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := ab.bundleLength()
 
 	options := make([]option.AggregateOptioner, listLen)
@@ -179,9 +200,12 @@ func (ab *AggregateBundle) unbundle() ([]option.AggregateOptioner, error) {
 	for listHead := ab; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*AggregateBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -196,11 +220,16 @@ func (ab *AggregateBundle) unbundle() ([]option.AggregateOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertAggregateOption()
-		index--
+		switch t := listHead.option.(type) {
+		case AggregateOption:
+			options[index] = t.ConvertAggregateOption()
+			index--
+		case AggregateSession:
+			sess = t.ConvertAggregateSession()
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -216,7 +245,9 @@ func (ab *AggregateBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertAggregateOption().String() + "\n"
+		if conv, ok := head.option.(AggregateOption); !ok {
+			str += conv.ConvertAggregateOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -327,4 +358,14 @@ func (OptHint) aggregate() {}
 // ConvertAggregateOption implements the Aggregate interface
 func (opt OptHint) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptHint(opt)
+}
+
+// AggregateSessionOpt is an aggregate session option.
+type AggregateSessionOpt struct{}
+
+func (AggregateSessionOpt) aggregate() {}
+
+// ConvertAggregateSession implements the AggregateSession interface.
+func (AggregateSessionOpt) ConvertAggregateSession() *session.Client {
+	return nil
 }

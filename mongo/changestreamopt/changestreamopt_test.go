@@ -168,16 +168,20 @@ func TestChangeStreamOpt(t *testing.T) {
 			Locale: "string locale",
 		}
 
-		opts := []ChangeStream{
+		opts := []ChangeStreamOption{
 			BatchSize(5),
 			Collation(c),
 			FullDocument(mongoopt.UpdateLookup),
 			MaxAwaitTime(5000),
 			ResumeAfter(resumeAfter2),
 		}
-		bundle := BundleChangeStream(opts...)
+		params := make([]ChangeStream, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleChangeStream(params...)
 
-		csOpts, err := bundle.Unbundle(true)
+		csOpts, _, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
 
 		if len(csOpts) != len(opts) {
@@ -229,7 +233,7 @@ func TestChangeStreamOpt(t *testing.T) {
 
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				options, err := tc.bundle.Unbundle(tc.dedup)
+				options, _, err := tc.bundle.Unbundle(tc.dedup)
 				testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
 
 				if len(options) != len(tc.expectedOpts) {

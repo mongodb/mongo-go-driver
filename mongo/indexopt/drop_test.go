@@ -105,12 +105,16 @@ func TestDropOpt(t *testing.T) {
 	}
 
 	t.Run("TestAll", func(t *testing.T) {
-		opts := []Drop{
+		opts := []DropOption{
 			MaxTime(5000),
 		}
-		bundle := BundleDrop(opts...)
+		params := make([]Drop, len(opts))
+		for i := range opts {
+			params[i] = opts[i]
+		}
+		bundle := BundleDrop(params...)
 
-		deleteOpts, err := bundle.Unbundle(true)
+		deleteOpts, _, err := bundle.Unbundle(true)
 		testhelpers.RequireNil(t, err, "got non-nill error from unbundle: %s", err)
 
 		if len(deleteOpts) != len(opts) {
