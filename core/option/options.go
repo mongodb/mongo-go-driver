@@ -129,6 +129,13 @@ type ChangeStreamOptioner interface {
 	changeStreamOption()
 }
 
+// DropCollectionsOptioner is the interface implemented by types that can be used as
+// Options for DropCollections operations.
+type DropCollectionsOptioner interface {
+	Optioner
+	dropCollectionsOption()
+}
+
 // ListCollectionsOptioner is the interface implemented by types that can be used as
 // Options for ListCollections operations.
 type ListCollectionsOptioner interface {
