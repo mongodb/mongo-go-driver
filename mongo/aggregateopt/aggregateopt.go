@@ -6,15 +6,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var aggregateBundle = new(AggregateBundle)
 
-// Aggregate is options for the aggregate() function
+// Aggregate represents all passable params for the aggregate() function.
 type Aggregate interface {
 	aggregate()
+}
+
+// AggregateOption represents the options for the aggregate() function.
+type AggregateOption interface {
+	Aggregate
 	ConvertAggregateOption() option.AggregateOptioner
+}
+
+// AggregateSession is the session for the aggregate() function
+type AggregateSession interface {
+	Aggregate
+	ConvertAggregateSession() *session.Client
 }
 
 // AggregateBundle is a bundle of Aggregate options
@@ -129,7 +141,9 @@ func (ab *AggregateBundle) bundleLength() int {
 			continue
 		}
 
-		bundleLen++
+		if _, ok := ab.option.(AggregateSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -196,8 +210,10 @@ func (ab *AggregateBundle) unbundle() ([]option.AggregateOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertAggregateOption()
-		index--
+		if conv, ok := listHead.option.(AggregateOption); ok {
+			options[index] = conv.ConvertAggregateOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -216,10 +232,32 @@ func (ab *AggregateBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertAggregateOption().String() + "\n"
+		if conv, ok := head.option.(AggregateOption); !ok {
+			str += conv.ConvertAggregateOption().String() + "\n"
+		}
 	}
 
 	return str
+}
+
+// RetrieveSession retrieves the option that wraps a mongosession.
+func (ab *AggregateBundle) RetrieveSession() *session.Client {
+	if ab == nil {
+		return nil
+	}
+
+	for head := ab; head != nil && head.option != nil; head = head.next {
+		switch t := head.option.(type) {
+		case *AggregateBundle:
+			if res := t.RetrieveSession(); res != nil {
+				return res
+			}
+		case AggregateSession:
+			return t.ConvertAggregateSession()
+		}
+	}
+
+	return nil
 }
 
 // AllowDiskUse allows aggregation stages to write to temporary files.
@@ -327,4 +365,14 @@ func (OptHint) aggregate() {}
 // ConvertAggregateOption implements the Aggregate interface
 func (opt OptHint) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptHint(opt)
+}
+
+// AggregateSessionOpt is an aggregate mongosession option.
+type AggregateSessionOpt struct{}
+
+func (AggregateSessionOpt) aggregate() {}
+
+// ConvertAggregateSession implements the AggregateSession interface.
+func (AggregateSessionOpt) ConvertAggregateSession() *session.Client {
+	return nil
 }

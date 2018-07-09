@@ -12,15 +12,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var replaceOneBundle = new(ReplaceOneBundle)
 
-// ReplaceOne is an interface for FindOneAndReplace options
+// ReplaceOne represents all passable params for the replaceOne() function.
 type ReplaceOne interface {
 	replaceOne()
+}
+
+// ReplaceOneOption represents the options for the replaceOne() function.
+type ReplaceOneOption interface {
+	ReplaceOne
 	ConvertReplaceOneOption() option.FindOneAndReplaceOptioner
+}
+
+// ReplaceOneSession is the session for the replaceOne() function
+type ReplaceOneSession interface {
+	ReplaceOne
+	ConvertReplaceOneSession() *session.Client
 }
 
 // ReplaceOneBundle is a bundle of FindOneAndReplace options
@@ -207,8 +219,10 @@ func (rob *ReplaceOneBundle) unbundle() ([]option.FindOneAndReplaceOptioner, err
 			continue
 		}
 
-		options[index] = listHead.option.ConvertReplaceOneOption()
-		index--
+		if conv, ok := listHead.option.(ReplaceOneOption); ok {
+			options[index] = conv.ConvertReplaceOneOption()
+			index--
+		}
 	}
 
 	return options, nil
@@ -227,8 +241,30 @@ func (rob *ReplaceOneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertReplaceOneOption().String() + "\n"
+		if conv, ok := head.option.(ReplaceOneOption); !ok {
+			str += conv.ConvertReplaceOneOption().String() + "\n"
+		}
 	}
 
 	return str
+}
+
+// RetrieveSession retrieves the option that wraps a mongosession.
+func (rb *ReplaceOneBundle) RetrieveSession() *session.Client {
+	if rb == nil {
+		return nil
+	}
+
+	for head := rb; head != nil && head.option != nil; head = head.next {
+		switch t := head.option.(type) {
+		case *ReplaceOneBundle:
+			if res := t.RetrieveSession(); res != nil {
+				return res
+			}
+		case ReplaceOneSession:
+			return t.ConvertReplaceOneSession()
+		}
+	}
+
+	return nil
 }
