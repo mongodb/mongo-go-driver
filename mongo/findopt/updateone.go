@@ -12,15 +12,27 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var updateOneBundle = new(UpdateOneBundle)
 
-// UpdateOne is an interface for FindOneAndUpdate options
+// UpdateOne represents all passable params for the updateOne() function.
 type UpdateOne interface {
 	updateOne()
+}
+
+// UpdateOneOption represents the options for the updateOne() function.
+type UpdateOneOption interface {
+	UpdateOne
 	ConvertUpdateOneOption() option.FindOneAndUpdateOptioner
+}
+
+// UpdateOneSession is the session for the updateOne() function
+type UpdateOneSession interface {
+	UpdateOne
+	ConvertUpdateOneSession() *session.Client
 }
 
 // UpdateOneBundle is a bundle of FindOneAndUpdate options
@@ -157,14 +169,14 @@ func (uob *UpdateOneBundle) bundleLength() int {
 // if we actually deduplicate options.
 //
 // Since a FindBundle can be recursive, this method will unwind all recursive FindBundles.
-func (uob *UpdateOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndUpdateOptioner, error) {
-	options, err := uob.unbundle()
+func (uob *UpdateOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndUpdateOptioner, *session.Client, error) {
+	options, sess, err := uob.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -183,15 +195,16 @@ func (uob *UpdateOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndUpdat
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (uob *UpdateOneBundle) unbundle() ([]option.FindOneAndUpdateOptioner, error) {
+func (uob *UpdateOneBundle) unbundle() ([]option.FindOneAndUpdateOptioner, *session.Client, error) {
 	if uob == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := uob.bundleLength()
 
 	options := make([]option.FindOneAndUpdateOptioner, listLen)
@@ -200,9 +213,12 @@ func (uob *UpdateOneBundle) unbundle() ([]option.FindOneAndUpdateOptioner, error
 	for listHead := uob; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*UpdateOneBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -217,11 +233,16 @@ func (uob *UpdateOneBundle) unbundle() ([]option.FindOneAndUpdateOptioner, error
 			continue
 		}
 
-		options[index] = listHead.option.ConvertUpdateOneOption()
-		index--
+		switch t := listHead.option.(type) {
+		case UpdateOneOption:
+			options[index] = t.ConvertUpdateOneOption()
+			index--
+		case UpdateOneSession:
+			sess = t.ConvertUpdateOneSession()
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -237,7 +258,9 @@ func (uob *UpdateOneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertUpdateOneOption().String() + "\n"
+		if conv, ok := head.option.(UpdateOneOption); !ok {
+			str += conv.ConvertUpdateOneOption().String() + "\n"
+		}
 	}
 
 	return str
