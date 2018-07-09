@@ -199,3 +199,13 @@ func (OptMaxTime) distinct() {}
 func (opt OptMaxTime) ConvertDistinctOption() option.DistinctOptioner {
 	return option.OptMaxTime(opt)
 }
+
+// DistinctSessionOpt is a distinct session option.
+type DistinctSessionOpt option.OptSession
+
+func (DistinctSessionOpt) distinct() {}
+
+// ConvertDistinctOption implements the Distinct interface.
+func (opt DistinctSessionOpt) ConvertDistinctOption() option.DistinctOptioner {
+	return option.OptSession(opt)
+}

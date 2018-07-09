@@ -232,3 +232,13 @@ func (OptUpsert) replace() {}
 func (opt OptUpsert) ConvertReplaceOption() option.ReplaceOptioner {
 	return option.OptUpsert(opt)
 }
+
+// ReplaceSessionOpt is a replace session option.
+type ReplaceSessionOpt option.OptSession
+
+func (ReplaceSessionOpt) replace() {}
+
+// ConvertReplaceOption implements the Replace interface.
+func (opt ReplaceSessionOpt) ConvertReplaceOption() option.ReplaceOptioner {
+	return option.OptSession(opt)
+}

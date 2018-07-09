@@ -363,3 +363,13 @@ func (fb *FindBundle) String() string {
 
 	return str
 }
+
+// FindSessionOpt is a find session option.
+type FindSessionOpt option.OptSession
+
+func (FindSessionOpt) find() {}
+
+// ConvertFindOption implements the Find interface.
+func (opt FindSessionOpt) ConvertFindOption() option.FindOptioner {
+	return option.OptSession(opt)
+}

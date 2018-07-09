@@ -328,3 +328,13 @@ func (OptHint) aggregate() {}
 func (opt OptHint) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptHint(opt)
 }
+
+// AggregateSessionOpt is an aggregate session option.
+type AggregateSessionOpt option.OptSession
+
+func (AggregateSessionOpt) aggregate() {}
+
+// ConvertAggregateOption implements the Aggregate interface.
+func (opt AggregateSessionOpt) ConvertAggregateOption() option.AggregateOptioner {
+	return option.OptSession(opt)
+}

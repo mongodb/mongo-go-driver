@@ -254,3 +254,13 @@ func (OptUpsert) update() {}
 func (opt OptUpsert) ConvertUpdateOption() option.UpdateOptioner {
 	return option.OptUpsert(opt)
 }
+
+// UpdateSessionOpt is a update session option.
+type UpdateSessionOpt option.OptSession
+
+func (UpdateSessionOpt) update() {}
+
+// ConvertUpdateOption implements the Update interface.
+func (opt UpdateSessionOpt) ConvertUpdateOption() option.UpdateOptioner {
+	return option.OptSession(opt)
+}

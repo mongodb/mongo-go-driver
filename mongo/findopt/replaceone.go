@@ -232,3 +232,13 @@ func (rob *ReplaceOneBundle) String() string {
 
 	return str
 }
+
+// ReplaceOneSessionOpt is a replaceOne session option.
+type ReplaceOneSessionOpt option.OptSession
+
+func (ReplaceOneSessionOpt) replaceOne() {}
+
+// ConvertReplaceOneOption implements the ReplaceOne interface.
+func (opt ReplaceOneSessionOpt) ConvertReplaceOneOption() option.FindOneAndReplaceOptioner {
+	return option.OptSession(opt)
+}

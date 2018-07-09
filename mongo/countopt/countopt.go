@@ -278,3 +278,13 @@ func (opt OptMaxTimeMs) ConvertCountOption() option.CountOptioner {
 }
 
 func (OptMaxTimeMs) count() {}
+
+// CountSessionOpt is a count session option.
+type CountSessionOpt option.OptSession
+
+func (CountSessionOpt) count() {}
+
+// ConvertCountOption implmements the Count interface.
+func (opt CountSessionOpt) ConvertCountOption() option.CountOptioner {
+	return option.OptSession(opt)
+}
