@@ -11,15 +11,27 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var deleteOneBundle = new(DeleteOneBundle)
 
-// DeleteOne is an interface for FindOneAndDelete options
+// DeleteOne represents all passable params for the deleteOne() function.
 type DeleteOne interface {
 	deleteOne()
+}
+
+// DeleteOneOption represents the options for the deleteOne() function.
+type DeleteOneOption interface {
+	DeleteOne
 	ConvertDeleteOneOption() option.FindOneAndDeleteOptioner
+}
+
+// DeleteOneSession is the session for the deleteOne() function
+type DeleteOneSession interface {
+	DeleteOne
+	ConvertDeleteOneSession() *session.Client
 }
 
 // DeleteOneBundle is a bundle of FindOneAndDelete options
@@ -96,14 +108,14 @@ func (dob *DeleteOneBundle) Sort(sort interface{}) *DeleteOneBundle {
 // if we actually deduplicate options.
 //
 // Since a FindBundle can be recursive, this method will unwind all recursive FindBundles.
-func (dob *DeleteOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndDeleteOptioner, error) {
-	options, err := dob.unbundle()
+func (dob *DeleteOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndDeleteOptioner, *session.Client, error) {
+	options, sess, err := dob.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -122,10 +134,10 @@ func (dob *DeleteOneBundle) Unbundle(deduplicate bool) ([]option.FindOneAndDelet
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
-// Calculates the total length of a bundle, accounting for nested bundles.
+// Calculates the total length of a bundle, acdeleteOneing for nested bundles.
 func (dob *DeleteOneBundle) bundleLength() int {
 	if dob == nil {
 		return 0
@@ -146,11 +158,12 @@ func (dob *DeleteOneBundle) bundleLength() int {
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (dob *DeleteOneBundle) unbundle() ([]option.FindOneAndDeleteOptioner, error) {
+func (dob *DeleteOneBundle) unbundle() ([]option.FindOneAndDeleteOptioner, *session.Client, error) {
 	if dob == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := dob.bundleLength()
 
 	options := make([]option.FindOneAndDeleteOptioner, listLen)
@@ -159,9 +172,12 @@ func (dob *DeleteOneBundle) unbundle() ([]option.FindOneAndDeleteOptioner, error
 	for listHead := dob; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*DeleteOneBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil && sess == nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -176,11 +192,18 @@ func (dob *DeleteOneBundle) unbundle() ([]option.FindOneAndDeleteOptioner, error
 			continue
 		}
 
-		options[index] = listHead.option.ConvertDeleteOneOption()
-		index--
+		switch t := listHead.option.(type) {
+		case DeleteOneOption:
+			options[index] = t.ConvertDeleteOneOption()
+			index--
+		case DeleteOneSession:
+			if sess == nil {
+				sess = t.ConvertDeleteOneSession()
+			}
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -196,7 +219,9 @@ func (dob *DeleteOneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertDeleteOneOption().String() + "\n"
+		if conv, ok := head.option.(DeleteOneOption); !ok {
+			str += conv.ConvertDeleteOneOption().String() + "\n"
+		}
 	}
 
 	return str

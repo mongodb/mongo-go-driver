@@ -7,15 +7,27 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var csBundle = new(ChangeStreamBundle)
 
-// ChangeStream is options for the changeStream()() function.
+// ChangeStream represents all passable params for the changeStream() function.
 type ChangeStream interface {
 	changeStream()
+}
+
+// ChangeStreamOption represents the options for the changeStream() function.
+type ChangeStreamOption interface {
+	ChangeStream
 	ConvertChangeStreamOption() option.ChangeStreamOptioner
+}
+
+// ChangeStreamSession is the session for the changeStream() function
+type ChangeStreamSession interface {
+	ChangeStream
+	ConvertChangeStreamSession() *session.Client
 }
 
 // ChangeStreamBundle is a bundle of ChangeStream options
@@ -98,15 +110,15 @@ func (csb *ChangeStreamBundle) ResumeAfter(d *bson.Document) *ChangeStreamBundle
 }
 
 // Unbundle transforms a bundle into a slice of options, optionally deduplicating
-func (csb *ChangeStreamBundle) Unbundle(deduplicate bool) ([]option.ChangeStreamOptioner, error) {
+func (csb *ChangeStreamBundle) Unbundle(deduplicate bool) ([]option.ChangeStreamOptioner, *session.Client, error) {
 
-	options, err := csb.unbundle()
+	options, sess, err := csb.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -125,7 +137,7 @@ func (csb *ChangeStreamBundle) Unbundle(deduplicate bool) ([]option.ChangeStream
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Calculates the total length of a bundle, accounting for nested bundles.
@@ -149,11 +161,12 @@ func (csb *ChangeStreamBundle) bundleLength() int {
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (csb *ChangeStreamBundle) unbundle() ([]option.ChangeStreamOptioner, error) {
+func (csb *ChangeStreamBundle) unbundle() ([]option.ChangeStreamOptioner, *session.Client, error) {
 	if csb == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := csb.bundleLength()
 
 	options := make([]option.ChangeStreamOptioner, listLen)
@@ -162,9 +175,12 @@ func (csb *ChangeStreamBundle) unbundle() ([]option.ChangeStreamOptioner, error)
 	for listHead := csb; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ChangeStreamBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil && sess == nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -179,11 +195,18 @@ func (csb *ChangeStreamBundle) unbundle() ([]option.ChangeStreamOptioner, error)
 			continue
 		}
 
-		options[index] = listHead.option.ConvertChangeStreamOption()
-		index--
+		switch t := listHead.option.(type) {
+		case ChangeStreamOption:
+			options[index] = t.ConvertChangeStreamOption()
+			index--
+		case ChangeStreamSession:
+			if sess == nil {
+				sess = t.ConvertChangeStreamSession()
+			}
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -199,7 +222,9 @@ func (csb *ChangeStreamBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertChangeStreamOption().String() + "\n"
+		if conv, ok := head.option.(ChangeStreamOption); !ok {
+			str += conv.ConvertChangeStreamOption().String() + "\n"
+		}
 	}
 
 	return str
@@ -280,4 +305,14 @@ func (OptResumeAfter) changeStream() {}
 // ConvertChangeStreamOption implements the ChangeStream interface.
 func (opt OptResumeAfter) ConvertChangeStreamOption() option.ChangeStreamOptioner {
 	return option.OptResumeAfter(opt)
+}
+
+// ChangeStreamSessionOpt is an count session option.
+type ChangeStreamSessionOpt struct{}
+
+func (ChangeStreamSessionOpt) changeStream() {}
+
+// ConvertChangeStreamSession implements the ChangeStreamSession interface.
+func (ChangeStreamSessionOpt) ConvertChangeStreamSession() *session.Client {
+	return nil
 }

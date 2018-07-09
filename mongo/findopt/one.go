@@ -11,15 +11,27 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 )
 
 var oneBundle = new(OneBundle)
 
-// One is an interface for FindOne options
+// One represents all passable params for the one() function.
 type One interface {
 	one()
+}
+
+// FindOneOption represents the options for the findOne() function.
+type FindOneOption interface {
+	One
 	ConvertFindOneOption() option.FindOptioner
+}
+
+// FindOneSession is the session for the findOne() function
+type FindOneSession interface {
+	One
+	ConvertFindOneSession() *session.Client
 }
 
 // OneBundle is a bundle of FindOne options
@@ -247,14 +259,14 @@ func (ob *OneBundle) Sort(sort interface{}) *OneBundle {
 // if we actually deduplicate options.
 //
 // Since a FindBundle can be recursive, this method will unwind all recursive FindBundles.
-func (ob *OneBundle) Unbundle(deduplicate bool) ([]option.FindOptioner, error) {
-	options, err := ob.unbundle()
+func (ob *OneBundle) Unbundle(deduplicate bool) ([]option.FindOptioner, *session.Client, error) {
+	options, sess, err := ob.unbundle()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !deduplicate {
-		return options, nil
+		return options, sess, nil
 	}
 
 	// iterate backwards and make dedup slice
@@ -273,7 +285,7 @@ func (ob *OneBundle) Unbundle(deduplicate bool) ([]option.FindOptioner, error) {
 		optionsSet[optionType] = struct{}{}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // Calculates the total length of a bundle, accounting for nested bundles.
@@ -297,11 +309,12 @@ func (ob *OneBundle) bundleLength() int {
 }
 
 // Helper that recursively unwraps bundle into slice of options
-func (ob *OneBundle) unbundle() ([]option.FindOptioner, error) {
+func (ob *OneBundle) unbundle() ([]option.FindOptioner, *session.Client, error) {
 	if ob == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	var sess *session.Client
 	listLen := ob.bundleLength()
 
 	options := make([]option.FindOptioner, listLen)
@@ -310,9 +323,12 @@ func (ob *OneBundle) unbundle() ([]option.FindOptioner, error) {
 	for listHead := ob; listHead != nil && listHead.option != nil; listHead = listHead.next {
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*OneBundle); ok {
-			nestedOptions, err := converted.unbundle()
+			nestedOptions, s, err := converted.unbundle()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
+			}
+			if s != nil && sess == nil {
+				sess = s
 			}
 
 			// where to start inserting nested options
@@ -327,11 +343,18 @@ func (ob *OneBundle) unbundle() ([]option.FindOptioner, error) {
 			continue
 		}
 
-		options[index] = listHead.option.ConvertFindOneOption()
-		index--
+		switch t := listHead.option.(type) {
+		case FindOneOption:
+			options[index] = t.ConvertFindOneOption()
+			index--
+		case FindOneSession:
+			if sess == nil {
+				sess = t.ConvertFindOneSession()
+			}
+		}
 	}
 
-	return options, nil
+	return options, sess, nil
 }
 
 // String implements the Stringer interface
@@ -347,7 +370,9 @@ func (ob *OneBundle) String() string {
 			continue
 		}
 
-		str += head.option.ConvertFindOneOption().String() + "\n"
+		if conv, ok := head.option.(FindOneOption); !ok {
+			str += conv.ConvertFindOneOption().String() + "\n"
+		}
 	}
 
 	return str
