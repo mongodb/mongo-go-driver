@@ -29,6 +29,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 // Collection performs operations on a given collection.
@@ -151,9 +152,20 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 
 	// convert options into []option.InsertOptioner and dedup
-	oneOpts, err := insertopt.BundleOne(opts...).Unbundle(true)
+	bundle := insertopt.BundleOne(opts...)
+	oneOpts, err := bundle.Unbundle(true)
 	if err != nil {
 		return nil, err
+	}
+
+	sess := bundle.RetrieveSession()
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	oldns := coll.namespace()
@@ -162,13 +174,22 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		Docs:         []*bson.Document{doc},
 		Opts:         oneOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
 	}
 
+	sess.AdvanceClusterTime(coll.client.clusterTime)
+
 	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector)
+
+	coll.client.clusterTimeLock.Lock()
+	coll.client.clusterTime = session.MaxClusterTime(res.ClusterTime, coll.client.clusterTime)
+	coll.client.clusterTimeLock.Unlock()
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrOne == 0 {
 		return nil, err
 	}
+
 	return &InsertOneResult{InsertedID: insertedID}, err
 }
 
@@ -207,9 +228,20 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	// convert options into []option.InsertOptioner and dedup
-	manyOpts, err := insertopt.BundleMany(opts...).Unbundle(true)
+	bundle := insertopt.BundleMany(opts...)
+	manyOpts, err := bundle.Unbundle(true)
 	if err != nil {
 		return nil, err
+	}
+
+	sess := bundle.RetrieveSession()
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	oldns := coll.namespace()
@@ -220,7 +252,14 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		WriteConcern: coll.writeConcern,
 	}
 
+	sess.AdvanceClusterTime(coll.client.clusterTime)
+
 	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector)
+
+	coll.client.clusterTimeLock.Lock()
+	coll.client.clusterTime = session.MaxClusterTime(res.ClusterTime, coll.client.clusterTime)
+	coll.client.clusterTimeLock.Unlock()
+
 	switch err {
 	case nil:
 	case command.ErrUnacknowledgedWrite:
@@ -234,6 +273,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 			WriteConcernError: convertWriteConcernError(res.WriteConcernError),
 		}
 	}
+
 	return &InsertManyResult{InsertedIDs: result}, err
 }
 
@@ -260,9 +300,20 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 			bson.EC.Int32("limit", 1)),
 	}
 
-	deleteOpts, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	bundle := deleteopt.BundleDelete(opts...)
+	deleteOpts, err := bundle.Unbundle(true)
 	if err != nil {
 		return nil, err
+	}
+
+	sess := bundle.RetrieveSession()
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	oldns := coll.namespace()
@@ -273,7 +324,14 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		WriteConcern: coll.writeConcern,
 	}
 
+	sess.AdvanceClusterTime(coll.client.clusterTime)
+
 	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector)
+
+	coll.client.clusterTimeLock.Lock()
+	coll.client.clusterTime = session.MaxClusterTime(res.ClusterTime, coll.client.clusterTime)
+	coll.client.clusterTimeLock.Unlock()
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrOne == 0 {
 		return nil, err
@@ -301,9 +359,20 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	}
 	deleteDocs := []*bson.Document{bson.NewDocument(bson.EC.SubDocument("q", f), bson.EC.Int32("limit", 0))}
 
-	deleteOpts, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	bundle := deleteopt.BundleDelete(opts...)
+	deleteOpts, err := bundle.Unbundle(true)
 	if err != nil {
 		return nil, err
+	}
+
+	sess := bundle.RetrieveSession()
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	oldns := coll.namespace()
@@ -314,7 +383,14 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 		WriteConcern: coll.writeConcern,
 	}
 
+	sess.AdvanceClusterTime(coll.client.clusterTime)
+
 	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector)
+
+	coll.client.clusterTimeLock.Lock()
+	coll.client.clusterTime = session.MaxClusterTime(res.ClusterTime, coll.client.clusterTime)
+	coll.client.clusterTimeLock.Unlock()
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrMany == 0 {
 		return nil, err
@@ -530,9 +606,20 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	}
 
 	// convert options into []option.Optioner and dedup
-	aggOpts, err := aggregateopt.BundleAggregate(opts...).Unbundle(true)
+	bundle := aggregateopt.BundleAggregate(opts...)
+	aggOpts, err := bundle.Unbundle(true)
 	if err != nil {
 		return nil, err
+	}
+
+	sess := bundle.RetrieveSession()
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	oldns := coll.namespace()
@@ -543,9 +630,18 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		ReadPref:     coll.readPreference,
 		WriteConcern: coll.writeConcern,
 		ReadConcern:  coll.readConcern,
+		Session:      sess,
 	}
 
-	return dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector)
+	sess.AdvanceClusterTime(coll.client.clusterTime)
+
+	cursor, clusterTimeDoc, err := dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector)
+
+	coll.client.clusterTimeLock.Lock()
+	defer coll.client.clusterTimeLock.Unlock()
+	coll.client.clusterTime = session.MaxClusterTime(clusterTimeDoc, coll.client.clusterTime)
+
+	return cursor, err
 }
 
 // Count gets the number of documents matching the filter. A user can supply a

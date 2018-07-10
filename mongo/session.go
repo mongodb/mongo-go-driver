@@ -28,7 +28,7 @@ type Session struct {
 	updateopt.UpdateSessionOpt
 	replaceopt.ReplaceSessionOpt
 	insertopt.InsertSessionOpt
-	Sess *session.Client
+	*session.Client
 }
 
 var (
@@ -49,60 +49,60 @@ var (
 
 // ConvertAggregateSession implements the AggregateSession interface.
 func (s *Session) ConvertAggregateSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertCountSession implements the CountSession interface.
 func (s *Session) ConvertCountSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertDeleteSession implements the DeleteSession interface.
 func (s *Session) ConvertDeleteSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertDistinctSession implements the DistinctSession interface.
 func (s *Session) ConvertDistinctSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertFindSession implements the FindSession interface.
 func (s *Session) ConvertFindSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertFindOneSession implements the FindOneSession interface.
 func (s *Session) ConvertFindOneSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertUpdateOneSession implements the UpdateOneSession interface.
 func (s *Session) ConvertUpdateOneSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertReplaceOneSession implements the ReplaceOneSession interface.
 func (s *Session) ConvertReplaceOneSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertDeleteOneSession implements the DeleteOneSession interface.
 func (s *Session) ConvertDeleteOneSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertInsertSession implements the InsertManySession and InsertOneSession interfaces.
 func (s *Session) ConvertInsertSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertUpdateSession implements the UpdateSession interface.
 func (s *Session) ConvertUpdateSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
 
 // ConvertReplaceSession implements the ReplaceSession interface.
 func (s *Session) ConvertReplaceSession() *session.Client {
-	return s.Sess
+	return s.Client
 }
