@@ -17,11 +17,14 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"sync"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -32,6 +35,9 @@ type Client struct {
 	topology        *topology.Topology
 	connString      connstring.ConnString
 	localThreshold  time.Duration
+	clusterTimeLock sync.Mutex
+	clusterTime     *bson.Document
+	sessionPool     *session.Pool
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
 	writeConcern    *writeconcern.WriteConcern
@@ -96,6 +102,27 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	return c.topology.Disconnect(ctx)
 }
 
+// StartSession starts a new session.
+func (c *Client) StartSession() (*Session, error) {
+	sess, err := session.NewClientSession(c.sessionPool, session.Explicit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{
+		Sess: sess,
+	}, nil
+}
+
+func (c *Client) startImplicitSession() (*session.Client, error) {
+	sess, err := session.NewClientSession(c.sessionPool, session.Implicit)
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
+}
+
 func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, error) {
 	clientOpt, err := clientopt.BundleClient(opts...).Unbundle(cs)
 	if err != nil {
@@ -117,6 +144,12 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 		return nil, err
 	}
 	client.topology = topo
+
+	subscription, err := topo.Subscribe()
+	if err != nil {
+		return nil, err
+	}
+	client.sessionPool = session.NewPool(subscription.C)
 
 	if client.readConcern == nil {
 		client.readConcern = readConcernFromConnString(&client.connString)
