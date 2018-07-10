@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a508869e_b22dba60",
+        "filename": "core/topology/topology_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-10T14:52:59Z",
+      "side": 1,
+      "message": "I think I commented on this in another version of this patch, but we should just be using time.After here and not making our own implementation of that.",
+      "range": {
+        "startLine": 244,
+        "startChar": 2,
+        "endLine": 245,
+        "endChar": 25
+      },
+      "revId": "cab0597ee7cb6e62326a66be08ced66b52d28f90",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
