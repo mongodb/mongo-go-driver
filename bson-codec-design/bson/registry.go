@@ -12,6 +12,8 @@ var ErrNoCodec = errors.New("No codec found")
 // ErrNotInterface is returned when the provided type is not an interface.
 var ErrNotInterface = errors.New("The provided typeis not an interface")
 
+var defaultRegistry = NewRegistry()
+
 // A Registry is used to store and retrieve codecs for types and interfaces. This type is the main
 // typed passed around and Encoders and Decoders are constructed from it.
 type Registry struct {
@@ -26,9 +28,13 @@ type Registry struct {
 
 func NewRegistry() *Registry {
 	// TODO: Register codecs.
+	tr := &typeRegistry{reg: make(map[reflect.Type]Codec)}
+	tr.register(reflect.TypeOf(false), new(BooleanCodec))
+
 	return &Registry{
-		tr: &typeRegistry{reg: make(map[reflect.Type]Codec)},
+		tr: tr,
 		ir: &interfaceRegistry{reg: make([]interfacePair, 0)},
+		ds: defaultStructCodec,
 	}
 }
 

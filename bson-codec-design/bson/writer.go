@@ -57,14 +57,18 @@ func (w *writer) Write(p []byte) (int, error) {
 }
 
 func (w *writer) WriteAt(p []byte, off int64) (int, error) {
-	if int64(len(p)) > int64(cap(*w))-off {
-		buf := make([]byte, 2*cap(*w)+len(p))
+	newend := off + int64(len(p))
+	if newend < int64(len(*w)) {
+		newend = int64(len(*w))
+	}
+
+	if newend > int64(cap(*w)) {
+		buf := make([]byte, int64(2*cap(*w))+newend)
 		copy(buf, *w)
 		*w = buf
 	}
 
-	*w = []byte(*w)[:off+int64(len(p))]
+	*w = []byte(*w)[:newend]
 	copy([]byte(*w)[off:], p)
 	return len(p), nil
-	return 0, nil
 }

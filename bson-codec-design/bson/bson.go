@@ -16,6 +16,13 @@ import (
 // could result in parsing errors.
 type node [2]uint32
 
+// Zeroer allows custom struct types to implement a report of zero
+// state. All struct types that don't implement Zeroer or where IsZero
+// returns false are considered to be not zero.
+type Zeroer interface {
+	IsZero() bool
+}
+
 // TODO: This needs to be flushed out much more
 type StructTagParser interface {
 	ParseStructTags(reflect.StructField) (StructTags, error)

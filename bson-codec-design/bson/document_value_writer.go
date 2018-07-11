@@ -365,18 +365,14 @@ func (dvw *documentValueWriter) WriteDocumentElement(key string) (ValueWriter, e
 }
 
 func (dvw *documentValueWriter) WriteDocumentEnd() error {
-	switch dvw.state.mode {
-	case dvwElement, dvwValue:
-		// We're closing a subdocument, we have to pop a stack frame
-		dvw.state.pop()
-	}
-
 	if dvw.state.mode != dvwTopLevel && dvw.state.mode != dvwDocument && dvw.state.mode != dvwCodeWithScope {
 		return fmt.Errorf("incorrect mode to end document %s", dvw.state.mode)
 	}
 
 	switch dvw.state.prev.mode {
 	case dvwTopLevel:
+		dvw.state.pop()
+		return nil
 	case dvwElement:
 		if dvw.state.doc == nil || dvw.state.prev.doc == nil {
 			return errors.New("invalid document state")
@@ -402,6 +398,7 @@ func (dvw *documentValueWriter) WriteDocumentEnd() error {
 	}
 
 	dvw.state.pop()
+	dvw.state.pop() // We need to do this since we are two stack frames deep dvwElement -> dvwDocument
 	return nil
 }
 
@@ -421,12 +418,6 @@ func (dvw *documentValueWriter) WriteArrayElement() (ValueWriter, error) {
 }
 
 func (dvw *documentValueWriter) WriteArrayEnd() error {
-	switch dvw.state.mode {
-	case dvwElement, dvwValue:
-		// We're closing a subdocument, we have to pop a stack frame
-		dvw.state.pop()
-	}
-
 	if dvw.state.mode != dvwArray {
 		return fmt.Errorf("incorrect mode to end document %s", dvw.state.mode)
 	}
@@ -448,5 +439,6 @@ func (dvw *documentValueWriter) WriteArrayEnd() error {
 	}
 
 	dvw.state.pop()
+	dvw.state.pop() // We need to do this since we are two stack frames deep dvwElement -> dvwArray
 	return nil
 }

@@ -9,19 +9,111 @@ import (
 
 var tString = reflect.TypeOf("")
 
+var defaultStructCodec = &StructCodec{
+	cache:  make(map[reflect.Type]*structDescription),
+	parser: DefaultStructTagParser,
+}
+
 type StructCodec struct {
 	cache  map[reflect.Type]*structDescription
 	l      sync.RWMutex
 	parser StructTagParser
 }
 
+var _ Codec = &StructCodec{}
+
+func NewStructCodec(p StructTagParser) (*StructCodec, error) {
+	if p == nil {
+		return nil, errors.New("a StructTagParser must be provided to NewStructCodec")
+	}
+
+	return &StructCodec{
+		cache:  make(map[reflect.Type]*structDescription),
+		parser: p,
+	}, nil
+}
+
 // EncodeValue handles encoding generic struct types.
-func (sc *StructCodec) EncodeValue(Registry, ValueWriter, interface{}) error {
+func (sc *StructCodec) EncodeValue(r *Registry, vw ValueWriter, i interface{}) error {
+	val := reflect.ValueOf(i)
+	for {
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
+			continue
+		}
+
+		break
+	}
+
+	if val.Kind() != reflect.Struct {
+		return fmt.Errorf("%T can only process structs, but got a %T", sc, val)
+	}
+
+	sd, err := sc.describeStruct(val.Type())
+	if err != nil {
+		return err
+	}
+
+	dw, err := vw.WriteDocument()
+	if err != nil {
+		return err
+	}
+	var rv reflect.Value
+	for _, desc := range sd.fl {
+		if desc.inline == nil {
+			rv = val.Field(desc.idx)
+		} else {
+			rv = val.FieldByIndex(desc.inline)
+		}
+
+		if desc.omitEmpty && sc.isZero(rv) {
+			continue
+		}
+
+		vw2, err := dw.WriteDocumentElement(desc.name)
+		if err != nil {
+			return err
+		}
+
+		codec, err := r.Lookup(rv.Type())
+		if err != nil {
+			return err
+		}
+		err = codec.EncodeValue(r, vw2, rv.Interface())
+		if err != nil {
+			return err
+		}
+	}
+
+	return dw.WriteDocumentEnd()
+}
+
+func (sc *StructCodec) DecodeValue(*Registry, ValueReader, interface{}) error {
 	panic("not implemented")
 }
 
-func (sc *StructCodec) DecodeValue(Registry, ValueReader, interface{}) error {
-	panic("not implemented")
+func (sc *StructCodec) isZero(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	case reflect.Struct:
+		if z, ok := v.Interface().(Zeroer); ok {
+			return z.IsZero()
+		}
+		return false
+	}
+
+	return false
 }
 
 type structDescription struct {

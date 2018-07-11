@@ -26,7 +26,7 @@ func TestDocumentValueWriter(t *testing.T) {
 		{
 			"nested document",
 			dvwNestedDoc,
-			NewDocument(EC.SubDocumentFromElements("foo", EC.Boolean("bar", true))),
+			NewDocument(EC.SubDocumentFromElements("foo", EC.Boolean("bar", true)), EC.Boolean("baz", true)),
 		},
 		{
 			"simple array",
@@ -96,6 +96,10 @@ func dvwNestedDoc(t *testing.T, dvw *documentValueWriter) {
 	err = vw2.WriteBoolean(true)
 	noerr(t, err)
 	err = dw2.WriteDocumentEnd()
+	noerr(t, err)
+	vw, err = dw.WriteDocumentElement("baz")
+	noerr(t, err)
+	err = vw.WriteBoolean(true)
 	noerr(t, err)
 	err = dw.WriteDocumentEnd()
 	noerr(t, err)
