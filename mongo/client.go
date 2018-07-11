@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -32,6 +33,8 @@ type Client struct {
 	topology        *topology.Topology
 	connString      connstring.ConnString
 	localThreshold  time.Duration
+	clock           *session.ClusterClock
+	sessionPool     *session.Pool
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
 	writeConcern    *writeconcern.WriteConcern
@@ -93,7 +96,36 @@ func (c *Client) Connect(ctx context.Context) error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
+	c.endSessions(ctx)
 	return c.topology.Disconnect(ctx)
+}
+
+// StartSession starts a new session.
+func (c *Client) StartSession() (*Session, error) {
+	sess, err := session.NewClientSession(c.sessionPool, session.Explicit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{Client: sess}, nil
+}
+
+func (c *Client) startImplicitSession() (*session.Client, error) {
+	sess, err := session.NewClientSession(c.sessionPool, session.Implicit)
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
+}
+
+func (c *Client) endSessions(ctx context.Context) {
+	cmd := command.EndSessions{
+		Clock:      c.clock,
+		SessionIDs: c.sessionPool.IDSlice(),
+	}
+
+	_, _ = dispatch.EndSessions(ctx, cmd, c.topology, description.WriteSelector())
 }
 
 func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, error) {
@@ -111,12 +143,25 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 	topts := append(
 		client.topologyOptions,
 		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return client.connString }),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(opts, topology.WithClock(func(clock *session.ClusterClock) *session.ClusterClock {
+				return client.clock
+			}))
+		}),
 	)
 	topo, err := topology.New(topts...)
 	if err != nil {
 		return nil, err
 	}
 	client.topology = topo
+
+	subscription, err := topo.Subscribe()
+	if err != nil {
+		return nil, err
+	}
+	client.sessionPool = session.NewPool(subscription.C)
+
+	client.clock = &session.ClusterClock{}
 
 	if client.readConcern == nil {
 		client.readConcern = readConcernFromConnString(&client.connString)

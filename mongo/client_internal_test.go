@@ -23,13 +23,18 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 func createTestClient(t *testing.T) *Client {
+	topo := testutil.Topology(t)
+	sub, _ := topo.Subscribe()
+	pool := session.NewPool(sub.C)
 	return &Client{
 		topology:       testutil.Topology(t),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
+		sessionPool:    pool,
 	}
 }
 

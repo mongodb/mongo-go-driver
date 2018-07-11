@@ -9,6 +9,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/indexopt"
 )
 
@@ -34,12 +35,23 @@ type IndexModel struct {
 
 // List returns a cursor iterating over all the indexes in the collection.
 func (iv IndexView) List(ctx context.Context, opts ...indexopt.List) (Cursor, error) {
-	listOpts, err := indexopt.BundleList(opts...).Unbundle(true)
+	listOpts, sess, err := indexopt.BundleList(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
+	if sess == nil {
+		sess, err = iv.coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	listCmd := command.ListIndexes{NS: iv.coll.namespace(), Opts: listOpts}
+	listCmd := command.ListIndexes{
+		NS:      iv.coll.namespace(),
+		Opts:    listOpts,
+		Session: sess,
+		Clock:   iv.coll.client.clock,
+	}
 
 	return dispatch.ListIndexes(ctx, listCmd, iv.coll.client.topology, iv.coll.writeSelector)
 }
@@ -86,12 +98,26 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		indexes.Append(bson.VC.Document(index))
 	}
 
-	createOpts, err := indexopt.BundleCreate(opts...).Unbundle(true)
+	createOpts, sess, err := indexopt.BundleCreate(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
+	if !writeconcern.AckWrite(iv.coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = iv.coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	cmd := command.CreateIndexes{NS: iv.coll.namespace(), Indexes: indexes, Opts: createOpts}
+	cmd := command.CreateIndexes{
+		NS:      iv.coll.namespace(),
+		Indexes: indexes,
+		Opts:    createOpts,
+		Session: sess,
+		Clock:   iv.coll.client.clock,
+	}
 
 	_, err = dispatch.CreateIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 	if err != nil {
@@ -107,24 +133,52 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...indexopt.D
 		return nil, ErrMultipleIndexDrop
 	}
 
-	dropOpts, err := indexopt.BundleDrop(opts...).Unbundle(true)
+	dropOpts, sess, err := indexopt.BundleDrop(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
+	if !writeconcern.AckWrite(iv.coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = iv.coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	cmd := command.DropIndexes{NS: iv.coll.namespace(), Index: name, Opts: dropOpts}
+	cmd := command.DropIndexes{
+		NS:      iv.coll.namespace(),
+		Index:   name,
+		Opts:    dropOpts,
+		Session: sess,
+		Clock:   iv.coll.client.clock,
+	}
 
 	return dispatch.DropIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 }
 
 // DropAll drops all indexes in the collection.
 func (iv IndexView) DropAll(ctx context.Context, opts ...indexopt.Drop) (bson.Reader, error) {
-	dropOpts, err := indexopt.BundleDrop(opts...).Unbundle(true)
+	dropOpts, sess, err := indexopt.BundleDrop(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
+	if !writeconcern.AckWrite(iv.coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = iv.coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	cmd := command.DropIndexes{NS: iv.coll.namespace(), Index: "*", Opts: dropOpts}
+	cmd := command.DropIndexes{
+		NS:      iv.coll.namespace(),
+		Index:   "*",
+		Opts:    dropOpts,
+		Session: sess,
+		Clock:   iv.coll.client.clock,
+	}
 
 	return dispatch.DropIndexes(ctx, cmd, iv.coll.client.topology, iv.coll.writeSelector)
 }
