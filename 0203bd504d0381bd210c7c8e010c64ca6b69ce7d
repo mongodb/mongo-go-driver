@@ -22,6 +22,30 @@
       "revId": "0203bd504d0381bd210c7c8e010c64ca6b69ce7d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5fe76acc_8507622a",
+        "filename": "mongo/countopt/countopt.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-11T19:28:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d2b63d42_a1199076",
+      "range": {
+        "startLine": 222,
+        "startChar": 23,
+        "endLine": 222,
+        "endChar": 38
+      },
+      "revId": "0203bd504d0381bd210c7c8e010c64ca6b69ce7d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
