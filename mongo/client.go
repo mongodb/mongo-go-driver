@@ -10,6 +10,9 @@ import (
 	"context"
 	"time"
 
+	"sync"
+
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -23,8 +26,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
-	"github.com/mongodb/mongo-go-driver/bson"
-	"sync"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
