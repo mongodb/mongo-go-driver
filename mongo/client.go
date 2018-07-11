@@ -10,6 +10,11 @@ import (
 	"context"
 	"time"
 
+	"sync"
+
+	"sync/atomic"
+
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -17,6 +22,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -32,9 +38,17 @@ type Client struct {
 	topology        *topology.Topology
 	connString      connstring.ConnString
 	localThreshold  time.Duration
-	readPreference  *readpref.ReadPref
-	readConcern     *readconcern.ReadConcern
-	writeConcern    *writeconcern.WriteConcern
+
+	clusterTime    atomic.Value // holds a bson.Document
+	ctLock         sync.Mutex
+	ctChan         chan *bson.Document
+	ctSubscription *topology.CTSubscription
+	done           chan struct{}
+
+	sessionPool    *session.Pool
+	readPreference *readpref.ReadPref
+	readConcern    *readconcern.ReadConcern
+	writeConcern   *writeconcern.WriteConcern
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -93,7 +107,53 @@ func (c *Client) Connect(ctx context.Context) error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
+	c.done <- struct{}{}
+	c.endSessions(ctx)
 	return c.topology.Disconnect(ctx)
+}
+
+// StartSession starts a new session.
+func (c *Client) StartSession() (*Session, error) {
+	sess, err := session.NewClientSession(c.sessionPool, session.Explicit, c.ctChan)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{Client: sess}, nil
+}
+
+func (c *Client) startImplicitSession() (*session.Client, error) {
+	sess, err := session.NewClientSession(c.sessionPool, session.Implicit, c.ctChan)
+	if err != nil {
+		return nil, err
+	}
+
+	return sess, nil
+}
+
+func (c *Client) endSessions(ctx context.Context) {
+	cmd := command.EndSessions{
+		ClusterTime: c.ClusterTime(),
+		SessionIDs:  c.sessionPool.IDSlice(),
+	}
+
+	_, _ = dispatch.EndSesions(ctx, cmd, c.topology, description.WriteSelector())
+}
+
+// UpdateClusterTime updates the client cluster time with the provided cluster time document if
+// the provided time is greater than the client's own cluster time.
+func (c *Client) UpdateClusterTime(ctdoc *bson.Document) {
+	c.ctLock.Lock()
+	c.clusterTime.Store(session.MaxClusterTime(c.ClusterTime(), ctdoc))
+	c.ctLock.Unlock()
+}
+
+// ClusterTime returns the client cluster time.
+func (c *Client) ClusterTime() *bson.Document {
+	if ct, ok := c.clusterTime.Load().(bson.Document); ok {
+		return &ct
+	}
+	return nil
 }
 
 func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, error) {
@@ -117,6 +177,37 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 		return nil, err
 	}
 	client.topology = topo
+
+	subscription, err := topo.Subscribe()
+	if err != nil {
+		return nil, err
+	}
+	client.sessionPool = session.NewPool(subscription.C)
+
+	client.ctSubscription, err = topo.SubscribeClusterTime()
+	if err != nil {
+		return nil, err
+	}
+
+	client.ctChan = make(chan *bson.Document)
+	client.done = make(chan struct{})
+
+	// Update on cluster time changes.
+	go func() {
+		var ct *bson.Document
+		for {
+			select {
+			case ct = <-client.ctChan:
+				client.UpdateClusterTime(ct)
+			case ct = <-client.ctSubscription.C:
+				client.UpdateClusterTime(ct)
+			case <-client.done:
+				close(client.ctChan)
+				client.ctSubscription.Unsubscribe()
+				return
+			}
+		}
+	}()
 
 	if client.readConcern == nil {
 		client.readConcern = readConcernFromConnString(&client.connString)

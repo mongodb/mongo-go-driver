@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
@@ -151,24 +152,39 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 
 	// convert options into []option.InsertOptioner and dedup
-	oneOpts, err := insertopt.BundleOne(opts...).Unbundle(true)
+	oneOpts, sess, err := insertopt.BundleOne(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Insert{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Docs:         []*bson.Document{doc},
 		Opts:         oneOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
 
 	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector)
+	coll.client.UpdateClusterTime(res.ClusterTime)
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrOne == 0 {
 		return nil, err
 	}
+
 	return &InsertOneResult{InsertedID: insertedID}, err
 }
 
@@ -207,20 +223,34 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	// convert options into []option.InsertOptioner and dedup
-	manyOpts, err := insertopt.BundleMany(opts...).Unbundle(true)
+	manyOpts, sess, err := insertopt.BundleMany(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Insert{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Docs:         docs,
 		Opts:         manyOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
 
 	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector)
+	coll.client.UpdateClusterTime(res.ClusterTime)
+
 	switch err {
 	case nil:
 	case command.ErrUnacknowledgedWrite:
@@ -234,6 +264,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 			WriteConcernError: convertWriteConcernError(res.WriteConcernError),
 		}
 	}
+
 	return &InsertManyResult{InsertedIDs: result}, err
 }
 
@@ -260,20 +291,34 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 			bson.EC.Int32("limit", 1)),
 	}
 
-	deleteOpts, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	deleteOpts, sess, err := deleteopt.BundleDelete(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Delete{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Deletes:      deleteDocs,
 		Opts:         deleteOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
 
 	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector)
+	coll.client.UpdateClusterTime(res.ClusterTime)
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrOne == 0 {
 		return nil, err
@@ -301,20 +346,34 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	}
 	deleteDocs := []*bson.Document{bson.NewDocument(bson.EC.SubDocument("q", f), bson.EC.Int32("limit", 0))}
 
-	deleteOpts, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	deleteOpts, sess, err := deleteopt.BundleDelete(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Delete{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Deletes:      deleteDocs,
 		Opts:         deleteOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
 
 	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector)
+	coll.client.UpdateClusterTime(res.ClusterTime)
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrMany == 0 {
 		return nil, err
@@ -323,7 +382,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
-	update *bson.Document, opts ...option.UpdateOptioner) (*UpdateResult, error) {
+	update *bson.Document, sess *session.Client, opts ...option.UpdateOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -337,18 +396,24 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		),
 	}
 
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Update{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Docs:         updateDocs,
 		Opts:         opts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
 
 	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
 		return nil, err
 	}
+
+	coll.client.UpdateClusterTime(r.ClusterTime)
+
 	res := &UpdateResult{
 		MatchedCount:  r.MatchedCount,
 		ModifiedCount: r.ModifiedCount,
@@ -392,12 +457,21 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		return nil, err
 	}
 
-	updOpts, err := updateopt.BundleUpdate(options...).Unbundle(true)
+	updOpts, sess, err := updateopt.BundleUpdate(options...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
-	return coll.updateOrReplaceOne(ctx, f, u, updOpts...)
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return coll.updateOrReplaceOne(ctx, f, u, sess, updOpts...)
 }
 
 // UpdateMany updates multiple documents in the collection. A user can supply
@@ -435,17 +509,29 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		),
 	}
 
-	updOpts, err := updateopt.BundleUpdate(opts...).Unbundle(true)
+	updOpts, sess, err := updateopt.BundleUpdate(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Update{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Docs:         updateDocs,
 		Opts:         updOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
 
 	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector)
@@ -461,6 +547,8 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		res.UpsertedID = r.Upserted[0].ID
 		res.MatchedCount--
 	}
+
+	coll.client.UpdateClusterTime(r.ClusterTime)
 
 	rr, err := processWriteError(r.WriteConcernError, r.WriteErrors, err)
 	if rr&rrMany == 0 {
@@ -496,9 +584,18 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
 	}
 
-	repOpts, err := replaceopt.BundleReplace(opts...).Unbundle(true)
+	repOpts, sess, err := replaceopt.BundleReplace(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
+	}
+
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	updateOptions := make([]option.UpdateOptioner, 0, len(opts))
@@ -506,7 +603,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		updateOptions = append(updateOptions, opt)
 	}
 
-	return coll.updateOrReplaceOne(ctx, f, r, updateOptions...)
+	return coll.updateOrReplaceOne(ctx, f, r, sess, updateOptions...)
 }
 
 // Aggregate runs an aggregation framework pipeline. A user can supply a custom context to
@@ -530,11 +627,21 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	}
 
 	// convert options into []option.Optioner and dedup
-	aggOpts, err := aggregateopt.BundleAggregate(opts...).Unbundle(true)
+	aggOpts, sess, err := aggregateopt.BundleAggregate(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Aggregate{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
@@ -543,9 +650,14 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		ReadPref:     coll.readPreference,
 		WriteConcern: coll.writeConcern,
 		ReadConcern:  coll.readConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
 
-	return dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector)
+	cursor, clusterTimeDoc, err := dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector)
+	coll.client.UpdateClusterTime(clusterTimeDoc)
+
+	return cursor, err
 }
 
 // Count gets the number of documents matching the filter. A user can supply a
@@ -566,11 +678,18 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
-	countOpts, err := countopt.BundleCount(opts...).Unbundle(true)
+	countOpts, sess, err := countopt.BundleCount(opts...).Unbundle(true)
 	if err != nil {
 		return 0, err
 	}
+	if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return 0, err
+		}
+	}
 
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Count{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
@@ -578,8 +697,15 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		Opts:        countOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: coll.readConcern,
+		Session:     sess,
+		ClusterTime: clusterTime,
 	}
-	return dispatch.Count(ctx, cmd, coll.client.topology, coll.readSelector)
+
+	cnt, clusterTimeDoc, err := dispatch.Count(ctx, cmd, coll.client.topology, coll.readSelector)
+
+	coll.client.UpdateClusterTime(clusterTimeDoc)
+
+	return cnt, err
 }
 
 // Distinct finds the distinct values for a specified field across a single
@@ -605,11 +731,18 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		}
 	}
 
-	distinctOpts, err := distinctopt.BundleDistinct(opts...).Unbundle(true)
+	distinctOpts, sess, err := distinctopt.BundleDistinct(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
+	if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
 
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Distinct{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
@@ -618,11 +751,16 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		Opts:        distinctOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: coll.readConcern,
+		Session:     sess,
+		ClusterTime: clusterTime,
 	}
+
 	res, err := dispatch.Distinct(ctx, cmd, coll.client.topology, coll.readSelector)
 	if err != nil {
 		return nil, err
 	}
+
+	coll.client.UpdateClusterTime(res.ClusterTime)
 
 	return res.Values, nil
 }
@@ -649,11 +787,19 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 	}
 
-	findOpts, err := findopt.BundleFind(opts...).Unbundle(true)
+	findOpts, sess, err := findopt.BundleFind(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
+	if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Find{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
@@ -661,8 +807,14 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Opts:        findOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: coll.readConcern,
+		Session:     sess,
+		ClusterTime: clusterTime,
 	}
-	return dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector)
+
+	cursor, clusterTimeDoc, err := dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector)
+	coll.client.UpdateClusterTime(clusterTimeDoc)
+
+	return cursor, err
 }
 
 // FindOne returns up to one document that matches the model. A user can
@@ -688,12 +840,20 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		}
 	}
 
-	findOneOpts, err := findopt.BundleOne(opts...).Unbundle(true)
+	findOneOpts, sess, err := findopt.BundleOne(opts...).Unbundle(true)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 	findOneOpts = append(findOneOpts, findopt.Limit(1).ConvertFindOption())
 
+	if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return &DocumentResult{err: err}
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.Find{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
@@ -701,11 +861,15 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		Opts:        findOneOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: coll.readConcern,
+		Session:     sess,
+		ClusterTime: clusterTime,
 	}
-	cursor, err := dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector)
+
+	cursor, clusterTimeDoc, err := dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
+	coll.client.UpdateClusterTime(clusterTimeDoc)
 
 	return &DocumentResult{cur: cursor}
 }
@@ -735,23 +899,36 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		}
 	}
 
-	findOpts, err := findopt.BundleDeleteOne(opts...).Unbundle(true)
+	findOpts, sess, err := findopt.BundleDeleteOne(opts...).Unbundle(true)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return &DocumentResult{err: err}
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.FindOneAndDelete{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Query:        f,
 		Opts:         findOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
 
 	res, err := dispatch.FindOneAndDelete(ctx, cmd, coll.client.topology, coll.writeSelector)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
+	coll.client.UpdateClusterTime(res.ClusterTime)
 
 	return &DocumentResult{rdr: res.Value}
 }
@@ -786,12 +963,22 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		return &DocumentResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
 	}
 
-	findOpts, err := findopt.BundleReplaceOne(opts...).Unbundle(true)
+	findOpts, sess, err := findopt.BundleReplaceOne(opts...).Unbundle(true)
 
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return &DocumentResult{err: err}
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.FindOneAndReplace{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
@@ -799,11 +986,15 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		Replacement:  r,
 		Opts:         findOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
+
 	res, err := dispatch.FindOneAndReplace(ctx, cmd, coll.client.topology, coll.writeSelector)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
+	coll.client.UpdateClusterTime(res.ClusterTime)
 
 	return &DocumentResult{rdr: res.Value}
 }
@@ -838,11 +1029,21 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &DocumentResult{err: errors.New("update document must contain key beginning with '$")}
 	}
 
-	findOpts, err := findopt.BundleUpdateOne(opts...).Unbundle(true)
+	findOpts, sess, err := findopt.BundleUpdateOne(opts...).Unbundle(true)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return &DocumentResult{err: err}
+		}
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
 	oldns := coll.namespace()
 	cmd := command.FindOneAndUpdate{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
@@ -850,11 +1051,15 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		Update:       u,
 		Opts:         findOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
 	}
+
 	res, err := dispatch.FindOneAndUpdate(ctx, cmd, coll.client.topology, coll.writeSelector)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
+	coll.client.UpdateClusterTime(res.ClusterTime)
 
 	return &DocumentResult{rdr: res.Value}
 }
@@ -873,18 +1078,40 @@ func (coll *Collection) Indexes() IndexView {
 }
 
 // Drop drops this collection from database.
-func (coll *Collection) Drop(ctx context.Context) error {
+func (coll *Collection) Drop(ctx context.Context, opts ...collectionopt.Drop) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	cmd := command.DropCollection{
-		DB:         coll.db.name,
-		Collection: coll.name,
+	var sess *session.Client
+	for _, opt := range opts {
+		if conv, ok := opt.(collectionopt.DropSession); ok {
+			sess = conv.ConvertDropSession()
+		}
 	}
-	_, err := dispatch.DropCollection(ctx, cmd, coll.client.topology, coll.writeSelector)
+
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		s, err := coll.client.startImplicitSession()
+		if err != nil {
+			return err
+		}
+		sess = s
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
+	cmd := command.DropCollection{
+		DB:           coll.db.name,
+		Collection:   coll.name,
+		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		ClusterTime:  clusterTime,
+	}
+	_, clusterTimeDoc, err := dispatch.DropCollection(ctx, cmd, coll.client.topology, coll.writeSelector)
 	if err != nil && !command.IsNotFound(err) {
 		return err
 	}
+	coll.client.UpdateClusterTime(clusterTimeDoc)
 	return nil
 }

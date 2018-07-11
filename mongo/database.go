@@ -13,12 +13,13 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
+	"github.com/mongodb/mongo-go-driver/mongo/listcollectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
 )
 
@@ -116,36 +117,74 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 }
 
 // Drop drops this database from mongodb.
-func (db *Database) Drop(ctx context.Context) error {
+func (db *Database) Drop(ctx context.Context, opts ...dbopt.DropDB) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	cmd := command.DropDatabase{
-		DB: db.name,
+	var sess *session.Client
+	for _, opt := range opts {
+		if conv, ok := opt.(dbopt.DropDBSession); ok {
+			sess = conv.ConvertDropDBSession()
+		}
 	}
-	_, err := dispatch.DropDatabase(ctx, cmd, db.client.topology, db.writeSelector)
+	if !writeconcern.AckWrite(db.client.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		s, err := db.client.startImplicitSession()
+		if err != nil {
+			return err
+		}
+		sess = s
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, db.client.ClusterTime())
+	cmd := command.DropDatabase{
+		DB:          db.name,
+		Session:     sess,
+		ClusterTime: clusterTime,
+	}
+	_, clusterTimeDoc, err := dispatch.DropDatabase(ctx, cmd, db.client.topology, db.writeSelector)
 	if err != nil && !command.IsNotFound(err) {
 		return err
 	}
+	db.client.UpdateClusterTime(clusterTimeDoc)
 	return nil
 }
 
 // ListCollections list collections from mongodb database.
-func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, options ...option.ListCollectionsOptioner) (command.Cursor, error) {
+func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, opts ...listcollectionopt.ListCollections) (command.Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	cmd := command.ListCollections{
-		DB:       db.name,
-		Filter:   filter,
-		Opts:     options,
-		ReadPref: db.readPreference,
+	listCollOpts, sess, err := listcollectionopt.BundleListCollections(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
 	}
-	cursor, err := dispatch.ListCollections(ctx, cmd, db.client.topology, db.readSelector)
+	if sess == nil {
+		s, err := db.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
+		sess = s
+	}
+
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, db.client.ClusterTime())
+	cmd := command.ListCollections{
+		DB:          db.name,
+		Filter:      filter,
+		Opts:        listCollOpts,
+		ReadPref:    db.readPreference,
+		Session:     sess,
+		ClusterTime: clusterTime,
+	}
+
+	cursor, clusterTimeDoc, err := dispatch.ListCollections(ctx, cmd, db.client.topology, db.readSelector)
 	if err != nil && !command.IsNotFound(err) {
 		return nil, err
 	}
+	db.client.UpdateClusterTime(clusterTimeDoc)
+
 	return cursor, nil
 
 }

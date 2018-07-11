@@ -14,6 +14,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 )
 
@@ -26,6 +28,8 @@ type changeStream struct {
 	options     []option.ChangeStreamOptioner
 	coll        *Collection
 	cursor      Cursor
+	session     *session.Client
+	clusterTime *bson.Document
 	resumeToken *bson.Document
 	err         error
 }
@@ -41,9 +45,18 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		return nil, err
 	}
 
-	csOpts, err := changestreamopt.BundleChangeStream(opts...).Unbundle(true)
+	csOpts, sess, err := changestreamopt.BundleChangeStream(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
+	}
+
+	if !writeconcern.AckWrite(coll.writeConcern) {
+		sess = nil
+	} else if sess == nil {
+		sess, err = coll.client.startImplicitSession()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	changeStreamOptions := bson.NewDocument()
@@ -65,11 +78,15 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		return nil, err
 	}
 
+	clusterTime := session.MaxClusterTime(sess.ClusterTime, coll.client.ClusterTime())
+
 	cs := &changeStream{
-		pipeline: pipelineArr,
-		options:  csOpts,
-		coll:     coll,
-		cursor:   cursor,
+		pipeline:    pipelineArr,
+		options:     csOpts,
+		coll:        coll,
+		cursor:      cursor,
+		session:     sess,
+		clusterTime: clusterTime,
 	}
 
 	return cs, nil
@@ -150,10 +167,17 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 
 	oldns = cs.coll.namespace()
 	aggCmd := command.Aggregate{
-		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Pipeline: cs.pipeline,
+		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Pipeline:    cs.pipeline,
+		Session:     cs.session,
+		ClusterTime: cs.clusterTime,
 	}
-	cs.cursor, cs.err = aggCmd.RoundTrip(ctx, ss.Description(), ss, conn)
+
+	cur, clusterTime, err := aggCmd.RoundTrip(ctx, ss.Description(), ss, conn)
+	cs.cursor = cur
+	cs.err = err
+
+	cs.coll.client.UpdateClusterTime(clusterTime)
 
 	if cs.err != nil {
 		return false
