@@ -116,6 +116,11 @@ func (r *Reply) UnmarshalWireMessage(b []byte) error {
 	return nil
 }
 
+// GetMainDocument returns the main BSON document for this reply.
+func (r *Reply) GetMainDocument() (*bson.Document, error) {
+	return bson.ReadDocument([]byte(r.Documents[0]))
+}
+
 // ReplyFlag represents the flags of an OP_REPLY message.
 type ReplyFlag int32
 

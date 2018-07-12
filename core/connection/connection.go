@@ -24,13 +24,16 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/compressor"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
 var globalClientConnectionID uint64
+var emptyDoc = bson.NewDocument()
 
 func nextClientConnectionID() uint64 {
 	return atomic.AddUint64(&globalClientConnectionID, 1)
@@ -89,10 +92,12 @@ type connection struct {
 	compressor  compressor.Compressor // use for compressing messages
 	// server can compress response with any compressor supported by driver
 	compressorMap    map[wiremessage.CompressorID]compressor.Compressor
+	commandMap       map[int64]*event.CommandMetadata // map for monitoring commands sent to server
 	dead             bool
 	idleTimeout      time.Duration
 	idleDeadline     time.Time
 	lifetimeDeadline time.Time
+	cmdMonitor       *event.CommandMonitor
 	readTimeout      time.Duration
 	uncompressBuf    []byte // buffer to uncompress messages
 	writeTimeout     time.Duration
@@ -140,6 +145,7 @@ func New(ctx context.Context, addr address.Address, opts ...Option) (Connection,
 		conn:             nc,
 		compressBuf:      make([]byte, 256),
 		compressorMap:    compressorMap,
+		commandMap:       make(map[int64]*event.CommandMetadata),
 		addr:             addr,
 		idleTimeout:      cfg.idleTimeout,
 		lifetimeDeadline: lifetimeDeadline,
@@ -149,6 +155,7 @@ func New(ctx context.Context, addr address.Address, opts ...Option) (Connection,
 		uncompressBuf:    make([]byte, 256),
 		writeBuf:         make([]byte, 0, 256),
 		wireMessageBuf:   make([]byte, 256),
+		cmdMonitor:       cfg.cmdMonitor,
 	}
 
 	c.bumpIdleDeadline()
@@ -342,6 +349,212 @@ func (c *connection) uncompressMessage(compressed wiremessage.Compressed) ([]byt
 	return fullMessage, origHeader.OpCode, nil
 }
 
+func canMonitor(cmd string) bool {
+	if cmd == "authenticate" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "createUser" ||
+		cmd == "updateUser" || cmd == "copydbgetnonce" || cmd == "copydbsaslstart" || cmd == "copydb" {
+		return false
+	}
+
+	return true
+}
+
+func (c *connection) commandStartedEvent(wm wiremessage.WireMessage) error {
+	if c.cmdMonitor == nil || c.cmdMonitor.Started == nil {
+		return nil
+	}
+
+	startedEvent := &event.CommandStartedEvent{
+		ConnectionID: c.id,
+	}
+
+	var cmd *bson.Document
+	var err error
+
+	var acknowledged bool
+	switch converted := wm.(type) {
+	case wiremessage.Query:
+		cmd, err = bson.ReadDocument([]byte(converted.Query))
+		if err != nil {
+			return err
+		}
+
+		acknowledged = converted.AcknowledgedWrite()
+		startedEvent.DatabaseName = converted.FullCollectionName[:len(converted.FullCollectionName)-5] // remove $.cmd
+		startedEvent.RequestID = int64(converted.MsgHeader.RequestID)
+	case wiremessage.Msg:
+		cmd, err = converted.GetMainDocument()
+		if err != nil {
+			return err
+		}
+
+		acknowledged = converted.AcknowledgedWrite()
+		arr, identifier, err := converted.GetSequenceArray()
+		if err != nil {
+			return err
+		}
+		if arr != nil {
+			cmd = cmd.Copy() // make copy to avoid changing original command
+			cmd.Append(bson.EC.Array(identifier, arr))
+		}
+
+		dbVal, err := cmd.LookupErr("$db")
+		if err != nil {
+			return err
+		}
+
+		startedEvent.DatabaseName = dbVal.StringValue()
+		startedEvent.RequestID = int64(converted.MsgHeader.RequestID)
+	}
+
+	startedEvent.Command = cmd
+	startedEvent.CommandName = startedEvent.Command.ElementAt(0).Key()
+	if !canMonitor(startedEvent.CommandName) {
+		startedEvent.Command = emptyDoc
+	}
+
+	c.cmdMonitor.Started(startedEvent)
+
+	if !acknowledged && c.cmdMonitor.Succeeded != nil {
+		// unack writes must provide a CommandSucceededEvent with an { ok: 1 } reply
+		finishedEvent := event.CommandFinishedEvent{
+			DurationNanos: 0,
+			CommandName:   startedEvent.CommandName,
+			RequestID:     startedEvent.RequestID,
+			ConnectionID:  c.id,
+		}
+
+		c.cmdMonitor.Succeeded(&event.CommandSucceededEvent{
+			CommandFinishedEvent: finishedEvent,
+			Reply: bson.NewDocument(
+				bson.EC.Int32("ok", 1),
+			),
+		})
+	}
+
+	c.commandMap[startedEvent.RequestID] = event.CreateMetadata(startedEvent.CommandName)
+	return nil
+}
+
+func processReply(reply *bson.Document) (bool, string) {
+	iter := reply.Iterator()
+	var success bool
+	var errmsg string
+	var errCode int32
+
+	for iter.Next() {
+		elem := iter.Element()
+		switch elem.Key() {
+		case "ok":
+			switch elem.Value().Type() {
+			case bson.TypeInt32:
+				if elem.Value().Int32() == 1 {
+					success = true
+				}
+			case bson.TypeInt64:
+				if elem.Value().Int64() == 1 {
+					success = true
+				}
+			case bson.TypeDouble:
+				if elem.Value().Double() == 1 {
+					success = true
+				}
+			}
+		case "errmsg":
+			if str, ok := elem.Value().StringValueOK(); ok {
+				errmsg = str
+			}
+		case "code":
+			if c, ok := elem.Value().Int32OK(); ok {
+				errCode = c
+			}
+		}
+	}
+
+	if success {
+		return true, ""
+	}
+
+	fullErrMsg := fmt.Sprintf("Error code %d: %s", errCode, errmsg)
+	return false, fullErrMsg
+}
+
+func (c *connection) commandFinishedEvent(wm wiremessage.WireMessage) error {
+	if c.cmdMonitor == nil {
+		return nil
+	}
+
+	var reply *bson.Document
+	var requestID int64
+	var err error
+
+	switch converted := wm.(type) {
+	case wiremessage.Reply:
+		requestID = int64(converted.MsgHeader.ResponseTo)
+		reply, err = converted.GetMainDocument()
+	case wiremessage.Msg:
+		requestID = int64(converted.MsgHeader.ResponseTo)
+		reply, err = converted.GetMainDocument()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	cmdMetadata := c.commandMap[requestID]
+	delete(c.commandMap, requestID)
+	success, errmsg := processReply(reply)
+
+	if (success && c.cmdMonitor.Succeeded == nil) || (!success && c.cmdMonitor.Failed == nil) {
+		return nil
+	}
+
+	finishedEvent := event.CommandFinishedEvent{
+		DurationNanos: cmdMetadata.TimeDifference(),
+		CommandName:   cmdMetadata.Name,
+		RequestID:     requestID,
+		ConnectionID:  c.id,
+	}
+
+	if success {
+		if !canMonitor(finishedEvent.CommandName) {
+			successEvent := &event.CommandSucceededEvent{
+				Reply:                emptyDoc,
+				CommandFinishedEvent: finishedEvent,
+			}
+			c.cmdMonitor.Succeeded(successEvent)
+			return nil
+		}
+
+		// if response has type 1 document sequence, the sequence must be included as a BSON array in the event's reply.
+		if opmsg, ok := wm.(wiremessage.Msg); ok {
+			arr, identifier, err := opmsg.GetSequenceArray()
+			if err != nil {
+				return err
+			}
+			if arr != nil {
+				reply = reply.Copy() // make copy to avoid changing original command
+				reply.Append(bson.EC.Array(identifier, arr))
+			}
+		}
+
+		successEvent := &event.CommandSucceededEvent{
+			Reply:                reply,
+			CommandFinishedEvent: finishedEvent,
+		}
+
+		c.cmdMonitor.Succeeded(successEvent)
+		return nil
+	}
+
+	failureEvent := &event.CommandFailedEvent{
+		Failure:              errmsg,
+		CommandFinishedEvent: finishedEvent,
+	}
+
+	c.cmdMonitor.Failed(failureEvent)
+	return nil
+}
+
 func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessage) error {
 	var err error
 	if c.dead {
@@ -415,6 +628,10 @@ func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMe
 	}
 
 	c.bumpIdleDeadline()
+	err = c.commandStartedEvent(wm)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -562,6 +779,11 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 	}
 
 	c.bumpIdleDeadline()
+	err = c.commandFinishedEvent(wm)
+	if err != nil {
+		return nil, err // TODO: do we care if monitoring fails?
+	}
+
 	return wm, nil
 }
 

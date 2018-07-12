@@ -21,6 +21,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/stretchr/testify/require"
+	"github.com/mongodb/mongo-go-driver/core/event"
+	"github.com/mongodb/mongo-go-driver/core/connection"
 )
 
 var connectionString connstring.ConnString
@@ -71,13 +73,10 @@ func AddCompressorToUri(uri string) string {
 	return AddOptionsToURI(uri, "compressors=", comp)
 }
 
-// Topology gets the globally configured topology.
-func Topology(t *testing.T) *topology.Topology {
-	cs := ConnString(t)
-
+func createTopology(t *testing.T, opts ...topology.Option) (*topology.Topology) {
 	liveTopologyOnce.Do(func() {
 		var err error
-		liveTopology, err = topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+		liveTopology, err = topology.New(opts...)
 		if err != nil {
 			liveTopologyErr = err
 		} else {
@@ -101,6 +100,33 @@ func Topology(t *testing.T) *topology.Topology {
 	}
 
 	return liveTopology
+}
+
+// MonitoredTopology gets the globally configured topology and attaches a command monitor.
+func MonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topology.Topology {
+	cs := ConnString(t)
+	return createTopology(t,
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(
+				opts,
+				topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+					return append(
+						opts,
+						connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
+							return monitor
+						}),
+					)
+				}),
+			)
+		}),
+	)
+}
+
+// Topology gets the globally configured topology.
+func Topology(t *testing.T) *topology.Topology {
+	cs := ConnString(t)
+	return createTopology(t, topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 }
 
 // ColName gets a collection name that should be unique
