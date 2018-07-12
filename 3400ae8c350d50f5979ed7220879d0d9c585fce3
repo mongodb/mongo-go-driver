@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7ef66302_d073170c",
+        "filename": "core/command/read.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-12T19:52:28Z",
+      "side": 1,
+      "message": "Is this condition be true if the response was {ok: 0}, or only if there was no response document returned? If the former, then the driver should still apply the cluster time to the session/clock even on error, as all server response documents should contain $clusterTime regardless of the success/failure of the command.",
+      "revId": "3400ae8c350d50f5979ed7220879d0d9c585fce3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "24483cfd_27974be5",
+        "filename": "core/command/read.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-12T19:52:28Z",
+      "side": 1,
+      "message": "Looks good.  Do you plan to pull this logic out and also invoke from Write.Decode?",
+      "revId": "3400ae8c350d50f5979ed7220879d0d9c585fce3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
