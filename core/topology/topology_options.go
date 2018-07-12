@@ -222,7 +222,6 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			c.serverOpts = append(c.serverOpts, WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
 				return append(opts, connOpts...)
 			}))
-
 		}
 
 		return nil

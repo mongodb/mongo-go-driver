@@ -44,6 +44,7 @@ func newCursor(result bson.Reader, server *Server, opts ...option.CursorOptioner
 	c := &cursor{
 		current: -1,
 		server:  server,
+		opts:    opts,
 	}
 	var ok bool
 	for itr.Next() {
