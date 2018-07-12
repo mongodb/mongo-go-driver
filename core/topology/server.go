@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/option"
 )
 
@@ -359,6 +360,11 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 			// We override whatever handshaker is currently attached to the options with an empty
 			// one because need to make sure we don't do auth.
 			opts = append(opts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
+				return nil
+			}))
+
+			// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
+			opts = append(opts, connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
 				return nil
 			}))
 			conn, _, err = connection.New(ctx, s.address, opts...)

@@ -46,6 +46,7 @@ func IsNil(object interface{}) bool {
 func RequireNotNil(t *testing.T, variable interface{}, msgFormat string, msgVars ...interface{}) {
 	if IsNil(variable) {
 		t.Errorf(msgFormat, msgVars...)
+		t.FailNow()
 	}
 }
 

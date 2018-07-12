@@ -9,6 +9,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
+	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/topology"
@@ -193,6 +194,14 @@ func (cb *ClientBundle) MaxConnsPerHost(u uint16) *ClientBundle {
 func (cb *ClientBundle) MaxIdleConnsPerHost(u uint16) *ClientBundle {
 	return &ClientBundle{
 		option: MaxIdleConnsPerHost(u),
+		next:   cb,
+	}
+}
+
+// Monitor specifies a command monitor for this client.
+func (cb *ClientBundle) Monitor(m *event.CommandMonitor) *ClientBundle {
+	return &ClientBundle{
+		option: Monitor(m),
 		next:   cb,
 	}
 }
@@ -386,6 +395,30 @@ func Dialer(d ContextDialer) Option {
 								opts,
 								connection.WithDialer(func(connection.Dialer) connection.Dialer {
 									return d
+								}),
+							)
+						}),
+					)
+				}),
+			)
+			return nil
+		})
+}
+
+// Monitor specifies a command monitor used to see commands for a client.
+func Monitor(m *event.CommandMonitor) Option {
+	return optionFunc(
+		func(c *Client) error {
+			c.TopologyOptions = append(
+				c.TopologyOptions,
+				topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+					return append(
+						opts,
+						topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+							return append(
+								opts,
+								connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
+									return m
 								}),
 							)
 						}),
