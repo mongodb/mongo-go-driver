@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Query represents the OP_QUERY message of the MongoDB wire protocol.
@@ -136,6 +137,17 @@ func (q *Query) UnmarshalWireMessage(b []byte) error {
 	}
 
 	return nil
+}
+
+// AcknowledgedWrite returns true if this command represents an acknowledged write
+func (q *Query) AcknowledgedWrite() bool {
+	wcElem, err := q.Query.Lookup("writeConcern")
+	if err != nil {
+		// no wc --> ack
+		return true
+	}
+
+	return writeconcern.AcknowledgedElement(wcElem)
 }
 
 // QueryFlag represents the flags on an OP_QUERY message.

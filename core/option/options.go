@@ -604,7 +604,7 @@ type OptMaxTime time.Duration
 
 // Option implements the Optioner interface.
 func (opt OptMaxTime) Option(d *bson.Document) error {
-	d.Append(bson.EC.Int64("maxTimeMS", int64(time.Duration(opt)/time.Millisecond)))
+	d.Append(bson.EC.Int64("maxTimeMS", int64(time.Duration(opt)/time.Microsecond)))
 	return nil
 }
 
