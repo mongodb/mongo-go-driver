@@ -168,6 +168,33 @@ func (m *Msg) UnmarshalWireMessage(b []byte) error {
 	return nil
 }
 
+// GetMainDocument returns the document containing msg metadata.
+func (m *Msg) GetMainDocument() (*bson.Document, error) {
+	return bson.ReadDocument(m.Sections[0].(SectionBody).Document)
+}
+
+// GetSequenceArray returns this message's document sequence as a BSON array along with the array identifier.
+// If this message has no associated document sequence, a nil array is returned.
+func (m *Msg) GetSequenceArray() (*bson.Array, string, error) {
+	if len(m.Sections) == 1 {
+		return nil, "", nil
+	}
+
+	arr := bson.NewArray()
+	sds := m.Sections[1].(SectionDocumentSequence)
+
+	for _, rdr := range sds.Documents {
+		doc, err := bson.ReadDocument([]byte(rdr))
+		if err != nil {
+			return nil, "", err
+		}
+
+		arr.Append(bson.VC.Document(doc))
+	}
+
+	return arr, sds.Identifier, nil
+}
+
 // MsgFlag represents the flags on an OP_MSG message.
 type MsgFlag uint32
 
