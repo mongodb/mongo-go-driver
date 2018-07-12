@@ -28,6 +28,17 @@ func (bc *BooleanCodec) EncodeValue(r *Registry, vw ValueWriter, i interface{}) 
 	return vw.WriteBoolean(val.Bool())
 }
 
-func (bc *BooleanCodec) DecodeValue(*Registry, ValueReader, interface{}) error {
-	panic("not implemented")
+func (bc *BooleanCodec) DecodeValue(r *Registry, vr ValueReader, i interface{}) error {
+	target, ok := i.(*bool)
+	if !ok {
+		return fmt.Errorf("%T can only be used to decode *bool", bc)
+	}
+
+	if vr.Type() != TypeBoolean {
+		return fmt.Errorf("cannot decode %v into a boolean", vr.Type())
+	}
+
+	var err error
+	*target, err = vr.ReadBoolean()
+	return err
 }

@@ -444,6 +444,13 @@ func (vw *valueWriter) WriteDocumentEnd() error {
 		vw.state.pop()                     // pop: vwElement -> vwDocment/vwArray/vwTopLevel
 		vw.state.offset = offset
 		vw.state.size += size
+	case vwTopLevel:
+		if b, ok := vw.wa.(*writer); vw.w != nil && ok {
+			_, err := vw.w.Write(*b)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

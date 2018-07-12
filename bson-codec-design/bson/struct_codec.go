@@ -88,8 +88,77 @@ func (sc *StructCodec) EncodeValue(r *Registry, vw ValueWriter, i interface{}) e
 	return dw.WriteDocumentEnd()
 }
 
-func (sc *StructCodec) DecodeValue(*Registry, ValueReader, interface{}) error {
-	panic("not implemented")
+func (sc *StructCodec) DecodeValue(r *Registry, vr ValueReader, i interface{}) error {
+	val := reflect.ValueOf(i)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct || !val.CanAddr() {
+		return fmt.Errorf("%T can only processes addressable structs, but got %T (addressable: %t)", sc, i, val.CanAddr())
+	}
+
+	sd, err := sc.describeStruct(val.Type())
+	if err != nil {
+		return err
+	}
+
+	dr, err := vr.ReadDocument()
+	if err != nil {
+		return err
+	}
+
+	for {
+		name, vr, err := dr.ReadElement()
+		if err == EOD {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		fd, exists := sd.fm[name]
+		if !exists {
+			// TODO: The default should not be ignore although this is currently how mgo works.
+			// We should return an error unless they have:
+			// 1) specified to ignore extra elements
+			// 2) included and inline map
+			// That said, the other encoding libraries all ignore fields that aren't present in
+			// structs.
+			continue
+		}
+
+		var field reflect.Value
+		if fd.inline == nil {
+			field = val.Field(fd.idx)
+		} else {
+			field = val.FieldByIndex(fd.inline)
+		}
+
+		fieldPtr := field
+		if fieldPtr.Kind() != reflect.Ptr {
+			if !field.CanAddr() {
+				return fmt.Errorf("cannot decode element '%s' into field %v; it is not addressable", name, field)
+			}
+			fieldPtr = field.Addr()
+		} else if fieldPtr.IsNil() {
+			if !fieldPtr.CanSet() {
+				return fmt.Errorf("cannot decode element '%s' into field %v; it is not settable", name, field)
+			}
+			fieldPtr.Set(reflect.New(fieldPtr.Type().Elem()))
+		}
+
+		codec, err := r.Lookup(fieldPtr.Type())
+		if err != nil {
+			return fmt.Errorf("unable to find codec for type %v for field '%s': %v", fieldPtr.Type(), name, err)
+		}
+
+		err = codec.DecodeValue(r, vr, fieldPtr.Interface())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (sc *StructCodec) isZero(v reflect.Value) bool {

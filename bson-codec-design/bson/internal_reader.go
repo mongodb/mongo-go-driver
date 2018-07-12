@@ -6,6 +6,7 @@ import (
 )
 
 type ArrayReader interface {
+	Next() bool
 	ReadValue() (ValueReader, error)
 }
 

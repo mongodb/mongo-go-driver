@@ -24,3 +24,21 @@ func TestBasicEncode(t *testing.T) {
 		})
 	}
 }
+
+func TestBasicDecode(t *testing.T) {
+	for _, tc := range unmarshalingTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := reflect.New(tc.sType).Interface()
+			vr := newValueReader(tc.reader)
+			reg := NewRegistry()
+			codec, err := reg.Lookup(reflect.TypeOf(got))
+			noerr(t, err)
+			err = codec.DecodeValue(reg, vr, got)
+			noerr(t, err)
+
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("Results do not match. got %+v; want %+v", got, tc.want)
+			}
+		})
+	}
+}

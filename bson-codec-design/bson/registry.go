@@ -89,6 +89,10 @@ func (r *Registry) Lookup(t reflect.Type) (Codec, error) {
 		return nil, err
 	}
 
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
 	if t.Kind() == reflect.Struct {
 		return r.ds, nil
 	}
