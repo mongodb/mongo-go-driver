@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/compressor"
+	"github.com/mongodb/mongo-go-driver/core/event"
 )
 
 type config struct {
@@ -20,6 +21,7 @@ type config struct {
 	handshaker     Handshaker
 	idleTimeout    time.Duration
 	lifeTimeout    time.Duration
+	cmdMonitor     *event.CommandMonitor
 	readTimeout    time.Duration
 	writeTimeout   time.Duration
 	tlsConfig      *TLSConfig
@@ -130,6 +132,14 @@ func WithWriteTimeout(fn func(time.Duration) time.Duration) Option {
 func WithTLSConfig(fn func(*TLSConfig) *TLSConfig) Option {
 	return func(c *config) error {
 		c.tlsConfig = fn(c.tlsConfig)
+		return nil
+	}
+}
+
+// WithMonitor configures a event for command monitoring.
+func WithMonitor(fn func(*event.CommandMonitor) *event.CommandMonitor) Option {
+	return func(c *config) error {
+		c.cmdMonitor = fn(c.cmdMonitor)
 		return nil
 	}
 }
