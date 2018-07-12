@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "b6a7aeb8_f4e510ef",
+        "filename": "core/command/read.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-12T20:06:15Z",
+      "side": 1,
+      "message": "Possible problem - it seems like r.err is set in both cases. This is based on the logic in core/command/opreply.go (and also core/command/opmsg.go). We might be able to get around this by checking the type of the error - if the ok flag was not 1, an Error is returned. If there was no response document or an invalid document, the error has a different type (e.g. QueryFailureError).",
+      "parentUuid": "7ef66302_d073170c",
+      "revId": "3400ae8c350d50f5979ed7220879d0d9c585fce3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "24483cfd_27974be5",
         "filename": "core/command/read.go",
         "patchSetId": 14
@@ -33,6 +51,24 @@
       "revId": "3400ae8c350d50f5979ed7220879d0d9c585fce3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8de6ae6f_c2a90309",
+        "filename": "core/command/read.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-12T20:06:15Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "24483cfd_27974be5",
+      "revId": "3400ae8c350d50f5979ed7220879d0d9c585fce3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
