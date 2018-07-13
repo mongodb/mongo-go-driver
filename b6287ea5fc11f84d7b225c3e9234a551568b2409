@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "8d615d85_2a80fa0b",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 413,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-13T13:49:28Z",
+      "side": 1,
+      "message": "The spec speaks to this, though the language has not been updated specifically for OP_MSG: https://github.com/mongodb/specifications/blob/master/source/command-monitoring/command-monitoring.rst#unacknowledged-acknowledged-writes.\n\n\"Unacknowledged writes must provide a CommandSucceededEvent with a { ok: 1 } reply\"",
+      "parentUuid": "6638a5e4_0ab4d508",
+      "revId": "b6287ea5fc11f84d7b225c3e9234a551568b2409",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e1c63744_05c1dd50",
         "filename": "core/monitor/monitoring.go",
         "patchSetId": 1
@@ -81,6 +99,23 @@
       "writtenOn": "2018-07-13T13:42:21Z",
       "side": 1,
       "message": "This is more than just metadata, yeah?",
+      "revId": "b6287ea5fc11f84d7b225c3e9234a551568b2409",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "540255de_0d57da4c",
+        "filename": "mongo/clientopt/clientopt.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 202,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-13T13:49:28Z",
+      "side": 1,
+      "message": "Spell out \"Cmd\" as \"Command\".",
       "revId": "b6287ea5fc11f84d7b225c3e9234a551568b2409",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true

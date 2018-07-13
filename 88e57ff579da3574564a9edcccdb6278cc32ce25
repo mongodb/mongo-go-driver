@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c3c47802_c4cbe6be",
+        "filename": "core/topology/topology_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-13T13:49:28Z",
+      "side": 0,
+      "message": "Avoid whitespace-only changes.",
+      "revId": "88e57ff579da3574564a9edcccdb6278cc32ce25",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
