@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6638a5e4_0ab4d508",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 413,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-13T13:42:21Z",
+      "side": 1,
+      "message": "If this is an OP_MSG with moreToCome \u003d false, then we won\u0027t get a reply and this request will sit in the commandMap forever.",
+      "revId": "b6287ea5fc11f84d7b225c3e9234a551568b2409",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e1c63744_05c1dd50",
+        "filename": "core/monitor/monitoring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-13T13:42:21Z",
+      "side": 1,
+      "message": "At some point in the future, I forsee a number of other events that could part of the system. I\u0027d suggest using \"events\" (or \"event\") for the package.",
+      "revId": "b6287ea5fc11f84d7b225c3e9234a551568b2409",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81ab9af7_7a2be8ad",
+        "filename": "core/monitor/monitoring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-13T13:42:21Z",
+      "side": 1,
+      "message": "I think we should be consistent with naming here. Since the events start with Command spelled out, should just do that here too.",
+      "revId": "b6287ea5fc11f84d7b225c3e9234a551568b2409",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e300c929_072198ff",
+        "filename": "core/wiremessage/msg.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-13T13:42:21Z",
+      "side": 1,
+      "message": "This is more than just metadata, yeah?",
+      "revId": "b6287ea5fc11f84d7b225c3e9234a551568b2409",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cb96f759_a62316af",
+        "filename": "core/wiremessage/reply.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-13T13:42:21Z",
+      "side": 1,
+      "message": "This is more than just metadata, yeah?",
+      "revId": "b6287ea5fc11f84d7b225c3e9234a551568b2409",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
