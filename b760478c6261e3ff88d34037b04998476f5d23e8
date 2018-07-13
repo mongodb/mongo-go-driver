@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "7d5d43ef_488f87a2",
+        "filename": "core/command/find_one_delete.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-13T14:29:46Z",
+      "side": 1,
+      "message": "Sorry, there was other logic after the if statement that was later removed. Will fix in the next patch.",
+      "parentUuid": "97d5bf60_8ee0b84c",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9d4fcf3b_43986ff7",
         "filename": "core/command/kill_cursors.go",
         "patchSetId": 16
@@ -30,6 +48,24 @@
       "writtenOn": "2018-07-13T14:20:28Z",
       "side": 1,
       "message": "Why no ClientSession here?",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f7c1e5df_7f945433",
+        "filename": "core/command/kill_cursors.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-13T14:29:46Z",
+      "side": 1,
+      "message": "The spec says drivers can choose to leave out the sessionID for kill cursors commands because they\u0027re only sent to a single server.",
+      "parentUuid": "9d4fcf3b_43986ff7",
       "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
