@@ -22,14 +22,22 @@ import (
 
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 )
 
 func createTestClient(t *testing.T) *Client {
+	topo := testutil.Topology(t)
+	sub, _ := topo.Subscribe()
+	pool := session.NewPool(sub.C)
+	id, _ := uuid.New()
 	return &Client{
+		id:             id,
 		topology:       testutil.Topology(t),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
+		sessionPool:    pool,
 	}
 }
 
