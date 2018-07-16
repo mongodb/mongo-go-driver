@@ -14,24 +14,28 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
+	"github.com/mongodb/mongo-go-driver/mongo/listdbopt"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
 
 // Client performs operations on a given topology.
 type Client struct {
+	id              uuid.UUID
 	topologyOptions []topology.Option
 	topology        *topology.Topology
 	connString      connstring.ConnString
 	localThreshold  time.Duration
+	clock           *session.ClusterClock
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
 	writeConcern    *writeconcern.WriteConcern
@@ -81,7 +85,13 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 // Connect initializes the Client by starting background monitoring goroutines.
 // This method must be called before a Client can be used.
 func (c *Client) Connect(ctx context.Context) error {
-	return c.topology.Connect(ctx)
+	err := c.topology.Connect(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
 }
 
 // Disconnect closes sockets to the topology referenced by this Client. It will
@@ -93,7 +103,27 @@ func (c *Client) Connect(ctx context.Context) error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
+	c.endSessions(ctx)
 	return c.topology.Disconnect(ctx)
+}
+
+// StartSession starts a new session.
+func (c *Client) StartSession() (*Session, error) {
+	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{Client: sess}, nil
+}
+
+func (c *Client) endSessions(ctx context.Context) {
+	cmd := command.EndSessions{
+		Clock:      c.clock,
+		SessionIDs: c.topology.SessionPool.IDSlice(),
+	}
+
+	_, _ = dispatch.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
 }
 
 func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, error) {
@@ -108,15 +138,27 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 		localThreshold:  defaultLocalThreshold,
 	}
 
+	uuid, err := uuid.New()
+	if err != nil {
+		return nil, err
+	}
+	client.id = uuid
+
 	topts := append(
 		client.topologyOptions,
 		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return client.connString }),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(opts, topology.WithClock(func(clock *session.ClusterClock) *session.ClusterClock {
+				return client.clock
+			}))
+		}),
 	)
 	topo, err := topology.New(topts...)
 	if err != nil {
 		return nil, err
 	}
 	client.topology = topo
+	client.clock = &session.ClusterClock{}
 
 	if client.readConcern == nil {
 		client.readConcern = readConcernFromConnString(&client.connString)
@@ -222,39 +264,50 @@ func (c *Client) ConnectionString() string {
 	return c.connString.Original
 }
 
-func (c *Client) listDatabasesHelper(ctx context.Context, filter interface{},
-	nameOnly bool) (ListDatabasesResult, error) {
+// ListDatabases returns a ListDatabasesResult.
+func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...listdbopt.ListDatabases) (ListDatabasesResult, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	listDbOpts, sess, err := listdbopt.BundleListDatabases(opts...).Unbundle(true)
+	if err != nil {
+		return ListDatabasesResult{}, err
+	}
+
+	if sess != nil && !uuid.Equal(sess.ClientID, c.id) {
+		return ListDatabasesResult{}, ErrWrongClient
+	}
 
 	f, err := TransformDocument(filter)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
 
-	opts := []option.ListDatabasesOptioner{}
-
-	if nameOnly {
-		opts = append(opts, option.OptNameOnly(nameOnly))
+	cmd := command.ListDatabases{
+		Filter:  f,
+		Opts:    listDbOpts,
+		Session: sess,
+		Clock:   c.clock,
 	}
 
-	cmd := command.ListDatabases{Filter: f, Opts: opts}
-
-	// The spec indicates that we should not run the listDatabase command on a secondary in a
-	// replica set.
-	res, err := dispatch.ListDatabases(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.Primary()))
+	res, err := dispatch.ListDatabases(
+		ctx, cmd,
+		c.topology,
+		description.ReadPrefSelector(readpref.Primary()),
+		c.id,
+		c.topology.SessionPool,
+	)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
+
 	return (ListDatabasesResult{}).fromResult(res), nil
 }
 
-// ListDatabases returns a ListDatabasesResult.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}) (ListDatabasesResult, error) {
-	return c.listDatabasesHelper(ctx, filter, false)
-}
-
 // ListDatabaseNames returns a slice containing the names of all of the databases on the server.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}) ([]string, error) {
-	res, err := c.listDatabasesHelper(ctx, filter, true)
+func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...listdbopt.ListDatabases) ([]string, error) {
+	opts = append(opts, listdbopt.NameOnly(true))
+	res, err := c.ListDatabases(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
 	}
