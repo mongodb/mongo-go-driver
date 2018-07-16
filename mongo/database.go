@@ -13,12 +13,13 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
+	"github.com/mongodb/mongo-go-driver/mongo/listcollectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
 )
 
@@ -95,7 +96,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		ctx = context.Background()
 	}
 
-	runCmd, err := runcmdopt.BundleRunCmd(opts...).Unbundle()
+	runCmd, sess, err := runcmdopt.BundleRunCmd(opts...).Unbundle()
 	if err != nil {
 		return nil, err
 	}
@@ -108,23 +109,49 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	if err != nil {
 		return nil, err
 	}
-	return dispatch.Read(ctx, command.Read{
-		DB:       db.Name(),
-		Command:  runCmdDoc,
-		ReadPref: rp,
-	}, db.client.topology, db.writeSelector)
+	return dispatch.Read(ctx,
+		command.Read{
+			DB:       db.Name(),
+			Command:  runCmdDoc,
+			ReadPref: rp,
+			Session:  sess,
+			Clock:    db.client.clock,
+		},
+		db.client.topology,
+		db.writeSelector,
+		db.client.id,
+		db.client.topology.SessionPool,
+	)
 }
 
 // Drop drops this database from mongodb.
-func (db *Database) Drop(ctx context.Context) error {
+func (db *Database) Drop(ctx context.Context, opts ...dbopt.DropDB) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	cmd := command.DropDatabase{
-		DB: db.name,
+	var sess *session.Client
+	for _, opt := range opts {
+		if conv, ok := opt.(dbopt.DropDBSession); ok {
+			sess = conv.ConvertDropDBSession()
+		}
 	}
-	_, err := dispatch.DropDatabase(ctx, cmd, db.client.topology, db.writeSelector)
+	if !writeconcern.AckWrite(db.client.writeConcern) {
+		sess = nil
+	}
+
+	cmd := command.DropDatabase{
+		DB:      db.name,
+		Session: sess,
+		Clock:   db.client.clock,
+	}
+	_, err := dispatch.DropDatabase(
+		ctx, cmd,
+		db.client.topology,
+		db.writeSelector,
+		db.client.id,
+		db.client.topology.SessionPool,
+	)
 	if err != nil && !command.IsNotFound(err) {
 		return err
 	}
@@ -132,20 +159,35 @@ func (db *Database) Drop(ctx context.Context) error {
 }
 
 // ListCollections list collections from mongodb database.
-func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, options ...option.ListCollectionsOptioner) (command.Cursor, error) {
+func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, opts ...listcollectionopt.ListCollections) (command.Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	listCollOpts, sess, err := listcollectionopt.BundleListCollections(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd := command.ListCollections{
 		DB:       db.name,
 		Filter:   filter,
-		Opts:     options,
+		Opts:     listCollOpts,
 		ReadPref: db.readPreference,
+		Session:  sess,
+		Clock:    db.client.clock,
 	}
-	cursor, err := dispatch.ListCollections(ctx, cmd, db.client.topology, db.readSelector)
+
+	cursor, err := dispatch.ListCollections(
+		ctx, cmd,
+		db.client.topology,
+		db.readSelector,
+		db.client.id,
+		db.client.topology.SessionPool,
+	)
 	if err != nil && !command.IsNotFound(err) {
 		return nil, err
 	}
+
 	return cursor, nil
 
 }
