@@ -29,7 +29,7 @@ func TestBasicDecode(t *testing.T) {
 	for _, tc := range unmarshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := reflect.New(tc.sType).Interface()
-			vr := newValueReader(tc.reader)
+			vr := newValueReader(tc.data)
 			reg := NewRegistry()
 			codec, err := reg.Lookup(reflect.TypeOf(got))
 			noerr(t, err)

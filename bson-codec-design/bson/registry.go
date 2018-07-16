@@ -7,7 +7,13 @@ import (
 )
 
 // ErrNoCodec is returned when there is no codec available for a type or interface in the registry.
-var ErrNoCodec = errors.New("No codec found")
+type ErrNoCodec struct {
+	Type reflect.Type
+}
+
+func (enc ErrNoCodec) Error() string {
+	return "no codec found for " + enc.Type.String()
+}
 
 // ErrNotInterface is returned when the provided type is not an interface.
 var ErrNotInterface = errors.New("The provided typeis not an interface")
@@ -20,8 +26,9 @@ type Registry struct {
 	tr *typeRegistry
 	ir *interfaceRegistry
 
-	dm Codec // default map codec
-	ds Codec // default struct codec
+	dm   Codec // default map codec
+	ds   Codec // default struct codec
+	dslc Codec // default slice & array codec
 
 	l sync.RWMutex
 }
@@ -32,9 +39,10 @@ func NewRegistry() *Registry {
 	tr.register(reflect.TypeOf(false), new(BooleanCodec))
 
 	return &Registry{
-		tr: tr,
-		ir: &interfaceRegistry{reg: make([]interfacePair, 0)},
-		ds: defaultStructCodec,
+		tr:   tr,
+		ir:   &interfaceRegistry{reg: make([]interfacePair, 0)},
+		ds:   defaultStructCodec,
+		dslc: defaultSliceCodec,
 	}
 }
 
@@ -73,19 +81,23 @@ func (r *Registry) Lookup(t reflect.Type) (Codec, error) {
 
 	codec, err := r.tr.lookup(t)
 	switch err {
-	case ErrNoCodec: // continue
 	case nil:
 		return codec, nil
 	default:
+		if _, ok := err.(ErrNoCodec); ok {
+			break // continue
+		}
 		return nil, err
 	}
 
 	codec, err = r.ir.lookup(t)
 	switch err {
-	case ErrNoCodec: // continue
 	case nil:
 		return codec, nil
 	default:
+		if _, ok := err.(ErrNoCodec); ok {
+			break // continue
+		}
 		return nil, err
 	}
 
@@ -97,11 +109,15 @@ func (r *Registry) Lookup(t reflect.Type) (Codec, error) {
 		return r.ds, nil
 	}
 
+	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
+		return r.dslc, nil
+	}
+
 	if t.Kind() == reflect.Map && t.Key().Kind() == reflect.String {
 		return r.dm, nil
 	}
 
-	return nil, ErrNoCodec
+	return nil, ErrNoCodec{Type: t}
 }
 
 // The type registry handles codecs that are for specifics types that are not interfaces.
@@ -123,7 +139,7 @@ func (tr *typeRegistry) lookup(t reflect.Type) (Codec, error) {
 	defer tr.RUnlock()
 	codec, exists := tr.reg[t]
 	if !exists {
-		return nil, ErrNoCodec
+		return nil, ErrNoCodec{Type: t}
 	}
 	return codec, nil
 }
@@ -165,7 +181,7 @@ func (ir *interfaceRegistry) lookup(t reflect.Type) (Codec, error) {
 
 		return ip.c, nil
 	}
-	return nil, ErrNoCodec
+	return nil, ErrNoCodec{Type: t}
 }
 
 // register adds a new codec to this registry for the given interface.

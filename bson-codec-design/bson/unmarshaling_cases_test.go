@@ -8,11 +8,11 @@ import (
 )
 
 type unmarshalingTestCase struct {
-	name   string
-	reg    *Registry
-	sType  reflect.Type
-	want   interface{}
-	reader io.Reader
+	name  string
+	reg   *Registry
+	sType reflect.Type
+	want  interface{}
+	data  []byte
 }
 
 var unmarshalingTestCases = []unmarshalingTestCase{
@@ -25,7 +25,39 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 		&struct {
 			Foo bool
 		}{Foo: true},
-		ioReaderFromDoc(NewDocument(EC.Boolean("foo", true))),
+		bytesFromDoc(NewDocument(EC.Boolean("foo", true))),
+	},
+	{
+		"nested document",
+		nil,
+		reflect.TypeOf(struct {
+			Foo struct {
+				Bar bool
+			}
+		}{}),
+		&struct {
+			Foo struct {
+				Bar bool
+			}
+		}{
+			Foo: struct {
+				Bar bool
+			}{Bar: true},
+		},
+		bytesFromDoc(NewDocument(EC.SubDocumentFromElements("foo", EC.Boolean("bar", true)))),
+	},
+	{
+		"simple array",
+		nil,
+		reflect.TypeOf(struct {
+			Foo []bool
+		}{}),
+		&struct {
+			Foo []bool
+		}{
+			Foo: []bool{true},
+		},
+		bytesFromDoc(NewDocument(EC.ArrayFromElements("foo", VC.Boolean(true)))),
 	},
 }
 

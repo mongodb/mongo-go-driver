@@ -125,6 +125,7 @@ func (sc *StructCodec) DecodeValue(r *Registry, vr ValueReader, i interface{}) e
 			// That said, the other encoding libraries all ignore fields that aren't present in
 			// structs.
 			continue
+			// TODO: We need to call dr.Skip()
 		}
 
 		var field reflect.Value
