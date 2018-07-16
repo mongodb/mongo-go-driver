@@ -77,6 +77,7 @@ func TestCollection_initialize(t *testing.T) {
 	coll := createTestCollection(t, &dbName, &collName)
 	require.Equal(t, coll.name, collName)
 	require.NotNil(t, coll.db)
+
 }
 
 func compareColls(t *testing.T, expected *Collection, got *Collection) {
@@ -114,11 +115,13 @@ func TestCollection_Options(t *testing.T) {
 		// if options specified multiple times, last instance should take precedence
 		coll := createTestCollection(t, &dbName, &name, opts...)
 		compareColls(t, expectedColl, coll)
+
 	})
 
 	t.Run("Bundle", func(t *testing.T) {
 		coll := createTestCollection(t, &dbName, &name, collectionopt.BundleCollection(opts...))
 		compareColls(t, expectedColl, coll)
+
 	})
 }
 
@@ -155,6 +158,7 @@ func TestCollection_namespace(t *testing.T) {
 	coll := createTestCollection(t, &dbName, &collName)
 	namespace := coll.namespace()
 	require.Equal(t, namespace.FullName(), fmt.Sprintf("%s.%s", dbName, collName))
+
 }
 
 func TestCollection_name_accessor(t *testing.T) {
@@ -185,6 +189,7 @@ func TestCollection_InsertOne(t *testing.T) {
 	result, err := coll.InsertOne(context.Background(), doc)
 	require.Nil(t, err)
 	require.Equal(t, result.InsertedID, want)
+
 }
 
 func TestCollection_InsertOne_WriteError(t *testing.T) {
@@ -239,6 +244,7 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
 	}
+
 }
 
 func TestCollection_InsertMany(t *testing.T) {
@@ -264,6 +270,7 @@ func TestCollection_InsertMany(t *testing.T) {
 	require.Equal(t, result.InsertedIDs[0], want1)
 	require.NotNil(t, result.InsertedIDs[1])
 	require.Equal(t, result.InsertedIDs[2], want2)
+
 }
 
 func TestCollection_InsertMany_Batches(t *testing.T) {
@@ -277,7 +284,7 @@ func TestCollection_InsertMany_Batches(t *testing.T) {
 		t.Skip("skipping long running integration test outside of evergreen")
 	}
 
-	t.Parallel()
+	//t.Parallel()
 
 	const (
 		megabyte = 10 * 10 * 10 * 10 * 10 * 10
@@ -300,11 +307,14 @@ func TestCollection_InsertMany_Batches(t *testing.T) {
 		total += len
 	}
 	assert.True(t, total > 16*megabyte)
-	coll := createTestCollection(t, nil, nil)
+	dbName := "InsertManyBatchesDB"
+	collName := "InsertManyBatchesColl"
+	coll := createTestCollection(t, &dbName, &collName)
 
 	result, err := coll.InsertMany(context.Background(), docs)
 	require.Nil(t, err)
 	require.Len(t, result.InsertedIDs, numDocs)
+
 }
 
 func TestCollection_InsertMany_ErrorCases(t *testing.T) {
@@ -391,6 +401,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 			t.Errorf("write concern error is nil: %+v", bulkErr)
 		}
 	})
+
 }
 
 func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
@@ -421,6 +432,7 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 	if got.WriteConcernError.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.WriteConcernError.Message, want.Message)
 	}
+
 }
 
 func TestCollection_DeleteOne_found(t *testing.T) {
@@ -438,6 +450,7 @@ func TestCollection_DeleteOne_found(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, result)
 	require.Equal(t, result.DeletedCount, int64(1))
+
 }
 
 func TestCollection_DeleteOne_notFound(t *testing.T) {
@@ -454,6 +467,7 @@ func TestCollection_DeleteOne_notFound(t *testing.T) {
 	result, err := coll.DeleteOne(context.Background(), filter)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
+
 }
 
 func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
@@ -474,6 +488,7 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 	result, err := coll.DeleteOne(context.Background(), filter, deleteopt.Collation(collationOpt))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
+
 }
 
 func TestCollection_DeleteOne_WriteError(t *testing.T) {
@@ -509,6 +524,7 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 	if got[0].Code != want.Code {
 		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
 	}
+
 }
 
 func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
@@ -535,6 +551,7 @@ func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
 	}
+
 }
 
 func TestCollection_DeleteMany_found(t *testing.T) {
@@ -553,6 +570,7 @@ func TestCollection_DeleteMany_found(t *testing.T) {
 	result, err := coll.DeleteMany(context.Background(), filter)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(3))
+
 }
 
 func TestCollection_DeleteMany_notFound(t *testing.T) {
@@ -571,6 +589,7 @@ func TestCollection_DeleteMany_notFound(t *testing.T) {
 	result, err := coll.DeleteMany(context.Background(), filter)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
+
 }
 
 func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
@@ -589,6 +608,7 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 	result, err := coll.DeleteMany(context.Background(), filter, deleteopt.Collation(&mongoopt.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
+
 }
 
 func TestCollection_DeleteMany_WriteError(t *testing.T) {
@@ -624,6 +644,7 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 	if got[0].Code != want.Code {
 		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
 	}
+
 }
 
 func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
@@ -650,6 +671,7 @@ func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
 	}
+
 }
 
 func TestCollection_UpdateOne_found(t *testing.T) {
@@ -672,6 +694,7 @@ func TestCollection_UpdateOne_found(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(1))
 	require.Nil(t, result.UpsertedID)
+
 }
 
 func TestCollection_UpdateOne_notFound(t *testing.T) {
@@ -693,6 +716,7 @@ func TestCollection_UpdateOne_notFound(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.Nil(t, result.UpsertedID)
+
 }
 
 func TestCollection_UpdateOne_upsert(t *testing.T) {
@@ -714,6 +738,7 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
+
 }
 
 func TestCollection_UpdateOne_WriteError(t *testing.T) {
@@ -748,6 +773,7 @@ func TestCollection_UpdateOne_WriteError(t *testing.T) {
 	if got[0].Code != want.Code {
 		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
 	}
+
 }
 
 func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
@@ -780,6 +806,7 @@ func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
 	}
+
 }
 
 func TestCollection_UpdateMany_found(t *testing.T) {
@@ -803,6 +830,7 @@ func TestCollection_UpdateMany_found(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(3))
 	require.Equal(t, result.ModifiedCount, int64(3))
 	require.Nil(t, result.UpsertedID)
+
 }
 
 func TestCollection_UpdateMany_notFound(t *testing.T) {
@@ -826,6 +854,7 @@ func TestCollection_UpdateMany_notFound(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.Nil(t, result.UpsertedID)
+
 }
 
 func TestCollection_UpdateMany_upsert(t *testing.T) {
@@ -849,6 +878,7 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
+
 }
 
 func TestCollection_UpdateMany_WriteError(t *testing.T) {
@@ -916,6 +946,7 @@ func TestCollection_UpdateMany_WriteConcernError(t *testing.T) {
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
 	}
+
 }
 
 func TestCollection_ReplaceOne_found(t *testing.T) {
@@ -937,6 +968,7 @@ func TestCollection_ReplaceOne_found(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(1))
 	require.Nil(t, result.UpsertedID)
+
 }
 
 func TestCollection_ReplaceOne_notFound(t *testing.T) {
@@ -957,6 +989,7 @@ func TestCollection_ReplaceOne_notFound(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.Nil(t, result.UpsertedID)
+
 }
 
 func TestCollection_ReplaceOne_upsert(t *testing.T) {
@@ -977,6 +1010,7 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
 	require.NotNil(t, result.UpsertedID)
+
 }
 
 func TestCollection_ReplaceOne_WriteError(t *testing.T) {
@@ -1009,6 +1043,7 @@ func TestCollection_ReplaceOne_WriteError(t *testing.T) {
 		t.Errorf("Did not receive the correct error code. got %d; want (one of) %d", got[0].Code, []int{66, 16837})
 		fmt.Printf("%#v\n", got)
 	}
+
 }
 
 func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
@@ -1036,6 +1071,7 @@ func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
 	if got.Message != want.Message {
 		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
 	}
+
 }
 
 func TestCollection_Aggregate(t *testing.T) {
@@ -1090,6 +1126,7 @@ func TestCollection_Aggregate(t *testing.T) {
 		}
 		require.Equal(t, int(num.Int32()), i)
 	}
+
 }
 
 func testAggregateWithOptions(t *testing.T, createIndex bool, opts aggregateopt.Aggregate) error {

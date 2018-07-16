@@ -14,6 +14,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 )
 
@@ -26,6 +28,8 @@ type changeStream struct {
 	options     []option.ChangeStreamOptioner
 	coll        *Collection
 	cursor      Cursor
+	session     *session.Client
+	clock       *session.ClusterClock
 	resumeToken *bson.Document
 	err         error
 }
@@ -41,9 +45,13 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		return nil, err
 	}
 
-	csOpts, err := changestreamopt.BundleChangeStream(opts...).Unbundle(true)
+	csOpts, sess, err := changestreamopt.BundleChangeStream(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
+	}
+
+	if sess != nil && !uuid.Equal(sess.ClientID, coll.client.id) {
+		return nil, ErrWrongClient
 	}
 
 	changeStreamOptions := bson.NewDocument()
@@ -70,6 +78,8 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		options:  csOpts,
 		coll:     coll,
 		cursor:   cursor,
+		session:  sess,
+		clock:    coll.client.clock,
 	}
 
 	return cs, nil
@@ -152,8 +162,13 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 	aggCmd := command.Aggregate{
 		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Pipeline: cs.pipeline,
+		Session:  cs.session,
+		Clock:    cs.coll.client.clock,
 	}
-	cs.cursor, cs.err = aggCmd.RoundTrip(ctx, ss.Description(), ss, conn)
+
+	cur, err := aggCmd.RoundTrip(ctx, ss.Description(), ss, conn)
+	cs.cursor = cur
+	cs.err = err
 
 	if cs.err != nil {
 		return false
