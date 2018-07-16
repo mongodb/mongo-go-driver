@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
@@ -151,7 +152,12 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 
 	// convert options into []option.InsertOptioner and dedup
-	oneOpts, err := insertopt.BundleOne(opts...).Unbundle(true)
+	oneOpts, sess, err := insertopt.BundleOne(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -162,13 +168,23 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		Docs:         []*bson.Document{doc},
 		Opts:         oneOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
 
-	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector)
+	res, err := dispatch.Insert(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrOne == 0 {
 		return nil, err
 	}
+
 	return &InsertOneResult{InsertedID: insertedID}, err
 }
 
@@ -207,7 +223,12 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	// convert options into []option.InsertOptioner and dedup
-	manyOpts, err := insertopt.BundleMany(opts...).Unbundle(true)
+	manyOpts, sess, err := insertopt.BundleMany(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -218,9 +239,18 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		Docs:         docs,
 		Opts:         manyOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
 
-	res, err := dispatch.Insert(ctx, cmd, coll.client.topology, coll.writeSelector)
+	res, err := dispatch.Insert(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
+
 	switch err {
 	case nil:
 	case command.ErrUnacknowledgedWrite:
@@ -234,6 +264,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 			WriteConcernError: convertWriteConcernError(res.WriteConcernError),
 		}
 	}
+
 	return &InsertManyResult{InsertedIDs: result}, err
 }
 
@@ -260,7 +291,12 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 			bson.EC.Int32("limit", 1)),
 	}
 
-	deleteOpts, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	deleteOpts, sess, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -271,9 +307,18 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		Deletes:      deleteDocs,
 		Opts:         deleteOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
 
-	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector)
+	res, err := dispatch.Delete(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrOne == 0 {
 		return nil, err
@@ -301,7 +346,12 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	}
 	deleteDocs := []*bson.Document{bson.NewDocument(bson.EC.SubDocument("q", f), bson.EC.Int32("limit", 0))}
 
-	deleteOpts, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	deleteOpts, sess, err := deleteopt.BundleDelete(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -312,9 +362,18 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 		Deletes:      deleteDocs,
 		Opts:         deleteOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
 
-	res, err := dispatch.Delete(ctx, cmd, coll.client.topology, coll.writeSelector)
+	res, err := dispatch.Delete(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
+
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
 	if rr&rrMany == 0 {
 		return nil, err
@@ -323,7 +382,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
-	update *bson.Document, opts ...option.UpdateOptioner) (*UpdateResult, error) {
+	update *bson.Document, sess *session.Client, opts ...option.UpdateOptioner) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -343,12 +402,21 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		Docs:         updateDocs,
 		Opts:         opts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
 
-	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector)
+	r, err := dispatch.Update(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
 		return nil, err
 	}
+
 	res := &UpdateResult{
 		MatchedCount:  r.MatchedCount,
 		ModifiedCount: r.ModifiedCount,
@@ -392,12 +460,17 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		return nil, err
 	}
 
-	updOpts, err := updateopt.BundleUpdate(options...).Unbundle(true)
+	updOpts, sess, err := updateopt.BundleUpdate(options...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
-	return coll.updateOrReplaceOne(ctx, f, u, updOpts...)
+	err = coll.client.ValidSession(sess)
+	if err != nil {
+		return nil, err
+	}
+
+	return coll.updateOrReplaceOne(ctx, f, u, sess, updOpts...)
 }
 
 // UpdateMany updates multiple documents in the collection. A user can supply
@@ -435,7 +508,12 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		),
 	}
 
-	updOpts, err := updateopt.BundleUpdate(opts...).Unbundle(true)
+	updOpts, sess, err := updateopt.BundleUpdate(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -446,9 +524,17 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		Docs:         updateDocs,
 		Opts:         updOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
 
-	r, err := dispatch.Update(ctx, cmd, coll.client.topology, coll.writeSelector)
+	r, err := dispatch.Update(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
 		return nil, err
 	}
@@ -496,7 +582,12 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
 	}
 
-	repOpts, err := replaceopt.BundleReplace(opts...).Unbundle(true)
+	repOpts, sess, err := replaceopt.BundleReplace(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -506,7 +597,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		updateOptions = append(updateOptions, opt)
 	}
 
-	return coll.updateOrReplaceOne(ctx, f, r, updateOptions...)
+	return coll.updateOrReplaceOne(ctx, f, r, sess, updateOptions...)
 }
 
 // Aggregate runs an aggregation framework pipeline. A user can supply a custom context to
@@ -530,7 +621,12 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	}
 
 	// convert options into []option.Optioner and dedup
-	aggOpts, err := aggregateopt.BundleAggregate(opts...).Unbundle(true)
+	aggOpts, sess, err := aggregateopt.BundleAggregate(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -543,9 +639,18 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		ReadPref:     coll.readPreference,
 		WriteConcern: coll.writeConcern,
 		ReadConcern:  coll.readConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
 
-	return dispatch.Aggregate(ctx, cmd, coll.client.topology, coll.readSelector, coll.writeSelector)
+	return dispatch.Aggregate(
+		ctx, cmd,
+		coll.client.topology,
+		coll.readSelector,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 }
 
 // Count gets the number of documents matching the filter. A user can supply a
@@ -566,7 +671,12 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		return 0, err
 	}
 
-	countOpts, err := countopt.BundleCount(opts...).Unbundle(true)
+	countOpts, sess, err := countopt.BundleCount(opts...).Unbundle(true)
+	if err != nil {
+		return 0, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return 0, err
 	}
@@ -578,8 +688,17 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		Opts:        countOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: coll.readConcern,
+		Session:     sess,
+		Clock:       coll.client.clock,
 	}
-	return dispatch.Count(ctx, cmd, coll.client.topology, coll.readSelector)
+
+	return dispatch.Count(
+		ctx, cmd,
+		coll.client.topology,
+		coll.readSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 }
 
 // Distinct finds the distinct values for a specified field across a single
@@ -605,7 +724,12 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		}
 	}
 
-	distinctOpts, err := distinctopt.BundleDistinct(opts...).Unbundle(true)
+	distinctOpts, sess, err := distinctopt.BundleDistinct(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -618,8 +742,17 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		Opts:        distinctOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: coll.readConcern,
+		Session:     sess,
+		Clock:       coll.client.clock,
 	}
-	res, err := dispatch.Distinct(ctx, cmd, coll.client.topology, coll.readSelector)
+
+	res, err := dispatch.Distinct(
+		ctx, cmd,
+		coll.client.topology,
+		coll.readSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -649,7 +782,12 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 	}
 
-	findOpts, err := findopt.BundleFind(opts...).Unbundle(true)
+	findOpts, sess, err := findopt.BundleFind(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -661,8 +799,17 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Opts:        findOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: coll.readConcern,
+		Session:     sess,
+		Clock:       coll.client.clock,
 	}
-	return dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector)
+
+	return dispatch.Find(
+		ctx, cmd,
+		coll.client.topology,
+		coll.readSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 }
 
 // FindOne returns up to one document that matches the model. A user can
@@ -688,11 +835,16 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		}
 	}
 
-	findOneOpts, err := findopt.BundleOne(opts...).Unbundle(true)
+	findOneOpts, sess, err := findopt.BundleOne(opts...).Unbundle(true)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
 	findOneOpts = append(findOneOpts, findopt.Limit(1).ConvertFindOption())
+
+	err = coll.client.ValidSession(sess)
+	if err != nil {
+		return &DocumentResult{err: err}
+	}
 
 	oldns := coll.namespace()
 	cmd := command.Find{
@@ -701,8 +853,17 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		Opts:        findOneOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: coll.readConcern,
+		Session:     sess,
+		Clock:       coll.client.clock,
 	}
-	cursor, err := dispatch.Find(ctx, cmd, coll.client.topology, coll.readSelector)
+
+	cursor, err := dispatch.Find(
+		ctx, cmd,
+		coll.client.topology,
+		coll.readSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -735,7 +896,12 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		}
 	}
 
-	findOpts, err := findopt.BundleDeleteOne(opts...).Unbundle(true)
+	findOpts, sess, err := findopt.BundleDeleteOne(opts...).Unbundle(true)
+	if err != nil {
+		return &DocumentResult{err: err}
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -746,9 +912,17 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		Query:        f,
 		Opts:         findOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
 
-	res, err := dispatch.FindOneAndDelete(ctx, cmd, coll.client.topology, coll.writeSelector)
+	res, err := dispatch.FindOneAndDelete(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -786,8 +960,13 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		return &DocumentResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
 	}
 
-	findOpts, err := findopt.BundleReplaceOne(opts...).Unbundle(true)
+	findOpts, sess, err := findopt.BundleReplaceOne(opts...).Unbundle(true)
 
+	if err != nil {
+		return &DocumentResult{err: err}
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -799,8 +978,17 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		Replacement:  r,
 		Opts:         findOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
-	res, err := dispatch.FindOneAndReplace(ctx, cmd, coll.client.topology, coll.writeSelector)
+
+	res, err := dispatch.FindOneAndReplace(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -838,7 +1026,12 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &DocumentResult{err: errors.New("update document must contain key beginning with '$")}
 	}
 
-	findOpts, err := findopt.BundleUpdateOne(opts...).Unbundle(true)
+	findOpts, sess, err := findopt.BundleUpdateOne(opts...).Unbundle(true)
+	if err != nil {
+		return &DocumentResult{err: err}
+	}
+
+	err = coll.client.ValidSession(sess)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -850,8 +1043,17 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		Update:       u,
 		Opts:         findOpts,
 		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
 	}
-	res, err := dispatch.FindOneAndUpdate(ctx, cmd, coll.client.topology, coll.writeSelector)
+
+	res, err := dispatch.FindOneAndUpdate(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 	if err != nil {
 		return &DocumentResult{err: err}
 	}
@@ -873,16 +1075,37 @@ func (coll *Collection) Indexes() IndexView {
 }
 
 // Drop drops this collection from database.
-func (coll *Collection) Drop(ctx context.Context) error {
+func (coll *Collection) Drop(ctx context.Context, opts ...collectionopt.Drop) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	cmd := command.DropCollection{
-		DB:         coll.db.name,
-		Collection: coll.name,
+	var sess *session.Client
+	for _, opt := range opts {
+		if conv, ok := opt.(collectionopt.DropCollSession); ok {
+			sess = conv.ConvertDropCollSession()
+		}
 	}
-	_, err := dispatch.DropCollection(ctx, cmd, coll.client.topology, coll.writeSelector)
+
+	err := coll.client.ValidSession(sess)
+	if err != nil {
+		return err
+	}
+
+	cmd := command.DropCollection{
+		DB:           coll.db.name,
+		Collection:   coll.name,
+		WriteConcern: coll.writeConcern,
+		Session:      sess,
+		Clock:        coll.client.clock,
+	}
+	_, err = dispatch.DropCollection(
+		ctx, cmd,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+	)
 	if err != nil && !command.IsNotFound(err) {
 		return err
 	}
