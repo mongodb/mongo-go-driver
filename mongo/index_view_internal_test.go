@@ -33,7 +33,7 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 	rand.Seed(atomic.LoadInt64(&seed))
 
 	client := createTestClient(t)
-	db := client.Database("IndexView")
+	db := client.Database(t.Name())
 
 	randomBytes := make([]byte, 16)
 	_, err := rand.Read(randomBytes)
@@ -60,7 +60,7 @@ func TestIndexView_List(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	cursor, err := indexView.List(context.Background())
@@ -93,7 +93,7 @@ func TestIndexView_CreateOne(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexName, err := indexView.CreateOne(
@@ -136,7 +136,7 @@ func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexName, err := indexView.CreateOne(
@@ -271,7 +271,7 @@ func TestIndexView_CreateMany(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexNames, err := indexView.CreateMany(
@@ -336,7 +336,7 @@ func TestIndexView_DropOne(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexNames, err := indexView.CreateMany(
@@ -388,7 +388,7 @@ func TestIndexView_DropAll(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexNames, err := indexView.CreateMany(
@@ -440,7 +440,7 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	var opts []indexopt.Create
@@ -515,7 +515,7 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	var opts []indexopt.Drop

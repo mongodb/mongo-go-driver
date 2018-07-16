@@ -22,14 +22,20 @@ import (
 
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 )
 
 func createTestClient(t *testing.T) *Client {
+	id, _ := uuid.New()
 	return &Client{
+		id:             id,
 		topology:       testutil.Topology(t),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
+		clock:          &session.ClusterClock{},
 	}
 }
 
@@ -197,10 +203,11 @@ func TestClient_ListDatabases_noFilter(t *testing.T) {
 	}
 
 	dbName := "listDatabases_noFilter"
-
 	c := createTestClient(t)
 	db := c.Database(dbName)
-	_, err := db.Collection("test").InsertOne(
+	coll := db.Collection("test")
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("x", 1),
@@ -235,7 +242,9 @@ func TestClient_ListDatabases_filter(t *testing.T) {
 
 	c := createTestClient(t)
 	db := c.Database(dbName)
-	_, err := db.Collection("test").InsertOne(
+	coll := db.Collection("test")
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("x", 1),
@@ -265,7 +274,10 @@ func TestClient_ListDatabaseNames_noFilter(t *testing.T) {
 
 	c := createTestClient(t)
 	db := c.Database(dbName)
-	_, err := db.Collection("test").InsertOne(
+	coll := db.Collection("test")
+
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("x", 1),
@@ -298,7 +310,9 @@ func TestClient_ListDatabaseNames_filter(t *testing.T) {
 
 	c := createTestClient(t)
 	db := c.Database(dbName)
-	_, err := db.Collection("test").InsertOne(
+	coll := db.Collection("test")
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("x", 1),

@@ -293,6 +293,7 @@ func TestDatabase_ListCollections(t *testing.T) {
 			db := createTestDatabase(t, &dbName, dbopt.ReadPreference(tt.rp))
 
 			defer func() {
+				db.client.endSessions(context.Background())
 				err := db.Drop(context.Background())
 				require.NoError(t, err)
 			}()
@@ -301,4 +302,5 @@ func TestDatabase_ListCollections(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+
 }
