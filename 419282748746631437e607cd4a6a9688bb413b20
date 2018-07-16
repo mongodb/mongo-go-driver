@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "56e3bcf0_8c0ec8d6",
+        "filename": "core/dispatch/dispatch.go",
+        "patchSetId": 18
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-16T20:10:03Z",
+      "side": 1,
+      "message": "Wasn\u0027t sure the best place to put/use this, but basically the spec says to initialize server selection for data bearing servers if this condition is met for a given topologydescription and connection type: \"is not a direct connection AND is not connected to a data-bearing server\"",
+      "range": {
+        "startLine": 17,
+        "startChar": 5,
+        "endLine": 17,
+        "endChar": 27
+      },
+      "revId": "419282748746631437e607cd4a6a9688bb413b20",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
