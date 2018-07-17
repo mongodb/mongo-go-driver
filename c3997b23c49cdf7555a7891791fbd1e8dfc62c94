@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "144a132c_fce76957",
+        "filename": "core/dispatch/distinct.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:16:40Z",
+      "side": 1,
+      "message": "After looking at Roland\u0027s client code review, it seems like the only reason we are in this situation is that they might have provided us without a session at all and we need to use the implicit session.\n\nA) Should we ever have more than 1 implicit session? If not, then can it get created once in the mongo.Client and just passed everywhere when one is not provided?\n\nB) Is an implicit session actually linked to a pool? If it should never be added to a pool, then why does it need one?\n\nIf these get answered the way I think they can, I believe that all this code in every dispatch method can go away.",
+      "parentUuid": "bc9c5092_54f8e551",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dc9fa42c_047a744a",
         "filename": "core/session/cluster_clock.go",
         "patchSetId": 19
