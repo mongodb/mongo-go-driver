@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "96a926d2_a1d18735",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T21:25:15Z",
+      "side": 1,
+      "message": "This logic basically checks if we previously did not support sessions, if so we go through the data bearing servers to check if this is still true; basically taking the lowest sessiontimeout for the servers.  Otherwise we just take the smaller of the current and new timeouts.  Does this seem right?",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
