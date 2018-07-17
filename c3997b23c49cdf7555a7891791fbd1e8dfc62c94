@@ -90,6 +90,24 @@
     },
     {
       "key": {
+        "uuid": "27df1849_a983574b",
+        "filename": "core/dispatch/distinct.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T13:39:41Z",
+      "side": 1,
+      "message": "Fair enough about pooling... \n\nIf the client always provided a session (implicit or otherwise), this wouldn\u0027t be necessary at all would it?",
+      "parentUuid": "4d1603a7_ab1e4045",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dc9fa42c_047a744a",
         "filename": "core/session/cluster_clock.go",
         "patchSetId": 19
@@ -136,6 +154,24 @@
       "side": 1,
       "message": "Chose a pool because I didn\u0027t know how big the channel\u0027s buffer would be. It\u0027s possible to create an arbitrary number of sessions and put them all in the pool.",
       "parentUuid": "25d00385_1ed3b8f9",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d8af0c99_af81ee5c",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T13:39:41Z",
+      "side": 1,
+      "message": "Given that the spec requires you to remove sessions from the end of the pool, I think you\u0027ve made a good choice here.",
+      "parentUuid": "5c102b06_21490043",
       "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -363,6 +399,24 @@
       "side": 1,
       "message": "Although it\u0027s inefficient, it sounds correct. We use this number to determine whether or not we send sessions with our commands, so it needs to reflect the capabilities of the server we\u0027re connected to, even though this may mean changing the number every time we connect to a different server.",
       "parentUuid": "e66f31df_7cbcd184",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ff91ed81_7b517d93",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T13:39:41Z",
+      "side": 1,
+      "message": "A. It\u0027s not about efficiency. It\u0027s about what should be returned when someone asks for session timeout minutes. When you are connected to multiple servers (A and B) from our example, it should always return 0 when either of them doesn\u0027t support sessions. So I don\u0027t think this is right.\n\nB. Also, you should only be checking for this if the server is a data-bearing server. I think that answers my other question about the DataBearing server selector elsewhere. I don\u0027t believe it\u0027s needed. You only need to worry about that here.",
+      "parentUuid": "4baa94f3_e321e8ca",
       "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
