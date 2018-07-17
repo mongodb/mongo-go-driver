@@ -16,6 +16,75 @@
       "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1f0926d0_d071899a",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T21:56:50Z",
+      "side": 1,
+      "message": "This looks great!",
+      "parentUuid": "96a926d2_a1d18735",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8a0d2e8b_8902189d",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T21:56:50Z",
+      "side": 1,
+      "message": "either move this variable inside the first if statement, or also use it in the else statement.",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "445e96bd_9b957884",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T21:56:50Z",
+      "side": 1,
+      "message": "if server.DataBearing() \u0026\u0026 server.SessionTimeoutMinutes \u003c timeout {",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "79ef1284_1722abcc",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T21:56:50Z",
+      "side": 1,
+      "message": "do we need this line? I mean, nothing is changing.",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }

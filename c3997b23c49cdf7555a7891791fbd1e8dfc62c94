@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "603bba6f_1e68261a",
+        "filename": "core/command/command.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T21:56:50Z",
+      "side": 1,
+      "message": "We need to extract this logic into the feature package... feature.SupportsSessions or something.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7af62595_2ddc7ec3",
         "filename": "core/dispatch/dispatch.go",
         "patchSetId": 19
