@@ -16,6 +16,24 @@
       "revId": "011cb7bfef2bc57d5219aec68c84d82728f984a0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f5a74113_1347605d",
+        "filename": "core/command/start_session.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "I think the idea was to provide some way for users of core to create a server session (similar to things like GetLastError, which are provided to core users but not actually used by the driver).  Mongo however creates sessions locally so this wasn\u0027t needed.  Let us know if you think it\u0027d be better to remove this file.",
+      "parentUuid": "92820e5b_855b11f2",
+      "revId": "011cb7bfef2bc57d5219aec68c84d82728f984a0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }

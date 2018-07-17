@@ -107,6 +107,24 @@
     },
     {
       "key": {
+        "uuid": "4b1614a2_30fc2dfc",
+        "filename": "core/option/options.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "We actually no longer support sessions in core, so I will remove all this.",
+      "parentUuid": "58d39975_90bf7ffc",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "54727949_2b7b0677",
         "filename": "core/session/client_session.go",
         "patchSetId": 16
@@ -124,6 +142,24 @@
     },
     {
       "key": {
+        "uuid": "5ff8fd3f_13238ee0",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "54727949_2b7b0677",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a2b3c643_713ce4d0",
         "filename": "core/session/cluster_clock.go",
         "patchSetId": 16
@@ -138,6 +174,24 @@
       "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3629809d_5323eb12",
+        "filename": "core/session/cluster_clock.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a2b3c643_713ce4d0",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -164,6 +218,30 @@
     },
     {
       "key": {
+        "uuid": "3ee32f5a_612d7ed6",
+        "filename": "core/session/server_session.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "614fd4ac_29e6b5de",
+      "range": {
+        "startLine": 15,
+        "startChar": 0,
+        "endLine": 15,
+        "endChar": 4
+      },
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "09782c2f_e6ae65c6",
         "filename": "core/session/server_session.go",
         "patchSetId": 16
@@ -178,6 +256,24 @@
       "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eef2d43e_d41b6cd3",
+        "filename": "core/session/server_session.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "09782c2f_e6ae65c6",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

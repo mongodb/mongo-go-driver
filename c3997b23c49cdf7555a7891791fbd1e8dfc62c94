@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "5cca2138_48ed542b",
+        "filename": "core/dispatch/dispatch.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "My bad, I think I flipped the logic.  Also wasn\u0027t aware how exactly server selection works, but if all server selection eventually returns a data bearing server then this logic can be removed.",
+      "parentUuid": "7af62595_2ddc7ec3",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bc9c5092_54f8e551",
         "filename": "core/dispatch/distinct.go",
         "patchSetId": 19
@@ -108,6 +126,24 @@
     },
     {
       "key": {
+        "uuid": "e9314db3_b405a5c6",
+        "filename": "core/dispatch/distinct.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "Yeah, before the client provided a session (it made an implicit session if one was not specified).  However the client doesn\u0027t know if it\u0027s connected to a server that supports sessions and it seemed wasteful to create server sessions when they might not be needed.  Server information isn\u0027t available until dispatch after server selection.",
+      "parentUuid": "27df1849_a983574b",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dc9fa42c_047a744a",
         "filename": "core/session/cluster_clock.go",
         "patchSetId": 19
@@ -122,6 +158,24 @@
       "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b22be200_5c304af0",
+        "filename": "core/session/cluster_clock.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "They\u0027re pretty evenly split, so we\u0027ll just change this to a simple mutex.",
+      "parentUuid": "dc9fa42c_047a744a",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -189,6 +243,24 @@
       "writtenOn": "2018-07-17T11:03:19Z",
       "side": 1,
       "message": "do all of these need to be exported?",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed50ba72_2583f57f",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T14:10:57Z",
+      "side": 1,
+      "message": "Yeah none of them need to be exported.",
+      "parentUuid": "0c702a4b_fd901d79",
       "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
