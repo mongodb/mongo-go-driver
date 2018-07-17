@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4a634b8b_a470d95a",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 434,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T22:09:00Z",
+      "side": 1,
+      "message": "you are still adding this to the map if it\u0027s unacknowledged, which means that with OP_MSG, you\u0027ll never get to remove it.\n\nI also imagine that if we don\u0027t have a cmdMonitor.Succeeded or a cmdMonitor.Failed, we don\u0027t even need to add the command to the map as there is nothing to do with it.",
+      "revId": "ea2433cb42fac643ee805a4c3b5d7ad7c2c5b656",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d7dde448_e9a5c516",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 554,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T22:09:00Z",
+      "side": 1,
+      "message": "do we care about whether we canMonitor this event?",
+      "revId": "ea2433cb42fac643ee805a4c3b5d7ad7c2c5b656",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "52ccaf6e_15b083a0",
+        "filename": "core/option/options.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 607,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T22:09:00Z",
+      "side": 1,
+      "message": "I don\u0027t think this is related to this ticket.\n\nBUT, we are we using microseconds instead of milliseconds? maxTimeMS is in milliseconds.",
+      "revId": "ea2433cb42fac643ee805a4c3b5d7ad7c2c5b656",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
