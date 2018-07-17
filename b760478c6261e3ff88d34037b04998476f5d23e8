@@ -125,6 +125,24 @@
     },
     {
       "key": {
+        "uuid": "aa81d3d9_3dcb05a9",
+        "filename": "core/option/options.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-17T15:28:46Z",
+      "side": 1,
+      "message": "Oh wait nvm, this may have been caused when we rebased onto OP_MSG, where a lot of options changes happened.  This isn\u0027t actually something that needs to be CR\u0027d or deals with sessions.",
+      "parentUuid": "4b1614a2_30fc2dfc",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "54727949_2b7b0677",
         "filename": "core/session/client_session.go",
         "patchSetId": 16
