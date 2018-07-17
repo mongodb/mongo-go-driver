@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5511d8b9_29cf3346",
+        "filename": "mongo/client.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T21:57:02Z",
+      "side": 1,
+      "message": "You are going to want to find out if there is a server to send this too. Otherwise, you might end up in a situation where you can\u0027t select a server to send the endSessions command to and just hang for a while, and then ultimately never complete the Disconnect call.",
+      "revId": "a7a44946b45bb0595f9a5ac6a1303719a1dda24e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
