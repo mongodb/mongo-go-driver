@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "4d1603a7_ab1e4045",
+        "filename": "core/dispatch/distinct.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "Not too sure about question A. For B: NewClientSession() is passed a server session pool because it needs to get a server session that it can wrap. Also, when it is terminated, it needs to put the server session back in the pool.\n\nAlso, 1 problem we had was that not every command closes its client session right away. Commands that return cursors don\u0027t close the client session because the cursor needs to use the same session ID for getMore commands. The session is terminated when the cursor is closed. I think this made it difficult to push this logic down to command.Read/command.Write because they don\u0027t know what command they\u0027re running.",
+      "parentUuid": "144a132c_fce76957",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dc9fa42c_047a744a",
         "filename": "core/session/cluster_clock.go",
         "patchSetId": 19
@@ -100,6 +118,24 @@
       "writtenOn": "2018-07-17T11:03:19Z",
       "side": 1,
       "message": "Just wondering why you have chosen a linked list for the pool structure instead of something like the connection pool, which uses a buffered channel.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5c102b06_21490043",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "Chose a pool because I didn\u0027t know how big the channel\u0027s buffer would be. It\u0027s possible to create an arbitrary number of sessions and put them all in the pool.",
+      "parentUuid": "25d00385_1ed3b8f9",
       "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -140,6 +176,24 @@
     },
     {
       "key": {
+        "uuid": "295e554d_8ed688ed",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "Yes, the lock protects both the SessionTimeout and linked list itself. We\u0027ll update the comment.",
+      "parentUuid": "f38a5ebf_cc12796f",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c4866218_33a29e4d",
         "filename": "core/session/session_pool.go",
         "patchSetId": 19
@@ -151,6 +205,24 @@
       "writtenOn": "2018-07-17T11:03:19Z",
       "side": 1,
       "message": "Is it important to do this at the back? In other words, you are already doing this at the front. Do we need to do it in both places? If not, I believe you can change this to a singly linked list and to make this simpler in general.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "39471974_a76f4ae1",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "According to the spec, when returning a session to the pool, we must check the sessions at the back of the queue for expiration because these are the oldest sessions and must stop checking once we\u0027ve found a session that is not about to expire. I don\u0027t think this can be done with a singly linked list.",
+      "parentUuid": "c4866218_33a29e4d",
       "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -174,6 +246,24 @@
     },
     {
       "key": {
+        "uuid": "47c64a09_03ec9ecf",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "This is only actually used when calling EndSessions to drain the pool, so it can be refactored if we choose to use channels.",
+      "parentUuid": "f29da3e2_0f989155",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "81abaf59_b629b48b",
         "filename": "core/session/session_pool.go",
         "patchSetId": 19
@@ -191,6 +281,24 @@
     },
     {
       "key": {
+        "uuid": "36ef10f0_f86bf197",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "81abaf59_b629b48b",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "510c5c91_03e5234d",
         "filename": "core/session/session_pool_test.go",
         "patchSetId": 19
@@ -202,6 +310,24 @@
       "writtenOn": "2018-07-17T11:03:19Z",
       "side": 1,
       "message": "Also need to test that expired sessions are removed and never returned.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b38250d3_f9d66921",
+        "filename": "core/session/session_pool_test.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "Will add a test for this.",
+      "parentUuid": "510c5c91_03e5234d",
       "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -225,6 +351,24 @@
     },
     {
       "key": {
+        "uuid": "4baa94f3_e321e8ca",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "Although it\u0027s inefficient, it sounds correct. We use this number to determine whether or not we send sessions with our commands, so it needs to reflect the capabilities of the server we\u0027re connected to, even though this may mean changing the number every time we connect to a different server.",
+      "parentUuid": "e66f31df_7cbcd184",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "158f2dd6_b6c08ef4",
         "filename": "core/topology/topology_test.go",
         "patchSetId": 19
@@ -242,6 +386,24 @@
     },
     {
       "key": {
+        "uuid": "41e26093_de4b89c9",
+        "filename": "core/topology/topology_test.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "will add a test.",
+      "parentUuid": "158f2dd6_b6c08ef4",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a9bfd0ed_84e01f80",
         "filename": "core/topology/topology_test.go",
         "patchSetId": 19
@@ -253,6 +415,24 @@
       "writtenOn": "2018-07-17T11:03:19Z",
       "side": 1,
       "message": "I don\u0027t think this comment is correct.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e8a1ac1f_5f4ee1a6",
+        "filename": "core/topology/topology_test.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 305,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-17T13:03:18Z",
+      "side": 1,
+      "message": "yes this should say \"should not update because new timeout is higher\"",
+      "parentUuid": "a9bfd0ed_84e01f80",
       "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
