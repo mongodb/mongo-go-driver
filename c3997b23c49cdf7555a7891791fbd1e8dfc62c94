@@ -1,0 +1,225 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7af62595_2ddc7ec3",
+        "filename": "core/dispatch/dispatch.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "It appears as though you are adding a data bearing server selector if and only if a data bearing server exists. There shouldn\u0027t be any server selectors that return non-data bearing servers. So, why do we need this?",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bc9c5092_54f8e551",
+        "filename": "core/dispatch/distinct.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "This is repeated in umpteen different files... is there a way to centralize this logic?",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dc9fa42c_047a744a",
+        "filename": "core/session/cluster_clock.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "Is there an overwhelming number of calls to GetClusterTime vs. AdvanceClusterTime? If so, then this is great. If they are evenly split, we should just use a simple Mutex.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "25d00385_1ed3b8f9",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "Just wondering why you have chosen a linked list for the pool structure instead of something like the connection pool, which uses a buffered channel.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c702a4b_fd901d79",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "do all of these need to be exported?",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f38a5ebf_cc12796f",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "It would be best to not hold onto this lock so long.\n\np.Mutex.Lock()\nvar sessionTimeout \u003d p.SessionTimeout\np,Mutex.Unlock()\n\nThe problem is that this lock is also protecting the linked list. I would update this comment (or remove it) to prevent future devs from thinking they can optimize it away.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c4866218_33a29e4d",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "Is it important to do this at the back? In other words, you are already doing this at the front. Do we need to do it in both places? If not, I believe you can change this to a singly linked list and to make this simpler in general.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f29da3e2_0f989155",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "I was going to suggest ways to get rid of the locks by using channels, but this method makes channels impossible.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81abaf59_b629b48b",
+        "filename": "core/session/session_pool.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "This method needs to use a lock.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "510c5c91_03e5234d",
+        "filename": "core/session/session_pool_test.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "Also need to test that expired sessions are removed and never returned.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e66f31df_7cbcd184",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "It feels like we are going to flip-flopping SessionTimeoutMinutes when connected to a mix of servers where some support sessions and some don\u0027t.\n\nServer A \u003d 20 timeout minutes\nServer B \u003d doesn\u0027t support session\n\nA -\u003e f.SessionTimeoutMinutes \u003d 20\nB -\u003e f.SessionTimeoutMinutes \u003d 0\nA -\u003e f.SessionTimeoutMinutes \u003d 20",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "158f2dd6_b6c08ef4",
+        "filename": "core/topology/topology_test.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "please add a test (or multiple) for SessionTimeoutMinutes: 0",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a9bfd0ed_84e01f80",
+        "filename": "core/topology/topology_test.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 305,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-17T11:03:19Z",
+      "side": 1,
+      "message": "I don\u0027t think this comment is correct.",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
