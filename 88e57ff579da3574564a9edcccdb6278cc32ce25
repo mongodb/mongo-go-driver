@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cd8fbf3e_2c1cac67",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-17T12:55:20Z",
+      "side": 0,
+      "message": "How is this related to the sessions work?  If it\u0027s not, split it out.",
+      "revId": "88e57ff579da3574564a9edcccdb6278cc32ce25",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

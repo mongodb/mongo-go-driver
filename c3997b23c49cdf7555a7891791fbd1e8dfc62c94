@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "705ee435_f0876f9d",
+        "filename": "core/dispatch/distinct.go",
+        "patchSetId": 19
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-17T12:55:20Z",
+      "side": 1,
+      "message": "A) Yes, you need one for each concurrently running operation\nB) Yes, implicit sessions need to be pooled\n\nWith regard to centralization: in Java/.NET, session management is handled in the MongoClient\u0027s OperationExecutor, which all operations flow through.  The core driver is always just handed a session, or nil if no session is required (e.g. due to topology type or server version).",
+      "parentUuid": "144a132c_fce76957",
+      "revId": "c3997b23c49cdf7555a7891791fbd1e8dfc62c94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dc9fa42c_047a744a",
         "filename": "core/session/cluster_clock.go",
         "patchSetId": 19
