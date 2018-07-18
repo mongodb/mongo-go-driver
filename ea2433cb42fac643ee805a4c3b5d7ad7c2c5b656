@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "24e32166_a1f5476e",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 434,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-18T02:36:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4a634b8b_a470d95a",
+      "revId": "ea2433cb42fac643ee805a4c3b5d7ad7c2c5b656",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d7dde448_e9a5c516",
         "filename": "core/connection/connection.go",
         "patchSetId": 5
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "68f9447f_73409c3c",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 554,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-18T02:36:02Z",
+      "side": 1,
+      "message": "I don\u0027t think so. The spec says the commands and replies for events that can\u0027t be monitored must be replaced by empty documents, but failed events don\u0027t contain the actual reply from the server. They just have the command name and an error string.",
+      "parentUuid": "d7dde448_e9a5c516",
+      "revId": "ea2433cb42fac643ee805a4c3b5d7ad7c2c5b656",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "52ccaf6e_15b083a0",
         "filename": "core/option/options.go",
         "patchSetId": 5
@@ -47,6 +83,24 @@
       "writtenOn": "2018-07-17T22:09:00Z",
       "side": 1,
       "message": "I don\u0027t think this is related to this ticket.\n\nBUT, we are we using microseconds instead of milliseconds? maxTimeMS is in milliseconds.",
+      "revId": "ea2433cb42fac643ee805a4c3b5d7ad7c2c5b656",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "85310eef_0d94fb67",
+        "filename": "core/option/options.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 607,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-18T02:36:02Z",
+      "side": 1,
+      "message": "This was incorrectly changed. Fixed in the latest patch.",
+      "parentUuid": "52ccaf6e_15b083a0",
       "revId": "ea2433cb42fac643ee805a4c3b5d7ad7c2c5b656",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
