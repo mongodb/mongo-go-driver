@@ -34,6 +34,24 @@
       "revId": "a7a44946b45bb0595f9a5ac6a1303719a1dda24e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b33ca614_ed45ad1e",
+        "filename": "mongo/client.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-18T15:55:08Z",
+      "side": 1,
+      "message": "Since dispatch normally does server selection, would it make more sense then to have this logic in dispatch (i.e. do a manual server selection, and if it fails just ignore the command altogether?",
+      "parentUuid": "591662e7_45c4b49a",
+      "revId": "a7a44946b45bb0595f9a5ac6a1303719a1dda24e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
