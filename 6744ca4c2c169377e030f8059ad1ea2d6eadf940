@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f247488f_c79e33f9",
+        "filename": "core/dispatch/end_sessions.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-18T16:17:11Z",
+      "side": 1,
+      "message": "This does the manual server selection mentioned here: (https://review.gerrithub.io/c/mongodb/mongo-go-driver/+/418880/9/mongo/client.go#133).  I had to make findServer() public because it does protected reads to find the server so I figured it made sense to reuse this method.  Not sure what kind of error to throw if no server found, so I just did a timeout error since normal server selection would result in a timeout.  Should I make a new one?",
+      "revId": "6744ca4c2c169377e030f8059ad1ea2d6eadf940",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
