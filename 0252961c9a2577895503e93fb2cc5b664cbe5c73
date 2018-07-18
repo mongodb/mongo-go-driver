@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "176eab72_45373895",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 436,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-18T12:29:19Z",
+      "side": 1,
+      "message": "What about when we are unacknowledged and c.cmdMonitor.Succeeded \u003d\u003d nil?",
+      "revId": "0252961c9a2577895503e93fb2cc5b664cbe5c73",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
