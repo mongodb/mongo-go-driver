@@ -54,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "90bd5ee6_2b10ed95",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-18T14:05:23Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "8a0d2e8b_8902189d",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "445e96bd_9b957884",
         "filename": "core/topology/fsm.go",
         "patchSetId": 20
@@ -71,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "0d0457cf_40ce74e3",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-18T14:05:23Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "445e96bd_9b957884",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "79ef1284_1722abcc",
         "filename": "core/topology/fsm.go",
         "patchSetId": 20
@@ -82,6 +118,24 @@
       "writtenOn": "2018-07-17T21:56:50Z",
       "side": 1,
       "message": "do we need this line? I mean, nothing is changing.",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "23b0fe23_83a647c4",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-18T14:05:23Z",
+      "side": 1,
+      "message": "We do need this line - f.Topology is reset on line 40, which overwrites SessionTimeoutMinutes, so we have to reset it here.  This is why we pulled oldMinutes out before resetting.",
+      "parentUuid": "79ef1284_1722abcc",
       "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
