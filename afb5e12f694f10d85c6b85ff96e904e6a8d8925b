@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bade0286_9ac66345",
+        "filename": "core/command/create_indexes.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-19T17:27:40Z",
+      "side": 1,
+      "message": "This is redundant.",
+      "range": {
+        "startLine": 85,
+        "startChar": 0,
+        "endLine": 88,
+        "endChar": 0
+      },
+      "revId": "afb5e12f694f10d85c6b85ff96e904e6a8d8925b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "33a181ed_0f65e745",
+        "filename": "core/command/delete.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-19T17:27:40Z",
+      "side": 1,
+      "message": "This is redundant.",
+      "range": {
+        "startLine": 101,
+        "startChar": 0,
+        "endLine": 103,
+        "endChar": 2
+      },
+      "revId": "afb5e12f694f10d85c6b85ff96e904e6a8d8925b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f4552b5b_b6295f1a",
+        "filename": "core/command/distinct.go",
+        "patchSetId": 23
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-19T17:27:40Z",
+      "side": 1,
+      "message": "I\u0027m guessing there are a bunch of these, so let\u0027s just fix all of them.",
+      "range": {
+        "startLine": 96,
+        "startChar": 0,
+        "endLine": 98,
+        "endChar": 2
+      },
+      "revId": "afb5e12f694f10d85c6b85ff96e904e6a8d8925b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
