@@ -8,6 +8,8 @@ package wiremessage
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 )
@@ -62,7 +64,10 @@ func (m Msg) AppendWireMessage(b []byte) ([]byte, error) {
 
 // String implements the fmt.Stringer interface.
 func (m Msg) String() string {
-	panic("not implemented")
+	return fmt.Sprintf(
+		`OP_MSG{MsgHeader: %s, FlagBits: %s, Sections: %s, Checksum: %d}`,
+		m.MsgHeader, m.FlagBits, m.Sections, m.Checksum,
+	)
 }
 
 // Len implements the WireMessage interface.
@@ -179,6 +184,24 @@ const (
 	ExhaustAllowed MsgFlag = 1 << 16
 )
 
+func (mf MsgFlag) String() string {
+	strs := make([]string, 0)
+	if mf&ChecksumPresent == ChecksumPresent {
+		strs = append(strs, "ChecksumPresent")
+	}
+	if mf&MoreToCome == MoreToCome {
+		strs = append(strs, "MoreToCome")
+	}
+	if mf&ExhaustAllowed == ExhaustAllowed {
+		strs = append(strs, "ExhaustAllowed")
+	}
+
+	str := "["
+	str += strings.Join(strs, ", ")
+	str += "]"
+	return str
+}
+
 // Section represents a section on an OP_MSG message.
 type Section interface {
 	Kind() SectionType
@@ -207,6 +230,10 @@ func (sb SectionBody) AppendSection(dest []byte) []byte {
 	dest = append(dest, byte(SingleDocument))
 	dest = append(dest, sb.Document...)
 	return dest
+}
+
+func (sb SectionBody) String() string {
+	return fmt.Sprintf(`SectionBody{Document: %s}`, sb.Document)
 }
 
 // SectionDocumentSequence represents the kind document sequence of an OP_MSG message.
@@ -252,6 +279,10 @@ func (sds SectionDocumentSequence) AppendSection(dest []byte) []byte {
 	return dest
 }
 
+func (sds SectionDocumentSequence) String() string {
+	return fmt.Sprintf(`SectionDocumentSequence{Size: %d, Identifier: %s, Documents: %v}`, sds.Size, sds.Identifier, sds.Documents)
+}
+
 // SectionType represents the type for 1 section in an OP_MSG
 type SectionType uint8
 
@@ -260,6 +291,20 @@ const (
 	SingleDocument SectionType = iota
 	DocumentSequence
 )
+
+func (st SectionType) String() string {
+	var str string
+	switch st {
+	case SingleDocument:
+		str = "SingleDocument"
+	case DocumentSequence:
+		str = "DocumentSequence"
+	default:
+		str = "Unknown"
+	}
+
+	return str
+}
 
 // OpmsgWireVersion is the minimum wire version needed to use OP_MSG
 const OpmsgWireVersion = 6

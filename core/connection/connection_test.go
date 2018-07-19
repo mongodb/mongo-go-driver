@@ -13,6 +13,14 @@ import (
 	"testing"
 )
 
+func noerr(t *testing.T, err error) {
+	if err != nil {
+		t.Helper()
+		t.Errorf("Unepexted error: %v", err)
+		t.FailNow()
+	}
+}
+
 // bootstrapConnection creates a listener that will listen for a single connection
 // on the return address. The user provided run function will be called with the accepted
 // connection. The user is responsible for closing the connection.

@@ -189,6 +189,42 @@ type Transformer interface {
 	TransformWireMessage(WireMessage) (WireMessage, error)
 }
 
+// RequestTransformer is the interface implemented by types that can alter a request
+// WireMessage. In the MongoDB wire protocol a request wire message is the initiating
+// wire message for a command. There may be zero or more response wire messages sent
+// in response to the request wire message.
+//
+// Implementations must not retain the WireMessage parameter.
+type RequestTransformer interface {
+	TransformRequestWireMessage(WireMessage) (WireMessage, ResponseTransformer, error)
+}
+
+// ResponseTransformer is the interface implemented by types that can alter a response
+// WireMessage. In the MongoDB wire protocol a response wire message is the reponse to
+// a request wire message. It is valid to receive multiple response wire messages for a
+// single request wire message.
+type ResponseTransformer interface {
+	TransformResponseWireMessage(WireMessage) (WireMessage, error)
+}
+
+// RequestTransformerFunc is an adapter to allow ordinary functions to be used as a
+// RequestTransformer.
+type RequestTransformerFunc func(WireMessage) (WireMessage, ResponseTransformer, error)
+
+// TransformRequestWireMessage implements the RequestTransformer interface.
+func (rtf RequestTransformerFunc) TransformRequestWireMessage(wm WireMessage) (WireMessage, ResponseTransformer, error) {
+	return rtf(wm)
+}
+
+// ResponseTransformerFunc is an adapter to allow ordinary functions to be used as a
+// ResponseTransformer.
+type ResponseTransformerFunc func(WireMessage) (WireMessage, error)
+
+// TransformResponseWireMessage implements the ResponseTransformer interface.
+func (rtf ResponseTransformerFunc) TransformResponseWireMessage(wm WireMessage) (WireMessage, error) {
+	return rtf(wm)
+}
+
 // ReadFrom will read a single WireMessage from the given io.Reader. This function will
 // validate the WireMessage. If the WireMessage is not valid, this method will
 // return both the error and the invalid WireMessage. If another type of processing

@@ -31,9 +31,14 @@ import (
 )
 
 var globalClientConnectionID uint64
+var globalServerConnectionID uint64
 
 func nextClientConnectionID() uint64 {
 	return atomic.AddUint64(&globalClientConnectionID, 1)
+}
+
+func nextServerConnectionID() uint64 {
+	return atomic.AddUint64(&globalServerConnectionID, 1)
 }
 
 // Connection is used to read and write wire protocol messages to a network.
@@ -553,6 +558,18 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 			}
 		}
 		wm = reply
+	case wiremessage.OpQuery:
+		var query wiremessage.Query
+		err := query.UnmarshalWireMessage(messageToDecode)
+		if err != nil {
+			c.Close()
+			return nil, Error{
+				ConnectionID: c.id,
+				Wrapped:      err,
+				message:      "unable to decode OP_QUERY",
+			}
+		}
+		wm = query
 	default:
 		c.Close()
 		return nil, Error{

@@ -15,6 +15,34 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
+// Name retrieves the command name from a wiremessage.WireMessage.
+func Name(wm wiremessage.WireMessage) (string, error) {
+	switch t := wm.(type) {
+	case wiremessage.Query:
+		return opqueryCommandName(t)
+	case wiremessage.Msg:
+		return opmsgCommandName(t)
+	default:
+		return "", errors.New("only OP_QUERY and OP_MSG contain command names")
+	}
+}
+
+func opmsgCommandName(msg wiremessage.Msg) (string, error) {
+	return "", nil
+}
+
+func opqueryCommandName(query wiremessage.Query) (string, error) {
+	if query.Query == nil {
+		return "", errors.New("command name not found")
+	}
+
+	elem, err := query.Query.ElementAt(0)
+	if err != nil {
+		return "", errors.New("command name not found")
+	}
+	return elem.Key(), nil
+}
+
 func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
 	if cmd == nil {
 		return bson.Reader{5, 0, 0, 0, 0}, nil
