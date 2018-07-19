@@ -16,6 +16,24 @@
       "revId": "6744ca4c2c169377e030f8059ad1ea2d6eadf940",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e2a717bc_f308b767",
+        "filename": "core/dispatch/end_sessions.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-19T21:42:49Z",
+      "side": 1,
+      "message": "My concern with putting this here is that it is different than every other dispatch method in that it may not do what you asked of it. Depending on server state at any given moment, this might just not do anything. The problem with that is the this method has no context to know why it was called and whether or not that\u0027s ok.\n\nIf you put this up high in the Disconnect method of a Client, it knows, as the caller, that it\u0027s ok not to call this because blocking on disconnect for an extended period of time isn\u0027t going to be ok.",
+      "parentUuid": "f247488f_c79e33f9",
+      "revId": "6744ca4c2c169377e030f8059ad1ea2d6eadf940",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
