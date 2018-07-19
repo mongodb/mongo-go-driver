@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
@@ -43,10 +44,14 @@ var monitor = &event.CommandMonitor{
 }
 
 func createMonitoredClient(t *testing.T) *Client {
+	topo := testutil.MonitoredTopology(t, monitor)
+	sub, _ := topo.Subscribe()
+	pool := session.NewPool(sub.C)
 	return &Client{
-		topology:       testutil.MonitoredTopology(t, monitor),
+		topology:       topo,
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
+		sessionPool:    pool,
 	}
 }
 
