@@ -401,14 +401,14 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            topology: "server"
-            auth: "auth"
-            ssl: "ssl"
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
         - func: run-tests
           vars:
-            topology: "server"
-            auth: "auth"
-            ssl: "ssl"
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
     - name: test-replicaset-noauth-nossl

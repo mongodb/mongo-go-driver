@@ -45,15 +45,14 @@ func IsNil(object interface{}) bool {
 // RequireNotNil throws an error if var is nil
 func RequireNotNil(t *testing.T, variable interface{}, msgFormat string, msgVars ...interface{}) {
 	if IsNil(variable) {
-		t.Errorf(msgFormat, msgVars...)
-		t.FailNow()
+		t.Fatalf(msgFormat, msgVars...)
 	}
 }
 
 // RequireNil throws an error if var is not nil
 func RequireNil(t *testing.T, variable interface{}, msgFormat string, msgVars ...interface{}) {
 	if !IsNil(variable) {
-		t.Errorf(msgFormat, msgVars...)
+		t.Fatalf(msgFormat, msgVars...)
 	}
 }
 
