@@ -16,3 +16,10 @@ package bson
 // `data[n[1]:]`. Since there is no value end byte, an unvalidated document
 // could result in parsing errors.
 type node [2]uint32
+
+// Zeroer allows custom struct types to implement a report of zero
+// state. All struct types that don't implement Zeroer or where IsZero
+// returns false are considered to be not zero.
+type Zeroer interface {
+	IsZero() bool
+}

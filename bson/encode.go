@@ -101,13 +101,6 @@ type DocumentEncoder interface {
 	EncodeDocument(interface{}) (*Document, error)
 }
 
-// Zeroer allows custom struct types to implement a report of zero
-// state. All struct types that don't implement Zeroer or where IsZero
-// returns false are considered to be not zero.
-type Zeroer interface {
-	IsZero() bool
-}
-
 type encoder struct {
 	w io.Writer
 }
