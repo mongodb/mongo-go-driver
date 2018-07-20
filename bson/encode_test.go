@@ -1070,6 +1070,8 @@ type zeroTest struct {
 
 func (z zeroTest) IsZero() bool { return z.reportZero }
 
+func compareZeroTest(_, _ zeroTest) bool { return true }
+
 type nonZeroer struct {
 	value bool
 }

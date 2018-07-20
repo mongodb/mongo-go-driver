@@ -25,6 +25,7 @@ import (
 // ErrEncoderNilWriter indicates that encoder.Encode was called with a nil argument.
 var ErrEncoderNilWriter = errors.New("encoder.Encode called on Encoder with nil io.Writer")
 
+var tElementSlice = reflect.TypeOf(([]*Element)(nil))
 var tByteSlice = reflect.TypeOf(([]byte)(nil))
 var tByte = reflect.TypeOf(byte(0x00))
 var tElement = reflect.TypeOf((*Element)(nil))
@@ -99,13 +100,6 @@ type Encoder interface {
 // DocumentEncoder describes a type that can marshal itself into a value and return the bson.Document it represents.
 type DocumentEncoder interface {
 	EncodeDocument(interface{}) (*Document, error)
-}
-
-// Zeroer allows custom struct types to implement a report of zero
-// state. All struct types that don't implement Zeroer or where IsZero
-// returns false are considered to be not zero.
-type Zeroer interface {
-	IsZero() bool
 }
 
 type encoder struct {
