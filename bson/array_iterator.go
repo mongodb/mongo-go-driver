@@ -22,6 +22,10 @@ func NewArrayIterator(array *Array) (*ArrayIterator, error) {
 	return iter, nil
 }
 
+func newArrayIterator(a *Array) *ArrayIterator {
+	return &ArrayIterator{array: a}
+}
+
 // Next fetches the next value in the Array, returning whether or not it could be fetched successfully. If true is
 // returned, call Value to get the value. If false is returned, call Err to check if an error occurred.
 func (iter *ArrayIterator) Next() bool {
