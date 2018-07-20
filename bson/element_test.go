@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
@@ -1136,22 +1135,21 @@ func TestElement(t *testing.T) {
 			}
 		})
 		t.Run("UTC dateTime", func(t *testing.T) {
-			var empty time.Time
 			testCases := []struct {
 				name  string
 				elem  *Element
-				val   time.Time
+				val   int64
 				fault error
 			}{
-				{"Nil Value", &Element{nil}, empty, ErrUninitializedElement},
+				{"Nil Value", &Element{nil}, 0, ErrUninitializedElement},
 				{"Empty Element value",
-					&Element{&Value{start: 0, offset: 0, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 0, data: nil}}, 0, ErrUninitializedElement,
 				},
 				{"Empty Element data",
-					&Element{&Value{start: 0, offset: 2, data: nil}}, empty, ErrUninitializedElement,
+					&Element{&Value{start: 0, offset: 2, data: nil}}, 0, ErrUninitializedElement,
 				},
 				{"Not UTC dateTime",
-					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, empty,
+					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, 0,
 					ElementTypeError{"compact.Element.dateTime", Type(0x01)},
 				},
 				{"Success",
@@ -1159,7 +1157,7 @@ func TestElement(t *testing.T) {
 						start: 0, offset: 2,
 						data: []byte{0x09, 0x00, 0x80, 0x38, 0x17, 0xB0, 0x60, 0x01, 0x00, 0x00},
 					}},
-					time.Unix(1514782800000/1000, 1514782800000%1000*1000000), nil,
+					1514782800000, nil,
 				},
 			}
 
