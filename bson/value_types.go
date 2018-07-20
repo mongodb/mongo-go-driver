@@ -21,8 +21,15 @@ type Binary struct {
 // Undefined represents the BSON undefined value.
 var Undefined struct{}
 
+type Undefinedv2 struct{}
+
+// DateTime represents the BSON datetime value.
+type DateTime int64
+
 // Null represents the BSON null value.
 var Null struct{}
+
+type Nullv2 struct{}
 
 // Regex represents a BSON regex value.
 type Regex struct {
@@ -71,3 +78,7 @@ var MinKey struct{}
 
 // MaxKey represents the BSON minkey value.
 var MaxKey struct{}
+
+type MinKeyv2 struct{}
+
+type MaxKeyv2 struct{}
