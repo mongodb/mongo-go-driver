@@ -781,10 +781,10 @@ func (v *Value) MutableJavaScriptWithScope() (code string, d *Document) {
 	// If the length of the string is larger than the total length of the
 	// field minus the int32 for length, 5 bytes for a minimum document
 	// size, and an int32 for the string length the value is invalid.
-	str := string(v.data[v.offset+4 : v.offset+4+uint32(sLength)])
+	str := string(v.data[v.offset+4+4 : v.offset+4+4+uint32(sLength)-1]) // offset + total length + string length + bytes - null byte
 	if v.d == nil {
 		var err error
-		v.d, err = ReadDocument(v.data[v.offset+4+uint32(sLength) : v.offset+uint32(l)])
+		v.d, err = ReadDocument(v.data[v.offset+4+4+uint32(sLength) : v.offset+uint32(l)])
 		if err != nil {
 			panic(err)
 		}
