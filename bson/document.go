@@ -750,6 +750,7 @@ func (d *Document) Equal(d2 *Document) bool {
 		}
 
 		if !bytes.Equal(b1, b2) {
+			fmt.Println("fuck", b1, b2)
 			return false
 		}
 
