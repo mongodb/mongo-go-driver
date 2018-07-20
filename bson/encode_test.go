@@ -819,7 +819,7 @@ func reflectionEncoderTest(t *testing.T) {
 		{
 			"alternate name",
 			struct {
-				A string `foo`
+				A string `bson:"foo"`
 			}{
 				A: "bar",
 			},
@@ -1069,6 +1069,8 @@ type zeroTest struct {
 }
 
 func (z zeroTest) IsZero() bool { return z.reportZero }
+
+func compareZeroTest(_, _ zeroTest) bool { return true }
 
 type nonZeroer struct {
 	value bool
