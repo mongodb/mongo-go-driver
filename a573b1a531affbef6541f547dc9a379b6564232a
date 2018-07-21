@@ -1,0 +1,293 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "01e55fb3_457323ab",
+        "filename": "bson/bson.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "can we put this (and its ilk) in it\u0027s own file. It\u0027s weird to find it in bson.go.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8f72a3f7_cb10ef40",
+        "filename": "bson/codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "why do we need to use reflection here -- can we not just cast i? involving reflection likely makes this slower than necessary. Maybe I\u0027m wrong about the speed.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5becd0b7_cdb9789b",
+        "filename": "bson/codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "This seems like the wrong message here, as a bool isn\u0027t a struct.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "781c2685_9eea4437",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 386,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "this shoulnd\u0027t be possible unless the caller has done unnatural casting. Just return an error.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "843a95cf_2b6ab739",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 401,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "This isn\u0027t going to work if you add documents to an array, which doesn\u0027t have the extra state. In that case, you\u0027d be popping dvwDocument and dvwArray, which would be prematurely popping the array.\n\nUltimately, I think the dvwElement state is problematic. All you need to know when writing a value is whether or not you are in a document or in an array. In other words, WriteDocumentElement doesn\u0027t need to shift states. It already has enough information for you to know where you are. What\u0027s more, is that it means you are shifting a lot more state around than necessary.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4d3d87f5_0cbdc0db",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 427,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "This should be possible unless the caller has done unnatural casting. Just return an error.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f390fa24_4834f5b0",
+        "filename": "bson/encoder.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "I see the pool above, but that it\u0027s not used. It seems like this is the proper place to use it. Pull one from the pool here, Reset and SetRegistry, and return it. If you need to change the name, then fine, but as far as a user is concerned, they have a new encoder, so no big deal.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0a4cfdab_e7e510ca",
+        "filename": "bson/registry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "I think it would be best to declare a Registry as non-thread safe. This will effectively require users to set it up before using it. The implications from this are as follows:\n\n1. You don\u0027t need to lock. While these locks are small and fast, they will add up under heavy usage.\n2. It means that an application can\u0027t have it\u0027s behavior changed half-way through by some rogue non-startup code.\n\nWhile we can\u0027t prevent people from changing in the middle, we can declare that it will be a race condition and to not do it.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c384b90_0dc75d7d",
+        "filename": "bson/registry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "This is expensive. I\u0027d imagine that we\u0027ll want to use a cache to ensure that we don\u0027t scan this registry for the same type over and over again.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5729310d_fe31c8f5",
+        "filename": "bson/slice_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "It\u0027s possible val already has some elements in it. I remember Sam was indicating that documents that already contained elements should have those elements deleted. I wonder about whether we should just be appending to the existing array.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7e3fc412_7b6698a3",
+        "filename": "bson/slice_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "It\u0027s possible eType is already a pointer, yeah?",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e63d0305_896f41e4",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "should this be an else if or just an if statement? If we enter the above condition, is it possible that field.Addr() sets fieldPtr to nil?",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "931ee446_c69f1c82",
+        "filename": "bson/value.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 762,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "What are this comments here? Are they really wrong? If so, we should fix them as part of this CR.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6078b4be_5623068a",
+        "filename": "bson/value_reader.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 260,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "Why do we need to pop after reading every element? I think we are in a situation where we are doing unnecessary allocations.\n\nI\u0027d only have state for every depth level we are at. Essentially, push for a container start and pop at container end.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "029a11d9_83384925",
+        "filename": "bson/value_reader.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 613,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "I like these below. They basically form the basis for an abstract data source. You could create an interface containing the below methods and have one backed by a []byte and one backed by an io.Reader. It\u0027s possible that someone may provide a very, very large file full of back to back bson documents and reading the whole file into bytes will be less than good :)",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "54ebb8ea_f23ad192",
+        "filename": "bson/value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "You\u0027ll want to prove that a lookup from a map is faster than strconv.Itoa. It probably is, but still.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ffe67d2f_9b279828",
+        "filename": "bson/value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-21T19:58:11Z",
+      "side": 1,
+      "message": "vwArray -\u003e vwValue.\n\nLike everywhere else, I\u0027m not sure this distinction needs to be made. The extra vwElement/vwValue difference here seems unnecessary.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
