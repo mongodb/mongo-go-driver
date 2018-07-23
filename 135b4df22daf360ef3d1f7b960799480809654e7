@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "1bb34120_c693daa1",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-23T13:39:40Z",
+      "side": 1,
+      "message": "Acknowledged.  I\u0027m not sure where this could be closed either.  There\u0027s no hook that can run after all the tests within TestSessions finish?  If not, you can resolve this.",
+      "parentUuid": "0872fc29_3fe82da7",
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dbd2818f_649e55e4",
         "filename": "mongo/sessions_test.go",
         "patchSetId": 6
