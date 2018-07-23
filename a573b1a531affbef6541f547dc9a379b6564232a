@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "f20edd0d_5403147d",
+        "filename": "bson/bson.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "I can move this when I add more comments to this.",
+      "parentUuid": "01e55fb3_457323ab",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8f72a3f7_cb10ef40",
         "filename": "bson/codec.go",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2018-07-21T19:58:11Z",
       "side": 1,
       "message": "why do we need to use reflection here -- can we not just cast i? involving reflection likely makes this slower than necessary. Maybe I\u0027m wrong about the speed.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "315fd80f_7b412a2c",
+        "filename": "bson/codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "This reflection is actually pretty fast, but yeah we can probably do this without reflection. I\u0027ve been going back and forth on whether we should be passing in a reflect.Value here instead of an empty interface.",
+      "parentUuid": "8f72a3f7_cb10ef40",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "1fdbd546_cd4bf255",
+        "filename": "bson/codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "This is a copy paste error.",
+      "parentUuid": "5becd0b7_cdb9789b",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "781c2685_9eea4437",
         "filename": "bson/document_value_writer.go",
         "patchSetId": 2
@@ -64,6 +118,24 @@
       "writtenOn": "2018-07-21T19:58:11Z",
       "side": 1,
       "message": "this shoulnd\u0027t be possible unless the caller has done unnatural casting. Just return an error.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "69547c04_fd7bca58",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 386,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "This is a little tricky, but this is looking at what this Document\u0027s parent is, e.g. are we at the top level, are we an embedded document inside an embedded document, or are we an embedded document inside an array. For this particular case, we are ending a document that is part of an array.",
+      "parentUuid": "781c2685_9eea4437",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "736ebf8d_74022f3e",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 401,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "This isn\u0027t incorrect, we are currently in a dvwDocument, the first pop brings us from dvwDocument to dvwElement or dvwValue, as we checked above. After that, we need to pop again, back to either dvwDocument, dvwArray, or dvwTopLevel. I\u0027ll add a comment later about the reasoning for having an additional stack frame and the reason for dvwELement and dvwValue.",
+      "parentUuid": "843a95cf_2b6ab739",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4d3d87f5_0cbdc0db",
         "filename": "bson/document_value_writer.go",
         "patchSetId": 2
@@ -98,6 +188,24 @@
       "writtenOn": "2018-07-21T19:58:11Z",
       "side": 1,
       "message": "This should be possible unless the caller has done unnatural casting. Just return an error.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "067262cd_a1fa128e",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 427,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "Same as above, this is if we are ending an array inside of an embedded document.",
+      "parentUuid": "4d3d87f5_0cbdc0db",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -121,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "43f60479_5712f38d",
+        "filename": "bson/encoder.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "The above pool isn\u0027t for this function, it\u0027s for the Marshal* functions, I\u0027ll probably move it over to there.",
+      "parentUuid": "f390fa24_4834f5b0",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0a4cfdab_e7e510ca",
         "filename": "bson/registry.go",
         "patchSetId": 2
@@ -132,6 +258,24 @@
       "writtenOn": "2018-07-21T19:58:11Z",
       "side": 1,
       "message": "I think it would be best to declare a Registry as non-thread safe. This will effectively require users to set it up before using it. The implications from this are as follows:\n\n1. You don\u0027t need to lock. While these locks are small and fast, they will add up under heavy usage.\n2. It means that an application can\u0027t have it\u0027s behavior changed half-way through by some rogue non-startup code.\n\nWhile we can\u0027t prevent people from changing in the middle, we can declare that it will be a race condition and to not do it.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0a0f9512_88031bc4",
+        "filename": "bson/registry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "A Registry needs to be goroutine safe because if it isn\u0027t I will have to copy it all the time. For example, the mongo.Client type will have a Registry on it, and it\u0027ll use that registry to marshal and unmarshal BSON. If it isn\u0027t goroutine safe, then we can\u0027t actually access the maps and each time we\u0027ll have to copy the map (concurrent access to a map will panic).\n\nIf users mutate a Registry while their application is in the middle of using that Registry, that is a bug. If we are worried about this being a source of bugs, we can make it so a registry cannot have any more types registered with it after the first lookup.",
+      "parentUuid": "0a4cfdab_e7e510ca",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -155,6 +299,24 @@
     },
     {
       "key": {
+        "uuid": "7931cb43_0cc20ad7",
+        "filename": "bson/registry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "There are many optimizations we\u0027ll need to do like this, I\u0027ll try and find a way to cache more information like this.",
+      "parentUuid": "9c384b90_0dc75d7d",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5729310d_fe31c8f5",
         "filename": "bson/slice_codec.go",
         "patchSetId": 2
@@ -166,6 +328,24 @@
       "writtenOn": "2018-07-21T19:58:11Z",
       "side": 1,
       "message": "It\u0027s possible val already has some elements in it. I remember Sam was indicating that documents that already contained elements should have those elements deleted. I wonder about whether we should just be appending to the existing array.",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "03d8a699_bd37d217",
+        "filename": "bson/slice_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "I do not think that\u0027s consistent with other existing libraries, and I think mgo/bson does make a new slice each time.",
+      "parentUuid": "5729310d_fe31c8f5",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -189,6 +369,24 @@
     },
     {
       "key": {
+        "uuid": "56fc24db_624fe3ed",
+        "filename": "bson/slice_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "No, we called Elem on it on line 36, so unless we have a pointer to a pointer, this won\u0027t already be a pointer type.",
+      "parentUuid": "7e3fc412_7b6698a3",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e63d0305_896f41e4",
         "filename": "bson/struct_codec.go",
         "patchSetId": 2
@@ -200,6 +398,24 @@
       "writtenOn": "2018-07-21T19:58:11Z",
       "side": 1,
       "message": "should this be an else if or just an if statement? If we enter the above condition, is it possible that field.Addr() sets fieldPtr to nil?",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4308f2e9_f141f907",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "No, because we have the value, when we call field.Addr we are getting a pointer to a value we have, so it can\u0027t be nil.",
+      "parentUuid": "e63d0305_896f41e4",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -223,6 +439,24 @@
     },
     {
       "key": {
+        "uuid": "e3f261be_df7ca61f",
+        "filename": "bson/value.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 762,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "These are old comments and not actually accurate.",
+      "parentUuid": "931ee446_c69f1c82",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6078b4be_5623068a",
         "filename": "bson/value_reader.go",
         "patchSetId": 2
@@ -240,6 +474,24 @@
     },
     {
       "key": {
+        "uuid": "99fa2582_d2dbae48",
+        "filename": "bson/value_reader.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 260,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "The stack is a slice of stack frame values, we don\u0027t even do allocations for every depth level, since when a slice grows it is at least 2x.\n\nI don\u0027t particularly like having fake stack frames, which is what happens if we don\u0027t push and pop for each element. I also don\u0027t know if you have done something that\u0027s not legal, like call ReadElement twice in a row, without looking at some other heuristics.",
+      "parentUuid": "6078b4be_5623068a",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "029a11d9_83384925",
         "filename": "bson/value_reader.go",
         "patchSetId": 2
@@ -251,6 +503,24 @@
       "writtenOn": "2018-07-21T19:58:11Z",
       "side": 1,
       "message": "I like these below. They basically form the basis for an abstract data source. You could create an interface containing the below methods and have one backed by a []byte and one backed by an io.Reader. It\u0027s possible that someone may provide a very, very large file full of back to back bson documents and reading the whole file into bytes will be less than good :)",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5b7b8add_0f23143b",
+        "filename": "bson/value_reader.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 613,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-23T15:51:41Z",
+      "side": 1,
+      "message": "We wouldn\u0027t read the entire fie into memory, we would read one document at a time into memory and then likely reuse the same valueReader to read the next document.\n\nAdditionally, these functions are here mostly because they do the bookkeeping of tracking the offset. I don\u0027t know how useful it would be to complicate this code just so we don\u0027t have to read an entire document into memory. I suppose it might be useful if you\u0027re reading very large BSON into memory, e.g. a 4GB document, but we could make a new implementation of this, or extend this, to enable the use of an io.ReaderAt, but I think that\u0027s a preoptimization at this point.",
+      "parentUuid": "029a11d9_83384925",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
