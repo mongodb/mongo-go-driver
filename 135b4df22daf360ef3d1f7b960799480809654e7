@@ -1,0 +1,78 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "aa234a8a_10506237",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-23T11:48:03Z",
+      "side": 1,
+      "message": "Does this ever get closed/disconnected?",
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dbd2818f_649e55e4",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 325,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-23T11:48:03Z",
+      "side": 1,
+      "message": "\"included\"",
+      "range": {
+        "startLine": 325,
+        "startChar": 36,
+        "endLine": 325,
+        "endChar": 44
+      },
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0b49a6e9_f650e8a6",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 426,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-23T11:48:03Z",
+      "side": 1,
+      "message": "I don\u0027t see the assertion required by the test: \"Assert that the command passed to the command-started listener contained the session lsid from session\".  This seems to only be checking that some session id is included (it could be an implicit one instead of the explicit one).",
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8cd7c3b8_e57d9a7b",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 561,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-23T11:48:03Z",
+      "side": 1,
+      "message": "I found the use of defer here for the assertion confusing, since this assertion is the main point of the test.  I think it would be clearer to move it to the bottom, without a defer.",
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
