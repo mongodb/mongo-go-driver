@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "0872fc29_3fe82da7",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T13:33:44Z",
+      "side": 1,
+      "message": "No, it doesn\u0027t. The idea was to use the same topology across all test cases to avoid opening a new one and setting up SDAM for every test. Not sure when it could be closed. Also, similar setups in the CRUD spec tests don\u0027t close the topology either.",
+      "parentUuid": "aa234a8a_10506237",
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dbd2818f_649e55e4",
         "filename": "mongo/sessions_test.go",
         "patchSetId": 6
@@ -42,6 +60,30 @@
     },
     {
       "key": {
+        "uuid": "331f0e93_fea2bf47",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 325,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T13:33:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dbd2818f_649e55e4",
+      "range": {
+        "startLine": 325,
+        "startChar": 36,
+        "endLine": 325,
+        "endChar": 44
+      },
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0b49a6e9_f650e8a6",
         "filename": "mongo/sessions_test.go",
         "patchSetId": 6
@@ -59,6 +101,24 @@
     },
     {
       "key": {
+        "uuid": "db0ce519_7de628b0",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 426,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T13:33:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0b49a6e9_f650e8a6",
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8cd7c3b8_e57d9a7b",
         "filename": "mongo/sessions_test.go",
         "patchSetId": 6
@@ -73,6 +133,24 @@
       "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "583fa9d0_070cc204",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 561,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T13:33:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8cd7c3b8_e57d9a7b",
+      "revId": "135b4df22daf360ef3d1f7b960799480809654e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
