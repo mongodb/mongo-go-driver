@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "82e7308d_d408bc52",
+        "filename": "core/command/find_one_delete.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T15:58:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7d5d43ef_488f87a2",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9d4fcf3b_43986ff7",
         "filename": "core/command/kill_cursors.go",
         "patchSetId": 16
@@ -140,6 +158,24 @@
       "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "395b32e3_6f2bd30b",
+        "filename": "core/option/options.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T15:58:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "aa81d3d9_3dcb05a9",
+      "revId": "b760478c6261e3ff88d34037b04998476f5d23e8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {

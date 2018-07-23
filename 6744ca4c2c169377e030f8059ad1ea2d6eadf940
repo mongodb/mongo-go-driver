@@ -34,6 +34,24 @@
       "revId": "6744ca4c2c169377e030f8059ad1ea2d6eadf940",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cf2091f3_4e715d39",
+        "filename": "core/dispatch/end_sessions.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T15:58:04Z",
+      "side": 1,
+      "message": "After talking with Kris and Jeff, we decided to remove the special server selection logic because users can pass in a context with a timeout. If the context times out during server selection, the selection will be aborted and the EndSessions command won\u0027t run.",
+      "parentUuid": "e2a717bc_f308b767",
+      "revId": "6744ca4c2c169377e030f8059ad1ea2d6eadf940",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

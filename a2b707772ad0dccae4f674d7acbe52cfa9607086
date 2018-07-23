@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "e0c0e20a_1f78a903",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T15:58:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1f0926d0_d071899a",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8a0d2e8b_8902189d",
         "filename": "core/topology/fsm.go",
         "patchSetId": 20
@@ -139,6 +157,24 @@
       "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "604eb46d_5782c918",
+        "filename": "core/topology/fsm.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T15:58:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "23b0fe23_83a647c4",
+      "revId": "a2b707772ad0dccae4f674d7acbe52cfa9607086",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

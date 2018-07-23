@@ -46,6 +46,30 @@
       "revId": "4a3ba81c59dde8e53e701b9b3528be72cb42e513",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4d3c32fd_846bc4e2",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T15:58:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dc1a2440_37c58897",
+      "range": {
+        "startLine": 28,
+        "startChar": 0,
+        "endLine": 40,
+        "endChar": 1
+      },
+      "revId": "4a3ba81c59dde8e53e701b9b3528be72cb42e513",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

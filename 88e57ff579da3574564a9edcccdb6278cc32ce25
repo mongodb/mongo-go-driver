@@ -34,6 +34,24 @@
       "revId": "88e57ff579da3574564a9edcccdb6278cc32ce25",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9aaed62e_99486b04",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-23T15:58:04Z",
+      "side": 0,
+      "message": "Done",
+      "parentUuid": "57786058_5d783350",
+      "revId": "88e57ff579da3574564a9edcccdb6278cc32ce25",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
