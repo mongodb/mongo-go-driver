@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "896dbbbd_9c3d3065",
+        "filename": "bson/bson.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f20edd0d_5403147d",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8f72a3f7_cb10ef40",
         "filename": "bson/codec.go",
         "patchSetId": 2
@@ -66,6 +84,24 @@
       "side": 1,
       "message": "This reflection is actually pretty fast, but yeah we can probably do this without reflection. I\u0027ve been going back and forth on whether we should be passing in a reflect.Value here instead of an empty interface.",
       "parentUuid": "8f72a3f7_cb10ef40",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0f5ca854_29f58ccb",
+        "filename": "bson/codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "You\u0027ll want to benchmark and use whichever one is faster. I\u0027d anticipate not using reflection will be.",
+      "parentUuid": "315fd80f_7b412a2c",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -107,6 +143,24 @@
     },
     {
       "key": {
+        "uuid": "0b761a21_64733626",
+        "filename": "bson/codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1fdbd546_cd4bf255",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "781c2685_9eea4437",
         "filename": "bson/document_value_writer.go",
         "patchSetId": 2
@@ -142,6 +196,24 @@
     },
     {
       "key": {
+        "uuid": "9b4a7baa_9fb10437",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 386,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "69547c04_fd7bca58",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "843a95cf_2b6ab739",
         "filename": "bson/document_value_writer.go",
         "patchSetId": 2
@@ -174,6 +246,24 @@
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "544b8ca8_3ffbed42",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 401,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Ack. I missed the push in WriteArrayElement()",
+      "parentUuid": "736ebf8d_74022f3e",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -247,6 +337,24 @@
     },
     {
       "key": {
+        "uuid": "b53e37de_945088dc",
+        "filename": "bson/encoder.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Fair enough, but why not use it here too? As long as we reset, then the caller won\u0027t know or care.\n\nAh... perhaps because they can\u0027t return it. Nevermind.",
+      "parentUuid": "43f60479_5712f38d",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0a4cfdab_e7e510ca",
         "filename": "bson/registry.go",
         "patchSetId": 2
@@ -276,6 +384,24 @@
       "side": 1,
       "message": "A Registry needs to be goroutine safe because if it isn\u0027t I will have to copy it all the time. For example, the mongo.Client type will have a Registry on it, and it\u0027ll use that registry to marshal and unmarshal BSON. If it isn\u0027t goroutine safe, then we can\u0027t actually access the maps and each time we\u0027ll have to copy the map (concurrent access to a map will panic).\n\nIf users mutate a Registry while their application is in the middle of using that Registry, that is a bug. If we are worried about this being a source of bugs, we can make it so a registry cannot have any more types registered with it after the first lookup.",
       "parentUuid": "0a4cfdab_e7e510ca",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f5a8af0e_c854527a",
+        "filename": "bson/registry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "You wouldn\u0027t need to copy it. If the user adds things to it after passing it to a mongo.Client, then that is a bug on their end. Simply state that the Registry is not thread-safe.\n\nOf course, it\u0027d be nice to actually have an immutable registry. It would look more like a RegistryBuilder the user deals with and then provides you a registry that gets build. I don\u0027t know how expensive an RWMutex is, but since this code will be in the hottest of paths, every little bit is probably a help.",
+      "parentUuid": "0a0f9512_88031bc4",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -352,6 +478,24 @@
     },
     {
       "key": {
+        "uuid": "3ac482b2_d6ae3653",
+        "filename": "bson/slice_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "03d8a699_bd37d217",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7e3fc412_7b6698a3",
         "filename": "bson/slice_codec.go",
         "patchSetId": 2
@@ -381,6 +525,24 @@
       "side": 1,
       "message": "No, we called Elem on it on line 36, so unless we have a pointer to a pointer, this won\u0027t already be a pointer type.",
       "parentUuid": "7e3fc412_7b6698a3",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9afe2990_39293476",
+        "filename": "bson/slice_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Well, yeah... that\u0027s what I mean. We can have a pointer to a pointer type. And this is exactly the place it would actually occur. Users will likely never themselves have a pointer to a pointer type. But they might have pointer types and, if they do, line 36 has just created a pointer to a pointer.",
+      "parentUuid": "56fc24db_624fe3ed",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -419,6 +581,24 @@
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7a01b300_a9cc70cd",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "4308f2e9_f141f907",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -492,6 +672,24 @@
     },
     {
       "key": {
+        "uuid": "b23ed163_21a08a20",
+        "filename": "bson/value_reader.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 260,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "99fa2582_d2dbae48",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "029a11d9_83384925",
         "filename": "bson/value_reader.go",
         "patchSetId": 2
@@ -521,6 +719,24 @@
       "side": 1,
       "message": "We wouldn\u0027t read the entire fie into memory, we would read one document at a time into memory and then likely reuse the same valueReader to read the next document.\n\nAdditionally, these functions are here mostly because they do the bookkeeping of tracking the offset. I don\u0027t know how useful it would be to complicate this code just so we don\u0027t have to read an entire document into memory. I suppose it might be useful if you\u0027re reading very large BSON into memory, e.g. a 4GB document, but we could make a new implementation of this, or extend this, to enable the use of an io.ReaderAt, but I think that\u0027s a preoptimization at this point.",
       "parentUuid": "029a11d9_83384925",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "12a3c74a_a5e318e8",
+        "filename": "bson/value_reader.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 613,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Agreed... don\u0027t do this now. Just stating that extracting these enables that later on if necessary :)",
+      "parentUuid": "5b7b8add_0f23143b",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -558,6 +774,24 @@
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a38551af_4825a2db",
+        "filename": "bson/value_writer.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-23T19:16:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ffe67d2f_9b279828",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
