@@ -16,6 +16,24 @@
       "revId": "88025df1960a15b51c2177c208a768f6f0ff25c9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2f840dfc_f4e0c7ca",
+        "filename": "mongo/sessions_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 664,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-23T17:56:14Z",
+      "side": 1,
+      "message": "It does, we pushed this patch set after making a whole bunch of fixes locally (mainly adding functions that we forgot to test - i.e. ListDatabases/Collections, etc.) and then forgot to remove these.  Removed these in the next patch set.",
+      "parentUuid": "b2f9b418_a3065718",
+      "revId": "88025df1960a15b51c2177c208a768f6f0ff25c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
