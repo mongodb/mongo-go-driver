@@ -16,6 +16,24 @@
       "revId": "ec650fe0e30ae36aaab8995be1d27450ef85ea9a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1d87e4f9_db4be203",
+        "filename": "mongo/aggregateopt/aggregateopt_test.go",
+        "patchSetId": 29
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-24T14:43:00Z",
+      "side": 1,
+      "message": "I\u0027ve added a test in the sessions test plan CR to explicitly check that unbundle takes the last session the user specified.",
+      "parentUuid": "19713359_e58013db",
+      "revId": "ec650fe0e30ae36aaab8995be1d27450ef85ea9a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
