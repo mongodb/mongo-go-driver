@@ -33,6 +33,24 @@
       "revId": "072bdd72da5065e1fd18fc5661a6fed244fd7b44",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "97aef2d8_95931b30",
+        "filename": "mongo/collection.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 1071,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-07-24T13:27:54Z",
+      "side": 1,
+      "message": "Drop Collection doesn\u0027t take any options (only sessions).  It seemed weird to support unbundling when we would always return a nil slice for actual options.  We could add an unbundle function and an DropCollOption interface that nothing implements so if in the future there were options it would be easy to add.  Does this sound like a good idea?",
+      "parentUuid": "6a397019_04e08ce1",
+      "revId": "072bdd72da5065e1fd18fc5661a6fed244fd7b44",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
