@@ -12,11 +12,13 @@ var ErrSessionEnded = errors.New("ended session was used")
 
 // Client is a session for clients to run commands.
 type Client struct {
-	ClientID    uuid.UUID
-	ClusterTime *bson.Document
-	SessionID   *bson.Document
-	SessionType Type
-	Terminated  bool
+	ClientID      uuid.UUID
+	ClusterTime   *bson.Document
+	Consistent    bool // causal consistency
+	OperationTime *bson.Timestamp
+	SessionID     *bson.Document
+	SessionType   Type
+	Terminated    bool
 
 	pool          *Pool
 	serverSession *Server
@@ -59,7 +61,7 @@ func MaxClusterTime(ct1 *bson.Document, ct2 *bson.Document) *bson.Document {
 }
 
 // NewClientSession creates a Client.
-func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type) (*Client, error) {
+func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, consistent bool) (*Client, error) {
 	servSess, err := pool.GetSession()
 	if err != nil {
 		return nil, err
@@ -67,6 +69,7 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type) (*Client
 
 	return &Client{
 		ClientID:      clientID,
+		Consistent:    consistent,
 		SessionID:     servSess.SessionID,
 		SessionType:   sessionType,
 		pool:          pool,
@@ -80,6 +83,26 @@ func (c *Client) AdvanceClusterTime(clusterTime *bson.Document) error {
 		return ErrSessionEnded
 	}
 	c.ClusterTime = MaxClusterTime(c.ClusterTime, clusterTime)
+	return nil
+}
+
+// AdvanceOperationTime updates the session's operation time.
+func (c *Client) AdvanceOperationTime(opTime *bson.Timestamp) error {
+	if c.Terminated {
+		return ErrSessionEnded
+	}
+
+	if c.OperationTime == nil {
+		c.OperationTime = opTime
+		return nil
+	}
+
+	if opTime.T > c.OperationTime.T {
+		c.OperationTime = opTime
+	} else if (opTime.T == c.OperationTime.T) && (opTime.I > c.OperationTime.I) {
+		c.OperationTime = opTime
+	}
+
 	return nil
 }
 

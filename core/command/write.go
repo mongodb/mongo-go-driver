@@ -165,6 +165,11 @@ func (w *Write) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 	}
 
 	_ = updateClusterTimes(w.Session, w.Clock, w.result)
+
+	if writeconcern.AckWrite(w.WriteConcern) {
+		// don't update session operation time for unacknowledged write
+		_ = updateOperationTime(w.Session, w.result)
+	}
 	return w
 }
 
