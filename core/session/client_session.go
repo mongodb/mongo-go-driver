@@ -12,11 +12,13 @@ var ErrSessionEnded = errors.New("ended session was used")
 
 // Client is a session for clients to run commands.
 type Client struct {
-	ClientID    uuid.UUID
-	ClusterTime *bson.Document
-	SessionID   *bson.Document
-	SessionType Type
-	Terminated  bool
+	ClientID      uuid.UUID
+	ClusterTime   *bson.Document
+	Consistent    bool // causal consistency
+	OperationTime *bson.Timestamp
+	SessionID     *bson.Document
+	SessionType   Type
+	Terminated    bool
 
 	pool          *Pool
 	serverSession *Server
@@ -59,19 +61,31 @@ func MaxClusterTime(ct1 *bson.Document, ct2 *bson.Document) *bson.Document {
 }
 
 // NewClientSession creates a Client.
-func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type) (*Client, error) {
+func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...ClientOptioner) (*Client, error) {
+	c := &Client{
+		Consistent:  true, // causal consistency defaults to true
+		ClientID:    clientID,
+		SessionType: sessionType,
+		pool:        pool,
+	}
+
+	var err error
+	for _, opt := range opts {
+		err = opt.Option(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	servSess, err := pool.GetSession()
 	if err != nil {
 		return nil, err
 	}
 
-	return &Client{
-		ClientID:      clientID,
-		SessionID:     servSess.SessionID,
-		SessionType:   sessionType,
-		pool:          pool,
-		serverSession: servSess,
-	}, nil
+	c.SessionID = servSess.SessionID
+	c.serverSession = servSess
+
+	return c, nil
 }
 
 // AdvanceClusterTime updates the session's cluster time.
@@ -80,6 +94,26 @@ func (c *Client) AdvanceClusterTime(clusterTime *bson.Document) error {
 		return ErrSessionEnded
 	}
 	c.ClusterTime = MaxClusterTime(c.ClusterTime, clusterTime)
+	return nil
+}
+
+// AdvanceOperationTime updates the session's operation time.
+func (c *Client) AdvanceOperationTime(opTime *bson.Timestamp) error {
+	if c.Terminated {
+		return ErrSessionEnded
+	}
+
+	if c.OperationTime == nil {
+		c.OperationTime = opTime
+		return nil
+	}
+
+	if opTime.T > c.OperationTime.T {
+		c.OperationTime = opTime
+	} else if (opTime.T == c.OperationTime.T) && (opTime.I > c.OperationTime.I) {
+		c.OperationTime = opTime
+	}
+
 	return nil
 }
 

@@ -26,6 +26,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
+	"github.com/mongodb/mongo-go-driver/mongo/sessionopt"
 )
 
 func createTestClient(t *testing.T) *Client {
@@ -376,4 +377,32 @@ func TestClient_ReadPreferenceAbsent(t *testing.T) {
 	require.Empty(t, c.readPreference.TagSets())
 	_, flag := c.readPreference.MaxStaleness()
 	require.False(t, flag)
+}
+
+func TestClient_CausalConsistency(t *testing.T) {
+	cs := testutil.ConnString(t)
+	c, err := NewClient(cs.String())
+	require.NoError(t, err)
+	require.NotNil(t, c)
+
+	err = c.Connect(ctx)
+	require.NoError(t, err)
+
+	sess, err := c.StartSession(sessionopt.CausalConsistency(true))
+	require.NoError(t, err)
+	require.NotNil(t, sess)
+	require.True(t, sess.Consistent)
+	sess.EndSession()
+
+	sess, err = c.StartSession(sessionopt.CausalConsistency(false))
+	require.NoError(t, err)
+	require.NotNil(t, sess)
+	require.False(t, sess.Consistent)
+	sess.EndSession()
+
+	sess, err = c.StartSession()
+	require.NoError(t, err)
+	require.NotNil(t, sess)
+	require.True(t, sess.Consistent)
+	sess.EndSession()
 }
