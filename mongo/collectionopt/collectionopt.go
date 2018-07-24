@@ -5,7 +5,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
-	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
@@ -37,27 +36,6 @@ func (*CollectionBundle) collectionOption() {}
 
 // OptionFunc implements Option.
 func (optionFunc) collectionOption() {}
-
-// Drop represents all possible params for the drop() function.
-type Drop interface {
-	drop()
-}
-
-// DropCollSession is the session for the drop() function.
-type DropCollSession interface {
-	Drop
-	ConvertDropCollSession() *session.Client
-}
-
-// DropSessionOpt is a drop session option.
-type DropSessionOpt struct{}
-
-func (DropSessionOpt) drop() {}
-
-// ConvertDropCollSession implements the DropCollSession interface.
-func (DropSessionOpt) ConvertDropCollSession() *session.Client {
-	return nil
-}
 
 // BundleCollection bundles collection options.
 func BundleCollection(opts ...Option) *CollectionBundle {

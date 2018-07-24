@@ -26,6 +26,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
+	"github.com/mongodb/mongo-go-driver/mongo/dropcollopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
@@ -1075,14 +1076,14 @@ func (coll *Collection) Indexes() IndexView {
 }
 
 // Drop drops this collection from database.
-func (coll *Collection) Drop(ctx context.Context, opts ...collectionopt.Drop) error {
+func (coll *Collection) Drop(ctx context.Context, opts ...dropcollopt.DropColl) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	var sess *session.Client
 	for _, opt := range opts {
-		if conv, ok := opt.(collectionopt.DropCollSession); ok {
+		if conv, ok := opt.(dropcollopt.DropCollSession); ok {
 			sess = conv.ConvertDropCollSession()
 		}
 	}

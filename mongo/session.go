@@ -12,7 +12,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
-	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
@@ -39,7 +38,6 @@ type Session struct {
 	countopt.CountSessionOpt
 	deleteopt.DeleteSessionOpt
 	distinctopt.DistinctSessionOpt
-	collectionopt.DropSessionOpt
 	dbopt.DropDBSessionOpt
 	findopt.FindSessionOpt
 	dropcollopt.DropCollSessionOpt
@@ -59,7 +57,6 @@ var (
 	_ changestreamopt.ChangeStream      = (*Session)(nil)
 	_ deleteopt.Delete                  = (*Session)(nil)
 	_ distinctopt.Distinct              = (*Session)(nil)
-	_ collectionopt.Drop                = (*Session)(nil)
 	_ dbopt.DropDB                      = (*Session)(nil)
 	_ findopt.Find                      = (*Session)(nil)
 	_ findopt.One                       = (*Session)(nil)
