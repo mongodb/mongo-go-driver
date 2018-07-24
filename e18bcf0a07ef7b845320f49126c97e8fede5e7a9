@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "585fb383_74108f42",
+        "filename": "mongo/client.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-24T17:29:02Z",
+      "side": 1,
+      "message": "I like this... even better than what I had in my head!",
+      "revId": "e18bcf0a07ef7b845320f49126c97e8fede5e7a9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
