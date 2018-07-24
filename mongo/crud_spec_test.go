@@ -837,13 +837,22 @@ func verifyCollectionContents(t *testing.T, coll *Collection, result json.RawMes
 }
 
 func verifyCursorResults(t *testing.T, cursor Cursor, result json.RawMessage) {
-	for _, expected := range docSliceFromRaw(t, result) {
-		require.True(t, cursor.Next(context.Background()))
+	for i, expected := range docSliceFromRaw(t, result) {
+		if !cursor.Next(context.Background()) {
+			t.Fatalf("failed for iter %d\n", i)
+		}
 
 		actual := bson.NewDocument()
 		require.NoError(t, cursor.Decode(actual))
 
 		require.True(t, expected.Equal(actual))
+
+		//require.True(t, cursor.Next(context.Background()))
+		//
+		//actual := bson.NewDocument()
+		//require.NoError(t, cursor.Decode(actual))
+		//
+		//require.True(t, expected.Equal(actual))
 	}
 
 	require.False(t, cursor.Next(context.Background()))

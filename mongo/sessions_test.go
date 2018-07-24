@@ -88,7 +88,7 @@ func createFuncMap(t *testing.T, dbName string, collName string, monitored bool)
 	var client *Client
 
 	if monitored {
-		client = createSessionsMonitoredClient(t)
+		client = createSessionsMonitoredClient(t, sessionsMonitor)
 	} else {
 		client = createTestClient(t)
 	}
@@ -162,7 +162,7 @@ func getOptValues(opts []interface{}) []reflect.Value {
 	return valOpts
 }
 
-func createSessionsMonitoredTopology(t *testing.T, clock *session.ClusterClock) *topology.Topology {
+func createMonitoredTopology(t *testing.T, clock *session.ClusterClock, monitor *event.CommandMonitor) *topology.Topology {
 	if sessionsMonitoredTop != nil {
 		return sessionsMonitoredTop // don't create the same topology twice
 	}
@@ -180,7 +180,7 @@ func createSessionsMonitoredTopology(t *testing.T, clock *session.ClusterClock) 
 					return append(
 						opts,
 						connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
-							return sessionsMonitor
+							return monitor
 						}),
 					)
 				}),
@@ -221,13 +221,14 @@ func createSessionsMonitoredTopology(t *testing.T, clock *session.ClusterClock) 
 	return sessionsMonitoredTop
 }
 
-func createSessionsMonitoredClient(t *testing.T) *Client {
+func createSessionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client {
 	clock := &session.ClusterClock{}
 
 	c := &Client{
-		topology:       createSessionsMonitoredTopology(t, clock),
+		topology:       createMonitoredTopology(t, clock, monitor),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
+		readConcern:    readconcern.New(),
 		clock:          clock,
 	}
 
@@ -364,7 +365,7 @@ func TestSessions(t *testing.T) {
 
 		skipInvalidTopology(t)
 
-		client := createSessionsMonitoredClient(t)
+		client := createSessionsMonitoredClient(t, sessionsMonitor)
 		db := client.Database("SessionsTestClusterTime")
 		err := db.Drop(ctx)
 		testhelpers.RequireNil(t, err, "error dropping database: %s", err)
@@ -555,7 +556,7 @@ func TestSessions(t *testing.T) {
 		skipInvalidTopology(t)
 		skipIfBelow36(t)
 
-		client := createSessionsMonitoredClient(t)
+		client := createSessionsMonitoredClient(t, sessionsMonitor)
 		defer verifySessionsReturned(t, client)
 
 		db := client.Database("ImplicitSessionReturnedDB")
@@ -637,7 +638,7 @@ func TestSessions(t *testing.T) {
 		rsTop := "replica_set"
 		shardedTop := "sharded_cluster"
 		wcMajority := writeconcern.New(writeconcern.WMajority())
-		client := createSessionsMonitoredClient(t)
+		client := createSessionsMonitoredClient(t, sessionsMonitor)
 		db := client.Database("TestFindAndGetMoreSessionIDsDB")
 		coll := db.Collection("TestFindAndGetMoreSessionIDsColl", collectionopt.WriteConcern(wcMajority),
 			collectionopt.ReadConcern(readconcern.Majority()))
