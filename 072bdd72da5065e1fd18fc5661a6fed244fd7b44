@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b5e5cc9c_47e055b4",
+        "filename": "mongo/collection.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-24T12:33:39Z",
+      "side": 1,
+      "message": "Can we put this in a helper method? isValidSession() or something.",
+      "revId": "072bdd72da5065e1fd18fc5661a6fed244fd7b44",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6a397019_04e08ce1",
+        "filename": "mongo/collection.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 1071,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-24T12:33:39Z",
+      "side": 1,
+      "message": "why is there no unbundle on DropCollSession?",
+      "revId": "072bdd72da5065e1fd18fc5661a6fed244fd7b44",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
