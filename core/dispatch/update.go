@@ -54,7 +54,7 @@ func Update(
 
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() {
-		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit, session.OptCausalConsistency(true))
 		if err != nil {
 			return result.Update{}, err
 		}

@@ -47,6 +47,24 @@ func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, respo
 	return nil
 }
 
+func updateOperationTime(sess *session.Client, response bson.Reader) error {
+	if sess == nil {
+		return nil
+	}
+
+	opTimeElem, err := response.Lookup("operationTime")
+	if err != nil {
+		// operationTime not included by the server
+		return nil
+	}
+
+	t, i := opTimeElem.Value().Timestamp()
+	return sess.AdvanceOperationTime(&bson.Timestamp{
+		T: t,
+		I: i,
+	})
+}
+
 func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
 	if cmd == nil {
 		return bson.Reader{5, 0, 0, 0, 0}, nil
@@ -103,7 +121,7 @@ func addClusterTime(cmd *bson.Document, desc description.SelectedServer, sess *s
 }
 
 // add a read concern to a BSON doc representing a command
-func addReadConcern(cmd *bson.Document, rc *readconcern.ReadConcern) error {
+func addReadConcern(cmd *bson.Document, desc description.SelectedServer, rc *readconcern.ReadConcern, sess *session.Client) error {
 	if rc == nil {
 		return nil
 	}
@@ -113,11 +131,18 @@ func addReadConcern(cmd *bson.Document, rc *readconcern.ReadConcern) error {
 		return err
 	}
 
+	rcDoc := element.Value().MutableDocument()
+	if description.SessionsSupported(desc.WireVersion) && sess != nil && sess.Consistent && sess.OperationTime != nil {
+		rcDoc = rcDoc.Append(
+			bson.EC.Timestamp("afterClusterTime", sess.OperationTime.T, sess.OperationTime.I),
+		)
+	}
+
 	if _, err := cmd.LookupElementErr(element.Key()); err != nil {
 		cmd.Delete(element.Key())
 	}
 
-	cmd.Append(element)
+	cmd.Append(bson.EC.SubDocument("readConcern", rcDoc))
 	return nil
 }
 
