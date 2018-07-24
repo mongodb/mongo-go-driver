@@ -95,14 +95,19 @@ func (ob *OneBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; ob != nil && ob.option != nil; ob = ob.next {
+	for ; ob != nil; ob = ob.next {
+		if ob.option == nil {
+			continue
+		}
 		if converted, ok := ob.option.(*OneBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := ob.option.(OneSession); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -156,7 +161,11 @@ func (ob *OneBundle) unbundle() ([]option.InsertOptioner, *session.Client, error
 	options := make([]option.InsertOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := ob; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := ob; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*OneBundle); ok {
 			nestedOptions, s, err := converted.unbundle()
@@ -269,14 +278,19 @@ func (mb *ManyBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; mb != nil && mb.option != nil; mb = mb.next {
+	for ; mb != nil; mb = mb.next {
+		if mb.option == nil {
+			continue
+		}
 		if converted, ok := mb.option.(*ManyBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := mb.option.(InsertSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -330,7 +344,11 @@ func (mb *ManyBundle) unbundle() ([]option.InsertOptioner, *session.Client, erro
 	options := make([]option.InsertOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := mb; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := mb; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ManyBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

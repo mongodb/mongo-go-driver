@@ -147,14 +147,19 @@ func (csb *ChangeStreamBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; csb != nil && csb.option != nil; csb = csb.next {
+	for ; csb != nil; csb = csb.next {
+		if csb.option == nil {
+			continue
+		}
 		if converted, ok := csb.option.(*ChangeStreamBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := csb.option.(ChangeStreamSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -172,7 +177,11 @@ func (csb *ChangeStreamBundle) unbundle() ([]option.ChangeStreamOptioner, *sessi
 	options := make([]option.ChangeStreamOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := csb; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := csb; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ChangeStreamBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

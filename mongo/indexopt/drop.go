@@ -103,13 +103,19 @@ func (db *DropBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; db != nil && db.option != nil; db = db.next {
+	for ; db != nil; db = db.next {
+		if db.option == nil {
+			continue
+		}
 		if converted, ok := db.option.(*DropBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
-		bundleLen++
+
+		if _, ok := db.option.(DropIndexSession); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -126,7 +132,11 @@ func (db *DropBundle) unbundle() ([]option.DropIndexesOptioner, *session.Client,
 	options := make([]option.DropIndexesOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := db; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := db; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*DropBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

@@ -128,6 +128,23 @@ func TestDropOpt(t *testing.T) {
 		}
 	})
 
+	t.Run("Nil Option Bundle", func(t *testing.T) {
+		sess := IndexSessionOpt{}
+		opts, _, err := BundleDrop(MaxTime(1), BundleDrop(nil), sess, nil).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+
+		opts, _, err = BundleDrop(nil, sess, BundleDrop(nil), MaxTime(1)).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+	})
+
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
 			name         string

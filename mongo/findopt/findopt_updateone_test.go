@@ -168,6 +168,23 @@ func TestFindAndUpdateOneOpt(t *testing.T) {
 		}
 	})
 
+	t.Run("Nil Option Bundle", func(t *testing.T) {
+		sess := FindSessionOpt{}
+		opts, _, err := BundleUpdateOne(Upsert(true), BundleUpdateOne(nil), sess, nil).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+
+		opts, _, err = BundleUpdateOne(nil, sess, BundleUpdateOne(nil), Upsert(true)).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+	})
+
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
 

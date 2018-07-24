@@ -144,14 +144,19 @@ func (dob *DeleteOneBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; dob != nil && dob.option != nil; dob = dob.next {
+	for ; dob != nil; dob = dob.next {
+		if dob.option == nil {
+			continue
+		}
 		if converted, ok := dob.option.(*DeleteOneBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := dob.option.(DeleteOneSession); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -169,7 +174,11 @@ func (dob *DeleteOneBundle) unbundle() ([]option.FindOneAndDeleteOptioner, *sess
 	options := make([]option.FindOneAndDeleteOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := dob; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := dob; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*DeleteOneBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

@@ -119,14 +119,19 @@ func (rb *ReplaceBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; rb != nil && rb.option != nil; rb = rb.next {
+	for ; rb != nil; rb = rb.next {
+		if rb.option == nil {
+			continue
+		}
 		if converted, ok := rb.option.(*ReplaceBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := rb.option.(ReplaceSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -175,7 +180,11 @@ func (rb *ReplaceBundle) unbundle() ([]option.ReplaceOptioner, *session.Client, 
 	options := make([]option.ReplaceOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := rb; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := rb; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ReplaceBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

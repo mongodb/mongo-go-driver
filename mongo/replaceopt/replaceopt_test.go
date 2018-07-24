@@ -173,6 +173,23 @@ func TestReplaceOpt(t *testing.T) {
 		}
 	})
 
+	t.Run("Nil Option Bundle", func(t *testing.T) {
+		sess := ReplaceSessionOpt{}
+		opts, _, err := BundleReplace(Upsert(true), BundleReplace(nil), sess, nil).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+
+		opts, _, err = BundleReplace(nil, sess, BundleReplace(nil), Upsert(true)).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+	})
+
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
 

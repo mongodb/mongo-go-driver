@@ -157,6 +157,23 @@ func TestInsertInsertOneOpt(t *testing.T) {
 		}
 	})
 
+	t.Run("Nil Option Bundle", func(t *testing.T) {
+		sess := InsertSessionOpt{}
+		opts, _, err := BundleOne(BypassDocumentValidation(true), BundleOne(nil), sess, nil).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+
+		opts, _, err = BundleOne(nil, sess, BundleOne(nil), BypassDocumentValidation(true)).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+	})
+
 	t.Run("Unbundle", func(t *testing.T) {
 		var cases = []struct {
 			name         string

@@ -126,14 +126,19 @@ func (ub *UpdateBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; ub != nil && ub.option != nil; ub = ub.next {
+	for ; ub != nil; ub = ub.next {
+		if ub.option == nil {
+			continue
+		}
 		if converted, ok := ub.option.(*UpdateBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := ub.option.(UpdateSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -182,7 +187,11 @@ func (ub *UpdateBundle) unbundle() ([]option.UpdateOptioner, *session.Client, er
 	options := make([]option.UpdateOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := ub; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := ub; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*UpdateBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

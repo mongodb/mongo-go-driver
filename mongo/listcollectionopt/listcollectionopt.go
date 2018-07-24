@@ -103,14 +103,19 @@ func (lcb *ListCollectionsBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; lcb != nil && lcb.option != nil; lcb = lcb.next {
+	for ; lcb != nil; lcb = lcb.next {
+		if lcb.option == nil {
+			continue
+		}
 		if converted, ok := lcb.option.(*ListCollectionsBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := lcb.option.(ListCollectionsSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -128,7 +133,11 @@ func (lcb *ListCollectionsBundle) unbundle() ([]option.ListCollectionsOptioner, 
 	options := make([]option.ListCollectionsOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := lcb; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := lcb; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ListCollectionsBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

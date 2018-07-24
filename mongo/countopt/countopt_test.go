@@ -168,6 +168,23 @@ func TestCountOpt(t *testing.T) {
 		}
 	})
 
+	t.Run("Nil Option Bundle", func(t *testing.T) {
+		sess := CountSessionOpt{}
+		opts, _, err := BundleCount(Skip(1), BundleCount(nil), sess, nil).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+
+		opts, _, err = BundleCount(nil, sess, BundleCount(nil), Skip(1)).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+	})
+
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
 

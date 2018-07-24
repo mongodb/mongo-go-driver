@@ -305,14 +305,19 @@ func (fb *FindBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; fb != nil && fb.option != nil; fb = fb.next {
+	for ; fb != nil; fb = fb.next {
+		if fb.option == nil {
+			continue
+		}
 		if converted, ok := fb.option.(*FindBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := fb.option.(FindSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -330,7 +335,11 @@ func (fb *FindBundle) unbundle() ([]option.FindOptioner, *session.Client, error)
 	options := make([]option.FindOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := fb; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := fb; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*FindBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

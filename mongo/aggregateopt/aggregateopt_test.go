@@ -185,6 +185,23 @@ func TestAggregateOpt(t *testing.T) {
 		}
 	})
 
+	t.Run("Nil Option Bundle", func(t *testing.T) {
+		sess := AggregateSessionOpt{}
+		opts, _, err := BundleAggregate(AllowDiskUse(true), BundleAggregate(nil), sess, nil).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+
+		opts, _, err = BundleAggregate(nil, sess, BundleAggregate(nil), AllowDiskUse(true)).unbundle()
+		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
+
+		if len(opts) != 1 {
+			t.Errorf("expected bundle length 1. got: %d", len(opts))
+		}
+	})
+
 	t.Run("MakeOptions", func(t *testing.T) {
 		head := bundle1
 

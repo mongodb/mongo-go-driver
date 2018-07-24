@@ -140,7 +140,10 @@ func (ab *AggregateBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; ab != nil && ab.option != nil; ab = ab.next {
+	for ; ab != nil; ab = ab.next {
+		if ab.option == nil {
+			continue
+		}
 		if converted, ok := ab.option.(*AggregateBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
@@ -197,7 +200,11 @@ func (ab *AggregateBundle) unbundle() ([]option.AggregateOptioner, *session.Clie
 	options := make([]option.AggregateOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := ab; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := ab; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*AggregateBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

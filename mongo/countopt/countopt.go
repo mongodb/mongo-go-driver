@@ -150,14 +150,19 @@ func (cb *CountBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; cb != nil && cb.option != nil; cb = cb.next {
+	for ; cb != nil; cb = cb.next {
+		if cb.option == nil {
+			continue
+		}
 		if converted, ok := cb.option.(*CountBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := cb.option.(CountSessionOpt); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -175,7 +180,11 @@ func (cb *CountBundle) unbundle() ([]option.CountOptioner, *session.Client, erro
 	options := make([]option.CountOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := cb; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := cb; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*CountBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

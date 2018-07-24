@@ -139,14 +139,19 @@ func (rob *ReplaceOneBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; rob != nil && rob.option != nil; rob = rob.next {
+	for ; rob != nil; rob = rob.next {
+		if rob.option == nil {
+			continue
+		}
 		if converted, ok := rob.option.(*ReplaceOneBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
 
-		bundleLen++
+		if _, ok := rob.option.(ReplaceOneSession); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -200,7 +205,11 @@ func (rob *ReplaceOneBundle) unbundle() ([]option.FindOneAndReplaceOptioner, *se
 	options := make([]option.FindOneAndReplaceOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := rob; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := rob; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ReplaceOneBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

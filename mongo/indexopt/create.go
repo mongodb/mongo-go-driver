@@ -103,13 +103,19 @@ func (cb *CreateBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; cb != nil && cb.option != nil; cb = cb.next {
+	for ; cb != nil; cb = cb.next {
+		if cb.option == nil {
+			continue
+		}
 		if converted, ok := cb.option.(*CreateBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
-		bundleLen++
+
+		if _, ok := cb.option.(CreateIndexSession); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -126,7 +132,11 @@ func (cb *CreateBundle) unbundle() ([]option.CreateIndexesOptioner, *session.Cli
 	options := make([]option.CreateIndexesOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := cb; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := cb; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*CreateBundle); ok {
 			nestedOptions, s, err := converted.unbundle()

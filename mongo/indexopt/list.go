@@ -113,13 +113,19 @@ func (lb *ListBundle) bundleLength() int {
 	}
 
 	bundleLen := 0
-	for ; lb != nil && lb.option != nil; lb = lb.next {
+	for ; lb != nil; lb = lb.next {
+		if lb.option == nil {
+			continue
+		}
 		if converted, ok := lb.option.(*ListBundle); ok {
 			// nested bundle
 			bundleLen += converted.bundleLength()
 			continue
 		}
-		bundleLen++
+
+		if _, ok := lb.option.(ListIndexSession); !ok {
+			bundleLen++
+		}
 	}
 
 	return bundleLen
@@ -136,7 +142,11 @@ func (lb *ListBundle) unbundle() ([]option.ListIndexesOptioner, *session.Client,
 	options := make([]option.ListIndexesOptioner, listLen)
 	index := listLen - 1
 
-	for listHead := lb; listHead != nil && listHead.option != nil; listHead = listHead.next {
+	for listHead := lb; listHead != nil; listHead = listHead.next {
+		if listHead.option == nil {
+			continue
+		}
+
 		// if the current option is a nested bundle, Unbundle it and add its options to the current array
 		if converted, ok := listHead.option.(*ListBundle); ok {
 			nestedOptions, s, err := converted.unbundle()
