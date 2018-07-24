@@ -108,6 +108,24 @@
     },
     {
       "key": {
+        "uuid": "0dcf2a5b_6396a59b",
+        "filename": "bson/codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-24T20:56:45Z",
+      "side": 1,
+      "message": "I did benchmark and got the following:\n\nBenchmarkValueOf-8           \t500000000\t         3.45 ns/op\nBenchmarkTypeAssertion-8     \t2000000000\t         0.32 ns/op\n\nSo I will update this to just use type assertions.",
+      "parentUuid": "0f5ca854_29f58ccb",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5becd0b7_cdb9789b",
         "filename": "bson/codec.go",
         "patchSetId": 2
@@ -155,6 +173,24 @@
       "side": 1,
       "message": "Ack",
       "parentUuid": "1fdbd546_cd4bf255",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "046d22e6_4fce39f4",
+        "filename": "bson/codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-24T20:56:45Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0b761a21_64733626",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -355,6 +391,24 @@
     },
     {
       "key": {
+        "uuid": "c77682f7_bfb90a2d",
+        "filename": "bson/encoder.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-24T20:56:45Z",
+      "side": 1,
+      "message": "Yeah, there was no good path to return the object and ensure the user didn\u0027t keep a reference to it.",
+      "parentUuid": "b53e37de_945088dc",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0a4cfdab_e7e510ca",
         "filename": "bson/registry.go",
         "patchSetId": 2
@@ -402,6 +456,24 @@
       "side": 1,
       "message": "You wouldn\u0027t need to copy it. If the user adds things to it after passing it to a mongo.Client, then that is a bug on their end. Simply state that the Registry is not thread-safe.\n\nOf course, it\u0027d be nice to actually have an immutable registry. It would look more like a RegistryBuilder the user deals with and then provides you a registry that gets build. I don\u0027t know how expensive an RWMutex is, but since this code will be in the hottest of paths, every little bit is probably a help.",
       "parentUuid": "0a0f9512_88031bc4",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "38878aa4_80543bf0",
+        "filename": "bson/registry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-24T20:56:45Z",
+      "side": 1,
+      "message": "I did add a method of essentially freezing the Registry, but I think a RegistryBuilder might actually be the thing we\u0027re looking for here.",
+      "parentUuid": "f5a8af0e_c854527a",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -543,6 +615,24 @@
       "side": 1,
       "message": "Well, yeah... that\u0027s what I mean. We can have a pointer to a pointer type. And this is exactly the place it would actually occur. Users will likely never themselves have a pointer to a pointer type. But they might have pointer types and, if they do, line 36 has just created a pointer to a pointer.",
       "parentUuid": "56fc24db_624fe3ed",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7165d445_973dd3be",
+        "filename": "bson/slice_codec.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-24T20:56:45Z",
+      "side": 1,
+      "message": "Oh, I read line 36 wrong, yeah we need a check here to ensure that if eType is a pointer, if it is we\u0027ll set eType to eType.Elem().",
+      "parentUuid": "9afe2990_39293476",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -737,6 +827,24 @@
       "side": 1,
       "message": "Agreed... don\u0027t do this now. Just stating that extracting these enables that later on if necessary :)",
       "parentUuid": "5b7b8add_0f23143b",
+      "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3df581b_49b62d2c",
+        "filename": "bson/value_reader.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 613,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-07-24T20:56:45Z",
+      "side": 1,
+      "message": "Yeah, I suppose we can keep these methods and just use some underlying interface inside of these methods.",
+      "parentUuid": "12a3c74a_a5e318e8",
       "revId": "a573b1a531affbef6541f547dc9a379b6564232a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
