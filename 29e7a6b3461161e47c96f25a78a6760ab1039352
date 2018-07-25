@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "409d320d_42626fde",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-25T13:30:10Z",
+      "side": 1,
+      "message": "This should be fine because client.go sets its read concern to be the default and that gets passed down to all read commands.",
+      "parentUuid": "ea7cda1e_c42d16ca",
+      "range": {
+        "startLine": 125,
+        "startChar": 3,
+        "endLine": 125,
+        "endChar": 4
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4d2eefd0_06f65de6",
         "filename": "core/command/command.go",
         "patchSetId": 3
@@ -36,6 +60,30 @@
       "writtenOn": "2018-07-25T09:44:45Z",
       "side": 1,
       "message": "So I think this violates the spec: https://github.com/mongodb/specifications/blob/master/source/causal-consistency/causal-consistency.rst#causally-consistent-read-commands.\n\nRead concern should only be added to the specific commands that support read concern: https://github.com/mongodb/specifications/blob/master/source/read-write-concern/read-write-concern.rst#on-the-wire\n\nThis means that you\u0027re going to have to add read concern at a higher level in the stack, for just these specific commands.  That\u0027s going to complicate transactions, in which read concern _does_ have to be applied to the first command in the transaction, regardless of whether it\u0027s a read.",
+      "range": {
+        "startLine": 134,
+        "startChar": 0,
+        "endLine": 134,
+        "endChar": 1
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c9bad81_b7807b20",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-25T13:30:10Z",
+      "side": 1,
+      "message": "I\u0027m not sure I see why this violates the spec. In collection.go, the read concern is only set on Aggregate, Count, Distinct, Find operations, which are the ones listed in the read/write concern spec (there are 4 others that support read concern in the spec but I don\u0027t think we support those operations yet). For all other read commands, read concern will be nil when they get to the command.Read level.",
+      "parentUuid": "4d2eefd0_06f65de6",
       "range": {
         "startLine": 134,
         "startChar": 0,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "b1e6378f_7c9bef66",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-25T13:30:10Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "37112960_2a083f78",
+      "range": {
+        "startLine": 145,
+        "startChar": 5,
+        "endLine": 145,
+        "endChar": 11
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "afe3367e_fbb58697",
         "filename": "core/dispatch/aggregate.go",
         "patchSetId": 3
@@ -82,6 +154,24 @@
       "writtenOn": "2018-07-25T09:44:45Z",
       "side": 1,
       "message": "I think we can ditch this, as causality is meaningless for an implicit session, since there\u0027s only a single operation executed using it.",
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1ed55621_2477f5f1",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-25T13:30:10Z",
+      "side": 1,
+      "message": "Yes, this was needed with the way options were done in patch set 1, but can be removed.",
+      "parentUuid": "afe3367e_fbb58697",
       "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -111,6 +201,30 @@
     },
     {
       "key": {
+        "uuid": "53b6ef38_148ee463",
+        "filename": "core/session/options.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-25T13:30:10Z",
+      "side": 1,
+      "message": "Should this be documented here or in mongo/sessionopt, which is the package that users actually see/use? Or both?",
+      "parentUuid": "f7438615_a518c07c",
+      "range": {
+        "startLine": 8,
+        "startChar": 1,
+        "endLine": 8,
+        "endChar": 2
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d5aa0d57_5d2a49ef",
         "filename": "mongo/client.go",
         "patchSetId": 3
@@ -122,6 +236,30 @@
       "writtenOn": "2018-07-25T09:44:45Z",
       "side": 1,
       "message": "OK, so looks like here you make sure there\u0027s always a read concern.  In that case, can you now change core so that a nil read concern is an error?",
+      "range": {
+        "startLine": 178,
+        "startChar": 1,
+        "endLine": 178,
+        "endChar": 2
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "77023fcf_cfd53990",
+        "filename": "mongo/client.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-07-25T13:30:10Z",
+      "side": 1,
+      "message": "I don\u0027t think it can be an error if the read concern is nil in command.go. There are commands that don\u0027t support read concern (e.g. listCollections) but are still encoded using the command.Read struct. When addReadConcern is called while encoding these commands, the read concern will be nil.",
+      "parentUuid": "d5aa0d57_5d2a49ef",
       "range": {
         "startLine": 178,
         "startChar": 1,
