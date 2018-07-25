@@ -120,6 +120,30 @@
     },
     {
       "key": {
+        "uuid": "751de692_be01d46c",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T13:41:39Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "0c9bad81_b7807b20",
+      "range": {
+        "startLine": 134,
+        "startChar": 0,
+        "endLine": 134,
+        "endChar": 1
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "37112960_2a083f78",
         "filename": "core/command/command.go",
         "patchSetId": 3
@@ -273,6 +297,23 @@
     },
     {
       "key": {
+        "uuid": "78caecc2_d37af204",
+        "filename": "core/session/options.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T13:41:39Z",
+      "side": 1,
+      "message": "Might as well do both",
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d5aa0d57_5d2a49ef",
         "filename": "mongo/client.go",
         "patchSetId": 3
@@ -331,6 +372,30 @@
       "writtenOn": "2018-07-25T13:40:44Z",
       "side": 1,
       "message": "Done",
+      "parentUuid": "77023fcf_cfd53990",
+      "range": {
+        "startLine": 178,
+        "startChar": 1,
+        "endLine": 178,
+        "endChar": 2
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fc5b8455_fc592918",
+        "filename": "mongo/client.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T13:41:39Z",
+      "side": 1,
+      "message": "Ack",
       "parentUuid": "77023fcf_cfd53990",
       "range": {
         "startLine": 178,
