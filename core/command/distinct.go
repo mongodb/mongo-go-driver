@@ -119,5 +119,9 @@ func (d *Distinct) RoundTrip(ctx context.Context, desc description.SelectedServe
 		return result.Distinct{}, err
 	}
 
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
+	}
+
 	return d.decode(desc, rdr).Result()
 }

@@ -45,6 +45,7 @@ func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Reader, error) {
 	ok := false
 	var errmsg, codeName string
 	var code int32
+	var labels []string
 	itr, err := rdr.Iterator()
 	if err != nil {
 		return nil, NewCommandResponseError("malformed OP_MSG: cannot iterate document", err)
@@ -80,6 +81,14 @@ func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Reader, error) {
 			if c, okay := elem.Value().Int32OK(); okay {
 				code = c
 			}
+		case "errorLabels":
+			iter, err := elem.Value().MutableArray().Iterator()
+			if err != nil {
+				continue
+			}
+			for iter.Next() {
+				labels = append(labels, iter.Value().StringValue())
+			}
 		}
 	}
 
@@ -88,10 +97,11 @@ func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Reader, error) {
 			errmsg = "command failed"
 		}
 
-		return nil, Error{
+		return nil, &Error{
 			Code:    code,
 			Message: errmsg,
 			Name:    codeName,
+			Labels:  labels,
 		}
 	}
 

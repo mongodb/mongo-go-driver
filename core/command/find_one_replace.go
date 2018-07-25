@@ -114,5 +114,9 @@ func (f *FindOneAndReplace) RoundTrip(ctx context.Context, desc description.Sele
 		return result.FindAndModify{}, err
 	}
 
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
+	}
+
 	return f.decode(desc, rdr).Result()
 }

@@ -100,7 +100,7 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 	}
 
 	switch t := err.(type) {
-	case command.Error:
+	case *command.Error:
 		if t.Code != errorCodeNotMaster && t.Code != errorCodeCursorNotFound {
 			return false
 		}

@@ -220,7 +220,8 @@ func (t *Topology) RequestImmediateCheck() {
 
 // SupportsSessions returns true if the topology supports sessions.
 func (t *Topology) SupportsSessions() bool {
-	return t.Description().SessionTimeoutMinutes != 0 && t.Description().Kind != description.Single
+	return t.Description().SessionTimeoutMinutes != 0 &&
+		t.Description().Kind != description.Single
 }
 
 // SelectServer selects a server given a selector.SelectServer complies with the

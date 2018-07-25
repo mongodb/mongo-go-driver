@@ -26,9 +26,9 @@ type Read struct {
 	err    error
 }
 
-func (r *Read) createReadPref(kind description.ServerKind) *bson.Document {
+func (r *Read) createReadPref(kind description.ServerKind) (*bson.Document, error) {
 	if r.ReadPref == nil {
-		return nil
+		return nil, nil
 	}
 
 	doc := bson.NewDocument()
@@ -65,16 +65,19 @@ func (r *Read) createReadPref(kind description.ServerKind) *bson.Document {
 		doc.Append(bson.EC.Int32("maxStalenessSeconds", int32(d.Seconds())))
 	}
 
-	return doc
+	return doc, nil
 }
 
 // addReadPref will add a read preference to the query document.
 //
 // NOTE: This method must always return either a valid bson.Reader or an error.
 func (r *Read) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, query bson.Reader) (bson.Reader, error) {
-	doc := r.createReadPref(kind)
+	doc, err := r.createReadPref(kind)
 	if doc == nil {
 		return query, nil
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	return bson.NewDocument(
@@ -90,7 +93,10 @@ func (r *Read) encodeOpMsg(desc description.SelectedServer, cmd *bson.Document) 
 		Sections:  make([]wiremessage.Section, 0),
 	}
 
-	readPrefDoc := r.createReadPref(desc.Server.Kind)
+	readPrefDoc, err := r.createReadPref(desc.Server.Kind)
+	if err != nil {
+		return nil, err
+	}
 	fullDocRdr, err := opmsgAddGlobals(cmd, r.DB, readPrefDoc)
 	if err != nil {
 		return nil, err
@@ -222,7 +228,7 @@ func (r *Read) Decode(desc description.SelectedServer, wm wiremessage.WireMessag
 	if r.err != nil {
 		// decode functions set error if an invalid response document was returned or if the OK flag in the response was 0
 		// if the OK flag was 0, a type Error is returned. otherwise, a special type is returned
-		if _, ok := r.err.(Error); !ok {
+		if _, ok := r.err.(*Error); !ok {
 			return r // for missing/invalid response docs, don't update cluster times
 		}
 	}
@@ -255,11 +261,13 @@ func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, r
 
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, err
+		// Connection errors are transient
+		return nil, &Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 	wm, err = rw.ReadWireMessage(ctx)
 	if err != nil {
-		return nil, err
+		// Connection errors are transient
+		return nil, &Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
 	if r.Session != nil {
