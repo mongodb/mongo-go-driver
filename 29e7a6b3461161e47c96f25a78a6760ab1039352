@@ -1,0 +1,136 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ea7cda1e_c42d16ca",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T09:44:45Z",
+      "side": 1,
+      "message": "This check concerns me (no pun intended).  If read concern is nil and the conditional on line 135 is true, then we have a bug, since we don\u0027t apply causal consistency.\n\nI think we have to ensure, either always or at least when that check is true, that rc is not nil.  Other drivers that I\u0027m aware of always require that at the least the default read concern (where level is nil) is available at this point in the code.",
+      "range": {
+        "startLine": 125,
+        "startChar": 3,
+        "endLine": 125,
+        "endChar": 4
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4d2eefd0_06f65de6",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 134,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T09:44:45Z",
+      "side": 1,
+      "message": "So I think this violates the spec: https://github.com/mongodb/specifications/blob/master/source/causal-consistency/causal-consistency.rst#causally-consistent-read-commands.\n\nRead concern should only be added to the specific commands that support read concern: https://github.com/mongodb/specifications/blob/master/source/read-write-concern/read-write-concern.rst#on-the-wire\n\nThis means that you\u0027re going to have to add read concern at a higher level in the stack, for just these specific commands.  That\u0027s going to complicate transactions, in which read concern _does_ have to be applied to the first command in the transaction, regardless of whether it\u0027s a read.",
+      "range": {
+        "startLine": 134,
+        "startChar": 0,
+        "endLine": 134,
+        "endChar": 1
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "37112960_2a083f78",
+        "filename": "core/command/command.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T09:44:45Z",
+      "side": 1,
+      "message": "rcDoc should not be appended if it\u0027s empty (see https://github.com/mongodb/specifications/blob/master/source/read-write-concern/read-write-concern.rst#id19)",
+      "range": {
+        "startLine": 145,
+        "startChar": 5,
+        "endLine": 145,
+        "endChar": 11
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "afe3367e_fbb58697",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T09:44:45Z",
+      "side": 1,
+      "message": "I think we can ditch this, as causality is meaningless for an implicit session, since there\u0027s only a single operation executed using it.",
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f7438615_a518c07c",
+        "filename": "core/session/options.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T09:44:45Z",
+      "side": 1,
+      "message": "Spec says: \"Drivers MUST document that causally consistent reads are not causally consistent with unacknowledged writes.\"",
+      "range": {
+        "startLine": 8,
+        "startChar": 1,
+        "endLine": 8,
+        "endChar": 2
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d5aa0d57_5d2a49ef",
+        "filename": "mongo/client.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-07-25T09:44:45Z",
+      "side": 1,
+      "message": "OK, so looks like here you make sure there\u0027s always a read concern.  In that case, can you now change core so that a nil read concern is an error?",
+      "range": {
+        "startLine": 178,
+        "startChar": 1,
+        "endLine": 178,
+        "endChar": 2
+      },
+      "revId": "29e7a6b3461161e47c96f25a78a6760ab1039352",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
