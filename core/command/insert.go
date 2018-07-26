@@ -64,6 +64,9 @@ splitInserts:
 				return nil, err
 			}
 
+			if int(itsize) > targetBatchSize {
+				return nil, ErrDocumentTooLarge
+			}
 			if size+int(itsize) > targetBatchSize {
 				break assembleBatch
 			}

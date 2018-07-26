@@ -78,4 +78,12 @@ func TestInsertCommandSplitting(t *testing.T) {
 		}
 
 	})
+	t.Run("document_larger_than_max_size", func(t *testing.T) {
+		i := &Insert{}
+		i.Docs = append(i.Docs, bson.NewDocument(bson.EC.String("a", "bcdefghijklmnopqrstuvwxyz")))
+		_, err := i.split(100, 5)
+		if err != ErrDocumentTooLarge {
+			t.Errorf("Expected a too large error. got %v; want %v", err, ErrDocumentTooLarge)
+		}
+	})
 }
