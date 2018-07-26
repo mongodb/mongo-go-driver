@@ -203,3 +203,18 @@ func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, 
 	return cursor, nil
 
 }
+
+// ReadConcern returns the read concern of this database.
+func (db *Database) ReadConcern() *readconcern.ReadConcern {
+	return db.readConcern
+}
+
+// ReadPreference returns the read preference of this database.
+func (db *Database) ReadPreference() *readpref.ReadPref {
+	return db.readPreference
+}
+
+// WriteConcern returns the write concern of this database.
+func (db *Database) WriteConcern() *writeconcern.WriteConcern {
+	return db.writeConcern
+}
