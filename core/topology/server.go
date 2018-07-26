@@ -251,6 +251,8 @@ func (s *Server) update() {
 	defer s.closewg.Done()
 	heartbeatTicker := time.NewTicker(s.cfg.heartbeatInterval)
 	rateLimiter := time.NewTicker(minHeartbeatInterval)
+	defer heartbeatTicker.Stop()
+	defer rateLimiter.Stop()
 	checkNow := s.checkNow
 	done := s.done
 
