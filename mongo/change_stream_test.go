@@ -8,23 +8,57 @@ package mongo
 
 import (
 	"context"
-	"os"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
+	"os"
+	"testing"
 )
 
-func isServerError(err error) bool {
-	_, ok := err.(command.Error)
-	return ok
+var collectionStartingDoc = bsonx.Doc{
+	{"y", bsonx.Int32(1)},
 }
 
-// TODO(GODRIVER-251): Replace manual check with functionality of improved testing framework.
+var doc1 = bsonx.Doc{
+	{"x", bsonx.Int32(1)},
+}
+
+var wcMajority = writeconcern.New(writeconcern.WMajority())
+
+type errorCursor struct {
+	errCode int32
+}
+
+func (er *errorCursor) ID() int64 {
+	return 1
+}
+
+func (er *errorCursor) Next(ctx context.Context) bool {
+	return false
+}
+
+func (er *errorCursor) Decode(interface{}) error {
+	return nil
+}
+
+func (er *errorCursor) DecodeBytes() (bson.Raw, error) {
+	return nil, nil
+}
+
+func (er *errorCursor) Err() error {
+	return command.Error{
+		Code: er.errCode,
+	}
+}
+
+func (er *errorCursor) Close(ctx context.Context) error {
+	return nil
+}
+
 func skipIfBelow36(t *testing.T) {
 	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
 	require.NoError(t, err)
@@ -34,236 +68,354 @@ func skipIfBelow36(t *testing.T) {
 	}
 }
 
-func getNextChange(changes Cursor) {
-	for !changes.Next(context.Background()) {
-	}
+func createStream(t *testing.T, client *Client, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
+	client.writeConcern = wcMajority
+	db := client.Database(dbName)
+	err := db.Drop(ctx)
+	testhelpers.RequireNil(t, err, "error dropping db: %s", err)
+
+	coll := db.Collection(collName)
+	coll.writeConcern = wcMajority
+	_, err = coll.InsertOne(ctx, collectionStartingDoc) // create collection on server for 3.6
+
+	drainChannels()
+	stream, err := coll.Watch(ctx, pipeline)
+	testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+
+	return coll, stream
 }
 
-func TestChangeStream_firstStage(t *testing.T) {
-	t.Parallel()
-
-	if testing.Short() {
-		t.Skip()
-	}
-	skipIfBelow36(t)
-
-	if os.Getenv("TOPOLOGY") != "replica_set" {
-		t.Skip()
-	}
-
-	coll := createTestCollection(t, nil, nil)
-
-	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
-	require.NoError(t, err)
-
-	changes, err := coll.Watch(context.Background(), nil)
-	require.NoError(t, err)
-
-	require.NotEqual(t, len(changes.(*changeStream).pipeline), 0)
-
-	elem := changes.(*changeStream).pipeline[0]
-
-	doc := elem.Document()
-	require.Equal(t, 1, len(doc))
-
-	_, err = doc.LookupErr("$changeStream")
-	require.NoError(t, err)
+func createCollectionStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
+	client := createTestClient(t)
+	return createStream(t, client, dbName, collName, pipeline)
 }
 
-func TestChangeStream_noCustomStandaloneError(t *testing.T) {
-	t.Parallel()
-
-	if testing.Short() {
-		t.Skip()
-	}
-	skipIfBelow36(t)
-
-	topology := os.Getenv("TOPOLOGY")
-	if topology == "replica_set" || topology == "sharded_cluster" {
-		t.Skip()
-	}
-
-	coll := createTestCollection(t, nil, nil)
-
-	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
-	require.NoError(t, err)
-
-	_, err = coll.Watch(context.Background(), nil)
-	require.Error(t, err)
-	if _, ok := err.(command.Error); !ok {
-		t.Errorf("Should have returned command error, but got %T", err)
-	}
+func createMonitoredStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
+	client := createMonitoredClient(t, monitor)
+	return createStream(t, client, dbName, collName, pipeline)
 }
 
-func TestChangeStream_trackResumeToken(t *testing.T) {
-	t.Parallel()
+func compareOptions(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
+	for _, elem := range expected {
+		if elem.Key == "resumeAfter" {
+			continue
+		}
 
-	if testing.Short() {
-		t.Skip()
-	}
-	skipIfBelow36(t)
+		var aVal bsonx.Val
+		var err error
 
-	if os.Getenv("TOPOLOGY") != "replica_set" {
-		t.Skip()
-	}
+		if aVal, err = actual.LookupErr(elem.Key); err != nil {
+			t.Fatalf("key %s not found in options document", elem.Key)
+		}
 
-	coll := createTestCollection(t, nil, nil)
-
-	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"y", bsonx.Int32(1)}})
-	require.NoError(t, err)
-
-	changes, err := coll.Watch(context.Background(), nil)
-	require.NoError(t, err)
-
-	for i := 1; i <= 4; i++ {
-		_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(int32(i))}})
-		require.NoError(t, err)
-	}
-
-	for i := 1; i <= 4; i++ {
-		getNextChange(changes)
-		var doc bsonx.Doc
-		err := changes.Decode(&doc)
-		require.NoError(t, err)
-
-		id, err := doc.LookupErr("_id")
-		require.NoError(t, err)
-
-		if !cmp.Equal(id.Document(), changes.(*changeStream).resumeToken) {
-			t.Errorf("Resume tokens do not match. got %v; want %v", id.Document(), changes.(*changeStream).resumeToken)
+		if !compareValues(elem.Value, aVal) {
+			t.Fatalf("values for key %s do not match", elem.Key)
 		}
 	}
 }
 
-func TestChangeStream_errorMissingResponseToken(t *testing.T) {
-	t.Parallel()
+func comparePipelines(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
+	if len(expected) != len(actual) {
+		t.Fatalf("pipeline length mismatch. expected %d got %d", len(expected), len(actual))
+	}
 
-	if testing.Short() {
-		t.Skip()
+	firstIteration := true
+	for i, eVal := range expected {
+		aVal := actual[i]
+
+		if firstIteration {
+			// found $changStream document with options --> must compare options, ignoring extra resume token
+			compareOptions(t, eVal.Document(), aVal.Document())
+
+			firstIteration = false
+			continue
+		}
+
+		if !compareValues(eVal, aVal) {
+			t.Fatalf("pipelines do not match")
+		}
+	}
+}
+
+func TestChangeStream(t *testing.T) {
+	if os.Getenv("TOPOLOGY") == "server" {
+		t.Skip("skipping invalid topology")
 	}
 	skipIfBelow36(t)
 
-	if os.Getenv("TOPOLOGY") != "replica_set" {
-		t.Skip()
-	}
+	t.Run("TestTrackResumeToken", func(t *testing.T) {
+		// Stream must continuously track last seen resumeToken
 
-	coll := createTestCollection(t, nil, nil)
+		coll, stream := createCollectionStream(t, "TrackTokenDB", "TrackTokenColl", bsonx.Doc{})
+		defer closeCursor(stream)
 
-	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"y", bsonx.Int32(1)}})
-	require.NoError(t, err)
+		cs := stream.(*changeStream)
+		if cs.resumeToken != nil {
+			t.Fatalf("non-nil error on stream")
+		}
 
-	// Project out the response token
-	changes, err := coll.Watch(context.Background(), []bsonx.Doc{
-		{{"$project", bsonx.Document(bsonx.Doc{{"_id", bsonx.Int32(0)}})}},
+		coll.writeConcern = wcMajority
+		_, err := coll.InsertOne(ctx, doc1)
+		testhelpers.RequireNil(t, err, "error running insertOne: %s", err)
+		if !stream.Next(ctx) {
+			t.Fatalf("no change found")
+		}
+
+		_, err = stream.DecodeBytes()
+		testhelpers.RequireNil(t, err, "error decoding bytes: %s", err)
+
+		testhelpers.RequireNotNil(t, cs.resumeToken, "no resume token found after first change")
 	})
-	require.NoError(t, err)
 
-	_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
-	require.NoError(t, err)
-
-	getNextChange(changes)
-	require.Error(t, changes.Decode(&bsonx.Doc{}))
-}
-
-func TestChangeStream_resumableError(t *testing.T) {
-	// Skipping this test due to flakiness - test sometimes has resume set, sometimes does not.  Not investigating
-	// because this is being superseded by new changestream code
-	t.Skip()
-	t.Parallel()
-
-	if testing.Short() {
-		t.Skip()
-	}
-	skipIfBelow36(t)
-
-	if os.Getenv("TOPOLOGY") != "replica_set" {
-		t.Skip()
-	}
-
-	coll := createTestCollection(t, nil, nil)
-
-	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"y", bsonx.Int32(1)}})
-	require.NoError(t, err)
-
-	changes, err := coll.Watch(context.Background(), nil)
-	require.NoError(t, err)
-
-	// Create a context that will expire before the operation can finish.
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Nanosecond)
-
-	// "Use" the cancel function, which go vet complains if we throw away.
-	func(context.CancelFunc) {}(cancel)
-
-	require.False(t, changes.Next(ctx))
-
-	err = changes.Err()
-	require.Error(t, err)
-	require.True(t, strings.Contains(err.Error(), "context deadline exceeded"))
-
-	// If the ResumeAfter option is present, the the operation attempted to resume.
-	hasResume := false
-
-	for _, opt := range changes.(*changeStream).options {
-		if opt.Key == "resumeAfter" {
-			hasResume = true
-			break
+	t.Run("TestMissingResumeToken", func(t *testing.T) {
+		// Stream will throw an error if the server response is missing the resume token
+		idDoc := bsonx.Doc{{"_id", bsonx.Int32(0)}}
+		pipeline := []bsonx.Doc{
+			{
+				{"$project", bsonx.Document(idDoc)},
+			},
 		}
-	}
 
-	require.True(t, hasResume)
-}
+		coll, stream := createCollectionStream(t, "MissingTokenDB", "MissingTokenColl", pipeline)
+		defer closeCursor(stream)
 
-// TODO: GODRIVER-247 Test that a change stream does not attempt to resume after a server error.
+		coll.writeConcern = wcMajority
+		_, err := coll.InsertOne(ctx, doc1)
+		testhelpers.RequireNil(t, err, "error running insertOne: %s", err)
+		if !stream.Next(ctx) {
+			t.Fatal("no change found")
+		}
 
-func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip()
-	}
-	skipIfBelow36(t)
+		_, err = stream.DecodeBytes()
+		if err == nil || err != ErrMissingResumeToken {
+			t.Fatalf("expected ErrMissingResumeToken, got %s", err)
+		}
+	})
 
-	if os.Getenv("TOPOLOGY") != "replica_set" {
-		t.Skip()
-	}
+	t.Run("ResumeOnce", func(t *testing.T) {
+		// ChangeStream will automatically resume one time on a resumable error (including not master) with the initial
+		// pipeline and options, except for the addition/update of a resumeToken.
 
-	coll := createTestCollection(t, nil, nil)
+		coll, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", nil)
+		defer closeCursor(stream)
+		startCmd := (<-startedChan).Command
+		startPipeline := startCmd.Lookup("pipeline").Array()
 
-	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"y", bsonx.Int32(1)}})
-	require.NoError(t, err)
+		cs := stream.(*changeStream)
 
-	changes, err := coll.Watch(context.Background(), nil)
-	require.NoError(t, err)
+		kc := command.KillCursors{
+			NS:  cs.ns,
+			IDs: []int64{cs.ID()},
+		}
 
-	oldns := coll.namespace()
-	killCursors := command.KillCursors{
-		NS:  command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		IDs: []int64{changes.ID()},
-	}
+		_, err := dispatch.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
+		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
 
-	ss, err := coll.client.topology.SelectServer(context.Background(), coll.readSelector)
-	require.NoError(t, err)
+		_, err = coll.InsertOne(ctx, doc1)
+		testhelpers.RequireNil(t, err, "error inserting doc: %s", err)
 
-	conn, err := ss.Connection(context.Background())
-	require.NoError(t, err)
-	defer conn.Close()
+		drainChannels()
+		stream.Next(ctx)
 
-	_, err = killCursors.RoundTrip(context.Background(), ss.Description(), conn)
-	require.NoError(t, err)
+		//Next() should cause getMore, killCursors and aggregate to run
+		if len(startedChan) != 3 {
+			t.Fatalf("expected 3 events waiting, got %d", len(startedChan))
+		}
 
-	// insert a document after blocking call to getNextChange below
-	go func() {
-		time.Sleep(time.Millisecond * 500)
-		_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
-		require.NoError(t, err)
-	}()
+		<-startedChan            // getMore
+		<-startedChan            // killCursors
+		started := <-startedChan // aggregate
 
-	getNextChange(changes)
-	var doc bsonx.Doc
-	require.NoError(t, changes.Decode(&doc))
+		if started.CommandName != "aggregate" {
+			t.Fatalf("command name mismatch. expected aggregate got %s", started.CommandName)
+		}
+
+		pipeline := started.Command.Lookup("pipeline").Array()
+
+		if len(startPipeline) != len(pipeline) {
+			t.Fatalf("pipeline len mismatch")
+		}
+
+		comparePipelines(t, startPipeline, pipeline)
+	})
+
+	t.Run("NoResumeForAggregateErrors", func(t *testing.T) {
+		// ChangeStream will not attempt to resume on any error encountered while executing an aggregate command.
+		dbName := "NoResumeDB"
+		collName := "NoResumeColl"
+		coll := createTestCollection(t, &dbName, &collName)
+
+		idDoc := bsonx.Doc{{"id", bsonx.Int32(0)}}
+		stream, err := coll.Watch(ctx, []*bsonx.Doc{
+			{
+				{"$unsupportedStage", bsonx.Document(idDoc)},
+			},
+		})
+		testhelpers.RequireNil(t, stream, "stream was not nil")
+		testhelpers.RequireNotNil(t, err, "error was nil")
+	})
+
+	t.Run("NoResumeErrors", func(t *testing.T) {
+		// ChangeStream will not attempt to resume after encountering error code 11601 (Interrupted),
+		// 136 (CappedPositionLost), or 237 (CursorKilled) while executing a getMore command.
+
+		var tests = []struct {
+			name    string
+			errCode int32
+		}{
+			{"ErrorInterrupted", errorInterrupted},
+			{"ErrorCappedPostionLost", errorCappedPositionLost},
+			{"ErrorCursorKilled", errorCursorKilled},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				_, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", nil)
+				defer closeCursor(stream)
+				cs := stream.(*changeStream)
+				cs.cursor = &errorCursor{
+					errCode: tc.errCode,
+				}
+
+				drainChannels()
+				if stream.Next(ctx) {
+					t.Fatal("stream Next() returned true, expected false")
+				}
+
+				// no commands should be started because fake cursor's Next() does not call getMore
+				if len(startedChan) != 0 {
+					t.Fatalf("expected 1 command started, got %d", len(startedChan))
+				}
+			})
+		}
+	})
+
+	t.Run("ServerSelection", func(t *testing.T) {
+		// ChangeStream will perform server selection before attempting to resume, using initial readPreference
+		t.Skip("Skipping for lack of SDAM monitoring")
+	})
+
+	t.Run("CursorNotClosed", func(t *testing.T) {
+		// Ensure that a cursor returned from an aggregate command with a cursor id and an initial empty batch is not
+
+		_, stream := createCollectionStream(t, "CursorNotClosedDB", "CursorNotClosedColl", nil)
+		defer closeCursor(stream)
+		cs := stream.(*changeStream)
+
+		if cs.sess.(*sessionImpl).Client.Terminated {
+			t.Fatalf("session was prematurely terminated")
+		}
+	})
+
+	t.Run("NoExceptionFromKillCursors", func(t *testing.T) {
+		// The killCursors command sent during the "Resume Process" must not be allowed to throw an exception
+
+		// fail points don't work for mongos or <4.0
+		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			t.Skip("skipping for sharded clusters")
+		}
+
+		version, err := getServerVersion(createTestDatabase(t, nil))
+		testhelpers.RequireNil(t, err, "error getting server version: %s", err)
+
+		if compareVersions(t, version, "4.0") < 0 {
+			t.Skip("skipping for version < 4.0")
+		}
+
+		coll, stream := createMonitoredStream(t, "NoExceptionsDB", "NoExceptionsColl", nil)
+		defer closeCursor(stream)
+		cs := stream.(*changeStream)
+
+		// kill cursor to force a resumable error
+		kc := command.KillCursors{
+			NS:  cs.ns,
+			IDs: []int64{cs.ID()},
+		}
+
+		_, err = dispatch.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
+		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
+
+		adminDb := coll.client.Database("admin")
+		modeDoc := bsonx.Doc{
+			{"times", bsonx.Int32(1)},
+		}
+		dataArray := bsonx.Arr{
+			bsonx.String("killCursors"),
+		}
+		dataDoc := bsonx.Doc{
+			{"failCommands", bsonx.Array(dataArray)},
+			{"errorCode", bsonx.Int32(184)},
+		}
+
+		_, err = adminDb.RunCommand(ctx, bsonx.Doc{
+			{"configureFailPoint", bsonx.String("failCommand")},
+			{"mode", bsonx.Document(modeDoc)},
+			{"data", bsonx.Document(dataDoc)},
+		})
+
+		testhelpers.RequireNil(t, err, "error creating fail point: %s", err)
+
+		if !stream.Next(ctx) {
+			t.Fatal("stream Next() returned false, expected true")
+		}
+	})
+
+	t.Run("OperationTimeIncluded", func(t *testing.T) {
+		// $changeStream stage for ChangeStream against a server >=4.0 that has not received any results yet MUST
+		// include a startAtOperationTime option when resuming a changestream.
+
+		version, err := getServerVersion(createTestDatabase(t, nil))
+		testhelpers.RequireNil(t, err, "error getting server version: %s", err)
+
+		if compareVersions(t, version, "4.0") < 0 {
+			t.Skip("skipping for version < 4.0")
+		}
+
+		_, stream := createMonitoredStream(t, "IncludeTimeDB", "IncludeTimeColl", nil)
+		defer closeCursor(stream)
+		cs := stream.(*changeStream)
+
+		// kill cursor to force a resumable error
+		kc := command.KillCursors{
+			NS:  cs.ns,
+			IDs: []int64{cs.ID()},
+		}
+
+		_, err = dispatch.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
+		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
+
+		drainChannels()
+		stream.Next(ctx)
+
+		// channel should have getMore, killCursors, and aggregate
+		if len(startedChan) != 3 {
+			t.Fatalf("expected 3 commands started, got %d", len(startedChan))
+		}
+
+		<-startedChan
+		<-startedChan
+
+		aggCmd := <-startedChan
+		if aggCmd.CommandName != "aggregate" {
+			t.Fatalf("command name mismatch. expected aggregate, got %s", aggCmd.CommandName)
+		}
+
+		pipeline := aggCmd.Command.Lookup("pipeline").Array()
+		if len(pipeline) == 0 {
+			t.Fatalf("empty pipeline")
+		}
+		csVal := pipeline[0] // doc with nested options document (key $changeStream)
+		testhelpers.RequireNil(t, err, "pipeline is empty")
+
+		optsVal, err := csVal.Document().LookupErr("$changeStream")
+		testhelpers.RequireNil(t, err, "key $changeStream not found")
+
+		if _, err := optsVal.Document().LookupErr("startAtOperationTime"); err != nil {
+			t.Fatal("key startAtOperationTime not found in command")
+		}
+	})
+
+	// There's another test: ChangeStream will resume after a killCursors command is issued for its child cursor.
+	// But, killCursors was already used to cause an error for the ResumeOnce test, so this does not need to be tested
+	// again.
 }

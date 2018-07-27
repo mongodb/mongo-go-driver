@@ -88,16 +88,20 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 	return newCollection(db, name, opts...)
 }
 
-// RunCommand runs a command on the database. A user can supply a custom
-// context to this method, or nil to default to context.Background().
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (bson.Raw, error) {
+func (db *Database) processRunCommand(ctx context.Context, cmd interface{}, opts ...*options.RunCmdOptions) (command.Read,
+	description.ServerSelector, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	sess := sessionFromContext(ctx)
-
 	runCmd := options.MergeRunCmdOptions(opts...)
+
+	if err := db.client.ValidSession(sess); err != nil {
+		return command.Read{}, nil, err
+	}
+
 	rp := runCmd.ReadPreference
 	if rp == nil {
 		if sess != nil && sess.TransactionRunning() {
@@ -108,23 +112,63 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		}
 	}
 
+	runCmdDoc, err := transformDocument(db.registry, cmd)
+	if err != nil {
+		return command.Read{}, nil, err
+	}
+
 	readSelect := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(rp),
 		description.LatencySelector(db.client.localThreshold),
 	})
 
-	runCmdDoc, err := transformDocument(db.registry, runCommand)
+	return command.Read{
+		DB:       db.Name(),
+		Command:  runCmdDoc,
+		ReadPref: rp,
+		Session:  sess,
+		Clock:    db.client.clock,
+	}, readSelect, nil
+}
+
+// RunCommand runs a command on the database. A user can supply a custom
+// context to this method, or nil to default to context.Background().
+func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (bson.Raw, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	readCmd, readSelect, err := db.processRunCommand(ctx, runCommand, opts...)
 	if err != nil {
 		return nil, err
 	}
+
 	result, err := dispatch.Read(ctx,
-		command.Read{
-			DB:       db.Name(),
-			Command:  runCmdDoc,
-			ReadPref: rp,
-			Session:  sess,
-			Clock:    db.client.clock,
-		},
+		readCmd,
+		db.client.topology,
+		readSelect,
+		db.client.id,
+		db.client.topology.SessionPool,
+	)
+
+	return result, replaceTopologyErr(err)
+}
+
+// RunCommandCursor runs a command on the database and returns a cursor over the resulting reader. A user can supply
+// a custom context to this method, or nil to default to context.Background().
+func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (Cursor, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	readCmd, readSelect, err := db.processRunCommand(ctx, runCommand, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := dispatch.ReadCursor(
+		ctx,
+		readCmd,
 		db.client.topology,
 		readSelect,
 		db.client.id,
@@ -223,4 +267,13 @@ func (db *Database) ReadPreference() *readpref.ReadPref {
 // WriteConcern returns the write concern of this database.
 func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 	return db.writeConcern
+}
+
+// Watch returns a change stream cursor used to receive information of changes to the database. This method is preferred
+// to running a raw aggregation with a $changeStream stage because it supports resumability in the case of some errors.
+// The database must have read concern majority or no read concern for a change stream to be created successfully.
+func (db *Database) Watch(ctx context.Context, pipeline interface{},
+	opts ...*options.ChangeStreamOptions) (Cursor, error) {
+
+	return newDbChangeStream(ctx, db, pipeline, opts...)
 }

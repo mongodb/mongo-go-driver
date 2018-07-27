@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 // ChangeStreamOptions represents all possible options to a change stream
@@ -19,6 +20,7 @@ type ChangeStreamOptions struct {
 	FullDocument *FullDocument  // When set to ‘updateLookup’, the change notification for partial updates will include both a delta describing the changes to the document, as well as a copy of the entire document that was changed from some time after the change occurred.
 	MaxAwaitTime *time.Duration // The maximum amount of time for the server to wait on new documents to satisfy a change stream query
 	ResumeAfter  bsonx.Doc      // Specifies the logical starting point for the new change stream
+	StartAtOperationTime *primitive.Timestamp // Ensures that a change stream will only provide changes that occurred after a timestamp.
 }
 
 // ChangeStream returns a pointer to a new ChangeStreamOptions
@@ -60,6 +62,12 @@ func (cso *ChangeStreamOptions) SetResumeAfter(d bsonx.Doc) *ChangeStreamOptions
 	return cso
 }
 
+// SetStartAtOperationTime ensures that a change stream will only provide changes that occurred after a specified timestamp.
+func (cso *ChangeStreamOptions) SetStartAtOperationTime(t *primitive.Timestamp) *ChangeStreamOptions {
+	cso.StartAtOperationTime = t
+	return cso
+}
+
 // MergeChangeStreamOptions combines the argued ChangeStreamOptions into a single ChangeStreamOptions in a last-one-wins fashion
 func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions {
 	csOpts := ChangeStream()
@@ -81,6 +89,9 @@ func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions
 		}
 		if cso.ResumeAfter != nil {
 			csOpts.ResumeAfter = cso.ResumeAfter
+		}
+		if cso.StartAtOperationTime != nil {
+			csOpts.StartAtOperationTime = cso.StartAtOperationTime
 		}
 	}
 
