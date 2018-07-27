@@ -430,3 +430,12 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 
 	return fn(sessCtx)
 }
+
+// Watch returns a change stream cursor used to receive information of changes to the client. This method is preferred
+// to running a raw aggregation with a $changeStream stage because it supports resumability in the case of some errors.
+// The client must have read concern majority or no read concern for a change stream to be created successfully.
+func (c *Client) Watch(ctx context.Context, pipeline interface{},
+	opts ...*options.ChangeStreamOptions) (Cursor, error) {
+
+	return newClientChangeStream(ctx, c, pipeline, opts...)
+}
