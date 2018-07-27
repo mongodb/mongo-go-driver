@@ -109,6 +109,16 @@ func (csb *ChangeStreamBundle) ResumeAfter(d *bson.Document) *ChangeStreamBundle
 	return bundle
 }
 
+// StartAtOperationTime ensures that a change stream will only provide changes that occurred after a specified timestamp.
+func (csb *ChangeStreamBundle) StartAtOperationTime(t *bson.Timestamp) *ChangeStreamBundle {
+	bundle := &ChangeStreamBundle{
+		option: StartAtOperationTime(t),
+		next:   csb,
+	}
+
+	return bundle
+}
+
 // Unbundle transforms a bundle into a slice of options, optionally deduplicating
 func (csb *ChangeStreamBundle) Unbundle(deduplicate bool) ([]option.ChangeStreamOptioner, *session.Client, error) {
 
@@ -266,6 +276,13 @@ func ResumeAfter(d *bson.Document) OptResumeAfter {
 	}
 }
 
+// StartAtOperationTime ensures that a change stream will only provide changes that occurred after a specified timestamp.
+func StartAtOperationTime(t *bson.Timestamp) OptStartAtOperationTime {
+	return OptStartAtOperationTime{
+		Timestamp: t,
+	}
+}
+
 // OptBatchSize specifies the number of documents to return in each batch.
 type OptBatchSize option.OptBatchSize
 
@@ -324,4 +341,14 @@ func (ChangeStreamSessionOpt) changeStream() {}
 // ConvertChangeStreamSession implements the ChangeStreamSession interface.
 func (ChangeStreamSessionOpt) ConvertChangeStreamSession() *session.Client {
 	return nil
+}
+
+// OptStartAtOperationTime ensures that a change stream will only provide changes that occurred after a specified timestamp.
+type OptStartAtOperationTime option.OptStartAtOperationTime
+
+func (OptStartAtOperationTime) changeStream() {}
+
+// ConvertChangeStreamOption implements the ChangeStream interface.
+func (opt OptStartAtOperationTime) ConvertChangeStreamOption() option.ChangeStreamOptioner {
+	return option.OptStartAtOperationTime(opt)
 }

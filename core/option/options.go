@@ -278,6 +278,7 @@ var (
 	_ ChangeStreamOptioner      = (*OptFullDocument)(nil)
 	_ ChangeStreamOptioner      = (*OptMaxAwaitTime)(nil)
 	_ ChangeStreamOptioner      = (*OptResumeAfter)(nil)
+	_ ChangeStreamOptioner      = (*OptStartAtOperationTime)(nil)
 )
 
 // OptAllowDiskUse is for internal use.
@@ -932,4 +933,22 @@ func (OptNameOnly) listCollectionsOption() {}
 // String implements the Stringer interface.
 func (opt OptNameOnly) String() string {
 	return "OptNameOnly: " + strconv.FormatBool(bool(opt))
+}
+
+// OptStartAtOperationTime is for internal use.
+type OptStartAtOperationTime struct {
+	*bson.Timestamp
+}
+
+// Option implements the Optioner interface.
+func (opt OptStartAtOperationTime) Option(d *bson.Document) error {
+	d.Append(bson.EC.Timestamp("startAtOperationTime", opt.T, opt.I))
+	return nil
+}
+
+func (OptStartAtOperationTime) changeStreamOption() {}
+
+// String implements the Stringer interface.
+func (opt OptStartAtOperationTime) String() string {
+	return "OptStartAtOperationTime: " + fmt.Sprintf("T=%d, I=%d", opt.T, opt.I)
 }

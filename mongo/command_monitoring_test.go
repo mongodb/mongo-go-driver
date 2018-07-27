@@ -404,29 +404,26 @@ func compareReply(t *testing.T, succeeded *event.CommandSucceededEvent, reply *b
 	}
 }
 
+func getInt64(val *bson.Value) int64 {
+	switch val.Type() {
+	case bson.TypeInt32:
+		return int64(val.Int32())
+	case bson.TypeInt64:
+		return val.Int64()
+	case bson.TypeDouble:
+		return int64(val.Double())
+	}
+
+	return 0
+}
+
 func compareValues(expected *bson.Value, actual *bson.Value) bool {
 	if expected.IsNumber() {
 		if !actual.IsNumber() {
 			return false
 		}
 
-		expectedNum := expected.Int64() // from JSON file
-		switch actual.Type() {
-		case bson.TypeInt32:
-			if int64(actual.Int32()) != expectedNum {
-				return false
-			}
-		case bson.TypeInt64:
-			if actual.Int64() != expectedNum {
-				return false
-			}
-		case bson.TypeDouble:
-			if int64(actual.Double()) != expectedNum {
-				return false
-			}
-		}
-
-		return true
+		return getInt64(expected) == getInt64(actual)
 	}
 
 	switch expected.Type() {
