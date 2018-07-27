@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 	"github.com/mongodb/mongo-go-driver/mongo/listdbopt"
@@ -345,4 +346,13 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 	}
 
 	return names, nil
+}
+
+// Watch returns a change stream cursor used to receive information of changes to the database. This method is preferred
+// to running a raw aggregation with a $changeStream stage because it supports resumability in the case of some errors.
+// The collection must have read concern majority or no read concern for a change stream to be created successfully.
+func (c *Client) Watch(ctx context.Context, pipeline interface{},
+	opts ...changestreamopt.ChangeStream) (Cursor, error) {
+
+	return newClientChangeStream(ctx, c, pipeline, opts...)
 }

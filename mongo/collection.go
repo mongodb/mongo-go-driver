@@ -1064,7 +1064,8 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 
 // Watch returns a change stream cursor used to receive notifications of changes to the collection.
 // This method is preferred to running a raw aggregation with a $changeStream stage because it
-// supports resumability in the case of some errors.
+// supports resumability in the case of some errors. The collection must have read concern majority or no read concern
+// for a change stream to be created successfully.
 func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 	opts ...changestreamopt.ChangeStream) (Cursor, error) {
 	return newChangeStream(ctx, coll, pipeline, opts...)

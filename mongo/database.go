@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 	"github.com/mongodb/mongo-go-driver/mongo/listcollectionopt"
@@ -88,40 +89,81 @@ func (db *Database) Collection(name string, opts ...collectionopt.Option) *Colle
 	return newCollection(db, name, opts...)
 }
 
+func (db *Database) processRunCommand(cmd interface{}, opts ...runcmdopt.Option) (command.Read, error) {
+	runCmd, sess, err := runcmdopt.BundleRunCmd(opts...).Unbundle()
+	if err != nil {
+		return command.Read{}, err
+	}
+
+	if err = db.client.ValidSession(sess); err != nil {
+		return command.Read{}, err
+	}
+
+	rp := runCmd.ReadPreference
+	if rp == nil {
+		rp = db.readPreference
+	}
+
+	runCmdDoc, err := TransformDocument(cmd)
+	if err != nil {
+		return command.Read{}, err
+	}
+
+	return command.Read{
+		DB:       db.Name(),
+		Command:  runCmdDoc,
+		ReadPref: rp,
+		Session:  sess,
+		Clock:    db.client.clock,
+	}, nil
+}
+
 // RunCommand runs a command on the database. A user can supply a custom
 // context to this method, or nil to default to context.Background().
 func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...runcmdopt.Option) (bson.Reader, error) {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	runCmd, sess, err := runcmdopt.BundleRunCmd(opts...).Unbundle()
+	readCmd, err := db.processRunCommand(runCommand, opts...)
 	if err != nil {
 		return nil, err
-	}
-	rp := runCmd.ReadPreference
-	if rp == nil {
-		rp = db.readPreference // inherit from db if nothing specified in options
 	}
 
-	runCmdDoc, err := TransformDocument(runCommand)
-	if err != nil {
-		return nil, err
-	}
 	return dispatch.Read(ctx,
-		command.Read{
-			DB:       db.Name(),
-			Command:  runCmdDoc,
-			ReadPref: rp,
-			Session:  sess,
-			Clock:    db.client.clock,
-		},
+		readCmd,
 		db.client.topology,
 		db.writeSelector,
 		db.client.id,
 		db.client.topology.SessionPool,
 	)
+}
+
+func (db *Database) runCursorCommand(ctx context.Context, runCommand interface{}, opts ...runcmdopt.Option) (bson.Reader, Cursor, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	readCmd, err := db.processRunCommand(runCommand, opts...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dispatch.ReadCursor(
+		ctx,
+		readCmd,
+		db.client.topology,
+		db.writeSelector,
+		db.client.id,
+		db.client.topology.SessionPool,
+	)
+}
+
+// RunCursorCommand runs a command on the database and returns a cursor over the resulting reader. A user can supply
+// a custom context to this method, or nil to default to context.Background().
+func (db *Database) RunCursorCommand(ctx context.Context, runCommand interface{}, opts ...runcmdopt.Option) (Cursor, error) {
+	_, cursor, err := db.runCursorCommand(ctx, runCommand, opts...)
+	return cursor, err
 }
 
 // Drop drops this database from mongodb.
@@ -197,4 +239,13 @@ func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, 
 
 	return cursor, nil
 
+}
+
+// Watch returns a change stream cursor used to receive information of changes to the database. This method is preferred
+// to running a raw aggregation with a $changeStream stage because it supports resumability in the case of some errors.
+// The collection must have read concern majority or no read concern for a change stream to be created successfully.
+func (db *Database) Watch(ctx context.Context, pipeline interface{},
+	opts ...changestreamopt.ChangeStream) (Cursor, error) {
+
+	return newDbChangeStream(ctx, db, pipeline, opts...)
 }

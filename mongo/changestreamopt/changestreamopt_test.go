@@ -174,6 +174,10 @@ func TestChangeStreamOpt(t *testing.T) {
 			FullDocument(mongoopt.UpdateLookup),
 			MaxAwaitTime(5000),
 			ResumeAfter(resumeAfter2),
+			StartAtOperationTime(&bson.Timestamp{
+				T: 1,
+				I: 5,
+			}),
 		}
 		params := make([]ChangeStream, len(opts))
 		for i := range opts {
