@@ -240,7 +240,7 @@ func createSessionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor) 
 		topology:       createMonitoredTopology(t, clock, monitor),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
-		readConcern:    readconcern.New(),
+		readConcern:    readconcern.Local(),
 		clock:          clock,
 	}
 

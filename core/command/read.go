@@ -187,7 +187,7 @@ func (r *Read) decodeOpReply(wm wiremessage.WireMessage) {
 // Encode will encode this command into a wire message for the given server description.
 func (r *Read) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
 	cmd := r.Command.Copy()
-	err := addReadConcern(cmd, r.ReadConcern)
+	err := addReadConcern(cmd, desc, r.ReadConcern, r.Session)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ func (r *Read) Decode(desc description.SelectedServer, wm wiremessage.WireMessag
 	}
 
 	_ = updateClusterTimes(r.Session, r.Clock, r.result)
-
+	_ = updateOperationTime(r.Session, r.result)
 	return r
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
 	"github.com/mongodb/mongo-go-driver/mongo/listdbopt"
+	"github.com/mongodb/mongo-go-driver/mongo/sessionopt"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -108,17 +109,24 @@ func (c *Client) Disconnect(ctx context.Context) error {
 }
 
 // StartSession starts a new session.
-func (c *Client) StartSession() (*Session, error) {
+func (c *Client) StartSession(opts ...sessionopt.Session) (*Session, error) {
 	if c.topology.SessionPool == nil {
 		return nil, topology.ErrTopologyClosed
 	}
 
-	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit)
+	sessionOpts, err := sessionopt.BundleSession(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Session{Client: sess}, nil
+	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, sessionOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{
+		Client: sess,
+	}, nil
 }
 
 func (c *Client) endSessions(ctx context.Context) {
@@ -166,7 +174,13 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 
 	if client.readConcern == nil {
 		client.readConcern = readConcernFromConnString(&client.connString)
+
+		if client.readConcern == nil {
+			// no read concern in conn string
+			client.readConcern = readconcern.New()
+		}
 	}
+
 	if client.writeConcern == nil {
 		client.writeConcern = writeConcernFromConnString(&client.connString)
 	}
