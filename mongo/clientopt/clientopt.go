@@ -554,7 +554,7 @@ func SSL(ssl *SSLOpt) Option {
 				c.ConnString.SSL = ssl.Enabled
 				c.ConnString.SSLSet = true
 			}
-			if !c.ConnString.SSLClientCertificateKeyFileSet {
+			if !c.ConnString.SSLClientCertificateKeyFileSet && ssl.ClientCertificateKeyFile != "" {
 				c.ConnString.SSLClientCertificateKeyFile = ssl.ClientCertificateKeyFile
 				c.ConnString.SSLClientCertificateKeyFileSet = true
 			}
