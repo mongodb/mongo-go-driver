@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4ff852a0_fdea7e92",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-29T22:21:57Z",
+      "side": 1,
+      "message": "instead of using a comment to tell me what this means, just name the variable more verbosely. CausallyConsistent.",
+      "revId": "31e4d1d7a6d78debc9edb0d82e66fcf636e63ddb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "68834c90_4a0fd783",
+        "filename": "mongo/client.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-29T22:21:57Z",
+      "side": 1,
+      "message": "Can we just return readconcern.New() from the the readConcerFromConnString method? That way, less conditional statements. Might change it\u0027s name, ensureReadConcern or something.",
+      "revId": "31e4d1d7a6d78debc9edb0d82e66fcf636e63ddb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6395d370_5360a765",
+        "filename": "mongo/sessionopt/sessionopt.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-07-29T22:21:57Z",
+      "side": 1,
+      "message": "Is this name mandated? Can we call it CausallyConsistent?",
+      "revId": "31e4d1d7a6d78debc9edb0d82e66fcf636e63ddb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
