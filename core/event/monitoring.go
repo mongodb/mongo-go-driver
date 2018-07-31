@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
@@ -29,6 +30,7 @@ func (cm *CommandMetadata) TimeDifference() int64 {
 
 // CommandStartedEvent represents an event generated when a command is sent to a server.
 type CommandStartedEvent struct {
+	Context      context.Context
 	Command      *bson.Document
 	DatabaseName string
 	CommandName  string
@@ -38,6 +40,7 @@ type CommandStartedEvent struct {
 
 // CommandFinishedEvent represents a generic command finishing.
 type CommandFinishedEvent struct {
+	Context       context.Context
 	DurationNanos int64
 	CommandName   string
 	RequestID     int64

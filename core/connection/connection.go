@@ -358,12 +358,13 @@ func canMonitor(cmd string) bool {
 	return true
 }
 
-func (c *connection) commandStartedEvent(wm wiremessage.WireMessage) error {
+func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.WireMessage) error {
 	if c.cmdMonitor == nil || c.cmdMonitor.Started == nil {
 		return nil
 	}
 
 	startedEvent := &event.CommandStartedEvent{
+		Context:      ctx,
 		ConnectionID: c.id,
 	}
 
@@ -426,6 +427,7 @@ func (c *connection) commandStartedEvent(wm wiremessage.WireMessage) error {
 
 		// unack writes must provide a CommandSucceededEvent with an { ok: 1 } reply
 		finishedEvent := event.CommandFinishedEvent{
+			Context:       ctx,
 			DurationNanos: 0,
 			CommandName:   startedEvent.CommandName,
 			RequestID:     startedEvent.RequestID,
@@ -489,7 +491,7 @@ func processReply(reply *bson.Document) (bool, string) {
 	return false, fullErrMsg
 }
 
-func (c *connection) commandFinishedEvent(wm wiremessage.WireMessage) error {
+func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.WireMessage) error {
 	if c.cmdMonitor == nil {
 		return nil
 	}
@@ -520,6 +522,7 @@ func (c *connection) commandFinishedEvent(wm wiremessage.WireMessage) error {
 	}
 
 	finishedEvent := event.CommandFinishedEvent{
+		Context:       ctx,
 		DurationNanos: cmdMetadata.TimeDifference(),
 		CommandName:   cmdMetadata.Name,
 		RequestID:     requestID,
@@ -639,7 +642,7 @@ func (c *connection) WriteWireMessage(ctx context.Context, wm wiremessage.WireMe
 	}
 
 	c.bumpIdleDeadline()
-	err = c.commandStartedEvent(wm)
+	err = c.commandStartedEvent(ctx, wm)
 	if err != nil {
 		return err
 	}
@@ -790,7 +793,7 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 	}
 
 	c.bumpIdleDeadline()
-	err = c.commandFinishedEvent(wm)
+	err = c.commandFinishedEvent(ctx, wm)
 	if err != nil {
 		return nil, err // TODO: do we care if monitoring fails?
 	}
