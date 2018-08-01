@@ -17,6 +17,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 )
 
 // Dialer is used to make network connections.
@@ -120,4 +121,35 @@ func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
 	}
 
 	return pipelineArr, nil
+}
+
+// Build the aggregation pipeline for the CountDocument command.
+func countDocumentsAggregatePipeline(filter interface{}, opts ...countopt.Count) (*bson.Array, error) {
+	pipeline := bson.NewArray()
+	filterDoc, err := TransformDocument(filter)
+
+	if err != nil {
+		return nil, err
+	}
+	pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.SubDocument("$match", filterDoc))))
+	for _, opt := range opts {
+		switch t := opt.(type) {
+		case countopt.OptSkip:
+			skip := int64(t)
+			pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.Int64("$skip", skip))))
+		case countopt.OptLimit:
+			limit := int64(t)
+			pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.Int64("$limit", limit))))
+		}
+	}
+	pipeline.Append(bson.VC.Document(bson.NewDocument(
+		bson.EC.SubDocument("$group", bson.NewDocument(
+			bson.EC.Null("_id"),
+			bson.EC.SubDocument("n", bson.NewDocument(
+				bson.EC.Int32("$sum", 1)),
+			)),
+		)),
+	))
+
+	return pipeline, nil
 }

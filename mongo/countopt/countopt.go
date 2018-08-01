@@ -317,6 +317,13 @@ func (opt OptMaxTimeMs) ConvertCountOption() option.CountOptioner {
 	return option.OptMaxTime(opt)
 }
 
+// ConvertEstimateDocumentCountOption implements the Count interface.
+func (opt OptMaxTimeMs) ConvertEstimateDocumentCountOption() option.CountOptioner {
+	return option.OptMaxTime(opt)
+}
+
+func (OptMaxTimeMs) estimatedCount() {}
+
 func (OptMaxTimeMs) count() {}
 
 // CountSessionOpt is an count session option.

@@ -702,6 +702,79 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 	)
 }
 
+// CountDocuments gets the number of documents matching the filter. A user can supply a
+// custom context to this method, or nil to default to context.Background().
+//
+// This method uses countDocumentsAggregatePipeline to turn the filter parameter and options
+// into aggregate pipeline.
+func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
+	opts ...countopt.Count) (int64, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	pipelineArr, err := countDocumentsAggregatePipeline(filter, opts...)
+	if err != nil {
+		return 0, err
+	}
+
+	countOpts, sess, err := countopt.BundleCount(opts...).Unbundle(true)
+	if err != nil {
+		return 0, err
+	}
+
+	err = coll.client.ValidSession(sess)
+	if err != nil {
+		return 0, err
+	}
+
+	oldns := coll.namespace()
+	cmd := command.CountDocuments{
+		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Pipeline:    pipelineArr,
+		Opts:        countOpts,
+		ReadPref:    coll.readPreference,
+		ReadConcern: coll.readConcern,
+		Session:     sess,
+		Clock:       coll.client.clock,
+	}
+	return dispatch.CountDocuments(ctx, cmd, coll.client.topology, coll.readSelector)
+}
+
+// EstimatedDocumentCount gets an estimate of the count of documents in a collection using collection metadata.
+func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
+	opts ...countopt.EstimatedDocumentCount) (int64, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	countOpts, sess, err := countopt.BundleEstimatedDocumentCount(opts...).Unbundle(true)
+	if err != nil {
+		return 0, err
+	}
+
+	err = coll.client.ValidSession(sess)
+	if err != nil {
+		return 0, err
+	}
+
+	oldns := coll.namespace()
+
+	cmd := command.Count{
+		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
+		Query:       bson.NewDocument(),
+		Opts:        countOpts,
+		ReadPref:    coll.readPreference,
+		ReadConcern: coll.readConcern,
+		Session:     sess,
+		Clock:       coll.client.clock,
+	}
+	return dispatch.Count(ctx, cmd, coll.client.topology, coll.readSelector, coll.client.id,
+		coll.client.topology.SessionPool)
+}
+
 // Distinct finds the distinct values for a specified field across a single
 // collection. A user can supply a custom context to this method, or nil to
 // default to context.Background().
