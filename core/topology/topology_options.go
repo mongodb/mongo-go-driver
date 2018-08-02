@@ -183,6 +183,10 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 					Authenticator: authenticator,
 					Compressors:   cs.Compressors,
 				}
+				if cs.AuthMechanism == "" {
+					// Required for SASL mechanism negotiation during handshake
+					options.DBUser = cred.Source + "." + cred.Username
+				}
 				return auth.Handshaker(h, options)
 			}))
 		} else {

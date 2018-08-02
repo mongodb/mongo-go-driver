@@ -25,6 +25,7 @@ var authFactories = make(map[string]AuthenticatorFactory)
 func init() {
 	RegisterAuthenticatorFactory("", newDefaultAuthenticator)
 	RegisterAuthenticatorFactory(SCRAMSHA1, newScramSHA1Authenticator)
+	RegisterAuthenticatorFactory(SCRAMSHA256, newScramSHA256Authenticator)
 	RegisterAuthenticatorFactory(MONGODBCR, newMongoDBCRAuthenticator)
 	RegisterAuthenticatorFactory(PLAIN, newPlainAuthenticator)
 	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
@@ -90,19 +91,23 @@ func RegisterAuthenticatorFactory(name string, factory AuthenticatorFactory) {
 // 	})
 // }
 
-// HandshakeOptions packages options that can be passed to the Handshaker() function
+// HandshakeOptions packages options that can be passed to the Handshaker()
+// function.  DBUser is optional but must be of the form <dbname.username>;
+// if non-empty, then the connection will do SASL mechanism negotiation.
 type HandshakeOptions struct {
 	AppName       string
 	Authenticator Authenticator
 	Compressors   []string
+	DBUser        string
 }
 
 // Handshaker creates a connection handshaker for the given authenticator.
 func Handshaker(h connection.Handshaker, options *HandshakeOptions) connection.Handshaker {
 	return connection.HandshakerFunc(func(ctx context.Context, addr address.Address, rw wiremessage.ReadWriter) (description.Server, error) {
 		desc, err := (&command.Handshake{
-			Client:      command.ClientDoc(options.AppName),
-			Compressors: options.Compressors,
+			Client:             command.ClientDoc(options.AppName),
+			Compressors:        options.Compressors,
+			SaslSupportedMechs: options.DBUser,
 		}).Handshake(ctx, addr, rw)
 
 		if err != nil {

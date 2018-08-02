@@ -139,3 +139,17 @@ func DisableMaxTimeFailPoint(t *testing.T, s *topology.Server) {
 	_, err = cmd.RoundTrip(context.Background(), s.SelectedDescription(), conn)
 	require.NoError(t, err)
 }
+
+// RunCommand runs an arbitrary command on a given database of target server
+func RunCommand(t *testing.T, s *topology.Server, db string, b *bson.Document) (bson.Reader, error) {
+	conn, err := s.Connection(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer testhelpers.RequireNoErrorOnClose(t, conn)
+	cmd := command.Read{
+		DB:      db,
+		Command: b,
+	}
+	return cmd.RoundTrip(context.Background(), s.SelectedDescription(), conn)
+}

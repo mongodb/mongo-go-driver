@@ -156,6 +156,20 @@ func Topology(t *testing.T) *topology.Topology {
 	return liveTopology
 }
 
+// TopologyWithConnString takes a connection string and returns a connected
+// topology, or else bails out of testing
+func TopologyWithConnString(t *testing.T, cs connstring.ConnString) *topology.Topology {
+	topology, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+	if err != nil {
+		t.Fatal("Could not construct topology")
+	}
+	err = topology.Connect(context.Background())
+	if err != nil {
+		t.Fatal("Could not start topology connection")
+	}
+	return topology
+}
+
 // ColName gets a collection name that should be unique
 // to the currently executing test.
 func ColName(t *testing.T) string {
