@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -20,8 +21,10 @@ import (
 //
 // The listDatabases command lists the databases in a MongoDB deployment.
 type ListDatabases struct {
-	Filter *bson.Document
-	Opts   []option.ListDatabasesOptioner
+	Clock   *session.ClusterClock
+	Filter  *bson.Document
+	Opts    []option.ListDatabasesOptioner
+	Session *session.Client
 
 	result result.ListDatabases
 	err    error
@@ -29,6 +32,14 @@ type ListDatabases struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (ld *ListDatabases) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	encoded, err := ld.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+	return encoded.Encode(desc)
+}
+
+func (ld *ListDatabases) encode(desc description.SelectedServer) (*Read, error) {
 	cmd := bson.NewDocument(bson.EC.Int32("listDatabases", 1))
 
 	if ld.Filter != nil {
@@ -45,18 +56,26 @@ func (ld *ListDatabases) Encode(desc description.SelectedServer) (wiremessage.Wi
 		}
 	}
 
-	return (&Command{DB: "admin", Command: cmd, isWrite: true}).Encode(desc)
+	return &Read{
+		Clock:   ld.Clock,
+		DB:      "admin",
+		Command: cmd,
+		Session: ld.Session,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (ld *ListDatabases) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *ListDatabases {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		ld.err = err
 		return ld
 	}
+	return ld.decode(desc, rdr)
+}
 
+func (ld *ListDatabases) decode(desc description.SelectedServer, rdr bson.Reader) *ListDatabases {
 	ld.err = bson.Unmarshal(rdr, &ld.result)
 	return ld
 }
@@ -74,18 +93,15 @@ func (ld *ListDatabases) Err() error { return ld.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (ld *ListDatabases) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.ListDatabases, error) {
-	wm, err := ld.Encode(desc)
+	cmd, err := ld.encode(desc)
 	if err != nil {
 		return result.ListDatabases{}, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return result.ListDatabases{}, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return result.ListDatabases{}, err
-	}
-	return ld.Decode(desc, wm).Result()
+
+	return ld.decode(desc, rdr).Result()
 }

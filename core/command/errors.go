@@ -22,6 +22,9 @@ var (
 	ErrMultiDocCommandResponse = errors.New("command returned multiple documents")
 	// ErrNoDocCommandResponse occurs when the server indicated a response existed, but none was found.
 	ErrNoDocCommandResponse = errors.New("command returned no documents")
+	// ErrDocumentTooLarge occurs when a document that is larger than the maximum size accepted by a
+	// server is passed to an insert command.
+	ErrDocumentTooLarge = errors.New("an inserted document is too large")
 )
 
 // QueryFailureError is an error representing a command failure as a document.

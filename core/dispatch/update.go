@@ -11,9 +11,10 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
@@ -24,7 +25,8 @@ func Update(
 	cmd command.Update,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
+	clientID uuid.UUID,
+	pool *session.Pool,
 ) (result.Update, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -32,42 +34,32 @@ func Update(
 		return result.Update{}, err
 	}
 
-	if wc != nil {
-		opt, err := writeConcernOption(wc)
-		if err != nil {
-			return result.Update{}, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
-	}
-
-	// NOTE: We iterate through the options because the user may have provided
-	// an option explicitly and that needs to override the provided write concern.
-	// We put this here because it would complicate the methods that call this to
-	// parse out the option.
-	acknowledged := true
-	for _, opt := range cmd.Opts {
-		wc, ok := opt.(option.OptWriteConcern)
-		if !ok {
-			continue
-		}
-		acknowledged = wc.Acknowledged
-		break
-	}
 	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
 		return result.Update{}, err
 	}
 
-	if !acknowledged {
+	if !writeconcern.AckWrite(cmd.WriteConcern) {
 		go func() {
 			defer func() { _ = recover() }()
 			defer conn.Close()
+
 			_, _ = cmd.RoundTrip(ctx, desc, conn)
 		}()
-		return result.Update{}, ErrUnacknowledgedWrite
+
+		return result.Update{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
+
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.SupportsSessions() {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return result.Update{}, err
+		}
+		defer cmd.Session.EndSession()
+	}
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }

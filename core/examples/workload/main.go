@@ -24,7 +24,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 )
 
 var concurrency = flag.Int("concurrency", 24, "how much concurrency should be used")
@@ -66,7 +68,7 @@ func main() {
 	}
 
 	<-done
-	log.Println("interupt received: shutting down")
+	log.Println("interrupt received: shutting down")
 	_ = c.Disconnect(ctx)
 	log.Println("finished")
 }
@@ -95,11 +97,11 @@ func prep(ctx context.Context, c *topology.Topology) error {
 		bson.EC.SubDocument("q", bson.NewDocument()),
 		bson.EC.Int32("limit", 0),
 	)}
-	_, err = (&command.Delete{NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
+	_, err = (&command.Delete{WriteConcern: nil, NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
 	if err != nil {
 		return err
 	}
-	_, err = (&command.Insert{NS: ns, Docs: docs}).RoundTrip(ctx, s.Description(), conn)
+	_, err = (&command.Insert{WriteConcern: nil, NS: ns, Docs: docs}).RoundTrip(ctx, s.Description(), conn)
 	return err
 }
 
@@ -120,13 +122,20 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 				),
 			)
 
+			id, _ := uuid.New()
 			cmd := command.Aggregate{
 				NS:       ns,
 				Pipeline: pipeline,
 				Opts:     []option.AggregateOptioner{option.OptBatchSize(200)},
 				ReadPref: rp,
 			}
-			cursor, err := dispatch.Aggregate(ctx, cmd, c, description.ReadPrefSelector(rp), description.ReadPrefSelector(rp), nil)
+			cursor, err := dispatch.Aggregate(
+				ctx, cmd, c,
+				description.ReadPrefSelector(rp),
+				description.ReadPrefSelector(rp),
+				id,
+				&session.Pool{},
+			)
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)
 				continue

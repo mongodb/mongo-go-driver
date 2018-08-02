@@ -18,7 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 )
 
-// Option is a configuraiton option for a topology.
+// Option is a configuration option for a topology.
 type Option func(*config) error
 
 type config struct {
@@ -222,7 +222,6 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			c.serverOpts = append(c.serverOpts, WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
 				return append(opts, connOpts...)
 			}))
-
 		}
 
 		return nil

@@ -13,7 +13,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Delete represents the delete command.
@@ -21,9 +23,12 @@ import (
 // The delete command executes a delete with a given set of delete documents
 // and options.
 type Delete struct {
-	NS      Namespace
-	Deletes []*bson.Document
-	Opts    []option.DeleteOptioner
+	NS           Namespace
+	Deletes      []*bson.Document
+	Opts         []option.DeleteOptioner
+	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result result.Delete
 	err    error
@@ -31,6 +36,15 @@ type Delete struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (d *Delete) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	cmd, err := d.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd.Encode(desc)
+}
+
+func (d *Delete) encode(desc description.SelectedServer) (*Write, error) {
 	if err := d.NS.Validate(); err != nil {
 		return nil, err
 	}
@@ -61,18 +75,28 @@ func (d *Delete) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		}
 	}
 
-	return (&Command{DB: d.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return &Write{
+		Clock:        d.Clock,
+		DB:           d.NS.DB,
+		Command:      command,
+		WriteConcern: d.WriteConcern,
+		Session:      d.Session,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (d *Delete) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Delete {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		d.err = err
 		return d
 	}
 
+	return d.decode(desc, rdr)
+}
+
+func (d *Delete) decode(desc description.SelectedServer, rdr bson.Reader) *Delete {
 	d.err = bson.Unmarshal(rdr, &d.result)
 	return d
 }
@@ -90,18 +114,15 @@ func (d *Delete) Err() error { return d.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (d *Delete) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Delete, error) {
-	wm, err := d.Encode(desc)
+	cmd, err := d.encode(desc)
 	if err != nil {
 		return result.Delete{}, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return result.Delete{}, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return result.Delete{}, err
-	}
-	return d.Decode(desc, wm).Result()
+
+	return d.decode(desc, rdr).Result()
 }

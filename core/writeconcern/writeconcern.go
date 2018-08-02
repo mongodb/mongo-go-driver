@@ -119,6 +119,19 @@ func (wc *WriteConcern) MarshalBSONElement() (*bson.Element, error) {
 	return bson.EC.SubDocumentFromElements("writeConcern", elems...), nil
 }
 
+// AcknowledgedElement returns true if a BSON element for a write concern represents an acknowledged write concern.
+// The element's value must be a document representing a write concern.
+func AcknowledgedElement(elem *bson.Element) bool {
+	wcDoc := elem.Value().MutableDocument()
+	wVal, err := wcDoc.LookupErr("w")
+	if err != nil {
+		// key w not found --> acknowledged
+		return true
+	}
+
+	return wVal.Int32() != 0
+}
+
 // Acknowledged indicates whether or not a write with the given write concern will be acknowledged.
 func (wc *WriteConcern) Acknowledged() bool {
 	if wc == nil || wc.j {
@@ -149,4 +162,9 @@ func (wc *WriteConcern) IsValid() bool {
 	}
 
 	return true
+}
+
+// AckWrite returns true if a write concern represents an acknowledged write
+func AckWrite(wc *WriteConcern) bool {
+	return wc == nil || wc.Acknowledged()
 }

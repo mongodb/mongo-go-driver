@@ -13,16 +13,21 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Update represents the update command.
 //
 // The update command updates a set of documents with the database.
 type Update struct {
-	NS   Namespace
-	Docs []*bson.Document
-	Opts []option.UpdateOptioner
+	Clock        *session.ClusterClock
+	NS           Namespace
+	Docs         []*bson.Document
+	Opts         []option.UpdateOptioner
+	WriteConcern *writeconcern.WriteConcern
+	Session      *session.Client
 
 	result result.Update
 	err    error
@@ -30,6 +35,14 @@ type Update struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (u *Update) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	encoded, err := u.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+	return encoded.Encode(desc)
+}
+
+func (u *Update) encode(desc description.SelectedServer) (*Write, error) {
 	command := bson.NewDocument(bson.EC.String("update", u.NS.Collection))
 	vals := make([]*bson.Value, 0, len(u.Docs))
 	for _, doc := range u.Docs {
@@ -56,18 +69,27 @@ func (u *Update) Encode(desc description.SelectedServer) (wiremessage.WireMessag
 		}
 	}
 
-	return (&Command{DB: u.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return &Write{
+		Clock:        u.Clock,
+		DB:           u.NS.DB,
+		Command:      command,
+		WriteConcern: u.WriteConcern,
+		Session:      u.Session,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (u *Update) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Update {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		u.err = err
 		return u
 	}
+	return u.decode(desc, rdr)
+}
 
+func (u *Update) decode(desc description.SelectedServer, rdr bson.Reader) *Update {
 	u.err = bson.Unmarshal(rdr, &u.result)
 	return u
 }
@@ -85,18 +107,14 @@ func (u *Update) Err() error { return u.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (u *Update) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Update, error) {
-	wm, err := u.Encode(desc)
+	cmd, err := u.encode(desc)
 	if err != nil {
 		return result.Update{}, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return result.Update{}, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return result.Update{}, err
-	}
-	return u.Decode(desc, wm).Result()
+	return u.decode(desc, rdr).Result()
 }

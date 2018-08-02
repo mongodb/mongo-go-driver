@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "3owzphdIY/TjPSzhb8hh4DKIsaA=",
+			"path": "github.com/buger/jsonparser",
+			"revision": "2cac668e8456b4284edb0715e17e2af02d3ec993",
+			"revisionTime": "2018-03-17T21:08:10Z"
+		},
+		{
 			"checksumSHA1": "dvabztWVQX8f6oMLRyv4dLH+TGY=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
@@ -81,6 +87,12 @@
 			"revisionTime": "2016-09-25T01:54:16Z",
 			"version": "v1.1.4",
 			"versionExact": "v1.1.4"
+		},
+		{
+			"checksumSHA1": "xvqu+P9YeaxJJ/ejjMkl8iXrSBk=",
+			"path": "github.com/tidwall/pretty",
+			"revision": "65a9db5fad5105a89e17f38adcc9878685be6d78",
+			"revisionTime": "2018-01-05T21:21:14Z"
 		},
 		{
 			"checksumSHA1": "1MGpGDQqnUoRpv7VEcQrXOBydXE=",

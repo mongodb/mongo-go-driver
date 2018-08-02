@@ -90,7 +90,7 @@ func TestPool(t *testing.T) {
 		noerr(t, err)
 		second := c2.ID()
 		if c1 == c2 {
-			t.Errorf("Pool does not expire connections. IDs of first and second conneciton match. first %s; second %s", first, second)
+			t.Errorf("Pool does not expire connections. IDs of first and second connection match. first %s; second %s", first, second)
 		}
 	})
 	t.Run("Get With Done Context", func(t *testing.T) {
@@ -150,7 +150,7 @@ func TestPool(t *testing.T) {
 		noerr(t, err)
 		err = c1.Close()
 		if err != nil {
-			t.Errorf("Conneciton Close should not error after Pool is closed, but got error: %v", err)
+			t.Errorf("Connection Close should not error after Pool is closed, but got error: %v", err)
 		}
 	})
 	t.Run("Connection Close Does Not Close Underlying Connection If Not Expired", func(t *testing.T) {

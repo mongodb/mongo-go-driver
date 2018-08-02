@@ -12,18 +12,25 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // Aggregate represents the aggregate command.
 //
 // The aggregate command performs an aggregation.
 type Aggregate struct {
-	NS       Namespace
-	Pipeline *bson.Array
-	Opts     []option.AggregateOptioner
-	ReadPref *readpref.ReadPref
+	NS           Namespace
+	Pipeline     *bson.Array
+	Opts         []option.AggregateOptioner
+	ReadPref     *readpref.ReadPref
+	WriteConcern *writeconcern.WriteConcern
+	ReadConcern  *readconcern.ReadConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result Cursor
 	err    error
@@ -31,6 +38,15 @@ type Aggregate struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (a *Aggregate) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	cmd, err := a.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd.Encode(desc)
+}
+
+func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 	if err := a.NS.Validate(); err != nil {
 		return nil, err
 	}
@@ -61,7 +77,24 @@ func (a *Aggregate) Encode(desc description.SelectedServer) (wiremessage.WireMes
 		}
 	}
 
-	return (&Command{DB: a.NS.DB, Command: command, ReadPref: a.ReadPref}).Encode(desc)
+	// add write concern because it won't be added by the Read command's Encode()
+	if a.WriteConcern != nil {
+		element, err := a.WriteConcern.MarshalBSONElement()
+		if err != nil {
+			return nil, err
+		}
+
+		command.Append(element)
+	}
+
+	return &Read{
+		DB:          a.NS.DB,
+		Command:     command,
+		ReadPref:    a.ReadPref,
+		ReadConcern: a.ReadConcern,
+		Clock:       a.Clock,
+		Session:     a.Session,
+	}, nil
 }
 
 // HasDollarOut returns true if the Pipeline field contains a $out stage.
@@ -92,12 +125,16 @@ func (a *Aggregate) HasDollarOut() bool {
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (a *Aggregate) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *Aggregate {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		a.err = err
 		return a
 	}
 
+	return a.decode(desc, cb, rdr)
+}
+
+func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *Aggregate {
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range a.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)
@@ -107,8 +144,7 @@ func (a *Aggregate) Decode(desc description.SelectedServer, cb CursorBuilder, wm
 		opts = append(opts, curOpt)
 	}
 
-	a.result, a.err = cb.BuildCursor(rdr, opts...)
-
+	a.result, a.err = cb.BuildCursor(rdr, a.Session, a.Clock, opts...)
 	return a
 }
 
@@ -125,18 +161,15 @@ func (a *Aggregate) Err() error { return a.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
-	wm, err := a.Encode(desc)
+	cmd, err := a.encode(desc)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return a.Decode(desc, cb, wm).Result()
+
+	return a.decode(desc, cb, rdr).Result()
 }

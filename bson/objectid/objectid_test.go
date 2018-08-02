@@ -9,6 +9,9 @@ package objectid
 import (
 	"testing"
 
+	"encoding/binary"
+	"time"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,4 +41,43 @@ func TestFromHex_InvalidHex(t *testing.T) {
 func TestFromHex_WrongLength(t *testing.T) {
 	_, err := FromHex("deadbeef")
 	require.Equal(t, ErrInvalidHex, err)
+}
+
+func TestTimeStamp(t *testing.T) {
+	testCases := []struct {
+		Hex      string
+		Expected string
+	}{
+		{
+			"000000001111111111111111",
+			"1970-01-01 00:00:00 +0000 UTC",
+		},
+		{
+			"7FFFFFFF1111111111111111",
+			"2038-01-19 03:14:07 +0000 UTC",
+		},
+		{
+			"800000001111111111111111",
+			"2038-01-19 03:14:08 +0000 UTC",
+		},
+		{
+			"FFFFFFFF1111111111111111",
+			"2106-02-07 06:28:15 +0000 UTC",
+		},
+	}
+
+	for _, testcase := range testCases {
+		id, err := FromHex(testcase.Hex)
+		require.NoError(t, err)
+		secs := int64(binary.BigEndian.Uint32(id[0:4]))
+		timestamp := time.Unix(secs, 0).UTC()
+		require.Equal(t, testcase.Expected, timestamp.String())
+	}
+
+}
+
+func TestCounterOverflow(t *testing.T) {
+	objectIDCounter = 0xFFFFFFFF
+	New()
+	require.Equal(t, uint32(0), objectIDCounter)
 }

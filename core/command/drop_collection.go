@@ -11,60 +11,89 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // DropCollection represents the drop command.
 //
 // The dropCollections command drops collection for a database.
 type DropCollection struct {
-	DB         string
-	Collection string
-	result     bson.Reader
-	err        error
+	DB           string
+	Collection   string
+	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
+
+	result bson.Reader
+	err    error
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (di *DropCollection) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+func (dc *DropCollection) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	cmd, err := dc.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd.Encode(desc)
+}
+
+func (dc *DropCollection) encode(desc description.SelectedServer) (*Write, error) {
 	cmd := bson.NewDocument(
-		bson.EC.String("drop", di.Collection),
+		bson.EC.String("drop", dc.Collection),
 	)
 
-	return (&Command{DB: di.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return &Write{
+		Clock:        dc.Clock,
+		WriteConcern: dc.WriteConcern,
+		DB:           dc.DB,
+		Command:      cmd,
+		Session:      dc.Session,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (di *DropCollection) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *DropCollection {
-	di.result, di.err = (&Command{}).Decode(desc, wm).Result()
-	return di
+func (dc *DropCollection) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *DropCollection {
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
+	if err != nil {
+		dc.err = err
+		return dc
+	}
+
+	return dc.decode(desc, rdr)
+}
+
+func (dc *DropCollection) decode(desc description.SelectedServer, rdr bson.Reader) *DropCollection {
+	dc.result = rdr
+	return dc
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (di *DropCollection) Result() (bson.Reader, error) {
-	if di.err != nil {
-		return nil, di.err
+func (dc *DropCollection) Result() (bson.Reader, error) {
+	if dc.err != nil {
+		return nil, dc.err
 	}
-	return di.result, nil
+
+	return dc.result, nil
 }
 
 // Err returns the error set on this command.
-func (di *DropCollection) Err() error { return di.err }
+func (dc *DropCollection) Err() error { return dc.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (di *DropCollection) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
-	wm, err := di.Encode(desc)
+func (dc *DropCollection) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+	cmd, err := dc.encode(desc)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return di.Decode(desc, wm).Result()
+
+	return dc.decode(desc, rdr).Result()
 }

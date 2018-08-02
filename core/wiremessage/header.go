@@ -63,6 +63,7 @@ func (h Header) AppendHeader(b []byte) []byte {
 	b = appendInt32(b, h.RequestID)
 	b = appendInt32(b, h.ResponseTo)
 	b = appendInt32(b, int32(h.OpCode))
+
 	return b
 }
 

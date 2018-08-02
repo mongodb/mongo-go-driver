@@ -23,7 +23,7 @@ func NewSemaphore(slots uint64) *Semaphore {
 	}
 }
 
-// Semaphore is a syncronization primitive that controls access
+// Semaphore is a synchronization primitive that controls access
 // to a common resource.
 type Semaphore struct {
 	permits chan struct{}

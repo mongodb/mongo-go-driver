@@ -14,6 +14,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 )
 
 // ErrMissingResumeToken indicates that a change stream notification from the server did not
@@ -25,6 +27,8 @@ type changeStream struct {
 	options     []option.ChangeStreamOptioner
 	coll        *Collection
 	cursor      Cursor
+	session     *session.Client
+	clock       *session.ClusterClock
 	resumeToken *bson.Document
 	err         error
 }
@@ -33,16 +37,26 @@ const errorCodeNotMaster int32 = 10107
 const errorCodeCursorNotFound int32 = 43
 
 func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{},
-	opts ...option.ChangeStreamOptioner) (*changeStream, error) {
+	opts ...changestreamopt.ChangeStream) (*changeStream, error) {
 
 	pipelineArr, err := transformAggregatePipeline(pipeline)
 	if err != nil {
 		return nil, err
 	}
 
+	csOpts, sess, err := changestreamopt.BundleChangeStream(opts...).Unbundle(true)
+	if err != nil {
+		return nil, err
+	}
+
+	err = coll.client.ValidSession(sess)
+	if err != nil {
+		return nil, err
+	}
+
 	changeStreamOptions := bson.NewDocument()
 
-	for _, opt := range opts {
+	for _, opt := range csOpts {
 		err = opt.Option(changeStreamOptions)
 		if err != nil {
 			return nil, err
@@ -61,9 +75,11 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 
 	cs := &changeStream{
 		pipeline: pipelineArr,
-		options:  opts,
+		options:  csOpts,
 		coll:     coll,
 		cursor:   cursor,
+		session:  sess,
+		clock:    coll.client.clock,
 	}
 
 	return cs, nil
@@ -90,7 +106,7 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		}
 	}
 
-	resumeToken := Opt.ResumeAfter(cs.resumeToken)
+	resumeToken := changestreamopt.ResumeAfter(cs.resumeToken).ConvertChangeStreamOption()
 	found := false
 
 	for i, opt := range cs.options {
@@ -146,8 +162,13 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 	aggCmd := command.Aggregate{
 		NS:       command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Pipeline: cs.pipeline,
+		Session:  cs.session,
+		Clock:    cs.coll.client.clock,
 	}
-	cs.cursor, cs.err = aggCmd.RoundTrip(ctx, ss.Description(), ss, conn)
+
+	cur, err := aggCmd.RoundTrip(ctx, ss.Description(), ss, conn)
+	cs.cursor = cur
+	cs.err = err
 
 	if cs.err != nil {
 		return false

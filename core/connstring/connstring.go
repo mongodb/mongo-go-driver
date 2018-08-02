@@ -310,7 +310,10 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 		}
 	case "":
 		if p.AuthSource == "" {
-			p.AuthSource = "admin"
+			p.AuthSource = dbName
+			if p.AuthSource == "" {
+				p.AuthSource = "admin"
+			}
 		}
 	default:
 		return fmt.Errorf("invalid auth mechanism")
@@ -751,7 +754,7 @@ type extractedDatabase struct {
 	db  string
 }
 
-// extractDatabaseFromURI is a helper function to retreive information about
+// extractDatabaseFromURI is a helper function to retrieve information about
 // the database from the passed in URI. It accepts as an argument the currently
 // parsed URI and returns the remainder of the uri, the database it found,
 // and any error it encounters while parsing.

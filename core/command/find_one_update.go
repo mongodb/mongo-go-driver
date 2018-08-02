@@ -13,17 +13,22 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 // FindOneAndUpdate represents the findOneAndUpdate operation.
 //
 // The findOneAndUpdate command modifies and returns a single document.
 type FindOneAndUpdate struct {
-	NS     Namespace
-	Query  *bson.Document
-	Update *bson.Document
-	Opts   []option.FindOneAndUpdateOptioner
+	NS           Namespace
+	Query        *bson.Document
+	Update       *bson.Document
+	Opts         []option.FindOneAndUpdateOptioner
+	WriteConcern *writeconcern.WriteConcern
+	Clock        *session.ClusterClock
+	Session      *session.Client
 
 	result result.FindAndModify
 	err    error
@@ -31,6 +36,15 @@ type FindOneAndUpdate struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (f *FindOneAndUpdate) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	cmd, err := f.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd.Encode(desc)
+}
+
+func (f *FindOneAndUpdate) encode(desc description.SelectedServer) (*Write, error) {
 	if err := f.NS.Validate(); err != nil {
 		return nil, err
 	}
@@ -41,28 +55,38 @@ func (f *FindOneAndUpdate) Encode(desc description.SelectedServer) (wiremessage.
 		bson.EC.SubDocument("update", f.Update),
 	)
 
-	for _, option := range f.Opts {
-		if option == nil {
+	for _, opt := range f.Opts {
+		if opt == nil {
 			continue
 		}
-		err := option.Option(command)
+		err := opt.Option(command)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return (&Command{DB: f.NS.DB, Command: command, isWrite: true}).Encode(desc)
+	return &Write{
+		Clock:        f.Clock,
+		DB:           f.NS.DB,
+		Command:      command,
+		WriteConcern: f.WriteConcern,
+		Session:      f.Session,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (f *FindOneAndUpdate) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *FindOneAndUpdate {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Write{}).Decode(desc, wm).Result()
 	if err != nil {
 		f.err = err
 		return f
 	}
 
+	return f.decode(desc, rdr)
+}
+
+func (f *FindOneAndUpdate) decode(desc description.SelectedServer, rdr bson.Reader) *FindOneAndUpdate {
 	f.result, f.err = unmarshalFindAndModifyResult(rdr)
 	return f
 }
@@ -80,18 +104,15 @@ func (f *FindOneAndUpdate) Err() error { return f.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (f *FindOneAndUpdate) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.FindAndModify, error) {
-	wm, err := f.Encode(desc)
+	cmd, err := f.encode(desc)
 	if err != nil {
 		return result.FindAndModify{}, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return result.FindAndModify{}, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return result.FindAndModify{}, err
-	}
-	return f.Decode(desc, wm).Result()
+
+	return f.decode(desc, rdr).Result()
 }

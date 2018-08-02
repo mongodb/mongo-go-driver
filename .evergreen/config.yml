@@ -401,14 +401,14 @@ tasks:
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
-            topology: "server"
-            auth: "auth"
-            ssl: "ssl"
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
         - func: run-tests
           vars:
-            topology: "server"
-            auth: "auth"
-            ssl: "ssl"
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
     - name: test-replicaset-noauth-nossl
@@ -585,6 +585,10 @@ axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "4.0"
+        display_name: "4.0"
+        variables:
+           VERSION: "4.0"
       - id: "3.6"
         display_name: "3.6"
         variables:

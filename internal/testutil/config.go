@@ -15,12 +15,14 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
-	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/event"
+	"github.com/mongodb/mongo-go-driver/core/connection"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/stretchr/testify/require"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 var connectionString connstring.ConnString
@@ -29,6 +31,9 @@ var connectionStringErr error
 var liveTopology *topology.Topology
 var liveTopologyOnce sync.Once
 var liveTopologyErr error
+var monitoredTopology *topology.Topology
+var monitoredTopologyOnce sync.Once
+var monitoredTopologyErr error
 
 // AddOptionsToURI appends connection string options to a URI.
 func AddOptionsToURI(uri string, opts ...string) string {
@@ -71,10 +76,58 @@ func AddCompressorToUri(uri string) string {
 	return AddOptionsToURI(uri, "compressors=", comp)
 }
 
+// MonitoredTopology gets the globally configured topology and attaches a command monitor.
+func MonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topology.Topology {
+	cs := ConnString(t)
+	opts := []topology.Option{
+			topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+			topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+				return append(
+					opts,
+					topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+						return append(
+							opts,
+							connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
+								return monitor
+							}),
+						)
+					}),
+				)
+			}),
+	}
+
+	monitoredTopologyOnce.Do(func() {
+		var err error
+		monitoredTopology, err = topology.New(opts...)
+		if err != nil {
+			monitoredTopologyErr = err
+		} else {
+			monitoredTopology.Connect(context.Background())
+			s, err := monitoredTopology.SelectServer(context.Background(), description.WriteSelector())
+			require.NoError(t, err)
+
+			c, err := s.Connection(context.Background())
+			require.NoError(t, err)
+
+			_, err = (&command.Write{
+				DB: DBName(t),
+				Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
+			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
+
+			require.NoError(t, err)
+		}
+	})
+
+	if monitoredTopologyErr != nil {
+		t.Fatal(monitoredTopologyErr)
+	}
+
+	return monitoredTopology
+}
+
 // Topology gets the globally configured topology.
 func Topology(t *testing.T) *topology.Topology {
 	cs := ConnString(t)
-
 	liveTopologyOnce.Do(func() {
 		var err error
 		liveTopology, err = topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
@@ -88,7 +141,7 @@ func Topology(t *testing.T) *topology.Topology {
 			c, err := s.Connection(context.Background())
 			require.NoError(t, err)
 
-			_, err = (&command.Command{
+			_, err = (&command.Write{
 				DB:      DBName(t),
 				Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 			}).RoundTrip(context.Background(), s.SelectedDescription(), c)

@@ -16,8 +16,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/option"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/indexopt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +33,7 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 	rand.Seed(atomic.LoadInt64(&seed))
 
 	client := createTestClient(t)
-	db := client.Database("IndexView")
+	db := client.Database(t.Name())
 
 	randomBytes := make([]byte, 16)
 	_, err := rand.Read(randomBytes)
@@ -61,7 +60,7 @@ func TestIndexView_List(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	cursor, err := indexView.List(context.Background())
@@ -94,7 +93,7 @@ func TestIndexView_CreateOne(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexName, err := indexView.CreateOne(
@@ -137,7 +136,7 @@ func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexName, err := indexView.CreateOne(
@@ -272,22 +271,23 @@ func TestIndexView_CreateMany(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		[]option.CreateIndexesOptioner{},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("foo", -1),
-			),
-		},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("bar", 1),
-				bson.EC.Int32("baz", -1),
-			),
+		[]IndexModel{
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("foo", -1),
+				),
+			},
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("bar", 1),
+					bson.EC.Int32("baz", -1),
+				),
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -336,22 +336,23 @@ func TestIndexView_DropOne(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		[]option.CreateIndexesOptioner{},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("foo", -1),
-			),
-		},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("bar", 1),
-				bson.EC.Int32("baz", -1),
-			),
+		[]IndexModel{
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("foo", -1),
+				),
+			},
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("bar", 1),
+					bson.EC.Int32("baz", -1),
+				),
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -387,22 +388,23 @@ func TestIndexView_DropAll(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		[]option.CreateIndexesOptioner{},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("foo", -1),
-			),
-		},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("bar", 1),
-				bson.EC.Int32("baz", -1),
-			),
+		[]IndexModel{
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("foo", -1),
+				),
+			},
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("bar", 1),
+					bson.EC.Int32("baz", -1),
+				),
+			},
 		},
 	)
 	require.NoError(t, err)
@@ -438,28 +440,29 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
-	var opts []option.CreateIndexesOptioner
-	wc := writeconcern.New(writeconcern.W(1))
-	elem, err := wc.MarshalBSONElement()
-	require.NoError(t, err)
-	optwc := option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
-	opts = append(opts, optwc)
+
+	var opts []indexopt.Create
+	optMax := indexopt.MaxTime(1000)
+	opts = append(opts, optMax)
+
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		opts,
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("foo", -1),
-			),
+		[]IndexModel{
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("foo", -1),
+				),
+			},
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("bar", 1),
+					bson.EC.Int32("baz", -1),
+				),
+			},
 		},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("bar", 1),
-				bson.EC.Int32("baz", -1),
-			),
-		},
+		opts...,
 	)
 	require.NoError(t, err)
 	require.NoError(t, err)
@@ -512,27 +515,27 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	}
 
 	dbName, coll := getIndexableCollection(t)
-	expectedNS := fmt.Sprintf("IndexView.%s", dbName)
+	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
-	var opts []option.DropIndexesOptioner
-	wc := writeconcern.New(writeconcern.W(1))
-	elem, err := wc.MarshalBSONElement()
-	require.NoError(t, err)
-	optwc := option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
-	opts = append(opts, optwc)
+
+	var opts []indexopt.Drop
+	optMax := indexopt.MaxTime(1000)
+	opts = append(opts, optMax)
+
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
-		[]option.CreateIndexesOptioner{},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("foo", -1),
-			),
-		},
-		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("bar", 1),
-				bson.EC.Int32("baz", -1),
-			),
+		[]IndexModel{
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("foo", -1),
+				),
+			},
+			{
+				Keys: bson.NewDocument(
+					bson.EC.Int32("bar", 1),
+					bson.EC.Int32("baz", -1),
+				),
+			},
 		},
 	)
 	require.NoError(t, err)

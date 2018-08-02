@@ -18,7 +18,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 )
 
 var uri = flag.String("uri", "mongodb://localhost:27017", "the mongodb uri to use")
@@ -54,8 +56,14 @@ func main() {
 		dbname = "test"
 	}
 
-	cmd := command.Command{DB: dbname, Command: bson.NewDocument(bson.EC.String("count", *col))}
-	rdr, err := dispatch.Command(ctx, cmd, t, description.WriteSelector())
+	id, _ := uuid.New()
+	cmd := command.Read{DB: dbname, Command: bson.NewDocument(bson.EC.String("count", *col))}
+	rdr, err := dispatch.Read(
+		ctx, cmd, t,
+		description.WriteSelector(),
+		id,
+		&session.Pool{},
+	)
 	if err != nil {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}

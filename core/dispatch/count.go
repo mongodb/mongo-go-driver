@@ -11,8 +11,9 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 )
 
 // Count handles the full cycle dispatch and execution of a count command against the provided
@@ -22,20 +23,13 @@ func Count(
 	cmd command.Count,
 	topo *topology.Topology,
 	selector description.ServerSelector,
-	rc *readconcern.ReadConcern,
+	clientID uuid.UUID,
+	pool *session.Pool,
 ) (int64, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return 0, err
-	}
-
-	if rc != nil {
-		opt, err := readConcernOption(rc)
-		if err != nil {
-			return 0, err
-		}
-		cmd.Opts = append(cmd.Opts, opt)
 	}
 
 	desc := ss.Description()
@@ -44,6 +38,15 @@ func Count(
 		return 0, err
 	}
 	defer conn.Close()
+
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.SupportsSessions() {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return 0, err
+		}
+		defer cmd.Session.EndSession()
+	}
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }

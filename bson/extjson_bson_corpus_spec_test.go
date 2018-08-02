@@ -17,8 +17,8 @@ import (
 	"testing"
 	"unicode"
 
-	"github.com/mongodb/mongo-go-driver/bson/internal/jsonpretty"
 	"github.com/stretchr/testify/require"
+	"github.com/tidwall/pretty"
 )
 
 type testCase struct {

@@ -21,13 +21,22 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"time"
+
+	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
+	"github.com/mongodb/mongo-go-driver/mongo/sessionopt"
 )
 
 func createTestClient(t *testing.T) *Client {
+	id, _ := uuid.New()
 	return &Client{
+		id:             id,
 		topology:       testutil.Topology(t),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
+		clock:          &session.ClusterClock{},
 	}
 }
 
@@ -47,6 +56,22 @@ func TestClient_Database(t *testing.T) {
 	db := c.Database(dbName)
 	require.Equal(t, db.Name(), dbName)
 	require.Exactly(t, c, db.Client())
+}
+
+func TestClientOptions(t *testing.T) {
+	t.Parallel()
+
+	c, err := NewClientWithOptions("mongodb://localhost",
+		clientopt.MaxConnIdleTime(200),
+		clientopt.ReplicaSet("test"),
+		clientopt.LocalThreshold(10),
+		clientopt.MaxConnIdleTime(100),
+		clientopt.LocalThreshold(20))
+	require.NoError(t, err)
+
+	require.Equal(t, time.Duration(20), c.connString.LocalThreshold)
+	require.Equal(t, time.Duration(100), c.connString.MaxConnIdleTime)
+	require.Equal(t, "test", c.connString.ReplicaSet)
 }
 
 func TestClient_TLSConnection(t *testing.T) {
@@ -179,10 +204,11 @@ func TestClient_ListDatabases_noFilter(t *testing.T) {
 	}
 
 	dbName := "listDatabases_noFilter"
-
 	c := createTestClient(t)
 	db := c.Database(dbName)
-	_, err := db.Collection("test").InsertOne(
+	coll := db.Collection("test")
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("x", 1),
@@ -217,7 +243,9 @@ func TestClient_ListDatabases_filter(t *testing.T) {
 
 	c := createTestClient(t)
 	db := c.Database(dbName)
-	_, err := db.Collection("test").InsertOne(
+	coll := db.Collection("test")
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("x", 1),
@@ -247,7 +275,10 @@ func TestClient_ListDatabaseNames_noFilter(t *testing.T) {
 
 	c := createTestClient(t)
 	db := c.Database(dbName)
-	_, err := db.Collection("test").InsertOne(
+	coll := db.Collection("test")
+
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("x", 1),
@@ -280,7 +311,9 @@ func TestClient_ListDatabaseNames_filter(t *testing.T) {
 
 	c := createTestClient(t)
 	db := c.Database(dbName)
-	_, err := db.Collection("test").InsertOne(
+	coll := db.Collection("test")
+	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+	_, err := coll.InsertOne(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("x", 1),
@@ -344,4 +377,32 @@ func TestClient_ReadPreferenceAbsent(t *testing.T) {
 	require.Empty(t, c.readPreference.TagSets())
 	_, flag := c.readPreference.MaxStaleness()
 	require.False(t, flag)
+}
+
+func TestClient_CausalConsistency(t *testing.T) {
+	cs := testutil.ConnString(t)
+	c, err := NewClient(cs.String())
+	require.NoError(t, err)
+	require.NotNil(t, c)
+
+	err = c.Connect(ctx)
+	require.NoError(t, err)
+
+	sess, err := c.StartSession(sessionopt.CausalConsistency(true))
+	require.NoError(t, err)
+	require.NotNil(t, sess)
+	require.True(t, sess.Consistent)
+	sess.EndSession()
+
+	sess, err = c.StartSession(sessionopt.CausalConsistency(false))
+	require.NoError(t, err)
+	require.NotNil(t, sess)
+	require.False(t, sess.Consistent)
+	sess.EndSession()
+
+	sess, err = c.StartSession()
+	require.NoError(t, err)
+	require.NotNil(t, sess)
+	require.True(t, sess.Consistent)
+	sess.EndSession()
 }

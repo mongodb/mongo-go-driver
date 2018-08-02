@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,14 +20,25 @@ import (
 //
 // The listIndexes command lists the indexes for a namespace.
 type ListIndexes struct {
-	NS     Namespace
-	Opts   []option.ListIndexesOptioner
+	Clock   *session.ClusterClock
+	NS      Namespace
+	Opts    []option.ListIndexesOptioner
+	Session *session.Client
+
 	result Cursor
 	err    error
 }
 
 // Encode will encode this command into a wire message for the given server description.
 func (li *ListIndexes) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	encoded, err := li.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+	return encoded.Encode(desc)
+}
+
+func (li *ListIndexes) encode(desc description.SelectedServer) (*Read, error) {
 	cmd := bson.NewDocument(bson.EC.String("listIndexes", li.NS.Collection))
 
 	for _, opt := range li.Opts {
@@ -39,13 +51,18 @@ func (li *ListIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 		}
 	}
 
-	return (&Command{DB: li.NS.DB, Command: cmd, isWrite: true}).Encode(desc)
+	return &Read{
+		Clock:   li.Clock,
+		DB:      li.NS.DB,
+		Command: cmd,
+		Session: li.Session,
+	}, nil
 }
 
-// Decode will decode the wire message using the provided server description. Errors during decoding
+// Decode will decode the wire message using the provided server description. Errors during decoling
 // are deferred until either the Result or Err methods are called.
 func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListIndexes {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		if IsNotFound(err) {
 			li.result = emptyCursor{}
@@ -55,6 +72,10 @@ func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder,
 		return li
 	}
 
+	return li.decode(desc, cb, rdr)
+}
+
+func (li *ListIndexes) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *ListIndexes {
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range li.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)
@@ -64,8 +85,7 @@ func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder,
 		opts = append(opts, curOpt)
 	}
 
-	li.result, li.err = cb.BuildCursor(rdr, opts...)
-
+	li.result, li.err = cb.BuildCursor(rdr, li.Session, li.Clock, opts...)
 	return li
 }
 
@@ -82,18 +102,18 @@ func (li *ListIndexes) Err() error { return li.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (li *ListIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
-	wm, err := li.Encode(desc)
+	cmd, err := li.encode(desc)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
+		if IsNotFound(err) {
+			return emptyCursor{}, nil
+		}
 		return nil, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return li.Decode(desc, cb, wm).Result()
+
+	return li.decode(desc, cb, rdr).Result()
 }

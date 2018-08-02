@@ -8,10 +8,14 @@ package command
 
 import (
 	"context"
+
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -23,26 +27,33 @@ import (
 // Since GetLastError only makes sense in the context of
 // a single connection, there is no Dispatch method.
 type GetLastError struct {
+	Clock   *session.ClusterClock
+	Session *session.Client
+
 	err error
 	res result.GetLastError
 }
 
 // Encode will encode this command into a wire message for the given server description.
 func (gle *GetLastError) Encode() (wiremessage.WireMessage, error) {
-	// This can probably just be a global variable that we reuse.
-	cmd := bson.NewDocument(bson.EC.Int32("getLastError", 1))
-	rdr, err := cmd.MarshalBSON()
+	encoded, err := gle.encode()
 	if err != nil {
 		return nil, err
 	}
-	query := wiremessage.Query{
-		MsgHeader:          wiremessage.Header{RequestID: wiremessage.NextRequestID()},
-		FullCollectionName: "admin.$cmd",
-		Flags:              wiremessage.SlaveOK,
-		NumberToReturn:     -1,
-		Query:              rdr,
-	}
-	return query, nil
+	return encoded.Encode(description.SelectedServer{})
+}
+
+func (gle *GetLastError) encode() (*Read, error) {
+	// This can probably just be a global variable that we reuse.
+	cmd := bson.NewDocument(bson.EC.Int32("getLastError", 1))
+
+	return &Read{
+		Clock:    gle.Clock,
+		DB:       "admin",
+		ReadPref: readpref.Secondary(),
+		Session:  gle.Session,
+		Command:  cmd,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
@@ -58,11 +69,16 @@ func (gle *GetLastError) Decode(wm wiremessage.WireMessage) *GetLastError {
 		gle.err = err
 		return gle
 	}
-	err = bson.Unmarshal(rdr, &gle.res)
+	return gle.decode(rdr)
+}
+
+func (gle *GetLastError) decode(rdr bson.Reader) *GetLastError {
+	err := bson.Unmarshal(rdr, &gle.res)
 	if err != nil {
 		gle.err = err
 		return gle
 	}
+
 	return gle
 }
 
@@ -80,18 +96,15 @@ func (gle *GetLastError) Err() error { return gle.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (gle *GetLastError) RoundTrip(ctx context.Context, rw wiremessage.ReadWriter) (result.GetLastError, error) {
-	wm, err := gle.Encode()
+	cmd, err := gle.encode()
 	if err != nil {
 		return result.GetLastError{}, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, description.SelectedServer{}, rw)
 	if err != nil {
 		return result.GetLastError{}, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return result.GetLastError{}, err
-	}
-	return gle.Decode(wm).Result()
+
+	return gle.decode(rdr).Result()
 }

@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/buger/jsonparser"
 	"github.com/mongodb/mongo-go-driver/bson/builder"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/internal/jsonparser"
 )
 
 type wrapperType byte

@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -19,8 +20,9 @@ import (
 //
 // The killCursors command kills a set of cursors.
 type KillCursors struct {
-	NS  Namespace
-	IDs []int64
+	Clock *session.ClusterClock
+	NS    Namespace
+	IDs   []int64
 
 	result result.KillCursors
 	err    error
@@ -28,6 +30,14 @@ type KillCursors struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (kc *KillCursors) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
+	encoded, err := kc.encode(desc)
+	if err != nil {
+		return nil, err
+	}
+	return encoded.Encode(desc)
+}
+
+func (kc *KillCursors) encode(desc description.SelectedServer) (*Read, error) {
 	idVals := make([]*bson.Value, 0, len(kc.IDs))
 	for _, id := range kc.IDs {
 		idVals = append(idVals, bson.VC.Int64(id))
@@ -36,19 +46,27 @@ func (kc *KillCursors) Encode(desc description.SelectedServer) (wiremessage.Wire
 		bson.EC.String("killCursors", kc.NS.Collection),
 		bson.EC.ArrayFromElements("cursors", idVals...),
 	)
-	return (&Command{DB: kc.NS.DB, Command: cmd}).Encode(desc)
+
+	return &Read{
+		Clock:   kc.Clock,
+		DB:      kc.NS.DB,
+		Command: cmd,
+	}, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (kc *KillCursors) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *KillCursors {
-	rdr, err := (&Command{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		kc.err = err
 		return kc
 	}
+	return kc.decode(desc, rdr)
+}
 
-	err = bson.Unmarshal(rdr, &kc.result)
+func (kc *KillCursors) decode(desc description.SelectedServer, rdr bson.Reader) *KillCursors {
+	err := bson.Unmarshal(rdr, &kc.result)
 	if err != nil {
 		kc.err = err
 		return kc
@@ -70,18 +88,15 @@ func (kc *KillCursors) Err() error { return kc.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
 func (kc *KillCursors) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.KillCursors, error) {
-	wm, err := kc.Encode(desc)
+	cmd, err := kc.encode(desc)
 	if err != nil {
 		return result.KillCursors{}, err
 	}
 
-	err = rw.WriteWireMessage(ctx, wm)
+	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return result.KillCursors{}, err
 	}
-	wm, err = rw.ReadWireMessage(ctx)
-	if err != nil {
-		return result.KillCursors{}, err
-	}
-	return kc.Decode(desc, wm).Result()
+
+	return kc.decode(desc, rdr).Result()
 }

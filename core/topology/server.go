@@ -20,7 +20,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
@@ -78,6 +80,7 @@ type Server struct {
 	subLock             sync.Mutex
 	subscribers         map[uint64]chan description.Server
 	currentSubscriberID uint64
+
 	subscriptionsClosed bool
 }
 
@@ -248,6 +251,8 @@ func (s *Server) update() {
 	defer s.closewg.Done()
 	heartbeatTicker := time.NewTicker(s.cfg.heartbeatInterval)
 	rateLimiter := time.NewTicker(minHeartbeatInterval)
+	defer heartbeatTicker.Stop()
+	defer rateLimiter.Stop()
 	checkNow := s.checkNow
 	done := s.done
 
@@ -344,6 +349,7 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 	var set bool
 	var err error
 	ctx := context.Background()
+
 	for i := 1; i <= maxRetry; i++ {
 		if conn != nil && conn.Expired() {
 			conn.Close()
@@ -359,6 +365,11 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 			// We override whatever handshaker is currently attached to the options with an empty
 			// one because need to make sure we don't do auth.
 			opts = append(opts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
+				return nil
+			}))
+
+			// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
+			opts = append(opts, connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
 				return nil
 			}))
 			conn, _, err = connection.New(ctx, s.address, opts...)
@@ -382,8 +393,13 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 			conn = nil
 			continue
 		}
-		delay := time.Since(now)
 
+		clusterTime := isMaster.ClusterTime
+		if s.cfg.clock != nil {
+			s.cfg.clock.AdvanceClusterTime(clusterTime)
+		}
+
+		delay := time.Since(now)
 		desc = description.NewServer(s.address, isMaster).SetAverageRTT(s.updateAverageRTT(delay))
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		set = true
@@ -420,8 +436,8 @@ func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 func (s *Server) Drain() error { return s.pool.Drain() }
 
 // BuildCursor implements the command.CursorBuilder interface for the Server type.
-func (s *Server) BuildCursor(result bson.Reader, opts ...option.CursorOptioner) (command.Cursor, error) {
-	return newCursor(result, s, opts...)
+func (s *Server) BuildCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, opts ...option.CursorOptioner) (command.Cursor, error) {
+	return newCursor(result, clientSession, clock, s, opts...)
 }
 
 // ServerSubscription represents a subscription to the description.Server updates for

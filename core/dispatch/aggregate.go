@@ -11,9 +11,9 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 )
 
 // Aggregate handles the full cycle dispatch and execution of an aggregate command against the provided
@@ -23,39 +23,20 @@ func Aggregate(
 	cmd command.Aggregate,
 	topo *topology.Topology,
 	readSelector, writeSelector description.ServerSelector,
-	wc *writeconcern.WriteConcern,
+	clientID uuid.UUID,
+	pool *session.Pool,
 ) (command.Cursor, error) {
 
 	dollarOut := cmd.HasDollarOut()
 
 	var ss *topology.SelectedServer
 	var err error
-	acknowledged := true
 	switch dollarOut {
 	case true:
 		ss, err = topo.SelectServer(ctx, writeSelector)
 		if err != nil {
 			return nil, err
 		}
-		if wc != nil {
-			elem, err := wc.MarshalBSONElement()
-			if err != nil {
-				return nil, err
-			}
-
-			opt := option.OptWriteConcern{WriteConcern: elem, Acknowledged: wc.Acknowledged()}
-			cmd.Opts = append(cmd.Opts, opt)
-		}
-
-		for _, opt := range cmd.Opts {
-			wc, ok := opt.(option.OptWriteConcern)
-			if !ok {
-				continue
-			}
-			acknowledged = wc.Acknowledged
-			break
-		}
-
 	case false:
 		ss, err = topo.SelectServer(ctx, readSelector)
 		if err != nil {
@@ -69,15 +50,15 @@ func Aggregate(
 		return nil, err
 	}
 
-	if !acknowledged {
-		go func() {
-			defer func() { _ = recover() }()
-			defer conn.Close()
-			_, _ = cmd.RoundTrip(ctx, desc, ss, conn)
-		}()
-		return nil, ErrUnacknowledgedWrite
-	}
 	defer conn.Close()
+
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.SupportsSessions() {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return cmd.RoundTrip(ctx, desc, ss, conn)
 }
