@@ -50,6 +50,8 @@ type Server struct {
 	Tags                  tag.Set
 	Kind                  ServerKind
 	WireVersion           *VersionRange
+
+	SaslSupportedMechs []string // user-specific from server handshake
 }
 
 // NewServer creates a new server description from the given parameters.
@@ -65,6 +67,7 @@ func NewServer(addr address.Address, isMaster result.IsMaster) Server {
 		MaxBatchCount:         isMaster.MaxWriteBatchSize,
 		MaxDocumentSize:       isMaster.MaxBSONObjectSize,
 		MaxMessageSize:        isMaster.MaxMessageSizeBytes,
+		SaslSupportedMechs:    isMaster.SaslSupportedMechs,
 		SessionTimeoutMinutes: isMaster.LogicalSessionTimeoutMinutes,
 		SetName:               isMaster.SetName,
 		SetVersion:            isMaster.SetVersion,

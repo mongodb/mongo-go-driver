@@ -26,6 +26,7 @@ func TestCreateAuthenticator(t *testing.T) {
 	}{
 		{name: "", auther: &DefaultAuthenticator{}},
 		{name: "SCRAM-SHA-1", auther: &ScramSHA1Authenticator{}},
+		{name: "SCRAM-SHA-256", auther: &ScramSHA256Authenticator{}},
 		{name: "MONGODB-CR", auther: &MongoDBCRAuthenticator{}},
 		{name: "PLAIN", auther: &PlainAuthenticator{}},
 		{name: "MONGODB-X509", auther: &MongoDBX509Authenticator{}},

@@ -15,14 +15,14 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/core/connstring"
-	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/event"
-	"github.com/mongodb/mongo-go-driver/core/connection"
-	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/stretchr/testify/require"
-	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/connection"
+	"github.com/mongodb/mongo-go-driver/core/connstring"
+	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/event"
+	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/stretchr/testify/require"
 )
 
 var connectionString connstring.ConnString
@@ -80,20 +80,20 @@ func AddCompressorToUri(uri string) string {
 func MonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topology.Topology {
 	cs := ConnString(t)
 	opts := []topology.Option{
-			topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
-			topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-				return append(
-					opts,
-					topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
-						return append(
-							opts,
-							connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
-								return monitor
-							}),
-						)
-					}),
-				)
-			}),
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(
+				opts,
+				topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+					return append(
+						opts,
+						connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
+							return monitor
+						}),
+					)
+				}),
+			)
+		}),
 	}
 
 	monitoredTopologyOnce.Do(func() {
@@ -110,7 +110,7 @@ func MonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topology.To
 			require.NoError(t, err)
 
 			_, err = (&command.Write{
-				DB: DBName(t),
+				DB:      DBName(t),
 				Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
 			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 
@@ -154,6 +154,20 @@ func Topology(t *testing.T) *topology.Topology {
 	}
 
 	return liveTopology
+}
+
+// TopologyWithConnString takes a connection string and returns a connected
+// topology, or else bails out of testing
+func TopologyWithConnString(t *testing.T, cs connstring.ConnString) *topology.Topology {
+	topology, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
+	if err != nil {
+		t.Fatal("Could not construct topology")
+	}
+	err = topology.Connect(context.Background())
+	if err != nil {
+		t.Fatal("Could not start topology connection")
+	}
+	return topology
 }
 
 // ColName gets a collection name that should be unique
