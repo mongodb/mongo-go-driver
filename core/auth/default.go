@@ -29,10 +29,14 @@ type DefaultAuthenticator struct {
 func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
 	var actual Authenticator
 	var err error
-	if err = description.ScramSHA1Supported(desc.WireVersion); err != nil {
-		actual, err = newMongoDBCRAuthenticator(a.Cred)
-	} else {
+
+	switch chooseAuthMechanism(desc) {
+	case SCRAMSHA256:
+		actual, err = newScramSHA256Authenticator(a.Cred)
+	case SCRAMSHA1:
 		actual, err = newScramSHA1Authenticator(a.Cred)
+	default:
+		actual, err = newMongoDBCRAuthenticator(a.Cred)
 	}
 
 	if err != nil {
@@ -40,4 +44,24 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server
 	}
 
 	return actual.Auth(ctx, desc, rw)
+}
+
+// If a server provides a list of supported mechanisms, we choose
+// SCRAM-SHA-256 if it exists or else MUST use SCRAM-SHA-1.
+// Otherwise, we decide based on what is supported.
+func chooseAuthMechanism(desc description.Server) string {
+	if desc.SaslSupportedMechs != nil {
+		for _, v := range desc.SaslSupportedMechs {
+			if v == SCRAMSHA256 {
+				return v
+			}
+		}
+		return SCRAMSHA1
+	}
+
+	if err := description.ScramSHA1Supported(desc.WireVersion); err == nil {
+		return SCRAMSHA1
+	}
+
+	return MONGODBCR
 }

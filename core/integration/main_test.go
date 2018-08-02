@@ -16,6 +16,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/mongodb/mongo-go-driver/core/auth"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 )
@@ -52,8 +53,18 @@ func TestMain(m *testing.M) {
 func noerr(t *testing.T, err error) {
 	if err != nil {
 		t.Helper()
-		t.Errorf("Unepexted error: %v", err)
+		t.Errorf("Unexpected error: %v", err)
 		t.FailNow()
+	}
+}
+
+func autherr(t *testing.T, err error) {
+	t.Helper()
+	switch err.(type) {
+	case *auth.Error:
+		return
+	default:
+		t.Fatal("Expected auth error and didn't get one")
 	}
 }
 

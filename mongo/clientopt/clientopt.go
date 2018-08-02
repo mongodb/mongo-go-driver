@@ -55,7 +55,7 @@ type SSLOpt struct {
 // Credential holds auth options.
 //
 // AuthMechanism indicates the mechanism to use for authentication.
-// Supported values include "SCRAM-SHA-1", "MONGODB-CR", "PLAIN", "GSSAPI", and "MONGODB-X509".
+// Supported values include "SCRAM-SHA-256", "SCRAM-SHA-1", "MONGODB-CR", "PLAIN", "GSSAPI", and "MONGODB-X509".
 //
 // AuthMechanismProperties specifies additional configuration options which may be used by certain
 // authentication mechanisms.

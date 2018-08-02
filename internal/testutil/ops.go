@@ -15,12 +15,12 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/stretchr/testify/require"
-	"github.com/mongodb/mongo-go-driver/core/uuid"
-	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
 // AutoCreateIndexes creates an index in the test cluster.
@@ -138,4 +138,18 @@ func DisableMaxTimeFailPoint(t *testing.T, s *topology.Server) {
 	defer testhelpers.RequireNoErrorOnClose(t, conn)
 	_, err = cmd.RoundTrip(context.Background(), s.SelectedDescription(), conn)
 	require.NoError(t, err)
+}
+
+// RunCommand runs an arbitrary command on a given database of target server
+func RunCommand(t *testing.T, s *topology.Server, db string, b *bson.Document) (bson.Reader, error) {
+	conn, err := s.Connection(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer testhelpers.RequireNoErrorOnClose(t, conn)
+	cmd := command.Read{
+		DB:      db,
+		Command: b,
+	}
+	return cmd.RoundTrip(context.Background(), s.SelectedDescription(), conn)
 }
