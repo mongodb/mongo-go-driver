@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ee37625e_414e899c",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-03T14:43:15Z",
+      "side": 1,
+      "message": "database -\u003e Client",
+      "range": {
+        "startLine": 351,
+        "startChar": 86,
+        "endLine": 351,
+        "endChar": 94
+      },
+      "revId": "9ff6772d792ac1e729402bf391d4e7aaa8459df2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5a1c2b6f_909a35fa",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 353,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-03T14:43:15Z",
+      "side": 1,
+      "message": "Is this supposed to be Client?",
+      "range": {
+        "startLine": 353,
+        "startChar": 7,
+        "endLine": 353,
+        "endChar": 17
+      },
+      "revId": "9ff6772d792ac1e729402bf391d4e7aaa8459df2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f87fc0ee_6f30a3c9",
+        "filename": "mongo/database.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-03T14:43:15Z",
+      "side": 1,
+      "message": "Let\u0027s call this RunCommandCursor so it\u0027s easier to find in docs and with auto completion.",
+      "range": {
+        "startLine": 164,
+        "startChar": 20,
+        "endLine": 164,
+        "endChar": 36
+      },
+      "revId": "9ff6772d792ac1e729402bf391d4e7aaa8459df2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b7dc01b0_4ca57662",
+        "filename": "mongo/database.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 246,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-03T14:43:15Z",
+      "side": 1,
+      "message": "collection -\u003e database",
+      "range": {
+        "startLine": 246,
+        "startChar": 7,
+        "endLine": 246,
+        "endChar": 17
+      },
+      "revId": "9ff6772d792ac1e729402bf391d4e7aaa8459df2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
