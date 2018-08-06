@@ -13,7 +13,7 @@ import (
 )
 
 func isServerError(err error) bool {
-	_, ok := err.(command.Error)
+	_, ok := err.(*command.Error)
 	return ok
 }
 

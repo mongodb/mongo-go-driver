@@ -103,5 +103,9 @@ func (ld *ListDatabases) RoundTrip(ctx context.Context, desc description.Selecte
 		return result.ListDatabases{}, err
 	}
 
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
+	}
+
 	return ld.decode(desc, rdr).Result()
 }

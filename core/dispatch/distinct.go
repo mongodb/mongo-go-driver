@@ -47,6 +47,13 @@ func Distinct(
 			return result.Distinct{}, err
 		}
 		defer cmd.Session.EndSession()
+	} else if topo.SupportsSessions() && cmd.Session != nil &&
+		(cmd.Session.TransactionInProgress() || cmd.Session.TransactionStarting()) {
+		cmd.ReadPref = cmd.Session.CurrentRp // Transaction's read preference always takes priority
+		err = checkTransactionReadPref(cmd.ReadPref)
+		if err != nil {
+			return result.Distinct{}, err
+		}
 	}
 
 	return cmd.RoundTrip(ctx, desc, conn)

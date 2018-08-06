@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
@@ -46,7 +47,25 @@ func Read(
 			return nil, err
 		}
 		defer cmd.Session.EndSession()
+	} else if topo.SupportsSessions() && cmd.Session != nil &&
+		(cmd.Session.TransactionInProgress() || cmd.Session.TransactionStarting()) {
+		// When command.read is directly used, this implies an operation level
+		// read preference, so we do not override it with the transaction read pref.
+		err = checkTransactionReadPref(cmd.ReadPref)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)
+}
+
+func checkTransactionReadPref(pref *readpref.ReadPref) error {
+	if pref != nil && (pref.Mode() == readpref.SecondaryMode ||
+		pref.Mode() == readpref.SecondaryPreferredMode ||
+		pref.Mode() == readpref.NearestMode ||
+		pref.Mode() == readpref.PrimaryPreferredMode) {
+		return command.ErrNonPrimaryRP
+	}
+	return nil
 }

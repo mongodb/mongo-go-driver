@@ -98,5 +98,9 @@ func (kc *KillCursors) RoundTrip(ctx context.Context, desc description.SelectedS
 		return result.KillCursors{}, err
 	}
 
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
+	}
+
 	return kc.decode(desc, rdr).Result()
 }

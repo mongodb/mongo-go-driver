@@ -363,12 +363,12 @@ func TestSessions(t *testing.T) {
 		b, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error starting session b: %s", err)
 
-		a.EndSession()
-		b.EndSession()
+		a.EndSession(ctx)
+		b.EndSession(ctx)
 
 		first, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error starting first session: %s", err)
-		defer first.EndSession()
+		defer first.EndSession(ctx)
 
 		if !sessionIDsEqual(t, first.SessionID, b.SessionID) {
 			t.Errorf("expected first session ID to be %#v. got %#v", first.SessionID, b.SessionID)
@@ -376,7 +376,7 @@ func TestSessions(t *testing.T) {
 
 		second, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error starting second session: %s", err)
-		defer second.EndSession()
+		defer second.EndSession(ctx)
 		if !sessionIDsEqual(t, second.SessionID, a.SessionID) {
 			t.Errorf("expected second session ID to be %#v. got %#v", second.SessionID, a.SessionID)
 		}
@@ -474,7 +474,7 @@ func TestSessions(t *testing.T) {
 
 				sess, err := client.StartSession()
 				testhelpers.RequireNil(t, err, "error creating session for %s: %s", tc.name, err)
-				defer sess.EndSession()
+				defer sess.EndSession(ctx)
 				opts := append(tc.opts, sess)
 
 				// check to see if lsid included with explicit session
@@ -523,7 +523,7 @@ func TestSessions(t *testing.T) {
 
 				sess, err := client2.StartSession()
 				testhelpers.RequireNil(t, err, "error starting session: %s", err)
-				defer sess.EndSession()
+				defer sess.EndSession(ctx)
 
 				opts := append(tc.opts, sess)
 				valOpts := make([]reflect.Value, 0, len(opts))
@@ -553,7 +553,7 @@ func TestSessions(t *testing.T) {
 
 				sess, err := client.StartSession()
 				testhelpers.RequireNil(t, err, "error starting session: %s", err)
-				sess.EndSession()
+				sess.EndSession(ctx)
 
 				opts := append(tc.opts, sess)
 				valOpts := make([]reflect.Value, 0, len(opts))

@@ -144,7 +144,14 @@ func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rd
 		opts = append(opts, curOpt)
 	}
 
-	a.result, a.err = cb.BuildCursor(rdr, a.Session, a.Clock, opts...)
+	labels, err := getErrorLabels(&rdr)
+	a.err = err
+
+	res, err := cb.BuildCursor(rdr, a.Session, a.Clock, opts...)
+	a.result = res
+	if err != nil {
+		a.err = Error{Message: err.Error(), Labels: labels}
+	}
 	return a
 }
 
@@ -169,6 +176,10 @@ func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServ
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
+	}
+
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 
 	return a.decode(desc, cb, rdr).Result()
