@@ -7,9 +7,10 @@
 package countopt
 
 import (
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
-	"reflect"
 )
 
 var estimatedDocumentCountBundle = new(EstimatedDocumentCountBundle)

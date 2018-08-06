@@ -3,7 +3,10 @@ package sessionopt
 import (
 	"reflect"
 
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
 var sessionBundle = new(SessionBundle)
@@ -48,6 +51,30 @@ func BundleSession(opts ...Session) *SessionBundle {
 func (sb *SessionBundle) CausalConsistency(b bool) *SessionBundle {
 	return &SessionBundle{
 		option: CausalConsistency(b),
+		next:   sb,
+	}
+}
+
+// DefaultReadConcern specifies the default read concern for transactions started from this session.
+func (sb *SessionBundle) DefaultReadConcern(rc *readconcern.ReadConcern) *SessionBundle {
+	return &SessionBundle{
+		option: DefaultReadConcern(rc),
+		next:   sb,
+	}
+}
+
+// DefaultReadPreference specifies the default read preference for transactions started from this session.
+func (sb *SessionBundle) DefaultReadPreference(rp *readpref.ReadPref) *SessionBundle {
+	return &SessionBundle{
+		option: DefaultReadPreference(rp),
+		next:   sb,
+	}
+}
+
+// DefaultWriteConcern specifies the default write concern for transactions started from this session.
+func (sb *SessionBundle) DefaultWriteConcern(wc *writeconcern.WriteConcern) *SessionBundle {
+	return &SessionBundle{
+		option: DefaultWriteConcern(wc),
 		next:   sb,
 	}
 }
@@ -142,6 +169,27 @@ func CausalConsistency(b bool) OptCausalConsistency {
 	return OptCausalConsistency(b)
 }
 
+// DefaultReadConcern specifies the default read concern for transactions started from this session.
+func DefaultReadConcern(rc *readconcern.ReadConcern) OptDefaultReadConcern {
+	return OptDefaultReadConcern{
+		ReadConcern: rc,
+	}
+}
+
+// DefaultReadPreference specifies the default read preference for transactions started from this session.
+func DefaultReadPreference(rp *readpref.ReadPref) OptDefaultReadPreference {
+	return OptDefaultReadPreference{
+		ReadPref: rp,
+	}
+}
+
+// DefaultWriteConcern specifies the default write concern for transactions started from this session.
+func DefaultWriteConcern(wc *writeconcern.WriteConcern) OptDefaultWriteConcern {
+	return OptDefaultWriteConcern{
+		WriteConcern: wc,
+	}
+}
+
 // OptCausalConsistency specifies if a client session should be causally consistent.
 type OptCausalConsistency session.OptCausalConsistency
 
@@ -150,4 +198,34 @@ func (OptCausalConsistency) session() {}
 // ConvertSessionOption implements the Session interface.
 func (opt OptCausalConsistency) ConvertSessionOption() session.ClientOptioner {
 	return session.OptCausalConsistency(opt)
+}
+
+// OptDefaultReadConcern specifies the default read concern for transactions started from this session.
+type OptDefaultReadConcern session.OptDefaultReadConcern
+
+func (OptDefaultReadConcern) session() {}
+
+// ConvertSessionOption implements the Session interface.
+func (opt OptDefaultReadConcern) ConvertSessionOption() session.ClientOptioner {
+	return session.OptDefaultReadConcern(opt)
+}
+
+// OptDefaultReadPreference specifies the default read preference for transactions started from this session.
+type OptDefaultReadPreference session.OptDefaultReadPreference
+
+func (OptDefaultReadPreference) session() {}
+
+// ConvertSessionOption implements the Session interface.
+func (opt OptDefaultReadPreference) ConvertSessionOption() session.ClientOptioner {
+	return session.OptDefaultReadPreference(opt)
+}
+
+// OptDefaultWriteConcern specifies the default write concern for transactions started from this session.
+type OptDefaultWriteConcern session.OptDefaultWriteConcern
+
+func (OptDefaultWriteConcern) session() {}
+
+// ConvertSessionOption implements the Session interface.
+func (opt OptDefaultWriteConcern) ConvertSessionOption() session.ClientOptioner {
+	return session.OptDefaultWriteConcern(opt)
 }

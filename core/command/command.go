@@ -73,8 +73,8 @@ func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
 	return cmd.MarshalBSON()
 }
 
-// add a session ID to a BSON doc representing a command
-func addSessionID(cmd *bson.Document, desc description.SelectedServer, client *session.Client) error {
+// adds session related fields to a BSON doc representing a command
+func addSessionFields(cmd *bson.Document, desc description.SelectedServer, client *session.Client) error {
 	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
 		return nil
 	}
@@ -88,7 +88,25 @@ func addSessionID(cmd *bson.Document, desc description.SelectedServer, client *s
 	}
 
 	cmd.Append(bson.EC.SubDocument("lsid", client.SessionID))
+
+	if client.TransactionRunning() ||
+		client.RetryingCommit {
+		addTransaction(cmd, client)
+	}
+
+	client.ApplyCommand() // advance the state machine based on a command executing
+
 	return nil
+}
+
+// if in a transaction, add the transaction fields
+func addTransaction(cmd *bson.Document, client *session.Client) {
+	cmd.Append(bson.EC.Int64("txnNumber", client.TxnNumber))
+	if client.TransactionStarting() {
+		// When starting transaction, always transition to the next state, even on error
+		cmd.Append(bson.EC.Boolean("startTransaction", true))
+	}
+	cmd.Append(bson.EC.Boolean("autocommit", false))
 }
 
 func addClusterTime(cmd *bson.Document, desc description.SelectedServer, sess *session.Client, clock *session.ClusterClock) error {
@@ -122,6 +140,16 @@ func addClusterTime(cmd *bson.Document, desc description.SelectedServer, sess *s
 
 // add a read concern to a BSON doc representing a command
 func addReadConcern(cmd *bson.Document, desc description.SelectedServer, rc *readconcern.ReadConcern, sess *session.Client) error {
+	// Starting transaction's read concern overrides all others
+	if sess != nil && sess.TransactionStarting() && sess.CurrentRc != nil {
+		rc = sess.CurrentRc
+	}
+
+	// start transaction must append afterclustertime IF causally consistent and operation time exists
+	if rc == nil && sess != nil && sess.TransactionStarting() && sess.Consistent && sess.OperationTime != nil {
+		rc = readconcern.New()
+	}
+
 	if rc == nil {
 		return nil
 	}
@@ -166,6 +194,25 @@ func addWriteConcern(cmd *bson.Document, wc *writeconcern.WriteConcern) error {
 
 	cmd.Append(element)
 	return nil
+}
+
+// Get the error labels from a command response
+func getErrorLabels(rdr *bson.Reader) ([]string, error) {
+	var labels []string
+	labelsElem, err := rdr.Lookup("errorLabels")
+	if err != bson.ErrElementNotFound {
+		return nil, err
+	}
+	if labelsElem != nil {
+		labelsIt, err := labelsElem.Value().ReaderArray().Iterator()
+		if err != nil {
+			return nil, err
+		}
+		for labelsIt.Next() {
+			labels = append(labels, labelsIt.Element().Value().StringValue())
+		}
+	}
+	return labels, nil
 }
 
 // Remove command arguments for insert, update, and delete commands from the BSON document so they can be encoded
