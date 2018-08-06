@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "ac4c5df1_2bb589ef",
+        "filename": "core/command/write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-06T21:28:44Z",
+      "side": 1,
+      "message": "This actually isn\u0027t needed since this logic has been moved up to the dispatch level.  Will be removed in next patch set.",
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d285de8f_c232ebff",
         "filename": "core/dispatch/aggregate.go",
         "patchSetId": 2
