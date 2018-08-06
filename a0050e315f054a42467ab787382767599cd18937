@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "61004ec0_075bf036",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-06T19:44:25Z",
+      "side": 1,
+      "message": "For some reason this test is very flaky, however all these tests are being superseded by Divjot\u0027s changes so I didn\u0027t bother looking too deeply into it.  The root of the issue, I believe, is the returned error alternating between command.Error{} wrapper and normal error depending on exactly when the expected error gets thrown, and it\u0027s causing the \"isServer\" error function to return different results depending on this.",
+      "revId": "a0050e315f054a42467ab787382767599cd18937",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8adfe794_e2642e08",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-06T19:44:25Z",
+      "side": 1,
+      "message": "retryable-writes.json and bulk.json are the only files that are skipped (because not yet implemented)",
+      "revId": "a0050e315f054a42467ab787382767599cd18937",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89fe60e7_1e6b33a8",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 750,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-06T19:44:25Z",
+      "side": 1,
+      "message": "This is a known problem, see command monitoring tests.",
+      "revId": "a0050e315f054a42467ab787382767599cd18937",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "97d6e16a_d5b5aedc",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1106,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-06T19:44:25Z",
+      "side": 1,
+      "message": "Also a known problem.  See command monitoring tests.",
+      "revId": "a0050e315f054a42467ab787382767599cd18937",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
