@@ -65,7 +65,7 @@ func (uob *UpdateOneBundle) ConvertUpdateOneOption() option.FindOneAndUpdateOpti
 // ArrayFilters adds an option to specify which array elements an update should apply.
 func (uob *UpdateOneBundle) ArrayFilters(filters ...interface{}) *UpdateOneBundle {
 	bundle := &UpdateOneBundle{
-		option: ArrayFilters(filters),
+		option: ArrayFilters(filters...),
 		next:   uob,
 	}
 

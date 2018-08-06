@@ -64,7 +64,7 @@ func BundleUpdate(opts ...Update) *UpdateBundle {
 // ArrayFilters adds an option to specify which array elements an update should apply.
 func (ub *UpdateBundle) ArrayFilters(filter ...interface{}) *UpdateBundle {
 	bundle := &UpdateBundle{
-		option: ArrayFilters(filter),
+		option: ArrayFilters(filter...),
 		next:   ub,
 	}
 
