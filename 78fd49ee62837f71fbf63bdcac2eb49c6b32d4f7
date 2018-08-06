@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d285de8f_c232ebff",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-06T19:40:35Z",
+      "side": 1,
+      "message": "This checks to override the read preference.  This can\u0027t be centralized in command/read.go because runCommand has different behavior (user-specified operation level read concern overrides what is set in transaction) and we don\u0027t know about runCommand at the command level.",
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "00f68fe0_1a7fe9c4",
+        "filename": "core/dispatch/commit_transaction.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-06T19:40:35Z",
+      "side": 1,
+      "message": "There\u0027s a lot of weird error logic used to determine when to add the UnknownTransactionCommitResult.  It says to add this for writeconcern fail/timeout errors - are they all guaranteed to be error code 64?  Also seems for network errors specifically the TransientTransactionError label should not be present?",
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9bb2b4b7_ff6bb4c3",
+        "filename": "core/dispatch/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-06T19:40:35Z",
+      "side": 1,
+      "message": "Here runCommand does *not* override the readpref with transaction readpref.  This implicitly assumes that dispatch.read is only used by runCommand for transactions.  Not sure if this is a good assumption to make, but if not, then that would mean this logic would have to be moved further up into mongo",
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
