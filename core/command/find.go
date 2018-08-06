@@ -115,7 +115,14 @@ func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bso
 		opts = append(opts, curOpt)
 	}
 
-	f.result, f.err = cb.BuildCursor(rdr, f.Session, f.Clock, opts...)
+	labels, err := getErrorLabels(&rdr)
+	f.err = err
+
+	res, err := cb.BuildCursor(rdr, f.Session, f.Clock, opts...)
+	f.result = res
+	if err != nil {
+		f.err = Error{Message: err.Error(), Labels: labels}
+	}
 	return f
 }
 

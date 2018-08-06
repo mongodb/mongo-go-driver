@@ -102,7 +102,12 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	}
 	rp := runCmd.ReadPreference
 	if rp == nil {
-		rp = db.readPreference // inherit from db if nothing specified in options
+		if sess != nil && sess.TransactionRunning() {
+			rp = sess.CurrentRp // override with transaction read pref if specified
+		}
+		if rp == nil {
+			rp = db.readPreference // inherit from db if nothing specified in options
+		}
 	}
 
 	runCmdDoc, err := TransformDocument(runCommand)

@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
@@ -39,6 +40,16 @@ func Read(
 	}
 	defer conn.Close()
 
+	if cmd.Session != nil && cmd.Session.TransactionRunning() {
+		// When command.read is directly used, this implies an operation level
+		// read preference, so we do not override it with the transaction read pref.
+		err = checkTransactionReadPref(cmd.ReadPref)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() {
 		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
@@ -49,4 +60,26 @@ func Read(
 	}
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)
+}
+
+func getReadPrefBasedOnTransaction(current *readpref.ReadPref, sess *session.Client) (*readpref.ReadPref, error) {
+	if sess != nil && sess.TransactionRunning() {
+		// Transaction's read preference always takes priority
+		current = sess.CurrentRp
+		err := checkTransactionReadPref(current)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return current, nil
+}
+
+func checkTransactionReadPref(pref *readpref.ReadPref) error {
+	if pref != nil && (pref.Mode() == readpref.SecondaryMode ||
+		pref.Mode() == readpref.SecondaryPreferredMode ||
+		pref.Mode() == readpref.NearestMode ||
+		pref.Mode() == readpref.PrimaryPreferredMode) {
+		return command.ErrNonPrimaryRP
+	}
+	return nil
 }

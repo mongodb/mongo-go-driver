@@ -69,6 +69,9 @@ func (u *Update) encode(desc description.SelectedServer) (*Write, error) {
 		}
 	}
 
+	if u.Session != nil && u.Session.TransactionRunning() {
+		u.WriteConcern = nil
+	}
 	return &Write{
 		Clock:        u.Clock,
 		DB:           u.NS.DB,
@@ -116,5 +119,6 @@ func (u *Update) RoundTrip(ctx context.Context, desc description.SelectedServer,
 	if err != nil {
 		return result.Update{}, err
 	}
+
 	return u.decode(desc, rdr).Result()
 }

@@ -115,7 +115,15 @@ func (w *Write) decodeOpMsg(wm wiremessage.WireMessage) {
 // Encode will encode this command into a wire message for the given server description.
 func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
 	cmd := w.Command.Copy()
-	err := addWriteConcern(cmd, w.WriteConcern)
+	var err error
+	if w.Session != nil && w.Session.TransactionStarting() {
+		// Starting transactions have a read concern, even in writes.
+		err = addReadConcern(cmd, desc, nil, w.Session)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = addWriteConcern(cmd, w.WriteConcern)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +138,7 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 		}
 	} else {
 		// only encode session ID for acknowledged writes
-		err = addSessionID(cmd, desc, w.Session)
+		err = addSessionFields(cmd, desc, w.Session)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +204,8 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, err
+		// Connection errors are transient
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
 	if msg, ok := wm.(wiremessage.Msg); ok {
@@ -208,7 +217,8 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 
 	wm, err = rw.ReadWireMessage(ctx)
 	if err != nil {
-		return nil, err
+		// Connection errors are transient
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
 	if w.Session != nil {
@@ -216,6 +226,7 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 		if err != nil {
 			return nil, err
 		}
+		w.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 	return w.Decode(desc, wm).Result()
 }

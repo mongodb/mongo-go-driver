@@ -192,7 +192,7 @@ func (r *Read) Encode(desc description.SelectedServer) (wiremessage.WireMessage,
 		return nil, err
 	}
 
-	err = addSessionID(cmd, desc, r.Session)
+	err = addSessionFields(cmd, desc, r.Session)
 	if err != nil {
 		return nil, err
 	}
@@ -255,11 +255,13 @@ func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, r
 
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, err
+		// Connection errors are transient
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 	wm, err = rw.ReadWireMessage(ctx)
 	if err != nil {
-		return nil, err
+		// Connection errors are transient
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
 	if r.Session != nil {
@@ -267,6 +269,7 @@ func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, r
 		if err != nil {
 			return nil, err
 		}
+		r.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 	return r.Decode(desc, wm).Result()
 }
