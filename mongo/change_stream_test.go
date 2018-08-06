@@ -162,6 +162,7 @@ func TestChangeStream_errorMissingResponseToken(t *testing.T) {
 }
 
 func TestChangeStream_resumableError(t *testing.T) {
+	t.Skip()
 	t.Parallel()
 
 	if testing.Short() {
