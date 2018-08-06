@@ -33,7 +33,7 @@ func TestCommandListCollections(t *testing.T) {
 
 		_, err = (&command.ListCollections{}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		switch errt := err.(type) {
-		case command.Error:
+		case *command.Error:
 			if errt.Code != 73 {
 				t.Errorf("Incorrect error code returned from server. got %d; want %d", errt.Code, 73)
 			}

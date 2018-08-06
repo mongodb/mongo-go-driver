@@ -21,6 +21,7 @@ type Write struct {
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
+	RetryWrite   bool
 
 	result bson.Reader
 	err    error
@@ -115,7 +116,15 @@ func (w *Write) decodeOpMsg(wm wiremessage.WireMessage) {
 // Encode will encode this command into a wire message for the given server description.
 func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
 	cmd := w.Command.Copy()
-	err := addWriteConcern(cmd, w.WriteConcern)
+	var err error
+	if w.Session != nil && w.Session.TransactionStarting() {
+		// Starting transactions have a read concern, even in writes.
+		err = addReadConcern(cmd, desc, nil, w.Session)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = addWriteConcern(cmd, w.WriteConcern)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +168,7 @@ func (w *Write) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 	}
 
 	if w.err != nil {
-		if _, ok := w.err.(Error); !ok {
+		if _, ok := w.err.(*Error); !ok {
 			return w
 		}
 	}
@@ -196,7 +205,8 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, err
+		// Connection errors are transient
+		return nil, &Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
 	if msg, ok := wm.(wiremessage.Msg); ok {
@@ -208,7 +218,8 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 
 	wm, err = rw.ReadWireMessage(ctx)
 	if err != nil {
-		return nil, err
+		// Connection errors are transient
+		return nil, &Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
 	if w.Session != nil {

@@ -101,5 +101,9 @@ func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServe
 		return nil, err
 	}
 
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
+	}
+
 	return gm.decode(desc, rdr).Result()
 }

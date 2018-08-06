@@ -79,7 +79,7 @@ func decodeCommandOpReply(reply wiremessage.Reply) (bson.Reader, error) {
 		if errmsg == "" {
 			errmsg = "command failed"
 		}
-		return nil, Error{
+		return nil, &Error{
 			Code:    code,
 			Message: errmsg,
 			Name:    codeName,

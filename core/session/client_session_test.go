@@ -107,4 +107,78 @@ func TestClientSession(t *testing.T) {
 		compareOperationTimes(t, optime3, sess.OperationTime)
 		sess.EndSession()
 	})
+
+	t.Run("TestTransactionState", func(t *testing.T) {
+		id, _ := uuid.New()
+		sess, err := NewClientSession(&Pool{}, id, Explicit)
+		require.Nil(t, err, "Unexpected error")
+
+		err = sess.CommitTransaction()
+		if err != ErrNoTransactStarted {
+			t.Errorf("expected error, got %v", err)
+		}
+
+		err = sess.AbortTransaction()
+		if err != ErrNoTransactStarted {
+			t.Errorf("expected error, got %v", err)
+		}
+
+		if sess.state != None {
+			t.Errorf("incorrect session state, expected None, received %v", sess.state)
+		}
+
+		err = sess.StartTransaction()
+		require.Nil(t, err, "error starting transaction: %s", err)
+		if sess.state != Starting {
+			t.Errorf("incorrect session state, expected Starting, received %v", sess.state)
+		}
+
+		err = sess.StartTransaction()
+		if err != ErrTransactInProgress {
+			t.Errorf("expected error, got %v", err)
+		}
+
+		sess.ApplyCommand()
+		if sess.state != InProgress {
+			t.Errorf("incorrect session state, expected InProgress, received %v", sess.state)
+		}
+
+		err = sess.StartTransaction()
+		if err != ErrTransactInProgress {
+			t.Errorf("expected error, got %v", err)
+		}
+
+		err = sess.CommitTransaction()
+		require.Nil(t, err, "error committing transaction: %s", err)
+		if sess.state != Committed {
+			t.Errorf("incorrect session state, expected Committed, received %v", sess.state)
+		}
+
+		err = sess.AbortTransaction()
+		if err != ErrAbortAfterCommit {
+			t.Errorf("expected error, got %v", err)
+		}
+
+		err = sess.StartTransaction()
+		require.Nil(t, err, "error starting transaction: %s", err)
+		if sess.state != Starting {
+			t.Errorf("incorrect session state, expected Starting, received %v", sess.state)
+		}
+
+		err = sess.AbortTransaction()
+		require.Nil(t, err, "error aborting transaction: %s", err)
+		if sess.state != Aborted {
+			t.Errorf("incorrect session state, expected Aborted, received %v", sess.state)
+		}
+
+		err = sess.AbortTransaction()
+		if err != ErrAbortTwice {
+			t.Errorf("expected error, got %v", err)
+		}
+
+		err = sess.CommitTransaction()
+		if err != ErrCommitAfterAbort {
+			t.Errorf("expected error, got %v", err)
+		}
+	})
 }

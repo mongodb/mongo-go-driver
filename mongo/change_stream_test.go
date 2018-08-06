@@ -13,7 +13,7 @@ import (
 )
 
 func isServerError(err error) bool {
-	_, ok := err.(command.Error)
+	_, ok := err.(*command.Error)
 	return ok
 }
 
@@ -84,7 +84,7 @@ func TestChangeStream_noCustomStandaloneError(t *testing.T) {
 
 	_, err = coll.Watch(context.Background(), nil)
 	require.Error(t, err)
-	if _, ok := err.(command.Error); !ok {
+	if _, ok := err.(*command.Error); !ok {
 		t.Errorf("Should have returned command error, but got %T", err)
 	}
 }
