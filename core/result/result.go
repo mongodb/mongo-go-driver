@@ -17,13 +17,15 @@ import (
 // Insert is a result from an Insert command.
 type Insert struct {
 	N                 int
+	ErrorLabels       []string           `bson:"errorLabels"`
 	WriteErrors       []WriteError       `bson:"writeErrors"`
 	WriteConcernError *WriteConcernError `bson:"writeConcernError"`
 }
 
 // StartSession is a result from a StartSession command.
 type StartSession struct {
-	ID *bson.Document `bson:"id"`
+	ErrorLabels []string       `bson:"errorLabels"`
+	ID          *bson.Document `bson:"id"`
 }
 
 // EndSessions is a result from an EndSessions command.
@@ -32,6 +34,7 @@ type EndSessions struct{}
 // Delete is a result from a Delete command.
 type Delete struct {
 	N                 int
+	ErrorLabels       []string           `bson:"errorLabels"`
 	WriteErrors       []WriteError       `bson:"writeErrors"`
 	WriteConcernError *WriteConcernError `bson:"writeConcernError"`
 }
@@ -43,6 +46,7 @@ type Update struct {
 	Upserted      []struct {
 		ID interface{} `bson:"_id"`
 	} `bson:"upserted"`
+	ErrorLabels       []string           `bson:"errorLabels"`
 	WriteErrors       []WriteError       `bson:"writeErrors"`
 	WriteConcernError *WriteConcernError `bson:"writeConcernError"`
 }
@@ -55,6 +59,7 @@ type Distinct struct {
 // FindAndModify is a result from a findAndModify command.
 type FindAndModify struct {
 	Value           bson.Reader
+	ErrorLabels     []string `bson:"errorLabels"`
 	LastErrorObject struct {
 		UpdatedExisting bool
 		Upserted        interface{}
@@ -139,14 +144,25 @@ type GetLastError struct {
 
 // KillCursors is a result of a KillCursors command.
 type KillCursors struct {
-	CursorsKilled   []int64 `bson:"cursorsKilled"`
-	CursorsNotFound []int64 `bson:"cursorsNotFound"`
-	CursorsAlive    []int64 `bson:"cursorsAlive"`
+	ErrorLabels     []string `bson:"errorLabels"`
+	CursorsKilled   []int64  `bson:"cursorsKilled"`
+	CursorsNotFound []int64  `bson:"cursorsNotFound"`
+	CursorsAlive    []int64  `bson:"cursorsAlive"`
 }
 
 // CreateIndexes is a result of a CreateIndexes command.
 type CreateIndexes struct {
-	CreatedCollectionAutomatically bool `bson:"createdCollectionAutomatically"`
-	IndexesBefore                  int  `bson:"numIndexesBefore"`
-	IndexesAfter                   int  `bson:"numIndexesAfter"`
+	ErrorLabels                    []string `bson:"errorLabels"`
+	CreatedCollectionAutomatically bool     `bson:"createdCollectionAutomatically"`
+	IndexesBefore                  int      `bson:"numIndexesBefore"`
+	IndexesAfter                   int      `bson:"numIndexesAfter"`
+}
+
+// TransactionResult holds the result of committing or aborting a transaction.
+type TransactionResult struct {
+	OK                bool               `bson:"ok"`
+	ErrMsg            string             `bson:"errmsg"`
+	Code              int                `bson:"code"`
+	ErrorLabels       []string           `bson:"errorLabels"`
+	WriteConcernError *WriteConcernError `bson:"writeConcernError"`
 }

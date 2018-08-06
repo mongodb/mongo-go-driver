@@ -58,6 +58,9 @@ func (di *DropIndexes) encode(desc description.SelectedServer) (*Write, error) {
 		}
 	}
 
+	if di.Session != nil && (di.Session.TransactionInProgress() || di.Session.TransactionStarting()) {
+		di.WriteConcern = nil
+	}
 	return &Write{
 		Clock:        di.Clock,
 		DB:           di.NS.DB,
@@ -106,6 +109,10 @@ func (di *DropIndexes) RoundTrip(ctx context.Context, desc description.SelectedS
 	di.result, err = cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
+	}
+
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 
 	return di.Result()

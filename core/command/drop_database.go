@@ -44,6 +44,9 @@ func (dd *DropDatabase) encode(desc description.SelectedServer) (*Write, error) 
 		bson.EC.Int32("dropDatabase", 1),
 	)
 
+	if dd.Session != nil && (dd.Session.TransactionInProgress() || dd.Session.TransactionStarting()) {
+		dd.WriteConcern = nil
+	}
 	return &Write{
 		Clock:        dd.Clock,
 		DB:           dd.DB,
@@ -92,6 +95,10 @@ func (dd *DropDatabase) RoundTrip(ctx context.Context, desc description.Selected
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
+	}
+
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 
 	return dd.decode(desc, rdr).Result()

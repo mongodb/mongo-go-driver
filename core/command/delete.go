@@ -75,6 +75,9 @@ func (d *Delete) encode(desc description.SelectedServer) (*Write, error) {
 		}
 	}
 
+	if d.Session != nil && (d.Session.TransactionInProgress() || d.Session.TransactionStarting()) {
+		d.WriteConcern = nil
+	}
 	return &Write{
 		Clock:        d.Clock,
 		DB:           d.NS.DB,
@@ -122,6 +125,10 @@ func (d *Delete) RoundTrip(ctx context.Context, desc description.SelectedServer,
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return result.Delete{}, err
+	}
+
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 
 	return d.decode(desc, rdr).Result()

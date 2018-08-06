@@ -89,7 +89,14 @@ func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuil
 		opts = append(opts, curOpt)
 	}
 
-	lc.result, lc.err = cb.BuildCursor(rdr, lc.Session, lc.Clock, opts...)
+	labels, err := getErrorLabels(&rdr)
+	lc.err = err
+
+	res, err := cb.BuildCursor(rdr, lc.Session, lc.Clock, opts...)
+	lc.result = res
+	if err != nil {
+		lc.err = Error{Message: err.Error(), Labels: labels}
+	}
 
 	return lc
 }
@@ -115,6 +122,10 @@ func (lc *ListCollections) RoundTrip(ctx context.Context, desc description.Selec
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
+	}
+
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 
 	return lc.decode(desc, cb, rdr).Result()

@@ -58,6 +58,13 @@ func Aggregate(
 		if err != nil {
 			return nil, err
 		}
+	} else if topo.SupportsSessions() && cmd.Session != nil &&
+		(cmd.Session.TransactionInProgress() || cmd.Session.TransactionStarting()) {
+		cmd.ReadPref = cmd.Session.CurrentRp // Transaction's read preference always takes priority
+		err = checkTransactionReadPref(cmd.ReadPref)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return cmd.RoundTrip(ctx, desc, ss, conn)

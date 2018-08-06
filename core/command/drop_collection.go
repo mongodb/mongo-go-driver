@@ -45,6 +45,9 @@ func (dc *DropCollection) encode(desc description.SelectedServer) (*Write, error
 		bson.EC.String("drop", dc.Collection),
 	)
 
+	if dc.Session != nil && (dc.Session.TransactionInProgress() || dc.Session.TransactionStarting()) {
+		dc.WriteConcern = nil
+	}
 	return &Write{
 		Clock:        dc.Clock,
 		WriteConcern: dc.WriteConcern,
@@ -93,6 +96,10 @@ func (dc *DropCollection) RoundTrip(ctx context.Context, desc description.Select
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
+	}
+
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 
 	return dc.decode(desc, rdr).Result()

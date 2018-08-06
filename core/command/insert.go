@@ -134,6 +134,9 @@ func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		}
 	}
 
+	if i.Session != nil && (i.Session.TransactionInProgress() || i.Session.TransactionStarting()) {
+		i.WriteConcern = nil
+	}
 	return &Write{
 		Clock:        i.Clock,
 		DB:           i.NS.DB,
@@ -220,6 +223,10 @@ func (i *Insert) RoundTrip(ctx context.Context, desc description.SelectedServer,
 		if !i.continueOnError && len(res.WriteErrors) > 0 {
 			return res, nil
 		}
+	}
+
+	if i.Session != nil {
+		i.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 
 	return res, nil
