@@ -113,13 +113,13 @@ func TestCRUDSpec(t *testing.T) {
 	}
 }
 
-func sanitizeCollectionName(name string) string {
+func sanitizeCollectionName(kind string, name string) string {
 	// Collections can't have "$" in their names, so we substitute it with "%".
 	name = strings.Replace(name, "$", "%", -1)
 
 	// Namespaces can only have 120 bytes max.
-	if len("crud-spec-tests."+name) >= 119 {
-		name = name[:119-len("crud-spec-tests.")]
+	if len(kind+"."+name) >= 119 {
+		name = name[:119-len(kind+".")]
 	}
 
 	return name
@@ -137,7 +137,7 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 	}
 
 	for _, test := range testfile.Tests {
-		collName := sanitizeCollectionName(test.Description)
+		collName := sanitizeCollectionName("crud-spec-tests", test.Description)
 
 		_, _ = db.RunCommand(
 			context.Background(),
