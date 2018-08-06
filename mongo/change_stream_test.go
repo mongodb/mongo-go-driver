@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"strings"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
@@ -192,7 +194,7 @@ func TestChangeStream_resumableError(t *testing.T) {
 
 	err = changes.Err()
 	require.Error(t, err)
-	require.False(t, isServerError(err))
+	require.True(t, strings.Contains(err.Error(), "context deadline exceeded"))
 
 	// If the ResumeAfter option is present, the the operation attempted to resume.
 	hasResume := false
