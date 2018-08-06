@@ -113,5 +113,9 @@ func (f *FindOneAndDelete) RoundTrip(ctx context.Context, desc description.Selec
 		return result.FindAndModify{}, err
 	}
 
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
+	}
+
 	return f.decode(desc, rdr).Result()
 }

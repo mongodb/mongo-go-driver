@@ -129,5 +129,9 @@ func (c *Count) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 		return 0, err
 	}
 
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
+	}
+
 	return c.decode(desc, rdr).Result()
 }

@@ -14,6 +14,7 @@ var rander = rand.Reader
 // Server is an open session with the server.
 type Server struct {
 	SessionID *bson.Document
+	TxnNumber int64
 	LastUsed  time.Time
 }
 
@@ -47,6 +48,10 @@ func newServerSession() (*Server, error) {
 		SessionID: idDoc,
 		LastUsed:  time.Now(),
 	}, nil
+}
+
+func (ss *Server) incrementTxnNumber() {
+	ss.TxnNumber++
 }
 
 // UUIDSubtype is the BSON binary subtype that a UUID should be encoded as

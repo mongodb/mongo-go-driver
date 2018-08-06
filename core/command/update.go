@@ -69,6 +69,9 @@ func (u *Update) encode(desc description.SelectedServer) (*Write, error) {
 		}
 	}
 
+	if u.Session != nil && (u.Session.TransactionInProgress() || u.Session.TransactionStarting()) {
+		u.WriteConcern = nil
+	}
 	return &Write{
 		Clock:        u.Clock,
 		DB:           u.NS.DB,
@@ -116,5 +119,10 @@ func (u *Update) RoundTrip(ctx context.Context, desc description.SelectedServer,
 	if err != nil {
 		return result.Update{}, err
 	}
+
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
+	}
+
 	return u.decode(desc, rdr).Result()
 }

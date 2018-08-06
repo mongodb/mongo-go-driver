@@ -115,7 +115,14 @@ func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bso
 		opts = append(opts, curOpt)
 	}
 
-	f.result, f.err = cb.BuildCursor(rdr, f.Session, f.Clock, opts...)
+	labels, err := getErrorLabels(&rdr)
+	f.err = err
+
+	res, err := cb.BuildCursor(rdr, f.Session, f.Clock, opts...)
+	f.result = res
+	if err != nil {
+		f.err = Error{Message: err.Error(), Labels: labels}
+	}
 	return f
 }
 
@@ -141,6 +148,10 @@ func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, c
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		return nil, err
+	}
+
+	if cmd.Session != nil {
+		cmd.Session.ApplyCommand() // advances the state machine based on the fact that an operation happened
 	}
 
 	return f.decode(desc, cb, rdr).Result()
