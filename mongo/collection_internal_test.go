@@ -1276,6 +1276,100 @@ func TestCollection_Count_withOption(t *testing.T) {
 	require.Equal(t, count, int64(3))
 }
 
+func TestCollection_CountDocuments(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	t.Parallel()
+
+	col1 := createTestCollection(t, nil, nil)
+	initCollection(t, col1)
+
+	count, err := col1.CountDocuments(context.Background(), nil)
+	require.Nil(t, err)
+	require.Equal(t, count, int64(5))
+}
+
+func TestCollection_CountDocuments_withFilter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	filter := bson.NewDocument(
+		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$gt", 2)))
+
+	count, err := coll.CountDocuments(context.Background(), filter)
+	require.Nil(t, err)
+	require.Equal(t, count, int64(3))
+
+}
+
+func TestCollection_CountDocuments_withLimitOptions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	count, err := coll.CountDocuments(context.Background(), nil, countopt.Limit(3))
+	require.Nil(t, err)
+	require.Equal(t, count, int64(3))
+}
+
+func TestCollection_CountDocuments_withSkipOptions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	count, err := coll.CountDocuments(context.Background(), nil, countopt.Skip(3))
+	require.Nil(t, err)
+	require.Equal(t, count, int64(2))
+}
+
+func TestCollection_EstimatedDocumentCount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	count, err := coll.EstimatedDocumentCount(context.Background())
+	require.Nil(t, err)
+	require.Equal(t, count, int64(5))
+
+}
+
+func TestCollection_EstimatedDocumentCount_withOption(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	t.Parallel()
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	count, err := coll.EstimatedDocumentCount(context.Background(), countopt.MaxTimeMs(100))
+	require.Nil(t, err)
+	require.Equal(t, count, int64(5))
+}
+
 func TestCollection_Distinct(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")

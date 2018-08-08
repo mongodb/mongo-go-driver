@@ -15,8 +15,8 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/stretchr/testify/require"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/stretchr/testify/require"
 )
 
 func requireCursorLength(t *testing.T, cursor mongo.Cursor, length int) {

@@ -620,17 +620,17 @@ func (opt OptMaxTime) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptMaxTime) aggregateOption()         {}
-func (OptMaxTime) countOption()             {}
-func (OptMaxTime) distinctOption()          {}
-func (OptMaxTime) findOption()              {}
-func (OptMaxTime) findOneOption()           {}
-func (OptMaxTime) findOneAndDeleteOption()  {}
-func (OptMaxTime) findOneAndReplaceOption() {}
-func (OptMaxTime) findOneAndUpdateOption()  {}
-func (OptMaxTime) listIndexesOption()       {}
-func (OptMaxTime) dropIndexesOption()       {}
-func (OptMaxTime) createIndexesOption()     {}
+func (OptMaxTime) aggregateOption()              {}
+func (OptMaxTime) countOption()                  {}
+func (OptMaxTime) distinctOption()               {}
+func (OptMaxTime) findOption()                   {}
+func (OptMaxTime) findOneOption()                {}
+func (OptMaxTime) findOneAndDeleteOption()       {}
+func (OptMaxTime) findOneAndReplaceOption()      {}
+func (OptMaxTime) findOneAndUpdateOption()       {}
+func (OptMaxTime) listIndexesOption()            {}
+func (OptMaxTime) dropIndexesOption()            {}
+func (OptMaxTime) createIndexesOption()          {}
 
 // String implements the Stringer interface.
 func (opt OptMaxTime) String() string {
