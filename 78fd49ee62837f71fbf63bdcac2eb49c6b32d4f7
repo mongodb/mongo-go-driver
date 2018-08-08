@@ -2,6 +2,98 @@
   "comments": [
     {
       "key": {
+        "uuid": "a5834efa_78ea2bfe",
+        "filename": "core/command/errors.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-08T17:03:08Z",
+      "side": 1,
+      "message": "Is there a specific reason why we\u0027re changing this to use a pointer receiver? I think it\u0027s useful to have it as a value since we don\u0027t actually need to do modifications (this doesn\u0027t mean that we can\u0027t return a pointer to a command.Error if we wanted to for some reason).",
+      "range": {
+        "startLine": 81,
+        "startChar": 6,
+        "endLine": 81,
+        "endChar": 14
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "047fd1ca_8e8a5fd1",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 85,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-08T17:03:08Z",
+      "side": 1,
+      "message": "We should probably use MutableArrayOK here so we don\u0027t panic if this is changed at some point.",
+      "range": {
+        "startLine": 85,
+        "startChar": 29,
+        "endLine": 85,
+        "endChar": 41
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4da400fa_41c6ca87",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-08T17:03:08Z",
+      "side": 1,
+      "message": "Same as above, we should probably use StringValueOK here to ensure we don\u0027t panic if something is wrong here.",
+      "range": {
+        "startLine": 90,
+        "startChar": 41,
+        "endLine": 90,
+        "endChar": 54
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "91f4f8cf_58b50586",
+        "filename": "core/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-08T17:03:08Z",
+      "side": 1,
+      "message": "Why did we add an error here if we always return nil?",
+      "range": {
+        "startLine": 29,
+        "startChar": 76,
+        "endLine": 29,
+        "endChar": 81
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ac4c5df1_2bb589ef",
         "filename": "core/command/write.go",
         "patchSetId": 2
@@ -16,6 +108,24 @@
       "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "22ba6f27_0a69b2e6",
+        "filename": "core/command/write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-08T17:03:08Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ac4c5df1_2bb589ef",
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -64,6 +174,29 @@
       "writtenOn": "2018-08-06T19:40:35Z",
       "side": 1,
       "message": "Here runCommand does *not* override the readpref with transaction readpref.  This implicitly assumes that dispatch.read is only used by runCommand for transactions.  Not sure if this is a good assumption to make, but if not, then that would mean this logic would have to be moved further up into mongo",
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84339763_48c6c724",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-08T17:03:08Z",
+      "side": 1,
+      "message": "We probably want to document that these methods don\u0027t actually send anything to the server to start/commit/abort a transaction and that it just progresses the transaction state machine.",
+      "range": {
+        "startLine": 221,
+        "startChar": 0,
+        "endLine": 221,
+        "endChar": 40
+      },
       "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
