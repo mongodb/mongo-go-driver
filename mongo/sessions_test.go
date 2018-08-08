@@ -47,10 +47,10 @@ var sessionSucceeded *event.CommandSucceededEvent
 var sessionsMonitoredTop *topology.Topology
 
 var sessionsMonitor = &event.CommandMonitor{
-	Started: func(cse *event.CommandStartedEvent) {
+	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 		sessionStarted = cse
 	},
-	Succeeded: func(cse *event.CommandSucceededEvent) {
+	Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
 		sessionSucceeded = cse
 	},
 }

@@ -32,13 +32,13 @@ var failedChan = make(chan *event.CommandFailedEvent, 100)
 var cursorID int64
 
 var monitor = &event.CommandMonitor{
-	Started: func(cse *event.CommandStartedEvent) {
+	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 		startedChan <- cse
 	},
-	Succeeded: func(cse *event.CommandSucceededEvent) {
+	Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
 		succeededChan <- cse
 	},
-	Failed: func(cfe *event.CommandFailedEvent) {
+	Failed: func(ctx context.Context, cfe *event.CommandFailedEvent) {
 		failedChan <- cfe
 	},
 }

@@ -30,7 +30,6 @@ func (cm *CommandMetadata) TimeDifference() int64 {
 
 // CommandStartedEvent represents an event generated when a command is sent to a server.
 type CommandStartedEvent struct {
-	Context      context.Context
 	Command      *bson.Document
 	DatabaseName string
 	CommandName  string
@@ -40,7 +39,6 @@ type CommandStartedEvent struct {
 
 // CommandFinishedEvent represents a generic command finishing.
 type CommandFinishedEvent struct {
-	Context       context.Context
 	DurationNanos int64
 	CommandName   string
 	RequestID     int64
@@ -61,7 +59,7 @@ type CommandFailedEvent struct {
 
 // CommandMonitor represents a monitor that is triggered for different events.
 type CommandMonitor struct {
-	Started   func(*CommandStartedEvent)
-	Succeeded func(*CommandSucceededEvent)
-	Failed    func(*CommandFailedEvent)
+	Started   func(context.Context, *CommandStartedEvent)
+	Succeeded func(context.Context, *CommandSucceededEvent)
+	Failed    func(context.Context, *CommandFailedEvent)
 }

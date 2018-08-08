@@ -364,7 +364,6 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 	}
 
 	startedEvent := &event.CommandStartedEvent{
-		Context:      ctx,
 		ConnectionID: c.id,
 	}
 
@@ -418,7 +417,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		startedEvent.Command = emptyDoc
 	}
 
-	c.cmdMonitor.Started(startedEvent)
+	c.cmdMonitor.Started(ctx, startedEvent)
 
 	if !acknowledged {
 		if c.cmdMonitor.Succeeded == nil {
@@ -427,14 +426,13 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 
 		// unack writes must provide a CommandSucceededEvent with an { ok: 1 } reply
 		finishedEvent := event.CommandFinishedEvent{
-			Context:       ctx,
 			DurationNanos: 0,
 			CommandName:   startedEvent.CommandName,
 			RequestID:     startedEvent.RequestID,
 			ConnectionID:  c.id,
 		}
 
-		c.cmdMonitor.Succeeded(&event.CommandSucceededEvent{
+		c.cmdMonitor.Succeeded(ctx, &event.CommandSucceededEvent{
 			CommandFinishedEvent: finishedEvent,
 			Reply: bson.NewDocument(
 				bson.EC.Int32("ok", 1),
@@ -522,7 +520,6 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 	}
 
 	finishedEvent := event.CommandFinishedEvent{
-		Context:       ctx,
 		DurationNanos: cmdMetadata.TimeDifference(),
 		CommandName:   cmdMetadata.Name,
 		RequestID:     requestID,
@@ -535,7 +532,7 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 				Reply:                emptyDoc,
 				CommandFinishedEvent: finishedEvent,
 			}
-			c.cmdMonitor.Succeeded(successEvent)
+			c.cmdMonitor.Succeeded(ctx, successEvent)
 			return nil
 		}
 
@@ -556,7 +553,7 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 			CommandFinishedEvent: finishedEvent,
 		}
 
-		c.cmdMonitor.Succeeded(successEvent)
+		c.cmdMonitor.Succeeded(ctx, successEvent)
 		return nil
 	}
 
@@ -565,7 +562,7 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 		CommandFinishedEvent: finishedEvent,
 	}
 
-	c.cmdMonitor.Failed(failureEvent)
+	c.cmdMonitor.Failed(ctx, failureEvent)
 	return nil
 }
 

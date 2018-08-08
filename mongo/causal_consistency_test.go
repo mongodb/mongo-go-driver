@@ -1,6 +1,7 @@
 package mongo
 
 import (
+	"context"
 	"os"
 	"reflect"
 	"testing"
@@ -17,10 +18,10 @@ var ccStarted *event.CommandStartedEvent
 var ccSucceeded *event.CommandSucceededEvent
 
 var ccMonitor = &event.CommandMonitor{
-	Started: func(cse *event.CommandStartedEvent) {
+	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 		ccStarted = cse
 	},
-	Succeeded: func(cse *event.CommandSucceededEvent) {
+	Succeeded: func(ctx context.Context, cse *event.CommandSucceededEvent) {
 		ccSucceeded = cse
 	},
 }
