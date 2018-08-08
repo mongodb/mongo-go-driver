@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "23f5362f_8e79d1cc",
+        "filename": "core/command/errors.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-08T17:50:26Z",
+      "side": 1,
+      "message": "I don\u0027t actually remember why we did this, but I changed it back and all the tests appear to still pass, so I\u0027ll keep it as a value receiver.",
+      "parentUuid": "a5834efa_78ea2bfe",
+      "range": {
+        "startLine": 81,
+        "startChar": 6,
+        "endLine": 81,
+        "endChar": 14
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "047fd1ca_8e8a5fd1",
         "filename": "core/command/opmsg.go",
         "patchSetId": 2
@@ -45,6 +69,30 @@
       "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d12f4860_9254e650",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 85,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-08T17:50:26Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "047fd1ca_8e8a5fd1",
+      "range": {
+        "startLine": 85,
+        "startChar": 29,
+        "endLine": 85,
+        "endChar": 41
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "622d0452_6d60ad78",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-08T17:50:26Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4da400fa_41c6ca87",
+      "range": {
+        "startLine": 90,
+        "startChar": 41,
+        "endLine": 90,
+        "endChar": 54
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "91f4f8cf_58b50586",
         "filename": "core/command/read.go",
         "patchSetId": 2
@@ -91,6 +163,30 @@
       "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bf9100b8_a52a256d",
+        "filename": "core/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-08T17:50:26Z",
+      "side": 1,
+      "message": "whoops.  Guessed I changed it and forgot to remove it",
+      "parentUuid": "91f4f8cf_58b50586",
+      "range": {
+        "startLine": 29,
+        "startChar": 76,
+        "endLine": 29,
+        "endChar": 81
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -200,6 +296,30 @@
       "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e2853064_a9e8081c",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-08T17:50:26Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "84339763_48c6c724",
+      "range": {
+        "startLine": 221,
+        "startChar": 0,
+        "endLine": 221,
+        "endChar": 40
+      },
+      "revId": "78fd49ee62837f71fbf63bdcac2eb49c6b32d4f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
