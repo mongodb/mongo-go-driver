@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "21993843_8adbe47d",
+        "filename": "bson/document_value_writer.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-13T23:30:14Z",
+      "side": 1,
+      "message": "why defer this?",
+      "revId": "c60e89fa844916f64d5fee8ba5a93529262d2059",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
