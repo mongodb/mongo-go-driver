@@ -16,6 +16,24 @@
       "revId": "46aad3cde14a67a9ed49b80e5b9e0e68dccdb433",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "df932046_e09f0f3f",
+        "filename": "bson/codec.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-13T23:30:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "487a66c1_1a9b3a02",
+      "revId": "46aad3cde14a67a9ed49b80e5b9e0e68dccdb433",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
