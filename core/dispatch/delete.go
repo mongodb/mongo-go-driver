@@ -34,9 +34,61 @@ func Delete(
 		return result.Delete{}, err
 	}
 
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.SupportsSessions() && writeconcern.AckWrite(cmd.WriteConcern) {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return result.Delete{}, err
+		}
+		defer cmd.Session.EndSession()
+	}
+
+	// Execute in a single trip if retry writes not supported, or retry not enabled
+	if !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) || !cmd.RetryWrite {
+		cmd.RetryWrite = false // explicitly set to false to prevent encoding transaction number
+		return delete(ctx, cmd, ss, nil)
+	}
+
+	cmd.Session.IncrementTxnNumber()
+
+	res, originalErr := delete(ctx, cmd, ss, nil)
+
+	// Retry if appropriate
+	if cerr, ok := originalErr.(command.Error); ok && originalErr != nil && cerr.Retryable() {
+		ss, err := topo.SelectServer(ctx, selector)
+
+		// Return original error if server selection fails or new server does not support retryable writes
+		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
+			return result.Delete{}, originalErr
+		}
+
+		return delete(ctx, cmd, ss, cerr)
+	} else if res.WriteConcernError != nil && command.WriteConcernErrorRetryable(res.WriteConcernError) {
+		ss, err := topo.SelectServer(ctx, selector)
+
+		// Return original error if server selection fails or new server does not support retryable writes
+		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
+			return res, originalErr
+		}
+
+		return delete(ctx, cmd, ss, cerr)
+	}
+	return res, originalErr
+}
+
+func delete(
+	ctx context.Context,
+	cmd command.Delete,
+	ss *topology.SelectedServer,
+	oldErr error,
+) (result.Delete, error) {
 	desc := ss.Description()
+
 	conn, err := ss.Connection(ctx)
 	if err != nil {
+		if oldErr != nil {
+			return result.Delete{}, oldErr
+		}
 		return result.Delete{}, err
 	}
 
@@ -51,15 +103,6 @@ func Delete(
 		return result.Delete{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
-
-	// If no explicit session and deployment supports sessions, start implicit session.
-	if cmd.Session == nil && topo.SupportsSessions() {
-		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
-		if err != nil {
-			return result.Delete{}, err
-		}
-		defer cmd.Session.EndSession()
-	}
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }

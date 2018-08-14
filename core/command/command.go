@@ -17,6 +17,113 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
+// DecodeError attempts to decode the wiremessage as an error
+func DecodeError(wm wiremessage.WireMessage) error {
+	var rdr bson.Reader
+	if msg, ok := wm.(wiremessage.Msg); ok {
+		var mainDoc bson.Document
+
+		for _, section := range msg.Sections {
+			switch converted := section.(type) {
+			case wiremessage.SectionBody:
+				err := mainDoc.UnmarshalBSON(converted.Document)
+				if err != nil {
+					return nil
+				}
+			}
+		}
+
+		byteArray, err := mainDoc.MarshalBSON()
+		if err != nil {
+			return nil
+		}
+
+		rdr = bson.Reader(byteArray)
+	} else if reply, ok := wm.(wiremessage.Reply); ok {
+		if reply.ResponseFlags&wiremessage.QueryFailure != wiremessage.QueryFailure {
+			return nil
+		}
+		rdr = reply.Documents[0]
+	}
+
+	_, err := rdr.Validate()
+	if err != nil {
+		return nil
+	}
+
+	extractedError, _ := extractError(rdr)
+	return extractedError
+}
+
+// helper method to extract an error from a reader if there is one; first returned item is the
+// error if it exists, the second holds parsing errors
+func extractError(rdr bson.Reader) (error, error) {
+	var errmsg, codeName string
+	var code int32
+	var labels []string
+	itr, err := rdr.Iterator()
+	if err != nil {
+		return nil, err
+	}
+
+	for itr.Next() {
+		elem := itr.Element()
+		switch elem.Key() {
+		case "ok":
+			switch elem.Value().Type() {
+			case bson.TypeInt32:
+				if elem.Value().Int32() == 1 {
+					return nil, nil
+				}
+			case bson.TypeInt64:
+				if elem.Value().Int64() == 1 {
+					return nil, nil
+				}
+			case bson.TypeDouble:
+				if elem.Value().Double() == 1 {
+					return nil, nil
+				}
+			}
+		case "errmsg":
+			if str, okay := elem.Value().StringValueOK(); okay {
+				errmsg = str
+			}
+		case "codeName":
+			if str, okay := elem.Value().StringValueOK(); okay {
+				codeName = str
+			}
+		case "code":
+			if c, okay := elem.Value().Int32OK(); okay {
+				code = c
+			}
+		case "errorLabels":
+			if arr, okay := elem.Value().MutableArrayOK(); okay {
+				iter, err := arr.Iterator()
+				if err != nil {
+					continue
+				}
+				for iter.Next() {
+					if str, ok := iter.Value().StringValueOK(); ok {
+						labels = append(labels, str)
+					}
+				}
+
+			}
+		}
+	}
+
+	if errmsg == "" {
+		errmsg = "command failed"
+	}
+
+	return Error{
+		Code:    code,
+		Message: errmsg,
+		Name:    codeName,
+		Labels:  labels,
+	}, nil
+}
+
 func responseClusterTime(response bson.Reader) *bson.Document {
 	clusterTime, err := response.Lookup("$clusterTime")
 	if err != nil {

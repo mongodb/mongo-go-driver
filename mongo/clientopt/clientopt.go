@@ -77,6 +77,8 @@ type Credential struct {
 type Client struct {
 	TopologyOptions []topology.Option
 	ConnString      connstring.ConnString
+	RetryWrites     bool
+	RetryWritesSet  bool
 	ReadPreference  *readpref.ReadPref
 	ReadConcern     *readconcern.ReadConcern
 	WriteConcern    *writeconcern.WriteConcern
@@ -226,6 +228,14 @@ func (cb *ClientBundle) ReadPreference(rp *readpref.ReadPref) *ClientBundle {
 func (cb *ClientBundle) ReplicaSet(s string) *ClientBundle {
 	return &ClientBundle{
 		option: ReplicaSet(s),
+		next:   cb,
+	}
+}
+
+// RetryWrites specifies whether the client has retryable writes enabled.
+func (cb *ClientBundle) RetryWrites(b bool) *ClientBundle {
+	return &ClientBundle{
+		option: RetryWrites(b),
 		next:   cb,
 	}
 }
@@ -531,6 +541,18 @@ func ReplicaSet(s string) Option {
 		func(c *Client) error {
 			if c.ConnString.ReplicaSet == "" {
 				c.ConnString.ReplicaSet = s
+			}
+			return nil
+		})
+}
+
+// RetryWrites specifies whether the client has retryable writes enabled.
+func RetryWrites(b bool) Option {
+	return optionFunc(
+		func(c *Client) error {
+			if !c.RetryWritesSet {
+				c.RetryWrites = b
+				c.RetryWritesSet = true
 			}
 			return nil
 		})

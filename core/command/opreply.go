@@ -35,55 +35,11 @@ func decodeCommandOpReply(reply wiremessage.Reply) (bson.Reader, error) {
 		}
 	}
 
-	ok := false
-	var errmsg, codeName string
-	var code int32
-	itr, err := rdr.Iterator()
+	extractedError, err := extractError(rdr)
 	if err != nil {
-		return nil, NewCommandResponseError("malformed OP_REPLY: cannot iterate document", err)
-	}
-	for itr.Next() {
-		elem := itr.Element()
-		switch elem.Key() {
-		case "ok":
-			switch elem.Value().Type() {
-			case bson.TypeInt32:
-				if elem.Value().Int32() == 1 {
-					ok = true
-				}
-			case bson.TypeInt64:
-				if elem.Value().Int64() == 1 {
-					ok = true
-				}
-			case bson.TypeDouble:
-				if elem.Value().Double() == 1 {
-					ok = true
-				}
-			}
-		case "errmsg":
-			if str, okay := elem.Value().StringValueOK(); okay {
-				errmsg = str
-			}
-		case "codeName":
-			if str, okay := elem.Value().StringValueOK(); okay {
-				codeName = str
-			}
-		case "code":
-			if c, okay := elem.Value().Int32OK(); okay {
-				code = c
-			}
-		}
-	}
-
-	if !ok {
-		if errmsg == "" {
-			errmsg = "command failed"
-		}
-		return nil, Error{
-			Code:    code,
-			Message: errmsg,
-			Name:    codeName,
-		}
+		return nil, err
+	} else if extractedError != nil {
+		return nil, extractedError
 	}
 
 	return rdr, nil

@@ -185,6 +185,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
+		RetryWrite:   coll.client.retryWrites,
 	}
 
 	res, err := dispatch.Insert(
@@ -261,6 +262,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
+		RetryWrite:   coll.client.retryWrites,
 	}
 
 	res, err := dispatch.Insert(
@@ -334,6 +336,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
+		RetryWrite:   coll.client.retryWrites,
 	}
 
 	res, err := dispatch.Delete(
@@ -439,6 +442,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
+		RetryWrite:   coll.client.retryWrites,
 	}
 
 	r, err := dispatch.Update(
@@ -989,6 +993,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
+		RetryWrite:   coll.client.retryWrites,
 	}
 
 	res, err := dispatch.FindOneAndDelete(
@@ -1060,6 +1065,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
+		RetryWrite:   coll.client.retryWrites,
 	}
 
 	res, err := dispatch.FindOneAndReplace(
@@ -1130,6 +1136,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
+		RetryWrite:   coll.client.retryWrites,
 	}
 
 	res, err := dispatch.FindOneAndUpdate(

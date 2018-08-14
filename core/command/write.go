@@ -21,6 +21,7 @@ type Write struct {
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
+	RetryWrite   bool
 
 	result bson.Reader
 	err    error
@@ -144,6 +145,10 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 		}
 	}
 
+	if w.RetryWrite {
+		cmd.Append(bson.EC.Int64("txnNumber", w.Session.TxnNumber))
+	}
+
 	err = addClusterTime(cmd, desc, w.Session, w.Clock)
 	if err != nil {
 		return nil, err
@@ -204,6 +209,9 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
+		if _, ok := err.(Error); ok {
+			return nil, err
+		}
 		// Connection errors are transient
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
@@ -217,6 +225,9 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 
 	wm, err = rw.ReadWireMessage(ctx)
 	if err != nil {
+		if _, ok := err.(Error); ok {
+			return nil, err
+		}
 		// Connection errors are transient
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}

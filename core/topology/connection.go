@@ -10,7 +10,11 @@ import (
 	"context"
 	"net"
 
+	"strings"
+
+	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -25,7 +29,12 @@ type sconn struct {
 
 func (sc *sconn) ReadWireMessage(ctx context.Context) (wiremessage.WireMessage, error) {
 	wm, err := sc.Connection.ReadWireMessage(ctx)
-	sc.processErr(err)
+	if err != nil {
+		sc.processErr(err)
+	} else if msg, ok := wm.(wiremessage.Msg); ok {
+		err = command.DecodeError(msg)
+		sc.processErr(err)
+	}
 	return wm, err
 }
 
@@ -36,6 +45,14 @@ func (sc *sconn) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessag
 }
 
 func (sc *sconn) processErr(err error) {
+	// Invalidate server description if not master or node recovering error occurs
+	if err != nil && (strings.Contains(err.Error(), "not master") ||
+		strings.Contains(err.Error(), "node is recovering")) {
+		desc := sc.s.Description()
+		desc.Kind = description.Unknown
+		sc.s.updateDescription(desc, false)
+	}
+
 	ne, ok := err.(connection.NetworkError)
 	if !ok {
 		return

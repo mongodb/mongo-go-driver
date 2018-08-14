@@ -227,7 +227,7 @@ func (c *Client) StartTransaction(opts ...ClientOptioner) error {
 	}
 
 	c.state = Starting
-	c.incrementTxnNumber()
+	c.IncrementTxnNumber()
 	c.RetryingCommit = false
 
 	for _, opt := range opts {

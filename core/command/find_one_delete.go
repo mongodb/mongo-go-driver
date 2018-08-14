@@ -28,6 +28,7 @@ type FindOneAndDelete struct {
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
+	RetryWrite   bool
 
 	result result.FindAndModify
 	err    error
@@ -70,6 +71,7 @@ func (f *FindOneAndDelete) encode(desc description.SelectedServer) (*Write, erro
 		Command:      command,
 		WriteConcern: f.WriteConcern,
 		Session:      f.Session,
+		RetryWrite:   f.RetryWrite,
 	}, nil
 }
 

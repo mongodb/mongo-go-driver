@@ -29,6 +29,7 @@ type Delete struct {
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
+	RetryWrite   bool
 
 	result result.Delete
 	err    error
@@ -84,6 +85,7 @@ func (d *Delete) encode(desc description.SelectedServer) (*Write, error) {
 		Command:      command,
 		WriteConcern: d.WriteConcern,
 		Session:      d.Session,
+		RetryWrite:   d.RetryWrite,
 	}, nil
 }
 

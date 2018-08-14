@@ -36,6 +36,7 @@ type Client struct {
 	topology        *topology.Topology
 	connString      connstring.ConnString
 	localThreshold  time.Duration
+	retryWrites     bool
 	clock           *session.ClusterClock
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern

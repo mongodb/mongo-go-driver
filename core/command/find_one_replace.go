@@ -29,6 +29,7 @@ type FindOneAndReplace struct {
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
+	RetryWrite   bool
 
 	result result.FindAndModify
 	err    error
@@ -71,6 +72,7 @@ func (f *FindOneAndReplace) encode(desc description.SelectedServer) (*Write, err
 		Command:      command,
 		WriteConcern: f.WriteConcern,
 		Session:      f.Session,
+		RetryWrite:   f.RetryWrite,
 	}, nil
 }
 
