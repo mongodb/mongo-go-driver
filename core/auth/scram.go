@@ -16,8 +16,25 @@ import (
 	"github.com/xdg/stringprep"
 )
 
-// SCRAMSHA256 is the mechanism name for SCRAM-SHA-256.
+// SCRAMSHA1 holds the mechanism name "SCRAM-SHA-1"
+const SCRAMSHA1 = "SCRAM-SHA-1"
+
+// SCRAMSHA256 holds the mechanism name "SCRAM-SHA-256"
 const SCRAMSHA256 = "SCRAM-SHA-256"
+
+func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
+	passdigest := mongoPasswordDigest(cred.Username, cred.Password)
+	client, err := scram.SHA1.NewClientUnprepped(cred.Username, passdigest, "")
+	if err != nil {
+		return nil, newAuthError("error initializing SCRAM-SHA-1 client", err)
+	}
+	client.WithMinIterations(4096)
+	return &ScramAuthenticator{
+		mechanism: SCRAMSHA1,
+		source:    cred.Source,
+		client:    client,
+	}, nil
+}
 
 func newScramSHA256Authenticator(cred *Cred) (Authenticator, error) {
 	passprep, err := stringprep.SASLprep.Prepare(cred.Password)
@@ -29,22 +46,24 @@ func newScramSHA256Authenticator(cred *Cred) (Authenticator, error) {
 		return nil, newAuthError("error initializing SCRAM-SHA-256 client", err)
 	}
 	client.WithMinIterations(4096)
-	return &ScramSHA256Authenticator{
-		DB:     cred.Source,
-		client: client,
+	return &ScramAuthenticator{
+		mechanism: SCRAMSHA256,
+		source:    cred.Source,
+		client:    client,
 	}, nil
 }
 
-// ScramSHA256Authenticator uses the SCRAM-SHA-256 algorithm over SASL to authenticate a connection.
-type ScramSHA256Authenticator struct {
-	DB     string
-	client *scram.Client
+// ScramAuthenticator uses the SCRAM algorithm over SASL to authenticate a connection.
+type ScramAuthenticator struct {
+	mechanism string
+	source    string
+	client    *scram.Client
 }
 
 // Auth authenticates the connection.
-func (a *ScramSHA256Authenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
-	adapter := &scramSaslAdapter{conversation: a.client.NewConversation()}
-	err := ConductSaslConversation(ctx, desc, rw, a.DB, adapter)
+func (a *ScramAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+	adapter := &scramSaslAdapter{conversation: a.client.NewConversation(), mechanism: a.mechanism}
+	err := ConductSaslConversation(ctx, desc, rw, a.source, adapter)
 	if err != nil {
 		return newAuthError("sasl conversation error", err)
 	}
@@ -52,15 +71,16 @@ func (a *ScramSHA256Authenticator) Auth(ctx context.Context, desc description.Se
 }
 
 type scramSaslAdapter struct {
+	mechanism    string
 	conversation *scram.ClientConversation
 }
 
 func (a *scramSaslAdapter) Start() (string, []byte, error) {
 	step, err := a.conversation.Step("")
 	if err != nil {
-		return SCRAMSHA256, nil, err
+		return a.mechanism, nil, err
 	}
-	return SCRAMSHA256, []byte(step), nil
+	return a.mechanism, []byte(step), nil
 }
 
 func (a *scramSaslAdapter) Next(challenge []byte) ([]byte, error) {
