@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/address"
+	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 )
 
@@ -221,6 +222,74 @@ func TestServerSelection(t *testing.T) {
 		noerr(t, err)
 		if ss.Kind != description.Single {
 			t.Errorf("findServer does not properly set the topology description kind. got %v; want %v", ss.Kind, description.Single)
+		}
+	})
+	t.Run("Update on not master error", func(t *testing.T) {
+		topo, err := New()
+		noerr(t, err)
+		topo.cfg.cs.HeartbeatInterval = time.Minute
+		atomic.StoreInt32(&topo.connectionstate, connected)
+
+		addr1 := address.Address("one")
+		addr2 := address.Address("two")
+		addr3 := address.Address("three")
+		desc := description.Topology{
+			Servers: []description.Server{
+				{Addr: addr1, Kind: description.RSPrimary},
+				{Addr: addr2, Kind: description.RSSecondary},
+				{Addr: addr3, Kind: description.RSSecondary},
+			},
+		}
+
+		// manually add the servers to the topology
+		for _, srv := range desc.Servers {
+			s, err := NewServer(srv.Addr)
+			noerr(t, err)
+			topo.servers[srv.Addr] = s
+		}
+
+		// Send updated description
+		desc = description.Topology{
+			Servers: []description.Server{
+				{Addr: addr1, Kind: description.RSSecondary},
+				{Addr: addr2, Kind: description.RSPrimary},
+				{Addr: addr3, Kind: description.RSSecondary},
+			},
+		}
+
+		subCh := make(chan description.Topology, 1)
+		subCh <- desc
+
+		// send a not master error to the server forcing an update
+		serv, err := topo.FindServer(desc.Servers[0])
+		noerr(t, err)
+		err = serv.pool.Connect(context.Background())
+		noerr(t, err)
+		atomic.StoreInt32(&serv.connectionstate, connected)
+		sc := &sconn{s: serv.Server}
+		sc.processErr(command.Error{Message: "not master"})
+
+		resp := make(chan []description.Server)
+
+		go func() {
+			// server selection should discover the new topology
+			srvs, err := topo.selectServer(context.Background(), subCh, description.WriteSelector(), nil)
+			noerr(t, err)
+			resp <- srvs
+		}()
+
+		var srvs []description.Server
+		select {
+		case srvs = <-resp:
+		case <-time.After(100 * time.Millisecond):
+			t.Errorf("Timed out while trying to retrieve selected servers")
+		}
+
+		if len(srvs) != 1 {
+			t.Errorf("Incorrect number of descriptions returned. got %d; want %d", len(srvs), 1)
+		}
+		if srvs[0].Addr != desc.Servers[1].Addr {
+			t.Errorf("Incorrect sever selected. got %s; want %s", srvs[0].Addr, desc.Servers[1].Addr)
 		}
 	})
 }
