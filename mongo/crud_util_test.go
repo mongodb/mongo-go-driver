@@ -598,11 +598,11 @@ func compareElements(t *testing.T, expected *bson.Element, actual *bson.Element)
 		expectedNum := expected.Value().Int64()
 		switch actual.Value().Type() {
 		case bson.TypeInt32:
-			require.Equal(t, int64(actual.Value().Int32()), expectedNum)
+			require.Equal(t, expectedNum, int64(actual.Value().Int32()), "For key %v", expected.Key())
 		case bson.TypeInt64:
-			require.Equal(t, actual.Value().Int64(), expectedNum)
+			require.Equal(t, expectedNum, actual.Value().Int64(), "For key %v\n", expected.Key())
 		case bson.TypeDouble:
-			require.Equal(t, int64(actual.Value().Double()), expectedNum)
+			require.Equal(t, expectedNum, int64(actual.Value().Double()), "For key %v\n", expected.Key())
 		}
 	} else if conv, ok := expected.Value().MutableDocumentOK(); ok {
 		actualConv, actualOk := actual.Value().MutableDocumentOK()

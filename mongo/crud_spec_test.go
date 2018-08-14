@@ -113,7 +113,7 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 	var testfile testFile
 	require.NoError(t, json.Unmarshal(content, &testfile))
 
-	if shouldSkip(t, &testfile, db) {
+	if shouldSkip(t, testfile.MinServerVersion, testfile.MaxServerVersion, db) {
 		return
 	}
 
@@ -378,15 +378,15 @@ func updateOneTest(t *testing.T, coll *Collection, test *testCase) {
 	})
 }
 
-func shouldSkip(t *testing.T, test *testFile, db *Database) bool {
+func shouldSkip(t *testing.T, minVersion string, maxVersion string, db *Database) bool {
 	versionStr, err := getServerVersion(db)
 	require.NoError(t, err)
 
-	if len(test.MinServerVersion) > 0 && compareVersions(t, test.MinServerVersion, versionStr) > 0 {
+	if len(minVersion) > 0 && compareVersions(t, minVersion, versionStr) > 0 {
 		return true
 	}
 
-	if len(test.MaxServerVersion) > 0 && compareVersions(t, test.MaxServerVersion, versionStr) < 0 {
+	if len(maxVersion) > 0 && compareVersions(t, maxVersion, versionStr) < 0 {
 		return true
 	}
 
