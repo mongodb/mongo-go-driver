@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "c3195770_44510bbf",
+        "filename": "core/command/aggregate.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "The reason this was repeated all over the place was because command.read/write don\u0027t know what command called it - so it would call ApplyCommand() for things like a commitTransaction() which will cause the state machine to advance to the None state instead of staying in the Committed state.  I\u0027ve however addressed this with an extra variable in the session struct for ApplyCommand() to look at to ensure it doesn\u0027t advance the state machine for this particular case.",
+      "parentUuid": "89450df5_da9c001d",
+      "range": {
+        "startLine": 181,
+        "startChar": 0,
+        "endLine": 181,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cc1cb000_4902dc42",
         "filename": "core/command/command.go",
         "patchSetId": 4
@@ -45,6 +69,30 @@
       "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4e93adb4_90df089b",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cc1cb000_4902dc42",
+      "range": {
+        "startLine": 92,
+        "startChar": 1,
+        "endLine": 92,
+        "endChar": 3
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "c0417cbd_e0f12d56",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "See my other comment about removing it from the command structs.  In general we only advance state if no errors occured, so I can safely move the general call to ApplyCommand() to the end of the read/write structs.  However this call is here because transactions are started lazily and the state transition does happen for startTransaction regardless of error, so this is special-case code.  I can\u0027t put it in startTransaction() because if I do then the command structs won\u0027t know an operation is the first command in a transaction when the operation is called.",
+      "parentUuid": "f4107527_fb3062f9",
+      "range": {
+        "startLine": 106,
+        "startChar": 0,
+        "endLine": 106,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7341aceb_746a2133",
         "filename": "core/command/insert.go",
         "patchSetId": 4
@@ -91,6 +163,30 @@
       "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a8928218_3ffc2022",
+        "filename": "core/command/insert.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "I think this was put here because of implicit sessions, but come to think of it you can\u0027t start a transaction on an implicit session anyway.  Removed.",
+      "parentUuid": "7341aceb_746a2133",
+      "range": {
+        "startLine": 137,
+        "startChar": 0,
+        "endLine": 137,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "6a1cd46a_198a8ebc",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "Yeah this can be removed as it\u0027s already done in mongo/sessions.go",
+      "parentUuid": "768f78c9_02ab82f2",
+      "range": {
+        "startLine": 193,
+        "startChar": 0,
+        "endLine": 193,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a39d5024_8dcfa391",
         "filename": "core/session/client_session.go",
         "patchSetId": 4
@@ -137,6 +257,30 @@
       "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b0da0a6a_82fad044",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "Originally TransactionInProgress() was a proxy for checking both inProgress and Starting, but it had to be split because there were some places that only checked starting or only checked inProgress.  I suppose it wouldn\u0027t hurt to have another method for both since it occurs so often.",
+      "parentUuid": "a39d5024_8dcfa391",
+      "range": {
+        "startLine": 198,
+        "startChar": 17,
+        "endLine": 198,
+        "endChar": 38
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -163,6 +307,30 @@
     },
     {
       "key": {
+        "uuid": "24a8e64e_597794d9",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "024ea992_5cecc40e",
+      "range": {
+        "startLine": 229,
+        "startChar": 0,
+        "endLine": 229,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "12308cf4_647d7bc3",
         "filename": "core/session/client_session.go",
         "patchSetId": 4
@@ -186,6 +354,30 @@
     },
     {
       "key": {
+        "uuid": "cd2bba87_4f8c2939",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "12308cf4_647d7bc3",
+      "range": {
+        "startLine": 272,
+        "startChar": 3,
+        "endLine": 272,
+        "endChar": 6
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0048617f_65503e2c",
         "filename": "core/session/client_session.go",
         "patchSetId": 4
@@ -206,6 +398,30 @@
       "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e86a0ddd_e1cd7f83",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0048617f_65503e2c",
+      "range": {
+        "startLine": 309,
+        "startChar": 0,
+        "endLine": 309,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

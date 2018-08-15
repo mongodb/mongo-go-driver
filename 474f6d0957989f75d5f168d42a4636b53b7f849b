@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "289f6f45_bef3265b",
+        "filename": "core/command/count_documents.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "This file was actually added after I rebased from master and ran goimports.  It\u0027s for the new count API which is why there are no tests for it.  I\u0027ll look at this file specifically and add any transaction things needed.",
+      "parentUuid": "b795ced3_3f4b974e",
+      "range": {
+        "startLine": 140,
+        "startChar": 0,
+        "endLine": 140,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b36c75a7_2b64f698",
         "filename": "core/command/errors.go",
         "patchSetId": 5
@@ -45,6 +69,30 @@
       "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "291a45cc_20cafc7a",
+        "filename": "core/command/errors.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "True, but this needs to be public because it is used in the dispatch package :\\",
+      "parentUuid": "b36c75a7_2b64f698",
+      "range": {
+        "startLine": 101,
+        "startChar": 0,
+        "endLine": 101,
+        "endChar": 4
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "f5c6acc3_1a379ab4",
+        "filename": "core/command/read.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "It doesn\u0027t.  Collection.go (e.g. see Find()) ensures the read concern is nil if a transaction is in progress.  I think ideally, as Kris, mentioned, Command won\u0027t know anything about whether to add fields or not (should be constructed correctly to begin with) but unfortunately we have a lot of conditional logic sort of mixed in which complicates things making it unclear at which level of abstraction a certain piece of logic should be added.",
+      "parentUuid": "b40b4a00_20274f9e",
+      "range": {
+        "startLine": 190,
+        "startChar": 0,
+        "endLine": 190,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "db6b8ee3_d3241e93",
         "filename": "core/dispatch/aggregate.go",
         "patchSetId": 5
@@ -91,6 +163,30 @@
       "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d164e59d_7fe51fbf",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "I\u0027ve moved more of this logic into a separate function.  The only thing that didn\u0027t change was runcommand which is a special case because it is supposed to use the runcommand\u0027s explicitly provided read pref since it\u0027s a operation level read pref.",
+      "parentUuid": "db6b8ee3_d3241e93",
+      "range": {
+        "startLine": 61,
+        "startChar": 3,
+        "endLine": 61,
+        "endChar": 7
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "2ba80117_41c2ca81",
+        "filename": "core/dispatch/list_collections.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "Probably not.  I\u0027ll remove.",
+      "parentUuid": "37308154_2f60ca3d",
+      "range": {
+        "startLine": 47,
+        "startChar": 3,
+        "endLine": 47,
+        "endChar": 7
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2d065737_a1dd9c13",
         "filename": "core/result/result.go",
         "patchSetId": 5
@@ -137,6 +257,30 @@
       "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "02d7e50d_651bddee",
+        "filename": "core/result/result.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-15T18:25:14Z",
+      "side": 1,
+      "message": "I think I misunderstood how the decoding actually happens.  It looks like decodeCommandOpMsg() actually checks if an error is present and if so actually decodes into a command.Error, and not, as I originally thought, these result structs.  I\u0027ve deleted the ErrorLabels fields.",
+      "parentUuid": "2d065737_a1dd9c13",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 20,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
