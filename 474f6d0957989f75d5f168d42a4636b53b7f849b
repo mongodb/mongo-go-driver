@@ -143,6 +143,30 @@
     },
     {
       "key": {
+        "uuid": "245f9976_30a2a8eb",
+        "filename": "core/command/read.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T21:06:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f5c6acc3_1a379ab4",
+      "range": {
+        "startLine": 190,
+        "startChar": 0,
+        "endLine": 190,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "db6b8ee3_d3241e93",
         "filename": "core/dispatch/aggregate.go",
         "patchSetId": 5
@@ -178,6 +202,30 @@
       "side": 1,
       "message": "I\u0027ve moved more of this logic into a separate function.  The only thing that didn\u0027t change was runcommand which is a special case because it is supposed to use the runcommand\u0027s explicitly provided read pref since it\u0027s a operation level read pref.",
       "parentUuid": "db6b8ee3_d3241e93",
+      "range": {
+        "startLine": 61,
+        "startChar": 3,
+        "endLine": 61,
+        "endChar": 7
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8f1c790c_9cd5221e",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T21:06:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d164e59d_7fe51fbf",
       "range": {
         "startLine": 61,
         "startChar": 3,
@@ -272,6 +320,30 @@
       "side": 1,
       "message": "I think I misunderstood how the decoding actually happens.  It looks like decodeCommandOpMsg() actually checks if an error is present and if so actually decodes into a command.Error, and not, as I originally thought, these result structs.  I\u0027ve deleted the ErrorLabels fields.",
       "parentUuid": "2d065737_a1dd9c13",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 20,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "44fea787_eb5be32c",
+        "filename": "core/result/result.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T21:06:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "02d7e50d_651bddee",
       "range": {
         "startLine": 20,
         "startChar": 0,

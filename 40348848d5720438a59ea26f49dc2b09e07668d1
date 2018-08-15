@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8b801e51_61afe482",
+        "filename": "mongo/session.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T21:06:53Z",
+      "side": 1,
+      "message": "Should this be set back to false before this method returns?",
+      "range": {
+        "startLine": 137,
+        "startChar": 0,
+        "endLine": 137,
+        "endChar": 1
+      },
+      "revId": "40348848d5720438a59ea26f49dc2b09e07668d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
