@@ -25,6 +25,23 @@
     },
     {
       "key": {
+        "uuid": "c007e7e4_159b8385",
+        "filename": "core/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-15T22:25:07Z",
+      "side": 1,
+      "message": "So we are going to UnmarshalBSON so that we can MarshalBSON back on line 36?",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1671af8e_d88b2db6",
         "filename": "core/command/command.go",
         "patchSetId": 1
@@ -48,6 +65,40 @@
     },
     {
       "key": {
+        "uuid": "5de4943a_82f89156",
+        "filename": "core/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-15T22:25:07Z",
+      "side": 1,
+      "message": "Can we prefix this with Is?\n\nIsWriteConcernErrorRetryable(...)",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bee0d43c_e9924c29",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-15T22:25:07Z",
+      "side": 1,
+      "message": "does this need to be exported?",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "babb3fb3_6e2cbba0",
         "filename": "core/command/insert.go",
         "patchSetId": 1
@@ -59,6 +110,23 @@
       "writtenOn": "2018-08-14T15:19:06Z",
       "side": 1,
       "message": "This logic basically attempts to retry the last write the last batch that failed (previous successful batches aren\u0027t retried).  It increments the transaction number along with each batch. This is how I interpreted the spec with regard to multiple writes (https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst#executing-retryable-write-commands), but let me know if this needs to be changed.",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c4f6746_60e5a3c0",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-15T22:25:07Z",
+      "side": 1,
+      "message": "what type of errors are these going to be and should we always retry them?",
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -151,6 +219,23 @@
         "endLine": 57,
         "endChar": 91
       },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ffefff3f_a26ef748",
+        "filename": "core/dispatch/find_one_and_delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-15T22:25:07Z",
+      "side": 1,
+      "message": "This feels really weird. It might be required because of the interaction between command and dispatch, but mutating the fields on something provided to us is odd. Isn\u0027t RetryWriter set by a user at a high level?\n\nAnd yeah, we do this elsewhere (above with cmd.Session).  It all feels wrong to me...",
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
