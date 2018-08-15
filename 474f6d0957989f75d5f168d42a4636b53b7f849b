@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b795ced3_3f4b974e",
+        "filename": "core/command/count_documents.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "Does this need to call Session.ApplyCommand?  If so, it\u0027s worrisome that no tests fail as a result, and why it would be better to centralize the call to ApplyCommand.",
+      "range": {
+        "startLine": 140,
+        "startChar": 0,
+        "endLine": 140,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b36c75a7_2b64f698",
+        "filename": "core/command/errors.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "Should this be public?  Since the driver is doing the retries internally, I don\u0027t think it should.",
+      "range": {
+        "startLine": 101,
+        "startChar": 0,
+        "endLine": 101,
+        "endChar": 4
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b40b4a00_20274f9e",
+        "filename": "core/command/read.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "I\u0027m not clear on how this ensures that the read concern is only added to the first command in the transaction",
+      "range": {
+        "startLine": 190,
+        "startChar": 0,
+        "endLine": 190,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "db6b8ee3_d3241e93",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "Consider whether we can DRY this up (it\u0027s repeated in five other places) by pulling out some of the logic into a common method.\n\nAlso, I\u0027m not sure we need the topo.SupportsSessions check here.  If we\u0027re trying to run a transaction on a 3.4- server, we\u0027ve got bigger problems and shouldn\u0027t be doing a defensive check here just for read pref.",
+      "range": {
+        "startLine": 61,
+        "startChar": 3,
+        "endLine": 61,
+        "endChar": 7
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "37308154_2f60ca3d",
+        "filename": "core/dispatch/list_collections.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "Is this code tested?  You can\u0027t even call listCollections command in a transaction",
+      "range": {
+        "startLine": 47,
+        "startChar": 3,
+        "endLine": 47,
+        "endChar": 7
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2d065737_a1dd9c13",
+        "filename": "core/result/result.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "I\u0027m not clear why ErrorLabels are needed on all of these structs.",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 20,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

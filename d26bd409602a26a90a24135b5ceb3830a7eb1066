@@ -1,0 +1,211 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "89450df5_da9c001d",
+        "filename": "core/command/aggregate.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "Can this call to ApplyCommand happen lower down, like in cmd.RoundTrip?",
+      "range": {
+        "startLine": 181,
+        "startChar": 0,
+        "endLine": 181,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cc1cb000_4902dc42",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "It\u0027s confusing to have this logic in a method called addSessionId.  Consider renaming the method to something like addSessionFields",
+      "range": {
+        "startLine": 92,
+        "startChar": 1,
+        "endLine": 92,
+        "endChar": 3
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f4107527_fb3062f9",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "Is there a way to centralize all calls to client.ApplyCommand here, rather than having it both here and in aggregate.go, count.go, etc?",
+      "range": {
+        "startLine": 106,
+        "startChar": 0,
+        "endLine": 106,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7341aceb_746a2133",
+        "filename": "core/command/insert.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "This check is also done in Collection.InsertOne.  Does it need to be in both places?",
+      "range": {
+        "startLine": 137,
+        "startChar": 0,
+        "endLine": 137,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "768f78c9_02ab82f2",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "Why the TODO still?",
+      "range": {
+        "startLine": 193,
+        "startChar": 0,
+        "endLine": 193,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a39d5024_8dcfa391",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "There seem to be a lot of place where users of this class say \n\n     if client.TransactionInProgress() || c.TransactionStarting()\n\nCan we have a single method that encapsulates this?",
+      "range": {
+        "startLine": 198,
+        "startChar": 17,
+        "endLine": 198,
+        "endChar": 38
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "024ea992_5cecc40e",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "Can we move this to the bottom, after any error handling?",
+      "range": {
+        "startLine": 229,
+        "startChar": 0,
+        "endLine": 229,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "12308cf4_647d7bc3",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "\"an error\"",
+      "range": {
+        "startLine": 272,
+        "startChar": 3,
+        "endLine": 272,
+        "endChar": 6
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0048617f_65503e2c",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T15:29:41Z",
+      "side": 1,
+      "message": "No need to set it to InProgress if it\u0027s already InProgress.  Just makes the intent less clear.",
+      "range": {
+        "startLine": 309,
+        "startChar": 0,
+        "endLine": 309,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
