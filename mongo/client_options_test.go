@@ -100,6 +100,7 @@ func TestClientOptions_chainAll(t *testing.T) {
 		ReadConcern(rc).
 		ReadPreference(rp).
 		ReplicaSet("foo").
+		RetryWrites(true).
 		ServerSelectionTimeout(time.Second).
 		Single(false).
 		SocketTimeout(2 * time.Second).
@@ -158,6 +159,8 @@ func TestClientOptions_chainAll(t *testing.T) {
 		ReadConcern:    rc,
 		ReadPreference: rp,
 		WriteConcern:   wc,
+		RetryWrites:    true,
+		RetryWritesSet: true,
 	}
 
 	client, err := opts.Unbundle(connstring.ConnString{})

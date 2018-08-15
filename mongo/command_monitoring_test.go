@@ -43,7 +43,7 @@ var monitor = &event.CommandMonitor{
 	},
 }
 
-func createMonitoredClient(t *testing.T) *Client {
+func createMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client {
 	return &Client{
 		topology:       testutil.MonitoredTopology(t, monitor),
 		connString:     testutil.ConnString(t),
@@ -113,7 +113,7 @@ func runCmTestFile(t *testing.T, filepath string) {
 	doc, err := bson.ParseExtJSONObject(string(content))
 	testhelpers.RequireNil(t, err, "error converting JSON to BSON: %s", err)
 
-	client := createMonitoredClient(t)
+	client := createMonitoredClient(t, monitor)
 	db := client.Database(doc.Lookup("database_name").StringValue())
 
 	serverVersionStr, err := getServerVersion(db)
