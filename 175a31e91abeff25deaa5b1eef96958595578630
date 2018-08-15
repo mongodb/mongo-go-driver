@@ -2,6 +2,52 @@
   "comments": [
     {
       "key": {
+        "uuid": "39bc296f_0b0fc8a8",
+        "filename": "core/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-15T14:41:30Z",
+      "side": 1,
+      "message": "Can we use a switch statement instead of an if block? I think it\u0027ll be a little easier to understand.",
+      "range": {
+        "startLine": 23,
+        "startChar": 1,
+        "endLine": 23,
+        "endChar": 41
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1671af8e_d88b2db6",
+        "filename": "core/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-15T14:41:30Z",
+      "side": 1,
+      "message": "I don\u0027t think we should return two errors here. The consumer can check the type of the error to determine if it\u0027s a parsing error or if it\u0027s a command.Error.",
+      "range": {
+        "startLine": 60,
+        "startChar": 36,
+        "endLine": 60,
+        "endChar": 48
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "babb3fb3_6e2cbba0",
         "filename": "core/command/insert.go",
         "patchSetId": 1
@@ -13,6 +59,144 @@
       "writtenOn": "2018-08-14T15:19:06Z",
       "side": 1,
       "message": "This logic basically attempts to retry the last write the last batch that failed (previous successful batches aren\u0027t retried).  It increments the transaction number along with each batch. This is how I interpreted the spec with regard to multiple writes (https://github.com/mongodb/specifications/blob/master/source/retryable-writes/retryable-writes.rst#executing-retryable-write-commands), but let me know if this needs to be changed.",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c937d61f_d83dc280",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-15T14:41:30Z",
+      "side": 1,
+      "message": "This is a good example of why we should only return one error. I think in almost all cases we would just return the resulting error or further inspect it.",
+      "range": {
+        "startLine": 45,
+        "startChar": 1,
+        "endLine": 45,
+        "endChar": 40
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3cc90be3_520df0c7",
+        "filename": "core/command/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-15T14:41:30Z",
+      "side": 1,
+      "message": "It seems like this information should be able to be carried in the Session itself.",
+      "range": {
+        "startLine": 24,
+        "startChar": 1,
+        "endLine": 24,
+        "endChar": 18
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "39bf49a7_dbd80cea",
+        "filename": "core/command/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-15T14:41:30Z",
+      "side": 1,
+      "message": "This seems really strange, that a dependency of this package might return an error from this package. I know that since it\u0027s an interface it\u0027s possible, it just feels like a code smell.",
+      "range": {
+        "startLine": 212,
+        "startChar": 2,
+        "endLine": 214,
+        "endChar": 3
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8217084a_5c586b51",
+        "filename": "core/dispatch/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-15T14:41:30Z",
+      "side": 1,
+      "message": "Is there a reason this and the else statement aren\u0027t just one if statement? The code within them is the same.",
+      "range": {
+        "startLine": 57,
+        "startChar": 1,
+        "endLine": 57,
+        "endChar": 91
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "20aa64f7_53eb4dea",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-15T14:41:30Z",
+      "side": 1,
+      "message": "Why do we only go this path for OP_MSG and not for OP_REPLY as well?",
+      "range": {
+        "startLine": 34,
+        "startChar": 22,
+        "endLine": 34,
+        "endChar": 42
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5104f25b_9fc94f34",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-15T14:41:30Z",
+      "side": 1,
+      "message": "I don\u0027t think we should actually return this error and should let code at a higher level handle the decoding. I don\u0027t think it\u0027s too big of an issue to decode an error twice. If it turns out to be a performance concern we can revisit this later.",
+      "range": {
+        "startLine": 35,
+        "startChar": 2,
+        "endLine": 35,
+        "endChar": 32
+      },
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
