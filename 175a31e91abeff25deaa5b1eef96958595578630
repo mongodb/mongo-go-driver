@@ -157,6 +157,75 @@
     },
     {
       "key": {
+        "uuid": "b184908b_23f100ff",
+        "filename": "core/dispatch/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:00:38Z",
+      "side": 1,
+      "message": "I don\u0027t think originalErr can be nil if ok is true.",
+      "range": {
+        "startLine": 57,
+        "startChar": 51,
+        "endLine": 57,
+        "endChar": 62
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "53e3c962_7f28ed5d",
+        "filename": "core/dispatch/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:00:38Z",
+      "side": 1,
+      "message": "Why does this return res but on line 62 it returns result.Insert{}",
+      "range": {
+        "startLine": 71,
+        "startChar": 10,
+        "endLine": 71,
+        "endChar": 13
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dc35d2b7_d43cd14d",
+        "filename": "core/dispatch/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:00:38Z",
+      "side": 1,
+      "message": "Why do we have to check both the topology and the description?  Can the former be removed?",
+      "range": {
+        "startLine": 75,
+        "startChar": 1,
+        "endLine": 75,
+        "endChar": 7
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "20aa64f7_53eb4dea",
         "filename": "core/topology/connection.go",
         "patchSetId": 1
@@ -196,6 +265,75 @@
         "startChar": 2,
         "endLine": 35,
         "endChar": 32
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f4756d09_f51f39ce",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:00:38Z",
+      "side": 1,
+      "message": "See https://github.com/mongodb/specifications/blob/master/source/server-discovery-and-monitoring/server-discovery-and-monitoring.rst#error-handling.  There are more cases that should invalidate the server (and clear the pool as well).",
+      "range": {
+        "startLine": 49,
+        "startChar": 8,
+        "endLine": 49,
+        "endChar": 9
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ce85bb7a_acbe1182",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:00:38Z",
+      "side": 1,
+      "message": "Will this also clear the connection pool?  It\u0027s supposed to.",
+      "range": {
+        "startLine": 53,
+        "startChar": 2,
+        "endLine": 53,
+        "endChar": 4
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e2ccd100_b8efa75a",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:00:38Z",
+      "side": 1,
+      "message": "Support for retryWrites should also be added to ConnString",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 39,
+        "endChar": 1
       },
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
