@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "16d82381_5baab0d9",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:14:22Z",
+      "side": 1,
+      "message": "Should we be calling Disconnect on this client?",
+      "range": {
+        "startLine": 69,
+        "startChar": 0,
+        "endLine": 69,
+        "endChar": 1
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ae568f65_3a959b00",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 180,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:14:22Z",
+      "side": 1,
+      "message": "Should we be calling Disconnect on this client?",
+      "range": {
+        "startLine": 180,
+        "startChar": 2,
+        "endLine": 180,
+        "endChar": 8
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c0eae44_3a4c8a4f",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:14:22Z",
+      "side": 1,
+      "message": "Weird for this test to be using a method in transactions_test?  Can we pull it to somewhere central?",
+      "range": {
+        "startLine": 213,
+        "startChar": 2,
+        "endLine": 213,
+        "endChar": 18
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cbd361e3_692cbbfd",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:14:22Z",
+      "side": 1,
+      "message": "Remove comment",
+      "range": {
+        "startLine": 102,
+        "startChar": 0,
+        "endLine": 102,
+        "endChar": 1
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7d813c4d_44a97960",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-15T20:14:22Z",
+      "side": 1,
+      "message": "Why were all these failpoint-related changes in this file necessary for retryable writes?",
+      "range": {
+        "startLine": 304,
+        "startChar": 0,
+        "endLine": 304,
+        "endChar": 4
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
