@@ -84,6 +84,24 @@
     },
     {
       "key": {
+        "uuid": "c0d4215b_3ee02d3d",
+        "filename": "core/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T18:08:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "af92375b_971a18ea",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1671af8e_d88b2db6",
         "filename": "core/command/command.go",
         "patchSetId": 1
@@ -166,6 +184,24 @@
     },
     {
       "key": {
+        "uuid": "cddc2e25_8a30268c",
+        "filename": "core/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T18:08:21Z",
+      "side": 1,
+      "message": "Ack. I\u0027ll let Kris speak to that. The method right below this one starts with Is, so I was looking at consistency.",
+      "parentUuid": "717e94d7_e4641150",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bee0d43c_e9924c29",
         "filename": "core/command/insert.go",
         "patchSetId": 1
@@ -201,6 +237,24 @@
     },
     {
       "key": {
+        "uuid": "4af9e6a6_470edf14",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T18:08:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "69cb8606_aeb6810b",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "babb3fb3_6e2cbba0",
         "filename": "core/command/insert.go",
         "patchSetId": 1
@@ -215,6 +269,24 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8bb53ce6_3833802b",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T18:08:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "babb3fb3_6e2cbba0",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -247,6 +319,24 @@
       "side": 1,
       "message": "It looks like we can ignore most of these errors since all retryable errors that we know of will be discovered in roundtrip and when we look at the writeconcern error I guess.",
       "parentUuid": "8c4f6746_60e5a3c0",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "aa449d87_9b377c90",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T18:08:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "c6f6a41f_2e4fe2a6",
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -470,6 +560,24 @@
       "side": 1,
       "message": "The whole mutating fields on things provided to us is an antipattern used all over the driver, especially with command.  I anticipate this problem being at least partially resolved when command/dispatch get refactored into two pieces.  I suppose we could have collection.go check to see what retrywrites should be set to, but I wasn\u0027t sure if that was the right level to put that logic.  Let me know what you think would be best.",
       "parentUuid": "ffefff3f_a26ef748",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "82b770ce_90371ae3",
+        "filename": "core/dispatch/find_one_and_delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T18:08:21Z",
+      "side": 1,
+      "message": "oy... yeah, so now we are mutating the command\u0027s session. Which is also weird... who sets it back to it\u0027s old value after we are done?\n\nIf you can inject this in from the collection (which knows about the user\u0027s choice) and we don\u0027t need to mutate this thing at all, that\u0027d be ideal. Might be worth discussing with Kris if it\u0027s worth messing with this now or making sure it gets handled during the network refactor.",
+      "parentUuid": "248b9c58_8b7244df",
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
