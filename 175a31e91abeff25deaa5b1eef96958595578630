@@ -617,6 +617,30 @@
     },
     {
       "key": {
+        "uuid": "69a70502_7a8d96e9",
+        "filename": "core/dispatch/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T17:48:04Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d9e2d2a7_5c039bd5",
+      "range": {
+        "startLine": 75,
+        "startChar": 1,
+        "endLine": 75,
+        "endChar": 7
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "20aa64f7_53eb4dea",
         "filename": "core/topology/connection.go",
         "patchSetId": 1
@@ -758,6 +782,30 @@
     },
     {
       "key": {
+        "uuid": "f1dae95f_1d16dcfb",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T17:48:04Z",
+      "side": 1,
+      "message": "That\u0027s a good idea.  Just link the ticket here and then resolve this.",
+      "parentUuid": "9bc1a62b_6d408226",
+      "range": {
+        "startLine": 49,
+        "startChar": 8,
+        "endLine": 49,
+        "endChar": 9
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ce85bb7a_acbe1182",
         "filename": "core/topology/connection.go",
         "patchSetId": 1
@@ -802,6 +850,30 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b21fb32b_027e4632",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T17:48:04Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9f18a1ea_5cd401ab",
+      "range": {
+        "startLine": 53,
+        "startChar": 2,
+        "endLine": 53,
+        "endChar": 4
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
