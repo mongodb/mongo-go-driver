@@ -7,7 +7,7 @@ CORE_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./core _test)
 PKGS = $(BSON_PKGS) $(MONGO_PKGS) $(CORE_PKGS)
 TEST_PKGS = $(BSON_TEST_PKGS) $(MONGO_TEST_PKGS) $(CORE_TEST_PKGS)
 
-TEST_TIMEOUT = 300
+TEST_TIMEOUT = 600
 
 .PHONY: default
 default: check-fmt vet build-examples lint errcheck test-cover test-race
