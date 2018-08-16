@@ -220,6 +220,24 @@
     },
     {
       "key": {
+        "uuid": "49602058_39440989",
+        "filename": "core/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T19:29:17Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "52233e6c_432c0ba7",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bee0d43c_e9924c29",
         "filename": "core/command/insert.go",
         "patchSetId": 1
@@ -523,6 +541,30 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de5520fe_60941436",
+        "filename": "core/command/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T19:29:17Z",
+      "side": 1,
+      "message": "Welp.  I removed them and the tests still all pass.  I guess we can leave it off?",
+      "parentUuid": "13a2720d_075b19b0",
+      "range": {
+        "startLine": 212,
+        "startChar": 2,
+        "endLine": 214,
+        "endChar": 3
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -1067,6 +1109,30 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "88feab76_eac1ab3f",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T19:29:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c76a7469_1d2ed176",
+      "range": {
+        "startLine": 49,
+        "startChar": 8,
+        "endLine": 49,
+        "endChar": 9
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {

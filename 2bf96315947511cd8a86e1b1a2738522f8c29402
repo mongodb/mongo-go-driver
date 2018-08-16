@@ -22,6 +22,30 @@
       "revId": "2bf96315947511cd8a86e1b1a2738522f8c29402",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d0685024_196a032d",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T19:29:17Z",
+      "side": 1,
+      "message": "Yes, but extractError might return a bson error which we probably wouldn\u0027t want to return to the user?",
+      "parentUuid": "652724f6_64eb4e84",
+      "range": {
+        "startLine": 46,
+        "startChar": 4,
+        "endLine": 46,
+        "endChar": 43
+      },
+      "revId": "2bf96315947511cd8a86e1b1a2738522f8c29402",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
