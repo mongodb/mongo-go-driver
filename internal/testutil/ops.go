@@ -104,6 +104,7 @@ func InsertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern
 		description.WriteSelector(),
 		id,
 		&session.Pool{},
+		false,
 	)
 	require.NoError(t, err)
 }

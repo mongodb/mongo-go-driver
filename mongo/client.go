@@ -36,6 +36,7 @@ type Client struct {
 	topology        *topology.Topology
 	connString      connstring.ConnString
 	localThreshold  time.Duration
+	retryWrites     bool
 	clock           *session.ClusterClock
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
@@ -131,6 +132,8 @@ func (c *Client) StartSession(opts ...sessionopt.Session) (*Session, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	sess.RetryWrite = c.retryWrites
 
 	return &Session{
 		Client: sess,
