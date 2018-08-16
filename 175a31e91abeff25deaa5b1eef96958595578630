@@ -202,6 +202,24 @@
     },
     {
       "key": {
+        "uuid": "52233e6c_432c0ba7",
+        "filename": "core/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-16T19:11:01Z",
+      "side": 1,
+      "message": "I think it\u0027s okay to have Is here.",
+      "parentUuid": "717e94d7_e4641150",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bee0d43c_e9924c29",
         "filename": "core/command/insert.go",
         "patchSetId": 1
@@ -484,6 +502,30 @@
     },
     {
       "key": {
+        "uuid": "13a2720d_075b19b0",
+        "filename": "core/command/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-16T19:11:01Z",
+      "side": 1,
+      "message": "Did we figure out why this is here?",
+      "parentUuid": "188b849f_02944e5b",
+      "range": {
+        "startLine": 212,
+        "startChar": 2,
+        "endLine": 214,
+        "endChar": 3
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8217084a_5c586b51",
         "filename": "core/dispatch/delete.go",
         "patchSetId": 1
@@ -519,6 +561,30 @@
       "side": 1,
       "message": "basically one returns an empty result while the other returns the result with the error.  I don\u0027t actually think it matters so I\u0027ll merge the two branches and just return both the result and error.",
       "parentUuid": "8217084a_5c586b51",
+      "range": {
+        "startLine": 57,
+        "startChar": 1,
+        "endLine": 57,
+        "endChar": 91
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "17950269_32453946",
+        "filename": "core/dispatch/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-16T19:11:01Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7ce361b5_76c78fa6",
       "range": {
         "startLine": 57,
         "startChar": 1,
@@ -814,6 +880,30 @@
     },
     {
       "key": {
+        "uuid": "cb707221_115243f0",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-16T19:11:01Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "35d336b6_a6b5b654",
+      "range": {
+        "startLine": 34,
+        "startChar": 22,
+        "endLine": 34,
+        "endChar": 42
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5104f25b_9fc94f34",
         "filename": "core/topology/connection.go",
         "patchSetId": 1
@@ -849,6 +939,30 @@
       "side": 1,
       "message": "This is actually a mistake because of name shadowing (whoops!).  I\u0027ll rename it.",
       "parentUuid": "5104f25b_9fc94f34",
+      "range": {
+        "startLine": 35,
+        "startChar": 2,
+        "endLine": 35,
+        "endChar": 32
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a2779111_8713a8fa",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-16T19:11:01Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ce1b6085_76273ff6",
       "range": {
         "startLine": 35,
         "startChar": 2,
@@ -920,6 +1034,30 @@
       "side": 1,
       "message": "That\u0027s a good idea.  Just link the ticket here and then resolve this.",
       "parentUuid": "9bc1a62b_6d408226",
+      "range": {
+        "startLine": 49,
+        "startChar": 8,
+        "endLine": 49,
+        "endChar": 9
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c76a7469_1d2ed176",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-16T19:11:01Z",
+      "side": 1,
+      "message": "Let\u0027s add a TODO(GODRIVER-524) comment here.",
+      "parentUuid": "f1dae95f_1d16dcfb",
       "range": {
         "startLine": 49,
         "startChar": 8,
