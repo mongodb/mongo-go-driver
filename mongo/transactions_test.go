@@ -49,19 +49,17 @@ type transTestCase struct {
 }
 
 type failPoint struct {
-	ConfigureFailPoint string `json:"configureFailPoint"`
-	Mode               struct {
-		Times int32 `json:"times"`
-		Skip  int32 `json:"skip"`
-	} `json:"mode"`
-	Data *failPointData `json:"data"`
+	ConfigureFailPoint string          `json:"configureFailPoint"`
+	Mode               json.RawMessage `json:"mode"`
+	Data               *failPointData  `json:"data"`
 }
 
 type failPointData struct {
-	FailCommands      []string `json:"failCommands"`
-	CloseConnection   bool     `json:"closeConnection"`
-	ErrorCode         int32    `json:"errorCode"`
-	WriteConcernError *struct {
+	FailCommands                  []string `json:"failCommands"`
+	CloseConnection               bool     `json:"closeConnection"`
+	ErrorCode                     int32    `json:"errorCode"`
+	FailBeforeCommitExceptionCode int32    `json:"failBeforeCommitExceptionCode"`
+	WriteConcernError             *struct {
 		Code   int32  `json:"code"`
 		Errmsg string `json:"errmsg"`
 	} `json:"writeConcernError"`
@@ -101,6 +99,7 @@ var transStartedChan = make(chan *event.CommandStartedEvent, 100)
 
 var transMonitor = &event.CommandMonitor{
 	Started: func(cse *event.CommandStartedEvent) {
+		//fmt.Printf("STARTED: %v\n", cse)
 		transStartedChan <- cse
 	},
 }
@@ -129,10 +128,6 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 	}
 
 	for _, test := range testfile.Tests {
-		// TODO reenable tests once retryable writes implemented
-		if strings.Contains(filepath, "retryable-writes") {
-			continue
-		}
 		runTransactionsTestCase(t, test, testfile, dbAdmin)
 	}
 
@@ -146,7 +141,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 		// configure failpoint if specified
 		if test.FailPoint != nil {
-			doc := createFailPointDoc(test.FailPoint)
+			doc := createFailPointDoc(t, test.FailPoint)
 			_, err := dbAdmin.RunCommand(ctx, doc)
 			require.NoError(t, err)
 
@@ -306,45 +301,70 @@ func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonit
 	return c
 }
 
-func createFailPointDoc(failPoint *failPoint) *bson.Document {
-	failCommandElems := make([]*bson.Value, len(failPoint.Data.FailCommands))
-	for i, str := range failPoint.Data.FailCommands {
-		failCommandElems[i] = bson.VC.String(str)
-	}
-	modeDoc := bson.NewDocument()
-	if failPoint.Mode.Times != 0 {
-		modeDoc.Append(bson.EC.Int32("times", failPoint.Mode.Times))
-	}
-	if failPoint.Mode.Skip != 0 {
-		modeDoc.Append(bson.EC.Int32("skip", failPoint.Mode.Skip))
-	}
-
-	dataDoc := bson.NewDocument(
-		bson.EC.ArrayFromElements("failCommands", failCommandElems...),
-	)
-
-	if failPoint.Data.CloseConnection {
-		dataDoc.Append(bson.EC.Boolean("closeConnection", failPoint.Data.CloseConnection))
-	}
-
-	if failPoint.Data.ErrorCode != 0 {
-		dataDoc.Append(bson.EC.Int32("errorCode", failPoint.Data.ErrorCode))
-	}
-
-	if failPoint.Data.WriteConcernError != nil {
-		dataDoc.Append(
-			bson.EC.SubDocument("writeConcernError", bson.NewDocument(
-				bson.EC.Int32("code", failPoint.Data.WriteConcernError.Code),
-				bson.EC.String("errmsg", failPoint.Data.WriteConcernError.Errmsg),
-			)),
-		)
-	}
-
-	return bson.NewDocument(
+func createFailPointDoc(t *testing.T, failPoint *failPoint) *bson.Document {
+	failDoc := bson.NewDocument(
 		bson.EC.String("configureFailPoint", failPoint.ConfigureFailPoint),
-		bson.EC.SubDocument("mode", modeDoc),
-		bson.EC.SubDocument("data", dataDoc),
 	)
+
+	modeBytes, err := failPoint.Mode.MarshalJSON()
+	require.NoError(t, err)
+
+	var modeStruct struct {
+		Times int32 `json:"times"`
+		Skip  int32 `json:"skip"`
+	}
+	err = json.Unmarshal(modeBytes, &modeStruct)
+	if err != nil {
+		failDoc.Append(bson.EC.String("mode", "alwaysOn"))
+	} else {
+		modeDoc := bson.NewDocument()
+		if modeStruct.Times != 0 {
+			modeDoc.Append(bson.EC.Int32("times", modeStruct.Times))
+		}
+		if modeStruct.Skip != 0 {
+			modeDoc.Append(bson.EC.Int32("skip", modeStruct.Skip))
+		}
+		failDoc.Append(bson.EC.SubDocument("mode", modeDoc))
+	}
+
+	if failPoint.Data != nil {
+		dataDoc := bson.NewDocument()
+
+		if failPoint.Data.FailCommands != nil {
+			failCommandElems := make([]*bson.Value, len(failPoint.Data.FailCommands))
+			for i, str := range failPoint.Data.FailCommands {
+				failCommandElems[i] = bson.VC.String(str)
+			}
+			dataDoc.Append(bson.EC.ArrayFromElements("failCommands", failCommandElems...))
+		}
+
+		if failPoint.Data.CloseConnection {
+			dataDoc.Append(bson.EC.Boolean("closeConnection", failPoint.Data.CloseConnection))
+		}
+
+		if failPoint.Data.ErrorCode != 0 {
+			dataDoc.Append(bson.EC.Int32("errorCode", failPoint.Data.ErrorCode))
+		}
+
+		if failPoint.Data.WriteConcernError != nil {
+			dataDoc.Append(
+				bson.EC.SubDocument("writeConcernError", bson.NewDocument(
+					bson.EC.Int32("code", failPoint.Data.WriteConcernError.Code),
+					bson.EC.String("errmsg", failPoint.Data.WriteConcernError.Errmsg),
+				)),
+			)
+		}
+
+		if failPoint.Data.FailBeforeCommitExceptionCode != 0 {
+			dataDoc.Append(
+				bson.EC.Int32("failBeforeCommitExceptionCode", failPoint.Data.FailBeforeCommitExceptionCode),
+			)
+		}
+
+		failDoc.Append(bson.EC.SubDocument("data", dataDoc))
+	}
+
+	return failDoc
 }
 
 func executeSessionOperation(op *transOperation, sess *Session) error {
@@ -613,41 +633,6 @@ func getArgMap(t *testing.T, args json.RawMessage) map[string]interface{} {
 	err := json.Unmarshal(args, &argmap)
 	require.NoError(t, err)
 	return argmap
-}
-
-// Mutates the client to add options
-func addClientOptions(c *Client, opts map[string]interface{}) {
-	for name, opt := range opts {
-		switch name {
-		case "retryWrites":
-			// TODO
-		case "w":
-			switch opt.(type) {
-			case float64:
-				c.writeConcern = writeconcern.New(writeconcern.W(int(opt.(float64))))
-			case string:
-				c.writeConcern = writeconcern.New(writeconcern.WMajority())
-			}
-		case "readConcernLevel":
-			c.readConcern = readconcern.New(readconcern.Level(opt.(string)))
-		case "readPreference":
-			c.readPreference = readPrefFromString(opt.(string))
-		}
-	}
-}
-
-// Mutates the collection to add options
-func addCollectionOptions(c *Collection, opts map[string]interface{}) {
-	for name, opt := range opts {
-		switch name {
-		case "readConcern":
-			c.readConcern = getReadConcern(opt)
-		case "writeConcern":
-			c.writeConcern = getWriteConcern(opt)
-		case "readPreference":
-			c.readPreference = readPrefFromString(opt.(map[string]interface{})["mode"].(string))
-		}
-	}
 }
 
 func getSessionOptions(opts map[string]interface{}) *sessionopt.SessionBundle {
