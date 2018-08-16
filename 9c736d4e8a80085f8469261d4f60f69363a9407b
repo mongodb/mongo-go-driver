@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "ac902707_3867739e",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T17:52:42Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "e0e158b0_cdf14d39",
+      "range": {
+        "startLine": 69,
+        "startChar": 0,
+        "endLine": 69,
+        "endChar": 1
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ae568f65_3a959b00",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 2
@@ -96,6 +120,30 @@
     },
     {
       "key": {
+        "uuid": "50ebdb7a_fcfaba40",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 180,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T17:52:42Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "5c9393b6_03c5ed11",
+      "range": {
+        "startLine": 180,
+        "startChar": 2,
+        "endLine": 180,
+        "endChar": 8
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2c0eae44_3a4c8a4f",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 2
@@ -131,6 +179,30 @@
       "side": 1,
       "message": "We can put it in the crud_util_test.go file, where all the shared code for these things go.  I\u0027d put some of this stuff in testutils, but we can\u0027t because of import cycles.",
       "parentUuid": "2c0eae44_3a4c8a4f",
+      "range": {
+        "startLine": 213,
+        "startChar": 2,
+        "endLine": 213,
+        "endChar": 18
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "13ccf9a9_5d9daed4",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T17:52:42Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a496c045_173a0d75",
       "range": {
         "startLine": 213,
         "startChar": 2,
