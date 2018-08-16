@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "df21515c_41ed69f5",
+        "filename": "core/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "39bc296f_0b0fc8a8",
+      "range": {
+        "startLine": 23,
+        "startChar": 1,
+        "endLine": 23,
+        "endChar": 41
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c007e7e4_159b8385",
         "filename": "core/command/command.go",
         "patchSetId": 1
@@ -39,6 +63,24 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "af92375b_971a18ea",
+        "filename": "core/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Yeah this was left over from when we did OP_MSG.  I changed it to just set the rdr directly to converted.Document, and it works",
+      "parentUuid": "c007e7e4_159b8385",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -65,6 +107,30 @@
     },
     {
       "key": {
+        "uuid": "fbe7bfa9_88a0ed8a",
+        "filename": "core/command/command.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 60,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1671af8e_d88b2db6",
+      "range": {
+        "startLine": 60,
+        "startChar": 36,
+        "endLine": 60,
+        "endChar": 48
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5de4943a_82f89156",
         "filename": "core/command/errors.go",
         "patchSetId": 1
@@ -82,6 +148,24 @@
     },
     {
       "key": {
+        "uuid": "717e94d7_e4641150",
+        "filename": "core/command/errors.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Sure, though I thought Go style usually preferred avoiding prefixes like \"get\", \"set\", \"is\", \"has\", no?",
+      "parentUuid": "5de4943a_82f89156",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bee0d43c_e9924c29",
         "filename": "core/command/insert.go",
         "patchSetId": 1
@@ -96,6 +180,24 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "69cb8606_aeb6810b",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "nope.  Changed to private.",
+      "parentUuid": "bee0d43c_e9924c29",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -133,6 +235,24 @@
     },
     {
       "key": {
+        "uuid": "c6f6a41f_2e4fe2a6",
+        "filename": "core/command/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 222,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "It looks like we can ignore most of these errors since all retryable errors that we know of will be discovered in roundtrip and when we look at the writeconcern error I guess.",
+      "parentUuid": "8c4f6746_60e5a3c0",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c937d61f_d83dc280",
         "filename": "core/command/opmsg.go",
         "patchSetId": 1
@@ -153,6 +273,30 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c34d8be_82e03d1a",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c937d61f_d83dc280",
+      "range": {
+        "startLine": 45,
+        "startChar": 1,
+        "endLine": 45,
+        "endChar": 40
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -179,6 +323,30 @@
     },
     {
       "key": {
+        "uuid": "ad64673a_63cec20c",
+        "filename": "core/command/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3cc90be3_520df0c7",
+      "range": {
+        "startLine": 24,
+        "startChar": 1,
+        "endLine": 24,
+        "endChar": 18
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "39bf49a7_dbd80cea",
         "filename": "core/command/write.go",
         "patchSetId": 1
@@ -199,6 +367,30 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "188b849f_02944e5b",
+        "filename": "core/command/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Yeah, I was a bit surprised that this was the case - also slightly confused why this didn\u0027t pop up when I ran the evergreen patch for transactions since this was a change in transactions.  I will investigate this further.",
+      "parentUuid": "39bf49a7_dbd80cea",
+      "range": {
+        "startLine": 212,
+        "startChar": 2,
+        "endLine": 214,
+        "endChar": 3
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -225,6 +417,30 @@
     },
     {
       "key": {
+        "uuid": "7ce361b5_76c78fa6",
+        "filename": "core/dispatch/delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "basically one returns an empty result while the other returns the result with the error.  I don\u0027t actually think it matters so I\u0027ll merge the two branches and just return both the result and error.",
+      "parentUuid": "8217084a_5c586b51",
+      "range": {
+        "startLine": 57,
+        "startChar": 1,
+        "endLine": 57,
+        "endChar": 91
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ffefff3f_a26ef748",
         "filename": "core/dispatch/find_one_and_delete.go",
         "patchSetId": 1
@@ -236,6 +452,24 @@
       "writtenOn": "2018-08-15T22:25:07Z",
       "side": 1,
       "message": "This feels really weird. It might be required because of the interaction between command and dispatch, but mutating the fields on something provided to us is odd. Isn\u0027t RetryWriter set by a user at a high level?\n\nAnd yeah, we do this elsewhere (above with cmd.Session).  It all feels wrong to me...",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "248b9c58_8b7244df",
+        "filename": "core/dispatch/find_one_and_delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "The whole mutating fields on things provided to us is an antipattern used all over the driver, especially with command.  I anticipate this problem being at least partially resolved when command/dispatch get refactored into two pieces.  I suppose we could have collection.go check to see what retrywrites should be set to, but I wasn\u0027t sure if that was the right level to put that logic.  Let me know what you think would be best.",
+      "parentUuid": "ffefff3f_a26ef748",
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -265,6 +499,30 @@
     },
     {
       "key": {
+        "uuid": "392a4563_425b4a64",
+        "filename": "core/dispatch/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b184908b_23f100ff",
+      "range": {
+        "startLine": 57,
+        "startChar": 51,
+        "endLine": 57,
+        "endChar": 62
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "53e3c962_7f28ed5d",
         "filename": "core/dispatch/insert.go",
         "patchSetId": 1
@@ -285,6 +543,30 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ee88ce05_6e75a730",
+        "filename": "core/dispatch/insert.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "This *technically* ensures it is consistent with original functionality but now that I think about it res will probably be nil (or empty result) anyway so might as well return res with err and merge the two if branches.",
+      "parentUuid": "53e3c962_7f28ed5d",
+      "range": {
+        "startLine": 71,
+        "startChar": 10,
+        "endLine": 71,
+        "endChar": 13
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -311,6 +593,30 @@
     },
     {
       "key": {
+        "uuid": "d9e2d2a7_5c039bd5",
+        "filename": "core/dispatch/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "This is an issue with how we check for session support.  One has the wire version while the other has the logicalsessiontimeout.  The topology is responsible for ensuring the sessiontimeout value is correct while wireversions are only associated with particular servers.",
+      "parentUuid": "dc35d2b7_d43cd14d",
+      "range": {
+        "startLine": 75,
+        "startChar": 1,
+        "endLine": 75,
+        "endChar": 7
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "20aa64f7_53eb4dea",
         "filename": "core/topology/connection.go",
         "patchSetId": 1
@@ -331,6 +637,30 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "35d336b6_a6b5b654",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "should be for both.  fixed.",
+      "parentUuid": "20aa64f7_53eb4dea",
+      "range": {
+        "startLine": 34,
+        "startChar": 22,
+        "endLine": 34,
+        "endChar": 42
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -357,6 +687,30 @@
     },
     {
       "key": {
+        "uuid": "ce1b6085_76273ff6",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "This is actually a mistake because of name shadowing (whoops!).  I\u0027ll rename it.",
+      "parentUuid": "5104f25b_9fc94f34",
+      "range": {
+        "startLine": 35,
+        "startChar": 2,
+        "endLine": 35,
+        "endChar": 32
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f4756d09_f51f39ce",
         "filename": "core/topology/connection.go",
         "patchSetId": 1
@@ -368,6 +722,30 @@
       "writtenOn": "2018-08-15T20:00:38Z",
       "side": 1,
       "message": "See https://github.com/mongodb/specifications/blob/master/source/server-discovery-and-monitoring/server-discovery-and-monitoring.rst#error-handling.  There are more cases that should invalidate the server (and clear the pool as well).",
+      "range": {
+        "startLine": 49,
+        "startChar": 8,
+        "endLine": 49,
+        "endChar": 9
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9bc1a62b_6d408226",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "I\u0027ve added some more checking for not master and recovering errors, but it seems like there\u0027s a lot more logic and without tests I can\u0027t be sure if the error logic I\u0027m putting is correct (also not even sure if this is supposed to be where we put it, although I didn\u0027t find the error handling logic anywhere in topology/server).  Would it make sense to work on this in a separate CR and open a ticket to implement sdam error handling?",
+      "parentUuid": "f4756d09_f51f39ce",
       "range": {
         "startLine": 49,
         "startChar": 8,
@@ -403,6 +781,30 @@
     },
     {
       "key": {
+        "uuid": "9f18a1ea_5cd401ab",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Yes, updateDescription() calls pool.Drain() if the server Kind is unknown.",
+      "parentUuid": "ce85bb7a_acbe1182",
+      "range": {
+        "startLine": 53,
+        "startChar": 2,
+        "endLine": 53,
+        "endChar": 4
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e2ccd100_b8efa75a",
         "filename": "mongo/client.go",
         "patchSetId": 1
@@ -423,6 +825,30 @@
       "revId": "175a31e91abeff25deaa5b1eef96958595578630",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "70729901_06e92ae7",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e2ccd100_b8efa75a",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 39,
+        "endChar": 1
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
