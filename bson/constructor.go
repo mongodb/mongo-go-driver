@@ -341,8 +341,9 @@ func (ElementConstructor) DateTime(key string, dt int64) *Element {
 }
 
 // Time creates a datetime element with the given key and value.
-func (c ElementConstructor) Time(key string, time time.Time) *Element {
-	return c.DateTime(key, time.Unix()*1000)
+func (c ElementConstructor) Time(key string, t time.Time) *Element {
+	// Apply nanoseconds to milliseconds conversion
+	return c.DateTime(key, t.UnixNano()/int64(time.Millisecond))
 }
 
 // Null creates a null element with the given key.

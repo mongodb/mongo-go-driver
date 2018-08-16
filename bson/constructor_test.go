@@ -279,14 +279,14 @@ func TestConstructor(t *testing.T) {
 				// key
 				0x66, 0x6f, 0x6f, 0x0,
 				// value
-				0xC8, 0x6C, 0x3C, 0xAF, 0x60, 0x1, 0x0, 0x0,
+				0xC9, 0x6C, 0x3C, 0xAF, 0x60, 0x1, 0x0, 0x0,
 			}
 
 			expected := &Element{&Value{start: 0, offset: 5, data: buf, d: nil}}
 
-			date := time.Date(2018, 1, 1, 1, 1, 1, 1, time.UTC)
+			date := time.Date(2018, 1, 1, 1, 1, 1, int(1*time.Millisecond), time.UTC)
 			actualTime := EC.Time("foo", date)
-			actualDateTime := EC.DateTime("foo", date.Unix()*1000)
+			actualDateTime := EC.DateTime("foo", date.UnixNano()/1e6)
 
 			requireElementsEqual(t, expected, actualTime)
 			requireElementsEqual(t, expected, actualDateTime)
