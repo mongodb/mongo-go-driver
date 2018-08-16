@@ -255,11 +255,17 @@ func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, r
 
 	err = rw.WriteWireMessage(ctx, wm)
 	if err != nil {
+		if _, ok := err.(Error); ok {
+			return nil, err
+		}
 		// Connection errors are transient
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 	wm, err = rw.ReadWireMessage(ctx)
 	if err != nil {
+		if _, ok := err.(Error); ok {
+			return nil, err
+		}
 		// Connection errors are transient
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
