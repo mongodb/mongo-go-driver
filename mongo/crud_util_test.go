@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
@@ -23,6 +25,41 @@ import (
 )
 
 // Various helper functions for crud related operations
+
+// Mutates the client to add options
+func addClientOptions(c *Client, opts map[string]interface{}) {
+	for name, opt := range opts {
+		switch name {
+		case "retryWrites":
+			c.retryWrites = opt.(bool)
+		case "w":
+			switch opt.(type) {
+			case float64:
+				c.writeConcern = writeconcern.New(writeconcern.W(int(opt.(float64))))
+			case string:
+				c.writeConcern = writeconcern.New(writeconcern.WMajority())
+			}
+		case "readConcernLevel":
+			c.readConcern = readconcern.New(readconcern.Level(opt.(string)))
+		case "readPreference":
+			c.readPreference = readPrefFromString(opt.(string))
+		}
+	}
+}
+
+// Mutates the collection to add options
+func addCollectionOptions(c *Collection, opts map[string]interface{}) {
+	for name, opt := range opts {
+		switch name {
+		case "readConcern":
+			c.readConcern = getReadConcern(opt)
+		case "writeConcern":
+			c.writeConcern = getWriteConcern(opt)
+		case "readPreference":
+			c.readPreference = readPrefFromString(opt.(map[string]interface{})["mode"].(string))
+		}
+	}
+}
 
 func executeCount(sess *Session, coll *Collection, args map[string]interface{}) (int64, error) {
 	var filter map[string]interface{}
@@ -624,11 +661,11 @@ func compareElements(t *testing.T, expected *bson.Element, actual *bson.Element)
 		expectedNum := expected.Value().Int64()
 		switch actual.Value().Type() {
 		case bson.TypeInt32:
-			require.Equal(t, int64(actual.Value().Int32()), expectedNum)
+			require.Equal(t, expectedNum, int64(actual.Value().Int32()), "For key %v", expected.Key())
 		case bson.TypeInt64:
-			require.Equal(t, actual.Value().Int64(), expectedNum)
+			require.Equal(t, expectedNum, actual.Value().Int64(), "For key %v\n", expected.Key())
 		case bson.TypeDouble:
-			require.Equal(t, int64(actual.Value().Double()), expectedNum)
+			require.Equal(t, expectedNum, int64(actual.Value().Double()), "For key %v\n", expected.Key())
 		}
 	} else if conv, ok := expected.Value().MutableDocumentOK(); ok {
 		actualConv, actualOk := actual.Value().MutableDocumentOK()
