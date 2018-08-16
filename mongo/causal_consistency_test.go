@@ -174,7 +174,7 @@ func TestCausalConsistency(t *testing.T) {
 		client := createSessionsMonitoredClient(t, ccMonitor)
 		sess, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error creating session: %s", err)
-		defer sess.EndSession()
+		defer sess.EndSession(ctx)
 
 		if sess.OperationTime != nil {
 			t.Fatal("operation time is not nil")
@@ -187,7 +187,7 @@ func TestCausalConsistency(t *testing.T) {
 		client := createSessionsMonitoredClient(t, ccMonitor)
 		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
 		testhelpers.RequireNil(t, err, "error creating session: %s", err)
-		defer sess.EndSession()
+		defer sess.EndSession(ctx)
 
 		db := client.Database("FirstCommandDB")
 		err = db.Drop(ctx)
@@ -214,7 +214,7 @@ func TestCausalConsistency(t *testing.T) {
 		client := createSessionsMonitoredClient(t, ccMonitor)
 		sess, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error starting session: %s", err)
-		defer sess.EndSession()
+		defer sess.EndSession(ctx)
 
 		db := client.Database("OptimeUpdateDB")
 		err = db.Drop(ctx)
@@ -243,7 +243,7 @@ func TestCausalConsistency(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				sess, err := client.StartSession(sessionopt.CausalConsistency(true))
 				testhelpers.RequireNil(t, err, "error creating session for %s: %s", tc.name, err)
-				defer sess.EndSession()
+				defer sess.EndSession(ctx)
 
 				opts := append(tc.opts, sess)
 				docRes := coll.FindOne(ctx, emptyDoc, sess)
@@ -276,7 +276,7 @@ func TestCausalConsistency(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				sess, err := client.StartSession(sessionopt.CausalConsistency(true))
 				testhelpers.RequireNil(t, err, "error starting session: %s", err)
-				defer sess.EndSession()
+				defer sess.EndSession(ctx)
 
 				opts := append(tc.opts, sess)
 				returnVals := tc.f.Call(getOptValues(opts))
@@ -303,7 +303,7 @@ func TestCausalConsistency(t *testing.T) {
 		client := createSessionsMonitoredClient(t, ccMonitor)
 		sess, err := client.StartSession(sessionopt.CausalConsistency(false))
 		testhelpers.RequireNil(t, err, "error creating session: %s", err)
-		defer sess.EndSession()
+		defer sess.EndSession(ctx)
 
 		db := client.Database("NonConsistentReadDB")
 		err = db.Drop(ctx)
@@ -333,7 +333,7 @@ func TestCausalConsistency(t *testing.T) {
 
 		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
 		testhelpers.RequireNil(t, err, "error starting session: %s", err)
-		defer sess.EndSession()
+		defer sess.EndSession(ctx)
 
 		coll := db.Collection("InvalidTopologyColl")
 		_, _ = coll.Find(ctx, emptyDoc, sess)
@@ -386,7 +386,7 @@ func TestCausalConsistency(t *testing.T) {
 		client := createSessionsMonitoredClient(t, ccMonitor)
 		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
 		testhelpers.RequireNil(t, err, "error starting session: %s", err)
-		defer sess.EndSession()
+		defer sess.EndSession(ctx)
 
 		db := client.Database("CustomReadConcernDB")
 		err = db.Drop(ctx)
@@ -414,7 +414,7 @@ func TestCausalConsistency(t *testing.T) {
 		client := createSessionsMonitoredClient(t, nil)
 		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
 		testhelpers.RequireNil(t, err, "error starting session: %s", err)
-		defer sess.EndSession()
+		defer sess.EndSession(ctx)
 
 		db := client.Database("UnackWriteDB")
 		err = db.Drop(ctx)

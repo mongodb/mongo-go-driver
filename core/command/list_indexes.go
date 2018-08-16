@@ -85,7 +85,15 @@ func (li *ListIndexes) decode(desc description.SelectedServer, cb CursorBuilder,
 		opts = append(opts, curOpt)
 	}
 
-	li.result, li.err = cb.BuildCursor(rdr, li.Session, li.Clock, opts...)
+	labels, err := getErrorLabels(&rdr)
+	li.err = err
+
+	res, err := cb.BuildCursor(rdr, li.Session, li.Clock, opts...)
+	li.result = res
+	if err != nil {
+		li.err = Error{Message: err.Error(), Labels: labels}
+	}
+
 	return li
 }
 

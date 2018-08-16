@@ -9,7 +9,13 @@ package mongo
 import (
 	"errors"
 
+	"context"
+
+	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
@@ -24,6 +30,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/listdbopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
+	"github.com/mongodb/mongo-go-driver/mongo/transactionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 )
 
@@ -49,6 +56,8 @@ type Session struct {
 	runcmdopt.RunCmdSessionOpt
 	listdbopt.ListDatabasesSessionOpt
 	*session.Client
+	topo                *topology.Topology
+	didCommitAfterStart bool // true if commit was called after start with no other operations
 }
 
 var (
@@ -75,6 +84,85 @@ var (
 	_ runcmdopt.Option                  = (*Session)(nil)
 	_ listdbopt.ListDatabases           = (*Session)(nil)
 )
+
+// EndSession ends the session.
+func (s *Session) EndSession(ctx context.Context) {
+	if s.TransactionInProgress() {
+		// ignore all errors aborting during an end session
+		_ = s.AbortTransaction(ctx)
+	}
+	s.Client.EndSession()
+}
+
+// StartTransaction starts a transaction for this session.
+func (s *Session) StartTransaction(opts ...transactionopt.Transaction) error {
+	err := s.CheckStartTransaction()
+	if err != nil {
+		return err
+	}
+
+	s.didCommitAfterStart = false
+
+	tranOpts, err := transactionopt.BundleTransaction(opts...).Unbundle(true)
+	if err != nil {
+		return err
+	}
+
+	return s.Client.StartTransaction(tranOpts...)
+}
+
+// CommitTransaction commits the sesson's transaction.
+func (s *Session) CommitTransaction(ctx context.Context) error {
+	err := s.CheckCommitTransaction()
+	if err != nil {
+		return err
+	}
+
+	// Do not run the commit command if the transaction is in started state
+	if s.TransactionStarting() || s.didCommitAfterStart {
+		s.didCommitAfterStart = true
+		return s.Client.CommitTransaction()
+	}
+
+	if s.Client.TransactionCommitted() {
+		s.RetryingCommit = true
+	}
+
+	cmd := command.CommitTransaction{
+		Session: s.Client,
+	}
+
+	// Hack to ensure that session stays in committed state
+	if s.TransactionCommitted() {
+		s.Committing = true
+		defer func() {
+			s.Committing = false
+		}()
+	}
+	_, err = dispatch.CommitTransaction(ctx, cmd, s.topo, description.WriteSelector())
+	if err == nil {
+		return s.Client.CommitTransaction()
+	}
+	return err
+}
+
+// AbortTransaction aborts the session's transaction, returning any errors and error codes
+func (s *Session) AbortTransaction(ctx context.Context) error {
+	err := s.CheckAbortTransaction()
+	if err != nil {
+		return err
+	}
+
+	cmd := command.AbortTransaction{
+		Session: s.Client,
+	}
+
+	s.Aborting = true
+	_, err = dispatch.AbortTransaction(ctx, cmd, s.topo, description.WriteSelector())
+
+	_ = s.Client.AbortTransaction()
+	return err
+}
 
 // ConvertAggregateSession implements the AggregateSession interface.
 func (s *Session) ConvertAggregateSession() *session.Client {
@@ -158,6 +246,11 @@ func (s *Session) ConvertUpdateSession() *session.Client {
 
 // ConvertReplaceSession implements the ReplaceSession interface.
 func (s *Session) ConvertReplaceSession() *session.Client {
+	return s.Client
+}
+
+// ConvertRunCmdSession implements the RunCmdSession interface.
+func (s *Session) ConvertRunCmdSession() *session.Client {
 	return s.Client
 }
 

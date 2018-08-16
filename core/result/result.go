@@ -151,3 +151,8 @@ type CreateIndexes struct {
 	IndexesBefore                  int  `bson:"numIndexesBefore"`
 	IndexesAfter                   int  `bson:"numIndexesAfter"`
 }
+
+// TransactionResult holds the result of committing or aborting a transaction.
+type TransactionResult struct {
+	WriteConcernError *WriteConcernError `bson:"writeConcernError"`
+}

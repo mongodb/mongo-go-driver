@@ -89,7 +89,14 @@ func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuil
 		opts = append(opts, curOpt)
 	}
 
-	lc.result, lc.err = cb.BuildCursor(rdr, lc.Session, lc.Clock, opts...)
+	labels, err := getErrorLabels(&rdr)
+	lc.err = err
+
+	res, err := cb.BuildCursor(rdr, lc.Session, lc.Clock, opts...)
+	lc.result = res
+	if err != nil {
+		lc.err = Error{Message: err.Error(), Labels: labels}
+	}
 
 	return lc
 }

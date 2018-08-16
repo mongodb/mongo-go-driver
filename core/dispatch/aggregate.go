@@ -52,6 +52,12 @@ func Aggregate(
 
 	defer conn.Close()
 
+	rp, err := getReadPrefBasedOnTransaction(cmd.ReadPref, cmd.Session)
+	if err != nil {
+		return nil, err
+	}
+	cmd.ReadPref = rp
+
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() {
 		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
