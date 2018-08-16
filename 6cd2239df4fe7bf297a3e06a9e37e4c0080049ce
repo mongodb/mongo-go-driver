@@ -121,6 +121,30 @@
     },
     {
       "key": {
+        "uuid": "a488b07c_9451be7e",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T16:03:32Z",
+      "side": 1,
+      "message": "turns out the test is still flaky, just more acceptably flaky than before.",
+      "parentUuid": "a448a4ab_4e9385aa",
+      "range": {
+        "startLine": 165,
+        "startChar": 0,
+        "endLine": 165,
+        "endChar": 1
+      },
+      "revId": "6cd2239df4fe7bf297a3e06a9e37e4c0080049ce",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e611b988_117edf3b",
         "filename": "mongo/transactions_test.go",
         "patchSetId": 3
