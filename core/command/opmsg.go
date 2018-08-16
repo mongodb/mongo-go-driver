@@ -42,73 +42,9 @@ func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Reader, error) {
 		return nil, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 	}
 
-	ok := false
-	var errmsg, codeName string
-	var code int32
-	var labels []string
-	itr, err := rdr.Iterator()
+	err = extractError(rdr)
 	if err != nil {
-		return nil, NewCommandResponseError("malformed OP_MSG: cannot iterate document", err)
+		return nil, err
 	}
-
-	for itr.Next() {
-		elem := itr.Element()
-		switch elem.Key() {
-		case "ok":
-			switch elem.Value().Type() {
-			case bson.TypeInt32:
-				if elem.Value().Int32() == 1 {
-					ok = true
-				}
-			case bson.TypeInt64:
-				if elem.Value().Int64() == 1 {
-					ok = true
-				}
-			case bson.TypeDouble:
-				if elem.Value().Double() == 1 {
-					ok = true
-				}
-			}
-		case "errmsg":
-			if str, okay := elem.Value().StringValueOK(); okay {
-				errmsg = str
-			}
-		case "codeName":
-			if str, okay := elem.Value().StringValueOK(); okay {
-				codeName = str
-			}
-		case "code":
-			if c, okay := elem.Value().Int32OK(); okay {
-				code = c
-			}
-		case "errorLabels":
-			if arr, okay := elem.Value().MutableArrayOK(); okay {
-				iter, err := arr.Iterator()
-				if err != nil {
-					continue
-				}
-				for iter.Next() {
-					if str, ok := iter.Value().StringValueOK(); ok {
-						labels = append(labels, str)
-					}
-				}
-
-			}
-		}
-	}
-
-	if !ok {
-		if errmsg == "" {
-			errmsg = "command failed"
-		}
-
-		return nil, Error{
-			Code:    code,
-			Message: errmsg,
-			Name:    codeName,
-			Labels:  labels,
-		}
-	}
-
 	return rdr, nil
 }

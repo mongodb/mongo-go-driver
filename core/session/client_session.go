@@ -64,6 +64,7 @@ type Client struct {
 	RetryingCommit bool
 	Committing     bool
 	Aborting       bool
+	RetryWrite     bool
 
 	// options for the current transaction
 	// most recently set by transactionopt
@@ -232,7 +233,7 @@ func (c *Client) StartTransaction(opts ...ClientOptioner) error {
 		return err
 	}
 
-	c.incrementTxnNumber()
+	c.IncrementTxnNumber()
 	c.RetryingCommit = false
 
 	for _, opt := range opts {
