@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "e0e158b0_cdf14d39",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:00Z",
+      "side": 1,
+      "message": "Good point.  I\u0027ve modified the client creation to follow how it\u0027s done in other places; namely reusing the same topology.  Because of this we don\u0027t want to Disconnect() the client because that would cause the topology to disconnect.",
+      "parentUuid": "16d82381_5baab0d9",
+      "range": {
+        "startLine": 69,
+        "startChar": 0,
+        "endLine": 69,
+        "endChar": 1
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ae568f65_3a959b00",
         "filename": "mongo/retryable_writes_test.go",
         "patchSetId": 2
@@ -45,6 +69,30 @@
       "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5c9393b6_03c5ed11",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 180,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:00Z",
+      "side": 1,
+      "message": "See comment above",
+      "parentUuid": "ae568f65_3a959b00",
+      "range": {
+        "startLine": 180,
+        "startChar": 2,
+        "endLine": 180,
+        "endChar": 8
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "a496c045_173a0d75",
+        "filename": "mongo/retryable_writes_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:00Z",
+      "side": 1,
+      "message": "We can put it in the crud_util_test.go file, where all the shared code for these things go.  I\u0027d put some of this stuff in testutils, but we can\u0027t because of import cycles.",
+      "parentUuid": "2c0eae44_3a4c8a4f",
+      "range": {
+        "startLine": 213,
+        "startChar": 2,
+        "endLine": 213,
+        "endChar": 18
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cbd361e3_692cbbfd",
         "filename": "mongo/transactions_test.go",
         "patchSetId": 2
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "4c255dc3_17d14b13",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:00Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cbd361e3_692cbbfd",
+      "range": {
+        "startLine": 102,
+        "startChar": 0,
+        "endLine": 102,
+        "endChar": 1
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7d813c4d_44a97960",
         "filename": "mongo/transactions_test.go",
         "patchSetId": 2
@@ -114,6 +210,30 @@
       "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8dc6076e_7a496790",
+        "filename": "mongo/transactions_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T14:31:00Z",
+      "side": 1,
+      "message": "Some of the failpoints in the retryable writes tests had \"always on\" in the mode, which is a string, so I could no longer assume the structure of mode and had to convert it to a json.RawMessage, which resulted in these changes.  At this point I think this is the most general a failpoint can be, so it\u0027s probably reusable anywhere a failpoint is needed.",
+      "parentUuid": "7d813c4d_44a97960",
+      "range": {
+        "startLine": 304,
+        "startChar": 0,
+        "endLine": 304,
+        "endChar": 4
+      },
+      "revId": "9c736d4e8a80085f8469261d4f60f69363a9407b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
