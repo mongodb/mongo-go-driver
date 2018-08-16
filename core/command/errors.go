@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
 var (
@@ -110,6 +111,20 @@ func (e Error) Retryable() bool {
 		}
 	}
 	if strings.Contains(e.Message, "not master") || strings.Contains(e.Message, "node is recovering") {
+		return true
+	}
+
+	return false
+}
+
+// IsWriteConcernErrorRetryable returns true if the write concern error is retryable.
+func IsWriteConcernErrorRetryable(wce *result.WriteConcernError) bool {
+	for _, code := range retryableCodes {
+		if int32(wce.Code) == code {
+			return true
+		}
+	}
+	if strings.Contains(wce.ErrMsg, "not master") || strings.Contains(wce.ErrMsg, "node is recovering") {
 		return true
 	}
 

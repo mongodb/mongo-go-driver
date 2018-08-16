@@ -434,6 +434,31 @@ func TestReplicaSet(t *testing.T) {
 	}
 }
 
+func TestRetryWrites(t *testing.T) {
+	tests := []struct {
+		s        string
+		expected bool
+		err      bool
+	}{
+		{s: "retryWrites=true", expected: true},
+		{s: "retryWrites=false", expected: false},
+	}
+
+	for _, test := range tests {
+		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
+		t.Run(s, func(t *testing.T) {
+			cs, err := connstring.Parse(s)
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, test.expected, cs.RetryWrites)
+				require.Equal(t, true, cs.RetryWritesSet)
+			}
+		})
+	}
+}
+
 func TestServerSelectionTimeout(t *testing.T) {
 	tests := []struct {
 		s        string

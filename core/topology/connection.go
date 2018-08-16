@@ -10,7 +10,11 @@ import (
 	"context"
 	"net"
 
+	"strings"
+
+	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
+	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
@@ -23,9 +27,17 @@ type sconn struct {
 	id uint64
 }
 
+var notMasterCodes = []int32{10107, 13435}
+var recoveringCodes = []int32{11600, 11602, 13436, 189, 91}
+
 func (sc *sconn) ReadWireMessage(ctx context.Context) (wiremessage.WireMessage, error) {
 	wm, err := sc.Connection.ReadWireMessage(ctx)
-	sc.processErr(err)
+	if err != nil {
+		sc.processErr(err)
+	} else {
+		e := command.DecodeError(wm)
+		sc.processErr(e)
+	}
 	return wm, err
 }
 
@@ -36,6 +48,16 @@ func (sc *sconn) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessag
 }
 
 func (sc *sconn) processErr(err error) {
+	// TODO(GODRIVER-524) handle the rest of sdam error handling
+	// Invalidate server description if not master or node recovering error occurs
+	if cerr, ok := err.(command.Error); ok && (isRecoveringError(cerr) || isNotMasterError(cerr)) {
+		desc := sc.s.Description()
+		desc.Kind = description.Unknown
+
+		// updates description to unknown and clears the connection pool
+		sc.s.updateDescription(desc, false)
+	}
+
 	ne, ok := err.(connection.NetworkError)
 	if !ok {
 		return
@@ -49,4 +71,22 @@ func (sc *sconn) processErr(err error) {
 	}
 
 	_ = sc.s.Drain()
+}
+
+func isRecoveringError(err command.Error) bool {
+	for _, c := range recoveringCodes {
+		if c == err.Code {
+			return true
+		}
+	}
+	return strings.Contains(err.Error(), "node is recovering")
+}
+
+func isNotMasterError(err command.Error) bool {
+	for _, c := range notMasterCodes {
+		if c == err.Code {
+			return true
+		}
+	}
+	return strings.Contains(err.Error(), "not master")
 }

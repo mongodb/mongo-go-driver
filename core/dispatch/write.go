@@ -63,3 +63,17 @@ func Write(
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }
+
+// Retryable writes are supported if the server supports sessions, the operation is not
+// within a transaction, and the write is acknowledged
+func retrySupported(
+	topo *topology.Topology,
+	desc description.SelectedServer,
+	sess *session.Client,
+	wc *writeconcern.WriteConcern,
+) bool {
+	return topo.SupportsSessions() &&
+		description.SessionsSupported(desc.WireVersion) &&
+		!(sess.TransactionInProgress() || sess.TransactionStarting()) &&
+		writeconcern.AckWrite(wc)
+}

@@ -50,7 +50,8 @@ func newServerSession() (*Server, error) {
 	}, nil
 }
 
-func (ss *Server) incrementTxnNumber() {
+// IncrementTxnNumber increments the transaction number.
+func (ss *Server) IncrementTxnNumber() {
 	ss.TxnNumber++
 }
 

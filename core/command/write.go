@@ -144,6 +144,10 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 		}
 	}
 
+	if w.Session != nil && w.Session.RetryWrite {
+		cmd.Append(bson.EC.Int64("txnNumber", w.Session.TxnNumber))
+	}
+
 	err = addClusterTime(cmd, desc, w.Session, w.Clock)
 	if err != nil {
 		return nil, err

@@ -193,6 +193,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
 	)
 
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
@@ -269,6 +270,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
 	)
 
 	switch err {
@@ -342,6 +344,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
 	)
 
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
@@ -402,6 +405,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		false,
 	)
 
 	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
@@ -447,6 +451,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
 	)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
 		return nil, err
@@ -574,6 +579,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		false,
 	)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
 		return nil, err
@@ -1090,6 +1096,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
 	)
 	if err != nil {
 		return &DocumentResult{err: err}
@@ -1161,6 +1168,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
 	)
 	if err != nil {
 		return &DocumentResult{err: err}
@@ -1231,6 +1239,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		coll.writeSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
 	)
 	if err != nil {
 		return &DocumentResult{err: err}
