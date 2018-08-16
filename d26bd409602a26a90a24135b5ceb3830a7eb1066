@@ -191,6 +191,30 @@
     },
     {
       "key": {
+        "uuid": "2bac7245_581cddb5",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T15:28:12Z",
+      "side": 1,
+      "message": "I moved the ApplyCommand to after the call to addTransaction in addSessionFields and updated the logic in ApplyCommand() itself and it looks like it works!",
+      "parentUuid": "24d264cf_8fda1b50",
+      "range": {
+        "startLine": 106,
+        "startChar": 0,
+        "endLine": 106,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7341aceb_746a2133",
         "filename": "core/command/insert.go",
         "patchSetId": 4
