@@ -231,6 +231,24 @@
     },
     {
       "key": {
+        "uuid": "6b802cc4_8e253519",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T23:22:21Z",
+      "side": 1,
+      "message": "seems like there are some other things to think about. Let\u0027s come back to this.",
+      "parentUuid": "f2aedb5e_995c6599",
+      "revId": "b260a0504e869ea51cf7ae3ce147661aa999ccff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c8c352a8_3f55db3d",
         "filename": "bson/struct_codec.go",
         "patchSetId": 15
