@@ -27,6 +27,7 @@ func FindOneAndReplace(
 	selector description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
+	retryWrite bool,
 ) (result.FindAndModify, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -34,9 +35,55 @@ func FindOneAndReplace(
 		return result.FindAndModify{}, err
 	}
 
+	// If no explicit session and deployment supports sessions, start implicit session.
+	if cmd.Session == nil && topo.SupportsSessions() {
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		if err != nil {
+			return result.FindAndModify{}, err
+		}
+		defer cmd.Session.EndSession()
+	}
+
+	// Execute in a single trip if retry writes not supported, or retry not enabled
+	if !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) || !retryWrite {
+		if cmd.Session != nil {
+			cmd.Session.RetryWrite = false // explicitly set to false to prevent encoding transaction number
+		}
+		return findOneAndReplace(ctx, cmd, ss, nil)
+	}
+
+	cmd.Session.RetryWrite = retryWrite
+	cmd.Session.IncrementTxnNumber()
+
+	res, originalErr := findOneAndReplace(ctx, cmd, ss, nil)
+
+	// Retry if appropriate
+	if cerr, ok := originalErr.(command.Error); ok && cerr.Retryable() {
+		ss, err := topo.SelectServer(ctx, selector)
+
+		// Return original error if server selection fails or new server does not support retryable writes
+		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
+			return result.FindAndModify{}, originalErr
+		}
+
+		return findOneAndReplace(ctx, cmd, ss, cerr)
+	}
+
+	return res, originalErr
+}
+
+func findOneAndReplace(
+	ctx context.Context,
+	cmd command.FindOneAndReplace,
+	ss *topology.SelectedServer,
+	oldErr error,
+) (result.FindAndModify, error) {
 	desc := ss.Description()
 	conn, err := ss.Connection(ctx)
 	if err != nil {
+		if oldErr != nil {
+			return result.FindAndModify{}, oldErr
+		}
 		return result.FindAndModify{}, err
 	}
 
@@ -51,15 +98,6 @@ func FindOneAndReplace(
 		return result.FindAndModify{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
-
-	// If no explicit session and deployment supports sessions, start implicit session.
-	if cmd.Session == nil && topo.SupportsSessions() {
-		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
-		if err != nil {
-			return result.FindAndModify{}, err
-		}
-		defer cmd.Session.EndSession()
-	}
 
 	return cmd.RoundTrip(ctx, desc, conn)
 }
