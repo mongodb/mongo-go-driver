@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "77895997_a7ac0c67",
+        "filename": "bson/codec.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 189,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T22:40:48Z",
+      "side": 1,
+      "message": "When a user does a RunCommand with an arbitrary document with a struct as output...\n\nAnd yeah, you\u0027re right, the FloatCodec needs to deal with integers.\n\nDecimals are something to think about, but they aren\u0027t accidentally used, so probably not necessary.",
+      "parentUuid": "8009f4dc_4a7e845c",
+      "revId": "b260a0504e869ea51cf7ae3ce147661aa999ccff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b49cfecc_2c01e624",
         "filename": "bson/codec.go",
         "patchSetId": 15
@@ -153,6 +171,24 @@
       "side": 1,
       "message": "I don\u0027t particularly know if we should should be caching Codecs inside of this Codec, especially since we share a default instance of this globally.",
       "parentUuid": "07d3fca9_22f6a21c",
+      "revId": "b260a0504e869ea51cf7ae3ce147661aa999ccff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b75fdaba_11214ce0",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-16T22:40:48Z",
+      "side": 1,
+      "message": "Yeah, but the global registry is immutable. It is a certainty that doing a lookup will retrieve the exact same thing it did the last time, and time before that, etc...\n\nIf they are using a non-default registry, it should have a different instance of the StructCodec.",
+      "parentUuid": "cc933356_2f651122",
       "revId": "b260a0504e869ea51cf7ae3ce147661aa999ccff",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
