@@ -584,6 +584,24 @@
     },
     {
       "key": {
+        "uuid": "70cd7c6d_0794bb8c",
+        "filename": "core/dispatch/find_one_and_delete.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T19:09:52Z",
+      "side": 1,
+      "message": "Just talked to Kris.  so turns out changing cmd here doesn\u0027t actually mutate the command since it\u0027s being passed by value.  However we are mutating the session which is sort of weird.  Unfortunately command does need to know about retryable writes because it needs to know when to append a transaction number.  Kris says ultimately we want command to not have to worry about that (i.e. we should provide some metadata for command and command should just worry about serializing it and the actual logic should be moved up to dispatch) so we\u0027ll ultimately resolve this in the refactor.  I will leave a TODO",
+      "parentUuid": "82b770ce_90371ae3",
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b184908b_23f100ff",
         "filename": "core/dispatch/insert.go",
         "patchSetId": 1
