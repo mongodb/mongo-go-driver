@@ -97,6 +97,30 @@
     },
     {
       "key": {
+        "uuid": "a448a4ab_4e9385aa",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 165,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T15:56:06Z",
+      "side": 1,
+      "message": "I looked at the test more closely and realized the issue is that this test tries to force an error by using context a context that expires too quickly.  It tries to ensure that it\u0027s not a server error, however since we\u0027re using command.Error to wrap errors in the roundtrip, sometimes the timeout doesn\u0027t happen until it reaches the roundtrip, in whcih case it is wrapped in command.Error, but if it happens sooner it doesn\u0027t get wrapped and this test passes!  So I\u0027ve updated it to instead check the text of the error.",
+      "parentUuid": "f6ab57e1_93aeb203",
+      "range": {
+        "startLine": 165,
+        "startChar": 0,
+        "endLine": 165,
+        "endChar": 1
+      },
+      "revId": "6cd2239df4fe7bf297a3e06a9e37e4c0080049ce",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e611b988_117edf3b",
         "filename": "mongo/transactions_test.go",
         "patchSetId": 3
