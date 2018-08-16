@@ -70,6 +70,30 @@
       "revId": "2bf96315947511cd8a86e1b1a2738522f8c29402",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "25edebfe_b205a184",
+        "filename": "core/command/opmsg.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1014457
+      },
+      "writtenOn": "2018-08-16T20:22:42Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e11441d2_b3d65a80",
+      "range": {
+        "startLine": 46,
+        "startChar": 4,
+        "endLine": 46,
+        "endChar": 43
+      },
+      "revId": "2bf96315947511cd8a86e1b1a2738522f8c29402",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
