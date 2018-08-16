@@ -568,6 +568,30 @@
     },
     {
       "key": {
+        "uuid": "82522e3a_e7b27852",
+        "filename": "core/command/write.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-16T20:18:03Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "de5520fe_60941436",
+      "range": {
+        "startLine": 212,
+        "startChar": 2,
+        "endLine": 214,
+        "endChar": 3
+      },
+      "revId": "175a31e91abeff25deaa5b1eef96958595578630",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8217084a_5c586b51",
         "filename": "core/dispatch/delete.go",
         "patchSetId": 1
