@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "0f9becc3_616fd15c",
+        "filename": "core/command/aggregate.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 181,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T01:18:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c3195770_44510bbf",
+      "range": {
+        "startLine": 181,
+        "startChar": 0,
+        "endLine": 181,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cc1cb000_4902dc42",
         "filename": "core/command/command.go",
         "patchSetId": 4
@@ -143,6 +167,30 @@
     },
     {
       "key": {
+        "uuid": "24d264cf_8fda1b50",
+        "filename": "core/command/command.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T01:18:53Z",
+      "side": 1,
+      "message": "If we were to change this to:\n\n   client.ApplyCommand()\n   if client.TransactionStarting() {\n       cmd.Append(bson.EC.Boolean(\"startTransaction\", true))\n   }\n\nremove the calls to ApplyCommand from read and write, and maybe fix up ApplyCommand to do the right thing based on the state (the conditionals here are all based on the client state, so ApplyCommand can use that state itself), what would be wrong about that?\n\nIn other words, I think it\u0027s correct to transition to the next state in all cases regardless of error.  \n\nIf you make this change, do any tests fail?",
+      "parentUuid": "c0417cbd_e0f12d56",
+      "range": {
+        "startLine": 106,
+        "startChar": 0,
+        "endLine": 106,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7341aceb_746a2133",
         "filename": "core/command/insert.go",
         "patchSetId": 4
@@ -178,6 +226,30 @@
       "side": 1,
       "message": "I think this was put here because of implicit sessions, but come to think of it you can\u0027t start a transaction on an implicit session anyway.  Removed.",
       "parentUuid": "7341aceb_746a2133",
+      "range": {
+        "startLine": 137,
+        "startChar": 0,
+        "endLine": 137,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b73b703d_edbfc8b1",
+        "filename": "core/command/insert.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T01:18:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a8928218_3ffc2022",
       "range": {
         "startLine": 137,
         "startChar": 0,
@@ -237,6 +309,30 @@
     },
     {
       "key": {
+        "uuid": "5f11b063_befc2a2e",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T01:18:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6a1cd46a_198a8ebc",
+      "range": {
+        "startLine": 193,
+        "startChar": 0,
+        "endLine": 193,
+        "endChar": 1
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a39d5024_8dcfa391",
         "filename": "core/session/client_session.go",
         "patchSetId": 4
@@ -272,6 +368,30 @@
       "side": 1,
       "message": "Originally TransactionInProgress() was a proxy for checking both inProgress and Starting, but it had to be split because there were some places that only checked starting or only checked inProgress.  I suppose it wouldn\u0027t hurt to have another method for both since it occurs so often.",
       "parentUuid": "a39d5024_8dcfa391",
+      "range": {
+        "startLine": 198,
+        "startChar": 17,
+        "endLine": 198,
+        "endChar": 38
+      },
+      "revId": "d26bd409602a26a90a24135b5ceb3830a7eb1066",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5482d4a9_cf1cc7e0",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T01:18:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b0da0a6a_82fad044",
       "range": {
         "startLine": 198,
         "startChar": 17,

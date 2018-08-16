@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "04fabf84_8ad60429",
+        "filename": "core/command/count_documents.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T01:18:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "289f6f45_bef3265b",
+      "range": {
+        "startLine": 140,
+        "startChar": 0,
+        "endLine": 140,
+        "endChar": 1
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b36c75a7_2b64f698",
         "filename": "core/command/errors.go",
         "patchSetId": 5
@@ -84,6 +108,30 @@
       "side": 1,
       "message": "True, but this needs to be public because it is used in the dispatch package :\\",
       "parentUuid": "b36c75a7_2b64f698",
+      "range": {
+        "startLine": 101,
+        "startChar": 0,
+        "endLine": 101,
+        "endChar": 4
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "620a3b2d_beecf9a9",
+        "filename": "core/command/errors.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T01:18:53Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "291a45cc_20cafc7a",
       "range": {
         "startLine": 101,
         "startChar": 0,
@@ -273,6 +321,30 @@
       "side": 1,
       "message": "Probably not.  I\u0027ll remove.",
       "parentUuid": "37308154_2f60ca3d",
+      "range": {
+        "startLine": 47,
+        "startChar": 3,
+        "endLine": 47,
+        "endChar": 7
+      },
+      "revId": "474f6d0957989f75d5f168d42a4636b53b7f849b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3d20f60b_15d1d784",
+        "filename": "core/dispatch/list_collections.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-08-16T01:18:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2ba80117_41c2ca81",
       "range": {
         "startLine": 47,
         "startChar": 3,
