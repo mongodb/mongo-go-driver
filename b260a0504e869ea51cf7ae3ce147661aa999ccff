@@ -161,6 +161,24 @@
     },
     {
       "key": {
+        "uuid": "afb2d974_daf51ff5",
+        "filename": "bson/codec.go",
+        "patchSetId": 15
+      },
+      "lineNbr": 528,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-20T22:37:51Z",
+      "side": 1,
+      "message": "Ah, I see what you\u0027re saying. Yeah, we\u0027ll have just one Codec for the string like things.",
+      "parentUuid": "298be73c_bc015ed5",
+      "revId": "b260a0504e869ea51cf7ae3ce147661aa999ccff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b76adc8f_0b3cb8b5",
         "filename": "bson/map_codec.go",
         "patchSetId": 15
