@@ -16,6 +16,24 @@
       "revId": "84e73e53f46f11b6c3aacde1af51182bac97ed86",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2098dbca_fa3ce01b",
+        "filename": "bson/document.go",
+        "patchSetId": 17
+      },
+      "lineNbr": 753,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-21T13:58:33Z",
+      "side": 1,
+      "message": "Hah. I told myself when I wrote that that I would forget that I put that there. Looks like I was correct.",
+      "parentUuid": "cf349ff6_99820fc6",
+      "revId": "84e73e53f46f11b6c3aacde1af51182bac97ed86",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
