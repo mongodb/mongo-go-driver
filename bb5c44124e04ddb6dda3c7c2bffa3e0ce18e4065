@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6e388647_3f1d5047",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-22T01:54:42Z",
+      "side": 1,
+      "message": "So, I think we are missing a possibility by doing this. We might not need the field to be settable. For instance, a field which is a struct and has already been instantiated doesn\u0027t need to be set. We just need the address to it so we can decode into it. \n\nIn fact, we don\u0027t even need it to be addressable if it\u0027s already a pointer. We already have the pointer.\n\nI think you may just be missing a few test cases to demonstrate this need. All of these should work, and the second to last one should work whether b has an instance or not.\n\ntype foo struct {\n  b struct {\n    a int\n  }\n}\n\ntype bar struct {\n  a int\n}\n\ntype foo struct {\n  b bar \n}\n\ntype foo struct {\n  b *bar\n}\n\nfunc sample() {\n  c :\u003d struct {\n    b struct {\n      a int\n    }\n  }\n}",
+      "revId": "bb5c44124e04ddb6dda3c7c2bffa3e0ce18e4065",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
