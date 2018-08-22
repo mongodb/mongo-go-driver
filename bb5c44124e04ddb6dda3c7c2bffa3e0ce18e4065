@@ -16,6 +16,24 @@
       "revId": "bb5c44124e04ddb6dda3c7c2bffa3e0ce18e4065",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "04af53a3_fff6250d",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 20
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-22T02:33:21Z",
+      "side": 1,
+      "message": "We always need the thing to be addressable because we always have to get a pointer to the thing, we can\u0027t get the thing itself. When it comes to types that are pointers, I think we actually need to have those be addressable as well. We shouldn\u0027t be manipulating the memory of the pointer we get, this is true for types like bson.Element and bson.Value. We can\u0027t just copy the non-pointer version of things either, because they might contain a non-copyable thing like a mutex.\n\nWe\u0027ll need to document it but the caller of DecodeValue should always pass a pointer to the thing we will be decoding. If that thing is a pointer itself, we need to pass a pointer to a pointer.\n\nWe should be calling CanSet as well, because the thing that CanSet adds is ensuring that the value wasn\u0027t obtained as a private field of a struct, which we wouldn\u0027t want to manipulate anyway. Mgo\u0027s BSON library uses the Set* methods on the reflect.Value type to do its umarshaling. We could have avoided the double pointers if we stayed within the reflection package, but since we exit back to Go types, we need that type to be something we can set in the same way. For instance, if we had a *bar Codec, the DecodeValue method would need to receive a **bar, decode the BSON into a *bar, and then set *(**bar) \u003d *bar.",
+      "parentUuid": "6e388647_3f1d5047",
+      "revId": "bb5c44124e04ddb6dda3c7c2bffa3e0ce18e4065",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
