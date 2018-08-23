@@ -13,8 +13,6 @@ import (
 
 	"sync"
 
-	"fmt"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
@@ -370,7 +368,6 @@ func createRetryMonitoredTopology(t *testing.T, clock *session.ClusterClock, mon
 	}
 
 	retryMonitoredTopologyOnce.Do(func() {
-		fmt.Println("here")
 		retryMonitoredTopo, err := topology.New(opts...)
 		if err != nil {
 			t.Fatal(err)
