@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "a2001d2a_9e358f75",
+        "filename": "bson/codec.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 1692,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-23T21:44:58Z",
+      "side": 1,
+      "message": "We already support this and I believe it\u0027s because a few users requested this support. The users struct would look like this:\n\nstruct Foo struct {\n    Num json.Number\n}",
+      "parentUuid": "c1896368_9a4db521",
+      "revId": "ebe88f6c9328240f95abae2c2eecd48e2d893435",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "645fd5db_bcb8ff42",
         "filename": "bson/codec.go",
         "patchSetId": 21
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "c3285ca4_a27176f5",
+        "filename": "bson/codec.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 1863,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-23T21:44:58Z",
+      "side": 1,
+      "message": "This is a little difficult since we will have to clean up state afterward, but I think we can do that.",
+      "parentUuid": "645fd5db_bcb8ff42",
+      "revId": "ebe88f6c9328240f95abae2c2eecd48e2d893435",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9c43a17a_9de57741",
         "filename": "bson/value_read_writer_copy.go",
         "patchSetId": 21
@@ -47,6 +83,24 @@
       "writtenOn": "2018-08-23T21:13:52Z",
       "side": 1,
       "message": "Why do these have to be documents?",
+      "revId": "ebe88f6c9328240f95abae2c2eecd48e2d893435",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "65714d2d_13796d9f",
+        "filename": "bson/value_read_writer_copy.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-08-23T21:44:58Z",
+      "side": 1,
+      "message": "That\u0027s the only need I had. We don\u0027t know the state of the reader or writer, so it\u0027s more difficult to figure out if what we\u0027re doing is valid. If we wanted to handle copying an element, we could add another parameter to this function.",
+      "parentUuid": "9c43a17a_9de57741",
       "revId": "ebe88f6c9328240f95abae2c2eecd48e2d893435",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
