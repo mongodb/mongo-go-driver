@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c1896368_9a4db521",
+        "filename": "bson/codec.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 1692,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-23T21:13:52Z",
+      "side": 1,
+      "message": "Is this the first dependency on the json package? Why is this particular codec important? Like, what does a user\u0027s struct need to look like for this to be used?",
+      "revId": "ebe88f6c9328240f95abae2c2eecd48e2d893435",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "645fd5db_bcb8ff42",
+        "filename": "bson/codec.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 1863,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-23T21:13:52Z",
+      "side": 1,
+      "message": "We should be able to type-check the ValueWriter and, if it\u0027s a BsonValueWriter, drop the []byte from the reader into place. Fast path, which will be the most used path in this case, will speed this up considerably. Same is true for the DocumentCodec and ArrayCodec. And same is true for reading as well.\n\nJeff\u0027s Java implementation uses a Pipe method to abstract this just a bit.",
+      "revId": "ebe88f6c9328240f95abae2c2eecd48e2d893435",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c43a17a_9de57741",
+        "filename": "bson/value_read_writer_copy.go",
+        "patchSetId": 21
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-08-23T21:13:52Z",
+      "side": 1,
+      "message": "Why do these have to be documents?",
+      "revId": "ebe88f6c9328240f95abae2c2eecd48e2d893435",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
