@@ -309,7 +309,7 @@ func TestSessionTimeout(t *testing.T) {
 
 		timeoutChan := time.After(testTimeout)
 		topo.changes <- description.Server{
-			Kind: description.RSPrimary,
+			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 30,
 		}
 		topo.done <- struct{}{}
@@ -338,12 +338,12 @@ func TestSessionTimeout(t *testing.T) {
 
 		timeoutChan := time.After(testTimeout)
 		topo.changes <- description.Server{
-			Kind: description.RSPrimary,
+			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 30,
 		}
 		// should update because new timeout is lower
 		topo.changes <- description.Server{
-			Kind: description.RSPrimary,
+			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 20,
 		}
 		topo.done <- struct{}{}
@@ -372,12 +372,12 @@ func TestSessionTimeout(t *testing.T) {
 
 		timeoutChan := time.After(testTimeout)
 		topo.changes <- description.Server{
-			Kind: description.RSPrimary,
+			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 20,
 		}
 		// should not update because new timeout is higher
 		topo.changes <- description.Server{
-			Kind: description.RSPrimary,
+			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 30,
 		}
 		topo.done <- struct{}{}
@@ -406,12 +406,12 @@ func TestSessionTimeout(t *testing.T) {
 
 		timeoutChan := time.After(testTimeout)
 		topo.changes <- description.Server{
-			Kind: description.RSPrimary,
+			Kind:                  description.RSPrimary,
 			SessionTimeoutMinutes: 20,
 		}
 		// should not update because not a data bearing server
 		topo.changes <- description.Server{
-			Kind: description.Unknown,
+			Kind:                  description.Unknown,
 			SessionTimeoutMinutes: 10,
 		}
 		topo.done <- struct{}{}
