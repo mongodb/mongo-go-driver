@@ -167,7 +167,7 @@ func runCmTestFile(t *testing.T, filepath string) {
 
 		coll := db.Collection(collName)
 		err = insertDocuments(doc.Lookup("data").MutableArray(), coll)
-		testhelpers.RequireNil(t, err, "error inserting starting data: %s")
+		testhelpers.RequireNil(t, err, "error inserting starting data: %s", err)
 
 		operationDoc := testDoc.Lookup("operation").MutableDocument()
 
