@@ -7,12 +7,12 @@
 package mongo
 
 import (
-	"fmt"
-	"reflect"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 )
 
 func TestTransformDocument(t *testing.T) {
@@ -25,12 +25,6 @@ func TestTransformDocument(t *testing.T) {
 		{
 			"bson.Marshaler",
 			bMarsh{bson.NewDocument(bson.EC.String("foo", "bar"))},
-			bson.NewDocument(bson.EC.String("foo", "bar")),
-			nil,
-		},
-		{
-			"bson.DocumentMarshaler",
-			dMarsh{bson.NewDocument(bson.EC.String("foo", "bar"))},
 			bson.NewDocument(bson.EC.String("foo", "bar")),
 			nil,
 		},
@@ -50,13 +44,13 @@ func TestTransformDocument(t *testing.T) {
 			"unsupported type",
 			[]string{"foo", "bar"},
 			nil,
-			fmt.Errorf("cannot transform type %s to a *bson.Document", reflect.TypeOf([]string{})),
+			MarshalError{Value: []string{"foo", "bar"}, Err: errors.New("invalid state transition: TopLevel -> ArrayMode")},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := TransformDocument(tc.document)
+			got, err := transformDocument(bsoncodec.NewRegistryBuilder().Build(), tc.document)
 			if !cmp.Equal(err, tc.err, cmp.Comparer(compareErrors)) {
 				t.Errorf("Error does not match expected error. got %v; want %v", err, tc.err)
 			}
@@ -84,7 +78,7 @@ func compareErrors(err1, err2 error) bool {
 	return true
 }
 
-var _ bson.Marshaler = bMarsh{}
+var _ bsoncodec.Marshaler = bMarsh{}
 
 type bMarsh struct {
 	*bson.Document
@@ -92,16 +86,6 @@ type bMarsh struct {
 
 func (b bMarsh) MarshalBSON() ([]byte, error) {
 	return b.Document.MarshalBSON()
-}
-
-var _ bson.DocumentMarshaler = dMarsh{}
-
-type dMarsh struct {
-	d *bson.Document
-}
-
-func (d dMarsh) MarshalBSONDocument() (*bson.Document, error) {
-	return d.d, nil
 }
 
 type reflectStruct struct {

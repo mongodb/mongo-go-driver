@@ -354,7 +354,8 @@ func (e *Element) String() string {
 	return fmt.Sprintf(`bson.Element{[%s]"%s": %v}`, e.Value().Type(), e.Key(), val)
 }
 
-func (e *Element) equal(e2 *Element) bool {
+// Equal compares this element to element and returns true if they are equal.
+func (e *Element) Equal(e2 *Element) bool {
 	if e == nil && e2 == nil {
 		return true
 	}
@@ -362,7 +363,10 @@ func (e *Element) equal(e2 *Element) bool {
 		return false
 	}
 
-	return e.value.equal(e2.value)
+	if e.Key() != e2.Key() {
+		return false
+	}
+	return e.value.Equal(e2.value)
 }
 
 func elemsFromValues(values []*Value) []*Element {
@@ -396,7 +400,10 @@ func convertValueToElem(key string, v *Value) *Element {
 
 	elem := newElement(0, uint32(keyLen+2))
 	elem.value.data = d
-	elem.value.d = v.d
+	elem.value.d = nil
+	if v.d != nil {
+		elem.value.d = v.d.Copy()
+	}
 
 	return elem
 }

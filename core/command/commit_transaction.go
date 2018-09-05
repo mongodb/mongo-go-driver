@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -52,7 +53,7 @@ func (ct *CommitTransaction) Decode(desc description.SelectedServer, wm wiremess
 }
 
 func (ct *CommitTransaction) decode(desc description.SelectedServer, rdr bson.Reader) *CommitTransaction {
-	ct.err = bson.Unmarshal(rdr, &ct.result)
+	ct.err = bsoncodec.Unmarshal(rdr, &ct.result)
 	if ct.err == nil && ct.result.WriteConcernError != nil {
 		ct.err = Error{
 			Code:    int32(ct.result.WriteConcernError.Code),

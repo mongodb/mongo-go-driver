@@ -1,11 +1,10 @@
 package benchmark
 
 import (
-	"bytes"
 	"context"
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 )
 
 func BSONFlatStructDecoding(ctx context.Context, tm TimerManager, iters int) error {
@@ -18,8 +17,7 @@ func BSONFlatStructDecoding(ctx context.Context, tm TimerManager, iters int) err
 
 	for i := 0; i < iters; i++ {
 		out := flatBSON{}
-		dec := bson.NewDecoder(bytes.NewReader(r))
-		err := dec.Decode(&out)
+		err := bsoncodec.Unmarshal(r, &out)
 		if err != nil {
 			return err
 		}
@@ -34,18 +32,20 @@ func BSONFlatStructEncoding(ctx context.Context, tm TimerManager, iters int) err
 	}
 
 	doc := flatBSON{}
-	if err = bson.NewDecoder(bytes.NewReader(r)).Decode(&doc); err != nil {
+	err = bsoncodec.Unmarshal(r, &doc)
+	if err != nil {
 		return err
 	}
 
-	buf := bytes.NewBuffer([]byte{})
+	var buf []byte
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		if err = bson.NewEncoder(buf).Encode(&doc); err != nil {
+		buf, err = bsoncodec.Marshal(doc)
+		if err != nil {
 			return err
 		}
-		if buf.Len() == 0 {
+		if len(buf) == 0 {
 			return errors.New("encoding failed")
 		}
 	}
@@ -59,18 +59,20 @@ func BSONFlatStructTagsEncoding(ctx context.Context, tm TimerManager, iters int)
 	}
 
 	doc := flatBSONTags{}
-	if err = bson.NewDecoder(bytes.NewReader(r)).Decode(&doc); err != nil {
+	err = bsoncodec.Unmarshal(r, &doc)
+	if err != nil {
 		return err
 	}
 
-	buf := bytes.NewBuffer([]byte{})
+	var buf []byte
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		if err = bson.NewEncoder(buf).Encode(&doc); err != nil {
+		buf, err = bsoncodec.MarshalAppend(buf[:0], doc)
+		if err != nil {
 			return err
 		}
-		if buf.Len() == 0 {
+		if len(buf) == 0 {
 			return errors.New("encoding failed")
 		}
 	}
@@ -86,8 +88,7 @@ func BSONFlatStructTagsDecoding(ctx context.Context, tm TimerManager, iters int)
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
 		out := flatBSONTags{}
-		dec := bson.NewDecoder(bytes.NewReader(r))
-		err := dec.Decode(&out)
+		err := bsoncodec.Unmarshal(r, &out)
 		if err != nil {
 			return err
 		}

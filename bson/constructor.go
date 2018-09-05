@@ -7,10 +7,10 @@
 package bson
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
@@ -102,15 +102,7 @@ func (ElementConstructor) Interface(key string, value interface{}) *Element {
 			elem = EC.Null(key)
 		}
 	default:
-		var err error
-		enc := new(encoder)
-		val := reflect.ValueOf(value)
-		val = enc.underlyingVal(val)
-
-		elem, err = enc.elemFromValue(key, val, true)
-		if err != nil {
-			elem = EC.Null(key)
-		}
+		elem = EC.Null(key)
 	}
 
 	return elem
@@ -149,11 +141,7 @@ func (c ElementConstructor) InterfaceErr(key string, value interface{}) (*Elemen
 			err = errors.New("invalid *Value provided, cannot convert to *Element")
 		}
 	default:
-		enc := new(encoder)
-		val := reflect.ValueOf(value)
-		val = enc.underlyingVal(val)
-
-		elem, err = enc.elemFromValue(key, val, true)
+		err = fmt.Errorf("Cannot create element for type %T, try using bsoncodec.ConstructElementErr", value)
 	}
 
 	if err != nil {
@@ -541,6 +529,44 @@ func (ElementConstructor) MaxKey(key string) *Element {
 	}
 
 	return elem
+}
+
+// FromBytes constructs an element from the bytes provided. If the bytes are not
+// a valid element, this method will panic.
+func (ElementConstructor) FromBytes(src []byte) *Element {
+	elem, err := EC.FromBytesErr(src)
+	if err != nil {
+		panic(err)
+	}
+	return elem
+}
+
+// FromValue constructs an element using the underlying value.
+func (ElementConstructor) FromValue(key string, value *Value) *Element {
+	return convertValueToElem(key, value)
+}
+
+// FromBytesErr constructs an element from the bytes provided, but unlike
+// FromBytes this method will return an error and not panic if the bytes are not
+// a valid element.
+func (ElementConstructor) FromBytesErr(src []byte) (*Element, error) {
+	// TODO: once we have llbson developed, use that to validate the bytes
+	idx := bytes.IndexByte(src, 0x00)
+	if idx < 0 {
+		return nil, errors.New("not a valid element: does not contain a valid key")
+	}
+
+	if len(src) < 2 {
+		return nil, errors.New("not a valid element: not enough bytes")
+	}
+
+	data := make([]byte, len(src))
+	copy(data, src)
+	elem := &Element{value: &Value{start: 0, offset: uint32(idx) + 1, data: data}}
+	if _, err := elem.Validate(); err != nil {
+		return nil, err
+	}
+	return elem, nil
 }
 
 // Double creates a double element with the given value.

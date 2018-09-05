@@ -31,7 +31,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 
 	payload := make([]interface{}, iters)
 	for idx := range payload {
-		payload[idx] = *doc
+		payload[idx] = doc
 	}
 
 	if _, err = coll.InsertMany(ctx, payload); err != nil {
@@ -109,7 +109,7 @@ func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data strin
 
 	payload := make([]interface{}, iters)
 	for idx := range payload {
-		payload[idx] = *doc
+		payload[idx] = doc
 	}
 
 	coll := db.Collection("corpus")

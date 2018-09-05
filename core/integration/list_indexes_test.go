@@ -38,7 +38,7 @@ func TestCommandListIndexes(t *testing.T) {
 		var next *bson.Document
 
 		for cursor.Next(context.Background()) {
-			err = cursor.Decode(next)
+			err = cursor.Decode(&next)
 			noerr(t, err)
 
 			val, err := next.LookupErr("name")
@@ -67,7 +67,7 @@ func TestCommandListIndexes(t *testing.T) {
 		var next *bson.Document
 
 		for cursor.Next(context.Background()) {
-			err = cursor.Decode(next)
+			err = cursor.Decode(&next)
 			noerr(t, err)
 
 			val, err := next.LookupErr("name")
@@ -99,10 +99,10 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		next := bson.NewDocument()
+		var next *bson.Document
 
 		for cursor.Next(context.Background()) {
-			err = cursor.Decode(next)
+			err = cursor.Decode(&next)
 			noerr(t, err)
 
 			val, err := next.LookupErr("name")
@@ -139,10 +139,10 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		next := bson.NewDocument()
+		var next *bson.Document
 
 		for cursor.Next(context.Background()) {
-			err = cursor.Decode(next)
+			err = cursor.Decode(&next)
 			noerr(t, err)
 
 			val, err := next.LookupErr("name")
