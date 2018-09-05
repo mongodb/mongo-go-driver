@@ -79,9 +79,9 @@ func (c *CountDocuments) Decode(ctx context.Context, desc description.SelectedSe
 		return c
 	}
 
-	var doc = bson.NewDocument()
+	var doc *bson.Document
 	if cur.Next(ctx) {
-		err = cur.Decode(doc)
+		err = cur.Decode(&doc)
 		if err != nil {
 			c.err = err
 			return c

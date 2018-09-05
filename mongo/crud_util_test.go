@@ -536,8 +536,8 @@ func verifyCursorResult(t *testing.T, cur Cursor, result json.RawMessage) {
 		require.NotNil(t, cur)
 		require.True(t, cur.Next(context.Background()))
 
-		actual := bson.NewDocument()
-		require.NoError(t, cur.Decode(actual))
+		var actual *bson.Document
+		require.NoError(t, cur.Decode(&actual))
 
 		compareDocs(t, expected, actual)
 	}
@@ -550,8 +550,8 @@ func verifyDocumentResult(t *testing.T, res *DocumentResult, result json.RawMess
 	jsonBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
 
-	actual := bson.NewDocument()
-	err = res.Decode(actual)
+	var actual *bson.Document
+	err = res.Decode(&actual)
 	if err == ErrNoDocuments {
 		var expected map[string]interface{}
 		err := json.NewDecoder(bytes.NewBuffer(jsonBytes)).Decode(&expected)

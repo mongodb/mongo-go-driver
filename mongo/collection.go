@@ -43,6 +43,7 @@ type Collection struct {
 	readPreference *readpref.ReadPref
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
+	marshaller     BSONAppender
 }
 
 func newCollection(db *Database, name string, opts ...collectionopt.Option) *Collection {
@@ -66,6 +67,11 @@ func newCollection(db *Database, name string, opts ...collectionopt.Option) *Col
 		rp = collOpt.ReadPreference
 	}
 
+	marshaller := db.marshaller
+	if collOpt.BSONAppender != nil {
+		marshaller = collOpt.BSONAppender
+	}
+
 	readSelector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(rp),
 		description.LatencySelector(db.client.localThreshold),
@@ -80,6 +86,7 @@ func newCollection(db *Database, name string, opts ...collectionopt.Option) *Col
 		writeConcern:   wc,
 		readSelector:   readSelector,
 		writeSelector:  db.writeSelector,
+		marshaller:     marshaller,
 	}
 
 	return coll

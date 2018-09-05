@@ -314,12 +314,12 @@ func compareChunks(t *testing.T, filesID objectid.ObjectID) {
 			t.Fatalf("chunks has fewer documents than expectedChunks")
 		}
 
-		actualChunk := bson.NewDocument()
-		expectedChunk := bson.NewDocument()
+		var actualChunk *bson.Document
+		var expectedChunk *bson.Document
 
-		err = actualCursor.Decode(actualChunk)
+		err = actualCursor.Decode(&actualChunk)
 		testhelpers.RequireNil(t, err, "error decoding actual chunk: %s", err)
-		err = expectedCursor.Decode(expectedChunk)
+		err = expectedCursor.Decode(&expectedChunk)
 		testhelpers.RequireNil(t, err, "error decoding expected chunk: %s", err)
 
 		compareGfsDoc(t, expectedChunk, actualChunk, filesID)
@@ -338,12 +338,12 @@ func compareFiles(t *testing.T) {
 			t.Fatalf("files has fewer documents than expectedFiles")
 		}
 
-		actualFile := bson.NewDocument()
-		expectedFile := bson.NewDocument()
+		var actualFile *bson.Document
+		var expectedFile *bson.Document
 
-		err = actualCursor.Decode(actualFile)
+		err = actualCursor.Decode(&actualFile)
 		testhelpers.RequireNil(t, err, "error decoding actual file: %s", err)
-		err = expectedCursor.Decode(expectedFile)
+		err = expectedCursor.Decode(&expectedFile)
 		testhelpers.RequireNil(t, err, "error decoding expected file: %s", err)
 
 		compareGfsDoc(t, expectedFile, actualFile, objectid.ObjectID{})

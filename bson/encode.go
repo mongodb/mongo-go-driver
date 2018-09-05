@@ -47,9 +47,10 @@ type ElementMarshaler interface {
 	MarshalBSONElement() (*Element, error)
 }
 
-// ValueMarshaler describes a type that can marshal itself into a bson.Value.
+// ValueMarshaler describes a type that can marshal itself into []byte and a
+// bson.Type.
 type ValueMarshaler interface {
-	MarshalBSONValue() (*Value, error)
+	MarshalBSONValue() (Type, []byte, error)
 }
 
 // Encoder describes a type that can encode itself into a value.

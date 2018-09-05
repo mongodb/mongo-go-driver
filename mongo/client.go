@@ -10,6 +10,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -41,6 +42,7 @@ type Client struct {
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
 	writeConcern    *writeconcern.WriteConcern
+	marshaller      BSONAppender
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -176,6 +178,7 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 		topologyOptions: clientOpt.TopologyOptions,
 		connString:      clientOpt.ConnString,
 		localThreshold:  defaultLocalThreshold,
+		marshaller:      clientOpt.BSONAppender,
 	}
 
 	uuid, err := uuid.New()
@@ -222,6 +225,10 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 		} else {
 			client.readPreference = readpref.Primary()
 		}
+	}
+
+	if client.marshaller == nil {
+		client.marshaller = BSONAppenderFunc(bsoncodec.MarshalAppend)
 	}
 	return client, nil
 }
