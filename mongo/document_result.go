@@ -11,6 +11,7 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 )
 
 // ErrNoDocuments is returned by Decode when an operation that returns a
@@ -38,7 +39,7 @@ func (dr *DocumentResult) Decode(v interface{}) error {
 		if v == nil {
 			return nil
 		}
-		return bson.Unmarshal(dr.rdr, v)
+		return bsoncodec.Unmarshal(dr.rdr, v)
 	case dr.cur != nil:
 		if !dr.cur.Next(context.TODO()) {
 			if err := dr.cur.Err(); err != nil {

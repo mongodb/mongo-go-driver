@@ -24,6 +24,14 @@ import (
 
 var clientBundle = new(ClientBundle)
 
+// BSONAppender is an interface implemented by types that can marshal a
+// provided type into BSON bytes and append those bytes to the provided []byte.
+// The AppendBSON can return a non-nil error and non-nil []byte. The AppendBSON
+// method may also write incomplete BSON to the []byte.
+type BSONAppender interface {
+	AppendBSON([]byte, interface{}) ([]byte, error)
+}
+
 // ContextDialer makes new network connections
 type ContextDialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
@@ -88,6 +96,7 @@ type Client struct {
 	ReadPreference  *readpref.ReadPref
 	ReadConcern     *readconcern.ReadConcern
 	WriteConcern    *writeconcern.WriteConcern
+	BSONAppender    BSONAppender
 }
 
 // ClientBundle is a bundle of client options
