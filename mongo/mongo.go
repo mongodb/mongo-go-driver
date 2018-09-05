@@ -25,6 +25,24 @@ type Dialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
+// BSONAppender is an interface implemented by types that can marshal a
+// provided type into BSON bytes and append those bytes to the provided []byte.
+// The AppendBSON can return a non-nil error and non-nil []byte. The AppendBSON
+// method may also write incomplete BSON to the []byte.
+type BSONAppender interface {
+	AppendBSON([]byte, interface{}) ([]byte, error)
+}
+
+// BSONAppenderFunc is an adapter function that allows any function that
+// satisfies the AppendBSON method signature to be used where a BSONAppender is
+// used.
+type BSONAppenderFunc func([]byte, interface{}) ([]byte, error)
+
+// AppendBSON implements the BSONAppender interface
+func (baf BSONAppenderFunc) AppendBSON(dst []byte, val interface{}) ([]byte, error) {
+	return baf(dst, val)
+}
+
 // TransformDocument handles transforming a document of an allowable type into
 // a *bson.Document. This method is called directly after most methods that
 // have one or more parameters that are documents.
