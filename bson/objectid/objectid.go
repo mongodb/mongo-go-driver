@@ -10,6 +10,7 @@
 package objectid
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
@@ -51,6 +52,11 @@ func (id ObjectID) Hex() string {
 
 func (id ObjectID) String() string {
 	return fmt.Sprintf("ObjectID(%q)", id.Hex())
+}
+
+// IsZero returns true if id is the empty ObjectID.
+func (id ObjectID) IsZero() bool {
+	return bytes.Equal(id[:], NilObjectID[:])
 }
 
 // FromHex creates a new ObjectID from a hex string. It returns an error if the hex string is not a

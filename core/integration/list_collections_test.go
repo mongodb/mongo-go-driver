@@ -73,10 +73,10 @@ func TestCommandListCollections(t *testing.T) {
 		noerr(t, err)
 
 		names := map[string]bool{}
-		next := bson.NewDocument()
+		var next *bson.Document
 
 		for cursor.Next(context.Background()) {
-			err = cursor.Decode(next)
+			err = cursor.Decode(&next)
 			noerr(t, err)
 
 			val, err := next.LookupErr("name")

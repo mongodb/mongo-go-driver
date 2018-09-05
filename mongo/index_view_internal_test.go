@@ -67,9 +67,9 @@ func TestIndexView_List(t *testing.T) {
 	require.NoError(t, err)
 
 	var found bool
-	var idx index
 
 	for cursor.Next(context.Background()) {
+		var idx index
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
@@ -110,9 +110,9 @@ func TestIndexView_CreateOne(t *testing.T) {
 	require.NoError(t, err)
 
 	var found bool
-	var idx index
 
 	for cursor.Next(context.Background()) {
+		var idx index
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
@@ -155,9 +155,9 @@ func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 	require.NoError(t, err)
 
 	var found bool
-	var idx index
 
 	for cursor.Next(context.Background()) {
+		var idx index
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
@@ -302,9 +302,9 @@ func TestIndexView_CreateMany(t *testing.T) {
 
 	fooFound := false
 	barBazFound := false
-	var idx index
 
 	for cursor.Next(context.Background()) {
+		var idx index
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
@@ -477,9 +477,9 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 
 	fooFound := false
 	barBazFound := false
-	var idx index
 
 	for cursor.Next(context.Background()) {
+		var idx index
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 
@@ -551,9 +551,8 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	cursor, err := indexView.List(context.Background())
 	require.NoError(t, err)
 
-	var idx index
-
 	for cursor.Next(context.Background()) {
+		var idx index
 		err := cursor.Decode(&idx)
 		require.NoError(t, err)
 		require.Equal(t, expectedNS, idx.NS)

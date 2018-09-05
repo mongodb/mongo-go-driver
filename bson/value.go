@@ -105,6 +105,12 @@ func (v *Value) Interface() interface{} {
 	}
 }
 
+// Validate validates the value.
+func (v *Value) Validate() error {
+	_, err := v.validate(false)
+	return err
+}
+
 func (v *Value) validate(sizeOnly bool) (uint32, error) {
 	if v.data == nil {
 		return 0, ErrUninitializedElement
@@ -1023,6 +1029,11 @@ func (v *Value) Add(v2 *Value) error {
 	}
 
 	return fmt.Errorf("cannot Add values of types %s and %s yet", v.Type(), v2.Type())
+}
+
+// Equal will return true if this value is equal to val.
+func (v *Value) Equal(val *Value) bool {
+	return v.equal(val)
 }
 
 func (v *Value) equal(v2 *Value) bool {

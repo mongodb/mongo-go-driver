@@ -72,13 +72,13 @@ func TestCommandAggregate(t *testing.T) {
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
-		var next = make(bson.Reader, 1024)
+		var next bson.Reader
 
 		for i := 4; i > 1; i-- {
 			if !cursor.Next(context.Background()) {
 				t.Error("Cursor should have results, but does not have a next result")
 			}
-			err = cursor.Decode(next)
+			err = cursor.Decode(&next)
 			noerr(t, err)
 			if !bytes.Equal(next[:len(readers[i])], readers[i]) {
 				t.Errorf("Did not get expected document. got %v; want %v", bson.Reader(next[:len(readers[i])]), readers[i])

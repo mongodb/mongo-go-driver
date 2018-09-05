@@ -32,6 +32,7 @@ type Database struct {
 	readPreference *readpref.ReadPref
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
+	marshaller     BSONAppender
 }
 
 func newDatabase(client *Client, name string, opts ...dbopt.Option) *Database {
@@ -55,12 +56,18 @@ func newDatabase(client *Client, name string, opts ...dbopt.Option) *Database {
 		wc = dbOpt.WriteConcern
 	}
 
+	marshaller := client.marshaller
+	if dbOpt.BSONAppender != nil {
+		marshaller = dbOpt.BSONAppender
+	}
+
 	db := &Database{
 		client:         client,
 		name:           name,
 		readPreference: rp,
 		readConcern:    rc,
 		writeConcern:   wc,
+		marshaller:     marshaller,
 	}
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{
