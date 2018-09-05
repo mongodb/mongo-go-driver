@@ -57,6 +57,7 @@ func (itr *ReaderIterator) Next() bool {
 	itr.elem.value.start = elemStart
 	itr.elem.value.offset = itr.pos
 	itr.elem.value.data = itr.r
+	itr.elem.value.d = nil
 
 	n, err = itr.elem.value.validate(false)
 	itr.pos += n

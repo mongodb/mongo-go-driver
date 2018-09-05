@@ -7,13 +7,13 @@
 package bson
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
+	"github.com/mongodb/mongo-go-driver/bson/internal/llbson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -103,6 +103,12 @@ func (v *Value) Interface() interface{} {
 	default:
 		return nil
 	}
+}
+
+// Validate validates the value.
+func (v *Value) Validate() error {
+	_, err := v.validate(false)
+	return err
 }
 
 func (v *Value) validate(sizeOnly bool) (uint32, error) {
@@ -1025,6 +1031,11 @@ func (v *Value) Add(v2 *Value) error {
 	return fmt.Errorf("cannot Add values of types %s and %s yet", v.Type(), v2.Type())
 }
 
+// Equal will return true if this value is equal to val.
+func (v *Value) Equal(val *Value) bool {
+	return v.equal(val)
+}
+
 func (v *Value) equal(v2 *Value) bool {
 	if v == nil && v2 == nil {
 		return true
@@ -1034,17 +1045,10 @@ func (v *Value) equal(v2 *Value) bool {
 		return false
 	}
 
-	if v.start != v2.start {
-		return false
-	}
-
-	if v.offset != v2.offset {
-		return false
-	}
-
 	if v.d != nil && !v.d.Equal(v2.d) {
 		return false
 	}
 
-	return bytes.Equal(v.data, v2.data)
+	t1, t2 := llbson.Type(v.data[v.start]), llbson.Type(v2.data[v2.start])
+	return llbson.EqualValue(t1, t2, v.data[v.offset:], v2.data[v2.offset:])
 }

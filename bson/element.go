@@ -354,6 +354,11 @@ func (e *Element) String() string {
 	return fmt.Sprintf(`bson.Element{[%s]"%s": %v}`, e.Value().Type(), e.Key(), val)
 }
 
+// Equal compares this element to element and returns true if they are equal.
+func (e *Element) Equal(elem *Element) bool {
+	return e.equal(elem)
+}
+
 func (e *Element) equal(e2 *Element) bool {
 	if e == nil && e2 == nil {
 		return true
@@ -362,6 +367,9 @@ func (e *Element) equal(e2 *Element) bool {
 		return false
 	}
 
+	if e.Key() != e2.Key() {
+		return false
+	}
 	return e.value.equal(e2.value)
 }
 

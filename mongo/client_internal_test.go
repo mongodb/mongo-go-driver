@@ -37,6 +37,7 @@ func createTestClient(t *testing.T) *Client {
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 		clock:          &session.ClusterClock{},
+		registry:       defaultRegistry,
 	}
 }
 
