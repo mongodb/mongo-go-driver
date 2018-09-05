@@ -36,7 +36,10 @@ func AppendKey(dst []byte, key string) []byte { return append(dst, key+string(0x
 // AppendHeader will append Type t and key to dst and return the extended
 // buffer.
 func AppendHeader(dst []byte, t Type, key string) []byte {
-	return append(AppendType(dst, t), key+string(0x00)...)
+	dst = AppendType(dst, t)
+	dst = append(dst, key...)
+	return append(dst, 0x00)
+	// return append(AppendType(dst, t), key+string(0x00)...)
 }
 
 // ReadType will return the first byte of the provided []byte as a type. If
