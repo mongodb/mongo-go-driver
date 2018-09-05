@@ -10,6 +10,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -29,6 +30,8 @@ import (
 
 const defaultLocalThreshold = 15 * time.Millisecond
 
+var defaultRegistry = bsoncodec.NewRegistryBuilder().Build()
+
 // Client performs operations on a given topology.
 type Client struct {
 	id              uuid.UUID
@@ -41,6 +44,8 @@ type Client struct {
 	readPreference  *readpref.ReadPref
 	readConcern     *readconcern.ReadConcern
 	writeConcern    *writeconcern.WriteConcern
+	registry        *bsoncodec.Registry
+	marshaller      BSONAppender
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -176,6 +181,7 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 		topologyOptions: clientOpt.TopologyOptions,
 		connString:      clientOpt.ConnString,
 		localThreshold:  defaultLocalThreshold,
+		registry:        clientOpt.Registry,
 	}
 
 	uuid, err := uuid.New()
@@ -222,6 +228,10 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 		} else {
 			client.readPreference = readpref.Primary()
 		}
+	}
+
+	if client.registry == nil {
+		client.registry = defaultRegistry
 	}
 	return client, nil
 }
@@ -333,7 +343,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 
-	f, err := TransformDocument(filter)
+	f, err := transformDocument(c.registry, filter)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}

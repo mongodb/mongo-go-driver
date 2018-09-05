@@ -7,10 +7,10 @@
 package mongo
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +25,7 @@ func TestDeleteResult_unmarshalInto(t *testing.T) {
 	require.Nil(t, err)
 
 	var result DeleteResult
-	err = bson.NewDecoder(bytes.NewReader(b)).Decode(&result)
+	err = bsoncodec.Unmarshal(b, &result)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(2))
 }
@@ -34,11 +34,10 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 	t.Parallel()
 
 	result := DeleteResult{DeletedCount: 1}
-	var buf bytes.Buffer
-	err := bson.NewEncoder(&buf).Encode(result)
+	buf, err := bsoncodec.Marshal(result)
 	require.Nil(t, err)
 
-	doc, err := bson.ReadDocument(buf.Bytes())
+	doc, err := bson.ReadDocument(buf)
 	require.Nil(t, err)
 
 	require.Equal(t, doc.Len(), 1)
@@ -66,7 +65,7 @@ func TestUpdateOneResult_unmarshalInto(t *testing.T) {
 	require.Nil(t, err)
 
 	var result UpdateResult
-	err = bson.NewDecoder(bytes.NewReader(b)).Decode(&result)
+	err = bsoncodec.Unmarshal(b, &result)
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(2))

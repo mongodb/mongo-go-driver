@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -55,7 +56,7 @@ func (bi *BuildInfo) Decode(wm wiremessage.WireMessage) *BuildInfo {
 		bi.err = err
 		return bi
 	}
-	err = bson.Unmarshal(rdr, &bi.res)
+	err = bsoncodec.Unmarshal(rdr, &bi.res)
 	if err != nil {
 		bi.err = err
 		return bi

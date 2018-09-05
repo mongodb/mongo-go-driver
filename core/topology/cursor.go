@@ -7,12 +7,12 @@
 package topology
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -28,6 +28,7 @@ type cursor struct {
 	err           error
 	server        *Server
 	opts          []option.CursorOptioner
+	registry      *bsoncodec.Registry
 }
 
 func newCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
@@ -49,6 +50,7 @@ func newCursor(result bson.Reader, clientSession *session.Client, clock *session
 		clock:         clock,
 		current:       -1,
 		server:        server,
+		registry:      server.cfg.registry,
 		opts:          opts,
 	}
 	var ok bool
@@ -125,7 +127,8 @@ func (c *cursor) Decode(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return bson.NewDecoder(bytes.NewReader(br)).Decode(v)
+
+	return bsoncodec.UnmarshalWithRegistry(c.registry, br, v)
 }
 
 func (c *cursor) DecodeBytes() (bson.Reader, error) {

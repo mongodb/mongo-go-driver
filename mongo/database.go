@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
@@ -32,6 +33,7 @@ type Database struct {
 	readPreference *readpref.ReadPref
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
+	registry       *bsoncodec.Registry
 }
 
 func newDatabase(client *Client, name string, opts ...dbopt.Option) *Database {
@@ -61,6 +63,7 @@ func newDatabase(client *Client, name string, opts ...dbopt.Option) *Database {
 		readPreference: rp,
 		readConcern:    rc,
 		writeConcern:   wc,
+		registry:       client.registry,
 	}
 
 	db.readSelector = description.CompositeSelector([]description.ServerSelector{
@@ -110,7 +113,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		}
 	}
 
-	runCmdDoc, err := TransformDocument(runCommand)
+	runCmdDoc, err := transformDocument(db.registry, runCommand)
 	if err != nil {
 		return nil, err
 	}

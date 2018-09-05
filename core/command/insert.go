@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -174,7 +175,7 @@ func (i *Insert) Decode(desc description.SelectedServer, wm wiremessage.WireMess
 }
 
 func (i *Insert) decode(desc description.SelectedServer, rdr bson.Reader) *Insert {
-	i.err = bson.Unmarshal(rdr, &i.result)
+	i.err = bsoncodec.Unmarshal(rdr, &i.result)
 	return i
 }
 

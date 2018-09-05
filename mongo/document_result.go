@@ -11,6 +11,7 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 )
 
 // ErrNoDocuments is returned by Decode when an operation that returns a
@@ -24,6 +25,7 @@ type DocumentResult struct {
 	err error
 	cur Cursor
 	rdr bson.Reader
+	reg *bsoncodec.Registry
 }
 
 // Decode will attempt to decode the first document into v. If there was an
@@ -38,7 +40,7 @@ func (dr *DocumentResult) Decode(v interface{}) error {
 		if v == nil {
 			return nil
 		}
-		return bson.Unmarshal(dr.rdr, v)
+		return bsoncodec.UnmarshalWithRegistry(dr.reg, dr.rdr, v)
 	case dr.cur != nil:
 		defer dr.cur.Close(context.TODO())
 		if !dr.cur.Next(context.TODO()) {
