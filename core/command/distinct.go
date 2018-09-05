@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
@@ -92,7 +93,7 @@ func (d *Distinct) Decode(desc description.SelectedServer, wm wiremessage.WireMe
 }
 
 func (d *Distinct) decode(desc description.SelectedServer, rdr bson.Reader) *Distinct {
-	d.err = bson.Unmarshal(rdr, &d.result)
+	d.err = bsoncodec.Unmarshal(rdr, &d.result)
 	return d
 }
 

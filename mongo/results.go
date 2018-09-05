@@ -7,10 +7,10 @@
 package mongo
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
@@ -114,7 +114,7 @@ func (result *UpdateResult) UnmarshalBSON(b []byte) error {
 				var d struct {
 					ID interface{} `bson:"_id"`
 				}
-				err = bson.NewDecoder(bytes.NewReader(e.Value().ReaderDocument())).Decode(&d)
+				err = bsoncodec.Unmarshal(e.Value().ReaderDocument(), &d)
 				if err != nil {
 					return err
 				}

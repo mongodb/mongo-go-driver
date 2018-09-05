@@ -198,6 +198,17 @@ func (r Reader) String() string {
 	return buf.String()
 }
 
+// MarshalBSON implements the bsoncodec.Marshaler interface.
+//
+// This method does not copy the bytes from r.
+func (r Reader) MarshalBSON() ([]byte, error) {
+	_, err := r.Validate()
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
 // recursiveKeys implements the logic for the Keys method. This is a separate
 // function to facilitate recursive calls.
 func (r Reader) recursiveKeys(recursive bool, prefix ...string) (Keys, error) {

@@ -9,9 +9,12 @@ package topology
 import (
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/session"
 )
+
+var defaultRegistry = bsoncodec.NewRegistryBuilder().Build()
 
 type serverConfig struct {
 	clock             *session.ClusterClock
@@ -22,6 +25,7 @@ type serverConfig struct {
 	heartbeatTimeout  time.Duration
 	maxConns          uint16
 	maxIdleConns      uint16
+	registry          *bsoncodec.Registry
 }
 
 func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
@@ -30,6 +34,7 @@ func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
 		heartbeatTimeout:  30 * time.Second,
 		maxConns:          100,
 		maxIdleConns:      100,
+		registry:          defaultRegistry,
 	}
 
 	for _, opt := range opts {
@@ -101,6 +106,15 @@ func WithMaxIdleConnections(fn func(uint16) uint16) ServerOption {
 func WithClock(fn func(clock *session.ClusterClock) *session.ClusterClock) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.clock = fn(cfg.clock)
+		return nil
+	}
+}
+
+// WithRegistry configures the registry for the server to use when creating
+// cursors.
+func WithRegistry(fn func(*bsoncodec.Registry) *bsoncodec.Registry) ServerOption {
+	return func(cfg *serverConfig) error {
+		cfg.registry = fn(cfg.registry)
 		return nil
 	}
 }

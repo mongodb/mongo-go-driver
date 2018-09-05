@@ -36,7 +36,10 @@ func AppendKey(dst []byte, key string) []byte { return append(dst, key+string(0x
 // AppendHeader will append Type t and key to dst and return the extended
 // buffer.
 func AppendHeader(dst []byte, t Type, key string) []byte {
-	return append(AppendType(dst, t), key+string(0x00)...)
+	dst = AppendType(dst, t)
+	dst = append(dst, key...)
+	return append(dst, 0x00)
+	// return append(AppendType(dst, t), key+string(0x00)...)
 }
 
 // ReadType will return the first byte of the provided []byte as a type. If
@@ -435,6 +438,68 @@ func AppendMaxKeyElement(dst []byte, key string) []byte { return AppendHeader(ds
 // AppendMinKeyElement will append a BSON min key element using key to dst
 // and return the extended buffer.
 func AppendMinKeyElement(dst []byte, key string) []byte { return AppendHeader(dst, TypeMinKey, key) }
+
+// EqualValue will return true if the two values are equal.
+func EqualValue(t1, t2 Type, v1, v2 []byte) bool {
+	if t1 != t2 {
+		return false
+	}
+	length1, ok := valueLength(t1, v1)
+	if !ok {
+		return false
+	}
+	length2, ok := valueLength(t2, v2)
+	if !ok {
+		return false
+	}
+	return bytes.Equal(v1[:length1], v2[:length2])
+}
+
+func valueLength(t Type, val []byte) (int32, bool) {
+	var length int32
+	ok := true
+	switch t {
+	case TypeArray, TypeEmbeddedDocument, TypeCodeWithScope:
+		length, ok = readLength(val)
+	case TypeBinary:
+		length, ok = readLength(val)
+		length += 4 + 1 // binary length + subtype byte
+	case TypeBoolean:
+		length = 1
+	case TypeDBPointer:
+		length, ok = readLength(val)
+		length += 4 + 12 // string length + ObjectID length
+	case TypeDateTime, TypeDouble, TypeInt64, TypeTimestamp:
+		length = 8
+	case TypeDecimal128:
+		length = 16
+	case TypeInt32:
+		length = 4
+	case TypeJavaScript, TypeString, TypeSymbol:
+		length, ok = readLength(val)
+		length += 4
+	case TypeMaxKey, TypeMinKey, TypeNull, TypeUndefined:
+		length = 0
+	case TypeObjectID:
+		length = 12
+	case TypeRegex:
+		regex := bytes.IndexByte(val, 0x00)
+		if regex < 0 {
+			ok = false
+			break
+		}
+		pattern := bytes.IndexByte(val, 0x00)
+		if pattern < 0 {
+			ok = false
+			break
+		}
+		length = int32(int64(regex) + 1 + int64(pattern) + 1)
+	default:
+		ok = false
+	}
+
+	return length, ok
+}
 
 func appendLength(dst []byte, l int32) []byte { return appendi32(dst, l) }
 

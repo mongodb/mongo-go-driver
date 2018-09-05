@@ -13,6 +13,7 @@ import (
 
 	"reflect"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/event"
@@ -88,6 +89,7 @@ type Client struct {
 	ReadPreference  *readpref.ReadPref
 	ReadConcern     *readconcern.ReadConcern
 	WriteConcern    *writeconcern.WriteConcern
+	Registry        *bsoncodec.Registry
 }
 
 // ClientBundle is a bundle of client options
@@ -226,6 +228,14 @@ func (cb *ClientBundle) ReadConcern(rc *readconcern.ReadConcern) *ClientBundle {
 func (cb *ClientBundle) ReadPreference(rp *readpref.ReadPref) *ClientBundle {
 	return &ClientBundle{
 		option: ReadPreference(rp),
+		next:   cb,
+	}
+}
+
+// Registry specifies the bsoncodec.Registry.
+func (cb *ClientBundle) Registry(registry *bsoncodec.Registry) *ClientBundle {
+	return &ClientBundle{
+		option: Registry(registry),
 		next:   cb,
 	}
 }
@@ -530,7 +540,7 @@ func ReadConcern(rc *readconcern.ReadConcern) Option {
 	})
 }
 
-// ReadPreference specifies the read preference
+// ReadPreference specifies the read preference.
 func ReadPreference(rp *readpref.ReadPref) Option {
 	return optionFunc(
 		func(c *Client) error {
@@ -539,6 +549,16 @@ func ReadPreference(rp *readpref.ReadPref) Option {
 			}
 			return nil
 		})
+}
+
+// Registry specifies the bsoncodec.Registry.
+func Registry(registry *bsoncodec.Registry) Option {
+	return optionFunc(func(c *Client) error {
+		if c.Registry == nil {
+			c.Registry = registry
+		}
+		return nil
+	})
 }
 
 // ReplicaSet specifies the name of the replica set of the cluster.

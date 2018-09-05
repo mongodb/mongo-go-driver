@@ -92,7 +92,7 @@ func AllowPartialResults(b bool) OptAllowPartialResults {
 // ArrayFilters specifies which array elements an update should apply.
 // UpdateOne
 func ArrayFilters(filters ...interface{}) OptArrayFilters {
-	return OptArrayFilters(filters)
+	return OptArrayFilters{Filters: filters}
 }
 
 // BatchSize specifies the number of documents to return in each batch.
@@ -142,7 +142,7 @@ func Limit(i int64) OptLimit {
 // Max sets an exclusive upper bound for a specific index.
 // Find, One
 func Max(max interface{}) OptMax {
-	return OptMax{max}
+	return OptMax{Max: max}
 }
 
 // MaxAwaitTime specifies the max amount of time for the server to wait on new documents.
@@ -166,7 +166,7 @@ func MaxTime(d time.Duration) OptMaxTime {
 // Min specifies the inclusive lower bound for a specific index.
 // Find, One
 func Min(min interface{}) OptMin {
-	return OptMin{min}
+	return OptMin{Min: min}
 }
 
 // NoCursorTimeout prevents cursors from timing out after an inactivity period.
@@ -223,7 +223,7 @@ func Snapshot(b bool) OptSnapshot {
 // Sort specifies the order in which to return results.
 // Find, One, DeleteOne, ReplaceOne, UpdateOne
 func Sort(sort interface{}) OptSort {
-	return OptSort{sort}
+	return OptSort{Sort: sort}
 }
 
 // Upsert specifies whether a document should be inserted if no match is found.

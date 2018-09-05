@@ -7,12 +7,12 @@
 package mongo
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -41,7 +41,7 @@ const errorCodeCursorNotFound int32 = 43
 func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{},
 	opts ...changestreamopt.ChangeStream) (*changeStream, error) {
 
-	pipelineArr, err := transformAggregatePipeline(pipeline)
+	pipelineArr, err := transformAggregatePipeline(coll.registry, pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +193,7 @@ func (cs *changeStream) Decode(out interface{}) error {
 		return err
 	}
 
-	return bson.NewDecoder(bytes.NewReader(br)).Decode(out)
+	return bsoncodec.UnmarshalWithRegistry(cs.coll.registry, br, out)
 }
 
 func (cs *changeStream) DecodeBytes() (bson.Reader, error) {

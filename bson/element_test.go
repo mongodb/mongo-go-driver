@@ -1739,7 +1739,7 @@ func testConvertValueToElem(t *testing.T) {
 			got := convertValueToElem(tc.key, tc.val)
 			want := tc.elem
 
-			if !got.equal(want) {
+			if !got.Equal(want) {
 				t.Errorf("Expected elements to be equal but they are not. got %v; want %v", got, want)
 			}
 		})

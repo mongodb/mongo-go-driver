@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -116,7 +117,7 @@ func (es *EndSessions) Decode(desc description.SelectedServer, wm wiremessage.Wi
 
 func (es *EndSessions) decode(desc description.SelectedServer, rdr bson.Reader) *EndSessions {
 	var res result.EndSessions
-	es.errors = append(es.errors, bson.Unmarshal(rdr, res))
+	es.errors = append(es.errors, bsoncodec.Unmarshal(rdr, &res))
 	es.results = append(es.results, res)
 	return es
 }
