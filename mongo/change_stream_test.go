@@ -14,6 +14,7 @@ import (
 
 	"strings"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
@@ -125,14 +126,16 @@ func TestChangeStream_trackResumeToken(t *testing.T) {
 
 	for i := 1; i <= 4; i++ {
 		getNextChange(changes)
-		doc := bson.NewDocument()
-		err := changes.Decode(doc)
+		var doc *bson.Document
+		err := changes.Decode(&doc)
 		require.NoError(t, err)
 
 		id, err := doc.LookupErr("_id")
 		require.NoError(t, err)
 
-		require.Equal(t, id.MutableDocument(), changes.(*changeStream).resumeToken)
+		if !cmp.Equal(id.MutableDocument(), changes.(*changeStream).resumeToken) {
+			t.Errorf("Resume tokens do not match. got %v; want %v", id.MutableDocument(), changes.(*changeStream).resumeToken)
+		}
 	}
 }
 
@@ -263,5 +266,6 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	require.NoError(t, err)
 
 	getNextChange(changes)
-	require.NoError(t, changes.Decode(bson.NewDocument()))
+	var doc *bson.Document
+	require.NoError(t, changes.Decode(&doc))
 }

@@ -17,6 +17,14 @@ import (
 
 var dbBundle = new(DatabaseBundle)
 
+// BSONAppender is an interface implemented by types that can marshal a
+// provided type into BSON bytes and append those bytes to the provided []byte.
+// The AppendBSON can return a non-nil error and non-nil []byte. The AppendBSON
+// method may also write incomplete BSON to the []byte.
+type BSONAppender interface {
+	AppendBSON([]byte, interface{}) ([]byte, error)
+}
+
 // Option represents a DB option.
 type Option interface {
 	dbOption()
@@ -30,6 +38,7 @@ type Database struct {
 	ReadConcern    *readconcern.ReadConcern
 	WriteConcern   *writeconcern.WriteConcern
 	ReadPreference *readpref.ReadPref
+	BSONAppender   BSONAppender
 }
 
 // DatabaseBundle is a bundle of database options.
