@@ -7,8 +7,7 @@
 package mongo
 
 import (
-	"fmt"
-	"reflect"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -29,12 +28,6 @@ func TestTransformDocument(t *testing.T) {
 			nil,
 		},
 		{
-			"bson.DocumentMarshaler",
-			dMarsh{bson.NewDocument(bson.EC.String("foo", "bar"))},
-			bson.NewDocument(bson.EC.String("foo", "bar")),
-			nil,
-		},
-		{
 			"reflection",
 			reflectStruct{Foo: "bar"},
 			bson.NewDocument(bson.EC.String("foo", "bar")),
@@ -50,7 +43,7 @@ func TestTransformDocument(t *testing.T) {
 			"unsupported type",
 			[]string{"foo", "bar"},
 			nil,
-			fmt.Errorf("cannot transform type %s to a *bson.Document", reflect.TypeOf([]string{})),
+			MarshalError{Value: []string{"foo", "bar"}, Err: errors.New("invalid state transition: TopLevel -> ArrayMode")},
 		},
 	}
 
