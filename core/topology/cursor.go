@@ -7,12 +7,12 @@
 package topology
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -123,7 +123,7 @@ func (c *cursor) Decode(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return bson.NewDecoder(bytes.NewReader(br)).Decode(v)
+	return bsoncodec.Unmarshal(br, v)
 }
 
 func (c *cursor) DecodeBytes() (bson.Reader, error) {

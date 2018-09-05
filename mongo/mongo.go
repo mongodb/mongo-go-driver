@@ -10,12 +10,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"reflect"
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 )
@@ -25,6 +25,36 @@ type Dialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
+// BSONAppender is an interface implemented by types that can marshal a
+// provided type into BSON bytes and append those bytes to the provided []byte.
+// The AppendBSON can return a non-nil error and non-nil []byte. The AppendBSON
+// method may also write incomplete BSON to the []byte.
+type BSONAppender interface {
+	AppendBSON([]byte, interface{}) ([]byte, error)
+}
+
+// BSONAppenderFunc is an adapter function that allows any function that
+// satisfies the AppendBSON method signature to be used where a BSONAppender is
+// used.
+type BSONAppenderFunc func([]byte, interface{}) ([]byte, error)
+
+// AppendBSON implements the BSONAppender interface
+func (baf BSONAppenderFunc) AppendBSON(dst []byte, val interface{}) ([]byte, error) {
+	return baf(dst, val)
+}
+
+// MarshalError is returned when attempting to transform a value into a document
+// results in an error.
+type MarshalError struct {
+	Value interface{}
+	Err   error
+}
+
+// Error implements the error interface.
+func (me MarshalError) Error() string {
+	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
+}
+
 // TransformDocument handles transforming a document of an allowable type into
 // a *bson.Document. This method is called directly after most methods that
 // have one or more parameters that are documents.
@@ -32,36 +62,41 @@ type Dialer interface {
 // The supported types for document are:
 //
 //  bson.Marshaler
-//  bson.DocumentMarshaler
 //  bson.Reader
 //  []byte (must be a valid BSON document)
-//  io.Reader (only 1 BSON document will be read)
 //  A custom struct type
 //
-func TransformDocument(document interface{}) (*bson.Document, error) {
-	switch d := document.(type) {
+func TransformDocument(val interface{}) (*bson.Document, error) {
+	document, err := transformDocument(BSONAppenderFunc(bsoncodec.MarshalAppend), val)
+	if err != nil {
+		return nil, MarshalError{Value: val, Err: err}
+	}
+
+	return document, nil
+}
+
+func transformDocument(marshaller BSONAppender, val interface{}) (*bson.Document, error) {
+	switch d := val.(type) {
 	case nil:
 		return bson.NewDocument(), nil
 	case *bson.Document:
-		return d, nil
-	case bson.Marshaler, bson.Reader, []byte, io.Reader:
-		return bson.NewDocumentEncoder().EncodeDocument(document)
-	case bson.DocumentMarshaler:
-		return d.MarshalBSONDocument()
+		return d.Copy(), nil
+	case bson.Marshaler:
+		b, err := d.MarshalBSON()
+		if err != nil {
+			return nil, err
+		}
+		return bson.ReadDocument(b)
+	case bson.Reader:
+		return bson.ReadDocument(d)
+	case []byte:
+		return bson.ReadDocument(d)
 	default:
-		var kind reflect.Kind
-		if t := reflect.TypeOf(document); t.Kind() == reflect.Ptr {
-			kind = t.Elem().Kind()
+		b, err := marshaller.AppendBSON(make([]byte, 0, 256), val)
+		if err != nil {
+			return nil, err
 		}
-		if reflect.ValueOf(document).Kind() == reflect.Struct || kind == reflect.Struct {
-			return bson.NewDocumentEncoder().EncodeDocument(document)
-		}
-		if reflect.ValueOf(document).Kind() == reflect.Map &&
-			reflect.TypeOf(document).Key().Kind() == reflect.String {
-			return bson.NewDocumentEncoder().EncodeDocument(document)
-		}
-
-		return nil, fmt.Errorf("cannot transform type %s to a *bson.Document", reflect.TypeOf(document))
+		return bson.ReadDocument(b)
 	}
 }
 
