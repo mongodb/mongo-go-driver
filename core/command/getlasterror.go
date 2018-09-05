@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -73,7 +74,7 @@ func (gle *GetLastError) Decode(wm wiremessage.WireMessage) *GetLastError {
 }
 
 func (gle *GetLastError) decode(rdr bson.Reader) *GetLastError {
-	err := bson.Unmarshal(rdr, &gle.res)
+	err := bsoncodec.Unmarshal(rdr, &gle.res)
 	if err != nil {
 		gle.err = err
 		return gle

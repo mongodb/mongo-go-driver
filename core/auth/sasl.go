@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -72,7 +73,7 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 		return newError(err, mech)
 	}
 
-	err = bson.Unmarshal(rdr, &saslResp)
+	err = bsoncodec.Unmarshal(rdr, &saslResp)
 	if err != nil {
 		return newAuthError("unmarshall error", err)
 	}
@@ -111,7 +112,7 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 			return newError(err, mech)
 		}
 
-		err = bson.Unmarshal(rdr, &saslResp)
+		err = bsoncodec.Unmarshal(rdr, &saslResp)
 		if err != nil {
 			return newAuthError("unmarshal error", err)
 		}

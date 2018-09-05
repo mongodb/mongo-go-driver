@@ -1,12 +1,11 @@
 package benchmark
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 )
 
 func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet string) error {
@@ -19,10 +18,9 @@ func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet st
 
 	for i := 0; i < iters; i++ {
 		out := make(map[string]interface{})
-		dec := bson.NewDecoder(bytes.NewReader(r))
-		err := dec.Decode(out)
+		err := bsoncodec.Unmarshal(r, &out)
 		if err != nil {
-			return err
+			return nil
 		}
 		if len(out) == 0 {
 			return fmt.Errorf("decoding failed")
@@ -38,19 +36,20 @@ func bsonMapEncoding(ctx context.Context, tm TimerManager, iters int, dataSet st
 	}
 
 	doc := make(map[string]interface{})
-	dec := bson.NewDecoder(bytes.NewReader(r))
-	if err = dec.Decode(doc); err != nil {
+	err = bsoncodec.Unmarshal(r, &doc)
+	if err != nil {
 		return err
 	}
 
-	buf := bytes.NewBuffer([]byte{})
+	var buf []byte
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		if err = bson.NewEncoder(buf).Encode(&doc); err != nil {
+		buf, err = bsoncodec.MarshalAppend(buf[:0], doc)
+		if err != nil {
 			return nil
 		}
 
-		if buf.Len() == 0 {
+		if len(buf) == 0 {
 			return errors.New("encoding failed")
 		}
 	}

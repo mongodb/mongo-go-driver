@@ -64,12 +64,12 @@ func TestFindAndDeleteOneOpt(t *testing.T) {
 	bundle1 = bundle1.Projection(true).Sort(false)
 	testhelpers.RequireNotNil(t, bundle1, "created bundle was nil")
 	bundle1Opts := []option.Optioner{
-		OptProjection{true}.ConvertDeleteOneOption(),
-		OptSort{false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: true}.ConvertDeleteOneOption(),
+		OptSort{Sort: false}.ConvertDeleteOneOption(),
 	}
 	bundle1DedupOpts := []option.Optioner{
-		OptProjection{true}.ConvertDeleteOneOption(),
-		OptSort{false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: true}.ConvertDeleteOneOption(),
+		OptSort{Sort: false}.ConvertDeleteOneOption(),
 	}
 
 	bundle2 := BundleDeleteOne(MaxTime(1))
@@ -86,13 +86,13 @@ func TestFindAndDeleteOneOpt(t *testing.T) {
 	bundle3Opts := []option.Optioner{
 		OptMaxTime(1).ConvertDeleteOneOption(),
 		OptMaxTime(2).ConvertDeleteOneOption(),
-		OptProjection{false}.ConvertDeleteOneOption(),
-		OptProjection{true}.ConvertDeleteOneOption(),
+		OptProjection{Projection: false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: true}.ConvertDeleteOneOption(),
 	}
 
 	bundle3DedupOpts := []option.Optioner{
 		OptMaxTime(2).ConvertDeleteOneOption(),
-		OptProjection{true}.ConvertDeleteOneOption(),
+		OptProjection{Projection: true}.ConvertDeleteOneOption(),
 	}
 
 	nilBundle := BundleDeleteOne()
@@ -100,40 +100,40 @@ func TestFindAndDeleteOneOpt(t *testing.T) {
 
 	nestedBundle1 := createNestedDeleteOneBundle1(t)
 	nestedBundleOpts1 := []option.Optioner{
-		OptProjection{true}.ConvertDeleteOneOption(),
+		OptProjection{Projection: true}.ConvertDeleteOneOption(),
 		OptMaxTime(500).ConvertDeleteOneOption(),
-		OptProjection{false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: false}.ConvertDeleteOneOption(),
 		OptMaxTime(1000).ConvertDeleteOneOption(),
 	}
 	nestedBundleDedupOpts1 := []option.Optioner{
-		OptProjection{false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: false}.ConvertDeleteOneOption(),
 		OptMaxTime(1000).ConvertDeleteOneOption(),
 	}
 
 	nestedBundle2 := createNestedDeleteOneBundle2(t)
 	nestedBundleOpts2 := []option.Optioner{
-		OptProjection{true}.ConvertDeleteOneOption(),
+		OptProjection{Projection: true}.ConvertDeleteOneOption(),
 		OptMaxTime(500).ConvertDeleteOneOption(),
 		OptMaxTime(100).ConvertDeleteOneOption(),
-		OptProjection{false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: false}.ConvertDeleteOneOption(),
 		OptMaxTime(1000).ConvertDeleteOneOption(),
 	}
 	nestedBundleDedupOpts2 := []option.Optioner{
-		OptProjection{false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: false}.ConvertDeleteOneOption(),
 		OptMaxTime(1000).ConvertDeleteOneOption(),
 	}
 
 	nestedBundle3 := createNestedDeleteOneBundle3(t)
 	nestedBundleOpts3 := []option.Optioner{
 		OptMaxTime(100).ConvertDeleteOneOption(),
-		OptProjection{true}.ConvertDeleteOneOption(),
+		OptProjection{Projection: true}.ConvertDeleteOneOption(),
 		OptMaxTime(500).ConvertDeleteOneOption(),
 		OptMaxTime(100).ConvertDeleteOneOption(),
-		OptProjection{false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: false}.ConvertDeleteOneOption(),
 		OptMaxTime(1000).ConvertDeleteOneOption(),
 	}
 	nestedBundleDedupOpts3 := []option.Optioner{
-		OptProjection{false}.ConvertDeleteOneOption(),
+		OptProjection{Projection: false}.ConvertDeleteOneOption(),
 		OptMaxTime(1000).ConvertDeleteOneOption(),
 	}
 

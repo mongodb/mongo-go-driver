@@ -12,6 +12,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
@@ -198,7 +199,9 @@ func TestCollection_InsertOne(t *testing.T) {
 
 	result, err := coll.InsertOne(context.Background(), doc)
 	require.Nil(t, err)
-	require.Equal(t, result.InsertedID, want)
+	if !cmp.Equal(result.InsertedID, want) {
+		t.Errorf("Result documents do not match. got %v; want %v", result.InsertedID, want)
+	}
 
 }
 
@@ -277,9 +280,13 @@ func TestCollection_InsertMany(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Len(t, result.InsertedIDs, 3)
-	require.Equal(t, result.InsertedIDs[0], want1)
+	if !cmp.Equal(result.InsertedIDs[0], want1) {
+		t.Errorf("Result documents do not match. got %v; want %v", result.InsertedIDs[0], want1)
+	}
 	require.NotNil(t, result.InsertedIDs[1])
-	require.Equal(t, result.InsertedIDs[2], want2)
+	if !cmp.Equal(result.InsertedIDs[2], want2) {
+		t.Errorf("Result documents do not match. got %v; want %v", result.InsertedIDs[2], want2)
+	}
 
 }
 
@@ -435,6 +442,7 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 	got, ok := err.(BulkWriteError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, BulkWriteError{}, err)
+		t.Errorf("got error message %v", err)
 	}
 	if got.WriteConcernError.Code != want.Code {
 		t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteConcernError.Code, want.Code)
@@ -1122,9 +1130,9 @@ func TestCollection_Aggregate(t *testing.T) {
 	require.Nil(t, err)
 
 	for i := 2; i < 5; i++ {
-		var doc = bson.NewDocument()
+		var doc *bson.Document
 		cursor.Next(context.Background())
-		err = cursor.Decode(doc)
+		err = cursor.Decode(&doc)
 		require.NoError(t, err)
 
 		require.Equal(t, doc.Len(), 1)
@@ -1184,9 +1192,9 @@ func testAggregateWithOptions(t *testing.T, createIndex bool, opts aggregateopt.
 	}
 
 	for i := 2; i < 5; i++ {
-		var doc = bson.NewDocument()
+		var doc *bson.Document
 		cursor.Next(context.Background())
-		err = cursor.Decode(doc)
+		err = cursor.Decode(&doc)
 		if err != nil {
 			return err
 		}
@@ -1445,9 +1453,9 @@ func TestCollection_Find_found(t *testing.T) {
 	require.Nil(t, err)
 
 	results := make([]int, 0, 5)
-	var doc = make(bson.Reader, 1024)
+	var doc bson.Reader
 	for cursor.Next(context.Background()) {
-		err = cursor.Decode(doc)
+		err = cursor.Decode(&doc)
 		require.NoError(t, err)
 
 		_, err = doc.Lookup("_id")
@@ -1493,10 +1501,10 @@ func TestCollection_FindOne_found(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(bson.EC.Int32("x", 1))
-	var result = bson.NewDocument()
+	var result *bson.Document
 	err := coll.FindOne(context.Background(),
 		filter,
-	).Decode(result)
+	).Decode(&result)
 
 	require.Nil(t, err)
 	require.Equal(t, result.Len(), 2)
@@ -1524,11 +1532,11 @@ func TestCollection_FindOne_found_withOption(t *testing.T) {
 	initCollection(t, coll)
 
 	filter := bson.NewDocument(bson.EC.Int32("x", 1))
-	var result = bson.NewDocument()
+	var result *bson.Document
 	err := coll.FindOne(context.Background(),
 		filter,
 		findopt.Comment("here's a query for ya"),
-	).Decode(result)
+	).Decode(&result)
 	require.Nil(t, err)
 	require.Equal(t, result.Len(), 2)
 
@@ -1571,8 +1579,8 @@ func TestCollection_FindOneAndDelete_found(t *testing.T) {
 
 	filter := bson.NewDocument(bson.EC.Int32("x", 3))
 
-	var result = bson.NewDocument()
-	err := coll.FindOneAndDelete(context.Background(), filter).Decode(result)
+	var result *bson.Document
+	err := coll.FindOneAndDelete(context.Background(), filter).Decode(&result)
 	require.NoError(t, err)
 
 	elem, err := result.LookupErr("x")
@@ -1642,8 +1650,8 @@ func TestCollection_FindOneAndReplace_found(t *testing.T) {
 	filter := bson.NewDocument(bson.EC.Int32("x", 3))
 	replacement := bson.NewDocument(bson.EC.Int32("y", 3))
 
-	var result = bson.NewDocument()
-	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(result)
+	var result *bson.Document
+	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(&result)
 	require.NoError(t, err)
 
 	elem, err := result.LookupErr("x")
@@ -1717,8 +1725,8 @@ func TestCollection_FindOneAndUpdate_found(t *testing.T) {
 	update := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("$set", bson.EC.Int32("x", 6)))
 
-	var result = bson.NewDocument()
-	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(result)
+	var result *bson.Document
+	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(&result)
 	require.NoError(t, err)
 
 	elem, err := result.LookupErr("x")
