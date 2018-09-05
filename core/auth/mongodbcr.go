@@ -14,6 +14,7 @@ import (
 	"io"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -67,7 +68,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Serv
 		Nonce string `bson:"nonce"`
 	}
 
-	err = bson.Unmarshal(rdr, &getNonceResult)
+	err = bsoncodec.Unmarshal(rdr, &getNonceResult)
 	if err != nil {
 		return newAuthError("unmarshal error", err)
 	}

@@ -58,8 +58,8 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	assert.True(t, cursor.Next(context.Background()), "Cursor should have a next result")
 
 	// make sure it's the right document
-	var next = make(bson.Reader, 1024)
-	err = cursor.Decode(next)
+	var next bson.Reader
+	err = cursor.Decode(&next)
 	noerr(t, err)
 
 	if !bytes.Equal(next[:len(rdr)], rdr) {
@@ -88,8 +88,7 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	noerr(t, cursor.Err())
 
 	// make sure it's the right document the second time
-	next = make(bson.Reader, 1024)
-	err = cursor.Decode(next)
+	err = cursor.Decode(&next)
 	noerr(t, err)
 
 	if !bytes.Equal(next[:len(rdr)], rdr) {

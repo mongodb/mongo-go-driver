@@ -14,6 +14,7 @@ import (
 
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
@@ -182,7 +183,7 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 	require.NoError(t, err)
 	err = client.Connect(context.Background())
 	require.NoError(t, err)
-	_, err = client.ListDatabases(context.Background(), nil)
+	_, err = client.ListDatabases(context.Background(), bson.NewDocument())
 	require.NoError(t, err)
 	got := atomic.LoadInt32(&td.called)
 	if got < 1 {

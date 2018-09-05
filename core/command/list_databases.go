@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -76,7 +77,7 @@ func (ld *ListDatabases) Decode(desc description.SelectedServer, wm wiremessage.
 }
 
 func (ld *ListDatabases) decode(desc description.SelectedServer, rdr bson.Reader) *ListDatabases {
-	ld.err = bson.Unmarshal(rdr, &ld.result)
+	ld.err = bsoncodec.Unmarshal(rdr, &ld.result)
 	return ld
 }
 

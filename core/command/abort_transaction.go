@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -52,7 +53,7 @@ func (at *AbortTransaction) Decode(desc description.SelectedServer, wm wiremessa
 }
 
 func (at *AbortTransaction) decode(desc description.SelectedServer, rdr bson.Reader) *AbortTransaction {
-	at.err = bson.Unmarshal(rdr, &at.result)
+	at.err = bsoncodec.Unmarshal(rdr, &at.result)
 	if at.err == nil && at.result.WriteConcernError != nil {
 		at.err = Error{
 			Code:    int32(at.result.WriteConcernError.Code),

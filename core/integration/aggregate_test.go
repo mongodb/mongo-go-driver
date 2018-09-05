@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/integration/internal/israce"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -75,13 +76,13 @@ func TestCommandAggregate(t *testing.T) {
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
-		var next = make(bson.Reader, 1024)
+		var next bson.Reader
 
 		for i := 4; i > 1; i-- {
 			if !cursor.Next(context.Background()) {
 				t.Error("Cursor should have results, but does not have a next result")
 			}
-			err = cursor.Decode(next)
+			err = cursor.Decode(&next)
 			noerr(t, err)
 			if !bytes.Equal(next[:len(readers[i])], readers[i]) {
 				t.Errorf("Did not get expected document. got %v; want %v", bson.Reader(next[:len(readers[i])]), readers[i])
@@ -213,9 +214,16 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 
 	// wait a bit between insert and getMore commands
 	time.Sleep(time.Millisecond * 100)
+	if israce.Enabled {
+		time.Sleep(time.Millisecond * 400) // wait a little longer when race detector is enabled.
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	time.AfterFunc(time.Millisecond*900, cancel)
+	if israce.Enabled {
+		time.AfterFunc(time.Millisecond*2000, cancel)
+	} else {
+		time.AfterFunc(time.Millisecond*900, cancel)
+	}
 	for cursor.Next(ctx) {
 	}
 

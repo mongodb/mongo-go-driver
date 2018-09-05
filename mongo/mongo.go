@@ -10,12 +10,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"reflect"
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 )
@@ -25,44 +25,78 @@ type Dialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
 }
 
-// TransformDocument handles transforming a document of an allowable type into
-// a *bson.Document. This method is called directly after most methods that
-// have one or more parameters that are documents.
-//
-// The supported types for document are:
-//
-//  bson.Marshaler
-//  bson.DocumentMarshaler
-//  bson.Reader
-//  []byte (must be a valid BSON document)
-//  io.Reader (only 1 BSON document will be read)
-//  A custom struct type
-//
-func TransformDocument(document interface{}) (*bson.Document, error) {
-	switch d := document.(type) {
-	case nil:
-		return bson.NewDocument(), nil
-	case *bson.Document:
-		return d, nil
-	case bson.Marshaler, bson.Reader, []byte, io.Reader:
-		return bson.NewDocumentEncoder().EncodeDocument(document)
-	case bson.DocumentMarshaler:
-		return d.MarshalBSONDocument()
-	default:
-		var kind reflect.Kind
-		if t := reflect.TypeOf(document); t.Kind() == reflect.Ptr {
-			kind = t.Elem().Kind()
-		}
-		if reflect.ValueOf(document).Kind() == reflect.Struct || kind == reflect.Struct {
-			return bson.NewDocumentEncoder().EncodeDocument(document)
-		}
-		if reflect.ValueOf(document).Kind() == reflect.Map &&
-			reflect.TypeOf(document).Key().Kind() == reflect.String {
-			return bson.NewDocumentEncoder().EncodeDocument(document)
-		}
+// BSONAppender is an interface implemented by types that can marshal a
+// provided type into BSON bytes and append those bytes to the provided []byte.
+// The AppendBSON can return a non-nil error and non-nil []byte. The AppendBSON
+// method may also write incomplete BSON to the []byte.
+type BSONAppender interface {
+	AppendBSON([]byte, interface{}) ([]byte, error)
+}
 
-		return nil, fmt.Errorf("cannot transform type %s to a *bson.Document", reflect.TypeOf(document))
+// BSONAppenderFunc is an adapter function that allows any function that
+// satisfies the AppendBSON method signature to be used where a BSONAppender is
+// used.
+type BSONAppenderFunc func([]byte, interface{}) ([]byte, error)
+
+// AppendBSON implements the BSONAppender interface
+func (baf BSONAppenderFunc) AppendBSON(dst []byte, val interface{}) ([]byte, error) {
+	return baf(dst, val)
+}
+
+// MarshalError is returned when attempting to transform a value into a document
+// results in an error.
+type MarshalError struct {
+	Value interface{}
+	Err   error
+}
+
+// Error implements the error interface.
+func (me MarshalError) Error() string {
+	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
+}
+
+// // TransformDocument handles transforming a document of an allowable type into
+// // a *bson.Document. This method is called directly after most methods that
+// // have one or more parameters that are documents.
+// //
+// // The supported types for document are:
+// //
+// //  bson.Marshaler
+// //  bson.Reader
+// //  []byte (must be a valid BSON document)
+// //  A custom struct type
+// //
+// func TransformDocument(val interface{}) (*bson.Document, error) {
+// 	document, err := transformDocument(BSONAppenderFunc(bsoncodec.MarshalAppend), val)
+// 	if err != nil {
+// 		return nil, MarshalError{Value: val, Err: err}
+// 	}
+//
+// 	return document, nil
+// }
+
+func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
+	if registry == nil {
+		registry = bsoncodec.NewRegistryBuilder().Build()
 	}
+	if val == nil {
+		return bson.NewDocument(), nil
+	}
+	if doc, ok := val.(*bson.Document); ok {
+		return doc.Copy(), nil
+	}
+	if bs, ok := val.([]byte); ok {
+		// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
+		val = bson.Reader(bs)
+	}
+
+	// TODO(skriptble): Use a pool of these instead.
+	buf := make([]byte, 0, 256)
+	b, err := bsoncodec.MarshalAppendWithRegistry(registry, buf[:0], val)
+	if err != nil {
+		return nil, MarshalError{Value: val, Err: err}
+	}
+	return bson.ReadDocument(b)
 }
 
 func ensureID(d *bson.Document) (interface{}, error) {
@@ -89,7 +123,7 @@ func ensureDollarKey(doc *bson.Document) error {
 	return nil
 }
 
-func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
+func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface{}) (*bson.Array, error) {
 	var pipelineArr *bson.Array
 	switch t := pipeline.(type) {
 	case *bson.Array:
@@ -104,7 +138,7 @@ func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
 		pipelineArr = bson.NewArray()
 
 		for _, val := range t {
-			doc, err := TransformDocument(val)
+			doc, err := transformDocument(registry, val)
 			if err != nil {
 				return nil, err
 			}
@@ -112,7 +146,7 @@ func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
 			pipelineArr.Append(bson.VC.Document(doc))
 		}
 	default:
-		p, err := TransformDocument(pipeline)
+		p, err := transformDocument(registry, pipeline)
 		if err != nil {
 			return nil, err
 		}
@@ -124,9 +158,9 @@ func transformAggregatePipeline(pipeline interface{}) (*bson.Array, error) {
 }
 
 // Build the aggregation pipeline for the CountDocument command.
-func countDocumentsAggregatePipeline(filter interface{}, opts ...countopt.Count) (*bson.Array, error) {
+func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts ...countopt.Count) (*bson.Array, error) {
 	pipeline := bson.NewArray()
-	filterDoc, err := TransformDocument(filter)
+	filterDoc, err := transformDocument(registry, filter)
 
 	if err != nil {
 		return nil, err
