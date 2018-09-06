@@ -35,13 +35,13 @@ func WithMaxStaleness(ms time.Duration) Option {
 func WithTags(tags ...string) Option {
 	return func(rp *ReadPref) error {
 		length := len(tags)
-		if length < 2 || length % 2 != 0 {
+		if length < 2 || length%2 != 0 {
 			return ErrInvalidTagSet
 		}
 
 		tagset := make(tag.Set, 0, length/2)
 
-		for i := 1; i < length; i+=2 {
+		for i := 1; i < length; i += 2 {
 			tagset = append(tagset, tag.Tag{Name: tags[i-1], Value: tags[i]})
 		}
 
