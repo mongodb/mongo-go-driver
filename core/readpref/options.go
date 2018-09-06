@@ -34,14 +34,14 @@ func WithMaxStaleness(ms time.Duration) Option {
 // overrides all previous calls to either method.
 func WithTags(tags ...string) Option {
 	return func(rp *ReadPref) error {
-		l := len(tags)
-		if l < 2 || l % 2 != 0 {
+		length := len(tags)
+		if length < 2 || length % 2 != 0 {
 			return ErrInvalidTagSet
 		}
 
-		tagset := make(tag.Set, 0, l/2)
+		tagset := make(tag.Set, 0, length/2)
 
-		for i := 1; i < l; i+=2 {
+		for i := 1; i < length; i+=2 {
 			tagset = append(tagset, tag.Tag{Name: tags[i-1], Value: tags[i]})
 		}
 
