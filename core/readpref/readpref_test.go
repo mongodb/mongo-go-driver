@@ -39,14 +39,14 @@ func TestPrimaryPreferred_with_options(t *testing.T) {
 	require := require.New(t)
 	subject := PrimaryPreferred(
 		WithMaxStaleness(time.Duration(10)),
-		WithTags("a", "1"),
+		WithTags("a", "1", "b", "2"),
 	)
 
 	require.Equal(PrimaryPreferredMode, subject.Mode())
 	ms, set := subject.MaxStaleness()
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
-	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}}}, subject.TagSets())
+	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"},tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
 }
 
 func TestSecondaryPreferred(t *testing.T) {
@@ -63,14 +63,14 @@ func TestSecondaryPreferred_with_options(t *testing.T) {
 	require := require.New(t)
 	subject := SecondaryPreferred(
 		WithMaxStaleness(time.Duration(10)),
-		WithTags("a", "1"),
+		WithTags("a", "1", "b", "2"),
 	)
 
 	require.Equal(SecondaryPreferredMode, subject.Mode())
 	ms, set := subject.MaxStaleness()
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
-	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}}}, subject.TagSets())
+	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"},tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
 }
 
 func TestSecondary(t *testing.T) {
@@ -87,14 +87,14 @@ func TestSecondary_with_options(t *testing.T) {
 	require := require.New(t)
 	subject := Secondary(
 		WithMaxStaleness(time.Duration(10)),
-		WithTags("a", "1"),
+		WithTags("a", "1", "b", "2"),
 	)
 
 	require.Equal(SecondaryMode, subject.Mode())
 	ms, set := subject.MaxStaleness()
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
-	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}}}, subject.TagSets())
+	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"},tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
 }
 
 func TestNearest(t *testing.T) {
@@ -111,12 +111,12 @@ func TestNearest_with_options(t *testing.T) {
 	require := require.New(t)
 	subject := Nearest(
 		WithMaxStaleness(time.Duration(10)),
-		WithTags("a", "1"),
+		WithTags("a", "1", "b", "2"),
 	)
 
 	require.Equal(NearestMode, subject.Mode())
 	ms, set := subject.MaxStaleness()
 	require.True(set)
 	require.Equal(time.Duration(10), ms)
-	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}}}, subject.TagSets())
+	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"},tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
 }
