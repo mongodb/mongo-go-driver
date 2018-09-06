@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -70,7 +71,7 @@ var retryMonitoredTopologyOnce sync.Once
 var retryStartedChan = make(chan *event.CommandStartedEvent, 100)
 
 var retryMonitor = &event.CommandMonitor{
-	Started: func(cse *event.CommandStartedEvent) {
+	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 		retryStartedChan <- cse
 	},
 }

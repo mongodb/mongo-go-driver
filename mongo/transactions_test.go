@@ -104,7 +104,7 @@ type transError struct {
 var transStartedChan = make(chan *event.CommandStartedEvent, 100)
 
 var transMonitor = &event.CommandMonitor{
-	Started: func(cse *event.CommandStartedEvent) {
+	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
 		//fmt.Printf("STARTED: %v\n", cse)
 		transStartedChan <- cse
 	},
