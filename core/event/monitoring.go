@@ -7,6 +7,7 @@
 package event
 
 import (
+	"context"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
@@ -64,7 +65,7 @@ type CommandFailedEvent struct {
 
 // CommandMonitor represents a monitor that is triggered for different events.
 type CommandMonitor struct {
-	Started   func(*CommandStartedEvent)
-	Succeeded func(*CommandSucceededEvent)
-	Failed    func(*CommandFailedEvent)
+	Started   func(context.Context, *CommandStartedEvent)
+	Succeeded func(context.Context, *CommandSucceededEvent)
+	Failed    func(context.Context, *CommandFailedEvent)
 }
