@@ -107,12 +107,14 @@ func (c *cursor) Next(ctx context.Context) bool {
 	}
 
 	c.getMore(ctx)
-	if c.err != nil {
-		return false
-	}
 
-	if c.batch.Len() == 0 {
-		return false
+	// call the getMore command in a loop until at least one document is returned in the next batch
+	for c.batch.Len() == 0 {
+		if c.err != nil || (c.id == 0 && c.batch.Len() == 0) {
+			return false
+		}
+
+		c.getMore(ctx)
 	}
 
 	return true

@@ -488,6 +488,7 @@ func (opt OptCursorType) Option(d *bson.Document) error {
 
 func (OptCursorType) findOption()    {}
 func (OptCursorType) findOneOption() {}
+func (OptCursorType) cursorOption()  {}
 
 // String implements the Stringer interface.
 func (opt OptCursorType) String() string {
