@@ -256,11 +256,12 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	_, err = killCursors.RoundTrip(context.Background(), ss.Description(), conn)
 	require.NoError(t, err)
 
-	require.False(t, changes.Next(context.Background()))
-	require.NoError(t, changes.Err())
-
-	_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
-	require.NoError(t, err)
+	// insert a document after blocking call to getNextChange below
+	go func() {
+		time.Sleep(time.Millisecond * 500)
+		_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
+		require.NoError(t, err)
+	}()
 
 	getNextChange(changes)
 	require.NoError(t, changes.Decode(bson.NewDocument()))
