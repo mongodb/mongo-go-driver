@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "10b8cfcb_40344833",
+        "filename": "core/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T15:24:32Z",
+      "side": 1,
+      "message": "But it doesn\u0027t :) Perhaps down the line it does when getting a connection. Can you confirm and, if so, let\u0027s get rid of this comment.\n\nIt would also be nice to have a test that proves that we\u0027ll eventually abort if the context is cancelled.\n\nAlso, this is partly about tailable cursors. We should probably have some tests for those as well. Maybe that\u0027s another ticket though.",
+      "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
