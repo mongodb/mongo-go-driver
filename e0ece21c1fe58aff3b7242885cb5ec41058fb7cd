@@ -1,0 +1,327 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2730bac8_ca56b3d2",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "This seems weird, that we\u0027d need a pointer to a pointer. I don\u0027t recall this being necessary in other marshal/unmarshal situations. Why is it required here?",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fd985d47_c12545b3",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "We should add TypeDecimal here as well.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2828cff0_eaab8102",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 233,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "This isn\u0027t exactly the right error message. We can only truncate a TypeDouble when truncation is enabled. If we get a TypeDouble that doesn\u0027t require truncation, we are ok...",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cd72d7c9_6ceb0c01",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 391,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "Should add TypeDecimal here as well.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9aeaf863_37e4ab26",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 397,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "fix error message.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0991e32d_8df93efa",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "This should be easy enough to do... no need for another ticket to fix this later.\n\nAlso, add support for TypeDecimal as well.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "356c3c7c_fc1f2169",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 659,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "so, this is where we can get a lot of speedup. Since *Document is already basically a []byte slice, just get the bytes quickly and write them efficiently.\n\nif bwv, ok :\u003d vw.(*valueWriter); ok {\n  bwv.WriteDocumentBytes(dc.Bytes())\n}\n\nSame with the reader. You could also create an interface specifically for this that *valueWriter implements so we aren\u0027t special privileging an private type.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fe5df6a2_03e3bc63",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 751,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "Same is probably true here as with the Document. Array already has, effectively, a slice of bytes.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b1d3d95e_03379ebb",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1892,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "Let\u0027s go ahead and do this. It will apply to the DocumentCodec and ArrayCodecs as well I think. I probably wouldn\u0027t mess with valueWriter directly, but put a method on valueWriter that does this for you. Then expose it via an interface to let wrapped ValueWriters also participate if they want to.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c1dc89c_da80e759",
+        "filename": "bson/empty_interface_codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "I don\u0027t think this is roundtrippable. If we have a custom struct assigned to the interface, we\u0027ll find the struct codec and use it the encode correctly. However, when attempting to decode, we\u0027ll encounter a document and decode that way. \n\nSo, in -\u003e MyStruct, out -\u003e Document.\n\nIs this what we want. I think we need to write some kinda discriminator that allows us to decode back to the type that we encoded. This is something that can be tackled later with a JIRA ticket and a TODO. This is much simpler than in .NET or Java because there isn\u0027t any inheritance to deal with here, so all we need is to be able to create a new type using the name based on a string.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7699032f_4e21f44b",
+        "filename": "bson/internal_reader.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "I don\u0027t think this is how you\u0027ll want to do this.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "668bcee0_5bc2b101",
+        "filename": "bson/internal_reader.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "Are these used?",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0716c22c_932bf129",
+        "filename": "bson/marshal.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "Can we put these Unmarshal methods in the unmarshal.go file?",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "df14a5d4_fceb1890",
+        "filename": "bson/marshal.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "See note in unmarshal.go about making this more generic.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4def34ad_47be502c",
+        "filename": "bson/registry.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "\\s\\typeis\\type is",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7758f9c4_6dc3743d",
+        "filename": "bson/registry.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "Is this error still necessary now that we have a separate builder?",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "02e42b01_ad23076b",
+        "filename": "bson/registry.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "We should also cache that we\u0027ve already tried and failed. In other words, change the \"found\" result to be a we\u0027ve tried, and let a nil Codec indicate whether we actually found one or not.\n\nThat way, we don\u0027t always do the interface thing for every the same struct over and over.\n\nAlternatively to having an ircache (and probably better)... you could simply register a found interface into `tr` and then it will be found there the next time. Following with that, you could register the map and/or structs that get to the bottom into the tr such that looking up the same map type or struct type will always be found when looking them up from `tr`.\n\nHappy to talk abut this...",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b778bf75_f5d120c6",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "Seems like part of this comment is fulfilled. Do we need a TODO/Jira ticket for the other part?",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b7182239_387a6af0",
+        "filename": "bson/unmarshal.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "It feels like you could make this more generic.\n\nfunc UnmarshalWithReader(vr ValueReader, val interface{}) error {\n\n}\n\nThen callers handle giving you whatever reader they want.\n\ndoc :\u003d getDocumentFromSomewhere()\ndvr :\u003d bson.NewDocumentValueReader(doc)\nbson.UnmarshalWithReader(dvr, \u0026target)\n\nOR\n\njson :\u003d getJsonFromSomewhere()\njvr :\u003d bson.NewExtJsonReader(json)\nbson.UnmarshalWithReader(jvr, \u0026target)\n\nNo need for custom methods for every ready possible. The user can even provide their own if they really want to.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

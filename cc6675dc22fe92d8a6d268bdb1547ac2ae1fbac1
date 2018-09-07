@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "001a5c1b_4d3c874b",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 25
+      },
+      "lineNbr": 194,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-07T14:19:08Z",
+      "side": 1,
+      "message": "probably don\u0027t want this here :)",
+      "revId": "cc6675dc22fe92d8a6d268bdb1547ac2ae1fbac1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
