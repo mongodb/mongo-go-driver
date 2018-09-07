@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "38fba489_8bdb05ea",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "We need to use a pointer to a pointer because we cannot necessarily alter nor copy the values of a pointer to a type. For instance, the *Element type shouldn\u0027t be modified, so if we are decoding something into a *Element, we need to make a new *Element. If we did just copy the properties of an Element, we could inadvertently modify an Element being used elsewhere. There are other circumstances, like with sync.Mutex where we shouldn\u0027t be copying the field of a struct.\n\nThis also simplifies the code, since we always deal with a pointer to the type we are decoding into in all cases and we don\u0027t special case pointer types. This cleaned up some code in places.",
+      "parentUuid": "2730bac8_ca56b3d2",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fd985d47_c12545b3",
         "filename": "bson/codec.go",
         "patchSetId": 26
@@ -30,6 +48,24 @@
       "writtenOn": "2018-09-07T14:19:08Z",
       "side": 1,
       "message": "We should add TypeDecimal here as well.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c8bc67b1_5df89595",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 227,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "There actually isn\u0027t a way to go from a decimal.Decimal128 to an int in the current decimal package. We could add that, but that would likely require more work and seems a bit out of scope for this project. I think we should make a ticket to add that functionality though.",
+      "parentUuid": "fd985d47_c12545b3",
       "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "e0a5a81d_7236ef37",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 233,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "2828cff0_eaab8102",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cd72d7c9_6ceb0c01",
         "filename": "bson/codec.go",
         "patchSetId": 26
@@ -64,6 +118,24 @@
       "writtenOn": "2018-09-07T14:19:08Z",
       "side": 1,
       "message": "Should add TypeDecimal here as well.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c6e94cc_b6b5b93d",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 391,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Same as above.",
+      "parentUuid": "cd72d7c9_6ceb0c01",
       "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -87,6 +159,24 @@
     },
     {
       "key": {
+        "uuid": "706c1281_bb2f7ad1",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 397,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "9aeaf863_37e4ab26",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0991e32d_8df93efa",
         "filename": "bson/codec.go",
         "patchSetId": 26
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "c8e8ee57_bbf6d266",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Done. Same as above wrt decimal128.",
+      "parentUuid": "0991e32d_8df93efa",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "356c3c7c_fc1f2169",
         "filename": "bson/codec.go",
         "patchSetId": 26
@@ -115,6 +223,24 @@
       "writtenOn": "2018-09-07T14:19:08Z",
       "side": 1,
       "message": "so, this is where we can get a lot of speedup. Since *Document is already basically a []byte slice, just get the bytes quickly and write them efficiently.\n\nif bwv, ok :\u003d vw.(*valueWriter); ok {\n  bwv.WriteDocumentBytes(dc.Bytes())\n}\n\nSame with the reader. You could also create an interface specifically for this that *valueWriter implements so we aren\u0027t special privileging an private type.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6973d5a2_70610f66",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 659,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "I think we can do this with the new copy type that I\u0027m making. It\u0027ll special case copying a []byte when we have a *valueWriter, which I think is fine to do.",
+      "parentUuid": "356c3c7c_fc1f2169",
       "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -138,6 +264,24 @@
     },
     {
       "key": {
+        "uuid": "d84daa4a_4411ec85",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 751,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "fe5df6a2_03e3bc63",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b1d3d95e_03379ebb",
         "filename": "bson/codec.go",
         "patchSetId": 26
@@ -149,6 +293,24 @@
       "writtenOn": "2018-09-07T14:19:08Z",
       "side": 1,
       "message": "Let\u0027s go ahead and do this. It will apply to the DocumentCodec and ArrayCodecs as well I think. I probably wouldn\u0027t mess with valueWriter directly, but put a method on valueWriter that does this for you. Then expose it via an interface to let wrapped ValueWriters also participate if they want to.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e94f3ec0_10de9c14",
+        "filename": "bson/codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 1892,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Same as above, I think the copier that we\u0027re building can handle this. We can also add the interface that allows writing a []byte to the ValueWriter directly there.",
+      "parentUuid": "b1d3d95e_03379ebb",
       "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -172,6 +334,24 @@
     },
     {
       "key": {
+        "uuid": "e2c21abd_b3c4443e",
+        "filename": "bson/empty_interface_codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "I don\u0027t think we can support decoding a user specific type into an empty interface. If they want that, they need to override this codec. The default is that when decoding we will decode using the types in this library. If we really do want to have roundtrippability with this codec we can restrict what we encode to the things we can decode and return an error for other types.",
+      "parentUuid": "0c1dc89c_da80e759",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7699032f_4e21f44b",
         "filename": "bson/internal_reader.go",
         "patchSetId": 26
@@ -186,6 +366,24 @@
       "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "08e00b08_417a59fe",
+        "filename": "bson/internal_reader.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "I think this was an old idea I had, I just never removed this code.",
+      "parentUuid": "7699032f_4e21f44b",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -206,6 +404,24 @@
     },
     {
       "key": {
+        "uuid": "1b1f0de4_b33e0e88",
+        "filename": "bson/internal_reader.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Nope. Will remove.",
+      "parentUuid": "668bcee0_5bc2b101",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0716c22c_932bf129",
         "filename": "bson/marshal.go",
         "patchSetId": 26
@@ -220,6 +436,24 @@
       "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "157b63e6_f58f57ba",
+        "filename": "bson/marshal.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "These are going to be deleted and the new marshal and unmarshal stuff is moving to a different package.",
+      "parentUuid": "0716c22c_932bf129",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -257,6 +491,24 @@
     },
     {
       "key": {
+        "uuid": "fb6289e0_1e3276cc",
+        "filename": "bson/registry.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4def34ad_47be502c",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7758f9c4_6dc3743d",
         "filename": "bson/registry.go",
         "patchSetId": 26
@@ -271,6 +523,24 @@
       "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed79bc32_8f663db1",
+        "filename": "bson/registry.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Nope.",
+      "parentUuid": "7758f9c4_6dc3743d",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -291,6 +561,24 @@
     },
     {
       "key": {
+        "uuid": "230e415c_c46a0450",
+        "filename": "bson/registry.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "Removed the ir cache and put everything in the type registry.",
+      "parentUuid": "02e42b01_ad23076b",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b778bf75_f5d120c6",
         "filename": "bson/struct_codec.go",
         "patchSetId": 26
@@ -308,6 +596,24 @@
     },
     {
       "key": {
+        "uuid": "d1a3c4dd_821277b3",
+        "filename": "bson/struct_codec.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "We might need a TODO here, I\u0027m still not sure if we should have an \"error on non-existent function\".",
+      "parentUuid": "b778bf75_f5d120c6",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b7182239_387a6af0",
         "filename": "bson/unmarshal.go",
         "patchSetId": 26
@@ -319,6 +625,24 @@
       "writtenOn": "2018-09-07T14:19:08Z",
       "side": 1,
       "message": "It feels like you could make this more generic.\n\nfunc UnmarshalWithReader(vr ValueReader, val interface{}) error {\n\n}\n\nThen callers handle giving you whatever reader they want.\n\ndoc :\u003d getDocumentFromSomewhere()\ndvr :\u003d bson.NewDocumentValueReader(doc)\nbson.UnmarshalWithReader(dvr, \u0026target)\n\nOR\n\njson :\u003d getJsonFromSomewhere()\njvr :\u003d bson.NewExtJsonReader(json)\nbson.UnmarshalWithReader(jvr, \u0026target)\n\nNo need for custom methods for every ready possible. The user can even provide their own if they really want to.",
+      "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ddf490be_a2b0b2f5",
+        "filename": "bson/unmarshal.go",
+        "patchSetId": 26
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T16:11:30Z",
+      "side": 1,
+      "message": "These were a special case necessary for the mongo package, but since we\u0027re going to remove the usage of *Document, I don\u0027t think we need these at all. If users want to use a special ValueReader, they can use the Decoder directly.",
+      "parentUuid": "b7182239_387a6af0",
       "revId": "e0ece21c1fe58aff3b7242885cb5ec41058fb7cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
