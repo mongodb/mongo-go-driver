@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d820702b_abc93593",
+        "filename": "core/connection/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 702,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-07T21:55:15Z",
+      "side": 1,
+      "message": "We should only need to do the cap check, the length check is a superset of the cap check because cap \u003e\u003d len in all cases.",
+      "range": {
+        "startLine": 702,
+        "startChar": 4,
+        "endLine": 702,
+        "endChar": 60
+      },
+      "revId": "a22b03f66c3a8764d4193fd2613b9a76c482fd91",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
