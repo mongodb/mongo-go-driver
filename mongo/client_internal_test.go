@@ -406,3 +406,31 @@ func TestClient_CausalConsistency(t *testing.T) {
 	require.True(t, sess.Consistent)
 	sess.EndSession(ctx)
 }
+
+func TestClient_Ping_DefaultReadPreference(t *testing.T) {
+	cs := testutil.ConnString(t)
+	c, err := NewClient(cs.String())
+	require.NoError(t, err)
+	require.NotNil(t, c)
+
+	err = c.Connect(ctx)
+	require.NoError(t, err)
+
+	err = c.Ping(ctx, nil)
+	require.NoError(t, err)
+}
+
+func TestClient_Ping_InvalidHost(t *testing.T) {
+	dur, err := time.ParseDuration("1ms")
+	require.NoError(t, err)
+
+	c, err := NewClientWithOptions("mongodb://nohost:27017", clientopt.ServerSelectionTimeout(dur))
+	require.NoError(t, err)
+	require.NotNil(t, c)
+
+	err = c.Connect(ctx)
+	require.NoError(t, err)
+
+	err = c.Ping(ctx, nil)
+	require.NotNil(t, err)
+}
