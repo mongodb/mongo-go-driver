@@ -699,7 +699,7 @@ func (c *connection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessa
 
 	// Isn't the best reuse, but resizing a []byte to be larger
 	// is difficult.
-	if len(c.readBuf) > int(size) {
+	if cap(c.readBuf) > int(size) {
 		c.readBuf = c.readBuf[:size]
 	} else {
 		c.readBuf = make([]byte, size)
