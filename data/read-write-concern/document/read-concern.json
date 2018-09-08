@@ -28,6 +28,17 @@
         "level": "local"
       },
       "isServerDefault": false
+    },
+    {
+      "description": "Available",
+      "valid": true,
+      "readConcern": {
+        "level": "available"
+      },
+      "readConcernDocument": {
+        "level": "available"
+      },
+      "isServerDefault": false
     }
   ]
 }

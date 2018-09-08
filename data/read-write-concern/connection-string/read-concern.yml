@@ -17,3 +17,9 @@ tests:
         valid: true
         warning: false
         readConcern: { level: "majority" }
+    -
+        description: "available specified"
+        uri: "mongodb://localhost?readConcernLevel=available"
+        valid: true
+        warning: false
+        readConcern: { level: "available" }
