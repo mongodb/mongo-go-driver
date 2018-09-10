@@ -513,6 +513,9 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		val = reflect.ValueOf(Undefined)
 	case 0x7:
 		if containerType != tOID && containerType != tEmpty {
+			if containerType == tString {
+				return reflect.ValueOf(v.ObjectID().Hex()), nil
+			}
 			return val, nil
 		}
 
