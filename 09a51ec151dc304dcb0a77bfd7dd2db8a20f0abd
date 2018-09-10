@@ -16,6 +16,24 @@
       "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "329ea094_22a3e5b9",
+        "filename": "core/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-09-10T13:42:34Z",
+      "side": 1,
+      "message": "I agree about the last point. This is easily integration-tested with a tailable cursor, so we should take the opportunity to write that test.  Also easy to test context cancellation with a tailable cursor.",
+      "parentUuid": "10b8cfcb_40344833",
+      "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
