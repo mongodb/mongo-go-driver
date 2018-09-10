@@ -34,6 +34,24 @@
       "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "91668cfa_c4cbcf94",
+        "filename": "core/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-09-10T14:22:06Z",
+      "side": 1,
+      "message": "Just added two tests, but I\u0027m not sure if they are what you expected. The context cancellation test I\u0027m sure of, since it works with the small mock connections. Is the tailable cursor test actually sufficient though? I\u0027m not sure what such a test should look like, beyond setting the TAILABLE option. Can you let me know what you think?",
+      "parentUuid": "329ea094_22a3e5b9",
+      "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
