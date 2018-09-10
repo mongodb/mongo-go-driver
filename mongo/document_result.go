@@ -40,6 +40,7 @@ func (dr *DocumentResult) Decode(v interface{}) error {
 		}
 		return bson.Unmarshal(dr.rdr, v)
 	case dr.cur != nil:
+		defer func() { _ = dr.cur.Close(context.Background()) }()
 		if !dr.cur.Next(context.TODO()) {
 			if err := dr.cur.Err(); err != nil {
 				return err
