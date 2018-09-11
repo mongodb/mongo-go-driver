@@ -22,6 +22,30 @@
       "revId": "5658155a9f940f6c71aa4cf8df56df5b10578a0e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "53305e02_f8bf5ba0",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 261,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-09-11T17:05:41Z",
+      "side": 1,
+      "message": "Yes, 50 still worked; just made the change.",
+      "parentUuid": "23199200_ce1bc0da",
+      "range": {
+        "startLine": 261,
+        "startChar": 2,
+        "endLine": 261,
+        "endChar": 36
+      },
+      "revId": "5658155a9f940f6c71aa4cf8df56df5b10578a0e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
