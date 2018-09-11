@@ -552,6 +552,32 @@ func executeRunCommand(sess *sessionImpl, db *Database, argmap map[string]interf
 	return db.RunCommand(ctx, cmd, bundle)
 }
 
+func verifyBulkWriteResult(t *testing.T, res *BulkWriteResult, result json.RawMessage) {
+	expectedBytes, err := result.MarshalJSON()
+	require.NoError(t, err)
+
+	var expected BulkWriteResult
+	err = json.NewDecoder(bytes.NewBuffer(expectedBytes)).Decode(&expected)
+	require.NoError(t, err)
+
+	require.Equal(t, expected.DeletedCount, res.DeletedCount)
+	require.Equal(t, expected.InsertedCount, res.InsertedCount)
+	require.Equal(t, expected.MatchedCount, res.MatchedCount)
+	require.Equal(t, expected.ModifiedCount, res.ModifiedCount)
+	require.Equal(t, expected.UpsertedCount, res.UpsertedCount)
+
+	// replace floats with ints
+	for opID, upsertID := range expected.UpsertedIDs {
+		if floatID, ok := upsertID.(float64); ok {
+			expected.UpsertedIDs[opID] = int64(floatID)
+		}
+	}
+
+	for operationID, upsertID := range expected.UpsertedIDs {
+		require.Equal(t, upsertID, res.UpsertedIDs[operationID])
+	}
+}
+
 func verifyInsertOneResult(t *testing.T, res *InsertOneResult, result json.RawMessage) {
 	expectedBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
