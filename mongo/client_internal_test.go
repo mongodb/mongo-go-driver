@@ -421,10 +421,7 @@ func TestClient_Ping_DefaultReadPreference(t *testing.T) {
 }
 
 func TestClient_Ping_InvalidHost(t *testing.T) {
-	dur, err := time.ParseDuration("1ms")
-	require.NoError(t, err)
-
-	c, err := NewClientWithOptions("mongodb://nohost:27017", clientopt.ServerSelectionTimeout(dur))
+	c, err := NewClientWithOptions("mongodb://nohost:27017", clientopt.ServerSelectionTimeout(1*time.Millisecond))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 
