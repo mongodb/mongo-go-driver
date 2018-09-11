@@ -31,6 +31,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
 	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
 	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/bulkwriteopt"
 )
 
 // Collection performs operations on a given collection.
@@ -134,6 +135,52 @@ func (coll *Collection) Name() string {
 // namespace returns the namespace of the collection.
 func (coll *Collection) namespace() command.Namespace {
 	return command.NewNamespace(coll.db.name, coll.name)
+}
+
+func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
+	opts ...bulkwriteopt.BulkWrite) (*BulkWriteResult, error) {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	bwOpts, sess, err := bulkwriteopt.BundleBulkWrite(opts...).Unbundle()
+	if err != nil {
+		return nil, err
+	}
+
+	dispatchModels := make([]dispatch.WriteModel, len(models))
+	for i, model := range models {
+		dispatchModels[i] = model.ConvertModel()
+	}
+
+	res, err := dispatch.BulkWrite(
+		ctx,
+		coll.namespace(),
+		dispatchModels,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
+		sess,
+		coll.writeConcern,
+		bwOpts.Ordered,
+		coll.client.clock,
+		bwOpts.BypassDocumentValidation,
+		bwOpts.BypassDocumentValidationSet,
+	)
+
+	// TODO: process write error?
+
+	return &BulkWriteResult{
+		InsertedCount: res.InsertedCount,
+		MatchedCount: res.MatchedCount,
+		ModifiedCount: res.ModifiedCount,
+		DeletedCount: res.DeletedCount,
+		UpsertedCount: res.UpsertedCount,
+		UpsertedIDs: res.UpsertedIDs,
+	}, nil
 }
 
 // InsertOne inserts a single document into the collection. A user can supply
