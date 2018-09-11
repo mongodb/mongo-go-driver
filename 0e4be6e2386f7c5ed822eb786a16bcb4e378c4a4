@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6f78d6b5_812e3ce2",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-11T16:01:36Z",
+      "side": 1,
+      "message": "Please add the ticket number here.",
+      "revId": "0e4be6e2386f7c5ed822eb786a16bcb4e378c4a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d8135f56_10960253",
+        "filename": "mongo/document_result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-11T16:01:36Z",
+      "side": 1,
+      "message": "I wonder if we should add Cursor.Close to the errcheck whitelist. I think there are likely a number of circumstances where ignoring a cursor close error isn\u0027t a problem.",
+      "range": {
+        "startLine": 43,
+        "startChar": 2,
+        "endLine": 43,
+        "endChar": 59
+      },
+      "revId": "0e4be6e2386f7c5ed822eb786a16bcb4e378c4a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
