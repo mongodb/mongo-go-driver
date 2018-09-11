@@ -113,6 +113,16 @@ func (ab *AggregateBundle) MaxTime(d time.Duration) *AggregateBundle {
 	return bundle
 }
 
+// MaxAwaitTime adds an option to specify the maximum amount of time for the server to wait on new documents to satisfy a tailable cursor query
+func (ab *AggregateBundle) MaxAwaitTime(d time.Duration) *AggregateBundle {
+	bundle := &AggregateBundle{
+		option: MaxAwaitTime(d),
+		next:   ab,
+	}
+
+	return bundle
+}
+
 // Comment adds an option to specify a string to help trace the operation through the database profiler, currentOp, and logs.
 func (ab *AggregateBundle) Comment(s string) *AggregateBundle {
 	bundle := &AggregateBundle{
@@ -289,6 +299,11 @@ func MaxTime(d time.Duration) OptMaxTime {
 	return OptMaxTime(d)
 }
 
+// MaxAwaitTime specifies the maximum amount of time for the server to wait on new documents to satisfy a tailable cursor query
+func MaxAwaitTime(d time.Duration) OptMaxAwaitTime {
+	return OptMaxAwaitTime(d)
+}
+
 // Comment allows users to specify a string to help trace the operation through the database profiler, currentOp, and logs.
 func Comment(s string) OptComment {
 	return OptComment(s)
@@ -347,6 +362,16 @@ func (OptMaxTime) aggregate() {}
 // ConvertAggregateOption implements the Aggregate interface
 func (opt OptMaxTime) ConvertAggregateOption() option.AggregateOptioner {
 	return option.OptMaxTime(opt)
+}
+
+// OptMaxAwaitTime specifies the maximum amount of time for the server to wait on new documents to satisfy a tailable cursor query
+type OptMaxAwaitTime option.OptMaxAwaitTime
+
+func (OptMaxAwaitTime) aggregate() {}
+
+// ConvertAggregateOption implements the Aggregate interface
+func (opt OptMaxAwaitTime) ConvertAggregateOption() option.AggregateOptioner {
+	return option.OptMaxAwaitTime(opt)
 }
 
 // OptComment allows users to specify a string to help trace the operation through the database profiler, currentOp, and logs.

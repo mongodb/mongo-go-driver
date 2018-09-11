@@ -59,7 +59,7 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 
 	for _, opt := range a.Opts {
 		switch t := opt.(type) {
-		case nil:
+		case nil, option.OptMaxAwaitTime:
 			continue
 		case option.OptBatchSize:
 			if t == 0 && a.HasDollarOut() {
