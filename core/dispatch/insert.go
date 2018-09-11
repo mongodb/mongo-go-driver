@@ -94,12 +94,12 @@ func insert(
 			defer func() { _ = recover() }()
 			defer conn.Close()
 
-			_, _ = cmd.RoundTrip(ctx, desc, conn)
+			_, _ = cmd.RoundTrip(ctx, desc, conn, false)
 		}()
 
 		return result.Insert{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, desc, conn)
+	return cmd.RoundTrip(ctx, desc, conn, false)
 }

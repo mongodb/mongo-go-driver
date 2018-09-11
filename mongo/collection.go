@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/bulkwriteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/countopt"
@@ -134,6 +135,58 @@ func (coll *Collection) Name() string {
 // namespace returns the namespace of the collection.
 func (coll *Collection) namespace() command.Namespace {
 	return command.NewNamespace(coll.db.name, coll.name)
+}
+
+// BulkWrite performs a bulk write operation. A custom context can be supplied to this method or nil to default to
+// context.Background().
+func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
+	opts ...bulkwriteopt.BulkWrite) (*BulkWriteResult, error) {
+
+	if len(models) == 0 {
+		return nil, errors.New("a bulk write must contain at least one write model")
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	bwOpts, sess, err := bulkwriteopt.BundleBulkWrite(opts...).Unbundle()
+	if err != nil {
+		return nil, err
+	}
+
+	dispatchModels := make([]dispatch.WriteModel, len(models))
+	for i, model := range models {
+		dispatchModels[i] = model.ConvertModel()
+	}
+
+	res, err := dispatch.BulkWrite(
+		ctx,
+		coll.namespace(),
+		dispatchModels,
+		coll.client.topology,
+		coll.writeSelector,
+		coll.client.id,
+		coll.client.topology.SessionPool,
+		coll.client.retryWrites,
+		sess,
+		coll.writeConcern,
+		bwOpts.Ordered,
+		coll.client.clock,
+		bwOpts.BypassDocumentValidation,
+		bwOpts.BypassDocumentValidationSet,
+	)
+
+	// TODO: process write error?
+
+	return &BulkWriteResult{
+		InsertedCount: res.InsertedCount,
+		MatchedCount:  res.MatchedCount,
+		ModifiedCount: res.ModifiedCount,
+		DeletedCount:  res.DeletedCount,
+		UpsertedCount: res.UpsertedCount,
+		UpsertedIDs:   res.UpsertedIDs,
+	}, nil
 }
 
 // InsertOne inserts a single document into the collection. A user can supply
