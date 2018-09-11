@@ -76,8 +76,50 @@ func AddCompressorToUri(uri string) string {
 	return AddOptionsToURI(uri, "compressors=", comp)
 }
 
-// MonitoredTopology gets the globally configured topology and attaches a command monitor.
-func MonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topology.Topology {
+// MonitoredTopology returns a new topology with the command monitor attached
+func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonitor) *topology.Topology {
+	cs := ConnString(t)
+	opts := []topology.Option{
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(
+				opts,
+				topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+					return append(
+						opts,
+						connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
+							return monitor
+						}),
+					)
+				}),
+			)
+		}),
+	}
+
+	monitoredTopology, err := topology.New(opts...)
+	if err != nil {
+		t.Fatal(err)
+	} else {
+		monitoredTopology.Connect(context.Background())
+		s, err := monitoredTopology.SelectServer(context.Background(), description.WriteSelector())
+		require.NoError(t, err)
+
+		c, err := s.Connection(context.Background())
+		require.NoError(t, err)
+
+		_, err = (&command.Write{
+			DB:      dbName,
+			Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
+		}).RoundTrip(context.Background(), s.SelectedDescription(), c)
+
+		require.NoError(t, err)
+	}
+
+	return monitoredTopology
+}
+
+// GlobalMonitoredTopology gets the globally configured topology and attaches a command monitor.
+func GlobalMonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topology.Topology {
 	cs := ConnString(t)
 	opts := []topology.Option{
 		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),

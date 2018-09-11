@@ -185,6 +185,7 @@ var (
 	_ AggregateOptioner         = (*OptCollation)(nil)
 	_ AggregateOptioner         = (*OptComment)(nil)
 	_ AggregateOptioner         = (*OptMaxTime)(nil)
+	_ AggregateOptioner         = (*OptMaxAwaitTime)(nil)
 	_ CountOptioner             = (*OptCollation)(nil)
 	_ CountOptioner             = (*OptHint)(nil)
 	_ CountOptioner             = (*OptLimit)(nil)
@@ -192,6 +193,7 @@ var (
 	_ CountOptioner             = (*OptSkip)(nil)
 	_ CreateIndexesOptioner     = (*OptMaxTime)(nil)
 	_ CursorOptioner            = OptBatchSize(0)
+	_ CursorOptioner            = (*OptMaxAwaitTime)(nil)
 	_ DeleteOptioner            = (*OptCollation)(nil)
 	_ DistinctOptioner          = (*OptCollation)(nil)
 	_ DistinctOptioner          = (*OptMaxTime)(nil)
@@ -585,7 +587,9 @@ func (opt OptMaxAwaitTime) Option(d *bson.Document) error {
 	return nil
 }
 
+func (OptMaxAwaitTime) aggregateOption()    {}
 func (OptMaxAwaitTime) changeStreamOption() {}
+func (OptMaxAwaitTime) cursorOption()       {}
 func (OptMaxAwaitTime) findOption()         {}
 func (OptMaxAwaitTime) findOneOption()      {}
 

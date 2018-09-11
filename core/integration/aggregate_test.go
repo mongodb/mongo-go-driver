@@ -9,6 +9,8 @@ package integration
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCommandAggregate(t *testing.T) {
@@ -151,4 +154,130 @@ func TestCommandAggregate(t *testing.T) {
 		}).RoundTrip(context.Background(), server.SelectedDescription(), conn)
 		noerr(t, err)
 	})
+}
+
+func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	startedChan, succeededChan, failedChan, monitor := initMonitor()
+
+	dbName := fmt.Sprintf("mongo-go-driver-%d-agg", os.Getpid())
+	colName := testutil.ColName(t)
+
+	server, err := testutil.MonitoredTopology(t, dbName, monitor).SelectServer(context.Background(), description.WriteSelector())
+	noerr(t, err)
+
+	versionCmd := bson.NewDocument(bson.EC.Int32("serverStatus", 1))
+	serverStatus, err := testutil.RunCommand(t, server.Server, dbName, versionCmd)
+	version, err := serverStatus.Lookup("version")
+
+	if compareVersions(t, version.Value().StringValue(), "3.6") < 0 {
+		t.Skip()
+	}
+
+	// create capped collection
+	createCmd := bson.NewDocument(
+		bson.EC.String("create", colName),
+		bson.EC.Boolean("capped", true),
+		bson.EC.Int32("size", 1000))
+	_, err = testutil.RunCommand(t, server.Server, dbName, createCmd)
+	noerr(t, err)
+
+	conn, err := server.Connection(context.Background())
+	noerr(t, err)
+
+	// create an aggregate command that results with a TAILABLEAWAIT cursor
+	cursor, err := (&command.Aggregate{
+		NS: command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
+		Pipeline: bson.NewArray(
+			bson.VC.Document(bson.NewDocument(
+				bson.EC.SubDocument("$changeStream", bson.NewDocument()))),
+			bson.VC.Document(bson.NewDocument(
+				bson.EC.SubDocument("$match", bson.NewDocument(
+					bson.EC.SubDocument("fullDocument._id", bson.NewDocument(bson.EC.Int32("$gte", 1))),
+				))))),
+		Opts: []option.AggregateOptioner{option.OptBatchSize(2), option.OptMaxAwaitTime(time.Millisecond * 50)},
+	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+	noerr(t, err)
+
+	// insert some documents
+	insertCmd := bson.NewDocument(
+		bson.EC.String("insert", colName),
+		bson.EC.ArrayFromElements("documents",
+			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 1))),
+			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 2))),
+			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 3)))))
+	_, err = testutil.RunCommand(t, server.Server, dbName, insertCmd)
+
+	// wait a bit between insert and getMore commands
+	time.Sleep(time.Millisecond * 100)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(time.Millisecond*900, cancel)
+	for cursor.Next(ctx) {
+	}
+
+	// allow for iteration over range chan
+	close(startedChan)
+	close(succeededChan)
+	close(failedChan)
+
+	// no commands should have failed
+	if len(failedChan) != 0 {
+		t.Errorf("%d command(s) failed", len(failedChan))
+	}
+
+	// check the expected commands were started
+	for started := range startedChan {
+		switch started.CommandName {
+		case "aggregate":
+			assert.Equal(t, 2, int(started.Command.Lookup("cursor", "batchSize").Int32()))
+			assert.Nil(t, started.Command.Lookup("maxAwaitTimeMS"),
+				"Should not have sent maxAwaitTimeMS in find command")
+		case "getMore":
+			assert.Equal(t, 2, int(started.Command.Lookup("batchSize").Int32()))
+			assert.Equal(t, 50, int(started.Command.Lookup("maxTimeMS").Int64()),
+				"Should have sent maxTimeMS in getMore command")
+		default:
+			continue
+		}
+	}
+
+	// to keep track of seen documents
+	id := 1
+
+	// check expected commands succeeded
+	for succeeded := range succeededChan {
+		switch succeeded.CommandName {
+		case "aggregate":
+			assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
+
+			actual := succeeded.Reply.Lookup("cursor", "firstBatch").MutableArray()
+
+			for i := 0; i < actual.Len(); i++ {
+				v, _ := actual.Lookup(uint(i))
+				assert.Equal(t, id, int(v.MutableDocument().Lookup("fullDocument", "_id").Int32()))
+				id++
+			}
+		case "getMore":
+			assert.Equal(t, "getMore", succeeded.CommandName)
+			assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
+
+			actual := succeeded.Reply.Lookup("cursor", "nextBatch").MutableArray()
+
+			for i := 0; i < actual.Len(); i++ {
+				v, _ := actual.Lookup(uint(i))
+				assert.Equal(t, id, int(v.MutableDocument().Lookup("fullDocument", "_id").Int32()))
+				id++
+			}
+		default:
+			continue
+		}
+	}
+
+	if id <= 3 {
+		t.Errorf("not all documents returned; last seen id = %d", id-1)
+	}
 }
