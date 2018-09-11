@@ -491,6 +491,22 @@ func executeRunCommand(sess *Session, db *Database, argmap map[string]interface{
 	return db.RunCommand(ctx, cmd, bundle)
 }
 
+func verifyBulkWriteResult(t *testing.T, res *BulkWriteResult, result json.RawMessage) {
+	expectedBytes, err := result.MarshalJSON()
+	require.NoError(t, err)
+
+	var expected BulkWriteResult
+	err = json.NewDecoder(bytes.NewBuffer(expectedBytes)).Decode(&expected)
+	require.NoError(t, err)
+
+	require.Equal(t, expected.DeletedCount, res.DeletedCount)
+	require.Equal(t, expected.InsertedCount, res.InsertedCount)
+	require.Equal(t, expected.MatchedCount, res.MatchedCount)
+	require.Equal(t, expected.ModifiedCount, res.ModifiedCount)
+	require.Equal(t, expected.UpsertedCount, res.UpsertedCount)
+	// TODO: upserted IDs
+}
+
 func verifyInsertOneResult(t *testing.T, res *InsertOneResult, result json.RawMessage) {
 	expectedBytes, err := result.MarshalJSON()
 	require.NoError(t, err)

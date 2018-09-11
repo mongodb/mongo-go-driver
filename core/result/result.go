@@ -14,6 +14,12 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
+// Upsert contains the information for a single upsert.
+type Upsert struct {
+	Index int64       `bson:"index"`
+	ID    interface{} `bson:"_id"`
+}
+
 // Insert is a result from an Insert command.
 type Insert struct {
 	N                 int
@@ -38,11 +44,9 @@ type Delete struct {
 
 // Update is a result of an Update command.
 type Update struct {
-	MatchedCount  int64 `bson:"n"`
-	ModifiedCount int64 `bson:"nModified"`
-	Upserted      []struct {
-		ID interface{} `bson:"_id"`
-	} `bson:"upserted"`
+	MatchedCount      int64              `bson:"n"`
+	ModifiedCount     int64              `bson:"nModified"`
+	Upserted          []Upsert           `bson:"upserted"`
 	WriteErrors       []WriteError       `bson:"writeErrors"`
 	WriteConcernError *WriteConcernError `bson:"writeConcernError"`
 }
@@ -155,4 +159,14 @@ type CreateIndexes struct {
 // TransactionResult holds the result of committing or aborting a transaction.
 type TransactionResult struct {
 	WriteConcernError *WriteConcernError `bson:"writeConcernError"`
+}
+
+// BulkWrite holds the result of a bulk write operation.
+type BulkWrite struct {
+	InsertedCount int64
+	MatchedCount  int64
+	ModifiedCount int64
+	DeletedCount  int64
+	UpsertedCount int64
+	UpsertedIDs   map[int64]interface{}
 }

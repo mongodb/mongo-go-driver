@@ -9,13 +9,23 @@ package command
 import (
 	"errors"
 
+	"context"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
+	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
+
+// WriteBatch represents a single batch for a write operation.
+type WriteBatch struct {
+	*Write
+	numDocs int
+}
 
 // DecodeError attempts to decode the wiremessage as an error
 func DecodeError(wm wiremessage.WireMessage) error {
@@ -376,6 +386,266 @@ func opmsgCreateDocSequence(arr *bson.Array, identifier string) (wiremessage.Sec
 	return docSequence, nil
 }
 
+func splitBatches(docs []*bson.Document, maxCount, targetBatchSize int) ([][]*bson.Document, error) {
+	batches := [][]*bson.Document{}
+
+	if targetBatchSize > reservedCommandBufferBytes {
+		targetBatchSize -= reservedCommandBufferBytes
+	}
+
+	if maxCount <= 0 {
+		maxCount = 1
+	}
+
+	startAt := 0
+splitInserts:
+	for {
+		size := 0
+		batch := []*bson.Document{}
+	assembleBatch:
+		for idx := startAt; idx < len(docs); idx++ {
+			itsize, err := docs[idx].Validate()
+			if err != nil {
+				return nil, err
+			}
+
+			if int(itsize) > targetBatchSize {
+				return nil, ErrDocumentTooLarge
+			}
+			if size+int(itsize) > targetBatchSize {
+				break assembleBatch
+			}
+
+			size += int(itsize)
+			batch = append(batch, docs[idx])
+			startAt++
+			if len(batch) == maxCount {
+				break assembleBatch
+			}
+		}
+		batches = append(batches, batch)
+		if startAt == len(docs) {
+			break splitInserts
+		}
+	}
+
+	return batches, nil
+}
+
+func encodeBatch(
+	docs []*bson.Document,
+	opts []option.Optioner,
+	cmdKind WriteCommandKind,
+	collName string,
+) (*bson.Document, error) {
+	var cmdName string
+	var docString string
+
+	switch cmdKind {
+	case InsertCommand:
+		cmdName = "insert"
+		docString = "documents"
+	case UpdateCommand:
+		cmdName = "update"
+		docString = "updates"
+	case DeleteCommand:
+		cmdName = "delete"
+		docString = "deletes"
+	}
+
+	cmd := bson.NewDocument(
+		bson.EC.String(cmdName, collName),
+	)
+
+	vals := make([]*bson.Value, 0, len(docs))
+	for _, doc := range docs {
+		vals = append(vals, bson.VC.Document(doc))
+	}
+	cmd.Append(bson.EC.ArrayFromElements(docString, vals...))
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		err := opt.Option(cmd)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return cmd, nil
+}
+
+// converts batches of Write Commands to wire messages
+func batchesToWireMessage(batches []*WriteBatch, desc description.SelectedServer) ([]wiremessage.WireMessage, error) {
+	wms := make([]wiremessage.WireMessage, len(batches))
+	for _, cmd := range batches {
+		wm, err := cmd.Encode(desc)
+		if err != nil {
+			return nil, err
+		}
+
+		wms = append(wms, wm)
+	}
+
+	return wms, nil
+}
+
+// Roundtrips the write batches, returning the result structs (as interface),
+// the write batches that weren't round tripped and any errors
+func roundTripBatches(
+	ctx context.Context,
+	desc description.SelectedServer,
+	rw wiremessage.ReadWriter,
+	batches []*WriteBatch,
+	continueOnError bool,
+	sess *session.Client,
+	cmdKind WriteCommandKind,
+) (interface{}, []*WriteBatch, error) {
+	var res interface{}
+	var upsertIndex int64 // the operation index for the upserted IDs map
+
+	// hold onto txnNumber, reset it when loop exits to ensure reuse of same
+	// transaction number if retry is needed
+	var txnNumber int64
+	if sess != nil && sess.RetryWrite {
+		txnNumber = sess.TxnNumber
+	}
+	for j, cmd := range batches {
+		rdr, err := cmd.RoundTrip(ctx, desc, rw)
+		if err != nil {
+			if sess != nil && sess.RetryWrite {
+				sess.TxnNumber = txnNumber + int64(j)
+			}
+			return res, batches, err
+		}
+
+		// TODO can probably DRY up this code
+		switch cmdKind {
+		case InsertCommand:
+			if res == nil {
+				res = result.Insert{}
+			}
+
+			conv, _ := res.(result.Insert)
+			insertCmd := &Insert{}
+			r, err := insertCmd.decode(desc, rdr).Result()
+			if err != nil {
+				return res, batches, err
+			}
+
+			conv.WriteErrors = append(conv.WriteErrors, r.WriteErrors...)
+
+			if r.WriteConcernError != nil {
+				conv.WriteConcernError = r.WriteConcernError
+				if sess != nil && sess.RetryWrite {
+					sess.TxnNumber = txnNumber
+					return conv, batches, nil // report writeconcernerror for retry
+				}
+			}
+
+			conv.N += r.N
+
+			if !continueOnError && len(conv.WriteErrors) > 0 {
+				return conv, batches, nil
+			}
+
+			res = conv
+		case UpdateCommand:
+			if res == nil {
+				res = result.Update{}
+			}
+
+			conv, _ := res.(result.Update)
+			updateCmd := &Update{}
+			r, err := updateCmd.decode(desc, rdr).Result()
+			if err != nil {
+				return conv, batches, err
+			}
+
+			conv.WriteErrors = append(conv.WriteErrors, r.WriteErrors...)
+
+			if r.WriteConcernError != nil {
+				conv.WriteConcernError = r.WriteConcernError
+				if sess != nil && sess.RetryWrite {
+					sess.TxnNumber = txnNumber
+					return conv, batches, nil // report writeconcernerror for retry
+				}
+			}
+
+			conv.MatchedCount += r.MatchedCount
+			conv.ModifiedCount += r.ModifiedCount
+			for _, upsert := range r.Upserted {
+				conv.Upserted = append(conv.Upserted, result.Upsert{
+					Index: upsert.Index + upsertIndex,
+					ID:    upsert.ID,
+				})
+			}
+
+			if !continueOnError && len(conv.WriteErrors) > 0 {
+				return conv, batches, nil
+			}
+
+			res = conv
+			upsertIndex += int64(cmd.numDocs)
+		case DeleteCommand:
+			if res == nil {
+				res = result.Delete{}
+			}
+
+			conv, _ := res.(result.Delete)
+			deleteCmd := &Delete{}
+			r, err := deleteCmd.decode(desc, rdr).Result()
+			if err != nil {
+				return conv, batches, err
+			}
+
+			conv.WriteErrors = append(conv.WriteErrors, r.WriteErrors...)
+
+			if r.WriteConcernError != nil {
+				conv.WriteConcernError = r.WriteConcernError
+				if sess != nil && sess.RetryWrite {
+					sess.TxnNumber = txnNumber
+					return conv, batches, nil // report writeconcernerror for retry
+				}
+			}
+
+			conv.N += r.N
+
+			if !continueOnError && len(conv.WriteErrors) > 0 {
+				return conv, batches, nil
+			}
+
+			res = conv
+		}
+
+		// Increment txnNumber for each batch
+		if sess != nil && sess.RetryWrite {
+			sess.IncrementTxnNumber()
+			batches = batches[1:] // if batch encoded successfully, remove it from the slice
+		}
+	}
+
+	if sess != nil && sess.RetryWrite {
+		// if retryable write succeeded, transaction number will be incremented one extra time,
+		// so we decrement it here
+		sess.TxnNumber--
+	}
+
+	return res, batches, nil
+}
+
 // ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
 // write concern.
 var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
+
+// WriteCommandKind is the type of command represented by a Write
+type WriteCommandKind int8
+
+// These constants represent the valid types of write commands.
+const (
+	InsertCommand WriteCommandKind = iota
+	UpdateCommand
+	DeleteCommand
+)

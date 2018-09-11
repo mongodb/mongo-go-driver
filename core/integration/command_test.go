@@ -94,12 +94,12 @@ func TestWriteCommands(t *testing.T) {
 				NS:           command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 				Docs:         []*bson.Document{bson.NewDocument(bson.EC.String("_id", "helloworld"))},
 			}
-			_, err = cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+			_, err = cmd.RoundTrip(ctx, server.SelectedDescription(), conn, false)
 			noerr(t, err)
 
 			conn, err = server.Connection(context.Background())
 			noerr(t, err)
-			res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+			res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn, false)
 			noerr(t, err)
 			if len(res.WriteErrors) != 1 {
 				t.Errorf("Expected to get a write error. got %d; want %d", len(res.WriteErrors), 1)

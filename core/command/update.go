@@ -29,58 +29,78 @@ type Update struct {
 	WriteConcern *writeconcern.WriteConcern
 	Session      *session.Client
 
-	result result.Update
-	err    error
+	batches []*WriteBatch
+	result  result.Update
+	err     error
 }
 
 // Encode will encode this command into a wire message for the given server description.
-func (u *Update) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
-	encoded, err := u.encode(desc)
+func (u *Update) Encode(desc description.SelectedServer) ([]wiremessage.WireMessage, error) {
+	err := u.encode(desc)
 	if err != nil {
 		return nil, err
 	}
-	return encoded.Encode(desc)
+
+	return batchesToWireMessage(u.batches, desc)
 }
 
-func (u *Update) encode(desc description.SelectedServer) (*Write, error) {
-	command := bson.NewDocument(bson.EC.String("update", u.NS.Collection))
-	vals := make([]*bson.Value, 0, len(u.Docs))
-	docs := make([]*bson.Document, 0, len(u.Docs)) // copy of all the documents
-	for _, doc := range u.Docs {
-		newDoc := doc.Copy()
-		docs = append(docs, newDoc)
-		vals = append(vals, bson.VC.Document(newDoc))
+func (u *Update) encode(desc description.SelectedServer) error {
+	batches, err := splitBatches(u.Docs, int(desc.MaxBatchCount), int(desc.MaxDocumentSize))
+	if err != nil {
+		return err
 	}
-	command.Append(bson.EC.ArrayFromElements("updates", vals...))
 
+	for _, docs := range batches {
+		cmd, err := u.encodeBatch(docs, desc)
+		if err != nil {
+			return err
+		}
+
+		u.batches = append(u.batches, cmd)
+	}
+
+	return nil
+}
+
+func (u *Update) encodeBatch(docs []*bson.Document, desc description.SelectedServer) (*WriteBatch, error) {
+	copyDocs := make([]*bson.Document, 0, len(docs)) // copy of all the documents
+	for _, doc := range docs {
+		newDoc := doc.Copy()
+		copyDocs = append(copyDocs, newDoc)
+	}
+
+	var options []option.Optioner
 	for _, opt := range u.Opts {
 		switch opt.(type) {
 		case nil:
 			continue
 		case option.OptUpsert, option.OptCollation, option.OptArrayFilters:
-			for _, doc := range docs {
+			// options that are encoded on each individual document
+			for _, doc := range copyDocs {
 				err := opt.Option(doc)
 				if err != nil {
 					return nil, err
 				}
 			}
 		default:
-			err := opt.Option(command)
-			if err != nil {
-				return nil, err
-			}
+			options = append(options, opt)
 		}
 	}
 
-	if u.Session != nil && u.Session.TransactionRunning() {
-		u.WriteConcern = nil
+	command, err := encodeBatch(copyDocs, options, UpdateCommand, u.NS.Collection)
+	if err != nil {
+		return nil, err
 	}
-	return &Write{
-		Clock:        u.Clock,
-		DB:           u.NS.DB,
-		Command:      command,
-		WriteConcern: u.WriteConcern,
-		Session:      u.Session,
+
+	return &WriteBatch{
+		&Write{
+			Clock:        u.Clock,
+			DB:           u.NS.DB,
+			Command:      command,
+			WriteConcern: u.WriteConcern,
+			Session:      u.Session,
+		},
+		len(docs),
 	}, nil
 }
 
@@ -112,16 +132,35 @@ func (u *Update) Result() (result.Update, error) {
 func (u *Update) Err() error { return u.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (u *Update) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (result.Update, error) {
-	cmd, err := u.encode(desc)
+func (u *Update) RoundTrip(
+	ctx context.Context,
+	desc description.SelectedServer,
+	rw wiremessage.ReadWriter,
+	continueOnError bool,
+) (result.Update, error) {
+	if u.batches == nil {
+		err := u.encode(desc)
+		if err != nil {
+			return result.Update{}, err
+		}
+	}
+
+	r, batches, err := roundTripBatches(
+		ctx, desc, rw,
+		u.batches,
+		continueOnError,
+		u.Session,
+		UpdateCommand,
+	)
+
+	// if there are leftover batches, save them for retry
+	if batches != nil {
+		u.batches = batches
+	}
+
 	if err != nil {
 		return result.Update{}, err
 	}
 
-	rdr, err := cmd.RoundTrip(ctx, desc, rw)
-	if err != nil {
-		return result.Update{}, err
-	}
-
-	return u.decode(desc, rdr).Result()
+	return r.(result.Update), nil
 }
