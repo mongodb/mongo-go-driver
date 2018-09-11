@@ -355,7 +355,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 
 		// without option ordered
 		_, err = coll.InsertMany(context.Background(), docs, insertopt.Ordered(false))
-		got, ok := err.(BulkWriteError)
+		got, ok := err.(BulkWriteException)
 		if !ok {
 			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
 			t.FailNow()
@@ -376,7 +376,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 
 		// with the ordered option (default, we should only get one write error)
 		_, err := coll.InsertMany(context.Background(), docs)
-		got, ok := err.(BulkWriteError)
+		got, ok := err.(BulkWriteException)
 		if !ok {
 			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
 			t.FailNow()
@@ -410,7 +410,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 		if err == nil {
 			t.Errorf("write concern error not propagated from command: %+v", err)
 		}
-		bulkErr, ok := err.(BulkWriteError)
+		bulkErr, ok := err.(BulkWriteException)
 		if !ok {
 			t.Errorf("incorrect error type returned: %T", err)
 		}
@@ -439,9 +439,9 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil, collectionopt.WriteConcern(writeconcern.New(writeconcern.W(25))))
 
 	_, err := coll.InsertMany(context.Background(), docs)
-	got, ok := err.(BulkWriteError)
+	got, ok := err.(BulkWriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, BulkWriteError{}, err)
+		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, BulkWriteException{}, err)
 		t.Errorf("got error message %v", err)
 	}
 	if got.WriteConcernError.Code != want.Code {

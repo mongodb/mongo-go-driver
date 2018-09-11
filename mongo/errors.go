@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
@@ -65,6 +66,22 @@ type WriteConcernError struct {
 
 func (wce WriteConcernError) Error() string { return wce.Message }
 
+func convertBulkWriteErrors(errors []dispatch.BulkWriteError) []BulkWriteError {
+	bwErrors := make([]BulkWriteError, 0, len(errors))
+	for _, err := range errors {
+		bwErrors = append(bwErrors, BulkWriteError{
+			WriteError{
+				Index:   err.Index,
+				Code:    err.Code,
+				Message: err.ErrMsg,
+			},
+			dispatchToMongoModel(err.Model),
+		})
+	}
+
+	return bwErrors
+}
+
 func convertWriteConcernError(wce *result.WriteConcernError) *WriteConcernError {
 	if wce == nil {
 		return nil
@@ -73,13 +90,25 @@ func convertWriteConcernError(wce *result.WriteConcernError) *WriteConcernError 
 	return &WriteConcernError{Code: wce.Code, Message: wce.ErrMsg, Details: wce.ErrInfo}
 }
 
-// BulkWriteError is an error returned from a bulk write operation.
+// BulkWriteError is an error for one operation in a bulk write.
 type BulkWriteError struct {
-	WriteErrors       WriteErrors
-	WriteConcernError *WriteConcernError
+	WriteError
+	Request WriteModel
 }
 
 func (bwe BulkWriteError) Error() string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "{%s}", bwe.WriteError)
+	return buf.String()
+}
+
+// BulkWriteException is an error for a bulk write operation.
+type BulkWriteException struct {
+	WriteConcernError *WriteConcernError
+	WriteErrors       []BulkWriteError
+}
+
+func (bwe BulkWriteException) Error() string {
 	var buf bytes.Buffer
 	fmt.Fprint(&buf, "bulk write error: [")
 	fmt.Fprintf(&buf, "{%s}, ", bwe.WriteErrors)

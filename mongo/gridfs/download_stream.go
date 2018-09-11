@@ -7,9 +7,10 @@ import (
 
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo"
 	"io"
 	"math"
+
+	"github.com/mongodb/mongo-go-driver/mongo"
 )
 
 // ErrWrongIndex is used when the chunk retrieved from the server does not have the expected index.
