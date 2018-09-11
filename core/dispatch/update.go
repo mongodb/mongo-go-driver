@@ -94,12 +94,12 @@ func update(
 			defer func() { _ = recover() }()
 			defer conn.Close()
 
-			_, _ = cmd.RoundTrip(ctx, desc, conn)
+			_, _ = cmd.RoundTrip(ctx, desc, conn, false)
 		}()
 
 		return result.Update{}, command.ErrUnacknowledgedWrite
 	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, desc, conn)
+	return cmd.RoundTrip(ctx, desc, conn, false)
 }

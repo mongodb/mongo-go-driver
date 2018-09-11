@@ -42,9 +42,9 @@ type Registry struct {
 // NewRegistryBuilder creates a new RegistryBuilder.
 func NewRegistryBuilder() *RegistryBuilder {
 	types := map[reflect.Type]Codec{
-		tDocument:                     defaultDocumentCodec,
-		tArray:                        defaultArrayCodec,
-		tValue:                        defaultValueCodec,
+		tDocument: defaultDocumentCodec,
+		tArray:    defaultArrayCodec,
+		tValue:    defaultValueCodec,
 		reflect.PtrTo(tByteSlice):     defaultByteSliceCodec,
 		reflect.PtrTo(tElementSlice):  defaultElementSliceCodec,
 		reflect.PtrTo(tTime):          defaultTimeCodec,

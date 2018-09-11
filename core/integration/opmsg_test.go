@@ -102,7 +102,7 @@ func TestOpMsg(t *testing.T) {
 			Docs: []*bson.Document{doc},
 		}
 
-		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn, false)
 		noerr(t, err)
 
 		if len(res.WriteErrors) != 0 {
@@ -132,7 +132,7 @@ func TestOpMsg(t *testing.T) {
 			Docs: updateDocs,
 		}
 
-		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn, false)
 		noerr(t, err)
 
 		if len(res.WriteErrors) != 0 {
@@ -180,7 +180,7 @@ func TestOpMsg(t *testing.T) {
 
 		channelConn := createChannelConn()
 
-		_, err := cmd.RoundTrip(ctx, server.SelectedDescription(), channelConn)
+		_, err := cmd.RoundTrip(ctx, server.SelectedDescription(), channelConn, false)
 		if err == nil {
 			t.Errorf("expected read error. got nil")
 		}
@@ -188,7 +188,7 @@ func TestOpMsg(t *testing.T) {
 		compareResults(t, channelConn, doc1, doc2)
 
 		// write to server
-		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn, false)
 		noerr(t, err)
 
 		if len(res.WriteErrors) != 0 {
@@ -231,7 +231,7 @@ func TestOpMsg(t *testing.T) {
 		}
 
 		channelConn := createChannelConn()
-		_, err := cmd.RoundTrip(ctx, server.SelectedDescription(), channelConn)
+		_, err := cmd.RoundTrip(ctx, server.SelectedDescription(), channelConn, false)
 		if err == nil {
 			t.Errorf("expected read error. got nil")
 		}
@@ -239,7 +239,7 @@ func TestOpMsg(t *testing.T) {
 		compareResults(t, channelConn, updateDocs...)
 
 		// write to server
-		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
+		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn, false)
 		noerr(t, err)
 
 		if len(res.WriteErrors) != 0 {
