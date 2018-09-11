@@ -101,7 +101,16 @@ func prep(ctx context.Context, c *topology.Topology) error {
 	if err != nil {
 		return err
 	}
-	_, err = (&command.Insert{WriteConcern: nil, NS: ns, Docs: docs}).RoundTrip(ctx, s.Description(), conn)
+
+	_, err = (&command.Insert{
+		NS:   ns,
+		Docs: docs,
+	}).RoundTrip(
+		ctx,
+		s.Description(),
+		conn,
+	)
+
 	return err
 }
 

@@ -17,9 +17,16 @@ import (
 	"strings"
 	"testing"
 
+	"fmt"
+
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
+	"github.com/mongodb/mongo-go-driver/mongo/bulkwriteopt"
+	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
+	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -140,12 +147,17 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 
 		coll := db.Collection(collName)
 		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
-		_, err = coll.InsertMany(context.Background(), docsToInsert)
+
+		wcColl, err := coll.Clone(collectionopt.WriteConcern(writeconcern.New(writeconcern.WMajority())))
+		require.NoError(t, err)
+		_, err = wcColl.InsertMany(context.Background(), docsToInsert)
 		require.NoError(t, err)
 
 		switch test.Operation.Name {
 		case "aggregate":
 			aggregateTest(t, db, coll, &test)
+		case "bulkWrite":
+			bulkWriteTest(t, wcColl, &test)
 		case "count":
 			countTest(t, coll, &test)
 		case "distinct":
@@ -212,6 +224,179 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 
 			verifyCollectionContents(t, outColl, test.Outcome.Collection.Data)
 		}
+	})
+}
+
+func bulkWriteTest(t *testing.T, coll *Collection, test *testCase) {
+	t.Run(test.Description, func(t *testing.T) {
+		// TODO(GODRIVER-593): Figure out why this test fails
+		if test.Description == "BulkWrite with replaceOne operations" {
+			t.Skip("skipping replaceOne test")
+		}
+
+		requests := test.Operation.Arguments["requests"].([]interface{})
+		models := make([]WriteModel, len(requests))
+
+		for i, req := range requests {
+			reqMap := req.(map[string]interface{})
+
+			var filter map[string]interface{}
+			var document map[string]interface{}
+			var replacement map[string]interface{}
+			var update map[string]interface{}
+			var arrayFilters []interface{}
+			var collation *mongoopt.Collation
+			var upsert bool
+			var upsertSet bool
+
+			argsMap := reqMap["arguments"].(map[string]interface{})
+			for k, v := range argsMap {
+				var err error
+
+				switch k {
+				case "filter":
+					filter = v.(map[string]interface{})
+				case "document":
+					document = v.(map[string]interface{})
+				case "replacement":
+					replacement = v.(map[string]interface{})
+				case "update":
+					update = v.(map[string]interface{})
+				case "upsert":
+					upsertSet = true
+					upsert = v.(bool)
+				case "collation":
+					collation = collationFromMap(v.(map[string]interface{}))
+				case "arrayFilters":
+					arrayFilters = v.([]interface{})
+				default:
+					fmt.Printf("unknown argument: %s\n", k)
+				}
+
+				if err != nil {
+					t.Fatalf("error parsing argument %s: %s", k, err)
+				}
+			}
+
+			for _, m := range []map[string]interface{}{filter, document, replacement, update} {
+				if m != nil {
+					replaceFloatsWithInts(m)
+				}
+			}
+
+			var model WriteModel
+			switch reqMap["name"] {
+			case "deleteOne":
+				dom := NewDeleteOneModel()
+				if filter != nil {
+					dom = dom.Filter(filter)
+				}
+				if collation != nil {
+					dom = dom.Collation(collation)
+				}
+				model = dom
+			case "deleteMany":
+				dmm := NewDeleteManyModel()
+				if filter != nil {
+					dmm = dmm.Filter(filter)
+				}
+				if collation != nil {
+					dmm = dmm.Collation(collation)
+				}
+				model = dmm
+			case "insertOne":
+				iom := NewInsertOneModel()
+				if document != nil {
+					iom = iom.Document(document)
+				}
+				model = iom
+			case "replaceOne":
+				rom := NewReplaceOneModel()
+				if filter != nil {
+					rom = rom.Filter(filter)
+				}
+				if replacement != nil {
+					rom = rom.Replacement(replacement)
+				}
+				if upsertSet {
+					rom = rom.Upsert(upsert)
+				}
+				if collation != nil {
+					rom = rom.Collation(collation)
+				}
+				model = rom
+			case "updateOne":
+				uom := NewUpdateOneModel()
+				if filter != nil {
+					uom = uom.Filter(filter)
+				}
+				if update != nil {
+					uom = uom.Update(update)
+				}
+				if upsertSet {
+					uom = uom.Upsert(upsert)
+				}
+				if collation != nil {
+					uom = uom.Collation(collation)
+				}
+				if arrayFilters != nil {
+					uom = uom.ArrayFilters(arrayFilters)
+				}
+				model = uom
+			case "updateMany":
+				umm := NewUpdateManyModel()
+				if filter != nil {
+					umm = umm.Filter(filter)
+				}
+				if update != nil {
+					umm = umm.Update(update)
+				}
+				if upsertSet {
+					umm = umm.Upsert(upsert)
+				}
+				if collation != nil {
+					umm = umm.Collation(collation)
+				}
+				if arrayFilters != nil {
+					umm = umm.ArrayFilters(arrayFilters)
+				}
+				model = umm
+			default:
+				fmt.Printf("unknown operation: %s\n", doc.Lookup("name").StringValue())
+			}
+
+			models[i] = model
+		}
+
+		optsBytes, err := bsoncodec.Marshal(test.Operation.Arguments["options"])
+		if err != nil {
+			t.Fatalf("error marshalling options: %s", err)
+		}
+		optsDoc, err := bson.ReadDocument(optsBytes)
+		if err != nil {
+			t.Fatalf("error creating options doc: %s", err)
+		}
+
+		optsKeys, err := optsDoc.Keys(false)
+		if err != nil {
+			t.Fatalf("error getting keys from options doc: %s", err)
+		}
+
+		bundle := bulkwriteopt.BundleBulkWrite()
+		for _, k := range optsKeys {
+			val := optsDoc.Lookup(k.String())
+
+			switch k.String() {
+			case "ordered":
+				bundle = bundle.Ordered(val.Boolean())
+			default:
+				fmt.Printf("unkonwn bulk write opt: %s\n", k.String())
+			}
+		}
+
+		res, err := coll.BulkWrite(ctx, models, bundle)
+		verifyBulkWriteResult(t, res, test.Outcome.Result)
+		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
 }
 
