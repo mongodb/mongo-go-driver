@@ -61,7 +61,7 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 
 	for _, opt := range f.Opts {
 		switch t := opt.(type) {
-		case nil:
+		case nil, option.OptMaxAwaitTime:
 			continue
 		case option.OptLimit:
 			limit = int64(t)

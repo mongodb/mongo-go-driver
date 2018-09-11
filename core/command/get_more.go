@@ -8,7 +8,6 @@ package command
 
 import (
 	"context"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
@@ -45,8 +44,16 @@ func (gm *GetMore) encode(desc description.SelectedServer) (*Read, error) {
 		bson.EC.Int64("getMore", gm.ID),
 		bson.EC.String("collection", gm.NS.Collection),
 	)
+
+	var err error
+
 	for _, opt := range gm.Opts {
-		err := opt.Option(cmd)
+		switch t := opt.(type) {
+		case option.OptMaxAwaitTime:
+			err = option.OptMaxTime(t).Option(cmd)
+		default:
+			err = opt.Option(cmd)
+		}
 		if err != nil {
 			return nil, err
 		}
