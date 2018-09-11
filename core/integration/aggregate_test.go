@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
 	"time"
@@ -151,4 +152,95 @@ func TestCommandAggregate(t *testing.T) {
 		}).RoundTrip(context.Background(), server.SelectedDescription(), conn)
 		noerr(t, err)
 	})
+}
+
+func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
+	server, err := testutil.MonitoredTopology(t, monitor).SelectServer(context.Background(), description.WriteSelector())
+	noerr(t, err)
+
+	colName := testutil.ColName(t)
+
+	// create capped collection
+	createCmd := bson.NewDocument(
+		bson.EC.String("create", colName),
+		bson.EC.Boolean("capped", true),
+		bson.EC.Int32("size", 1000))
+	_, err = testutil.RunCommand(t, server.Server, dbName, createCmd)
+	noerr(t, err)
+
+	conn, err := server.Connection(context.Background())
+	noerr(t, err)
+
+	// ignore all previous commands
+	drainChannels()
+
+	// create an aggregate command that results with a TAILABLEAWAIT cursor
+	cursor, err := (&command.Aggregate{
+		NS: command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
+		Pipeline: bson.NewArray(
+			bson.VC.Document(bson.NewDocument(
+				bson.EC.SubDocument("$changeStream", bson.NewDocument()))),
+			bson.VC.Document(bson.NewDocument(
+				bson.EC.SubDocument("$match", bson.NewDocument(
+					bson.EC.SubDocument("fullDocument._id", bson.NewDocument(bson.EC.Int32("$gte", 1))),
+				))))),
+		Opts: []option.AggregateOptioner{option.OptBatchSize(1), option.OptMaxAwaitTime(time.Millisecond * 50)},
+	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+	noerr(t, err)
+
+	// insert some documents
+	insertCmd := bson.NewDocument(
+		bson.EC.String("insert", colName),
+		bson.EC.ArrayFromElements("documents",
+			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 1))),
+			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 2))),
+			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 3)))))
+	_, err = testutil.RunCommand(t, server.Server, dbName, insertCmd)
+
+	// exhaust the cursor, triggering getMore commands
+	for cursor.Next(context.Background()) {
+	}
+
+	// check that the Find command was started and sent the correct options (not maxAwaitTimeMS)
+	started := <-startedChan
+	assert.Equal(t, "aggregate", started.CommandName)
+	assert.Equal(t, 1, int(started.Command.Lookup("cursor", "batchSize").Int32()))
+	assert.Nil(t, started.Command.Lookup("maxAwaitTimeMS"),
+		"Should not have sent maxAwaitTimeMS in find command")
+
+	// check that the Find command succeeded and returned the correct first batch
+	succeeded := <-succeededChan
+	assert.Equal(t, "aggregate", succeeded.CommandName)
+	assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
+
+	// check the Insert command
+	started = <-startedChan
+	assert.Equal(t, "insert", started.CommandName)
+
+	succeeded = <-succeededChan
+	assert.Equal(t, "insert", succeeded.CommandName)
+
+	// check that the getMore commands
+	for i := 0; i < 3; i++ {
+		// check that the getMore command started and sent the correction options (maxTimeMS)
+		started = <-startedChan
+		assert.Equal(t, "getMore", started.CommandName)
+		assert.Equal(t, 1, int(started.Command.Lookup("batchSize").Int32()))
+		assert.Equal(t, 50, int(started.Command.Lookup("maxTimeMS").Int64()),
+			"Should have sent maxTimeMS in getMore command")
+
+		// check that the getMore command succeeded and returned the correct batch
+		succeeded = <-succeededChan
+		assert.Equal(t, "getMore", succeeded.CommandName)
+		assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
+
+		actual := succeeded.Reply.Lookup("cursor", "nextBatch").MutableArray()
+
+		if actual.Len() != 1 {
+			t.Errorf("incorrect nextBatch returned for getMore")
+		}
+
+		v, _ := actual.Lookup(0)
+		assert.Equal(t, i + 1, int(v.MutableDocument().Lookup("fullDocument", "_id").Int32()))
+	}
 }
