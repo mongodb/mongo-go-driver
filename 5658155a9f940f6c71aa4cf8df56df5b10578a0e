@@ -46,6 +46,30 @@
       "revId": "5658155a9f940f6c71aa4cf8df56df5b10578a0e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "a7caf3b5_bae45cb3",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 261,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-11T18:26:54Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "53305e02_f8bf5ba0",
+      "range": {
+        "startLine": 261,
+        "startChar": 2,
+        "endLine": 261,
+        "endChar": 36
+      },
+      "revId": "5658155a9f940f6c71aa4cf8df56df5b10578a0e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
