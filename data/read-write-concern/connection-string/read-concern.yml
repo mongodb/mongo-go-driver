@@ -23,3 +23,15 @@ tests:
         valid: true
         warning: false
         readConcern: { level: "available" }
+    -
+        description: "snapshot specified"
+        uri: "mongodb://localhost?readConcernLevel=snapshot"
+        valid: true
+        warning: false
+        readConcern: { level: "snapshot" }
+    -
+        description: "linearizable specified"
+        uri: "mongodb://localhost?readConcernLevel=linearizable"
+        valid: true
+        warning: false
+        readConcern: { level: "linearizable" }

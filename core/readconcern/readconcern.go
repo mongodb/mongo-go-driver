@@ -46,6 +46,11 @@ func Available() *ReadConcern {
 	return New(Level("available"))
 }
 
+// Only available for operations within multi-document transactions.
+func Snapshot() *ReadConcern {
+	return New(Level("snapshot"))
+}
+
 // New constructs a new read concern from the given string.
 func New(options ...Option) *ReadConcern {
 	concern := &ReadConcern{}
