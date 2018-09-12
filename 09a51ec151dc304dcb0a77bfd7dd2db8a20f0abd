@@ -70,6 +70,24 @@
       "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a2bf8d09_30cc466f",
+        "filename": "core/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-12T13:30:06Z",
+      "side": 1,
+      "message": "I think writing the integration test would be nice to have. It\u0027s gonna be a little racy, but as long as it passes, I think we are getting some value out of it even if it only hits to condition 4 out 5 times.",
+      "parentUuid": "3cb754ab_906cf656",
+      "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
