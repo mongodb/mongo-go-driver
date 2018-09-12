@@ -52,6 +52,24 @@
       "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3cb754ab_906cf656",
+        "filename": "core/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-09-12T13:13:08Z",
+      "side": 1,
+      "message": "I don\u0027t think the new mock tests added in patch set 4 test anything more than TestCursorLoopsUntilDocAvailable does, as the Cursor doesn\u0027t appear to use the Tailable option (Tailable is something passed to the find command, not getMore)\n\nI would prefer an integration test (which means testing against a MongoDB server rather than a mock).  Something like this Java driver test: https://github.com/mongodb/mongo-java-driver/blob/66e8e79fc2ffeec8275134d2a3538dd013913272/driver-core/src/test/functional/com/mongodb/operation/QueryBatchCursorFunctionalSpecification.groovy#L190-L235\n\n@Craig, what do you think?",
+      "parentUuid": "91668cfa_c4cbcf94",
+      "revId": "09a51ec151dc304dcb0a77bfd7dd2db8a20f0abd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
