@@ -109,6 +109,22 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	return c.topology.Disconnect(ctx)
 }
 
+// Ping verifies that the client can connect to the topology.
+// If readPreference is nil then will use the client's default read
+// preference.
+func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if rp == nil {
+		rp = c.readPreference
+	}
+
+	_, err := c.topology.SelectServer(ctx, description.ReadPrefSelector(rp))
+	return err
+}
+
 // StartSession starts a new session.
 func (c *Client) StartSession(opts ...sessionopt.Session) (*Session, error) {
 	if c.topology.SessionPool == nil {
