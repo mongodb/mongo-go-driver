@@ -609,23 +609,40 @@ axes:
   - id: os
     display_name: OS
     values:
-      - id: "windows-64"
-        display_name: "Windows 64-bit"
+      - id: "windows-64-go-1-10"
+        display_name: "Windows 64-bit Go 1.10"
         run_on:
           - windows-64-vs2015-test
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.9.5"
-      - id: "ubuntu1604-64"
-        display_name: "Ubuntu 16.04"
+          GO_DIST: "C:\\golang\\go1.10"
+      - id: "ubuntu1604-64-go-1-10"
+        display_name: "Ubuntu 16.04 Go 1.10"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.9"
-      - id: osx
-        display_name: "MacOS 10.12"
+          GO_DIST: "/opt/golang/go1.10"
+      - id: "osx-go-1-10"
+        display_name: "MacOS 10.12 Go 1.10"
         run_on: macos-1012
         variables:
-          GO_DIST: "/opt/golang/go1.9"
+          GO_DIST: "/opt/golang/go1.10"
+      - id: "windows-64-go-1-11"
+        display_name: "Windows 64-bit Go 1.11"
+        run_on:
+          - windows-64-vs2015-test
+        variables:
+          GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
+          GO_DIST: "C:\\golang\\go1.11"
+      - id: "ubuntu1604-64-go-1-11"
+        display_name: "Ubuntu 16.04 Go 1.11"
+        run_on: ubuntu1604-build
+        variables:
+          GO_DIST: "/opt/golang/go1.11"
+      - id: "osx-go-1-11"
+        display_name: "MacOS 10.12 Go 1.11"
+        run_on: macos-1012
+        variables:
+          GO_DIST: "/opt/golang/go1.11"
 
 
 buildvariants:
