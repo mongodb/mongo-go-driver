@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/core/connstring"
@@ -72,6 +73,9 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 	t.Run(filename, func(t *testing.T) {
 		if runtime.GOOS == "windows" && filename == "two-txt-records" {
 			t.Skip("Skipping to avoid windows multiple TXT record lookup bug")
+		}
+		if strings.HasPrefix(runtime.Version(), "go1.11") && (filename == "one-txt-record-multiple-strings") {
+			t.Skip("Skipping to avoid Go 1.11 problem with multiple strings in one TXT record")
 		}
 
 		cs, err := connstring.Parse(test.URI)
