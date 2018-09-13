@@ -119,7 +119,7 @@ functions:
         script: |
            ${PREPARE_SHELL}
            # any go tools that we need
-           go get -u github.com/golang/lint/golint
+           go get -u golang.org/x/lint/golint
            go get -u github.com/kisielk/errcheck
 
            # initialize submodules
@@ -261,7 +261,9 @@ functions:
           else
             export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
           fi;
-          export PATH="${GCC_PATH}:$PATH"
+          export GOPATH="$GOPATH"
+          export GOROOT="${GO_DIST}"
+          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGODB_URI="${MONGODB_URI}" MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
 
   run-enterprise-gssapi-auth-tests:
@@ -284,7 +286,9 @@ functions:
             kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${gssapi_auth_username}"
             export MONGODB_URI="${gssapi_auth_linux_mongodb_uri}"
           fi;
-          export PATH="${GCC_PATH}:$PATH"
+          export GOPATH="$GOPATH"
+          export GOROOT="${GO_DIST}"
+          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
 
 pre:
@@ -557,6 +561,14 @@ tasks:
             targets: "build"
             BUILD_ENV: "PATH=/opt/golang/go1.8/bin:$PATH GOROOT=/opt/golang/go1.8"
 
+    - name: go1.10-build
+      tags: ["compile-check"]
+      commands:
+        - func: run-make
+          vars:
+            targets: "build"
+            BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
+
     - name: linux-32-bit
       tags: ["compile-check"]
       commands:
@@ -609,23 +621,23 @@ axes:
   - id: os
     display_name: OS
     values:
-      - id: "windows-64"
+      - id: "windows-64-go-1-11"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2015-test
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.9.5"
-      - id: "ubuntu1604-64"
+          GO_DIST: "C:\\golang\\go1.11"
+      - id: "ubuntu1604-64-go-1-11"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.9"
-      - id: osx
+          GO_DIST: "/opt/golang/go1.11"
+      - id: "osx-go-1-11"
         display_name: "MacOS 10.12"
         run_on: macos-1012
         variables:
-          GO_DIST: "/opt/golang/go1.9"
+          GO_DIST: "/opt/golang/go1.11"
 
 
 buildvariants:
