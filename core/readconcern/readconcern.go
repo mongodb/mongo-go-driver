@@ -46,7 +46,7 @@ func Available() *ReadConcern {
 	return New(Level("available"))
 }
 
-// Only available for operations within multi-document transactions.
+// Snapshot is only available for operations within multi-document transactions.
 func Snapshot() *ReadConcern {
 	return New(Level("snapshot"))
 }
