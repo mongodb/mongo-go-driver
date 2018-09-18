@@ -524,7 +524,7 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 
 		val = reflect.ValueOf(v.Boolean())
 	case 0x9:
-		if containerType != tTime && containerType != tEmpty {
+		if containerType != tTime && containerType != tInt64 && containerType != tEmpty {
 			return val, nil
 		}
 
