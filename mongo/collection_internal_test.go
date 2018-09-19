@@ -174,6 +174,16 @@ func TestCollection_name_accessor(t *testing.T) {
 
 }
 
+func TestCollection_database_accessor(t *testing.T) {
+	t.Parallel()
+
+	dbName := "foo"
+	collName := "bar"
+
+	coll := createTestCollection(t, &dbName, &collName)
+	require.Equal(t, coll.Database().Name(), dbName)
+}
+
 func TestCollection_InsertOne(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")

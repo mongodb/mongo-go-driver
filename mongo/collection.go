@@ -136,6 +136,11 @@ func (coll *Collection) namespace() command.Namespace {
 	return command.NewNamespace(coll.db.name, coll.name)
 }
 
+// Database provides access to the database that contains the collection.
+func (coll *Collection) Database() *Database {
+	return coll.db
+}
+
 // InsertOne inserts a single document into the collection. A user can supply
 // a custom context to this method, or nil to default to context.Background().
 //
