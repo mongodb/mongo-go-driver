@@ -531,7 +531,12 @@ func (d *decoder) getReflectValue(v *Value, containerType reflect.Type, outer re
 		if int64(v.getUint64()) == -zeroEpochMs {
 			val = reflect.ValueOf(time.Time{})
 		} else {
-			val = reflect.ValueOf(v.DateTime())
+			switch containerType {
+			case tTime:
+				val = reflect.ValueOf(v.Time())
+			case tInt64, tEmpty:
+				val = reflect.ValueOf(v.DateTime())
+			}
 		}
 
 	case 0xA:
