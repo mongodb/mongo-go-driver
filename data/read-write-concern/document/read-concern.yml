@@ -17,3 +17,21 @@ tests:
         readConcern: { level: "local" }
         readConcernDocument: { level: "local" }
         isServerDefault: false
+    -
+        description: "Available"
+        valid: true
+        readConcern: { level: "available" }
+        readConcernDocument: { level: "available" }
+        isServerDefault: false
+    -
+        description: "Snapshot"
+        valid: true
+        readConcern: { level: "snapshot" }
+        readConcernDocument: { level: "snapshot" }
+        isServerDefault: false
+    -
+        description: "Linearizable"
+        valid: true
+        readConcern: { level: "linearizable" }
+        readConcernDocument: { level: "linearizable" }
+        isServerDefault: false

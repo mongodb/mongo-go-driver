@@ -40,6 +40,17 @@ func Linearizable() *ReadConcern {
 	return New(Level("linearizable"))
 }
 
+// Available specifies that the query should return data from the instance with no guarantee
+// that the data has been written to a majority of the replica set members (i.e. may be rolled back).
+func Available() *ReadConcern {
+	return New(Level("available"))
+}
+
+// Snapshot is only available for operations within multi-document transactions.
+func Snapshot() *ReadConcern {
+	return New(Level("snapshot"))
+}
+
 // New constructs a new read concern from the given string.
 func New(options ...Option) *ReadConcern {
 	concern := &ReadConcern{}
