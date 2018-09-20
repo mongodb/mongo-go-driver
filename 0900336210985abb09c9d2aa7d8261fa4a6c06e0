@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "0f42f7a5_c6ea1fd7",
+        "filename": "bson/bsoncodec/codec.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-20T20:18:35Z",
+      "side": 1,
+      "message": "While I think people will likely just write functions for encoding and decoding I don\u0027t see a problem with providing this functionality.",
+      "parentUuid": "4b17de31_088060fa",
+      "revId": "0900336210985abb09c9d2aa7d8261fa4a6c06e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "872e5837_c859baee",
         "filename": "bson/bsoncodec/registry.go",
         "patchSetId": 14
@@ -33,6 +51,24 @@
       "revId": "0900336210985abb09c9d2aa7d8261fa4a6c06e0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84741ae7_7b4eeb4a",
+        "filename": "bson/bsoncodec/registry.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 196,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-20T20:18:35Z",
+      "side": 1,
+      "message": "This is three lines of code, but again I don\u0027t see the problem with adding it.",
+      "parentUuid": "872e5837_c859baee",
+      "revId": "0900336210985abb09c9d2aa7d8261fa4a6c06e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "993557cb_6cbb4491",
+        "filename": "bson/element.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 359,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-20T20:18:35Z",
+      "side": 1,
+      "message": "I wrote the equal method first and then added the Equal method. I\u0027ll condense them down to one.",
+      "parentUuid": "832f491a_051dace0",
+      "revId": "0900336210985abb09c9d2aa7d8261fa4a6c06e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8c71c314_b804b877",
         "filename": "bson/value.go",
         "patchSetId": 14
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "73d5ebcd_7592aefa",
+        "filename": "bson/value.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 1035,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-20T20:18:35Z",
+      "side": 1,
+      "message": "I wrote the equal method first and then added the Equal method. I\u0027ll condense them down to one.",
+      "parentUuid": "8c71c314_b804b877",
+      "revId": "0900336210985abb09c9d2aa7d8261fa4a6c06e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "63160ef0_a3bf8703",
         "filename": "mongo/document_result.go",
         "patchSetId": 14
@@ -84,6 +156,42 @@
       "revId": "0900336210985abb09c9d2aa7d8261fa4a6c06e0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cee0b057_f354d2bd",
+        "filename": "mongo/document_result.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-20T20:18:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "63160ef0_a3bf8703",
+      "revId": "0900336210985abb09c9d2aa7d8261fa4a6c06e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ca23195e_7050cfe1",
+        "filename": "mongo/document_result.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-20T20:18:35Z",
+      "side": 1,
+      "message": "Fixing this and the other places in the mongo package where this is used.",
+      "parentUuid": "63160ef0_a3bf8703",
+      "revId": "0900336210985abb09c9d2aa7d8261fa4a6c06e0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
