@@ -553,6 +553,16 @@ func (v *Value) Binary() (subtype byte, data []byte) {
 	return st, b
 }
 
+// BinaryOK is the same as Binary, except it returns a boolean instead of
+// panicking.
+func (v *Value) BinaryOK() (subtype byte, data []byte, ok bool) {
+	if v == nil || v.offset == 0 || v.data == nil || Type(v.data[v.start]) != TypeBinary {
+		return 0x00, nil, false
+	}
+	st, b := v.Binary()
+	return st, b, true
+}
+
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
 func (v *Value) ObjectID() objectid.ObjectID {
