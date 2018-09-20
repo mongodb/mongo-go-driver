@@ -132,6 +132,43 @@ func TestTimeRoundTrip(t *testing.T) {
 
 }
 
+func TestUTCDateTimeRoundTrip(t *testing.T) {
+	timeNow := time.Date(2018, 9, 20, 1, 1, 1, 0, time.UTC)
+	int64Now := timeNow.UnixNano() / 1e6
+
+	timeVal := struct {
+		Value time.Time `bson:"Value"`
+		ID    string    `bson:"ID"`
+	}{
+		Value: timeNow,
+		ID:    "time-decode-test",
+	}
+
+	bsonOut, err := Marshal(timeVal)
+	assert.NoError(t, err)
+
+	timeRtval := struct {
+		Value time.Time `bson:"Value"`
+		ID    string    `bson:"ID"`
+	}{}
+
+	int64Rtval := struct {
+		Value int64  `bson:"Value"`
+		ID    string `bson:"ID"`
+	}{}
+
+	err = Unmarshal(bsonOut, &timeRtval)
+	assert.NoError(t, err)
+	err = Unmarshal(bsonOut, &int64Rtval)
+	assert.NoError(t, err)
+
+	timeRtval.Value = timeRtval.Value.UTC()
+
+	assert.Equal(t, timeRtval, timeVal)
+	assert.Equal(t, int64Rtval.Value, int64Now)
+
+}
+
 func TestBasicEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
