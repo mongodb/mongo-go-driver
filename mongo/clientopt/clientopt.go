@@ -627,7 +627,7 @@ func SSL(ssl *SSLOpt) Option {
 				c.ConnString.SSLInsecure = ssl.Insecure
 				c.ConnString.SSLInsecureSet = true
 			}
-			if !c.ConnString.SSLCaFileSet {
+			if !c.ConnString.SSLCaFileSet && ssl.CaFile != "" {
 				c.ConnString.SSLCaFile = ssl.CaFile
 				c.ConnString.SSLCaFileSet = true
 			}
