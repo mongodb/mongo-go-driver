@@ -69,6 +69,24 @@
       "revId": "c40e2506ebc3fe2ebb19fc2fd64547f9f66eb16d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7f080690_10a94399",
+        "filename": "bson/constructor.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 536,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-21T16:57:41Z",
+      "side": 1,
+      "message": "Requested by whom? I\u0027d argue that the default is to want to know if what I got back is totally bogus and doesn\u0027t exist. Defaults as they are will likely create lots of \"bad\" data problems. I know, in my current use of the bson library, that I never use the ones that don\u0027t return an error or bool (ok).\n\nIs this really so bad?\nv :\u003d doc.Lookup(\"a\")\n\nvs.\n\nv, _ :\u003d doc.Lookup(\"a\")\n\nIn the latter, the user is actively deciding to ignore the error, where in the first, the user might not even know. Alternatively, bson.MustValue(doc.Lookup(\"a\")).Int32() allows them to chain if they must (haha, see what I did there :)).",
+      "parentUuid": "d74b3e6f_85671d95",
+      "revId": "c40e2506ebc3fe2ebb19fc2fd64547f9f66eb16d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
