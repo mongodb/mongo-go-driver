@@ -87,6 +87,24 @@
       "revId": "c40e2506ebc3fe2ebb19fc2fd64547f9f66eb16d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5b4b9942_2fa630fb",
+        "filename": "bson/constructor.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 536,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-21T17:46:32Z",
+      "side": 1,
+      "message": "Eliot is the main person that comes to mind. We also had a ticket about the semantics of this: https://jira.mongodb.org/browse/GODRIVER-360. Apparently we\u0027ve discussed this before since in one of the comments I added a remark about having a conversation with you and Jeff.\n\nA main benefit of the first syntax is that it can easily be inlined, and is not too verbose. There are other libraries that behave in this manner, notably the reflect package, which this one is somewhat modeled after.",
+      "parentUuid": "7f080690_10a94399",
+      "revId": "c40e2506ebc3fe2ebb19fc2fd64547f9f66eb16d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
