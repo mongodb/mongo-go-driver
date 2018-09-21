@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "76c41abd_865ab0ae",
+        "filename": "bson/bsoncodec/bsoncodec.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-21T15:29:49Z",
+      "side": 1,
+      "message": "Why is this in the bsoncodec package? I seems like it belongs in the bson package given what it does.",
+      "revId": "c40e2506ebc3fe2ebb19fc2fd64547f9f66eb16d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "906ffe42_84977b5c",
+        "filename": "bson/constructor.go",
+        "patchSetId": 16
+      },
+      "lineNbr": 536,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-21T15:29:49Z",
+      "side": 1,
+      "message": "Isn\u0027t there a go idiom for these types of methods... bson.MustElement(bson.EC.FromBytes(src)) as opposed to having 2 different methods for absolutely everything.\n\nbson.MustElement, bson.MustValue, etc... that can handle multiple methods... LookupElement, Lookup?",
+      "revId": "c40e2506ebc3fe2ebb19fc2fd64547f9f66eb16d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
