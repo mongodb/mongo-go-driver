@@ -143,7 +143,7 @@ func TestValueWriter(t *testing.T) {
 			"WriteRegex",
 			(*valueWriter).WriteRegex,
 			[]interface{}{"bar", "baz"},
-			llbson.AppendRegexElement(header, "foo", "bar", "baz"),
+			llbson.AppendRegexElement(header, "foo", "bar", "abz"),
 		},
 		{
 			"WriteString",

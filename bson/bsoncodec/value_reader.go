@@ -297,6 +297,14 @@ func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
 	if err != nil {
 		return nil, 0, err
 	}
+
+	if btype == 0x02 {
+		length, err = vr.readLength()
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+
 	b, err = vr.readBytes(length)
 	if err != nil {
 		return nil, 0, err
@@ -597,7 +605,7 @@ func (vr *valueReader) ReadUndefined() error {
 
 func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 	switch vr.stack[vr.frame].mode {
-	case mTopLevel, mDocument:
+	case mTopLevel, mDocument, mCodeWithScope:
 	default:
 		return "", nil, vr.invalidTransitionErr(mElement)
 	}

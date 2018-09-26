@@ -801,5 +801,7 @@ func (d *Document) ToExtJSONErr(canonical bool) (string, error) {
 		return "", err
 	}
 
+	// TODO: when dependency is reversed, use bsoncodec.MarshalExtJSON(d, canonical) instead of the extjson_bytes_converter code
+
 	return ToExtJSON(canonical, b)
 }
