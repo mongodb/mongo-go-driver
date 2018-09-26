@@ -41,7 +41,8 @@ func NewEncoder(r *Registry, vw ValueWriter) (*Encoder, error) {
 // The documentation for Marshal contains details about the conversion of Go
 // values to BSON.
 func (e *Encoder) Encode(val interface{}) error {
-	if marshaler, ok := val.(Marshaler); ok {
+	_, vwOK := e.vw.(*extJSONValueWriter)
+	if marshaler, ok := val.(Marshaler); ok && !vwOK {
 		// TODO(skriptble): Should we have a MarshalAppender interface so that we can have []byte reuse?
 		buf, err := marshaler.MarshalBSON()
 		if err != nil {

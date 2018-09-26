@@ -287,6 +287,8 @@ func (w *extJSONWriter) writeBoolValue(b bool) error {
 	return err
 }
 
+const rfc3339Milli = "2006-01-02T15:04:05.999Z07:00"
+
 func (w *extJSONWriter) writeDatetimeValue(d int64) error {
 	if w.canonical {
 		return w.writeDocument(newDateDoc(d))
