@@ -368,7 +368,7 @@ func (vw *valueWriter) WriteRegex(pattern string, options string) error {
 		return err
 	}
 
-	vw.buf = llbson.AppendRegex(vw.buf, pattern, options)
+	vw.buf = llbson.AppendRegex(vw.buf, pattern, sortStringAlphebeticAscending(options))
 	vw.pop()
 	return nil
 }

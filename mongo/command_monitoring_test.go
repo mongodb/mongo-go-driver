@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -116,7 +117,8 @@ func runCmTestFile(t *testing.T, filepath string) {
 	content, err := ioutil.ReadFile(filepath)
 	testhelpers.RequireNil(t, err, "error reading JSON file: %s", err)
 
-	doc, err := bson.ParseExtJSONObject(string(content))
+	doc := bson.NewDocument()
+	err = bsoncodec.UnmarshalExtJSON(content, true, &doc)
 	testhelpers.RequireNil(t, err, "error converting JSON to BSON: %s", err)
 
 	client := createMonitoredClient(t, monitor)
@@ -230,16 +232,16 @@ func checkActualFields(t *testing.T, expected *bson.Document, actual *bson.Docum
 }
 
 func compareWriteError(t *testing.T, expected *bson.Document, actual *bson.Document) {
-	expectedIndex := expected.Lookup("index").Int64()
-	actualIndex := int64(actual.Lookup("index").Int32())
+	expectedIndex := expected.Lookup("index").Int32()
+	actualIndex := actual.Lookup("index").Int32()
 
 	if expectedIndex != actualIndex {
 		t.Errorf("index mismatch in writeError. expected %d got %d", expectedIndex, actualIndex)
 		t.FailNow()
 	}
 
-	expectedCode := expected.Lookup("code").Int64()
-	actualCode := int64(actual.Lookup("code").Int32())
+	expectedCode := expected.Lookup("code").Int32()
+	actualCode := actual.Lookup("code").Int32()
 	if expectedCode == 42 {
 		if actualCode <= 0 {
 			t.Errorf("expected error code > 0 in writeError. got %d", actualCode)
@@ -363,30 +365,30 @@ func compareReply(t *testing.T, succeeded *event.CommandSucceededEvent, reply *b
 		elem := iter.Element()
 		switch elem.Key() {
 		case "ok":
-			var actualOk int64
+			var actualOk int32
 
 			actualOkVal, err := succeeded.Reply.LookupErr("ok")
 			testhelpers.RequireNil(t, err, "could not find key ok in reply")
 
 			switch actualOkVal.Type() {
 			case bson.TypeInt32:
-				actualOk = int64(actualOkVal.Int32())
+				actualOk = actualOkVal.Int32()
 			case bson.TypeInt64:
-				actualOk = actualOkVal.Int64()
+				actualOk = int32(actualOkVal.Int64())
 			case bson.TypeDouble:
-				actualOk = int64(actualOkVal.Double())
+				actualOk = int32(actualOkVal.Double())
 			}
 
-			if actualOk != elem.Value().Int64() {
-				t.Errorf("ok value in reply does not match. expected %d got %d", elem.Value().Int64(), actualOk)
+			if actualOk != elem.Value().Int32() {
+				t.Errorf("ok value in reply does not match. expected %d got %d", elem.Value().Int32(), actualOk)
 				t.FailNow()
 			}
 		case "n":
 			actualNVal, err := succeeded.Reply.LookupErr("n")
 			testhelpers.RequireNil(t, err, "could not find key n in reply")
 
-			if int(actualNVal.Int32()) != int(elem.Value().Int64()) {
-				t.Errorf("n values do not match. expected %d got %d", elem.Value().Int32(), actualNVal.Int64())
+			if int(actualNVal.Int32()) != int(elem.Value().Int32()) {
+				t.Errorf("n values do not match. expected %d got %d", elem.Value().Int32(), actualNVal.Int32())
 				t.FailNow()
 			}
 		case "writeErrors":
@@ -416,19 +418,36 @@ func compareValues(expected *bson.Value, actual *bson.Value) bool {
 			return false
 		}
 
-		expectedNum := expected.Int64() // from JSON file
-		switch actual.Type() {
-		case bson.TypeInt32:
-			if int64(actual.Int32()) != expectedNum {
-				return false
+		if expectedNum, ok := expected.Int32OK(); ok { // from JSON file
+			switch actual.Type() {
+			case bson.TypeInt32:
+				if actual.Int32() != expectedNum {
+					return false
+				}
+			case bson.TypeInt64:
+				if int32(actual.Int64()) != expectedNum {
+					return false
+				}
+			case bson.TypeDouble:
+				if int32(actual.Double()) != expectedNum {
+					return false
+				}
 			}
-		case bson.TypeInt64:
-			if actual.Int64() != expectedNum {
-				return false
-			}
-		case bson.TypeDouble:
-			if int64(actual.Double()) != expectedNum {
-				return false
+		} else {
+			expectedNum := expected.Int64()
+			switch actual.Type() {
+			case bson.TypeInt32:
+				if int64(actual.Int32()) != expectedNum {
+					return false
+				}
+			case bson.TypeInt64:
+				if actual.Int64() != expectedNum {
+					return false
+				}
+			case bson.TypeDouble:
+				if int64(actual.Double()) != expectedNum {
+					return false
+				}
 			}
 		}
 
@@ -700,7 +719,7 @@ func cmFindOptions(arguments *bson.Document) []findopt.Find {
 		case "$max":
 			opt = findopt.Max(val.MutableDocument())
 		case "$maxTimeMS":
-			ns := time.Duration(val.Int64()) * time.Millisecond
+			ns := time.Duration(val.Int32()) * time.Millisecond
 			opt = findopt.MaxTime(ns)
 		case "$min":
 			opt = findopt.Min(val.MutableDocument())
@@ -855,7 +874,7 @@ func cmBulkWriteTest(t *testing.T, testCase *bson.Document, operation *bson.Docu
 	var wc *writeconcern.WriteConcern
 	if collOpts, err := operation.LookupErr("collectionOptions"); err == nil {
 		wcDoc := collOpts.MutableDocument().Lookup("writeConcern").MutableDocument()
-		wc = writeconcern.New(writeconcern.W(int(wcDoc.Lookup("w").Int64())))
+		wc = writeconcern.New(writeconcern.W(int(wcDoc.Lookup("w").Int32())))
 	}
 
 	oldWc := coll.writeConcern

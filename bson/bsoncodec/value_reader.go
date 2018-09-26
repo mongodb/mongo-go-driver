@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"sync"
+	"unicode"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
@@ -297,6 +298,14 @@ func (vr *valueReader) ReadBinary() (b []byte, btype byte, err error) {
 	if err != nil {
 		return nil, 0, err
 	}
+
+	if btype == 0x02 {
+		length, err = vr.readLength()
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+
 	b, err = vr.readBytes(length)
 	if err != nil {
 		return nil, 0, err
@@ -331,6 +340,9 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 		size, err := vr.readLength()
 		if err != nil {
 			return nil, err
+		}
+		if int(size) != len(vr.d) {
+			return nil, fmt.Errorf("invalid document length")
 		}
 		vr.stack[vr.frame].end = int64(size) + vr.offset - 4
 		return vr, nil
@@ -391,17 +403,10 @@ func (vr *valueReader) ReadDBPointer() (ns string, oid objectid.ObjectID, err er
 		return "", oid, err
 	}
 
-	length, err := vr.readLength()
+	ns, err = vr.readString()
 	if err != nil {
 		return "", oid, err
 	}
-
-	sbytes, err := vr.readBytes(length)
-	if err != nil {
-		return "", oid, err
-	}
-
-	ns = string(sbytes[:len(sbytes)-1])
 
 	oidbytes, err := vr.readBytes(12)
 	if err != nil {
@@ -597,7 +602,7 @@ func (vr *valueReader) ReadUndefined() error {
 
 func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 	switch vr.stack[vr.frame].mode {
-	case mTopLevel, mDocument:
+	case mTopLevel, mDocument, mCodeWithScope:
 	default:
 		return "", nil, vr.invalidTransitionErr(mElement)
 	}
@@ -656,6 +661,10 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 }
 
 func (vr *valueReader) readBytes(length int32) ([]byte, error) {
+	if length < 0 {
+		return nil, fmt.Errorf("invalid length: %d", length)
+	}
+
 	if vr.offset+int64(length) > int64(len(vr.d)) {
 		return nil, io.EOF
 	}
@@ -720,12 +729,28 @@ func (vr *valueReader) readString() (string, error) {
 		return "", err
 	}
 
+	if int64(length)+vr.offset > int64(len(vr.d)) {
+		return "", io.EOF
+	}
+
+	if length <= 0 {
+		return "", fmt.Errorf("invalid string length: %d", length)
+	}
+
 	if vr.d[vr.offset+int64(length)-1] != 0x00 {
 		return "", fmt.Errorf("string does not end with null byte, but with %v", vr.d[vr.offset+int64(length)-1])
 	}
 
 	start := vr.offset
 	vr.offset += int64(length)
+
+	if length == 2 {
+		asciiByte := vr.d[start]
+		if asciiByte > unicode.MaxASCII {
+			return "", fmt.Errorf("invalid ascii byte")
+		}
+	}
+
 	return string(vr.d[start : start+int64(length)-1]), nil
 }
 
