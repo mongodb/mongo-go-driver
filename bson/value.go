@@ -554,8 +554,13 @@ func (v *Value) Binary() (subtype byte, data []byte) {
 	}
 	l := readi32(v.data[v.offset : v.offset+4])
 	st := v.data[v.offset+4]
+	offset := uint32(5)
+	if st == 0x02 {
+		offset += 4
+		l = readi32(v.data[v.offset+5 : v.offset+9])
+	}
 	b := make([]byte, l)
-	copy(b, v.data[v.offset+5:int32(v.offset)+5+l])
+	copy(b, v.data[v.offset+offset:int32(v.offset)+int32(offset)+l])
 	return st, b
 }
 
