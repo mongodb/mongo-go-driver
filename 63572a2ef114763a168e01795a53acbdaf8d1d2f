@@ -1,0 +1,303 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fc6a6f5c_77f6f544",
+        "filename": "bson/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "The usual syntax for this is:\njpStartState jsonParseState \u003d iota",
+      "range": {
+        "startLine": 20,
+        "startChar": 1,
+        "endLine": 20,
+        "endChar": 36
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2d22e58c_b60e1c46",
+        "filename": "bson/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "This mode should probably be first so that we know we\u0027ve explicitly set a jsonParseMode.",
+      "range": {
+        "startLine": 38,
+        "startChar": 1,
+        "endLine": 38,
+        "endChar": 14
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ecbc3e2d_e39e557b",
+        "filename": "bson/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "We can refactor this as a switch statement on ejp.s:\n\nswitch ejp.s {\ncase sawValue:\n    keys[i] \u003d key\n    vals[i] \u003d ejp.v\ncase sawKey:\n    // code in the main if statement\ndefault:\n    return nil, nil, errors.New(\"expected value\")\n}",
+      "range": {
+        "startLine": 342,
+        "startChar": 0,
+        "endLine": 356,
+        "endChar": 17
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6969c79d_b9178212",
+        "filename": "bson/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 404,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "Let\u0027s try consolidating the transitions methods used here into a single transition method that takes both the state and the next token. There is shared code between the different transition methods and their names indicate that we are encoding a parameter in the name. I think it would make the code a little easier to follow.",
+      "range": {
+        "startLine": 382,
+        "startChar": 1,
+        "endLine": 404,
+        "endChar": 2
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f9f5ef58_4b1dddb1",
+        "filename": "bson/extjson_parser_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "This isn\u0027t written down anywhere, but we\u0027re slowly trying to get rid of this library. The main issue is that it rewrites the output of go test in a format that some editors cannot properly parse. It\u0027s also just a large dependency.\n\nAn alternative for some assertions is the cmp library: https://godoc.org/github.com/google/go-cmp/cmp. It\u0027s much more lightweight and has much better equality logic.",
+      "range": {
+        "startLine": 13,
+        "startChar": 2,
+        "endLine": 13,
+        "endChar": 36
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a8168cbd_d3a2e988",
+        "filename": "bson/extjson_reader.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 469,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "In general, we shouldn\u0027t use naked returns, so even if we\u0027ve defined the return values we should still explicitly return them.\n\nReference: https://github.com/golang/go/wiki/CodeReviewComments#naked-returns.",
+      "range": {
+        "startLine": 469,
+        "startChar": 1,
+        "endLine": 469,
+        "endChar": 7
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "45c205b8_97059ffa",
+        "filename": "bson/extjson_wrappers.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 173,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "Is there a way we can make all of these methods on extJSONValue?",
+      "range": {
+        "startLine": 173,
+        "startChar": 5,
+        "endLine": 173,
+        "endChar": 16
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c7348d1_ab0c1523",
+        "filename": "bson/json_scanner.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "The convention I\u0027ve been using for types like this is to prefix them with the type, so this would be something like jttBeginObject.",
+      "range": {
+        "startLine": 23,
+        "startChar": 1,
+        "endLine": 23,
+        "endChar": 21
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c3c7a7be_f89b2dda",
+        "filename": "bson/json_scanner.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "This reads a little awkwardly. Perhaps declare c and err as var and put the first js.readNextByte in the first component of the for loop.",
+      "range": {
+        "startLine": 53,
+        "startChar": 1,
+        "endLine": 57,
+        "endChar": 2
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "32f83b2a_5a94476c",
+        "filename": "bson/json_scanner.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "It\u0027s a little strange to declare the error and immediately reassign it. We can probably just assign the error to _ and add a comment that the last readNextByte handles the error. Also we should explicitly return the error here, incase it\u0027s something like an EOF.",
+      "range": {
+        "startLine": 171,
+        "startChar": 8,
+        "endLine": 171,
+        "endChar": 11
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "15220329_6461ee60",
+        "filename": "bson/json_scanner.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 179,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "Should we be checking the error here?",
+      "range": {
+        "startLine": 179,
+        "startChar": 5,
+        "endLine": 179,
+        "endChar": 15
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d091198e_e1d4205b",
+        "filename": "bson/json_scanner.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "Same as above with multiple calls to readNextByte. Perhaps we need a way to read a number of bytes into a []byte.",
+      "range": {
+        "startLine": 199,
+        "startChar": 5,
+        "endLine": 199,
+        "endChar": 8
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bbf2896e_16a35270",
+        "filename": "bson/json_scanner.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 228,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-09-26T19:14:08Z",
+      "side": 1,
+      "message": "One of the things I like about the standard library JSON parser is that it will tell you which literal was mistyped, for instance if you put \"nul\" it\u0027ll say that it expected an \"l\" in \"null\". I think this is helpful for users and is much quicker for them to find and correct than giving them the position inside of a JSON string.",
+      "range": {
+        "startLine": 228,
+        "startChar": 1,
+        "endLine": 228,
+        "endChar": 84
+      },
+      "revId": "63572a2ef114763a168e01795a53acbdaf8d1d2f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
