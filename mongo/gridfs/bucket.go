@@ -327,7 +327,7 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...findopt.Find) (*
 		return nil, err
 	}
 
-	fileLen := fileLenElem.Value().Int64()
+	fileLen := fileLenElem.Value().Int32()
 	if fileLen == 0 {
 		return newDownloadStream(nil, b.chunkSize, 0), nil
 	}
@@ -336,7 +336,7 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...findopt.Find) (*
 	if err != nil {
 		return nil, err
 	}
-	return newDownloadStream(chunksCursor, b.chunkSize, fileLen), nil
+	return newDownloadStream(chunksCursor, b.chunkSize, int64(fileLen)), nil
 }
 
 func deadlineContext(deadline time.Time) (context.Context, context.CancelFunc) {

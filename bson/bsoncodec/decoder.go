@@ -8,7 +8,7 @@ import (
 )
 
 // This pool is used to keep the allocations of Decoders down. This is only used for the Marshal*
-// methods and is not consumable from outside of this package. The Encoders retrieved from this pool
+// methods and is not consumable from outside of this package. The Decoders retrieved from this pool
 // must have both Reset and SetRegistry called on them.
 var decPool = sync.Pool{
 	New: func() interface{} {
@@ -43,7 +43,8 @@ func NewDecoder(r *Registry, vr ValueReader) (*Decoder, error) {
 // The documentation for Unmarshal contains details about of BSON into a Go
 // value.
 func (d *Decoder) Decode(val interface{}) error {
-	if unmarshaler, ok := val.(Unmarshaler); ok {
+	_, vrOK := d.vr.(*extJSONValueReader)
+	if unmarshaler, ok := val.(Unmarshaler); ok && !vrOK {
 		// TODO(skriptble): Reuse a []byte here and use the AppendDocumentBytes method.
 		buf, err := Copier{r: d.r}.CopyDocumentToBytes(d.vr)
 		if err != nil {
