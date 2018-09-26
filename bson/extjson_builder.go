@@ -5,30 +5,29 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 package bson
-
+/*
 import (
-	"errors"
-	"fmt"
-	"strconv"
+	"strings"
 
-	"github.com/buger/jsonparser"
 	"github.com/mongodb/mongo-go-driver/bson/builder"
 )
-
-type docElementParser func([]byte, []byte, jsonparser.ValueType, int) error
-type arrayElementParser func([]byte, jsonparser.ValueType, int, error)
 
 // ParseExtJSONObject parses a JSON object string into a *Document.
 func ParseExtJSONObject(s string) (*Document, error) {
 	b := builder.NewDocumentBuilder()
-	err := parseObjectToBuilder(b, s, nil, true)
+
+	ejvr := NewExtJSONValueReader(strings.NewReader(s))
+	dr, err := ejvr.ReadDocument()
 	if err != nil {
 		return nil, err
 	}
 
+	if err = parseObjectToBuilder(b, dr); err != nil {
+		return nil, err
+	}
+
 	buf := make([]byte, b.RequiredBytes())
-	_, err = b.WriteDocument(buf)
-	if err != nil {
+	if _, err = b.WriteDocument(buf); err != nil {
 		return nil, err
 	}
 
@@ -37,7 +36,10 @@ func ParseExtJSONObject(s string) (*Document, error) {
 
 // ParseExtJSONArray parses a JSON array string into a *Array.
 func ParseExtJSONArray(s string) (*Array, error) {
-	b, err := parseJSONArrayToBuilder(s, true)
+	ejvr := NewExtJSONValueReader(strings.NewReader(s))
+	ar, err := ejvr.ReadArray()
+
+	b, err := parseArrayToBuilder(ar)
 	if err != nil {
 		return nil, err
 	}
@@ -57,134 +59,374 @@ func ParseExtJSONArray(s string) (*Array, error) {
 	return array, nil
 }
 
-func getDocElementParser(b *builder.DocumentBuilder, containingKey *string, ext bool) (docElementParser, *parseState) {
-	var p docElementParser
-	var s *parseState
-
-	if ext {
-		s = newParseState(b, containingKey)
-		p = s.parseElement
-	} else {
-		p = parseDocElement(b, false)
-	}
-
-	return p, s
-}
-
-func parseJSONArrayToBuilder(s string, ext bool) (*builder.ArrayBuilder, error) {
-	var b builder.ArrayBuilder
-
-	_, err := jsonparser.ArrayEach([]byte(s), parseArrayElement(&b, ext))
-
-	return &b, err
-}
-
-func parseObjectToBuilder(b *builder.DocumentBuilder, s string, containingKey *string, ext bool) error {
-	p, st := getDocElementParser(b, containingKey, ext)
-	err := jsonparser.ObjectEach([]byte(s), p)
-	if err != nil {
-		return err
-	}
-
-	if st != nil {
-		switch st.wtype {
-		case code:
-			if st.code == nil {
-				return errors.New("extjson object with $scope must also have $code")
+func parseObjectToBuilder(b *builder.DocumentBuilder, dr DocumentReader) error {
+	k, vr, err := dr.ReadElement()
+	for ; err == nil; k, vr, err = dr.ReadElement() {
+		switch vr.Type() {
+		case TypeDouble:
+			f, err := vr.ReadDouble()
+			if err != nil {
+				return err
 			}
 
-			if st.scope == nil {
-				b.Append(builder.C.JavaScriptCode(*containingKey, *st.code))
-			} else {
-				scope := make([]byte, st.scope.RequiredBytes())
-				_, err := st.scope.WriteDocument(scope)
-				if err != nil {
-					return fmt.Errorf("unable to write $scope document to bytes: %s", err)
-				}
-
-				b.Append(builder.C.CodeWithScope(*containingKey, *st.code, scope))
-			}
-		case dbRef:
-			if !st.refFound || !st.idFound {
-				return errors.New("extjson dbRef must have both $ref and $i")
+			b.Append(builder.C.Double(k, f))
+		case TypeString:
+			s, err := vr.ReadString()
+			if err != nil {
+				return err
 			}
 
-			fallthrough
-		case none:
-			if containingKey == nil {
-				*b = *st.subdocBuilder
-			} else {
-				b.Append(builder.C.SubDocument(*containingKey, st.subdocBuilder))
+			b.Append(builder.C.String(k, s))
+		case TypeBinary:
+			bv, bt, err := vr.ReadBinary()
+			if err != nil {
+				return err
 			}
+
+			b.Append(builder.C.BinaryWithSubtype(k, bv, bt))
+		case TypeUndefined:
+			err = vr.ReadUndefined()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Undefined(k))
+		case TypeObjectID:
+			oid, err := vr.ReadObjectID()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.ObjectID(k, oid))
+		case TypeBoolean:
+			bv, err := vr.ReadBoolean()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Boolean(k, bv))
+		case TypeDateTime:
+			dt, err := vr.ReadDateTime()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.DateTime(k, dt))
+		case TypeNull:
+			err := vr.ReadNull()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Null(k))
+		case TypeRegex:
+			p, o, err := vr.ReadRegex()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Regex(k, p, o))
+		case TypeDBPointer:
+			s, oid, err := vr.ReadDBPointer()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.DBPointer(k, s, oid))
+		case TypeJavaScript:
+			c, err := vr.ReadJavascript()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.JavaScriptCode(k, c))
+		case TypeSymbol:
+			s, err := vr.ReadSymbol()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Symbol(k, s))
+		case TypeInt32:
+			i, err := vr.ReadInt32()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Int32(k, i))
+		case TypeTimestamp:
+			t, i, err := vr.ReadTimestamp()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Timestamp(k, t, i))
+		case TypeInt64:
+			i, err := vr.ReadInt64()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Int64(k, i))
+		case TypeDecimal128:
+			d, err := vr.ReadDecimal128()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Decimal(k, d))
+		case TypeMinKey:
+			err := vr.ReadMinKey()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.MinKey(k))
+		case TypeMaxKey:
+			err := vr.ReadMaxKey()
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.MaxKey(k))
+		case TypeCodeWithScope:
+			c, sr, err := vr.ReadCodeWithScope()
+			if err != nil {
+				return err
+			}
+
+			scopeDoc := builder.NewDocumentBuilder()
+			err = parseObjectToBuilder(scopeDoc, sr)
+			if err != nil {
+				return err
+			}
+
+			buf := make([]byte, scopeDoc.RequiredBytes())
+			_, err = scopeDoc.WriteDocument(buf)
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.CodeWithScope(k, c, buf))
+		case TypeEmbeddedDocument:
+			sdr, err := vr.ReadDocument()
+			if err != nil {
+				return err
+			}
+
+			subDoc := builder.NewDocumentBuilder()
+			err = parseObjectToBuilder(subDoc, sdr)
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.SubDocument(k, subDoc))
+		case TypeArray:
+			ar, err := vr.ReadArray()
+			if err != nil {
+				return err
+			}
+
+			ab, err := parseArrayToBuilder(ar)
+			if err != nil {
+				return err
+			}
+
+			b.Append(builder.C.Array(k, ab))
 		}
+	}
+
+	// expect end of document error
+	if err != ErrEOD {
+		return err
 	}
 
 	return nil
 }
 
-func parseDocElement(b *builder.DocumentBuilder, ext bool) docElementParser {
-	return func(key []byte, value []byte, dataType jsonparser.ValueType, offset int) error {
-		name := string(key)
+func parseArrayToBuilder(ar ArrayReader) (*builder.ArrayBuilder, error) {
+	var ab builder.ArrayBuilder
 
-		switch dataType {
-		case jsonparser.String:
-			unescaped, err := jsonparser.Unescape(value, nil)
+	vr, err := ar.ReadValue()
+	for ; err == nil; vr, err = ar.ReadValue() {
+		switch vr.Type() {
+		case TypeDouble:
+			f, err := vr.ReadDouble()
 			if err != nil {
-				return fmt.Errorf(`unable to unescape string "%s": %s`, string(value), err)
+				return nil, err
 			}
 
-			b.Append(builder.C.String(name, string(unescaped)))
-
-		case jsonparser.Number:
-			i, err := jsonparser.ParseInt(value)
-			if err == nil {
-				b.Append(builder.C.Int64(name, i))
-				break
-			}
-
-			f, err := jsonparser.ParseFloat(value)
+			ab.Append(builder.AC.Double(f))
+		case TypeString:
+			s, err := vr.ReadString()
 			if err != nil {
-				return fmt.Errorf("invalid JSON number: %s", string(value))
+				return nil, err
 			}
 
-			b.Append(builder.C.Double(name, f))
-
-		case jsonparser.Object:
-			err := parseObjectToBuilder(b, string(value), &name, ext)
+			ab.Append(builder.AC.String(s))
+		case TypeBinary:
+			bv, bt, err := vr.ReadBinary()
 			if err != nil {
-				return fmt.Errorf("%s: %s", err, string(value))
+				return nil, err
 			}
 
-		case jsonparser.Array:
-			array, err := parseJSONArrayToBuilder(string(value), ext)
+			ab.Append(builder.AC.BinaryWithSubtype(bv, bt))
+		case TypeUndefined:
+			err = vr.ReadUndefined()
 			if err != nil {
-				return fmt.Errorf("invalid JSON array: %s", string(value))
+				return nil, err
 			}
 
-			b.Append(builder.C.Array(name, array))
-
-		case jsonparser.Boolean:
-			boolean, err := jsonparser.ParseBoolean(value)
+			ab.Append(builder.AC.Undefined())
+		case TypeObjectID:
+			oid, err := vr.ReadObjectID()
 			if err != nil {
-				return fmt.Errorf("invalid JSON boolean: %s", string(value))
+				return nil, err
 			}
 
-			b.Append(builder.C.Boolean(name, boolean))
+			ab.Append(builder.AC.ObjectID(oid))
+		case TypeBoolean:
+			bv, err := vr.ReadBoolean()
+			if err != nil {
+				return nil, err
+			}
 
-		case jsonparser.Null:
-			b.Append(builder.C.Null(name))
+			ab.Append(builder.AC.Boolean(bv))
+		case TypeDateTime:
+			dt, err := vr.ReadDateTime()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.DateTime(dt))
+		case TypeNull:
+			err := vr.ReadNull()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.Null())
+		case TypeRegex:
+			p, o, err := vr.ReadRegex()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.Regex(p, o))
+		case TypeDBPointer:
+			s, oid, err := vr.ReadDBPointer()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.DBPointer(s, oid))
+		case TypeJavaScript:
+			c, err := vr.ReadJavascript()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.JavaScriptCode(c))
+		case TypeSymbol:
+			s, err := vr.ReadSymbol()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.Symbol(s))
+		case TypeInt32:
+			i, err := vr.ReadInt32()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.Int32(i))
+		case TypeTimestamp:
+			t, i, err := vr.ReadTimestamp()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.Timestamp(t, i))
+		case TypeInt64:
+			i, err := vr.ReadInt64()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.Int64(i))
+		case TypeDecimal128:
+			d, err := vr.ReadDecimal128()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.Decimal(d))
+		case TypeMinKey:
+			err := vr.ReadMinKey()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.MinKey())
+		case TypeMaxKey:
+			err := vr.ReadMaxKey()
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.MaxKey())
+		case TypeCodeWithScope:
+			c, sr, err := vr.ReadCodeWithScope()
+			if err != nil {
+				return nil, err
+			}
+
+			scopeDoc := builder.NewDocumentBuilder()
+			err = parseObjectToBuilder(scopeDoc, sr)
+			if err != nil {
+				return nil, err
+			}
+
+			buf := make([]byte, scopeDoc.RequiredBytes())
+			_, err = scopeDoc.WriteDocument(buf)
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.CodeWithScope(c, buf))
+		case TypeEmbeddedDocument:
+			sdr, err := vr.ReadDocument()
+			if err != nil {
+				return nil, err
+			}
+
+			subDoc := builder.NewDocumentBuilder()
+			err = parseObjectToBuilder(subDoc, sdr)
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.SubDocument(subDoc))
+		case TypeArray:
+			ar, err := vr.ReadArray()
+			if err != nil {
+				return nil, err
+			}
+
+			sab, err := parseArrayToBuilder(ar)
+			if err != nil {
+				return nil, err
+			}
+
+			ab.Append(builder.AC.Array(sab))
 		}
-
-		return nil
 	}
-}
 
-func parseArrayElement(b *builder.ArrayBuilder, ext bool) arrayElementParser {
-	var index int64
-	return func(value []byte, dataType jsonparser.ValueType, offset int, _ error) {
-		name := strconv.FormatInt(index, 10)
-		index++
-
-		_ = parseDocElement(&b.DocumentBuilder, ext)([]byte(name), value, dataType, offset)
+	if err != ErrEOA {
+		return nil, err
 	}
+
+	return &ab, nil
 }
+*/
