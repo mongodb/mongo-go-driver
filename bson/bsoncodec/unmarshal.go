@@ -1,6 +1,10 @@
 package bsoncodec
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import (
+	"bytes"
+
+	"github.com/mongodb/mongo-go-driver/bson"
+)
 
 // Unmarshaler is an interface implemented by types that can unmarshal a BSON
 // document representation of themselves. The BSON bytes can be assumed to be
@@ -30,7 +34,25 @@ func Unmarshal(data []byte, val interface{}) error {
 // a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 func UnmarshalWithRegistry(r *Registry, data []byte, val interface{}) error {
 	vr := newValueReader(data)
+	return unmarshalFromReader(r, vr, val)
+}
 
+// UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
+// in the value pointed to by val. If val is nil or not a pointer, Unmarshal
+// returns InvalidUnmarshalError.
+func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
+	return UnmarshalExtJSONWithRegistry(defaultRegistry, data, canonical, val)
+}
+
+// UnmarshalExtJSONWithRegistry parses the extended JSON-encoded data using
+// Registry r and stores the result in the value pointed to by val. If val is
+// nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
+func UnmarshalExtJSONWithRegistry(r *Registry, data []byte, canonical bool, val interface{}) error {
+	ejvr := newExtJSONValueReader(bytes.NewReader(data), canonical)
+	return unmarshalFromReader(r, ejvr, val)
+}
+
+func unmarshalFromReader(r *Registry, vr ValueReader, val interface{}) error {
 	dec := decPool.Get().(*Decoder)
 	defer decPool.Put(dec)
 
