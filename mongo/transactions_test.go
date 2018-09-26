@@ -579,7 +579,8 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 *bson
 		jsonBytes, err := expectation.CommandStartedEvent.Command.MarshalJSON()
 		require.NoError(t, err)
 
-		expected, err := bson.ParseExtJSONObject(string(jsonBytes))
+		expected := bson.NewDocument()
+		err = bsoncodec.UnmarshalExtJSON(jsonBytes, true, &expected)
 		require.NoError(t, err)
 
 		actual := evt.Command

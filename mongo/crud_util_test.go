@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"math"
 	"strings"
 	"testing"
@@ -515,8 +516,8 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 }
 
 func executeRunCommand(sess *sessionImpl, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Reader, error) {
-	var cmd *bson.Document
 	var bundle *runcmdopt.RunCmdBundle
+	cmd := bson.NewDocument()
 	for name, opt := range argmap {
 		switch name {
 		case "command":
@@ -533,7 +534,7 @@ func executeRunCommand(sess *sessionImpl, db *Database, argmap map[string]interf
 				return nil, err
 			}
 
-			cmd, err = bson.ParseExtJSONObject(string(argCmdStruct.Cmd))
+			err = bsoncodec.UnmarshalExtJSON(argCmdStruct.Cmd, true, &cmd)
 			if err != nil {
 				return nil, err
 			}
@@ -562,7 +563,7 @@ func verifyInsertOneResult(t *testing.T, res *InsertOneResult, result json.RawMe
 
 	expectedID := expected.InsertedID
 	if f, ok := expectedID.(float64); ok && f == math.Floor(f) {
-		expectedID = int64(f)
+		expectedID = int32(f)
 	}
 
 	if expectedID != nil {
@@ -624,7 +625,8 @@ func verifyDocumentResult(t *testing.T, res *DocumentResult, result json.RawMess
 
 	require.NoError(t, err)
 
-	doc, err := bson.ParseExtJSONObject(string(jsonBytes))
+	doc := bson.NewDocument()
+	err = bsoncodec.UnmarshalExtJSON(jsonBytes, true, &doc)
 	require.NoError(t, err)
 
 	require.True(t, doc.Equal(actual))
@@ -693,7 +695,8 @@ func verifyRunCommandResult(t *testing.T, res bson.Reader, result json.RawMessag
 	jsonBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
 
-	expected, err := bson.ParseExtJSONObject(string(jsonBytes))
+	expected := bson.NewDocument()
+	err = bsoncodec.UnmarshalExtJSON(jsonBytes, true, &expected)
 	require.NoError(t, err)
 
 	require.NotNil(t, res)
@@ -725,14 +728,25 @@ func sanitizeCollectionName(kind string, name string) string {
 
 func compareElements(t *testing.T, expected *bson.Element, actual *bson.Element) {
 	if expected.Value().IsNumber() {
-		expectedNum := expected.Value().Int64()
-		switch actual.Value().Type() {
-		case bson.TypeInt32:
-			require.Equal(t, expectedNum, int64(actual.Value().Int32()), "For key %v", expected.Key())
-		case bson.TypeInt64:
-			require.Equal(t, expectedNum, actual.Value().Int64(), "For key %v\n", expected.Key())
-		case bson.TypeDouble:
-			require.Equal(t, expectedNum, int64(actual.Value().Double()), "For key %v\n", expected.Key())
+		if expectedNum, ok := expected.Value().Int64OK(); ok {
+			switch actual.Value().Type() {
+			case bson.TypeInt32:
+				require.Equal(t, expectedNum, int64(actual.Value().Int32()), "For key %v", expected.Key())
+			case bson.TypeInt64:
+				require.Equal(t, expectedNum, actual.Value().Int64(), "For key %v\n", expected.Key())
+			case bson.TypeDouble:
+				require.Equal(t, expectedNum, int64(actual.Value().Double()), "For key %v\n", expected.Key())
+			}
+		} else {
+			expectedNum := expected.Value().Int32()
+			switch actual.Value().Type() {
+			case bson.TypeInt32:
+				require.Equal(t, expectedNum, actual.Value().Int32(), "For key %v", expected.Key())
+			case bson.TypeInt64:
+				require.Equal(t, expectedNum, int32(actual.Value().Int64()), "For key %v\n", expected.Key())
+			case bson.TypeDouble:
+				require.Equal(t, expectedNum, int32(actual.Value().Double()), "For key %v\n", expected.Key())
+			}
 		}
 	} else if conv, ok := expected.Value().MutableDocumentOK(); ok {
 		actualConv, actualOk := actual.Value().MutableDocumentOK()
@@ -813,7 +827,8 @@ func docSliceFromRaw(t *testing.T, raw json.RawMessage) []*bson.Document {
 	jsonBytes, err := raw.MarshalJSON()
 	require.NoError(t, err)
 
-	array, err := bson.ParseExtJSONArray(string(jsonBytes))
+	array := bson.NewArray()
+	err = bsoncodec.UnmarshalExtJSON(jsonBytes, true, &array)
 	require.NoError(t, err)
 
 	docs := make([]*bson.Document, 0)
@@ -840,7 +855,7 @@ func docSliceToInterfaceSlice(docs []*bson.Document) []interface{} {
 func replaceFloatsWithInts(m map[string]interface{}) {
 	for key, val := range m {
 		if f, ok := val.(float64); ok && f == math.Floor(f) {
-			m[key] = int64(f)
+			m[key] = int32(f)
 			continue
 		}
 

@@ -2,6 +2,7 @@ package benchmark
 
 import (
 	"errors"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"io/ioutil"
 	"path/filepath"
 
@@ -23,7 +24,8 @@ func loadSourceDocument(pathParts ...string) (*bson.Document, error) {
 	if err != nil {
 		return nil, err
 	}
-	doc, err := bson.ParseExtJSONObject(string(data))
+	doc := bson.NewDocument()
+	err = bsoncodec.UnmarshalExtJSON(data, true, &doc)
 	if err != nil {
 		return nil, err
 	}
