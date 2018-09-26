@@ -68,9 +68,15 @@ func main() {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}
 
-	result, err := bson.ToExtJSON(true, rdr)
+	doc := bson.NewDocument()
+	err = doc.UnmarshalBSON(rdr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	result, err := doc.ToExtJSONErr(true)
 	if err != nil {
 		log.Fatalf("failed to convert BSON to extended JSON: %s", err)
 	}
-	log.Println(result)
+	log.Println(string(result))
 }
