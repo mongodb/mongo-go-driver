@@ -73,49 +73,49 @@ func (s *parseState) parseElement(key []byte, value []byte, dataType jsonparser.
 
 	switch s.wtype {
 	case objectID:
-		oid, err := parseObjectID(value, dataType)
+		oid, err := parseObjectIDOld(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.ObjectID(*s.containingKey, oid))
 	case symbol:
-		str, err := parseSymbol(value, dataType)
+		str, err := parseSymbolOld(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.Symbol(*s.containingKey, str))
 	case int32Type:
-		i, err := parseInt32(value, dataType)
+		i, err := parseInt32Old(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.Int32(*s.containingKey, i))
 	case int64Type:
-		i, err := parseInt64(value, dataType)
+		i, err := parseInt64Old(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.Int64(*s.containingKey, i))
 	case double:
-		f, err := parseDouble(value, dataType)
+		f, err := parseDoubleOld(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.Double(*s.containingKey, f))
 	case decimalType:
-		d, err := parseDecimal(value, dataType)
+		d, err := parseDecimalOld(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.Decimal(*s.containingKey, d))
 	case binaryData:
-		b, t, err := parseBinary(value, dataType)
+		b, t, err := parseBinaryOld(value, dataType)
 		if err != nil {
 			return err
 		}
@@ -148,28 +148,28 @@ func (s *parseState) parseElement(key []byte, value []byte, dataType jsonparser.
 			s.scope = b
 		}
 	case timestamp:
-		t, i, err := parseTimestamp(value, dataType)
+		t, i, err := parseTimestampOld(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.Timestamp(*s.containingKey, t, i))
 	case regex:
-		p, o, err := parseRegex(value, dataType)
+		p, o, err := parseRegexOld(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.Regex(*s.containingKey, p, o))
 	case dbPointer:
-		ns, oid, err := parseDBPointer(value, dataType)
+		ns, oid, err := parseDBPointerOld(value, dataType)
 		if err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.DBPointer(*s.containingKey, ns, oid))
 	case dateTime:
-		d, err := parseDatetime(value, dataType)
+		d, err := parseDatetimeOld(value, dataType)
 		if err != nil {
 			return err
 		}
@@ -214,19 +214,19 @@ func (s *parseState) parseElement(key []byte, value []byte, dataType jsonparser.
 			s.dbFound = true
 		}
 	case minKey:
-		if err := parseMinKey(value, dataType); err != nil {
+		if err := parseMinKeyOld(value, dataType); err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.MinKey(*s.containingKey))
 	case maxKey:
-		if err := parseMaxKey(value, dataType); err != nil {
+		if err := parseMaxKeyOld(value, dataType); err != nil {
 			return err
 		}
 
 		s.docBuilder.Append(builder.C.MaxKey(*s.containingKey))
 	case undefined:
-		if err := parseUndefined(value, dataType); err != nil {
+		if err := parseUndefinedOld(value, dataType); err != nil {
 			return err
 		}
 
