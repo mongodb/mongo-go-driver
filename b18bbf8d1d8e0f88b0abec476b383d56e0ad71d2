@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "567005f6_cc913edb",
+        "filename": "bson/value.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1064,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-09-28T22:04:06Z",
+      "side": 1,
+      "message": "Isn\u0027t this asking if the documents are equal? When does \"d\" exist on a Value? Perhaps I\u0027m just misunderstanding what \"d\" actually means.",
+      "revId": "b18bbf8d1d8e0f88b0abec476b383d56e0ad71d2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
