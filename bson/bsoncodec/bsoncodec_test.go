@@ -75,3 +75,28 @@ func TestTimeRoundTrip(t *testing.T) {
 		t.Errorf("Did not get zero time as expected.")
 	}
 }
+
+func TestNonNullTimeRoundTrip(t *testing.T) {
+	now := time.Now()
+	now = time.Unix(now.Unix(), 0)
+	val := struct {
+		Value time.Time
+		ID    string
+	}{
+		ID:    "time-rt-test",
+		Value: now,
+	}
+
+	bsonOut, err := Marshal(val)
+	noerr(t, err)
+	rtval := struct {
+		Value time.Time
+		ID    string
+	}{}
+
+	err = Unmarshal(bsonOut, &rtval)
+	noerr(t, err)
+	if !cmp.Equal(val, rtval) {
+		t.Errorf("Did not round trip properly. got %v; want %v", val, rtval)
+	}
+}
