@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d916cf63_3e2796fb",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-01T18:32:25Z",
+      "side": 1,
+      "message": "I think this is a design flaw, we should likely always include a session.Client and add a flag that indicates if the session.Client is explicit or implicit. This would also remove the need for the clientID and pool parameters.",
+      "range": {
+        "startLine": 57,
+        "startChar": 1,
+        "endLine": 65,
+        "endChar": 2
+      },
+      "revId": "dd0af4cd180b0ae465b42484a9f56ef4c7895386",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eeee2e6e_e9371ab0",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-01T18:32:25Z",
+      "side": 1,
+      "message": "Can we have this method return a result.BulkWrite and then make a method to combine multiple result.BulkWrites together?",
+      "range": {
+        "startLine": 95,
+        "startChar": 1,
+        "endLine": 95,
+        "endChar": 25
+      },
+      "revId": "dd0af4cd180b0ae465b42484a9f56ef4c7895386",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c031fa33_1ad85d11",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-01T18:32:25Z",
+      "side": 1,
+      "message": "Instead of using i here we should just use the first parameter of the for loop.",
+      "range": {
+        "startLine": 289,
+        "startChar": 0,
+        "endLine": 290,
+        "endChar": 5
+      },
+      "revId": "dd0af4cd180b0ae465b42484a9f56ef4c7895386",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
