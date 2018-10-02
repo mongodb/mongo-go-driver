@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "01b51419_3f7b0549",
+        "filename": "bson/extjson_parser.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 371,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-02T22:02:49Z",
+      "side": 1,
+      "message": "We don\u0027t need to call continue here since nothing else will be called after this.",
+      "range": {
+        "startLine": 371,
+        "startChar": 3,
+        "endLine": 371,
+        "endChar": 11
+      },
+      "revId": "a1d440968d3840f083c6977fe2fc02a4efdf7411",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c8fb43a2_589ce017",
+        "filename": "bson/extjson_writer.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 264,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-02T22:02:49Z",
+      "side": 1,
+      "message": "string is a special case here, you don\u0027t need to convert to a []byte first, so this can just be \"s...\".",
+      "range": {
+        "startLine": 264,
+        "startChar": 30,
+        "endLine": 264,
+        "endChar": 42
+      },
+      "revId": "a1d440968d3840f083c6977fe2fc02a4efdf7411",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
