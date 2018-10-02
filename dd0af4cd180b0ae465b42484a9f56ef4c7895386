@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "d2609f6e_9be4e414",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-02T13:54:34Z",
+      "side": 1,
+      "message": "Is this something you\u0027d want changed in every dispatch function? Also, would it matter if the session is explicit or implicit? If we create the implicit session in collection.go, couldn\u0027t the close be deferred in collection.go as well?",
+      "parentUuid": "d916cf63_3e2796fb",
+      "range": {
+        "startLine": 57,
+        "startChar": 1,
+        "endLine": 65,
+        "endChar": 2
+      },
+      "revId": "dd0af4cd180b0ae465b42484a9f56ef4c7895386",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "eeee2e6e_e9371ab0",
         "filename": "core/dispatch/bulk_write.go",
         "patchSetId": 2
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "80fb0290_4c1cf1b9",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-02T13:54:34Z",
+      "side": 1,
+      "message": "Yeah, I\u0027ll push a new patch for that.",
+      "parentUuid": "eeee2e6e_e9371ab0",
+      "range": {
+        "startLine": 95,
+        "startChar": 1,
+        "endLine": 95,
+        "endChar": 25
+      },
+      "revId": "dd0af4cd180b0ae465b42484a9f56ef4c7895386",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c031fa33_1ad85d11",
         "filename": "core/dispatch/bulk_write.go",
         "patchSetId": 2
@@ -59,6 +107,30 @@
       "writtenOn": "2018-10-01T18:32:25Z",
       "side": 1,
       "message": "Instead of using i here we should just use the first parameter of the for loop.",
+      "range": {
+        "startLine": 289,
+        "startChar": 0,
+        "endLine": 290,
+        "endChar": 5
+      },
+      "revId": "dd0af4cd180b0ae465b42484a9f56ef4c7895386",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7d5df4c6_eb60d507",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 290,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-02T13:54:34Z",
+      "side": 1,
+      "message": "Missed that. Will fix in the next patch.",
+      "parentUuid": "c031fa33_1ad85d11",
       "range": {
         "startLine": 289,
         "startChar": 0,
