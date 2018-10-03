@@ -77,6 +77,11 @@ func FromHex(s string) (ObjectID, error) {
 	return oid, nil
 }
 
+// MarshalJSON returns the ObjectID as a string
+func (id *ObjectID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(id.Hex())
+}
+
 // UnmarshalJSON populates the byte slice with the ObjectID. If the byte slice is 64 bytes long, it
 // will be populated with the hex representation of the ObjectID. If the byte slice is twelve bytes
 // long, it will be populated with the BSON representation of the ObjectID. Otherwise, it will
