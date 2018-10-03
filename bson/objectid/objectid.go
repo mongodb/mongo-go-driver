@@ -88,14 +88,25 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 		copy(id[:], b)
 	default:
 		// Extended JSON
-		m := make(map[string]string)
-		err := json.Unmarshal(b, &m)
+		var res interface{}
+		err := json.Unmarshal(b, &res)
 		if err != nil {
 			return err
 		}
-		str, ok := m["$oid"]
+		str, ok := res.(string)
 		if !ok {
-			return errors.New("not an extended JSON ObjectID")
+			m, ok := res.(map[string]interface{})
+			if !ok {
+				return errors.New("not an extended JSON ObjectID")
+			}
+			oid, ok := m["$oid"]
+			if !ok {
+				return errors.New("not an extended JSON ObjectID")
+			}
+			str, ok = oid.(string)
+			if !ok {
+				return errors.New("not an extended JSON ObjectID")
+			}
 		}
 
 		if len(str) != 24 {
