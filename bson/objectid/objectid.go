@@ -111,6 +111,10 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 	return err
 }
 
+func (id *ObjectID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(id.Hex())
+}
+
 func processUniqueBytes() [5]byte {
 	var b [5]byte
 	_, err := io.ReadFull(rand.Reader, b[:])
