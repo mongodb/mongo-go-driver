@@ -20,7 +20,6 @@ import (
 	"path"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
@@ -297,7 +296,7 @@ func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonit
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 		clock:          clock,
-		registry:       bsoncodec.NewRegistryBuilder().Build(),
+		registry:       bson.NewRegistryBuilder().Build(),
 	}
 
 	addClientOptions(c, opts)

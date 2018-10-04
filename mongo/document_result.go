@@ -40,7 +40,7 @@ func (dr *DocumentResult) Decode(v interface{}) error {
 		if v == nil {
 			return nil
 		}
-		return bsoncodec.UnmarshalWithRegistry(dr.reg, dr.rdr, v)
+		return bson.UnmarshalWithRegistry(dr.reg, dr.rdr, v)
 	case dr.cur != nil:
 		defer dr.cur.Close(context.TODO())
 		if !dr.cur.Next(context.TODO()) {

@@ -6,6 +6,11 @@
 
 package bson
 
+import "github.com/mongodb/mongo-go-driver/bson/bsontype"
+
+// Type represents the BSON types.
+type Type = bsontype.Type
+
 // These constants uniquely refer to each BSON type.
 const (
 	TypeDouble           Type = 0x01
@@ -30,56 +35,3 @@ const (
 	TypeMinKey           Type = 0xFF
 	TypeMaxKey           Type = 0x7F
 )
-
-// Type represents a BSON type.
-type Type byte
-
-// String returns the string representation of the BSON type's name.
-func (bt Type) String() string {
-	switch bt {
-	case '\x01':
-		return "double"
-	case '\x02':
-		return "string"
-	case '\x03':
-		return "embedded document"
-	case '\x04':
-		return "array"
-	case '\x05':
-		return "binary"
-	case '\x06':
-		return "undefined"
-	case '\x07':
-		return "objectID"
-	case '\x08':
-		return "boolean"
-	case '\x09':
-		return "UTC datetime"
-	case '\x0A':
-		return "null"
-	case '\x0B':
-		return "regex"
-	case '\x0C':
-		return "dbPointer"
-	case '\x0D':
-		return "javascript"
-	case '\x0E':
-		return "symbol"
-	case '\x0F':
-		return "code with scope"
-	case '\x10':
-		return "32-bit integer"
-	case '\x11':
-		return "timestamp"
-	case '\x12':
-		return "64-bit integer"
-	case '\x13':
-		return "128-bit decimal"
-	case '\xFF':
-		return "min key"
-	case '\x7F':
-		return "max key"
-	default:
-		return "invalid"
-	}
-}

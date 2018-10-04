@@ -6,12 +6,19 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 var defaultStructCodec = &StructCodec{
 	cache:  make(map[reflect.Type]*structDescription),
 	parser: DefaultStructTagParser,
+}
+
+// Zeroer allows custom struct types to implement a report of zero
+// state. All struct types that don't implement Zeroer or where IsZero
+// returns false are considered to be not zero.
+type Zeroer interface {
+	IsZero() bool
 }
 
 // StructCodec is the Codec used for struct values.
@@ -37,7 +44,7 @@ func NewStructCodec(p StructTagParser) (*StructCodec, error) {
 }
 
 // EncodeValue handles encoding generic struct types.
-func (sc *StructCodec) EncodeValue(r EncodeContext, vw ValueWriter, i interface{}) error {
+func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	val := reflect.ValueOf(i)
 	for {
 		if val.Kind() == reflect.Ptr {
@@ -110,7 +117,7 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw ValueWriter, i interface{
 }
 
 // DecodeValue implements the Codec interface.
-func (sc *StructCodec) DecodeValue(r DecodeContext, vr ValueReader, i interface{}) error {
+func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	val := reflect.ValueOf(i)
 	if val.Kind() == reflect.Ptr {
 		if val.IsNil() {
@@ -133,14 +140,14 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr ValueReader, i interface{
 		return err
 	}
 
-	var dFn decodeFn
+	var decoder ValueDecoder
 	var inlineMap reflect.Value
 	if sd.inlineMap >= 0 {
 		inlineMap = val.Field(sd.inlineMap)
 		if inlineMap.IsNil() {
 			inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
 		}
-		dFn, err = defaultValueDecoders.decodeFn(r, inlineMap)
+		decoder, err = r.LookupDecoder(inlineMap.Type().Elem())
 		if err != nil {
 			return err
 		}
@@ -153,7 +160,7 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr ValueReader, i interface{
 
 	for {
 		name, vr, err := dr.ReadElement()
-		if err == ErrEOD {
+		if err == bsonrw.ErrEOD {
 			break
 		}
 		if err != nil {
@@ -172,11 +179,12 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr ValueReader, i interface{
 				continue
 			}
 
-			key, elem, err := dFn(r, vr, name)
+			ptr := reflect.New(inlineMap.Type().Elem())
+			err = decoder.DecodeValue(r, vr, ptr.Interface())
 			if err != nil {
 				return err
 			}
-			inlineMap.SetMapIndex(reflect.ValueOf(key), elem)
+			inlineMap.SetMapIndex(reflect.ValueOf(name), ptr.Elem())
 			continue
 		}
 
@@ -197,15 +205,6 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr ValueReader, i interface{
 
 		dctx := DecodeContext{Registry: r.Registry, Truncate: fd.truncate}
 		if fd.decoder == nil {
-			if field.Type() == reflect.PtrTo(tElement) {
-				err = defaultValueDecoders.elementDecodeValue(dctx, vr, name, field.Interface().(**bson.Element))
-				if err != nil {
-					return err
-				}
-
-				continue
-			}
-
 			return ErrNoDecoder{Type: field.Elem().Type()}
 		}
 
@@ -220,7 +219,7 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr ValueReader, i interface{
 
 func (sc *StructCodec) isZero(i interface{}) bool {
 	v := reflect.ValueOf(i)
-	if z, ok := v.Interface().(bson.Zeroer); ok {
+	if z, ok := v.Interface().(Zeroer); ok {
 		return z.IsZero()
 	}
 
@@ -283,22 +282,13 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 			continue
 		}
 
-		var encoder ValueEncoder
-		var decoder ValueDecoder
-		var err error
-
-		switch sf.Type {
-		case tElement: // We handle this as a special case within the struct codec.
-			encoder = ValueEncoderFunc(defaultValueEncoders.elementEncodeValue)
-		default:
-			encoder, err = r.LookupEncoder(sf.Type)
-			if err != nil {
-				encoder = nil
-			}
-			decoder, err = r.LookupDecoder(sf.Type)
-			if err != nil {
-				decoder = nil
-			}
+		encoder, err := r.LookupEncoder(sf.Type)
+		if err != nil {
+			encoder = nil
+		}
+		decoder, err := r.LookupDecoder(sf.Type)
+		if err != nil {
+			decoder = nil
 		}
 
 		description := fieldDescription{idx: i, encoder: encoder, decoder: decoder}

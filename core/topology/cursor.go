@@ -128,7 +128,7 @@ func (c *cursor) Decode(v interface{}) error {
 		return err
 	}
 
-	return bsoncodec.UnmarshalWithRegistry(c.registry, br, v)
+	return bson.UnmarshalWithRegistry(c.registry, br, v)
 }
 
 func (c *cursor) DecodeBytes() (bson.Reader, error) {

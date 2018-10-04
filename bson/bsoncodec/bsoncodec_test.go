@@ -1,102 +1,106 @@
 package bsoncodec
 
 import (
-	"bytes"
 	"reflect"
 	"testing"
-	"time"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/decimal"
 )
 
-func TestBasicEncode(t *testing.T) {
-	for _, tc := range marshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := make(writer, 0, 1024)
-			vw := newValueWriter(&got)
-			reg := NewRegistryBuilder().Build()
-			encoder, err := reg.LookupEncoder(reflect.TypeOf(tc.val))
-			noerr(t, err)
-			err = encoder.EncodeValue(EncodeContext{Registry: reg}, vw, tc.val)
-			noerr(t, err)
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", bson.Reader(got), bson.Reader(tc.want))
-				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
-			}
-		})
+func noerr(t *testing.T, err error) {
+	if err != nil {
+		t.Helper()
+		t.Errorf("Unexpected error: (%T)%v", err, err)
+		t.FailNow()
 	}
 }
 
-func TestBasicDecode(t *testing.T) {
-	for _, tc := range unmarshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := reflect.New(tc.sType).Interface()
-			vr := newValueReader(tc.data)
-			reg := NewRegistryBuilder().Build()
-			decoder, err := reg.LookupDecoder(reflect.TypeOf(got))
-			noerr(t, err)
-			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
-			noerr(t, err)
-
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("Results do not match. got %+v; want %+v", got, tc.want)
-			}
-		})
+func compareErrors(err1, err2 error) bool {
+	if err1 == nil && err2 == nil {
+		return true
 	}
+
+	if err1 == nil || err2 == nil {
+		return false
+	}
+
+	if err1.Error() != err2.Error() {
+		return false
+	}
+
+	return true
 }
 
-func TestTimeRoundTrip(t *testing.T) {
-	val := struct {
-		Value time.Time
-		ID    string
-	}{
-		ID: "time-rt-test",
+func compareDecimal128(d1, d2 decimal.Decimal128) bool {
+	d1H, d1L := d1.GetBytes()
+	d2H, d2L := d2.GetBytes()
+
+	if d1H != d2H {
+		return false
 	}
 
-	if !val.Value.IsZero() {
-		t.Errorf("Did not get zero time as expected.")
+	if d1L != d2L {
+		return false
 	}
 
-	bsonOut, err := Marshal(val)
-	noerr(t, err)
-	rtval := struct {
-		Value time.Time
-		ID    string
-	}{}
-
-	err = Unmarshal(bsonOut, &rtval)
-	noerr(t, err)
-	if !cmp.Equal(val, rtval) {
-		t.Errorf("Did not round trip properly. got %v; want %v", val, rtval)
-	}
-	if !rtval.Value.IsZero() {
-		t.Errorf("Did not get zero time as expected.")
-	}
+	return true
 }
 
-func TestNonNullTimeRoundTrip(t *testing.T) {
-	now := time.Now()
-	now = time.Unix(now.Unix(), 0)
-	val := struct {
-		Value time.Time
-		ID    string
-	}{
-		ID:    "time-rt-test",
-		Value: now,
+func compareStrings(s1, s2 string) bool { return s1 == s2 }
+
+type noPrivateFields struct {
+	a string
+}
+
+func compareNoPrivateFields(npf1, npf2 noPrivateFields) bool {
+	return npf1.a != npf2.a // We don't want these to be equal
+}
+
+type zeroTest struct {
+	reportZero bool
+}
+
+func (z zeroTest) IsZero() bool { return z.reportZero }
+
+func compareZeroTest(_, _ zeroTest) bool { return true }
+
+type nonZeroer struct {
+	value bool
+}
+
+type llCodec struct {
+	t         *testing.T
+	decodeval interface{}
+	encodeval interface{}
+	err       error
+}
+
+func (llc *llCodec) EncodeValue(_ EncodeContext, _ bsonrw.ValueWriter, i interface{}) error {
+	if llc.err != nil {
+		return llc.err
 	}
 
-	bsonOut, err := Marshal(val)
-	noerr(t, err)
-	rtval := struct {
-		Value time.Time
-		ID    string
-	}{}
+	llc.encodeval = i
+	return nil
+}
 
-	err = Unmarshal(bsonOut, &rtval)
-	noerr(t, err)
-	if !cmp.Equal(val, rtval) {
-		t.Errorf("Did not round trip properly. got %v; want %v", val, rtval)
+func (llc *llCodec) DecodeValue(_ DecodeContext, _ bsonrw.ValueReader, i interface{}) error {
+	if llc.err != nil {
+		return llc.err
 	}
+
+	val := reflect.ValueOf(i)
+	if val.Type().Kind() != reflect.Ptr {
+		llc.t.Errorf("Value provided to DecodeValue must be a pointer, but got %T", i)
+		return nil
+	}
+
+	if !reflect.TypeOf(llc.decodeval).AssignableTo(val.Type().Elem()) {
+		llc.t.Errorf("decodeval must be assignable to i provided to DecodeValue, but is not. decodeval %T; i %T", llc.decodeval, i)
+		return nil
+	}
+
+	val.Elem().Set(reflect.ValueOf(llc.decodeval))
+	return nil
 }

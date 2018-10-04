@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +24,7 @@ func TestDeleteResult_unmarshalInto(t *testing.T) {
 	require.Nil(t, err)
 
 	var result DeleteResult
-	err = bsoncodec.Unmarshal(b, &result)
+	err = bson.Unmarshal(b, &result)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(2))
 }
@@ -34,7 +33,7 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 	t.Parallel()
 
 	result := DeleteResult{DeletedCount: 1}
-	buf, err := bsoncodec.Marshal(result)
+	buf, err := bson.Marshal(result)
 	require.Nil(t, err)
 
 	doc, err := bson.ReadDocument(buf)
@@ -65,7 +64,7 @@ func TestUpdateOneResult_unmarshalInto(t *testing.T) {
 	require.Nil(t, err)
 
 	var result UpdateResult
-	err = bsoncodec.Unmarshal(b, &result)
+	err = bson.Unmarshal(b, &result)
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(1))
 	require.Equal(t, result.ModifiedCount, int64(2))
