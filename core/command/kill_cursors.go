@@ -10,7 +10,6 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -67,7 +66,7 @@ func (kc *KillCursors) Decode(desc description.SelectedServer, wm wiremessage.Wi
 }
 
 func (kc *KillCursors) decode(desc description.SelectedServer, rdr bson.Reader) *KillCursors {
-	err := bsoncodec.Unmarshal(rdr, &kc.result)
+	err := bson.Unmarshal(rdr, &kc.result)
 	if err != nil {
 		kc.err = err
 		return kc

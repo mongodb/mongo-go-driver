@@ -314,46 +314,6 @@ func (opt OptAllowPartialResults) String() string {
 	return "OptAllowPartialResults: " + strconv.FormatBool(bool(opt))
 }
 
-// // TransformDocument handles transforming a document of an allowable type into
-// // a *bson.Document. This method is called directly after most methods that
-// // have one or more parameters that are documents.
-// //
-// // The supported types for document are:
-// //
-// //  bson.Marshaler
-// //  bson.DocumentMarshaler
-// //  bson.Reader
-// //  []byte (must be a valid BSON document)
-// //  io.Reader (only 1 BSON document will be read)
-// //  A custom struct type
-// //
-// func TransformDocument(document interface{}) (*bson.Document, error) {
-// 	switch d := document.(type) {
-// 	case nil:
-// 		return bson.NewDocument(), nil
-// 	case *bson.Document:
-// 		return d, nil
-// 	case bsoncodec.Marshaler, bson.Reader, []byte, io.Reader:
-// 		return bson.NewDocumentEncoder().EncodeDocument(document)
-// 	case bson.DocumentMarshaler:
-// 		return d.MarshalBSONDocument()
-// 	default:
-// 		var kind reflect.Kind
-// 		if t := reflect.TypeOf(document); t.Kind() == reflect.Ptr {
-// 			kind = t.Elem().Kind()
-// 		}
-// 		if reflect.ValueOf(document).Kind() == reflect.Struct || kind == reflect.Struct {
-// 			return bson.NewDocumentEncoder().EncodeDocument(document)
-// 		}
-// 		if reflect.ValueOf(document).Kind() == reflect.Map &&
-// 			reflect.TypeOf(document).Key().Kind() == reflect.String {
-// 			return bson.NewDocumentEncoder().EncodeDocument(document)
-// 		}
-//
-// 		return nil, fmt.Errorf("cannot transform type %s to a *bson.Document", reflect.TypeOf(document))
-// 	}
-// }
-
 // MarshalError is returned when attempting to transform a value into a document
 // results in an error.
 type MarshalError struct {
@@ -366,7 +326,7 @@ func (me MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
 }
 
-var defaultRegistry = bsoncodec.NewRegistryBuilder().Build()
+var defaultRegistry = bson.NewRegistryBuilder().Build()
 
 func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
 	if val == nil {
@@ -384,7 +344,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Doc
 
 	// TODO(skriptble): Use a pool of these instead.
 	buf := make([]byte, 0, 256)
-	b, err := bsoncodec.MarshalAppendWithRegistry(reg, buf, val)
+	b, err := bson.MarshalAppendWithRegistry(reg, buf, val)
 	if err != nil {
 		return nil, MarshalError{Value: val, Err: err}
 	}

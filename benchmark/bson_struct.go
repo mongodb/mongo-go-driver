@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 func BSONFlatStructDecoding(ctx context.Context, tm TimerManager, iters int) error {
@@ -17,7 +17,7 @@ func BSONFlatStructDecoding(ctx context.Context, tm TimerManager, iters int) err
 
 	for i := 0; i < iters; i++ {
 		out := flatBSON{}
-		err := bsoncodec.Unmarshal(r, &out)
+		err := bson.Unmarshal(r, &out)
 		if err != nil {
 			return err
 		}
@@ -32,7 +32,7 @@ func BSONFlatStructEncoding(ctx context.Context, tm TimerManager, iters int) err
 	}
 
 	doc := flatBSON{}
-	err = bsoncodec.Unmarshal(r, &doc)
+	err = bson.Unmarshal(r, &doc)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func BSONFlatStructEncoding(ctx context.Context, tm TimerManager, iters int) err
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		buf, err = bsoncodec.Marshal(doc)
+		buf, err = bson.Marshal(doc)
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func BSONFlatStructTagsEncoding(ctx context.Context, tm TimerManager, iters int)
 	}
 
 	doc := flatBSONTags{}
-	err = bsoncodec.Unmarshal(r, &doc)
+	err = bson.Unmarshal(r, &doc)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func BSONFlatStructTagsEncoding(ctx context.Context, tm TimerManager, iters int)
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		buf, err = bsoncodec.MarshalAppend(buf[:0], doc)
+		buf, err = bson.MarshalAppend(buf[:0], doc)
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func BSONFlatStructTagsDecoding(ctx context.Context, tm TimerManager, iters int)
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
 		out := flatBSONTags{}
-		err := bsoncodec.Unmarshal(r, &out)
+		err := bson.Unmarshal(r, &out)
 		if err != nil {
 			return err
 		}

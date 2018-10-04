@@ -8,7 +8,6 @@ package mongo
 
 import (
 	"context"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -118,7 +117,7 @@ func runCmTestFile(t *testing.T, filepath string) {
 	testhelpers.RequireNil(t, err, "error reading JSON file: %s", err)
 
 	doc := bson.NewDocument()
-	err = bsoncodec.UnmarshalExtJSON(content, true, &doc)
+	err = bson.UnmarshalExtJSON(content, true, &doc)
 	testhelpers.RequireNil(t, err, "error converting JSON to BSON: %s", err)
 
 	client := createMonitoredClient(t, monitor)

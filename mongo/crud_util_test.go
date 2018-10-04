@@ -14,8 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -535,7 +533,7 @@ func executeRunCommand(sess *sessionImpl, db *Database, argmap map[string]interf
 				return nil, err
 			}
 
-			err = bsoncodec.UnmarshalExtJSON(argCmdStruct.Cmd, true, &cmd)
+			err = bson.UnmarshalExtJSON(argCmdStruct.Cmd, true, &cmd)
 			if err != nil {
 				return nil, err
 			}
@@ -653,7 +651,7 @@ func verifyDocumentResult(t *testing.T, res *DocumentResult, result json.RawMess
 	require.NoError(t, err)
 
 	doc := bson.NewDocument()
-	err = bsoncodec.UnmarshalExtJSON(jsonBytes, true, &doc)
+	err = bson.UnmarshalExtJSON(jsonBytes, true, &doc)
 	require.NoError(t, err)
 
 	require.True(t, doc.Equal(actual))
@@ -723,7 +721,7 @@ func verifyRunCommandResult(t *testing.T, res bson.Reader, result json.RawMessag
 	require.NoError(t, err)
 
 	expected := bson.NewDocument()
-	err = bsoncodec.UnmarshalExtJSON(jsonBytes, true, &expected)
+	err = bson.UnmarshalExtJSON(jsonBytes, true, &expected)
 	require.NoError(t, err)
 
 	require.NotNil(t, res)
@@ -855,7 +853,7 @@ func docSliceFromRaw(t *testing.T, raw json.RawMessage) []*bson.Document {
 	require.NoError(t, err)
 
 	array := bson.NewArray()
-	err = bsoncodec.UnmarshalExtJSON(jsonBytes, true, &array)
+	err = bson.UnmarshalExtJSON(jsonBytes, true, &array)
 	require.NoError(t, err)
 
 	docs := make([]*bson.Document, 0)

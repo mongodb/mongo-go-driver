@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
@@ -633,7 +632,7 @@ func mergeResults(aggResult *result.BulkWrite, newResult result.BulkWrite, opInd
 }
 
 func interfaceToBson(val interface{}) (*bson.Document, error) {
-	valBytes, err := bsoncodec.Marshal(val)
+	valBytes, err := bson.Marshal(val)
 	if err != nil {
 		return nil, err
 	}

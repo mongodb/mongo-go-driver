@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 func TestRegistry(t *testing.T) {
@@ -25,7 +26,7 @@ func TestRegistry(t *testing.T) {
 				{i: reflect.TypeOf(t2f).Elem(), ve: fc2},
 				{i: reflect.TypeOf(t4f).Elem(), ve: fc4},
 			}
-			rb := NewEmptyRegistryBuilder()
+			rb := NewRegistryBuilder()
 			for _, ip := range ips {
 				rb.RegisterEncoder(ip.i, ip.ve)
 			}
@@ -301,8 +302,8 @@ type fakeMapCodec struct{ fakeCodec }
 
 type fakeCodec struct{ num int }
 
-func (fc fakeCodec) EncodeValue(EncodeContext, ValueWriter, interface{}) error { return nil }
-func (fc fakeCodec) DecodeValue(DecodeContext, ValueReader, interface{}) error { return nil }
+func (fc fakeCodec) EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error { return nil }
+func (fc fakeCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error { return nil }
 
 type testInterface1 interface{ test1() }
 type testInterface2 interface{ test2() }
