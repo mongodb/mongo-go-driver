@@ -1,12 +1,9 @@
 package bsoncodec
 
 import (
-	"bytes"
-	"fmt"
-	"io"
 	"reflect"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 )
 
 type unmarshalingTestCase struct {
@@ -27,7 +24,7 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 		&struct {
 			Foo bool
 		}{Foo: true},
-		bytesFromDoc(bson.NewDocument(bson.EC.Boolean("foo", true))),
+		buildDocument(func(doc []byte) []byte { return bsoncore.AppendBooleanElement(doc, "foo", true) }(nil)),
 	},
 	{
 		"nested document",
@@ -46,7 +43,9 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 				Bar bool
 			}{Bar: true},
 		},
-		bytesFromDoc(bson.NewDocument(bson.EC.SubDocumentFromElements("foo", bson.EC.Boolean("bar", true)))),
+		buildDocument(func(doc []byte) []byte {
+			return buildDocumentElement("foo", bsoncore.AppendBooleanElement(nil, "bar", true))
+		}(nil)),
 	},
 	{
 		"simple array",
@@ -59,14 +58,8 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 		}{
 			Foo: []bool{true},
 		},
-		bytesFromDoc(bson.NewDocument(bson.EC.ArrayFromElements("foo", bson.VC.Boolean(true)))),
+		buildDocument(func(doc []byte) []byte {
+			return appendArrayElement(doc, "foo", bsoncore.AppendBooleanElement(nil, "0", true))
+		}(nil)),
 	},
-}
-
-func ioReaderFromDoc(doc *bson.Document) io.Reader {
-	b, err := doc.MarshalBSON()
-	if err != nil {
-		panic(fmt.Errorf("Couldn't marshal BSON document: %v", err))
-	}
-	return bytes.NewReader(b)
 }

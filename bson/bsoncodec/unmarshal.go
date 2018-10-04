@@ -1,6 +1,9 @@
 package bsoncodec
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import (
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
+)
 
 // Unmarshaler is an interface implemented by types that can unmarshal a BSON
 // document representation of themselves. The BSON bytes can be assumed to be
@@ -15,7 +18,7 @@ type Unmarshaler interface {
 // assumed to be valid. UnmarshalBSONValue must copy the BSON value bytes if it
 // wishes to retain the data after returning.
 type ValueUnmarshaler interface {
-	UnmarshalBSONValue(bson.Type, []byte) error
+	UnmarshalBSONValue(bsontype.Type, []byte) error
 }
 
 // Unmarshal parses the BSON-encoded data and stores the result in the value
@@ -29,7 +32,7 @@ func Unmarshal(data []byte, val interface{}) error {
 // stores the result in the value pointed to by val. If val is nil or not
 // a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 func UnmarshalWithRegistry(r *Registry, data []byte, val interface{}) error {
-	vr := newValueReader(data)
+	vr := bsonrw.NewValueReader(data)
 
 	dec := decPool.Get().(*Decoder)
 	defer decPool.Put(dec)

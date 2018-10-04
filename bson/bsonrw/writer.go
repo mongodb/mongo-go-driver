@@ -1,7 +1,7 @@
-package bsoncodec
+package bsonrw
 
 import (
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
@@ -54,7 +54,15 @@ type ValueWriter interface {
 // This interface is meant to be a superset of ValueWriter, so that types that
 // implement ValueWriter may also implement this interface.
 type BytesWriter interface {
-	WriteValueBytes(t bson.Type, b []byte) error
+	WriteValueBytes(t bsontype.Type, b []byte) error
+}
+
+type SliceWriter []byte
+
+func (sw *SliceWriter) Write(p []byte) (int, error) {
+	written := len(p)
+	*sw = append(*sw, p...)
+	return written, nil
 }
 
 type writer []byte

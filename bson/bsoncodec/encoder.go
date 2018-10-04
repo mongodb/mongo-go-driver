@@ -4,6 +4,8 @@ import (
 	"errors"
 	"reflect"
 	"sync"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 // This pool is used to keep the allocations of Encoders down. This is only used for the Marshal*
@@ -18,11 +20,11 @@ var encPool = sync.Pool{
 // An Encoder writes a serialization format to an output stream.
 type Encoder struct {
 	r  *Registry
-	vw ValueWriter
+	vw bsonrw.ValueWriter
 }
 
 // NewEncoder returns a new encoder that uses Registry r to write to w.
-func NewEncoder(r *Registry, vw ValueWriter) (*Encoder, error) {
+func NewEncoder(r *Registry, vw bsonrw.ValueWriter) (*Encoder, error) {
 	if r == nil {
 		return nil, errors.New("cannot create a new Encoder with a nil Registry")
 	}
@@ -47,7 +49,7 @@ func (e *Encoder) Encode(val interface{}) error {
 		if err != nil {
 			return err
 		}
-		return Copier{r: e.r}.CopyDocumentFromBytes(e.vw, buf)
+		return bsonrw.Copier{}.CopyDocumentFromBytes(e.vw, buf)
 	}
 
 	encoder, err := e.r.LookupEncoder(reflect.TypeOf(val))
@@ -59,7 +61,7 @@ func (e *Encoder) Encode(val interface{}) error {
 
 // Reset will reset the state of the encoder, using the same *Registry used in
 // the original construction but using vw.
-func (e *Encoder) Reset(vw ValueWriter) error {
+func (e *Encoder) Reset(vw bsonrw.ValueWriter) error {
 	e.vw = vw
 	return nil
 }

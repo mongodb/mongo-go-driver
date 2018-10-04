@@ -1,4 +1,4 @@
-package bsoncodec
+package bsonrw
 
 import (
 	"errors"
@@ -8,16 +8,60 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/internal/llbson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
+
+var _ ValueWriter = (*valueWriter)(nil)
 
 var vwPool = sync.Pool{
 	New: func() interface{} {
 		return new(valueWriter)
 	},
+}
+
+type BSONValueWriterPool struct {
+	pool sync.Pool
+}
+
+// NewBSONValueWriterPool creates a new pool for ValueWriter instances that write to BSON.
+func NewBSONValueWriterPool() *BSONValueWriterPool {
+	return &BSONValueWriterPool{
+		pool: sync.Pool{
+			New: func() interface{} {
+				return new(valueWriter)
+			},
+		},
+	}
+}
+
+func (bvwp *BSONValueWriterPool) Get(w io.Writer) ValueWriter {
+	vw := bvwp.pool.Get().(*valueWriter)
+	if writer, ok := w.(*SliceWriter); ok {
+		vw.reset(*writer)
+		vw.w = writer
+		return vw
+	}
+	vw.buf = vw.buf[:0]
+	vw.w = w
+	return vw
+}
+
+func (bvwp *BSONValueWriterPool) Put(vw ValueWriter) (ok bool) {
+	bvw, ok := vw.(*valueWriter)
+	if !ok {
+		return false
+	}
+
+	if _, ok := bvw.w.(*SliceWriter); ok {
+		bvw.buf = nil
+	}
+	bvw.w = nil
+
+	bvwp.pool.Put(bvw)
+	return true
 }
 
 // This is here so that during testing we can change it and not require
@@ -181,13 +225,13 @@ func (vw *valueWriter) invalidTransitionError(destination mode) error {
 	return te
 }
 
-func (vw *valueWriter) writeElementHeader(t llbson.Type, destination mode) error {
+func (vw *valueWriter) writeElementHeader(t bsontype.Type, destination mode) error {
 	switch vw.stack[vw.frame].mode {
 	case mElement:
-		vw.buf = llbson.AppendHeader(vw.buf, t, vw.stack[vw.frame].key)
+		vw.buf = bsoncore.AppendHeader(vw.buf, t, vw.stack[vw.frame].key)
 	case mValue:
 		// TODO: Do this with a cache of the first 1000 or so array keys.
-		vw.buf = llbson.AppendHeader(vw.buf, t, strconv.Itoa(vw.stack[vw.frame].arrkey))
+		vw.buf = bsoncore.AppendHeader(vw.buf, t, strconv.Itoa(vw.stack[vw.frame].arrkey))
 	default:
 		return vw.invalidTransitionError(destination)
 	}
@@ -195,8 +239,8 @@ func (vw *valueWriter) writeElementHeader(t llbson.Type, destination mode) error
 	return nil
 }
 
-func (vw *valueWriter) WriteValueBytes(t bson.Type, b []byte) error {
-	err := vw.writeElementHeader(llbson.Type(t), mode(0))
+func (vw *valueWriter) WriteValueBytes(t bsontype.Type, b []byte) error {
+	err := vw.writeElementHeader(t, mode(0))
 	if err != nil {
 		return err
 	}
@@ -206,7 +250,7 @@ func (vw *valueWriter) WriteValueBytes(t bson.Type, b []byte) error {
 }
 
 func (vw *valueWriter) WriteArray() (ArrayWriter, error) {
-	if err := vw.writeElementHeader(llbson.TypeArray, mArray); err != nil {
+	if err := vw.writeElementHeader(bsontype.Array, mArray); err != nil {
 		return nil, err
 	}
 
@@ -220,27 +264,27 @@ func (vw *valueWriter) WriteBinary(b []byte) error {
 }
 
 func (vw *valueWriter) WriteBinaryWithSubtype(b []byte, btype byte) error {
-	if err := vw.writeElementHeader(llbson.TypeBinary, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Binary, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendBinary(vw.buf, btype, b)
+	vw.buf = bsoncore.AppendBinary(vw.buf, btype, b)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteBoolean(b bool) error {
-	if err := vw.writeElementHeader(llbson.TypeBoolean, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Boolean, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendBoolean(vw.buf, b)
+	vw.buf = bsoncore.AppendBoolean(vw.buf, b)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteCodeWithScope(code string) (DocumentWriter, error) {
-	if err := vw.writeElementHeader(llbson.TypeCodeWithScope, mCodeWithScope); err != nil {
+	if err := vw.writeElementHeader(bsontype.CodeWithScope, mCodeWithScope); err != nil {
 		return nil, err
 	}
 
@@ -249,7 +293,7 @@ func (vw *valueWriter) WriteCodeWithScope(code string) (DocumentWriter, error) {
 	// length, pop, write the code with scope length, and pop. To simplify the
 	// pop code, we push a spacer frame that we'll always jump over.
 	vw.push(mCodeWithScope)
-	vw.buf = llbson.AppendString(vw.buf, code)
+	vw.buf = bsoncore.AppendString(vw.buf, code)
 	vw.push(mSpacer)
 	vw.push(mDocument)
 
@@ -257,77 +301,77 @@ func (vw *valueWriter) WriteCodeWithScope(code string) (DocumentWriter, error) {
 }
 
 func (vw *valueWriter) WriteDBPointer(ns string, oid objectid.ObjectID) error {
-	if err := vw.writeElementHeader(llbson.TypeDBPointer, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.DBPointer, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendDBPointer(vw.buf, ns, oid)
+	vw.buf = bsoncore.AppendDBPointer(vw.buf, ns, oid)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteDateTime(dt int64) error {
-	if err := vw.writeElementHeader(llbson.TypeDateTime, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.DateTime, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendDateTime(vw.buf, dt)
+	vw.buf = bsoncore.AppendDateTime(vw.buf, dt)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteDecimal128(d128 decimal.Decimal128) error {
-	if err := vw.writeElementHeader(llbson.TypeDecimal128, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Decimal128, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendDecimal128(vw.buf, d128)
+	vw.buf = bsoncore.AppendDecimal128(vw.buf, d128)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteDouble(f float64) error {
-	if err := vw.writeElementHeader(llbson.TypeDouble, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Double, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendDouble(vw.buf, f)
+	vw.buf = bsoncore.AppendDouble(vw.buf, f)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteInt32(i32 int32) error {
-	if err := vw.writeElementHeader(llbson.TypeInt32, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Int32, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendInt32(vw.buf, i32)
+	vw.buf = bsoncore.AppendInt32(vw.buf, i32)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteInt64(i64 int64) error {
-	if err := vw.writeElementHeader(llbson.TypeInt64, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Int64, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendInt64(vw.buf, i64)
+	vw.buf = bsoncore.AppendInt64(vw.buf, i64)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteJavascript(code string) error {
-	if err := vw.writeElementHeader(llbson.TypeJavaScript, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.JavaScript, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendJavaScript(vw.buf, code)
+	vw.buf = bsoncore.AppendJavaScript(vw.buf, code)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteMaxKey() error {
-	if err := vw.writeElementHeader(llbson.TypeMaxKey, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.MaxKey, mode(0)); err != nil {
 		return err
 	}
 
@@ -336,7 +380,7 @@ func (vw *valueWriter) WriteMaxKey() error {
 }
 
 func (vw *valueWriter) WriteMinKey() error {
-	if err := vw.writeElementHeader(llbson.TypeMinKey, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.MinKey, mode(0)); err != nil {
 		return err
 	}
 
@@ -345,7 +389,7 @@ func (vw *valueWriter) WriteMinKey() error {
 }
 
 func (vw *valueWriter) WriteNull() error {
-	if err := vw.writeElementHeader(llbson.TypeNull, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Null, mode(0)); err != nil {
 		return err
 	}
 
@@ -354,31 +398,31 @@ func (vw *valueWriter) WriteNull() error {
 }
 
 func (vw *valueWriter) WriteObjectID(oid objectid.ObjectID) error {
-	if err := vw.writeElementHeader(llbson.TypeObjectID, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.ObjectID, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendObjectID(vw.buf, oid)
+	vw.buf = bsoncore.AppendObjectID(vw.buf, oid)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteRegex(pattern string, options string) error {
-	if err := vw.writeElementHeader(llbson.TypeRegex, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Regex, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendRegex(vw.buf, pattern, options)
+	vw.buf = bsoncore.AppendRegex(vw.buf, pattern, options)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteString(s string) error {
-	if err := vw.writeElementHeader(llbson.TypeString, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.String, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendString(vw.buf, s)
+	vw.buf = bsoncore.AppendString(vw.buf, s)
 	vw.pop()
 	return nil
 }
@@ -388,7 +432,7 @@ func (vw *valueWriter) WriteDocument() (DocumentWriter, error) {
 		vw.reserveLength()
 		return vw, nil
 	}
-	if err := vw.writeElementHeader(llbson.TypeEmbeddedDocument, mDocument); err != nil {
+	if err := vw.writeElementHeader(bsontype.EmbeddedDocument, mDocument); err != nil {
 		return nil, err
 	}
 
@@ -397,27 +441,27 @@ func (vw *valueWriter) WriteDocument() (DocumentWriter, error) {
 }
 
 func (vw *valueWriter) WriteSymbol(symbol string) error {
-	if err := vw.writeElementHeader(llbson.TypeSymbol, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Symbol, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendSymbol(vw.buf, symbol)
+	vw.buf = bsoncore.AppendSymbol(vw.buf, symbol)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteTimestamp(t uint32, i uint32) error {
-	if err := vw.writeElementHeader(llbson.TypeTimestamp, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Timestamp, mode(0)); err != nil {
 		return err
 	}
 
-	vw.buf = llbson.AppendTimestamp(vw.buf, t, i)
+	vw.buf = bsoncore.AppendTimestamp(vw.buf, t, i)
 	vw.pop()
 	return nil
 }
 
 func (vw *valueWriter) WriteUndefined() error {
-	if err := vw.writeElementHeader(llbson.TypeUndefined, mode(0)); err != nil {
+	if err := vw.writeElementHeader(bsontype.Undefined, mode(0)); err != nil {
 		return err
 	}
 
@@ -454,12 +498,16 @@ func (vw *valueWriter) WriteDocumentEnd() error {
 
 	if vw.stack[vw.frame].mode == mTopLevel {
 		if vw.w != nil {
-			_, err = vw.w.Write(vw.buf)
-			if err != nil {
-				return err
+			if sw, ok := vw.w.(*SliceWriter); ok {
+				*sw = vw.buf
+			} else {
+				_, err = vw.w.Write(vw.buf)
+				if err != nil {
+					return err
+				}
+				// reset buffer
+				vw.buf = vw.buf[:0]
 			}
-			// reset buffer
-			vw.buf = vw.buf[:0]
 		}
 	}
 

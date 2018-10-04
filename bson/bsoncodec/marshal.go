@@ -1,10 +1,11 @@
 package bsoncodec
 
 import (
-	"reflect"
-
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
+
+var bvwPool = bsonrw.NewBSONValueWriterPool()
 
 // Marshaler is an interface implemented by types that can marshal themselves
 // into a BSON document represented as bytes. The bytes returned must be a valid
@@ -18,7 +19,7 @@ type Marshaler interface {
 // the bytes returned. The bytes and byte type together must be valid if the
 // error is nil.
 type ValueMarshaler interface {
-	MarshalBSONValue() (bson.Type, []byte, error)
+	MarshalBSONValue() (bsontype.Type, []byte, error)
 }
 
 // Marshal returns the BSON encoding of val.
@@ -48,10 +49,15 @@ func MarshalWithRegistry(r *Registry, val interface{}) ([]byte, error) {
 func MarshalAppendWithRegistry(r *Registry, dst []byte, val interface{}) ([]byte, error) {
 	// w := writer(dst)
 	// vw := newValueWriter(&w)
-	vw := vwPool.Get().(*valueWriter)
-	defer vwPool.Put(vw)
 
-	vw.reset(dst)
+	sw := new(bsonrw.SliceWriter)
+	*sw = dst
+	vw := bvwPool.Get(sw)
+	defer bvwPool.Put(vw)
+	// vw := vwPool.Get().(*valueWriter)
+	// defer vwPool.Put(vw)
+	//
+	// vw.reset(dst)
 
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
@@ -70,23 +76,23 @@ func MarshalAppendWithRegistry(r *Registry, dst []byte, val interface{}) ([]byte
 		return nil, err
 	}
 
-	return vw.buf, nil
+	return *sw, nil
 }
 
-func marshalElement(r *Registry, dst []byte, key string, val interface{}) ([]byte, error) {
-	vw := vwPool.Get().(*valueWriter)
-	defer vwPool.Put(vw)
-
-	vw.reset(dst)
-	_, err := vw.WriteDocumentElement(key)
-	if err != nil {
-		return dst, err
-	}
-	t := reflect.TypeOf(val)
-	enc, err := r.LookupEncoder(t)
-	if err != nil {
-		return dst, err
-	}
-	err = enc.EncodeValue(EncodeContext{Registry: r}, vw, val)
-	return dst, err
-}
+// func marshalElement(r *Registry, dst []byte, key string, val interface{}) ([]byte, error) {
+// 	vw := vwPool.Get().(*valueWriter)
+// 	defer vwPool.Put(vw)
+//
+// 	vw.reset(dst)
+// 	_, err := vw.WriteDocumentElement(key)
+// 	if err != nil {
+// 		return dst, err
+// 	}
+// 	t := reflect.TypeOf(val)
+// 	enc, err := r.LookupEncoder(t)
+// 	if err != nil {
+// 		return dst, err
+// 	}
+// 	err = enc.EncodeValue(EncodeContext{Registry: r}, vw, val)
+// 	return dst, err
+// }

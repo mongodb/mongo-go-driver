@@ -1,6 +1,6 @@
 package bsoncodec
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import "github.com/mongodb/mongo-go-driver/bson/bsoncore"
 
 type marshalingTestCase struct {
 	name string
@@ -16,6 +16,8 @@ var marshalingTestCases = []marshalingTestCase{
 		struct {
 			Foo bool
 		}{Foo: true},
-		bytesFromDoc(bson.NewDocument(bson.EC.Boolean("foo", true))),
+		buildDocument(func(doc []byte) []byte {
+			return bsoncore.AppendBooleanElement(doc, "foo", true)
+		}(nil)),
 	},
 }

@@ -2,8 +2,6 @@ package bsoncodec
 
 import (
 	"testing"
-
-	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 type encodetest struct {
@@ -123,13 +121,13 @@ func BenchmarkEncodingv2(b *testing.B) {
 	}
 }
 
-func BenchmarkEncodingv2ToDocument(b *testing.B) {
-	var buf []byte
-	for i := 0; i < b.N; i++ {
-		buf, _ = Marshal(encodetestInstance)
-		_, _ = bson.ReadDocument(buf)
-	}
-}
+// func BenchmarkEncodingv2ToDocument(b *testing.B) {
+// 	var buf []byte
+// 	for i := 0; i < b.N; i++ {
+// 		buf, _ = Marshal(encodetestInstance)
+// 		_, _ = bson.ReadDocument(buf)
+// 	}
+// }
 
 // func BenchmarkEncodingDocument(b *testing.B) {
 // 	for i := 0; i < b.N; i++ {
@@ -143,13 +141,13 @@ func BenchmarkEncodingv2Nested(b *testing.B) {
 	}
 }
 
-func BenchmarkEncodingv2ToDocumentNested(b *testing.B) {
-	var buf []byte
-	for i := 0; i < b.N; i++ {
-		buf, _ = Marshal(nestedInstance)
-		_, _ = bson.ReadDocument(buf)
-	}
-}
+// func BenchmarkEncodingv2ToDocumentNested(b *testing.B) {
+// 	var buf []byte
+// 	for i := 0; i < b.N; i++ {
+// 		buf, _ = Marshal(nestedInstance)
+// 		_, _ = bson.ReadDocument(buf)
+// 	}
+// }
 
 // func BenchmarkEncodingDocumentNested(b *testing.B) {
 // 	for i := 0; i < b.N; i++ {
