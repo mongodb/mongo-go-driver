@@ -10,7 +10,6 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -82,7 +81,7 @@ func (ci *CreateIndexes) Decode(desc description.SelectedServer, wm wiremessage.
 }
 
 func (ci *CreateIndexes) decode(desc description.SelectedServer, rdr bson.Reader) *CreateIndexes {
-	ci.err = bsoncodec.Unmarshal(rdr, &ci.result)
+	ci.err = bson.Unmarshal(rdr, &ci.result)
 	return ci
 }
 

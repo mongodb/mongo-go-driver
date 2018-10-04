@@ -10,6 +10,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
@@ -30,7 +31,7 @@ import (
 
 const defaultLocalThreshold = 15 * time.Millisecond
 
-var defaultRegistry = bsoncodec.NewRegistryBuilder().Build()
+var defaultRegistry = bson.NewRegistryBuilder().Build()
 
 // Client performs operations on a given topology.
 type Client struct {

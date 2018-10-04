@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 )
 
 func TestTransformDocument(t *testing.T) {
@@ -50,7 +49,7 @@ func TestTransformDocument(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := transformDocument(bsoncodec.NewRegistryBuilder().Build(), tc.document)
+			got, err := transformDocument(bson.NewRegistryBuilder().Build(), tc.document)
 			if !cmp.Equal(err, tc.err, cmp.Comparer(compareErrors)) {
 				t.Errorf("Error does not match expected error. got %v; want %v", err, tc.err)
 			}
@@ -78,7 +77,7 @@ func compareErrors(err1, err2 error) bool {
 	return true
 }
 
-var _ bsoncodec.Marshaler = bMarsh{}
+var _ bson.Marshaler = bMarsh{}
 
 type bMarsh struct {
 	*bson.Document
