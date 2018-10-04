@@ -1,4 +1,4 @@
-package bsoncodec
+package bsonrw
 
 import (
 	"errors"
@@ -8,17 +8,60 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
+var _ ValueWriter = (*valueWriter)(nil)
+
 var vwPool = sync.Pool{
 	New: func() interface{} {
 		return new(valueWriter)
 	},
+}
+
+type BSONValueWriterPool struct {
+	pool sync.Pool
+}
+
+// NewBSONValueWriterPool creates a new pool for ValueWriter instances that write to BSON.
+func NewBSONValueWriterPool() *BSONValueWriterPool {
+	return &BSONValueWriterPool{
+		pool: sync.Pool{
+			New: func() interface{} {
+				return new(valueWriter)
+			},
+		},
+	}
+}
+
+func (bvwp *BSONValueWriterPool) Get(w io.Writer) ValueWriter {
+	vw := bvwp.pool.Get().(*valueWriter)
+	if writer, ok := w.(*SliceWriter); ok {
+		vw.reset(*writer)
+		vw.w = writer
+		return vw
+	}
+	vw.buf = vw.buf[:0]
+	vw.w = w
+	return vw
+}
+
+func (bvwp *BSONValueWriterPool) Put(vw ValueWriter) (ok bool) {
+	bvw, ok := vw.(*valueWriter)
+	if !ok {
+		return false
+	}
+
+	if _, ok := bvw.w.(*SliceWriter); ok {
+		bvw.buf = nil
+	}
+	bvw.w = nil
+
+	bvwp.pool.Put(bvw)
+	return true
 }
 
 // This is here so that during testing we can change it and not require
@@ -196,8 +239,8 @@ func (vw *valueWriter) writeElementHeader(t bsontype.Type, destination mode) err
 	return nil
 }
 
-func (vw *valueWriter) WriteValueBytes(t bson.Type, b []byte) error {
-	err := vw.writeElementHeader(bsontype.Type(t), mode(0))
+func (vw *valueWriter) WriteValueBytes(t bsontype.Type, b []byte) error {
+	err := vw.writeElementHeader(t, mode(0))
 	if err != nil {
 		return err
 	}
@@ -455,12 +498,16 @@ func (vw *valueWriter) WriteDocumentEnd() error {
 
 	if vw.stack[vw.frame].mode == mTopLevel {
 		if vw.w != nil {
-			_, err = vw.w.Write(vw.buf)
-			if err != nil {
-				return err
+			if sw, ok := vw.w.(*SliceWriter); ok {
+				*sw = vw.buf
+			} else {
+				_, err = vw.w.Write(vw.buf)
+				if err != nil {
+					return err
+				}
+				// reset buffer
+				vw.buf = vw.buf[:0]
 			}
-			// reset buffer
-			vw.buf = vw.buf[:0]
 		}
 	}
 

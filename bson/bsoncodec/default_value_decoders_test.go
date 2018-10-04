@@ -13,8 +13,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/internal/llbson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -1634,7 +1634,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ValueUnmarshaler",
-					testValueUnmarshaler{t: bson.TypeString, val: llbson.AppendString(nil, "hello, world")},
+					testValueUnmarshaler{t: bson.TypeString, val: bsoncore.AppendString(nil, "hello, world")},
 					nil,
 					&llValueReaderWriter{bsontype: bson.TypeString, readval: string("hello, world")},
 					llvrwReadString,
@@ -1734,7 +1734,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		var want = new(*testValueUnmarshaler)
 		var got = new(*testValueUnmarshaler)
-		*want = &testValueUnmarshaler{t: bson.TypeString, val: llbson.AppendString(nil, "hello, world!")}
+		*want = &testValueUnmarshaler{t: bson.TypeString, val: bsoncore.AppendString(nil, "hello, world!")}
 		*got = new(testValueUnmarshaler)
 
 		err := dvd.ValueUnmarshalerDecodeValue(dc, llvrw, got)
@@ -1750,7 +1750,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		var got = new(*testValueUnmarshaler)
 		var want = new(*testValueUnmarshaler)
-		*want = &testValueUnmarshaler{t: bson.TypeString, val: llbson.AppendString(nil, "hello, world!")}
+		*want = &testValueUnmarshaler{t: bson.TypeString, val: bsoncore.AppendString(nil, "hello, world!")}
 
 		err := dvd.ValueUnmarshalerDecodeValue(dc, llvrw, got)
 		noerr(t, err)
@@ -2327,7 +2327,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AB: murl,
 					AC: decimal128,
 					AD: &now,
-					AE: &testValueUnmarshaler{t: bson.TypeString, val: llbson.AppendString(nil, "hello, world!")},
+					AE: &testValueUnmarshaler{t: bson.TypeString, val: bsoncore.AppendString(nil, "hello, world!")},
 				},
 				docToBytes(bson.NewDocument(
 					bson.EC.Boolean("a", true),
@@ -2420,8 +2420,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AC: []decimal.Decimal128{decimal128},
 					AD: []*time.Time{&now, &now},
 					AE: []*testValueUnmarshaler{
-						{t: bson.TypeString, val: llbson.AppendString(nil, "hello")},
-						{t: bson.TypeString, val: llbson.AppendString(nil, "world")},
+						{t: bson.TypeString, val: bsoncore.AppendString(nil, "hello")},
+						{t: bson.TypeString, val: bsoncore.AppendString(nil, "world")},
 					},
 				},
 				docToBytes(bson.NewDocument(

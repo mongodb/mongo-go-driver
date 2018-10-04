@@ -12,8 +12,9 @@ import (
 	"math"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/internal/llbson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -1062,6 +1063,6 @@ func (v *Value) Equal(v2 *Value) bool {
 		return v.d.Equal(v2.d)
 	}
 
-	t1, t2 := llbson.Type(v.data[v.start]), llbson.Type(v2.data[v2.start])
-	return llbson.EqualValue(t1, t2, v.data[v.offset:], v2.data[v2.offset:])
+	t1, t2 := bsontype.Type(v.data[v.start]), bsontype.Type(v2.data[v2.start])
+	return bsoncore.EqualValue(t1, t2, v.data[v.offset:], v2.data[v2.offset:])
 }

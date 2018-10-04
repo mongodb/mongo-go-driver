@@ -4,7 +4,10 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
+
+var bvwPool = bsonrw.NewBSONValueWriterPool()
 
 // Marshaler is an interface implemented by types that can marshal themselves
 // into a BSON document represented as bytes. The bytes returned must be a valid
@@ -48,6 +51,11 @@ func MarshalWithRegistry(r *Registry, val interface{}) ([]byte, error) {
 func MarshalAppendWithRegistry(r *Registry, dst []byte, val interface{}) ([]byte, error) {
 	// w := writer(dst)
 	// vw := newValueWriter(&w)
+
+	// sw := new(bsonrw.SliceWriter)
+	// *sw = dst
+	// vw := bvwPool.Get(sw)
+	// defer bvwPool.Put(vw)
 	vw := vwPool.Get().(*valueWriter)
 	defer vwPool.Put(vw)
 

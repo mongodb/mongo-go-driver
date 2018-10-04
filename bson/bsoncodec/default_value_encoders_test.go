@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/internal/llbson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -1514,7 +1514,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AB: murl,
 					AC: decimal128,
 					AD: &now,
-					AE: testValueMarshaler{t: bson.TypeString, buf: llbson.AppendString(nil, "hello, world")},
+					AE: testValueMarshaler{t: bson.TypeString, buf: bsoncore.AppendString(nil, "hello, world")},
 				},
 				docToBytes(bson.NewDocument(
 					bson.EC.Boolean("a", true),
@@ -1607,8 +1607,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC: []decimal.Decimal128{decimal128},
 					AD: []*time.Time{&now, &now},
 					AE: []testValueMarshaler{
-						{t: bson.TypeString, buf: llbson.AppendString(nil, "hello")},
-						{t: bson.TypeString, buf: llbson.AppendString(nil, "world")},
+						{t: bson.TypeString, buf: bsoncore.AppendString(nil, "hello")},
+						{t: bson.TypeString, buf: bsoncore.AppendString(nil, "world")},
 					},
 				},
 				docToBytes(bson.NewDocument(

@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/internal/llbson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -369,7 +369,7 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			_, err = vw.WriteDocumentElement("foo")
 			noerr(t, err)
-			err = Copier{}.CopyValueFromBytes(vw, bson.TypeString, llbson.AppendString(nil, "bar"))
+			err = Copier{}.CopyValueFromBytes(vw, bson.TypeString, bsoncore.AppendString(nil, "bar"))
 			noerr(t, err)
 			err = vw.WriteDocumentEnd()
 			noerr(t, err)
@@ -382,7 +382,7 @@ func TestCopier(t *testing.T) {
 		})
 		t.Run("Non BytesWriter", func(t *testing.T) {
 			llvrw := &llValueReaderWriter{t: t}
-			err := Copier{}.CopyValueFromBytes(llvrw, bson.TypeString, llbson.AppendString(nil, "bar"))
+			err := Copier{}.CopyValueFromBytes(llvrw, bson.TypeString, bsoncore.AppendString(nil, "bar"))
 			noerr(t, err)
 			got, want := llvrw.invoked, llvrwWriteString
 			if got != want {
@@ -401,7 +401,7 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			bsontype, got, err := Copier{}.CopyValueToBytes(vr)
 			noerr(t, err)
-			want := llbson.AppendString(nil, "world")
+			want := bsoncore.AppendString(nil, "world")
 			if bsontype != bson.TypeString {
 				t.Errorf("Incorrect type returned. got %v; want %v", bsontype, bson.TypeString)
 			}
@@ -413,7 +413,7 @@ func TestCopier(t *testing.T) {
 			llvrw := &llValueReaderWriter{t: t, bsontype: bson.TypeString, readval: string("Hello, world!")}
 			bsontype, got, err := Copier{}.CopyValueToBytes(llvrw)
 			noerr(t, err)
-			want := llbson.AppendString(nil, "Hello, world!")
+			want := bsoncore.AppendString(nil, "Hello, world!")
 			if bsontype != bson.TypeString {
 				t.Errorf("Incorrect type returned. got %v; want %v", bsontype, bson.TypeString)
 			}
@@ -433,7 +433,7 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			bsontype, got, err := Copier{}.AppendValueBytes(nil, vr)
 			noerr(t, err)
-			want := llbson.AppendString(nil, "world")
+			want := bsoncore.AppendString(nil, "world")
 			if bsontype != bson.TypeString {
 				t.Errorf("Incorrect type returned. got %v; want %v", bsontype, bson.TypeString)
 			}
@@ -445,7 +445,7 @@ func TestCopier(t *testing.T) {
 			llvrw := &llValueReaderWriter{t: t, bsontype: bson.TypeString, readval: string("Hello, world!")}
 			bsontype, got, err := Copier{}.AppendValueBytes(nil, llvrw)
 			noerr(t, err)
-			want := llbson.AppendString(nil, "Hello, world!")
+			want := bsoncore.AppendString(nil, "Hello, world!")
 			if bsontype != bson.TypeString {
 				t.Errorf("Incorrect type returned. got %v; want %v", bsontype, bson.TypeString)
 			}
