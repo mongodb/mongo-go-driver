@@ -55,29 +55,9 @@ func (me MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
 }
 
-// // TransformDocument handles transforming a document of an allowable type into
-// // a *bson.Document. This method is called directly after most methods that
-// // have one or more parameters that are documents.
-// //
-// // The supported types for document are:
-// //
-// //  bson.Marshaler
-// //  bson.Reader
-// //  []byte (must be a valid BSON document)
-// //  A custom struct type
-// //
-// func TransformDocument(val interface{}) (*bson.Document, error) {
-// 	document, err := transformDocument(BSONAppenderFunc(bsoncodec.MarshalAppend), val)
-// 	if err != nil {
-// 		return nil, MarshalError{Value: val, Err: err}
-// 	}
-//
-// 	return document, nil
-// }
-
 func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
 	if registry == nil {
-		registry = bsoncodec.NewRegistryBuilder().Build()
+		registry = bson.NewRegistryBuilder().Build()
 	}
 	if val == nil {
 		return bson.NewDocument(), nil
@@ -92,7 +72,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Doc
 
 	// TODO(skriptble): Use a pool of these instead.
 	buf := make([]byte, 0, 256)
-	b, err := bsoncodec.MarshalAppendWithRegistry(registry, buf[:0], val)
+	b, err := bson.MarshalAppendWithRegistry(registry, buf[:0], val)
 	if err != nil {
 		return nil, MarshalError{Value: val, Err: err}
 	}
