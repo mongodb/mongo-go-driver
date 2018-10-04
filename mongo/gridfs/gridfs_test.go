@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
@@ -84,7 +83,7 @@ func loadInitialFiles(t *testing.T, data dataSection) int32 {
 		docBytes, err := v.MarshalJSON()
 		testhelpers.RequireNil(t, err, "error converting raw message to bytes: %s", err)
 		doc := bson.NewDocument()
-		err = bsoncodec.UnmarshalExtJSON(docBytes, false, &doc)
+		err = bson.UnmarshalExtJSON(docBytes, false, &doc)
 		//fmt.Println(doc.LookupElement("_id"))
 		testhelpers.RequireNil(t, err, "error creating file document: %s", err)
 
@@ -102,7 +101,7 @@ func loadInitialFiles(t *testing.T, data dataSection) int32 {
 		docBytes, err := v.MarshalJSON()
 		testhelpers.RequireNil(t, err, "error converting raw message to bytes: %s", err)
 		doc := bson.NewDocument()
-		err = bsoncodec.UnmarshalExtJSON(docBytes, false, &doc)
+		err = bson.UnmarshalExtJSON(docBytes, false, &doc)
 		testhelpers.RequireNil(t, err, "error creating file document: %s", err)
 
 		// convert data $hex to binary value
@@ -366,7 +365,7 @@ func msgToDoc(t *testing.T, msg json.RawMessage) *bson.Document {
 	testhelpers.RequireNil(t, err, "error marshalling message: %s", err)
 
 	doc := bson.NewDocument()
-	err = bsoncodec.UnmarshalExtJSON(rawBytes, true, &doc)
+	err = bson.UnmarshalExtJSON(rawBytes, true, &doc)
 	testhelpers.RequireNil(t, err, "error creating BSON doc: %s", err)
 
 	return doc
@@ -382,7 +381,7 @@ func runUploadAssert(t *testing.T, test test, fileID objectid.ObjectID) {
 			docs := make([]interface{}, len(assertData.Documents))
 
 			for i, docInterface := range assertData.Documents {
-				rdr, err := bsoncodec.Marshal(docInterface)
+				rdr, err := bson.Marshal(docInterface)
 				testhelpers.RequireNil(t, err, "error marshaling doc: %s", err)
 				doc, err := bson.ReadDocument(rdr)
 				testhelpers.RequireNil(t, err, "error reading doc: %s", err)
@@ -522,7 +521,7 @@ func compareDownloadAssertResult(t *testing.T, assert assertSection, copied int6
 	assertResult, err := assert.Result.MarshalJSON() // json.RawMessage
 	testhelpers.RequireNil(t, err, "error marshalling assert result: %s", err)
 	assertDoc := bson.NewDocument()
-	err = bsoncodec.UnmarshalExtJSON(assertResult, true, &assertDoc)
+	err = bson.UnmarshalExtJSON(assertResult, true, &assertDoc)
 	testhelpers.RequireNil(t, err, "error constructing result doc: %s", err)
 
 	if hexStr, err := assertDoc.LookupErr("result", "$hex"); err == nil {
@@ -610,7 +609,7 @@ func runArrangeSection(t *testing.T, test test, coll *mongo.Collection) {
 		testhelpers.RequireNil(t, err, "error marshalling arrange data for test %s: %s", t.Name(), err)
 
 		msgDoc := bson.NewDocument()
-		err = bsoncodec.UnmarshalExtJSON(msgBytes, true, &msgDoc)
+		err = bson.UnmarshalExtJSON(msgBytes, true, &msgDoc)
 		testhelpers.RequireNil(t, err, "error creating arrange data doc for test %s: %s", t.Name(), err)
 
 		if _, err = msgDoc.LookupErr("delete"); err == nil {

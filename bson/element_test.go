@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
@@ -839,7 +840,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not double",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, 0,
-					ElementTypeError{"compact.Element.double", Type(0x02)},
+					ElementTypeError{"compact.Element.double", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -882,7 +883,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not String",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "",
-					ElementTypeError{"compact.Element.String", Type(0x01)},
+					ElementTypeError{"compact.Element.String", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -925,7 +926,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not Document",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, nil,
-					ElementTypeError{"compact.Element.Document", Type(0x01)},
+					ElementTypeError{"compact.Element.Document", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -968,7 +969,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not Array",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, nil,
-					ElementTypeError{"compact.Element.Array", Type(0x01)},
+					ElementTypeError{"compact.Element.Array", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1012,7 +1013,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not binary",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, 0x00, nil,
-					ElementTypeError{"compact.Element.binary", Type(0x01)},
+					ElementTypeError{"compact.Element.binary", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1059,7 +1060,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not objectID",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, empty,
-					ElementTypeError{"compact.Element.ObejctID", Type(0x01)},
+					ElementTypeError{"compact.Element.ObejctID", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1108,7 +1109,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not Boolean",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, false,
-					ElementTypeError{"compact.Element.Boolean", Type(0x01)},
+					ElementTypeError{"compact.Element.Boolean", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1152,7 +1153,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not UTC dateTime",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, empty,
-					ElementTypeError{"compact.Element.dateTime", Type(0x01)},
+					ElementTypeError{"compact.Element.dateTime", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1196,7 +1197,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not UTC dateTime",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, empty,
-					ElementTypeError{"compact.Element.dateTime", Type(0x01)},
+					ElementTypeError{"compact.Element.dateTime", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1240,7 +1241,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not regex",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "", "",
-					ElementTypeError{"compact.Element.regex", Type(0x01)},
+					ElementTypeError{"compact.Element.regex", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1288,7 +1289,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not dbPointer",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "", empty,
-					ElementTypeError{"compact.Element.dbPointer", Type(0x01)},
+					ElementTypeError{"compact.Element.dbPointer", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1342,7 +1343,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not JavaScript",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "",
-					ElementTypeError{"compact.Element.JavaScript", Type(0x01)},
+					ElementTypeError{"compact.Element.JavaScript", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1385,7 +1386,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not JavaScript",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "",
-					ElementTypeError{"compact.Element.symbol", Type(0x01)},
+					ElementTypeError{"compact.Element.symbol", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1429,7 +1430,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not JavascriptWithScope",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x01, 0x00}}}, "", nil,
-					ElementTypeError{"compact.Element.JavaScriptWithScope", Type(0x01)},
+					ElementTypeError{"compact.Element.JavaScriptWithScope", bsontype.Type(0x01)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1479,7 +1480,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not int32",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, 0,
-					ElementTypeError{"compact.Element.int32", Type(0x02)},
+					ElementTypeError{"compact.Element.int32", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1523,7 +1524,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not timestamp",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, 0, 0,
-					ElementTypeError{"compact.Element.timestamp", Type(0x02)},
+					ElementTypeError{"compact.Element.timestamp", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1567,7 +1568,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not int64Type",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, 0,
-					ElementTypeError{"compact.Element.int64Type", Type(0x02)},
+					ElementTypeError{"compact.Element.int64Type", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1611,7 +1612,7 @@ func TestElement(t *testing.T) {
 				},
 				{"Not int64Type",
 					&Element{&Value{start: 0, offset: 2, data: []byte{0x02, 0x00}}}, empty,
-					ElementTypeError{"compact.Element.Decimal128", Type(0x02)},
+					ElementTypeError{"compact.Element.Decimal128", bsontype.Type(0x02)},
 				},
 				{"Success",
 					&Element{&Value{
@@ -1685,7 +1686,7 @@ func TestElement(t *testing.T) {
 		testCases := []struct {
 			name  string
 			elem  *Element
-			etype Type
+			etype bsontype.Type
 			fault error
 		}{
 			{"Nil Value", &Element{nil}, 0x0, ErrUninitializedElement},

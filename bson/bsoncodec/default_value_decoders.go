@@ -10,7 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
@@ -21,9 +22,49 @@ var defaultValueDecoders DefaultValueDecoders
 // when creating a registry.
 type DefaultValueDecoders struct{}
 
+// RegisterDefaultDecoders will register the decoder methods attached to DefaultValueDecoders with
+// the provided RegistryBuilder.
+//
+// There is no support for decoding map[string]interface{} becuase there is no decoder for
+// interface{}, so users must either register this decoder themselves or use the
+// EmptyInterfaceDecoder avaialble in the bson package.
+func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
+	if rb == nil {
+		panic(errors.New("argument to RegisterDefaultDecoders must not be nil"))
+	}
+
+	rb.
+		RegisterDecoder(reflect.PtrTo(tByteSlice), ValueDecoderFunc(dvd.ByteSliceDecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tTime), ValueDecoderFunc(dvd.TimeDecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tEmpty), ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tOID), ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tDecimal), ValueDecoderFunc(dvd.Decimal128DecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tJSONNumber), ValueDecoderFunc(dvd.JSONNumberDecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tURL), ValueDecoderFunc(dvd.URLDecodeValue)).
+		RegisterDecoder(tValueUnmarshaler, ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)).
+		RegisterDefaultDecoder(reflect.Bool, ValueDecoderFunc(dvd.BooleanDecodeValue)).
+		RegisterDefaultDecoder(reflect.Int, ValueDecoderFunc(dvd.IntDecodeValue)).
+		RegisterDefaultDecoder(reflect.Int8, ValueDecoderFunc(dvd.IntDecodeValue)).
+		RegisterDefaultDecoder(reflect.Int16, ValueDecoderFunc(dvd.IntDecodeValue)).
+		RegisterDefaultDecoder(reflect.Int32, ValueDecoderFunc(dvd.IntDecodeValue)).
+		RegisterDefaultDecoder(reflect.Int64, ValueDecoderFunc(dvd.IntDecodeValue)).
+		RegisterDefaultDecoder(reflect.Uint, ValueDecoderFunc(dvd.UintDecodeValue)).
+		RegisterDefaultDecoder(reflect.Uint8, ValueDecoderFunc(dvd.UintDecodeValue)).
+		RegisterDefaultDecoder(reflect.Uint16, ValueDecoderFunc(dvd.UintDecodeValue)).
+		RegisterDefaultDecoder(reflect.Uint32, ValueDecoderFunc(dvd.UintDecodeValue)).
+		RegisterDefaultDecoder(reflect.Uint64, ValueDecoderFunc(dvd.UintDecodeValue)).
+		RegisterDefaultDecoder(reflect.Float32, ValueDecoderFunc(dvd.FloatDecodeValue)).
+		RegisterDefaultDecoder(reflect.Float64, ValueDecoderFunc(dvd.FloatDecodeValue)).
+		RegisterDefaultDecoder(reflect.Array, ValueDecoderFunc(dvd.SliceDecodeValue)).
+		RegisterDefaultDecoder(reflect.Map, ValueDecoderFunc(dvd.MapDecodeValue)).
+		RegisterDefaultDecoder(reflect.Slice, ValueDecoderFunc(dvd.SliceDecodeValue)).
+		RegisterDefaultDecoder(reflect.String, ValueDecoderFunc(dvd.StringDecodeValue)).
+		RegisterDefaultDecoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser})
+}
+
 // BooleanDecodeValue is the ValueDecoderFunc for bool types.
-func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeBoolean {
+func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if vr.Type() != bsontype.Boolean {
 		return fmt.Errorf("cannot decode %v into a boolean", vr.Type())
 	}
 
@@ -48,22 +89,22 @@ func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr ValueR
 }
 
 // IntDecodeValue is the ValueDecoderFunc for bool types.
-func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	var i64 int64
 	var err error
 	switch vr.Type() {
-	case bson.TypeInt32:
+	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
 		}
 		i64 = int64(i32)
-	case bson.TypeInt64:
+	case bsontype.Int64:
 		i64, err = vr.ReadInt64()
 		if err != nil {
 			return err
 		}
-	case bson.TypeDouble:
+	case bsontype.Double:
 		f64, err := vr.ReadDouble()
 		if err != nil {
 			return err
@@ -161,22 +202,22 @@ func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr ValueReader,
 }
 
 // UintDecodeValue is the ValueDecoderFunc for uint types.
-func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	var i64 int64
 	var err error
 	switch vr.Type() {
-	case bson.TypeInt32:
+	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
 		}
 		i64 = int64(i32)
-	case bson.TypeInt64:
+	case bsontype.Int64:
 		i64, err = vr.ReadInt64()
 		if err != nil {
 			return err
 		}
-	case bson.TypeDouble:
+	case bsontype.Double:
 		f64, err := vr.ReadDouble()
 		if err != nil {
 			return err
@@ -280,23 +321,23 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr ValueReader
 }
 
 // FloatDecodeValue is the ValueDecoderFunc for float types.
-func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	var f float64
 	var err error
 	switch vr.Type() {
-	case bson.TypeInt32:
+	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
 		}
 		f = float64(i32)
-	case bson.TypeInt64:
+	case bsontype.Int64:
 		i64, err := vr.ReadInt64()
 		if err != nil {
 			return err
 		}
 		f = float64(i64)
-	case bson.TypeDouble:
+	case bsontype.Double:
 		f, err = vr.ReadDouble()
 		if err != nil {
 			return err
@@ -344,22 +385,13 @@ func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr ValueReade
 }
 
 // StringDecodeValue is the ValueDecoderFunc for string types.
-func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	var str string
 	var err error
 	switch vr.Type() {
-	case bson.TypeString:
+	// TODO(GODRIVER-577): Handle JavaScript and Symbol BSON types when allowed.
+	case bsontype.String:
 		str, err = vr.ReadString()
-		if err != nil {
-			return err
-		}
-	case bson.TypeJavaScript:
-		str, err = vr.ReadJavascript()
-		if err != nil {
-			return err
-		}
-	case bson.TypeSymbol:
-		str, err = vr.ReadSymbol()
 		if err != nil {
 			return err
 		}
@@ -374,18 +406,6 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr ValueRe
 		}
 		*t = str
 		return nil
-	case *bson.JavaScriptCode:
-		if t == nil {
-			return errors.New("StringDecodeValue can only be used to decode non-nil *JavaScriptCode")
-		}
-		*t = bson.JavaScriptCode(str)
-		return nil
-	case *bson.Symbol:
-		if t == nil {
-			return errors.New("StringDecodeValue can only be used to decode non-nil *Symbol")
-		}
-		*t = bson.Symbol(str)
-		return nil
 	}
 
 	val := reflect.ValueOf(i)
@@ -397,7 +417,7 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr ValueRe
 	if val.Type().Kind() != reflect.String {
 		return ValueDecoderError{
 			Name:     "StringDecodeValue",
-			Types:    []interface{}{(*string)(nil), (*bson.JavaScriptCode)(nil), (*bson.Symbol)(nil)},
+			Types:    []interface{}{(*string)(nil)},
 			Received: i,
 		}
 	}
@@ -406,111 +426,9 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr ValueRe
 	return nil
 }
 
-// DocumentDecodeValue is the ValueDecoderFunc for *bson.Document.
-func (dvd DefaultValueDecoders) DocumentDecodeValue(dctx DecodeContext, vr ValueReader, i interface{}) error {
-	doc, ok := i.(**bson.Document)
-	if !ok {
-		return ValueDecoderError{Name: "DocumentDecodeValue", Types: []interface{}{(**bson.Document)(nil)}, Received: i}
-	}
-
-	if doc == nil {
-		return errors.New("DocumentDecodeValue can only be used to decode non-nil **Document")
-	}
-
-	dr, err := vr.ReadDocument()
-	if err != nil {
-		return err
-	}
-
-	return dvd.decodeDocument(dctx, dr, doc)
-}
-
-// ArrayDecodeValue is the ValueDecoderFunc for *bson.Array.
-func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	parr, ok := i.(**bson.Array)
-	if !ok {
-		return ValueDecoderError{Name: "ArrayDecodeValue", Types: []interface{}{(**bson.Array)(nil)}, Received: i}
-	}
-
-	if parr == nil {
-		return errors.New("ArrayDecodeValue can only be used to decode non-nil **Array")
-	}
-
-	ar, err := vr.ReadArray()
-	if err != nil {
-		return err
-	}
-
-	arr := bson.NewArray()
-	for {
-		vr, err := ar.ReadValue()
-		if err == ErrEOA {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		var val *bson.Value
-		err = dvd.valueDecodeValue(dc, vr, &val)
-		if err != nil {
-			return err
-		}
-
-		arr.Append(val)
-	}
-
-	*parr = arr
-	return nil
-}
-
-// BinaryDecodeValue is the ValueDecoderFunc for bson.Binary.
-func (dvd DefaultValueDecoders) BinaryDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeBinary {
-		return fmt.Errorf("cannot decode %v into a Binary", vr.Type())
-	}
-
-	data, subtype, err := vr.ReadBinary()
-	if err != nil {
-		return err
-	}
-
-	if target, ok := i.(*bson.Binary); ok && target != nil {
-		*target = bson.Binary{Data: data, Subtype: subtype}
-		return nil
-	}
-
-	if target, ok := i.(**bson.Binary); ok && target != nil {
-		pb := *target
-		if pb == nil {
-			pb = new(bson.Binary)
-		}
-		*pb = bson.Binary{Data: data, Subtype: subtype}
-		*target = pb
-		return nil
-	}
-
-	return ValueDecoderError{Name: "BinaryDecodeValue", Types: []interface{}{(*bson.Binary)(nil)}, Received: i}
-}
-
-// UndefinedDecodeValue is the ValueDecoderFunc for bool types.
-func (dvd DefaultValueDecoders) UndefinedDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeUndefined {
-		return fmt.Errorf("cannot decode %v into an Undefined", vr.Type())
-	}
-
-	target, ok := i.(*bson.Undefinedv2)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "UndefinedDecodeValue", Types: []interface{}{(*bson.Undefinedv2)(nil)}, Received: i}
-	}
-
-	*target = bson.Undefinedv2{}
-	return vr.ReadUndefined()
-}
-
 // ObjectIDDecodeValue is the ValueDecoderFunc for objectid.ObjectID.
-func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeObjectID {
+func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if vr.Type() != bsontype.ObjectID {
 		return fmt.Errorf("cannot decode %v into an ObjectID", vr.Type())
 	}
 
@@ -528,134 +446,9 @@ func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr ValueRe
 	return nil
 }
 
-// DateTimeDecodeValue is the ValueDecoderFunc for bson.DateTime.
-func (dvd DefaultValueDecoders) DateTimeDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeDateTime {
-		return fmt.Errorf("cannot decode %v into a DateTime", vr.Type())
-	}
-
-	target, ok := i.(*bson.DateTime)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "DateTimeDecodeValue", Types: []interface{}{(*bson.DateTime)(nil)}, Received: i}
-	}
-
-	dt, err := vr.ReadDateTime()
-	if err != nil {
-		return err
-	}
-
-	*target = bson.DateTime(dt)
-	return nil
-}
-
-// NullDecodeValue is the ValueDecoderFunc for bson.Null.
-func (dvd DefaultValueDecoders) NullDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeNull {
-		return fmt.Errorf("cannot decode %v into a Null", vr.Type())
-	}
-
-	target, ok := i.(*bson.Nullv2)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "NullDecodeValue", Types: []interface{}{(*bson.Nullv2)(nil)}, Received: i}
-	}
-
-	*target = bson.Nullv2{}
-	return vr.ReadNull()
-}
-
-// RegexDecodeValue is the ValueDecoderFunc for bson.Regex.
-func (dvd DefaultValueDecoders) RegexDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeRegex {
-		return fmt.Errorf("cannot decode %v into a Regex", vr.Type())
-	}
-
-	target, ok := i.(*bson.Regex)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "RegexDecodeValue", Types: []interface{}{(*bson.Regex)(nil)}, Received: i}
-	}
-
-	pattern, options, err := vr.ReadRegex()
-	if err != nil {
-		return err
-	}
-
-	*target = bson.Regex{Pattern: pattern, Options: options}
-	return nil
-}
-
-// DBPointerDecodeValue is the ValueDecoderFunc for bson.DBPointer.
-func (dvd DefaultValueDecoders) DBPointerDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeDBPointer {
-		return fmt.Errorf("cannot decode %v into a DBPointer", vr.Type())
-	}
-
-	target, ok := i.(*bson.DBPointer)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "DBPointerDecodeValue", Types: []interface{}{(*bson.DBPointer)(nil)}, Received: i}
-	}
-
-	ns, pointer, err := vr.ReadDBPointer()
-	if err != nil {
-		return err
-	}
-
-	*target = bson.DBPointer{DB: ns, Pointer: pointer}
-	return nil
-}
-
-// CodeWithScopeDecodeValue is the ValueDecoderFunc for bson.CodeWithScope.
-func (dvd DefaultValueDecoders) CodeWithScopeDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeCodeWithScope {
-		return fmt.Errorf("cannot decode %v into a CodeWithScope", vr.Type())
-	}
-
-	target, ok := i.(*bson.CodeWithScope)
-	if !ok || target == nil {
-		return ValueDecoderError{
-			Name:     "CodeWithScopeDecodeValue",
-			Types:    []interface{}{(*bson.CodeWithScope)(nil)},
-			Received: i,
-		}
-	}
-
-	code, dr, err := vr.ReadCodeWithScope()
-	if err != nil {
-		return err
-	}
-
-	var scope *bson.Document
-	err = dvd.decodeDocument(dc, dr, &scope)
-	if err != nil {
-		return err
-	}
-
-	*target = bson.CodeWithScope{Code: code, Scope: scope}
-	return nil
-}
-
-// TimestampDecodeValue is the ValueDecoderFunc for bson.Timestamp.
-func (dvd DefaultValueDecoders) TimestampDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeTimestamp {
-		return fmt.Errorf("cannot decode %v into a Timestamp", vr.Type())
-	}
-
-	target, ok := i.(*bson.Timestamp)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "TimestampDecodeValue", Types: []interface{}{(*bson.Timestamp)(nil)}, Received: i}
-	}
-
-	t, incr, err := vr.ReadTimestamp()
-	if err != nil {
-		return err
-	}
-
-	*target = bson.Timestamp{T: t, I: incr}
-	return nil
-}
-
 // Decimal128DecodeValue is the ValueDecoderFunc for decimal.Decimal128.
-func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeDecimal128 {
+func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if vr.Type() != bsontype.Decimal128 {
 		return fmt.Errorf("cannot decode %v into a decimal.Decimal128", vr.Type())
 	}
 
@@ -673,71 +466,27 @@ func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr Val
 	return nil
 }
 
-// MinKeyDecodeValue is the ValueDecoderFunc for bson.MinKey.
-func (dvd DefaultValueDecoders) MinKeyDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeMinKey {
-		return fmt.Errorf("cannot decode %v into a MinKey", vr.Type())
-	}
-
-	target, ok := i.(*bson.MinKeyv2)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "MinKeyDecodeValue", Types: []interface{}{(*bson.MinKeyv2)(nil)}, Received: i}
-	}
-
-	*target = bson.MinKeyv2{}
-	return vr.ReadMinKey()
-}
-
-// MaxKeyDecodeValue is the ValueDecoderFunc for bson.MaxKey.
-func (dvd DefaultValueDecoders) MaxKeyDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeMaxKey {
-		return fmt.Errorf("cannot decode %v into a MaxKey", vr.Type())
-	}
-
-	target, ok := i.(*bson.MaxKeyv2)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "MaxKeyDecodeValue", Types: []interface{}{(*bson.MaxKeyv2)(nil)}, Received: i}
-	}
-
-	*target = bson.MaxKeyv2{}
-	return vr.ReadMaxKey()
-}
-
-// ValueDecodeValue is the ValueDecoderFunc for *bson.Value.
-func (dvd DefaultValueDecoders) ValueDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	pval, ok := i.(**bson.Value)
-	if !ok {
-		return ValueDecoderError{Name: "ValueDecodeValue", Types: []interface{}{(**bson.Value)(nil)}, Received: i}
-	}
-
-	if pval == nil {
-		return errors.New("ValueDecodeValue can only be used to decode non-nil **Value")
-	}
-
-	return dvd.valueDecodeValue(dc, vr, pval)
-}
-
 // JSONNumberDecodeValue is the ValueDecoderFunc for json.Number.
-func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	target, ok := i.(*json.Number)
 	if !ok || target == nil {
 		return ValueDecoderError{Name: "JSONNumberDecodeValue", Types: []interface{}{(*json.Number)(nil)}, Received: i}
 	}
 
 	switch vr.Type() {
-	case bson.TypeDouble:
+	case bsontype.Double:
 		f64, err := vr.ReadDouble()
 		if err != nil {
 			return err
 		}
 		*target = json.Number(strconv.FormatFloat(f64, 'g', -1, 64))
-	case bson.TypeInt32:
+	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
 		}
 		*target = json.Number(strconv.FormatInt(int64(i32), 10))
-	case bson.TypeInt64:
+	case bsontype.Int64:
 		i64, err := vr.ReadInt64()
 		if err != nil {
 			return err
@@ -751,8 +500,8 @@ func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr Value
 }
 
 // URLDecodeValue is the ValueDecoderFunc for url.URL.
-func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeString {
+func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if vr.Type() != bsontype.String {
 		return fmt.Errorf("cannot decode %v into a *url.URL", vr.Type())
 	}
 
@@ -787,8 +536,8 @@ func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr ValueReader,
 }
 
 // TimeDecodeValue is the ValueDecoderFunc for time.Time.
-func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeDateTime {
+func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if vr.Type() != bsontype.DateTime {
 		return fmt.Errorf("cannot decode %v into a time.Time", vr.Type())
 	}
 
@@ -819,31 +568,9 @@ func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr ValueReader
 	}
 }
 
-// ReaderDecodeValue is the ValueDecoderFunc for bson.Reader.
-func (dvd DefaultValueDecoders) ReaderDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	rdr, ok := i.(*bson.Reader)
-	if !ok {
-		return ValueDecoderError{Name: "ReaderDecodeValue", Types: []interface{}{(*bson.Reader)(nil)}, Received: i}
-	}
-
-	if rdr == nil {
-		return errors.New("ReaderDecodeValue can only be used to decode non-nil *Reader")
-	}
-
-	if *rdr == nil {
-		*rdr = make(bson.Reader, 0)
-	} else {
-		*rdr = (*rdr)[:0]
-	}
-
-	var err error
-	*rdr, err = Copier{r: dc.Registry}.AppendDocumentBytes(*rdr, vr)
-	return err
-}
-
 // ByteSliceDecodeValue is the ValueDecoderFunc for []byte.
-func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	if vr.Type() != bson.TypeBinary {
+func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if vr.Type() != bsontype.Binary {
 		return fmt.Errorf("cannot decode %v into a *[]byte", vr.Type())
 	}
 
@@ -857,49 +584,15 @@ func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr ValueR
 		return err
 	}
 	if subtype != 0x00 {
-		return fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 for %s, got %v", bson.TypeBinary, subtype)
+		return fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 for %s, got %v", bsontype.Binary, subtype)
 	}
 
 	*target = data
 	return nil
 }
 
-// ElementSliceDecodeValue is the ValueDecoderFunc for []*bson.Element.
-func (dvd DefaultValueDecoders) ElementSliceDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	dr, err := vr.ReadDocument()
-	if err != nil {
-		return err
-	}
-	elems := make([]*bson.Element, 0)
-	for {
-		key, vr, err := dr.ReadElement()
-		if err == ErrEOD {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		var elem *bson.Element
-		err = dvd.elementDecodeValue(dc, vr, key, &elem)
-		if err != nil {
-			return err
-		}
-
-		elems = append(elems, elem)
-	}
-
-	target, ok := i.(*[]*bson.Element)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "ElementSliceDecodeValue", Types: []interface{}{(*[]*bson.Element)(nil)}, Received: i}
-	}
-
-	*target = elems
-	return nil
-}
-
 // MapDecodeValue is the ValueDecoderFunc for map[string]* types.
-func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	val := reflect.ValueOf(i)
 	if !val.IsValid() || val.Kind() != reflect.Ptr || val.IsNil() {
 		return fmt.Errorf("MapDecodeValue can only be used to decode non-nil pointers to map values, got %T", i)
@@ -920,74 +613,35 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr ValueReader,
 
 	mVal := val.Elem()
 
-	dFn, err := dvd.decodeFn(dc, mVal)
+	eType := mVal.Type().Elem()
+	decoder, err := dc.LookupDecoder(eType)
 	if err != nil {
 		return err
 	}
 
 	for {
-		var elem reflect.Value
 		key, vr, err := dr.ReadElement()
-		if err == ErrEOD {
+		if err == bsonrw.ErrEOD {
 			break
 		}
 		if err != nil {
 			return err
 		}
-		key, elem, err = dFn(dc, vr, key)
+
+		ptr := reflect.New(eType)
+
+		err = decoder.DecodeValue(dc, vr, ptr.Interface())
 		if err != nil {
 			return err
 		}
 
-		mVal.SetMapIndex(reflect.ValueOf(key), elem)
+		mVal.SetMapIndex(reflect.ValueOf(key), ptr.Elem())
 	}
 	return err
 }
 
-type decodeFn func(dc DecodeContext, vr ValueReader, key string) (updatedKey string, v reflect.Value, err error)
-
-// decodeFn returns a function that can be used to decode the values of a map.
-// The mapVal parameter should be a map type, not a pointer to a map type.
-//
-// If error is nil, decodeFn will return a non-nil decodeFn.
-func (dvd DefaultValueDecoders) decodeFn(dc DecodeContext, mapVal reflect.Value) (decodeFn, error) {
-	var dFn decodeFn
-	switch mapVal.Type().Elem() {
-	case tElement:
-		// TODO(skriptble): We have to decide if we want to support this. We have
-		// information loss because we can only store either the map key or the element
-		// key. We could add a struct tag field that allows the user to make a decision.
-		dFn = func(dc DecodeContext, vr ValueReader, key string) (string, reflect.Value, error) {
-			var elem *bson.Element
-			err := dvd.elementDecodeValue(dc, vr, key, &elem)
-			if err != nil {
-				return key, reflect.Value{}, err
-			}
-			return key, reflect.ValueOf(elem), nil
-		}
-	default:
-		eType := mapVal.Type().Elem()
-		decoder, err := dc.LookupDecoder(eType)
-		if err != nil {
-			return nil, err
-		}
-
-		dFn = func(dc DecodeContext, vr ValueReader, key string) (string, reflect.Value, error) {
-			ptr := reflect.New(eType)
-
-			err = decoder.DecodeValue(dc, vr, ptr.Interface())
-			if err != nil {
-				return key, reflect.Value{}, err
-			}
-			return key, ptr.Elem(), nil
-		}
-	}
-
-	return dFn, nil
-}
-
 // SliceDecodeValue is the ValueDecoderFunc for []* types.
-func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	val := reflect.ValueOf(i)
 	if !val.IsValid() || val.Kind() != reflect.Ptr || val.IsNil() {
 		return fmt.Errorf("SliceDecodeValue can only be used to decode non-nil pointers to slice or array values, got %T", i)
@@ -1003,8 +657,8 @@ func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr ValueReade
 	}
 
 	switch vr.Type() {
-	case bson.TypeArray:
-	case bson.TypeNull:
+	case bsontype.Array:
+	case bsontype.Null:
 		if val.Elem().Kind() != reflect.Slice {
 			return fmt.Errorf("cannot decode %v into an array", vr.Type())
 		}
@@ -1022,14 +676,7 @@ func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr ValueReade
 		return err
 	}
 
-	var elems []reflect.Value
-	switch eType {
-	case tElement:
-		elems, err = dvd.decodeElement(dc, ar)
-	default:
-		elems, err = dvd.decodeDefault(dc, ar, eType)
-	}
-
+	elems, err := dvd.decodeDefault(dc, ar, eType)
 	if err != nil {
 		return err
 	}
@@ -1056,8 +703,34 @@ func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr ValueReade
 	return nil
 }
 
+// ValueUnmarshalerDecodeValue is the ValueDecoderFunc for ValueUnmarshaler implementations.
+func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	val := reflect.ValueOf(i)
+	var valueUnmarshaler ValueUnmarshaler
+	if val.Kind() == reflect.Ptr && val.IsNil() {
+		return fmt.Errorf("ValueUnmarshalerDecodeValue can only unmarshal into non-nil ValueUnmarshaler values, got %T", i)
+	}
+	if val.Type().Implements(tValueUnmarshaler) {
+		valueUnmarshaler = val.Interface().(ValueUnmarshaler)
+	} else if val.Type().Kind() == reflect.Ptr && val.Elem().Type().Implements(tValueUnmarshaler) {
+		if val.Elem().Kind() == reflect.Ptr && val.Elem().IsNil() {
+			val.Elem().Set(reflect.New(val.Type().Elem().Elem()))
+		}
+		valueUnmarshaler = val.Elem().Interface().(ValueUnmarshaler)
+	} else {
+		return fmt.Errorf("ValueUnmarshalerDecodeValue can only handle types or pointers to types that are a ValueUnmarshaler, got %T", i)
+	}
+
+	t, src, err := bsonrw.Copier{}.CopyValueToBytes(vr)
+	if err != nil {
+		return err
+	}
+
+	return valueUnmarshaler.UnmarshalBSONValue(t, src)
+}
+
 // EmptyInterfaceDecodeValue is the ValueDecoderFunc for interface{}.
-func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	target, ok := i.(*interface{})
 	if !ok || target == nil {
 		return fmt.Errorf("EmptyInterfaceDecodeValue can only be used to decode non-nil *interface{} values, provided type if %T", i)
@@ -1072,90 +745,30 @@ func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr V
 	var rtype reflect.Type
 
 	switch vr.Type() {
-	case bson.TypeDouble:
+	case bsontype.Double:
 		val = new(float64)
 		rtype = tFloat64
 		fn = func() { *target = *(val.(*float64)) }
-	case bson.TypeString:
+	case bsontype.String:
 		val = new(string)
 		rtype = tString
 		fn = func() { *target = *(val.(*string)) }
-	case bson.TypeEmbeddedDocument:
-		val = new(*bson.Document)
-		rtype = tDocument
-		fn = func() { *target = *val.(**bson.Document) }
-	case bson.TypeArray:
-		val = new(*bson.Array)
-		rtype = tArray
-		fn = func() { *target = *val.(**bson.Array) }
-	case bson.TypeBinary:
-		val = new(bson.Binary)
-		rtype = tBinary
-		fn = func() { *target = *(val.(*bson.Binary)) }
-	case bson.TypeUndefined:
-		val = new(bson.Undefinedv2)
-		rtype = tUndefined
-		fn = func() { *target = *(val.(*bson.Undefinedv2)) }
-	case bson.TypeObjectID:
-		val = new(objectid.ObjectID)
-		rtype = tOID
-		fn = func() { *target = *(val.(*objectid.ObjectID)) }
-	case bson.TypeBoolean:
+	case bsontype.Boolean:
 		val = new(bool)
 		rtype = tBool
 		fn = func() { *target = *(val.(*bool)) }
-	case bson.TypeDateTime:
-		val = new(bson.DateTime)
-		rtype = tDateTime
-		fn = func() { *target = *(val.(*bson.DateTime)) }
-	case bson.TypeNull:
-		val = new(bson.Nullv2)
-		rtype = tNull
-		fn = func() { *target = *(val.(*bson.Nullv2)) }
-	case bson.TypeRegex:
-		val = new(bson.Regex)
-		rtype = tRegex
-		fn = func() { *target = *(val.(*bson.Regex)) }
-	case bson.TypeDBPointer:
-		val = new(bson.DBPointer)
-		rtype = tDBPointer
-		fn = func() { *target = *(val.(*bson.DBPointer)) }
-	case bson.TypeJavaScript:
-		val = new(bson.JavaScriptCode)
-		rtype = tJavaScriptCode
-		fn = func() { *target = *(val.(*bson.JavaScriptCode)) }
-	case bson.TypeSymbol:
-		val = new(bson.Symbol)
-		rtype = tSymbol
-		fn = func() { *target = *(val.(*bson.Symbol)) }
-	case bson.TypeCodeWithScope:
-		val = new(bson.CodeWithScope)
-		rtype = tCodeWithScope
-		fn = func() { *target = *(val.(*bson.CodeWithScope)) }
-	case bson.TypeInt32:
+	case bsontype.Int32:
 		val = new(int32)
 		rtype = tInt32
 		fn = func() { *target = *(val.(*int32)) }
-	case bson.TypeInt64:
+	case bsontype.Int64:
 		val = new(int64)
 		rtype = tInt64
 		fn = func() { *target = *(val.(*int64)) }
-	case bson.TypeTimestamp:
-		val = new(bson.Timestamp)
-		rtype = tTimestamp
-		fn = func() { *target = *(val.(*bson.Timestamp)) }
-	case bson.TypeDecimal128:
+	case bsontype.Decimal128:
 		val = new(decimal.Decimal128)
 		rtype = tDecimal
 		fn = func() { *target = *(val.(*decimal.Decimal128)) }
-	case bson.TypeMinKey:
-		val = new(bson.MinKeyv2)
-		rtype = tMinKey
-		fn = func() { *target = *(val.(*bson.MinKeyv2)) }
-	case bson.TypeMaxKey:
-		val = new(bson.MaxKeyv2)
-		rtype = tMaxKey
-		fn = func() { *target = *(val.(*bson.MaxKeyv2)) }
 	default:
 		return fmt.Errorf("Type %s is not a valid BSON type and has no default Go type to decode into", vr.Type())
 	}
@@ -1173,55 +786,7 @@ func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr V
 	return nil
 }
 
-// ValueUnmarshalerDecodeValue is the ValueDecoderFunc for ValueUnmarshaler implementations.
-func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(dc DecodeContext, vr ValueReader, i interface{}) error {
-	val := reflect.ValueOf(i)
-	var valueUnmarshaler ValueUnmarshaler
-	if val.Kind() == reflect.Ptr && val.IsNil() {
-		return fmt.Errorf("ValueUnmarshalerDecodeValue can only unmarshal into non-nil ValueUnmarshaler values, got %T", i)
-	}
-	if val.Type().Implements(tValueUnmarshaler) {
-		valueUnmarshaler = val.Interface().(ValueUnmarshaler)
-	} else if val.Type().Kind() == reflect.Ptr && val.Elem().Type().Implements(tValueUnmarshaler) {
-		if val.Elem().Kind() == reflect.Ptr && val.Elem().IsNil() {
-			val.Elem().Set(reflect.New(val.Type().Elem().Elem()))
-		}
-		valueUnmarshaler = val.Elem().Interface().(ValueUnmarshaler)
-	} else {
-		return fmt.Errorf("ValueUnmarshalerDecodeValue can only handle types or pointers to types that are a ValueUnmarshaler, got %T", i)
-	}
-
-	t, src, err := Copier{r: dc.Registry}.CopyValueToBytes(vr)
-	if err != nil {
-		return err
-	}
-
-	return valueUnmarshaler.UnmarshalBSONValue(t, src)
-}
-
-func (dvd DefaultValueDecoders) decodeElement(dc DecodeContext, ar ArrayReader) ([]reflect.Value, error) {
-	elems := make([]reflect.Value, 0)
-	for {
-		vr, err := ar.ReadValue()
-		if err == ErrEOA {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		var elem *bson.Element
-		err = dvd.elementDecodeValue(dc, vr, "", &elem)
-		if err != nil {
-			return nil, err
-		}
-		elems = append(elems, reflect.ValueOf(elem))
-	}
-
-	return elems, nil
-}
-
-func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, ar ArrayReader, eType reflect.Type) ([]reflect.Value, error) {
+func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, ar bsonrw.ArrayReader, eType reflect.Type) ([]reflect.Value, error) {
 	elems := make([]reflect.Value, 0)
 
 	decoder, err := dc.LookupDecoder(eType)
@@ -1231,7 +796,7 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, ar ArrayReader, 
 
 	for {
 		vr, err := ar.ReadValue()
-		if err == ErrEOA {
+		if err == bsonrw.ErrEOA {
 			break
 		}
 		if err != nil {
@@ -1248,328 +813,4 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, ar ArrayReader, 
 	}
 
 	return elems, nil
-}
-
-func (dvd DefaultValueDecoders) decodeDocument(dctx DecodeContext, dr DocumentReader, pdoc **bson.Document) error {
-	doc := bson.NewDocument()
-	for {
-		key, vr, err := dr.ReadElement()
-		if err == ErrEOD {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		var elem *bson.Element
-		err = dvd.elementDecodeValue(dctx, vr, key, &elem)
-		if err != nil {
-			return err
-		}
-
-		doc.Append(elem)
-	}
-
-	*pdoc = doc
-	return nil
-}
-
-func (dvd DefaultValueDecoders) elementDecodeValue(dc DecodeContext, vr ValueReader, key string, elem **bson.Element) error {
-	switch vr.Type() {
-	case bson.TypeDouble:
-		f64, err := vr.ReadDouble()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Double(key, f64)
-	case bson.TypeString:
-		str, err := vr.ReadString()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.String(key, str)
-	case bson.TypeEmbeddedDocument:
-		decoder, err := dc.LookupDecoder(tDocument)
-		if err != nil {
-			return err
-		}
-		var embeddedDoc *bson.Document
-		err = decoder.DecodeValue(dc, vr, &embeddedDoc)
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.SubDocument(key, embeddedDoc)
-	case bson.TypeArray:
-		decoder, err := dc.LookupDecoder(tArray)
-		if err != nil {
-			return err
-		}
-		var arr *bson.Array
-		err = decoder.DecodeValue(dc, vr, &arr)
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Array(key, arr)
-	case bson.TypeBinary:
-		data, subtype, err := vr.ReadBinary()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.BinaryWithSubtype(key, data, subtype)
-	case bson.TypeUndefined:
-		err := vr.ReadUndefined()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Undefined(key)
-	case bson.TypeObjectID:
-		oid, err := vr.ReadObjectID()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.ObjectID(key, oid)
-	case bson.TypeBoolean:
-		b, err := vr.ReadBoolean()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Boolean(key, b)
-	case bson.TypeDateTime:
-		dt, err := vr.ReadDateTime()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.DateTime(key, dt)
-	case bson.TypeNull:
-		err := vr.ReadNull()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Null(key)
-	case bson.TypeRegex:
-		pattern, options, err := vr.ReadRegex()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Regex(key, pattern, options)
-	case bson.TypeDBPointer:
-		ns, pointer, err := vr.ReadDBPointer()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.DBPointer(key, ns, pointer)
-	case bson.TypeJavaScript:
-		js, err := vr.ReadJavascript()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.JavaScript(key, js)
-	case bson.TypeSymbol:
-		symbol, err := vr.ReadSymbol()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Symbol(key, symbol)
-	case bson.TypeCodeWithScope:
-		code, scope, err := vr.ReadCodeWithScope()
-		if err != nil {
-			return err
-		}
-		scopeDoc := new(*bson.Document)
-		err = dvd.decodeDocument(dc, scope, scopeDoc)
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.CodeWithScope(key, code, *scopeDoc)
-	case bson.TypeInt32:
-		i32, err := vr.ReadInt32()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Int32(key, i32)
-	case bson.TypeTimestamp:
-		t, i, err := vr.ReadTimestamp()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Timestamp(key, t, i)
-	case bson.TypeInt64:
-		i64, err := vr.ReadInt64()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Int64(key, i64)
-	case bson.TypeDecimal128:
-		d128, err := vr.ReadDecimal128()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.Decimal128(key, d128)
-	case bson.TypeMinKey:
-		err := vr.ReadMinKey()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.MinKey(key)
-	case bson.TypeMaxKey:
-		err := vr.ReadMaxKey()
-		if err != nil {
-			return err
-		}
-		*elem = bson.EC.MaxKey(key)
-	default:
-		return fmt.Errorf("Cannot read unknown BSON type %s", vr.Type())
-	}
-
-	return nil
-}
-
-func (dvd DefaultValueDecoders) valueDecodeValue(dc DecodeContext, vr ValueReader, val **bson.Value) error {
-	switch vr.Type() {
-	case bson.TypeDouble:
-		f64, err := vr.ReadDouble()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Double(f64)
-	case bson.TypeString:
-		str, err := vr.ReadString()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.String(str)
-	case bson.TypeEmbeddedDocument:
-		decoder, err := dc.LookupDecoder(tDocument)
-		if err != nil {
-			return err
-		}
-		var embeddedDoc *bson.Document
-		err = decoder.DecodeValue(dc, vr, &embeddedDoc)
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Document(embeddedDoc)
-	case bson.TypeArray:
-		decoder, err := dc.LookupDecoder(tArray)
-		if err != nil {
-			return err
-		}
-		var arr *bson.Array
-		err = decoder.DecodeValue(dc, vr, &arr)
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Array(arr)
-	case bson.TypeBinary:
-		data, subtype, err := vr.ReadBinary()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.BinaryWithSubtype(data, subtype)
-	case bson.TypeUndefined:
-		err := vr.ReadUndefined()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Undefined()
-	case bson.TypeObjectID:
-		oid, err := vr.ReadObjectID()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.ObjectID(oid)
-	case bson.TypeBoolean:
-		b, err := vr.ReadBoolean()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Boolean(b)
-	case bson.TypeDateTime:
-		dt, err := vr.ReadDateTime()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.DateTime(dt)
-	case bson.TypeNull:
-		err := vr.ReadNull()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Null()
-	case bson.TypeRegex:
-		pattern, options, err := vr.ReadRegex()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Regex(pattern, options)
-	case bson.TypeDBPointer:
-		ns, pointer, err := vr.ReadDBPointer()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.DBPointer(ns, pointer)
-	case bson.TypeJavaScript:
-		js, err := vr.ReadJavascript()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.JavaScript(js)
-	case bson.TypeSymbol:
-		symbol, err := vr.ReadSymbol()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Symbol(symbol)
-	case bson.TypeCodeWithScope:
-		code, scope, err := vr.ReadCodeWithScope()
-		if err != nil {
-			return err
-		}
-		scopeDoc := new(*bson.Document)
-		err = dvd.decodeDocument(dc, scope, scopeDoc)
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.CodeWithScope(code, *scopeDoc)
-	case bson.TypeInt32:
-		i32, err := vr.ReadInt32()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Int32(i32)
-	case bson.TypeTimestamp:
-		t, i, err := vr.ReadTimestamp()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Timestamp(t, i)
-	case bson.TypeInt64:
-		i64, err := vr.ReadInt64()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Int64(i64)
-	case bson.TypeDecimal128:
-		d128, err := vr.ReadDecimal128()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.Decimal128(d128)
-	case bson.TypeMinKey:
-		err := vr.ReadMinKey()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.MinKey()
-	case bson.TypeMaxKey:
-		err := vr.ReadMaxKey()
-		if err != nil {
-			return err
-		}
-		*val = bson.VC.MaxKey()
-	default:
-		return fmt.Errorf("Cannot read unknown BSON type %s", vr.Type())
-	}
-
-	return nil
 }

@@ -9,12 +9,13 @@ package topology
 import (
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
-var defaultRegistry = bsoncodec.NewRegistryBuilder().Build()
+var defaultRegistry = bson.NewRegistryBuilder().Build()
 
 type serverConfig struct {
 	clock             *session.ClusterClock

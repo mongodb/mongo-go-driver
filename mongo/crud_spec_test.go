@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
@@ -368,7 +367,7 @@ func bulkWriteTest(t *testing.T, coll *Collection, test *testCase) {
 			models[i] = model
 		}
 
-		optsBytes, err := bsoncodec.Marshal(test.Operation.Arguments["options"])
+		optsBytes, err := bson.Marshal(test.Operation.Arguments["options"])
 		if err != nil {
 			t.Fatalf("error marshalling options: %s", err)
 		}

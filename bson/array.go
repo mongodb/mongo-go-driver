@@ -343,5 +343,33 @@ func (a *Array) Iterator() (*ArrayIterator, error) {
 
 // Equal compares this document to another, returning true if they are equal.
 func (a *Array) Equal(a2 *Array) bool {
-	return a.doc.Equal(a2.doc)
+	if a == nil && a2 == nil {
+		return true
+	}
+
+	if a == nil || a2 == nil {
+		return false
+	}
+
+	if a.doc == nil && a2.doc == nil {
+		return true
+	}
+
+	if a.doc == nil || a2.doc == nil {
+		return false
+	}
+
+	if (len(a.doc.elems) != len(a2.doc.elems)) || (len(a.doc.index) != len(a2.doc.index)) {
+		return false
+	}
+
+	for index := range a.doc.elems {
+		v1 := a.doc.elems[index].value
+		v2 := a2.doc.elems[index].value
+
+		if !v1.Equal(v2) {
+			return false
+		}
+	}
+	return true
 }
