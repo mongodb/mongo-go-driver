@@ -78,7 +78,7 @@ func FromHex(s string) (ObjectID, error) {
 }
 
 // MarshalJSON returns the ObjectID as a string
-func (id *ObjectID) MarshalJSON() ([]byte, error) {
+func (id ObjectID) MarshalJSON() ([]byte, error) {
 	return json.Marshal(id.Hex())
 }
 
