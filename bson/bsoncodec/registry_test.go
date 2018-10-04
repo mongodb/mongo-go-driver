@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 func TestRegistry(t *testing.T) {
@@ -36,7 +37,7 @@ func TestRegistry(t *testing.T) {
 		})
 		t.Run("type", func(t *testing.T) {
 			ft1, ft2, ft4 := fakeType1{}, fakeType2{}, fakeType4{}
-			rb := NewRegistryBuilder().
+			rb := NewEmptyRegistryBuilder().
 				RegisterEncoder(reflect.TypeOf(ft1), fc1).
 				RegisterEncoder(reflect.TypeOf(ft2), fc2).
 				RegisterEncoder(reflect.TypeOf(ft1), fc3).
@@ -63,7 +64,7 @@ func TestRegistry(t *testing.T) {
 		})
 		t.Run("kind", func(t *testing.T) {
 			k1, k2, k4 := reflect.Struct, reflect.Slice, reflect.Map
-			rb := NewRegistryBuilder().
+			rb := NewEmptyRegistryBuilder().
 				RegisterDefaultEncoder(k1, fc1).
 				RegisterDefaultEncoder(k2, fc2).
 				RegisterDefaultEncoder(k1, fc3).
@@ -92,7 +93,7 @@ func TestRegistry(t *testing.T) {
 			t.Run("MapCodec", func(t *testing.T) {
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
-				rb := NewRegistryBuilder()
+				rb := NewEmptyRegistryBuilder()
 				rb.RegisterDefaultEncoder(reflect.Map, codec)
 				if rb.kindEncoders[reflect.Map] != codec {
 					t.Errorf("Did not properly set the map codec. got %v; want %v", rb.kindEncoders[reflect.Map], codec)
@@ -105,7 +106,7 @@ func TestRegistry(t *testing.T) {
 			t.Run("StructCodec", func(t *testing.T) {
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
-				rb := NewRegistryBuilder()
+				rb := NewEmptyRegistryBuilder()
 				rb.RegisterDefaultEncoder(reflect.Struct, codec)
 				if rb.kindEncoders[reflect.Struct] != codec {
 					t.Errorf("Did not properly set the struct codec. got %v; want %v", rb.kindEncoders[reflect.Struct], codec)
@@ -118,7 +119,7 @@ func TestRegistry(t *testing.T) {
 			t.Run("SliceCodec", func(t *testing.T) {
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
-				rb := NewRegistryBuilder()
+				rb := NewEmptyRegistryBuilder()
 				rb.RegisterDefaultEncoder(reflect.Slice, codec)
 				if rb.kindEncoders[reflect.Slice] != codec {
 					t.Errorf("Did not properly set the slice codec. got %v; want %v", rb.kindEncoders[reflect.Slice], codec)
@@ -131,7 +132,7 @@ func TestRegistry(t *testing.T) {
 			t.Run("ArrayCodec", func(t *testing.T) {
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
-				rb := NewRegistryBuilder()
+				rb := NewEmptyRegistryBuilder()
 				rb.RegisterDefaultEncoder(reflect.Array, codec)
 				if rb.kindEncoders[reflect.Array] != codec {
 					t.Errorf("Did not properly set the slice codec. got %v; want %v", rb.kindEncoders[reflect.Array], codec)
@@ -159,7 +160,7 @@ func TestRegistry(t *testing.T) {
 			ti2 := reflect.TypeOf((*testInterface2)(nil)).Elem()
 			fc1, fc2, fc4 := fakeCodec{num: 1}, fakeCodec{num: 2}, fakeCodec{num: 4}
 			fsc, fslcc, fmc := new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
-			reg := NewRegistryBuilder().
+			reg := NewEmptyRegistryBuilder().
 				RegisterEncoder(ft1, fc1).
 				RegisterEncoder(ft2, fc2).
 				RegisterEncoder(ti2, fc4).
@@ -301,8 +302,8 @@ type fakeMapCodec struct{ fakeCodec }
 
 type fakeCodec struct{ num int }
 
-func (fc fakeCodec) EncodeValue(EncodeContext, ValueWriter, interface{}) error { return nil }
-func (fc fakeCodec) DecodeValue(DecodeContext, ValueReader, interface{}) error { return nil }
+func (fc fakeCodec) EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error { return nil }
+func (fc fakeCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error { return nil }
 
 type testInterface1 interface{ test1() }
 type testInterface2 interface{ test2() }

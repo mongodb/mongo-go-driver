@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -212,7 +211,7 @@ func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
 			rcBytes := rcDoc.Value().ReaderDocument()
 
 			actual := make(map[string]interface{})
-			err = bsoncodec.Unmarshal(rcBytes, &actual)
+			err = bson.Unmarshal(rcBytes, &actual)
 
 			requireMapEqual(t, testCase.ReadConcernDocument, actual)
 		}
@@ -236,7 +235,7 @@ func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
 			wcBytes := wcDoc.Value().ReaderDocument()
 
 			actual := make(map[string]interface{})
-			err = bsoncodec.Unmarshal(wcBytes, &actual)
+			err = bson.Unmarshal(wcBytes, &actual)
 			require.NoError(t, err)
 
 			requireMapEqual(t, testCase.WriteConcernDocument, actual)

@@ -333,7 +333,7 @@ func (opt OptAllowPartialResults) String() string {
 // 		return bson.NewDocument(), nil
 // 	case *bson.Document:
 // 		return d, nil
-// 	case bsoncodec.Marshaler, bson.Reader, []byte, io.Reader:
+// 	case bson.Marshaler, bson.Reader, []byte, io.Reader:
 // 		return bson.NewDocumentEncoder().EncodeDocument(document)
 // 	case bson.DocumentMarshaler:
 // 		return d.MarshalBSONDocument()
@@ -366,7 +366,7 @@ func (me MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
 }
 
-var defaultRegistry = bsoncodec.NewRegistryBuilder().Build()
+var defaultRegistry = bson.NewRegistryBuilder().Build()
 
 func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
 	if val == nil {
@@ -384,7 +384,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Doc
 
 	// TODO(skriptble): Use a pool of these instead.
 	buf := make([]byte, 0, 256)
-	b, err := bsoncodec.MarshalAppendWithRegistry(reg, buf, val)
+	b, err := bson.MarshalAppendWithRegistry(reg, buf, val)
 	if err != nil {
 		return nil, MarshalError{Value: val, Err: err}
 	}

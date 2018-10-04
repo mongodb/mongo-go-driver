@@ -9,6 +9,8 @@ package bson
 import (
 	"fmt"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -16,6 +18,12 @@ import (
 type Binary struct {
 	Subtype byte
 	Data    []byte
+}
+
+var buf = make([]byte, 0, 256)
+
+func (b Binary) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return bsontype.Binary, bsoncore.AppendBinary(buf[:0], b.Subtype, b.Data), nil
 }
 
 // Undefined represents the BSON undefined value.

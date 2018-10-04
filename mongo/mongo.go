@@ -67,7 +67,7 @@ func (me MarshalError) Error() string {
 // //  A custom struct type
 // //
 // func TransformDocument(val interface{}) (*bson.Document, error) {
-// 	document, err := transformDocument(BSONAppenderFunc(bsoncodec.MarshalAppend), val)
+// 	document, err := transformDocument(BSONAppenderFunc(bson.MarshalAppend), val)
 // 	if err != nil {
 // 		return nil, MarshalError{Value: val, Err: err}
 // 	}
@@ -77,7 +77,7 @@ func (me MarshalError) Error() string {
 
 func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
 	if registry == nil {
-		registry = bsoncodec.NewRegistryBuilder().Build()
+		registry = bson.NewRegistryBuilder().Build()
 	}
 	if val == nil {
 		return bson.NewDocument(), nil
@@ -92,7 +92,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Doc
 
 	// TODO(skriptble): Use a pool of these instead.
 	buf := make([]byte, 0, 256)
-	b, err := bsoncodec.MarshalAppendWithRegistry(registry, buf[:0], val)
+	b, err := bson.MarshalAppendWithRegistry(registry, buf[:0], val)
 	if err != nil {
 		return nil, MarshalError{Value: val, Err: err}
 	}

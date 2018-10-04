@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 var ptBool = reflect.TypeOf((*bool)(nil))
@@ -78,15 +80,15 @@ type ValueCodec interface {
 // encoding of a value. Implementations must handle both values and
 // pointers to values.
 type ValueEncoder interface {
-	EncodeValue(EncodeContext, ValueWriter, interface{}) error
+	EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error
 }
 
 // ValueEncoderFunc is an adapter function that allows a function with the
 // correct signature to be used as a ValueEncoder.
-type ValueEncoderFunc func(EncodeContext, ValueWriter, interface{}) error
+type ValueEncoderFunc func(EncodeContext, bsonrw.ValueWriter, interface{}) error
 
 // EncodeValue implements the ValueEncoder interface.
-func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val interface{}) error {
+func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val interface{}) error {
 	return fn(ec, vw, val)
 }
 
@@ -95,15 +97,15 @@ func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val int
 // including pointers to pointer values. The implementation may create a new
 // value and assign it to the pointer if necessary.
 type ValueDecoder interface {
-	DecodeValue(DecodeContext, ValueReader, interface{}) error
+	DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error
 }
 
 // ValueDecoderFunc is an adapter function that allows a function with the
 // correct signature to be used as a ValueDecoder.
-type ValueDecoderFunc func(DecodeContext, ValueReader, interface{}) error
+type ValueDecoderFunc func(DecodeContext, bsonrw.ValueReader, interface{}) error
 
 // DecodeValue implements the ValueDecoder interface.
-func (fn ValueDecoderFunc) DecodeValue(dc DecodeContext, vr ValueReader, val interface{}) error {
+func (fn ValueDecoderFunc) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val interface{}) error {
 	return fn(dc, vr, val)
 }
 
