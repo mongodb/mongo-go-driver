@@ -33,7 +33,7 @@ var ErrNotInterface = errors.New("The provided type is not an interface")
 var defaultRegistry *Registry
 
 func init() {
-	defaultRegistry = NewRegistryBuilder().Build()
+	defaultRegistry = buildDefaultRegistry()
 }
 
 // A RegistryBuilder is used to build a Registry. This type is not goroutine
@@ -63,9 +63,8 @@ type Registry struct {
 	mu sync.RWMutex
 }
 
-// NewEmptyRegistryBuilder creates a new RegistryBuilder with no default kind
-// Codecs.
-func NewEmptyRegistryBuilder() *RegistryBuilder {
+// NewRegistryBuilder creates a new empty RegistryBuilder.
+func NewRegistryBuilder() *RegistryBuilder {
 	return &RegistryBuilder{
 		typeEncoders: make(map[reflect.Type]ValueEncoder),
 		typeDecoders: make(map[reflect.Type]ValueDecoder),
@@ -78,118 +77,11 @@ func NewEmptyRegistryBuilder() *RegistryBuilder {
 	}
 }
 
-// NewRegistryBuilder creates a new RegistryBuilder.
-func NewRegistryBuilder() *RegistryBuilder {
-	var dve DefaultValueEncoders
-	var dvd DefaultValueDecoders
-	typeEncoders := map[reflect.Type]ValueEncoder{
-		tDocument:                     ValueEncoderFunc(dve.DocumentEncodeValue),
-		tArray:                        ValueEncoderFunc(dve.ArrayEncodeValue),
-		tValue:                        ValueEncoderFunc(dve.ValueEncodeValue),
-		reflect.PtrTo(tByteSlice):     ValueEncoderFunc(dve.ByteSliceEncodeValue),
-		reflect.PtrTo(tElementSlice):  ValueEncoderFunc(dve.ElementSliceEncodeValue),
-		reflect.PtrTo(tTime):          ValueEncoderFunc(dve.TimeEncodeValue),
-		reflect.PtrTo(tEmpty):         ValueEncoderFunc(dve.EmptyInterfaceEncodeValue),
-		reflect.PtrTo(tBinary):        ValueEncoderFunc(dve.BooleanEncodeValue),
-		reflect.PtrTo(tUndefined):     ValueEncoderFunc(dve.UndefinedEncodeValue),
-		reflect.PtrTo(tOID):           ValueEncoderFunc(dve.ObjectIDEncodeValue),
-		reflect.PtrTo(tDateTime):      ValueEncoderFunc(dve.DateTimeEncodeValue),
-		reflect.PtrTo(tNull):          ValueEncoderFunc(dve.NullEncodeValue),
-		reflect.PtrTo(tRegex):         ValueEncoderFunc(dve.RegexEncodeValue),
-		reflect.PtrTo(tDBPointer):     ValueEncoderFunc(dve.DBPointerEncodeValue),
-		reflect.PtrTo(tCodeWithScope): ValueEncoderFunc(dve.CodeWithScopeEncodeValue),
-		reflect.PtrTo(tTimestamp):     ValueEncoderFunc(dve.TimestampEncodeValue),
-		reflect.PtrTo(tDecimal):       ValueEncoderFunc(dve.Decimal128EncodeValue),
-		reflect.PtrTo(tMinKey):        ValueEncoderFunc(dve.MinKeyEncodeValue),
-		reflect.PtrTo(tMaxKey):        ValueEncoderFunc(dve.MaxKeyEncodeValue),
-		reflect.PtrTo(tJSONNumber):    ValueEncoderFunc(dve.JSONNumberEncodeValue),
-		reflect.PtrTo(tURL):           ValueEncoderFunc(dve.URLEncodeValue),
-		reflect.PtrTo(tReader):        ValueEncoderFunc(dve.ReaderEncodeValue),
-	}
-
-	typeDecoders := map[reflect.Type]ValueDecoder{
-		tDocument:                     ValueDecoderFunc(dvd.DocumentDecodeValue),
-		tArray:                        ValueDecoderFunc(dvd.ArrayDecodeValue),
-		tValue:                        ValueDecoderFunc(dvd.ValueDecodeValue),
-		reflect.PtrTo(tByteSlice):     ValueDecoderFunc(dvd.ByteSliceDecodeValue),
-		reflect.PtrTo(tElementSlice):  ValueDecoderFunc(dvd.ElementSliceDecodeValue),
-		reflect.PtrTo(tTime):          ValueDecoderFunc(dvd.TimeDecodeValue),
-		reflect.PtrTo(tEmpty):         ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue),
-		reflect.PtrTo(tBinary):        ValueDecoderFunc(dvd.BooleanDecodeValue),
-		reflect.PtrTo(tUndefined):     ValueDecoderFunc(dvd.UndefinedDecodeValue),
-		reflect.PtrTo(tOID):           ValueDecoderFunc(dvd.ObjectIDDecodeValue),
-		reflect.PtrTo(tDateTime):      ValueDecoderFunc(dvd.DateTimeDecodeValue),
-		reflect.PtrTo(tNull):          ValueDecoderFunc(dvd.NullDecodeValue),
-		reflect.PtrTo(tRegex):         ValueDecoderFunc(dvd.RegexDecodeValue),
-		reflect.PtrTo(tDBPointer):     ValueDecoderFunc(dvd.DBPointerDecodeValue),
-		reflect.PtrTo(tCodeWithScope): ValueDecoderFunc(dvd.CodeWithScopeDecodeValue),
-		reflect.PtrTo(tTimestamp):     ValueDecoderFunc(dvd.TimestampDecodeValue),
-		reflect.PtrTo(tDecimal):       ValueDecoderFunc(dvd.Decimal128DecodeValue),
-		reflect.PtrTo(tMinKey):        ValueDecoderFunc(dvd.MinKeyDecodeValue),
-		reflect.PtrTo(tMaxKey):        ValueDecoderFunc(dvd.MaxKeyDecodeValue),
-		reflect.PtrTo(tJSONNumber):    ValueDecoderFunc(dvd.JSONNumberDecodeValue),
-		reflect.PtrTo(tURL):           ValueDecoderFunc(dvd.URLDecodeValue),
-		reflect.PtrTo(tReader):        ValueDecoderFunc(dvd.ReaderDecodeValue),
-	}
-
-	interfaceEncoders := []interfaceValueEncoder{
-		{i: tValueMarshaler, ve: ValueEncoderFunc(dve.ValueMarshalerEncodeValue)},
-	}
-
-	interfaceDecoders := []interfaceValueDecoder{
-		{i: tValueUnmarshaler, vd: ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)},
-	}
-
-	kindEncoders := map[reflect.Kind]ValueEncoder{
-		reflect.Bool:    ValueEncoderFunc(dve.BooleanEncodeValue),
-		reflect.Int:     ValueEncoderFunc(dve.IntEncodeValue),
-		reflect.Int8:    ValueEncoderFunc(dve.IntEncodeValue),
-		reflect.Int16:   ValueEncoderFunc(dve.IntEncodeValue),
-		reflect.Int32:   ValueEncoderFunc(dve.IntEncodeValue),
-		reflect.Int64:   ValueEncoderFunc(dve.IntEncodeValue),
-		reflect.Uint:    ValueEncoderFunc(dve.UintEncodeValue),
-		reflect.Uint8:   ValueEncoderFunc(dve.UintEncodeValue),
-		reflect.Uint16:  ValueEncoderFunc(dve.UintEncodeValue),
-		reflect.Uint32:  ValueEncoderFunc(dve.UintEncodeValue),
-		reflect.Uint64:  ValueEncoderFunc(dve.UintEncodeValue),
-		reflect.Float32: ValueEncoderFunc(dve.FloatEncodeValue),
-		reflect.Float64: ValueEncoderFunc(dve.FloatEncodeValue),
-		reflect.Array:   ValueEncoderFunc(dve.SliceEncodeValue),
-		reflect.Map:     ValueEncoderFunc(dve.MapEncodeValue),
-		reflect.Slice:   ValueEncoderFunc(dve.SliceEncodeValue),
-		reflect.String:  ValueEncoderFunc(dve.StringEncodeValue),
-		reflect.Struct:  &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser},
-	}
-
-	kindDecoders := map[reflect.Kind]ValueDecoder{
-		reflect.Bool:    ValueDecoderFunc(dvd.BooleanDecodeValue),
-		reflect.Int:     ValueDecoderFunc(dvd.IntDecodeValue),
-		reflect.Int8:    ValueDecoderFunc(dvd.IntDecodeValue),
-		reflect.Int16:   ValueDecoderFunc(dvd.IntDecodeValue),
-		reflect.Int32:   ValueDecoderFunc(dvd.IntDecodeValue),
-		reflect.Int64:   ValueDecoderFunc(dvd.IntDecodeValue),
-		reflect.Uint:    ValueDecoderFunc(dvd.UintDecodeValue),
-		reflect.Uint8:   ValueDecoderFunc(dvd.UintDecodeValue),
-		reflect.Uint16:  ValueDecoderFunc(dvd.UintDecodeValue),
-		reflect.Uint32:  ValueDecoderFunc(dvd.UintDecodeValue),
-		reflect.Uint64:  ValueDecoderFunc(dvd.UintDecodeValue),
-		reflect.Float32: ValueDecoderFunc(dvd.FloatDecodeValue),
-		reflect.Float64: ValueDecoderFunc(dvd.FloatDecodeValue),
-		reflect.Array:   ValueDecoderFunc(dvd.SliceDecodeValue),
-		reflect.Map:     ValueDecoderFunc(dvd.MapDecodeValue),
-		reflect.Slice:   ValueDecoderFunc(dvd.SliceDecodeValue),
-		reflect.String:  ValueDecoderFunc(dvd.StringDecodeValue),
-		reflect.Struct:  &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser},
-	}
-
-	return &RegistryBuilder{
-		typeEncoders:      typeEncoders,
-		typeDecoders:      typeDecoders,
-		interfaceEncoders: interfaceEncoders,
-		interfaceDecoders: interfaceDecoders,
-		kindEncoders:      kindEncoders,
-		kindDecoders:      kindDecoders,
-	}
+func buildDefaultRegistry() *Registry {
+	rb := NewRegistryBuilder()
+	defaultValueEncoders.RegisterDefaultEncoders(rb)
+	defaultValueDecoders.RegisterDefaultDecoders(rb)
+	return rb.Build()
 }
 
 // RegisterCodec will register the provided ValueCodec for the provided type.

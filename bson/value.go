@@ -8,12 +8,14 @@ package bson
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/internal/llbson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -1046,7 +1048,11 @@ func (v *Value) Add(v2 *Value) error {
 	return fmt.Errorf("cannot Add values of types %s and %s yet", v.Type(), v2.Type())
 }
 
-// Equal will return true if this value is equal to val.
+// Equal compares v to v2 and returns true if they are equal. This method will
+// ensure that the values are logically equal, even if their internal structure
+// is different. This method should be used over reflect.DeepEqual which will
+// not return true for Values that are logically the same but not internally the
+// same.
 func (v *Value) Equal(v2 *Value) bool {
 	if v == nil && v2 == nil {
 		return true
@@ -1060,13 +1066,41 @@ func (v *Value) Equal(v2 *Value) bool {
 		return false
 	}
 
-	if v.d != nil || v2.d != nil {
-		if v.d == nil || v2.d == nil {
-			return false
-		}
-		return v.d.Equal(v2.d)
+	t1, t2 := Type(v.data[v.start]), Type(v2.data[v2.start])
+
+	data1, err := v.docToBytes(t1)
+	if err != nil {
+		return false
+	}
+	data2, err := v2.docToBytes(t2)
+	if err != nil {
+		return false
 	}
 
-	t1, t2 := llbson.Type(v.data[v.start]), llbson.Type(v2.data[v2.start])
-	return llbson.EqualValue(t1, t2, v.data[v.offset:], v2.data[v2.offset:])
+	return bsoncore.EqualValue(bsontype.Type(t1), bsontype.Type(t2), data1, data2)
+}
+
+func (v *Value) docToBytes(t Type) ([]byte, error) {
+	if v.d == nil {
+		return v.data[v.offset:], nil
+	}
+
+	switch t {
+	case bsontype.EmbeddedDocument:
+		return v.d.MarshalBSON()
+	case bsontype.Array:
+		return (&Array{doc: v.d}).MarshalBSON()
+	case bsontype.CodeWithScope:
+		scope, err := v.d.MarshalBSON()
+		if err != nil {
+			return nil, err
+		}
+		code, _, ok := bsoncore.ReadJavaScript(v.data[v.offset+4:])
+		if !ok {
+			return nil, errors.New("invalid code component")
+		}
+		return bsoncore.AppendCodeWithScope(nil, code, scope), nil
+	default:
+		return v.data[v.offset:], nil
+	}
 }

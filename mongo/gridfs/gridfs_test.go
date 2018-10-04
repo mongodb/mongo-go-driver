@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
@@ -382,7 +381,7 @@ func runUploadAssert(t *testing.T, test test, fileID objectid.ObjectID) {
 			docs := make([]interface{}, len(assertData.Documents))
 
 			for i, docInterface := range assertData.Documents {
-				rdr, err := bsoncodec.Marshal(docInterface)
+				rdr, err := bson.Marshal(docInterface)
 				testhelpers.RequireNil(t, err, "error marshaling doc: %s", err)
 				doc, err := bson.ReadDocument(rdr)
 				testhelpers.RequireNil(t, err, "error reading doc: %s", err)
