@@ -1,19 +1,19 @@
-package bsoncodec
+package bsonrwtest
 
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
-type llvrwInvoked byte
+type VRWInvoked byte
 
 const (
-	llvrwNothing llvrwInvoked = iota
+	llvrwNothing VRWInvoked = iota
 	llvrwReadArray
 	llvrwReadBinary
 	llvrwReadBoolean
@@ -65,24 +65,24 @@ const (
 	llvrwWriteArrayEnd
 )
 
-type llValueReaderWriter struct {
+type TestValueReaderWriter struct {
 	t        *testing.T
-	invoked  llvrwInvoked
+	invoked  VRWInvoked
 	readval  interface{}
 	bsontype bsontype.Type
 	err      error
-	errAfter llvrwInvoked // error after this method is called
+	errAfter VRWInvoked // error after this method is called
 }
 
-func (llvrw *llValueReaderWriter) Type() bsontype.Type {
+func (llvrw *TestValueReaderWriter) Type() bsontype.Type {
 	return llvrw.bsontype
 }
 
-func (llvrw *llValueReaderWriter) Skip() error {
+func (llvrw *TestValueReaderWriter) Skip() error {
 	panic("not implemented")
 }
 
-func (llvrw *llValueReaderWriter) ReadArray() (bsonrw.ArrayReader, error) {
+func (llvrw *TestValueReaderWriter) ReadArray() (bsonrw.ArrayReader, error) {
 	llvrw.invoked = llvrwReadArray
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -91,21 +91,27 @@ func (llvrw *llValueReaderWriter) ReadArray() (bsonrw.ArrayReader, error) {
 	return llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadBinary() (b []byte, btype byte, err error) {
+func (llvrw *TestValueReaderWriter) ReadBinary() (b []byte, btype byte, err error) {
 	llvrw.invoked = llvrwReadBinary
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, 0x00, llvrw.err
 	}
 
-	bin, ok := llvrw.readval.(bson.Binary)
-	if !ok {
+	switch tt := llvrw.readval.(type) {
+	case bsoncore.Value:
+		subtype, data, _, ok := bsoncore.ReadBinary(tt.Data)
+		if !ok {
+			llvrw.t.Error("Invalid Value provided for return value of ReadBinary.")
+			return nil, 0x00, nil
+		}
+		return data, subtype, nil
+	default:
 		llvrw.t.Errorf("Incorrect type provided for return value of ReadBinary: %T", llvrw.readval)
 		return nil, 0x00, nil
 	}
-	return bin.Data, bin.Subtype, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadBoolean() (bool, error) {
+func (llvrw *TestValueReaderWriter) ReadBoolean() (bool, error) {
 	llvrw.invoked = llvrwReadBoolean
 	if llvrw.errAfter == llvrw.invoked {
 		return false, llvrw.err
@@ -120,7 +126,7 @@ func (llvrw *llValueReaderWriter) ReadBoolean() (bool, error) {
 	return b, llvrw.err
 }
 
-func (llvrw *llValueReaderWriter) ReadDocument() (bsonrw.DocumentReader, error) {
+func (llvrw *TestValueReaderWriter) ReadDocument() (bsonrw.DocumentReader, error) {
 	llvrw.invoked = llvrwReadDocument
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -129,7 +135,7 @@ func (llvrw *llValueReaderWriter) ReadDocument() (bsonrw.DocumentReader, error) 
 	return llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadCodeWithScope() (code string, dr bsonrw.DocumentReader, err error) {
+func (llvrw *TestValueReaderWriter) ReadCodeWithScope() (code string, dr bsonrw.DocumentReader, err error) {
 	llvrw.invoked = llvrwReadCodeWithScope
 	if llvrw.errAfter == llvrw.invoked {
 		return "", nil, llvrw.err
@@ -138,22 +144,27 @@ func (llvrw *llValueReaderWriter) ReadCodeWithScope() (code string, dr bsonrw.Do
 	return "", llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadDBPointer() (ns string, oid objectid.ObjectID, err error) {
+func (llvrw *TestValueReaderWriter) ReadDBPointer() (ns string, oid objectid.ObjectID, err error) {
 	llvrw.invoked = llvrwReadDBPointer
 	if llvrw.errAfter == llvrw.invoked {
 		return "", objectid.ObjectID{}, llvrw.err
 	}
 
-	db, ok := llvrw.readval.(bson.DBPointer)
-	if !ok {
+	switch tt := llvrw.readval.(type) {
+	case bsoncore.Value:
+		ns, oid, _, ok := bsoncore.ReadDBPointer(tt.Data)
+		if !ok {
+			llvrw.t.Error("Invalid Value instance provided for return value of ReadDBPointer")
+			return "", objectid.ObjectID{}, nil
+		}
+		return ns, oid, nil
+	default:
 		llvrw.t.Errorf("Incorrect type provided for return value of ReadDBPointer: %T", llvrw.readval)
 		return "", objectid.ObjectID{}, nil
 	}
-
-	return db.DB, db.Pointer, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadDateTime() (int64, error) {
+func (llvrw *TestValueReaderWriter) ReadDateTime() (int64, error) {
 	llvrw.invoked = llvrwReadDateTime
 	if llvrw.errAfter == llvrw.invoked {
 		return 0, llvrw.err
@@ -168,7 +179,7 @@ func (llvrw *llValueReaderWriter) ReadDateTime() (int64, error) {
 	return dt, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadDecimal128() (decimal.Decimal128, error) {
+func (llvrw *TestValueReaderWriter) ReadDecimal128() (decimal.Decimal128, error) {
 	llvrw.invoked = llvrwReadDecimal128
 	if llvrw.errAfter == llvrw.invoked {
 		return decimal.Decimal128{}, llvrw.err
@@ -183,7 +194,7 @@ func (llvrw *llValueReaderWriter) ReadDecimal128() (decimal.Decimal128, error) {
 	return d128, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadDouble() (float64, error) {
+func (llvrw *TestValueReaderWriter) ReadDouble() (float64, error) {
 	llvrw.invoked = llvrwReadDouble
 	if llvrw.errAfter == llvrw.invoked {
 		return 0, llvrw.err
@@ -198,7 +209,7 @@ func (llvrw *llValueReaderWriter) ReadDouble() (float64, error) {
 	return f64, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadInt32() (int32, error) {
+func (llvrw *TestValueReaderWriter) ReadInt32() (int32, error) {
 	llvrw.invoked = llvrwReadInt32
 	if llvrw.errAfter == llvrw.invoked {
 		return 0, llvrw.err
@@ -213,7 +224,7 @@ func (llvrw *llValueReaderWriter) ReadInt32() (int32, error) {
 	return i32, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadInt64() (int64, error) {
+func (llvrw *TestValueReaderWriter) ReadInt64() (int64, error) {
 	llvrw.invoked = llvrwReadInt64
 	if llvrw.errAfter == llvrw.invoked {
 		return 0, llvrw.err
@@ -227,7 +238,7 @@ func (llvrw *llValueReaderWriter) ReadInt64() (int64, error) {
 	return i64, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadJavascript() (code string, err error) {
+func (llvrw *TestValueReaderWriter) ReadJavascript() (code string, err error) {
 	llvrw.invoked = llvrwReadJavascript
 	if llvrw.errAfter == llvrw.invoked {
 		return "", llvrw.err
@@ -241,7 +252,7 @@ func (llvrw *llValueReaderWriter) ReadJavascript() (code string, err error) {
 	return js, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadMaxKey() error {
+func (llvrw *TestValueReaderWriter) ReadMaxKey() error {
 	llvrw.invoked = llvrwReadMaxKey
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -250,7 +261,7 @@ func (llvrw *llValueReaderWriter) ReadMaxKey() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) ReadMinKey() error {
+func (llvrw *TestValueReaderWriter) ReadMinKey() error {
 	llvrw.invoked = llvrwReadMinKey
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -259,7 +270,7 @@ func (llvrw *llValueReaderWriter) ReadMinKey() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) ReadNull() error {
+func (llvrw *TestValueReaderWriter) ReadNull() error {
 	llvrw.invoked = llvrwReadNull
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -268,7 +279,7 @@ func (llvrw *llValueReaderWriter) ReadNull() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) ReadObjectID() (objectid.ObjectID, error) {
+func (llvrw *TestValueReaderWriter) ReadObjectID() (objectid.ObjectID, error) {
 	llvrw.invoked = llvrwReadObjectID
 	if llvrw.errAfter == llvrw.invoked {
 		return objectid.ObjectID{}, llvrw.err
@@ -282,21 +293,26 @@ func (llvrw *llValueReaderWriter) ReadObjectID() (objectid.ObjectID, error) {
 	return oid, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadRegex() (pattern string, options string, err error) {
+func (llvrw *TestValueReaderWriter) ReadRegex() (pattern string, options string, err error) {
 	llvrw.invoked = llvrwReadRegex
 	if llvrw.errAfter == llvrw.invoked {
 		return "", "", llvrw.err
 	}
-	rgx, ok := llvrw.readval.(bson.Regex)
-	if !ok {
+	switch tt := llvrw.readval.(type) {
+	case bsoncore.Value:
+		pattern, options, _, ok := bsoncore.ReadRegex(tt.Data)
+		if !ok {
+			llvrw.t.Error("Invalid Value instance provided for ReadRegex")
+			return "", "", nil
+		}
+		return pattern, options, nil
+	default:
 		llvrw.t.Errorf("Incorrect type provided for return value of ReadRegex: %T", llvrw.readval)
 		return "", "", nil
 	}
-
-	return rgx.Pattern, rgx.Options, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadString() (string, error) {
+func (llvrw *TestValueReaderWriter) ReadString() (string, error) {
 	llvrw.invoked = llvrwReadString
 	if llvrw.errAfter == llvrw.invoked {
 		return "", llvrw.err
@@ -310,35 +326,45 @@ func (llvrw *llValueReaderWriter) ReadString() (string, error) {
 	return str, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadSymbol() (symbol string, err error) {
+func (llvrw *TestValueReaderWriter) ReadSymbol() (symbol string, err error) {
 	llvrw.invoked = llvrwReadSymbol
 	if llvrw.errAfter == llvrw.invoked {
 		return "", llvrw.err
 	}
-	symb, ok := llvrw.readval.(bson.Symbol)
-	if !ok {
+	switch tt := llvrw.readval.(type) {
+	case bsoncore.Value:
+		symbol, _, ok := bsoncore.ReadSymbol(tt.Data)
+		if !ok {
+			llvrw.t.Error("Invalid Value instance provided for ReadSymbol")
+			return "", nil
+		}
+		return symbol, nil
+	default:
 		llvrw.t.Errorf("Incorrect type provided for return value of ReadSymbol: %T", llvrw.readval)
 		return "", nil
 	}
-
-	return string(symb), nil
 }
 
-func (llvrw *llValueReaderWriter) ReadTimestamp() (t uint32, i uint32, err error) {
+func (llvrw *TestValueReaderWriter) ReadTimestamp() (t uint32, i uint32, err error) {
 	llvrw.invoked = llvrwReadTimestamp
 	if llvrw.errAfter == llvrw.invoked {
 		return 0, 0, llvrw.err
 	}
-	ts, ok := llvrw.readval.(bson.Timestamp)
-	if !ok {
+	switch tt := llvrw.readval.(type) {
+	case bsoncore.Value:
+		t, i, _, ok := bsoncore.ReadTimestamp(tt.Data)
+		if !ok {
+			llvrw.t.Errorf("Invalid Value instance provided for return value of ReadTimestamp")
+			return 0, 0, nil
+		}
+		return t, i, nil
+	default:
 		llvrw.t.Errorf("Incorrect type provided for return value of ReadTimestamp: %T", llvrw.readval)
 		return 0, 0, nil
 	}
-
-	return ts.T, ts.I, nil
 }
 
-func (llvrw *llValueReaderWriter) ReadUndefined() error {
+func (llvrw *TestValueReaderWriter) ReadUndefined() error {
 	llvrw.invoked = llvrwReadUndefined
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -347,7 +373,7 @@ func (llvrw *llValueReaderWriter) ReadUndefined() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteArray() (bsonrw.ArrayWriter, error) {
+func (llvrw *TestValueReaderWriter) WriteArray() (bsonrw.ArrayWriter, error) {
 	llvrw.invoked = llvrwWriteArray
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -355,7 +381,7 @@ func (llvrw *llValueReaderWriter) WriteArray() (bsonrw.ArrayWriter, error) {
 	return llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) WriteBinary(b []byte) error {
+func (llvrw *TestValueReaderWriter) WriteBinary(b []byte) error {
 	llvrw.invoked = llvrwWriteBinary
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -363,7 +389,7 @@ func (llvrw *llValueReaderWriter) WriteBinary(b []byte) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteBinaryWithSubtype(b []byte, btype byte) error {
+func (llvrw *TestValueReaderWriter) WriteBinaryWithSubtype(b []byte, btype byte) error {
 	llvrw.invoked = llvrwWriteBinaryWithSubtype
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -371,7 +397,7 @@ func (llvrw *llValueReaderWriter) WriteBinaryWithSubtype(b []byte, btype byte) e
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteBoolean(bool) error {
+func (llvrw *TestValueReaderWriter) WriteBoolean(bool) error {
 	llvrw.invoked = llvrwWriteBoolean
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -379,7 +405,7 @@ func (llvrw *llValueReaderWriter) WriteBoolean(bool) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteCodeWithScope(code string) (bsonrw.DocumentWriter, error) {
+func (llvrw *TestValueReaderWriter) WriteCodeWithScope(code string) (bsonrw.DocumentWriter, error) {
 	llvrw.invoked = llvrwWriteCodeWithScope
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -387,7 +413,7 @@ func (llvrw *llValueReaderWriter) WriteCodeWithScope(code string) (bsonrw.Docume
 	return llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) WriteDBPointer(ns string, oid objectid.ObjectID) error {
+func (llvrw *TestValueReaderWriter) WriteDBPointer(ns string, oid objectid.ObjectID) error {
 	llvrw.invoked = llvrwWriteDBPointer
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -395,7 +421,7 @@ func (llvrw *llValueReaderWriter) WriteDBPointer(ns string, oid objectid.ObjectI
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteDateTime(dt int64) error {
+func (llvrw *TestValueReaderWriter) WriteDateTime(dt int64) error {
 	llvrw.invoked = llvrwWriteDateTime
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -403,7 +429,7 @@ func (llvrw *llValueReaderWriter) WriteDateTime(dt int64) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteDecimal128(decimal.Decimal128) error {
+func (llvrw *TestValueReaderWriter) WriteDecimal128(decimal.Decimal128) error {
 	llvrw.invoked = llvrwWriteDecimal128
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -411,7 +437,7 @@ func (llvrw *llValueReaderWriter) WriteDecimal128(decimal.Decimal128) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteDouble(float64) error {
+func (llvrw *TestValueReaderWriter) WriteDouble(float64) error {
 	llvrw.invoked = llvrwWriteDouble
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -419,7 +445,7 @@ func (llvrw *llValueReaderWriter) WriteDouble(float64) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteInt32(int32) error {
+func (llvrw *TestValueReaderWriter) WriteInt32(int32) error {
 	llvrw.invoked = llvrwWriteInt32
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -427,7 +453,7 @@ func (llvrw *llValueReaderWriter) WriteInt32(int32) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteInt64(int64) error {
+func (llvrw *TestValueReaderWriter) WriteInt64(int64) error {
 	llvrw.invoked = llvrwWriteInt64
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -435,7 +461,7 @@ func (llvrw *llValueReaderWriter) WriteInt64(int64) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteJavascript(code string) error {
+func (llvrw *TestValueReaderWriter) WriteJavascript(code string) error {
 	llvrw.invoked = llvrwWriteJavascript
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -443,7 +469,7 @@ func (llvrw *llValueReaderWriter) WriteJavascript(code string) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteMaxKey() error {
+func (llvrw *TestValueReaderWriter) WriteMaxKey() error {
 	llvrw.invoked = llvrwWriteMaxKey
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -451,7 +477,7 @@ func (llvrw *llValueReaderWriter) WriteMaxKey() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteMinKey() error {
+func (llvrw *TestValueReaderWriter) WriteMinKey() error {
 	llvrw.invoked = llvrwWriteMinKey
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -459,7 +485,7 @@ func (llvrw *llValueReaderWriter) WriteMinKey() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteNull() error {
+func (llvrw *TestValueReaderWriter) WriteNull() error {
 	llvrw.invoked = llvrwWriteNull
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -467,7 +493,7 @@ func (llvrw *llValueReaderWriter) WriteNull() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteObjectID(objectid.ObjectID) error {
+func (llvrw *TestValueReaderWriter) WriteObjectID(objectid.ObjectID) error {
 	llvrw.invoked = llvrwWriteObjectID
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -475,7 +501,7 @@ func (llvrw *llValueReaderWriter) WriteObjectID(objectid.ObjectID) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteRegex(pattern string, options string) error {
+func (llvrw *TestValueReaderWriter) WriteRegex(pattern string, options string) error {
 	llvrw.invoked = llvrwWriteRegex
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -483,7 +509,7 @@ func (llvrw *llValueReaderWriter) WriteRegex(pattern string, options string) err
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteString(string) error {
+func (llvrw *TestValueReaderWriter) WriteString(string) error {
 	llvrw.invoked = llvrwWriteString
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -491,7 +517,7 @@ func (llvrw *llValueReaderWriter) WriteString(string) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteDocument() (bsonrw.DocumentWriter, error) {
+func (llvrw *TestValueReaderWriter) WriteDocument() (bsonrw.DocumentWriter, error) {
 	llvrw.invoked = llvrwWriteDocument
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -499,7 +525,7 @@ func (llvrw *llValueReaderWriter) WriteDocument() (bsonrw.DocumentWriter, error)
 	return llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) WriteSymbol(symbol string) error {
+func (llvrw *TestValueReaderWriter) WriteSymbol(symbol string) error {
 	llvrw.invoked = llvrwWriteSymbol
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -507,7 +533,7 @@ func (llvrw *llValueReaderWriter) WriteSymbol(symbol string) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteTimestamp(t uint32, i uint32) error {
+func (llvrw *TestValueReaderWriter) WriteTimestamp(t uint32, i uint32) error {
 	llvrw.invoked = llvrwWriteTimestamp
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -515,7 +541,7 @@ func (llvrw *llValueReaderWriter) WriteTimestamp(t uint32, i uint32) error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) WriteUndefined() error {
+func (llvrw *TestValueReaderWriter) WriteUndefined() error {
 	llvrw.invoked = llvrwWriteUndefined
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -523,7 +549,7 @@ func (llvrw *llValueReaderWriter) WriteUndefined() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) ReadElement() (string, bsonrw.ValueReader, error) {
+func (llvrw *TestValueReaderWriter) ReadElement() (string, bsonrw.ValueReader, error) {
 	llvrw.invoked = llvrwReadElement
 	if llvrw.errAfter == llvrw.invoked {
 		return "", nil, llvrw.err
@@ -532,7 +558,7 @@ func (llvrw *llValueReaderWriter) ReadElement() (string, bsonrw.ValueReader, err
 	return "", llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) WriteDocumentElement(string) (bsonrw.ValueWriter, error) {
+func (llvrw *TestValueReaderWriter) WriteDocumentElement(string) (bsonrw.ValueWriter, error) {
 	llvrw.invoked = llvrwWriteDocumentElement
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -541,7 +567,7 @@ func (llvrw *llValueReaderWriter) WriteDocumentElement(string) (bsonrw.ValueWrit
 	return llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) WriteDocumentEnd() error {
+func (llvrw *TestValueReaderWriter) WriteDocumentEnd() error {
 	llvrw.invoked = llvrwWriteDocumentEnd
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -550,7 +576,7 @@ func (llvrw *llValueReaderWriter) WriteDocumentEnd() error {
 	return nil
 }
 
-func (llvrw *llValueReaderWriter) ReadValue() (bsonrw.ValueReader, error) {
+func (llvrw *TestValueReaderWriter) ReadValue() (bsonrw.ValueReader, error) {
 	llvrw.invoked = llvrwReadValue
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -559,7 +585,7 @@ func (llvrw *llValueReaderWriter) ReadValue() (bsonrw.ValueReader, error) {
 	return llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) WriteArrayElement() (bsonrw.ValueWriter, error) {
+func (llvrw *TestValueReaderWriter) WriteArrayElement() (bsonrw.ValueWriter, error) {
 	llvrw.invoked = llvrwWriteArrayElement
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -568,7 +594,7 @@ func (llvrw *llValueReaderWriter) WriteArrayElement() (bsonrw.ValueWriter, error
 	return llvrw, nil
 }
 
-func (llvrw *llValueReaderWriter) WriteArrayEnd() error {
+func (llvrw *TestValueReaderWriter) WriteArrayEnd() error {
 	llvrw.invoked = llvrwWriteArrayEnd
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err

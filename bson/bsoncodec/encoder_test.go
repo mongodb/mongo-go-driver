@@ -5,14 +5,15 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 func TestEncoderEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := make(writer, 0, 1024)
-			vw := newValueWriter(&got)
+			got := make(bsonrw.SliceWriter, 0, 1024)
+			vw, err := bsonrw.NewBSONValueWriter(&got)
+			noerr(t, err)
 			reg := NewRegistryBuilder().Build()
 			enc, err := NewEncoder(reg, vw)
 			noerr(t, err)
@@ -20,7 +21,7 @@ func TestEncoderEncode(t *testing.T) {
 			noerr(t, err)
 
 			if !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", bson.Reader(got), bson.Reader(tc.want))
+				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
 				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
 			}
 		})
@@ -32,7 +33,7 @@ func TestEncoderEncode(t *testing.T) {
 			buf     []byte
 			err     error
 			wanterr error
-			vw      ValueWriter
+			vw      bsonrw.ValueWriter
 		}{
 			{
 				"error",
@@ -61,13 +62,16 @@ func TestEncoderEncode(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				marshaler := testMarshaler{buf: tc.buf, err: tc.err}
 
-				var vw ValueWriter
+				var vw bsonrw.ValueWriter
+				var err error
+				b := make(bsonrw.SliceWriter, 0, 100)
 				compareVW := false
 				if tc.vw != nil {
 					vw = tc.vw
 				} else {
 					compareVW = true
-					vw = newValueWriterFromSlice([]byte{})
+					vw, err = bsonrw.NewBSONValueWriter(&b)
+					noerr(t, err)
 				}
 
 				enc, err := NewEncoder(defaultRegistry, vw)
@@ -78,7 +82,7 @@ func TestEncoderEncode(t *testing.T) {
 					t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 				}
 				if compareVW {
-					buf := vw.(*valueWriter).buf
+					buf := b
 					if !bytes.Equal(buf, tc.buf) {
 						t.Errorf("Copied bytes do not match. got %v; want %v", buf, tc.buf)
 					}

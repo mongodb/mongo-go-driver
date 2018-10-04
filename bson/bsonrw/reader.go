@@ -1,7 +1,7 @@
-package bsoncodec
+package bsonrw
 
 import (
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
@@ -22,7 +22,7 @@ type DocumentReader interface {
 // is implemented by several types with different underlying representations of
 // BSON, such as a bson.Document, raw BSON bytes, or extended JSON.
 type ValueReader interface {
-	Type() bson.Type
+	Type() bsontype.Type
 	Skip() error
 
 	ReadArray() (ArrayReader, error)
@@ -54,5 +54,5 @@ type ValueReader interface {
 //
 // The bytes of the value will be appended to dst.
 type BytesReader interface {
-	ReadValueBytes(dst []byte) (bson.Type, []byte, error)
+	ReadValueBytes(dst []byte) (bsontype.Type, []byte, error)
 }

@@ -1,4 +1,4 @@
-package bsoncodec
+package bsonrw
 
 import (
 	"bytes"
@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/elements"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
@@ -23,7 +23,7 @@ func TestValueReader(t *testing.T) {
 			btype  byte
 			b      []byte
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
@@ -31,8 +31,8 @@ func TestValueReader(t *testing.T) {
 				0,
 				0,
 				nil,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeBinary),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Binary),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"length too short",
@@ -41,7 +41,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				nil,
 				io.EOF,
-				bson.TypeBinary,
+				bsontype.Binary,
 			},
 			{
 				"no byte available",
@@ -50,7 +50,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				nil,
 				io.EOF,
-				bson.TypeBinary,
+				bsontype.Binary,
 			},
 			{
 				"not enough bytes for binary",
@@ -59,7 +59,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				nil,
 				io.EOF,
-				bson.TypeBinary,
+				bsontype.Binary,
 			},
 			{
 				"success",
@@ -68,7 +68,7 @@ func TestValueReader(t *testing.T) {
 				0xEA,
 				[]byte{0x01, 0x02, 0x03},
 				nil,
-				bson.TypeBinary,
+				bsontype.Binary,
 			},
 		}
 
@@ -107,15 +107,15 @@ func TestValueReader(t *testing.T) {
 			offset  int64
 			boolean bool
 			err     error
-			vType   bson.Type
+			vType   bsontype.Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
 				0,
 				false,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeBoolean),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Boolean),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"no byte available",
@@ -123,7 +123,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				false,
 				io.EOF,
-				bson.TypeBoolean,
+				bsontype.Boolean,
 			},
 			{
 				"invalid byte for boolean",
@@ -131,7 +131,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				false,
 				fmt.Errorf("invalid byte for boolean, %b", 0x03),
-				bson.TypeBoolean,
+				bsontype.Boolean,
 			},
 			{
 				"success",
@@ -139,7 +139,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				true,
 				nil,
-				bson.TypeBoolean,
+				bsontype.Boolean,
 			},
 		}
 
@@ -196,12 +196,12 @@ func TestValueReader(t *testing.T) {
 				offset: 0,
 				stack: []vrState{
 					{mode: mTopLevel},
-					{mode: mElement, vType: bson.TypeBoolean},
+					{mode: mElement, vType: bsontype.Boolean},
 				},
 				frame: 1,
 			}
 
-			var wanterr = (&valueReader{stack: []vrState{{mode: mElement, vType: bson.TypeBoolean}}}).typeError(bson.TypeEmbeddedDocument)
+			var wanterr = (&valueReader{stack: []vrState{{mode: mElement, vType: bsontype.Boolean}}}).typeError(bsontype.EmbeddedDocument)
 			_, err := vr.ReadDocument()
 			if err == nil || err.Error() != wanterr.Error() {
 				t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
@@ -214,7 +214,7 @@ func TestValueReader(t *testing.T) {
 				t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
 			}
 
-			vr.stack[1].mode, vr.stack[1].vType = mElement, bson.TypeEmbeddedDocument
+			vr.stack[1].mode, vr.stack[1].vType = mElement, bsontype.EmbeddedDocument
 			vr.d = []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00}
 			vr.offset = 4
 			_, err = vr.ReadDocument()
@@ -259,49 +259,49 @@ func TestValueReader(t *testing.T) {
 			data   []byte
 			offset int64
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
 				0,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeCodeWithScope),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.CodeWithScope),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"total length not enough bytes",
 				[]byte{},
 				0,
 				io.EOF,
-				bson.TypeCodeWithScope,
+				bsontype.CodeWithScope,
 			},
 			{
 				"string length not enough bytes",
 				codeWithScope[:4],
 				0,
 				io.EOF,
-				bson.TypeCodeWithScope,
+				bsontype.CodeWithScope,
 			},
 			{
 				"not enough string bytes",
 				codeWithScope[:8],
 				0,
 				io.EOF,
-				bson.TypeCodeWithScope,
+				bsontype.CodeWithScope,
 			},
 			{
 				"document length not enough bytes",
 				codeWithScope[:12],
 				0,
 				io.EOF,
-				bson.TypeCodeWithScope,
+				bsontype.CodeWithScope,
 			},
 			{
 				"length mismatch",
 				mismatchCodeWithScope,
 				0,
 				fmt.Errorf("length of CodeWithScope does not match lengths of components; total: %d; components: %d", 17, 19),
-				bson.TypeCodeWithScope,
+				bsontype.CodeWithScope,
 			},
 		}
 
@@ -336,7 +336,7 @@ func TestValueReader(t *testing.T) {
 				d:      doc,
 				stack: []vrState{
 					{mode: mTopLevel},
-					{mode: mElement, vType: bson.TypeCodeWithScope},
+					{mode: mElement, vType: bsontype.CodeWithScope},
 				},
 				frame: 1,
 			}
@@ -368,7 +368,7 @@ func TestValueReader(t *testing.T) {
 			ns     string
 			oid    objectid.ObjectID
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
@@ -376,8 +376,8 @@ func TestValueReader(t *testing.T) {
 				0,
 				"",
 				objectid.ObjectID{},
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeDBPointer),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.DBPointer),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"length too short",
@@ -386,7 +386,7 @@ func TestValueReader(t *testing.T) {
 				"",
 				objectid.ObjectID{},
 				io.EOF,
-				bson.TypeDBPointer,
+				bsontype.DBPointer,
 			},
 			{
 				"not enough bytes for namespace",
@@ -395,7 +395,7 @@ func TestValueReader(t *testing.T) {
 				"",
 				objectid.ObjectID{},
 				io.EOF,
-				bson.TypeDBPointer,
+				bsontype.DBPointer,
 			},
 			{
 				"not enough bytes for objectID",
@@ -404,7 +404,7 @@ func TestValueReader(t *testing.T) {
 				"",
 				objectid.ObjectID{},
 				io.EOF,
-				bson.TypeDBPointer,
+				bsontype.DBPointer,
 			},
 			{
 				"success",
@@ -416,7 +416,7 @@ func TestValueReader(t *testing.T) {
 				"foo",
 				objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				nil,
-				bson.TypeDBPointer,
+				bsontype.DBPointer,
 			},
 		}
 
@@ -455,15 +455,15 @@ func TestValueReader(t *testing.T) {
 			offset int64
 			dt     int64
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
 				0,
 				0,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeDateTime),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.DateTime),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"length too short",
@@ -471,7 +471,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				0,
 				io.EOF,
-				bson.TypeDateTime,
+				bsontype.DateTime,
 			},
 			{
 				"success",
@@ -479,7 +479,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				255,
 				nil,
-				bson.TypeDateTime,
+				bsontype.DateTime,
 			},
 		}
 
@@ -515,15 +515,15 @@ func TestValueReader(t *testing.T) {
 			offset int64
 			dc128  decimal.Decimal128
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
 				0,
 				decimal.Decimal128{},
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeDecimal128),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Decimal128),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"length too short",
@@ -531,7 +531,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				decimal.Decimal128{},
 				io.EOF,
-				bson.TypeDecimal128,
+				bsontype.Decimal128,
 			},
 			{
 				"success",
@@ -542,7 +542,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				decimal.NewDecimal128(65280, 255),
 				nil,
-				bson.TypeDecimal128,
+				bsontype.Decimal128,
 			},
 		}
 
@@ -583,15 +583,15 @@ func TestValueReader(t *testing.T) {
 			offset int64
 			double float64
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
 				0,
 				0,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeDouble),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Double),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"length too short",
@@ -599,7 +599,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				0,
 				io.EOF,
-				bson.TypeDouble,
+				bsontype.Double,
 			},
 			{
 				"success",
@@ -607,7 +607,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				math.Float64frombits(255),
 				nil,
-				bson.TypeDouble,
+				bsontype.Double,
 			},
 		}
 
@@ -643,15 +643,15 @@ func TestValueReader(t *testing.T) {
 			offset int64
 			i32    int32
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
 				0,
 				0,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeInt32),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Int32),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"length too short",
@@ -659,7 +659,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				0,
 				io.EOF,
-				bson.TypeInt32,
+				bsontype.Int32,
 			},
 			{
 				"success",
@@ -667,7 +667,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				255,
 				nil,
-				bson.TypeInt32,
+				bsontype.Int32,
 			},
 		}
 
@@ -703,15 +703,15 @@ func TestValueReader(t *testing.T) {
 			offset int64
 			i64    int64
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
 				0,
 				0,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeInt64),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Int64),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"length too short",
@@ -719,7 +719,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				0,
 				io.EOF,
-				bson.TypeInt64,
+				bsontype.Int64,
 			},
 			{
 				"success",
@@ -727,7 +727,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				255,
 				nil,
-				bson.TypeInt64,
+				bsontype.Int64,
 			},
 		}
 
@@ -764,7 +764,7 @@ func TestValueReader(t *testing.T) {
 			fn     func(*valueReader) (string, error)
 			css    string // code, string, symbol :P
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"ReadJavascript/incorrect type",
@@ -772,8 +772,8 @@ func TestValueReader(t *testing.T) {
 				0,
 				(*valueReader).ReadJavascript,
 				"",
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeJavaScript),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.JavaScript),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"ReadString/incorrect type",
@@ -781,8 +781,8 @@ func TestValueReader(t *testing.T) {
 				0,
 				(*valueReader).ReadString,
 				"",
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeString),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.String),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"ReadSymbol/incorrect type",
@@ -790,8 +790,8 @@ func TestValueReader(t *testing.T) {
 				0,
 				(*valueReader).ReadSymbol,
 				"",
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeSymbol),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Symbol),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"ReadJavascript/length too short",
@@ -800,7 +800,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadJavascript,
 				"",
 				io.EOF,
-				bson.TypeJavaScript,
+				bsontype.JavaScript,
 			},
 			{
 				"ReadString/length too short",
@@ -809,7 +809,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadString,
 				"",
 				io.EOF,
-				bson.TypeString,
+				bsontype.String,
 			},
 			{
 				"ReadSymbol/length too short",
@@ -818,7 +818,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadSymbol,
 				"",
 				io.EOF,
-				bson.TypeSymbol,
+				bsontype.Symbol,
 			},
 			{
 				"ReadJavascript/incorrect end byte",
@@ -827,7 +827,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadJavascript,
 				"",
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
-				bson.TypeJavaScript,
+				bsontype.JavaScript,
 			},
 			{
 				"ReadString/incorrect end byte",
@@ -836,7 +836,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadString,
 				"",
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
-				bson.TypeString,
+				bsontype.String,
 			},
 			{
 				"ReadSymbol/incorrect end byte",
@@ -845,7 +845,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadSymbol,
 				"",
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
-				bson.TypeSymbol,
+				bsontype.Symbol,
 			},
 			{
 				"ReadJavascript/success",
@@ -854,7 +854,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadJavascript,
 				"foo",
 				nil,
-				bson.TypeJavaScript,
+				bsontype.JavaScript,
 			},
 			{
 				"ReadString/success",
@@ -863,7 +863,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadString,
 				"foo",
 				nil,
-				bson.TypeString,
+				bsontype.String,
 			},
 			{
 				"ReadSymbol/success",
@@ -872,7 +872,7 @@ func TestValueReader(t *testing.T) {
 				(*valueReader).ReadSymbol,
 				"foo",
 				nil,
-				bson.TypeSymbol,
+				bsontype.Symbol,
 			},
 		}
 
@@ -906,55 +906,55 @@ func TestValueReader(t *testing.T) {
 			name  string
 			fn    func(*valueReader) error
 			err   error
-			vType bson.Type
+			vType bsontype.Type
 		}{
 			{
 				"ReadMaxKey/incorrect type",
 				(*valueReader).ReadMaxKey,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeMaxKey),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.MaxKey),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"ReadMaxKey/success",
 				(*valueReader).ReadMaxKey,
 				nil,
-				bson.TypeMaxKey,
+				bsontype.MaxKey,
 			},
 			{
 				"ReadMinKey/incorrect type",
 				(*valueReader).ReadMinKey,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeMinKey),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.MinKey),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"ReadMinKey/success",
 				(*valueReader).ReadMinKey,
 				nil,
-				bson.TypeMinKey,
+				bsontype.MinKey,
 			},
 			{
 				"ReadNull/incorrect type",
 				(*valueReader).ReadNull,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeNull),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Null),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"ReadNull/success",
 				(*valueReader).ReadNull,
 				nil,
-				bson.TypeNull,
+				bsontype.Null,
 			},
 			{
 				"ReadUndefined/incorrect type",
 				(*valueReader).ReadUndefined,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeUndefined),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Undefined),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"ReadUndefined/success",
 				(*valueReader).ReadUndefined,
 				nil,
-				bson.TypeUndefined,
+				bsontype.Undefined,
 			},
 		}
 
@@ -985,15 +985,15 @@ func TestValueReader(t *testing.T) {
 			offset int64
 			oid    objectid.ObjectID
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
 				0,
 				objectid.ObjectID{},
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeObjectID),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.ObjectID),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"not enough bytes for objectID",
@@ -1001,7 +1001,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				objectid.ObjectID{},
 				io.EOF,
-				bson.TypeObjectID,
+				bsontype.ObjectID,
 			},
 			{
 				"success",
@@ -1009,7 +1009,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				nil,
-				bson.TypeObjectID,
+				bsontype.ObjectID,
 			},
 		}
 
@@ -1046,7 +1046,7 @@ func TestValueReader(t *testing.T) {
 			pattern string
 			options string
 			err     error
-			vType   bson.Type
+			vType   bsontype.Type
 		}{
 			{
 				"incorrect type",
@@ -1054,8 +1054,8 @@ func TestValueReader(t *testing.T) {
 				0,
 				"",
 				"",
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeRegex),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Regex),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"length too short",
@@ -1064,7 +1064,7 @@ func TestValueReader(t *testing.T) {
 				"",
 				"",
 				io.EOF,
-				bson.TypeRegex,
+				bsontype.Regex,
 			},
 			{
 				"not enough bytes for options",
@@ -1073,7 +1073,7 @@ func TestValueReader(t *testing.T) {
 				"",
 				"",
 				io.EOF,
-				bson.TypeRegex,
+				bsontype.Regex,
 			},
 			{
 				"success",
@@ -1082,7 +1082,7 @@ func TestValueReader(t *testing.T) {
 				"foo",
 				"bar",
 				nil,
-				bson.TypeRegex,
+				bsontype.Regex,
 			},
 		}
 
@@ -1122,7 +1122,7 @@ func TestValueReader(t *testing.T) {
 			ts     uint32
 			incr   uint32
 			err    error
-			vType  bson.Type
+			vType  bsontype.Type
 		}{
 			{
 				"incorrect type",
@@ -1130,8 +1130,8 @@ func TestValueReader(t *testing.T) {
 				0,
 				0,
 				0,
-				(&valueReader{stack: []vrState{{vType: bson.TypeEmbeddedDocument}}, frame: 0}).typeError(bson.TypeTimestamp),
-				bson.TypeEmbeddedDocument,
+				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Timestamp),
+				bsontype.EmbeddedDocument,
 			},
 			{
 				"not enough bytes for increment",
@@ -1140,7 +1140,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				0,
 				io.EOF,
-				bson.TypeTimestamp,
+				bsontype.Timestamp,
 			},
 			{
 				"not enough bytes for timestamp",
@@ -1149,7 +1149,7 @@ func TestValueReader(t *testing.T) {
 				0,
 				0,
 				io.EOF,
-				bson.TypeTimestamp,
+				bsontype.Timestamp,
 			},
 			{
 				"success",
@@ -1158,7 +1158,7 @@ func TestValueReader(t *testing.T) {
 				256,
 				255,
 				nil,
-				bson.TypeTimestamp,
+				bsontype.Timestamp,
 			},
 		}
 
@@ -1192,191 +1192,191 @@ func TestValueReader(t *testing.T) {
 	})
 
 	t.Run("ReadBytes & Skip", func(t *testing.T) {
-		docb, err := bson.NewDocument(bson.EC.Null("foobar")).MarshalBSON()
-		noerr(t, err)
-		cwsbytes := make([]byte, 41)
-		_, err = elements.CodeWithScope.Encode(0, cwsbytes, "var hellow = world;", docb)
-		noerr(t, err)
+		index, docb := bsoncore.ReserveLength(nil)
+		docb = bsoncore.AppendNullElement(docb, "foobar")
+		docb = append(docb, 0x00)
+		docb = bsoncore.UpdateLength(docb, index, int32(len(docb)))
+		cwsbytes := bsoncore.AppendCodeWithScope(nil, "var hellow = world;", docb)
 		strbytes := []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}
 		testCases := []struct {
 			name   string
-			t      bson.Type
+			t      bsontype.Type
 			data   []byte
 			err    error
 			offset int64
 		}{
 			{
 				"Array/invalid length",
-				bson.TypeArray,
+				bsontype.Array,
 				[]byte{0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"Array/not enough bytes",
-				bson.TypeArray,
+				bsontype.Array,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"Array/success",
-				bson.TypeArray,
+				bsontype.Array,
 				[]byte{0x08, 0x00, 0x00, 0x00, 0x0A, '1', 0x00, 0x00},
 				nil, 8,
 			},
 			{
 				"EmbeddedDocument/invalid length",
-				bson.TypeEmbeddedDocument,
+				bsontype.EmbeddedDocument,
 				[]byte{0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"EmbeddedDocument/not enough bytes",
-				bson.TypeEmbeddedDocument,
+				bsontype.EmbeddedDocument,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"EmbeddedDocument/success",
-				bson.TypeEmbeddedDocument,
+				bsontype.EmbeddedDocument,
 				[]byte{0x08, 0x00, 0x00, 0x00, 0x0A, 'A', 0x00, 0x00},
 				nil, 8,
 			},
 			{
 				"CodeWithScope/invalid length",
-				bson.TypeCodeWithScope,
+				bsontype.CodeWithScope,
 				[]byte{0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"CodeWithScope/not enough bytes",
-				bson.TypeCodeWithScope,
+				bsontype.CodeWithScope,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"CodeWithScope/success",
-				bson.TypeCodeWithScope,
+				bsontype.CodeWithScope,
 				cwsbytes,
 				nil, 41,
 			},
 			{
 				"Binary/invalid length",
-				bson.TypeBinary,
+				bsontype.Binary,
 				[]byte{0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"Binary/not enough bytes",
-				bson.TypeBinary,
+				bsontype.Binary,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"Binary/success",
-				bson.TypeBinary,
+				bsontype.Binary,
 				[]byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
 				nil, 8,
 			},
 			{
 				"Boolean/invalid length",
-				bson.TypeBoolean,
+				bsontype.Boolean,
 				[]byte{},
 				io.EOF, 0,
 			},
 			{
 				"Boolean/success",
-				bson.TypeBoolean,
+				bsontype.Boolean,
 				[]byte{0x01},
 				nil, 1,
 			},
 			{
 				"DBPointer/invalid length",
-				bson.TypeDBPointer,
+				bsontype.DBPointer,
 				[]byte{0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"DBPointer/not enough bytes",
-				bson.TypeDBPointer,
+				bsontype.DBPointer,
 				[]byte{0x0F, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03},
 				io.EOF, 0,
 			},
 			{
 				"DBPointer/success",
-				bson.TypeDBPointer,
+				bsontype.DBPointer,
 				[]byte{0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				nil, 17,
 			},
-			{"DBPointer/not enough bytes", bson.TypeDateTime, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
-			{"DBPointer/success", bson.TypeDateTime, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
-			{"Double/not enough bytes", bson.TypeDouble, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
-			{"Double/success", bson.TypeDouble, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
-			{"Int64/not enough bytes", bson.TypeInt64, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
-			{"Int64/success", bson.TypeInt64, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
-			{"Timestamp/not enough bytes", bson.TypeTimestamp, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
-			{"Timestamp/success", bson.TypeTimestamp, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
+			{"DBPointer/not enough bytes", bsontype.DateTime, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
+			{"DBPointer/success", bsontype.DateTime, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
+			{"Double/not enough bytes", bsontype.Double, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
+			{"Double/success", bsontype.Double, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
+			{"Int64/not enough bytes", bsontype.Int64, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
+			{"Int64/success", bsontype.Int64, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
+			{"Timestamp/not enough bytes", bsontype.Timestamp, []byte{0x01, 0x02, 0x03, 0x04}, io.EOF, 0},
+			{"Timestamp/success", bsontype.Timestamp, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, nil, 8},
 			{
 				"Decimal128/not enough bytes",
-				bson.TypeDecimal128,
+				bsontype.Decimal128,
 				[]byte{0x01, 0x02, 0x03, 0x04},
 				io.EOF, 0,
 			},
 			{
 				"Decimal128/success",
-				bson.TypeDecimal128,
+				bsontype.Decimal128,
 				[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10},
 				nil, 16,
 			},
-			{"Int32/not enough bytes", bson.TypeInt32, []byte{0x01, 0x02}, io.EOF, 0},
-			{"Int32/success", bson.TypeInt32, []byte{0x01, 0x02, 0x03, 0x04}, nil, 4},
-			{"Javascript/invalid length", bson.TypeJavaScript, strbytes[:2], io.EOF, 0},
-			{"Javascript/not enough bytes", bson.TypeJavaScript, strbytes[:5], io.EOF, 0},
-			{"Javascript/success", bson.TypeJavaScript, strbytes, nil, 8},
-			{"String/invalid length", bson.TypeString, strbytes[:2], io.EOF, 0},
-			{"String/not enough bytes", bson.TypeString, strbytes[:5], io.EOF, 0},
-			{"String/success", bson.TypeString, strbytes, nil, 8},
-			{"Symbol/invalid length", bson.TypeSymbol, strbytes[:2], io.EOF, 0},
-			{"Symbol/not enough bytes", bson.TypeSymbol, strbytes[:5], io.EOF, 0},
-			{"Symbol/success", bson.TypeSymbol, strbytes, nil, 8},
-			{"MaxKey/success", bson.TypeMaxKey, []byte{}, nil, 0},
-			{"MinKey/success", bson.TypeMinKey, []byte{}, nil, 0},
-			{"Null/success", bson.TypeNull, []byte{}, nil, 0},
-			{"Undefined/success", bson.TypeUndefined, []byte{}, nil, 0},
+			{"Int32/not enough bytes", bsontype.Int32, []byte{0x01, 0x02}, io.EOF, 0},
+			{"Int32/success", bsontype.Int32, []byte{0x01, 0x02, 0x03, 0x04}, nil, 4},
+			{"Javascript/invalid length", bsontype.JavaScript, strbytes[:2], io.EOF, 0},
+			{"Javascript/not enough bytes", bsontype.JavaScript, strbytes[:5], io.EOF, 0},
+			{"Javascript/success", bsontype.JavaScript, strbytes, nil, 8},
+			{"String/invalid length", bsontype.String, strbytes[:2], io.EOF, 0},
+			{"String/not enough bytes", bsontype.String, strbytes[:5], io.EOF, 0},
+			{"String/success", bsontype.String, strbytes, nil, 8},
+			{"Symbol/invalid length", bsontype.Symbol, strbytes[:2], io.EOF, 0},
+			{"Symbol/not enough bytes", bsontype.Symbol, strbytes[:5], io.EOF, 0},
+			{"Symbol/success", bsontype.Symbol, strbytes, nil, 8},
+			{"MaxKey/success", bsontype.MaxKey, []byte{}, nil, 0},
+			{"MinKey/success", bsontype.MinKey, []byte{}, nil, 0},
+			{"Null/success", bsontype.Null, []byte{}, nil, 0},
+			{"Undefined/success", bsontype.Undefined, []byte{}, nil, 0},
 			{
 				"ObjectID/not enough bytes",
-				bson.TypeObjectID,
+				bsontype.ObjectID,
 				[]byte{0x01, 0x02, 0x03, 0x04},
 				io.EOF, 0,
 			},
 			{
 				"ObjectID/success",
-				bson.TypeObjectID,
+				bsontype.ObjectID,
 				[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				nil, 12,
 			},
 			{
 				"Regex/not enough bytes (first string)",
-				bson.TypeRegex,
+				bsontype.Regex,
 				[]byte{'f', 'o', 'o'},
 				io.EOF, 0,
 			},
 			{
 				"Regex/not enough bytes (second string)",
-				bson.TypeRegex,
+				bsontype.Regex,
 				[]byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r'},
 				io.EOF, 0,
 			},
 			{
 				"Regex/success",
-				bson.TypeRegex,
+				bsontype.Regex,
 				[]byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r', 0x00},
 				nil, 8,
 			},
 			{
 				"Unknown Type",
-				bson.Type(0),
+				bsontype.Type(0),
 				nil,
-				fmt.Errorf("attempted to read bytes of unknown BSON type %v", bson.Type(0)), 0,
+				fmt.Errorf("attempted to read bytes of unknown BSON type %v", bsontype.Type(0)), 0,
 			},
 		}
 

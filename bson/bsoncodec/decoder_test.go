@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
 func TestDecoderv2(t *testing.T) {
@@ -14,7 +15,7 @@ func TestDecoderv2(t *testing.T) {
 		for _, tc := range unmarshalingTestCases {
 			t.Run(tc.name, func(t *testing.T) {
 				got := reflect.New(tc.sType).Interface()
-				vr := newValueReader(tc.data)
+				vr := bsonrw.NewValueReader(tc.data)
 				var reg *Registry
 				if tc.reg != nil {
 					reg = tc.reg
@@ -34,7 +35,7 @@ func TestDecoderv2(t *testing.T) {
 		t.Run("lookup error", func(t *testing.T) {
 			type certainlydoesntexistelsewhereihope func(string, string) string
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
-			dec, err := NewDecoder(defaultRegistry, new(valueReader))
+			dec, err := NewDecoder(defaultRegistry, bsonrw.NewValueReader([]byte{}))
 			noerr(t, err)
 			want := ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
 			got := dec.Decode(&cdeih)
@@ -46,13 +47,13 @@ func TestDecoderv2(t *testing.T) {
 			testCases := []struct {
 				name    string
 				err     error
-				vr      ValueReader
+				vr      bsonrw.ValueReader
 				invoked bool
 			}{
 				{
 					"error",
 					errors.New("Unmarshaler error"),
-					&llValueReaderWriter{bsontype: bson.TypeEmbeddedDocument, err: ErrEOD, errAfter: llvrwReadElement},
+					&llValueReaderWriter{bsontype: bsontype.EmbeddedDocument, err: bsonrw.ErrEOD, errAfter: llvrwReadElement},
 					true,
 				},
 				{
@@ -64,7 +65,7 @@ func TestDecoderv2(t *testing.T) {
 				{
 					"success",
 					nil,
-					&llValueReaderWriter{bsontype: bson.TypeEmbeddedDocument, err: ErrEOD, errAfter: llvrwReadElement},
+					&llValueReaderWriter{bsontype: bsontype.EmbeddedDocument, err: bsonrw.ErrEOD, errAfter: llvrwReadElement},
 					true,
 				},
 			}
@@ -92,7 +93,7 @@ func TestDecoderv2(t *testing.T) {
 	})
 	t.Run("NewDecoderv2", func(t *testing.T) {
 		t.Run("errors", func(t *testing.T) {
-			_, got := NewDecoder(nil, &valueReader{})
+			_, got := NewDecoder(nil, bsonrw.ValueReader(nil))
 			want := errors.New("cannot create a new Decoder with a nil Registry")
 			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 				t.Errorf("Was expecting error but got different error. got %v; want %v", got, want)
@@ -104,7 +105,7 @@ func TestDecoderv2(t *testing.T) {
 			}
 		})
 		t.Run("success", func(t *testing.T) {
-			got, err := NewDecoder(defaultRegistry, &valueReader{})
+			got, err := NewDecoder(defaultRegistry, bsonrw.NewValueReader([]byte{}))
 			noerr(t, err)
 			if got == nil {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
@@ -112,7 +113,7 @@ func TestDecoderv2(t *testing.T) {
 		})
 	})
 	t.Run("Reset", func(t *testing.T) {
-		vr1, vr2 := new(valueReader), new(documentValueReader)
+		vr1, vr2 := bsonrw.NewValueReader([]byte{}), bsonrw.NewValueReader([]byte{})
 		dec, err := NewDecoder(defaultRegistry, vr1)
 		noerr(t, err)
 		if dec.vr != vr1 {
@@ -126,7 +127,7 @@ func TestDecoderv2(t *testing.T) {
 	})
 	t.Run("SetRegistry", func(t *testing.T) {
 		reg1, reg2 := defaultRegistry, NewRegistryBuilder().Build()
-		dec, err := NewDecoder(reg1, new(valueReader))
+		dec, err := NewDecoder(reg1, bsonrw.NewValueReader([]byte{}))
 		noerr(t, err)
 		if dec.r != reg1 {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.r, reg1)
@@ -144,12 +145,12 @@ type testDecoderCodec struct {
 	DecodeValueCalled bool
 }
 
-func (tdc *testDecoderCodec) EncodeValue(EncodeContext, ValueWriter, interface{}) error {
+func (tdc *testDecoderCodec) EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error {
 	tdc.EncodeValueCalled = true
 	return nil
 }
 
-func (tdc *testDecoderCodec) DecodeValue(DecodeContext, ValueReader, interface{}) error {
+func (tdc *testDecoderCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error {
 	tdc.DecodeValueCalled = true
 	return nil
 }

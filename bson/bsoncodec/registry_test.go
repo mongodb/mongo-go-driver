@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 func TestRegistry(t *testing.T) {
@@ -301,8 +302,8 @@ type fakeMapCodec struct{ fakeCodec }
 
 type fakeCodec struct{ num int }
 
-func (fc fakeCodec) EncodeValue(EncodeContext, ValueWriter, interface{}) error { return nil }
-func (fc fakeCodec) DecodeValue(DecodeContext, ValueReader, interface{}) error { return nil }
+func (fc fakeCodec) EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error { return nil }
+func (fc fakeCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error { return nil }
 
 type testInterface1 interface{ test1() }
 type testInterface2 interface{ test2() }

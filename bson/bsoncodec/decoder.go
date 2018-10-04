@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 // This pool is used to keep the allocations of Decoders down. This is only used for the Marshal*
@@ -19,11 +21,11 @@ var decPool = sync.Pool{
 // A Decoder reads and decodes BSON documents from a stream.
 type Decoder struct {
 	r  *Registry
-	vr ValueReader
+	vr bsonrw.ValueReader
 }
 
 // NewDecoder returns a new decoder that uses Registry reg to read from r.
-func NewDecoder(r *Registry, vr ValueReader) (*Decoder, error) {
+func NewDecoder(r *Registry, vr bsonrw.ValueReader) (*Decoder, error) {
 	if r == nil {
 		return nil, errors.New("cannot create a new Decoder with a nil Registry")
 	}
@@ -45,7 +47,7 @@ func NewDecoder(r *Registry, vr ValueReader) (*Decoder, error) {
 func (d *Decoder) Decode(val interface{}) error {
 	if unmarshaler, ok := val.(Unmarshaler); ok {
 		// TODO(skriptble): Reuse a []byte here and use the AppendDocumentBytes method.
-		buf, err := Copier{r: d.r}.CopyDocumentToBytes(d.vr)
+		buf, err := bsonrw.Copier{}.CopyDocumentToBytes(d.vr)
 		if err != nil {
 			return err
 		}
@@ -65,7 +67,7 @@ func (d *Decoder) Decode(val interface{}) error {
 
 // Reset will reset the state of the decoder, using the same *Registry used in
 // the original construction but using r for reading.
-func (d *Decoder) Reset(vr ValueReader) error {
+func (d *Decoder) Reset(vr bsonrw.ValueReader) error {
 	d.vr = vr
 	return nil
 }
