@@ -15,7 +15,6 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/tag"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
@@ -38,7 +37,7 @@ func createTestClient(t *testing.T) *Client {
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 		clock:          &session.ClusterClock{},
-		registry:       defaultRegistry,
+		registry:       bson.DefaultRegistry,
 	}
 }
 
@@ -186,7 +185,7 @@ func TestClient_X509Auth(t *testing.T) {
 			DB   string
 		}
 
-		if err := bsoncodec.Unmarshal(rdr, &u); err != nil {
+		if err := bson.Unmarshal(rdr, &u); err != nil {
 			continue
 		}
 

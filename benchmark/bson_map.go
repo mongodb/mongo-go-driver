@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet string) error {
@@ -18,7 +18,7 @@ func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet st
 
 	for i := 0; i < iters; i++ {
 		out := make(map[string]interface{})
-		err := bsoncodec.Unmarshal(r, &out)
+		err := bson.Unmarshal(r, &out)
 		if err != nil {
 			return nil
 		}
@@ -36,7 +36,7 @@ func bsonMapEncoding(ctx context.Context, tm TimerManager, iters int, dataSet st
 	}
 
 	doc := make(map[string]interface{})
-	err = bsoncodec.Unmarshal(r, &doc)
+	err = bson.Unmarshal(r, &doc)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func bsonMapEncoding(ctx context.Context, tm TimerManager, iters int, dataSet st
 	var buf []byte
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		buf, err = bsoncodec.MarshalAppend(buf[:0], doc)
+		buf, err = bson.MarshalAppend(buf[:0], doc)
 		if err != nil {
 			return nil
 		}
