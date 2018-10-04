@@ -33,7 +33,7 @@ var ErrNotInterface = errors.New("The provided type is not an interface")
 var defaultRegistry *Registry
 
 func init() {
-	defaultRegistry = NewRegistryBuilder().Build()
+	defaultRegistry = buildDefaultRegistry()
 }
 
 // A RegistryBuilder is used to build a Registry. This type is not goroutine
@@ -65,6 +65,8 @@ type Registry struct {
 
 // NewEmptyRegistryBuilder creates a new RegistryBuilder with no default kind
 // Codecs.
+//
+// TODO(skriptble): Rename this to NewRegistryBuilder.
 func NewEmptyRegistryBuilder() *RegistryBuilder {
 	return &RegistryBuilder{
 		typeEncoders: make(map[reflect.Type]ValueEncoder),
@@ -78,58 +80,72 @@ func NewEmptyRegistryBuilder() *RegistryBuilder {
 	}
 }
 
+func buildDefaultRegistry() *Registry {
+	rb := NewEmptyRegistryBuilder()
+	rb = defaultValueEncoders.RegisterDefaultEncoders(rb)
+	rb = defaultValueDecoders.RegisterDefaultDecoders(rb)
+	return rb.Build()
+}
+
 // NewRegistryBuilder creates a new RegistryBuilder.
+//
+// TODO(skriptble): Rename this to NewRegistryBuilderWithDefaults.
 func NewRegistryBuilder() *RegistryBuilder {
+	rb := NewEmptyRegistryBuilder()
+	rb = defaultValueEncoders.RegisterDefaultEncoders(rb)
+	rb = defaultValueDecoders.RegisterDefaultDecoders(rb)
+	return rb
+
 	var dve DefaultValueEncoders
 	var dvd DefaultValueDecoders
 	typeEncoders := map[reflect.Type]ValueEncoder{
-		tDocument:                     ValueEncoderFunc(dve.DocumentEncodeValue),
-		tArray:                        ValueEncoderFunc(dve.ArrayEncodeValue),
-		tValue:                        ValueEncoderFunc(dve.ValueEncodeValue),
-		reflect.PtrTo(tByteSlice):     ValueEncoderFunc(dve.ByteSliceEncodeValue),
-		reflect.PtrTo(tElementSlice):  ValueEncoderFunc(dve.ElementSliceEncodeValue),
-		reflect.PtrTo(tTime):          ValueEncoderFunc(dve.TimeEncodeValue),
-		reflect.PtrTo(tEmpty):         ValueEncoderFunc(dve.EmptyInterfaceEncodeValue),
-		reflect.PtrTo(tBinary):        ValueEncoderFunc(dve.BooleanEncodeValue),
-		reflect.PtrTo(tUndefined):     ValueEncoderFunc(dve.UndefinedEncodeValue),
-		reflect.PtrTo(tOID):           ValueEncoderFunc(dve.ObjectIDEncodeValue),
-		reflect.PtrTo(tDateTime):      ValueEncoderFunc(dve.DateTimeEncodeValue),
-		reflect.PtrTo(tNull):          ValueEncoderFunc(dve.NullEncodeValue),
-		reflect.PtrTo(tRegex):         ValueEncoderFunc(dve.RegexEncodeValue),
-		reflect.PtrTo(tDBPointer):     ValueEncoderFunc(dve.DBPointerEncodeValue),
-		reflect.PtrTo(tCodeWithScope): ValueEncoderFunc(dve.CodeWithScopeEncodeValue),
-		reflect.PtrTo(tTimestamp):     ValueEncoderFunc(dve.TimestampEncodeValue),
-		reflect.PtrTo(tDecimal):       ValueEncoderFunc(dve.Decimal128EncodeValue),
-		reflect.PtrTo(tMinKey):        ValueEncoderFunc(dve.MinKeyEncodeValue),
-		reflect.PtrTo(tMaxKey):        ValueEncoderFunc(dve.MaxKeyEncodeValue),
-		reflect.PtrTo(tJSONNumber):    ValueEncoderFunc(dve.JSONNumberEncodeValue),
-		reflect.PtrTo(tURL):           ValueEncoderFunc(dve.URLEncodeValue),
-		reflect.PtrTo(tReader):        ValueEncoderFunc(dve.ReaderEncodeValue),
+		// tDocument:                     ValueEncoderFunc(dve.DocumentEncodeValue),
+		// tArray:                        ValueEncoderFunc(dve.ArrayEncodeValue),
+		// tValue:                        ValueEncoderFunc(dve.ValueEncodeValue),
+		reflect.PtrTo(tByteSlice): ValueEncoderFunc(dve.ByteSliceEncodeValue),
+		// reflect.PtrTo(tElementSlice): ValueEncoderFunc(dve.ElementSliceEncodeValue),
+		reflect.PtrTo(tTime):  ValueEncoderFunc(dve.TimeEncodeValue),
+		reflect.PtrTo(tEmpty): ValueEncoderFunc(dve.EmptyInterfaceEncodeValue),
+		// reflect.PtrTo(tBinary):        ValueEncoderFunc(dve.BooleanEncodeValue),
+		// reflect.PtrTo(tUndefined):     ValueEncoderFunc(dve.UndefinedEncodeValue),
+		reflect.PtrTo(tOID): ValueEncoderFunc(dve.ObjectIDEncodeValue),
+		// reflect.PtrTo(tDateTime):      ValueEncoderFunc(dve.DateTimeEncodeValue),
+		// reflect.PtrTo(tNull):          ValueEncoderFunc(dve.NullEncodeValue),
+		// reflect.PtrTo(tRegex):         ValueEncoderFunc(dve.RegexEncodeValue),
+		// reflect.PtrTo(tDBPointer):     ValueEncoderFunc(dve.DBPointerEncodeValue),
+		// reflect.PtrTo(tCodeWithScope): ValueEncoderFunc(dve.CodeWithScopeEncodeValue),
+		// reflect.PtrTo(tTimestamp):     ValueEncoderFunc(dve.TimestampEncodeValue),
+		reflect.PtrTo(tDecimal): ValueEncoderFunc(dve.Decimal128EncodeValue),
+		// reflect.PtrTo(tMinKey):        ValueEncoderFunc(dve.MinKeyEncodeValue),
+		// reflect.PtrTo(tMaxKey):        ValueEncoderFunc(dve.MaxKeyEncodeValue),
+		reflect.PtrTo(tJSONNumber): ValueEncoderFunc(dve.JSONNumberEncodeValue),
+		reflect.PtrTo(tURL):        ValueEncoderFunc(dve.URLEncodeValue),
+		// reflect.PtrTo(tReader):        ValueEncoderFunc(dve.ReaderEncodeValue),
 	}
 
 	typeDecoders := map[reflect.Type]ValueDecoder{
-		tDocument:                     ValueDecoderFunc(dvd.DocumentDecodeValue),
-		tArray:                        ValueDecoderFunc(dvd.ArrayDecodeValue),
-		tValue:                        ValueDecoderFunc(dvd.ValueDecodeValue),
-		reflect.PtrTo(tByteSlice):     ValueDecoderFunc(dvd.ByteSliceDecodeValue),
-		reflect.PtrTo(tElementSlice):  ValueDecoderFunc(dvd.ElementSliceDecodeValue),
-		reflect.PtrTo(tTime):          ValueDecoderFunc(dvd.TimeDecodeValue),
-		reflect.PtrTo(tEmpty):         ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue),
-		reflect.PtrTo(tBinary):        ValueDecoderFunc(dvd.BooleanDecodeValue),
-		reflect.PtrTo(tUndefined):     ValueDecoderFunc(dvd.UndefinedDecodeValue),
-		reflect.PtrTo(tOID):           ValueDecoderFunc(dvd.ObjectIDDecodeValue),
-		reflect.PtrTo(tDateTime):      ValueDecoderFunc(dvd.DateTimeDecodeValue),
-		reflect.PtrTo(tNull):          ValueDecoderFunc(dvd.NullDecodeValue),
-		reflect.PtrTo(tRegex):         ValueDecoderFunc(dvd.RegexDecodeValue),
-		reflect.PtrTo(tDBPointer):     ValueDecoderFunc(dvd.DBPointerDecodeValue),
-		reflect.PtrTo(tCodeWithScope): ValueDecoderFunc(dvd.CodeWithScopeDecodeValue),
-		reflect.PtrTo(tTimestamp):     ValueDecoderFunc(dvd.TimestampDecodeValue),
-		reflect.PtrTo(tDecimal):       ValueDecoderFunc(dvd.Decimal128DecodeValue),
-		reflect.PtrTo(tMinKey):        ValueDecoderFunc(dvd.MinKeyDecodeValue),
-		reflect.PtrTo(tMaxKey):        ValueDecoderFunc(dvd.MaxKeyDecodeValue),
-		reflect.PtrTo(tJSONNumber):    ValueDecoderFunc(dvd.JSONNumberDecodeValue),
-		reflect.PtrTo(tURL):           ValueDecoderFunc(dvd.URLDecodeValue),
-		reflect.PtrTo(tReader):        ValueDecoderFunc(dvd.ReaderDecodeValue),
+		// tDocument:                     ValueDecoderFunc(dvd.DocumentDecodeValue),
+		// tArray:                        ValueDecoderFunc(dvd.ArrayDecodeValue),
+		// tValue:                        ValueDecoderFunc(dvd.ValueDecodeValue),
+		reflect.PtrTo(tByteSlice): ValueDecoderFunc(dvd.ByteSliceDecodeValue),
+		// reflect.PtrTo(tElementSlice):  ValueDecoderFunc(dvd.ElementSliceDecodeValue),
+		reflect.PtrTo(tTime):  ValueDecoderFunc(dvd.TimeDecodeValue),
+		reflect.PtrTo(tEmpty): ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue),
+		// reflect.PtrTo(tBinary):        ValueDecoderFunc(dvd.BooleanDecodeValue),
+		// reflect.PtrTo(tUndefined):     ValueDecoderFunc(dvd.UndefinedDecodeValue),
+		reflect.PtrTo(tOID): ValueDecoderFunc(dvd.ObjectIDDecodeValue),
+		// reflect.PtrTo(tDateTime):      ValueDecoderFunc(dvd.DateTimeDecodeValue),
+		// reflect.PtrTo(tNull):          ValueDecoderFunc(dvd.NullDecodeValue),
+		// reflect.PtrTo(tRegex):         ValueDecoderFunc(dvd.RegexDecodeValue),
+		// reflect.PtrTo(tDBPointer):     ValueDecoderFunc(dvd.DBPointerDecodeValue),
+		// reflect.PtrTo(tCodeWithScope): ValueDecoderFunc(dvd.CodeWithScopeDecodeValue),
+		// reflect.PtrTo(tTimestamp): ValueDecoderFunc(dvd.TimestampDecodeValue),
+		reflect.PtrTo(tDecimal): ValueDecoderFunc(dvd.Decimal128DecodeValue),
+		// reflect.PtrTo(tMinKey):        ValueDecoderFunc(dvd.MinKeyDecodeValue),
+		// reflect.PtrTo(tMaxKey):        ValueDecoderFunc(dvd.MaxKeyDecodeValue),
+		reflect.PtrTo(tJSONNumber): ValueDecoderFunc(dvd.JSONNumberDecodeValue),
+		reflect.PtrTo(tURL):        ValueDecoderFunc(dvd.URLDecodeValue),
+		// reflect.PtrTo(tReader):        ValueDecoderFunc(dvd.ReaderDecodeValue),
 	}
 
 	interfaceEncoders := []interfaceValueEncoder{
