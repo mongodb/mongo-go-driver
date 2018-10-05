@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "d61650cb_9f6bd67d",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-05T17:48:35Z",
+      "side": 1,
+      "message": "Eventually I think that we will handle putting the LSID on the command (as metadata) at this level. This means we need to know if this is an explicit sessions, because if it is we will need to return an error when sessions aren\u0027t supported.",
+      "parentUuid": "d2609f6e_9be4e414",
+      "range": {
+        "startLine": 57,
+        "startChar": 1,
+        "endLine": 65,
+        "endChar": 2
+      },
+      "revId": "dd0af4cd180b0ae465b42484a9f56ef4c7895386",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "eeee2e6e_e9371ab0",
         "filename": "core/dispatch/bulk_write.go",
         "patchSetId": 2

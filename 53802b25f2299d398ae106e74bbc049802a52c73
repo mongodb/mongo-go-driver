@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "caedbb07_5a8f04d6",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-05T17:48:35Z",
+      "side": 1,
+      "message": "I don\u0027t think this needs to be a pointer, but it\u0027s likely fine as is since it should be allocated on the stack. If you\u0027re going to push another patch, I\u0027d say throw in a change to make this a value instead of a pointer.",
+      "range": {
+        "startLine": 106,
+        "startChar": 3,
+        "endLine": 106,
+        "endChar": 20
+      },
+      "revId": "53802b25f2299d398ae106e74bbc049802a52c73",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
