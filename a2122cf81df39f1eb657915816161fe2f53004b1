@@ -2,6 +2,109 @@
   "comments": [
     {
       "key": {
+        "uuid": "3b1fdf6f_cf4d54f7",
+        "filename": "bson/bsoncodec/bson_corpus_spec_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-08T22:07:55Z",
+      "side": 1,
+      "message": "DecodeErrors are unused.  We need to assert on those.",
+      "range": {
+        "startLine": 31,
+        "startChar": 0,
+        "endLine": 31,
+        "endChar": 1
+      },
+      "revId": "a2122cf81df39f1eb657915816161fe2f53004b1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e1493df9_572ac62f",
+        "filename": "bson/bsoncodec/bson_corpus_spec_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-08T22:07:55Z",
+      "side": 1,
+      "message": "ParseErrors are unused.  We need to assert on those.",
+      "revId": "a2122cf81df39f1eb657915816161fe2f53004b1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ae48ca2c_b8522b88",
+        "filename": "bson/bsoncodec/bson_corpus_spec_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-08T22:07:55Z",
+      "side": 1,
+      "message": "Are we missing \"native_to_relaxed_extended_json( json_to_native(rEJ) ) \u003d rEJ\"?",
+      "revId": "a2122cf81df39f1eb657915816161fe2f53004b1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c67b4dc3_7ca8d73e",
+        "filename": "bson/bsoncodec/bson_corpus_spec_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 263,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-08T22:07:55Z",
+      "side": 1,
+      "message": "Consider combining with the same condition as on line 213, to avoid code duplication",
+      "range": {
+        "startLine": 263,
+        "startChar": 0,
+        "endLine": 263,
+        "endChar": 1
+      },
+      "revId": "a2122cf81df39f1eb657915816161fe2f53004b1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3811456a_5c3a6dfe",
+        "filename": "bson/bsoncodec/extjson_writer.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 580,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-08T22:07:55Z",
+      "side": 1,
+      "message": "This is not friendly to our non-ascii-speaking brethren. Can we use unicode.MaxLatin1 instead?  Or can we use the unicode.Is* methods (similar to Java driver)?  The idea is to make the JSON readable to users so long as they have the appropriate font to display the characters (since \\u escapes are hard to read)",
+      "range": {
+        "startLine": 580,
+        "startChar": 0,
+        "endLine": 580,
+        "endChar": 1
+      },
+      "revId": "a2122cf81df39f1eb657915816161fe2f53004b1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4ce8cdb_d9b6f417",
         "filename": "bson/bsoncodec/value_writer_test.go",
         "patchSetId": 6
