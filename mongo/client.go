@@ -131,7 +131,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 }
 
 // StartSession starts a new session.
-func (c *Client) StartSession(opts ...sessionopt.Session) (*Session, error) {
+func (c *Client) StartSession(opts ...sessionopt.Session) (Session, error) {
 	if c.topology.SessionPool == nil {
 		return nil, topology.ErrTopologyClosed
 	}
@@ -156,7 +156,7 @@ func (c *Client) StartSession(opts ...sessionopt.Session) (*Session, error) {
 
 	sess.RetryWrite = c.retryWrites
 
-	return &Session{
+	return &sessionImpl{
 		Client: sess,
 		topo:   c.topology,
 	}, nil
@@ -333,10 +333,12 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	listDbOpts, sess, err := listdbopt.BundleListDatabases(opts...).Unbundle(true)
+	listDbOpts, _, err := listdbopt.BundleListDatabases(opts...).Unbundle(true)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
+
+	sess := getSessionFromContext(ctx)
 
 	err = c.ValidSession(sess)
 	if err != nil {
@@ -383,4 +385,57 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 	}
 
 	return names, nil
+}
+
+// WithSession allows a user to start a session themselves and manage
+// its lifetime. The only way to provide a session to a CRUD method is
+// to invoke that CRUD method with the mongo.SessionContext within the
+// closure. The mongo.SessionContext can be used as a regular context,
+// so methods like context.WithDeadline and context.WithTimeout are
+// supported.
+//
+// If the context.Context already has a mongo.Session attached, that
+// mongo.Session will be replaced with the one provided.
+//
+// Errors returned from the closure are transparently returned from
+// this function.
+func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
+	sessCtx := sessionContext{
+		Context: context.WithValue(ctx, sessionKey{}, sess),
+		Session: sess,
+	}
+
+	return fn(sessCtx)
+}
+
+// UseSession creates a default session, that is only valid for the
+// lifetime of the closure. No cleanup outside of closing the session
+// is done upon exiting the closure. This means that an outstanding
+// transaction will be aborted, even if the closure returns an error.
+//
+// If ctx already contains a mongo.Session, that mongo.Session will be
+// replaced with the newly created mongo.Session.
+//
+// Errors returned from the closure are transparently returned from
+// this method.
+func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) error {
+	return c.UseSessionWithOptions(ctx, fn)
+}
+
+// UseSessionWithOptions works like UseSession but allows the caller
+// to specify the options used to create the session.
+func (c *Client) UseSessionWithOptions(ctx context.Context, fn func(SessionContext) error, opts ...sessionopt.Session) error {
+	defaultSess, err := c.StartSession(opts...)
+	if err != nil {
+		return err
+	}
+
+	defer defaultSess.EndSession(ctx)
+
+	sessCtx := sessionContext{
+		Context: context.WithValue(ctx, sessionKey{}, defaultSess),
+		Session: defaultSess,
+	}
+
+	return fn(sessCtx)
 }

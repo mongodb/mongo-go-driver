@@ -67,7 +67,7 @@ func addCollectionOptions(c *Collection, opts map[string]interface{}) {
 	}
 }
 
-func executeCount(sess *Session, coll *Collection, args map[string]interface{}) (int64, error) {
+func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface{}) (int64, error) {
 	var filter map[string]interface{}
 	var bundle *countopt.CountBundle
 	for name, opt := range args {
@@ -84,12 +84,17 @@ func executeCount(sess *Session, coll *Collection, args map[string]interface{}) 
 	}
 
 	if sess != nil {
-		return coll.Count(ctx, filter, bundle, sess)
+		// EXAMPLE:
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.Count(sessCtx, filter, bundle)
 	}
 	return coll.Count(ctx, filter, bundle)
 }
 
-func executeDistinct(sess *Session, coll *Collection, args map[string]interface{}) ([]interface{}, error) {
+func executeDistinct(sess *sessionImpl, coll *Collection, args map[string]interface{}) ([]interface{}, error) {
 	var fieldName string
 	var filter map[string]interface{}
 	var bundle *distinctopt.DistinctBundle
@@ -105,12 +110,16 @@ func executeDistinct(sess *Session, coll *Collection, args map[string]interface{
 	}
 
 	if sess != nil {
-		return coll.Distinct(ctx, fieldName, filter, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.Distinct(sessCtx, fieldName, filter, bundle)
 	}
 	return coll.Distinct(ctx, fieldName, filter, bundle)
 }
 
-func executeInsertOne(sess *Session, coll *Collection, args map[string]interface{}) (*InsertOneResult, error) {
+func executeInsertOne(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*InsertOneResult, error) {
 	document := args["document"].(map[string]interface{})
 
 	// For some reason, the insertion document is unmarshaled with a float rather than integer,
@@ -121,12 +130,16 @@ func executeInsertOne(sess *Session, coll *Collection, args map[string]interface
 	replaceFloatsWithInts(document)
 
 	if sess != nil {
-		return coll.InsertOne(context.Background(), document, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.InsertOne(sessCtx, document)
 	}
 	return coll.InsertOne(context.Background(), document)
 }
 
-func executeInsertMany(sess *Session, coll *Collection, args map[string]interface{}) (*InsertManyResult, error) {
+func executeInsertMany(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*InsertManyResult, error) {
 	documents := args["documents"].([]interface{})
 
 	// For some reason, the insertion documents are unmarshaled with a float rather than
@@ -142,12 +155,16 @@ func executeInsertMany(sess *Session, coll *Collection, args map[string]interfac
 	}
 
 	if sess != nil {
-		return coll.InsertMany(context.Background(), documents, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.InsertMany(sessCtx, documents)
 	}
 	return coll.InsertMany(context.Background(), documents)
 }
 
-func executeFind(sess *Session, coll *Collection, args map[string]interface{}) (Cursor, error) {
+func executeFind(sess *sessionImpl, coll *Collection, args map[string]interface{}) (Cursor, error) {
 	var bundle *findopt.FindBundle
 	var filter map[string]interface{}
 	for name, opt := range args {
@@ -168,12 +185,16 @@ func executeFind(sess *Session, coll *Collection, args map[string]interface{}) (
 	}
 
 	if sess != nil {
-		return coll.Find(ctx, filter, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.Find(sessCtx, filter, bundle)
 	}
 	return coll.Find(ctx, filter, bundle)
 }
 
-func executeFindOneAndDelete(sess *Session, coll *Collection, args map[string]interface{}) *DocumentResult {
+func executeFindOneAndDelete(sess *sessionImpl, coll *Collection, args map[string]interface{}) *DocumentResult {
 	var bundle *findopt.DeleteOneBundle
 	var filter map[string]interface{}
 	for name, opt := range args {
@@ -190,12 +211,16 @@ func executeFindOneAndDelete(sess *Session, coll *Collection, args map[string]in
 	}
 
 	if sess != nil {
-		return coll.FindOneAndDelete(ctx, filter, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.FindOneAndDelete(sessCtx, filter, bundle)
 	}
 	return coll.FindOneAndDelete(ctx, filter, bundle)
 }
 
-func executeFindOneAndUpdate(sess *Session, coll *Collection, args map[string]interface{}) *DocumentResult {
+func executeFindOneAndUpdate(sess *sessionImpl, coll *Collection, args map[string]interface{}) *DocumentResult {
 	var bundle *findopt.UpdateOneBundle
 	var filter map[string]interface{}
 	var update map[string]interface{}
@@ -234,12 +259,16 @@ func executeFindOneAndUpdate(sess *Session, coll *Collection, args map[string]in
 	replaceFloatsWithInts(update)
 
 	if sess != nil {
-		return coll.FindOneAndUpdate(ctx, filter, update, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.FindOneAndUpdate(sessCtx, filter, update, bundle)
 	}
 	return coll.FindOneAndUpdate(ctx, filter, update, bundle)
 }
 
-func executeFindOneAndReplace(sess *Session, coll *Collection, args map[string]interface{}) *DocumentResult {
+func executeFindOneAndReplace(sess *sessionImpl, coll *Collection, args map[string]interface{}) *DocumentResult {
 	var bundle *findopt.ReplaceOneBundle
 	var filter map[string]interface{}
 	var replacement map[string]interface{}
@@ -276,12 +305,16 @@ func executeFindOneAndReplace(sess *Session, coll *Collection, args map[string]i
 	replaceFloatsWithInts(replacement)
 
 	if sess != nil {
-		return coll.FindOneAndReplace(ctx, filter, replacement, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.FindOneAndReplace(sessCtx, filter, replacement, bundle)
 	}
 	return coll.FindOneAndReplace(ctx, filter, replacement, bundle)
 }
 
-func executeDeleteOne(sess *Session, coll *Collection, args map[string]interface{}) (*DeleteResult, error) {
+func executeDeleteOne(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*DeleteResult, error) {
 	var bundle *deleteopt.DeleteBundle
 	var filter map[string]interface{}
 	for name, opt := range args {
@@ -301,12 +334,16 @@ func executeDeleteOne(sess *Session, coll *Collection, args map[string]interface
 	replaceFloatsWithInts(filter)
 
 	if sess != nil {
-		return coll.DeleteOne(ctx, filter, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.DeleteOne(sessCtx, filter, bundle)
 	}
 	return coll.DeleteOne(ctx, filter, bundle)
 }
 
-func executeDeleteMany(sess *Session, coll *Collection, args map[string]interface{}) (*DeleteResult, error) {
+func executeDeleteMany(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*DeleteResult, error) {
 	var bundle *deleteopt.DeleteBundle
 	var filter map[string]interface{}
 	for name, opt := range args {
@@ -326,12 +363,16 @@ func executeDeleteMany(sess *Session, coll *Collection, args map[string]interfac
 	replaceFloatsWithInts(filter)
 
 	if sess != nil {
-		return coll.DeleteMany(ctx, filter, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.DeleteMany(sessCtx, filter, bundle)
 	}
 	return coll.DeleteMany(ctx, filter, bundle)
 }
 
-func executeReplaceOne(sess *Session, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
+func executeReplaceOne(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
 	var bundle *replaceopt.ReplaceBundle
 	var filter map[string]interface{}
 	var replacement map[string]interface{}
@@ -360,12 +401,16 @@ func executeReplaceOne(sess *Session, coll *Collection, args map[string]interfac
 	// because we do not send upsert=false by default
 	bundle = replaceopt.BundleReplace(replaceopt.Upsert(false), bundle)
 	if sess != nil {
-		return coll.ReplaceOne(ctx, filter, replacement, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.ReplaceOne(sessCtx, filter, replacement, bundle)
 	}
 	return coll.ReplaceOne(ctx, filter, replacement, bundle)
 }
 
-func executeUpdateOne(sess *Session, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
+func executeUpdateOne(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
 	var bundle *updateopt.UpdateBundle
 	var filter map[string]interface{}
 	var update map[string]interface{}
@@ -396,12 +441,16 @@ func executeUpdateOne(sess *Session, coll *Collection, args map[string]interface
 	// because we do not send upsert=false by default
 	bundle = updateopt.BundleUpdate(updateopt.Upsert(false), bundle)
 	if sess != nil {
-		return coll.UpdateOne(ctx, filter, update, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.UpdateOne(sessCtx, filter, update, bundle)
 	}
 	return coll.UpdateOne(ctx, filter, update, bundle)
 }
 
-func executeUpdateMany(sess *Session, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
+func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
 	var bundle *updateopt.UpdateBundle
 	var filter map[string]interface{}
 	var update map[string]interface{}
@@ -432,12 +481,16 @@ func executeUpdateMany(sess *Session, coll *Collection, args map[string]interfac
 	// because we do not send upsert=false by default
 	bundle = updateopt.BundleUpdate(updateopt.Upsert(false), bundle)
 	if sess != nil {
-		return coll.UpdateMany(ctx, filter, update, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.UpdateMany(sessCtx, filter, update, bundle)
 	}
 	return coll.UpdateMany(ctx, filter, update, bundle)
 }
 
-func executeAggregate(sess *Session, coll *Collection, args map[string]interface{}) (Cursor, error) {
+func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]interface{}) (Cursor, error) {
 	var bundle *aggregateopt.AggregateBundle
 	var pipeline []interface{}
 	for name, opt := range args {
@@ -452,12 +505,16 @@ func executeAggregate(sess *Session, coll *Collection, args map[string]interface
 	}
 
 	if sess != nil {
-		return coll.Aggregate(ctx, pipeline, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.Aggregate(sessCtx, pipeline, bundle)
 	}
 	return coll.Aggregate(ctx, pipeline, bundle)
 }
 
-func executeRunCommand(sess *Session, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Reader, error) {
+func executeRunCommand(sess *sessionImpl, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Reader, error) {
 	var cmd *bson.Document
 	var bundle *runcmdopt.RunCmdBundle
 	for name, opt := range argmap {
@@ -486,7 +543,11 @@ func executeRunCommand(sess *Session, db *Database, argmap map[string]interface{
 	}
 
 	if sess != nil {
-		return db.RunCommand(ctx, cmd, bundle, sess)
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return db.RunCommand(sessCtx, cmd, bundle)
 	}
 	return db.RunCommand(ctx, cmd, bundle)
 }

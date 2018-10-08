@@ -32,19 +32,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
-	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/countopt"
-	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
-	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
-	"github.com/mongodb/mongo-go-driver/mongo/indexopt"
-	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
-	"github.com/mongodb/mongo-go-driver/mongo/listcollectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/listdbopt"
-	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
-	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,8 +52,9 @@ var sessionsMonitor = &event.CommandMonitor{
 
 type CollFunction struct {
 	name string
-	f    reflect.Value
-	opts []interface{}
+	coll *Collection
+	iv   *IndexView
+	f    func(SessionContext) error
 }
 
 var ctx = context.Background()
@@ -121,30 +111,36 @@ func createFuncMap(t *testing.T, dbName string, collName string, monitored bool)
 	manyIndexes := []IndexModel{barIndex, bazIndex}
 
 	functions := []CollFunction{
-		{"InsertOne", reflect.ValueOf(coll.InsertOne), []interface{}{ctx, doc}},
-		{"InsertMany", reflect.ValueOf(coll.InsertMany), []interface{}{ctx, []interface{}{doc2}}},
-		{"DeleteOne", reflect.ValueOf(coll.DeleteOne), []interface{}{ctx, emptyDoc}},
-		{"DeleteMany", reflect.ValueOf(coll.DeleteMany), []interface{}{ctx, emptyDoc}},
-		{"UpdateOne", reflect.ValueOf(coll.UpdateOne), []interface{}{ctx, emptyDoc, updateDoc}},
-		{"UpdateMany", reflect.ValueOf(coll.UpdateMany), []interface{}{ctx, emptyDoc, updateDoc}},
-		{"ReplaceOne", reflect.ValueOf(coll.ReplaceOne), []interface{}{ctx, emptyDoc, emptyDoc}},
-		{"Aggregate", reflect.ValueOf(coll.Aggregate), []interface{}{ctx, emptyDoc}},
-		{"Count", reflect.ValueOf(coll.Count), []interface{}{ctx, emptyDoc}},
-		{"Distinct", reflect.ValueOf(coll.Distinct), []interface{}{ctx, "field", emptyDoc}},
-		{"Find", reflect.ValueOf(coll.Find), []interface{}{ctx, emptyDoc}},
-		{"FindOne", reflect.ValueOf(coll.FindOne), []interface{}{ctx, emptyDoc}},
-		{"FindOneAndDelete", reflect.ValueOf(coll.FindOneAndDelete), []interface{}{ctx, emptyDoc}},
-		{"FindOneAndReplace", reflect.ValueOf(coll.FindOneAndReplace), []interface{}{ctx, emptyDoc, emptyDoc}},
-		{"FindOneAndUpdate", reflect.ValueOf(coll.FindOneAndUpdate), []interface{}{ctx, emptyDoc, updateDoc}},
-		{"DropCollection", reflect.ValueOf(coll.Drop), []interface{}{ctx}},
-		{"DropDatabase", reflect.ValueOf(db.Drop), []interface{}{ctx}},
-		{"ListCollections", reflect.ValueOf(db.ListCollections), []interface{}{ctx, emptyDoc}},
-		{"ListDatabases", reflect.ValueOf(client.ListDatabases), []interface{}{ctx, emptyDoc}},
-		{"CreateOneIndex", reflect.ValueOf(iv.CreateOne), []interface{}{ctx, fooIndex}},
-		{"CreateManyIndexes", reflect.ValueOf(iv.CreateMany), []interface{}{ctx, manyIndexes}},
-		{"DropOneIndex", reflect.ValueOf(iv.DropOne), []interface{}{ctx, "barIndex"}},
-		{"DropAllIndexes", reflect.ValueOf(iv.DropAll), []interface{}{ctx}},
-		{"ListIndexes", reflect.ValueOf(iv.List), []interface{}{ctx}},
+		{"InsertOne", coll, nil, func(mctx SessionContext) error { _, err := coll.InsertOne(mctx, doc); return err }},
+		{"InsertMany", coll, nil, func(mcxt SessionContext) error { _, err := coll.InsertMany(mcxt, []interface{}{doc2}); return err }},
+		{"DeleteOne", coll, nil, func(mctx SessionContext) error { _, err := coll.DeleteOne(mctx, emptyDoc); return err }},
+		{"DeleteMany", coll, nil, func(mctx SessionContext) error { _, err := coll.DeleteMany(mctx, emptyDoc); return err }},
+		{"UpdateOne", coll, nil, func(mctx SessionContext) error { _, err := coll.UpdateOne(mctx, emptyDoc, updateDoc); return err }},
+		{"UpdateMany", coll, nil, func(mctx SessionContext) error { _, err := coll.UpdateMany(mctx, emptyDoc, updateDoc); return err }},
+		{"ReplaceOne", coll, nil, func(mctx SessionContext) error { _, err := coll.ReplaceOne(mctx, emptyDoc, emptyDoc); return err }},
+		{"Aggregate", coll, nil, func(mctx SessionContext) error { _, err := coll.Aggregate(mctx, emptyDoc); return err }},
+		{"Count", coll, nil, func(mctx SessionContext) error { _, err := coll.Count(mctx, emptyDoc); return err }},
+		{"Distinct", coll, nil, func(mctx SessionContext) error { _, err := coll.Distinct(mctx, "field", emptyDoc); return err }},
+		{"Find", coll, nil, func(mctx SessionContext) error { _, err := coll.Find(mctx, emptyDoc); return err }},
+		{"FindOne", coll, nil, func(mctx SessionContext) error { res := coll.FindOne(mctx, emptyDoc); return res.err }},
+		{"FindOneAndDelete", coll, nil, func(mctx SessionContext) error { res := coll.FindOneAndDelete(mctx, emptyDoc); return res.err }},
+		{"FindOneAndReplace", coll, nil, func(mctx SessionContext) error {
+			res := coll.FindOneAndReplace(mctx, emptyDoc, emptyDoc)
+			return res.err
+		}},
+		{"FindOneAndUpdate", coll, nil, func(mctx SessionContext) error {
+			res := coll.FindOneAndUpdate(mctx, emptyDoc, updateDoc)
+			return res.err
+		}},
+		{"DropCollection", coll, nil, func(mctx SessionContext) error { err := coll.Drop(mctx); return err }},
+		{"DropDatabase", coll, nil, func(mctx SessionContext) error { err := db.Drop(mctx); return err }},
+		{"ListCollections", coll, nil, func(mctx SessionContext) error { _, err := db.ListCollections(mctx, emptyDoc); return err }},
+		{"ListDatabases", coll, nil, func(mctx SessionContext) error { _, err := client.ListDatabases(mctx, emptyDoc); return err }},
+		{"CreateOneIndex", coll, nil, func(mctx SessionContext) error { _, err := iv.CreateOne(mctx, fooIndex); return err }},
+		{"CreateManyIndexes", coll, nil, func(mctx SessionContext) error { _, err := iv.CreateMany(mctx, manyIndexes); return err }},
+		{"DropOneIndex", coll, &iv, func(mctx SessionContext) error { _, err := iv.DropOne(mctx, "barIndex"); return err }},
+		{"DropAllIndexes", coll, nil, func(mctx SessionContext) error { _, err := iv.DropAll(mctx); return err }},
+		{"ListIndexes", coll, nil, func(mctx SessionContext) error { _, err := iv.List(mctx); return err }},
 	}
 
 	return client, db, coll, functions
@@ -329,7 +325,7 @@ func checkLsidIncluded(t *testing.T, shouldInclude bool) {
 	}
 }
 
-func checkUnbundle(t *testing.T, s1 *session.Client, s2 *Session, cid uuid.UUID, err error) {
+func checkUnbundle(t *testing.T, s1 *session.Client, s2 *sessionImpl, cid uuid.UUID, err error) {
 	testhelpers.RequireNil(t, err, "Unexpected error unbundling: %s", err)
 	if s1.ClientID != cid {
 		t.Fatalf("expected client ID: %s, received client ID: %s", s1.ClientID, cid)
@@ -364,25 +360,30 @@ func TestSessions(t *testing.T) {
 		client := createTestClient(t)
 		defer verifySessionsReturned(t, client)
 
-		a, err := client.StartSession()
+		aSess, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error starting session a: %s", err)
-		b, err := client.StartSession()
+		bSess, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error starting session b: %s", err)
+		a := aSess.(*sessionImpl)
+		b := bSess.(*sessionImpl)
 
 		a.EndSession(ctx)
 		b.EndSession(ctx)
 
-		first, err := client.StartSession()
+		firstSess, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error starting first session: %s", err)
-		defer first.EndSession(ctx)
+		defer firstSess.EndSession(ctx)
+		first := firstSess.(*sessionImpl)
 
 		if !sessionIDsEqual(t, first.SessionID, b.SessionID) {
 			t.Errorf("expected first session ID to be %#v. got %#v", first.SessionID, b.SessionID)
 		}
 
-		second, err := client.StartSession()
+		secondSess, err := client.StartSession()
 		testhelpers.RequireNil(t, err, "error starting second session: %s", err)
-		defer second.EndSession(ctx)
+		defer secondSess.EndSession(ctx)
+		second := secondSess.(*sessionImpl)
+
 		if !sessionIDsEqual(t, second.SessionID, a.SessionID) {
 			t.Errorf("expected second session ID to be %#v. got %#v", second.SessionID, a.SessionID)
 		}
@@ -478,14 +479,13 @@ func TestSessions(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				defer verifySessionsReturned(t, client)
 
-				sess, err := client.StartSession()
+				s, err := client.StartSession()
 				testhelpers.RequireNil(t, err, "error creating session for %s: %s", tc.name, err)
-				defer sess.EndSession(ctx)
-				opts := append(tc.opts, sess)
+				defer s.EndSession(ctx)
+				sess := s.(*sessionImpl)
 
 				// check to see if lsid included with explicit session
-				returnVals := tc.f.Call(getOptValues(opts))
-				err = getReturnError(returnVals)
+				err = WithSession(ctx, sess, tc.f)
 				testhelpers.RequireNil(t, err, "error running %s: %s", tc.name, err)
 
 				_, sessID := sess.SessionID.Lookup("id").Binary()
@@ -494,19 +494,26 @@ func TestSessions(t *testing.T) {
 				}
 
 				// can't insert same document again
-				lastIndex := len(tc.opts) - 1
 				if tc.name == "InsertOne" {
-					tc.opts[lastIndex] = bson.NewDocument(bson.EC.Int32("InsertOneNewDoc", 1))
+					tc.f = func(mctx SessionContext) error {
+						_, err := tc.coll.InsertOne(mctx, bson.NewDocument(bson.EC.Int32("InsertOneNewDoc", 1)))
+						return err
+					}
 				} else if tc.name == "InsertMany" {
-					tc.opts[lastIndex] = []interface{}{bson.NewDocument(bson.EC.Int32("InsertManyNewDoc", 2))}
+					tc.f = func(mctx SessionContext) error {
+						_, err := tc.coll.InsertMany(mctx, []interface{}{bson.NewDocument(bson.EC.Int32("InsertManyNewDoc", 2))})
+						return err
+					}
 				} else if tc.name == "DropOneIndex" {
-					tc.opts[lastIndex] = "bazIndex"
+					tc.f = func(mctx SessionContext) error {
+						_, err := tc.iv.DropOne(mctx, "bazIndex")
+						return err
+					}
 				}
 
-				returnVals = tc.f.Call(getOptValues(tc.opts))
-				err = getReturnError(returnVals)
+				err = WithSession(ctx, sess, tc.f)
 				testhelpers.RequireNil(t, err, "error running %s: %s", tc.name, err)
-				defer drainCursor(returnVals)
+				//defer drainCursor(returnVals)
 
 				// check to see if lsid included with implicit session
 				shouldInclude := validSessionsVersion(t, db)
@@ -531,18 +538,11 @@ func TestSessions(t *testing.T) {
 				testhelpers.RequireNil(t, err, "error starting session: %s", err)
 				defer sess.EndSession(ctx)
 
-				opts := append(tc.opts, sess)
-				valOpts := make([]reflect.Value, 0, len(opts))
-				for _, opt := range opts {
-					valOpts = append(valOpts, reflect.ValueOf(opt))
-				}
-
-				returnVals := tc.f.Call(valOpts)
-				err = getReturnError(returnVals)
+				err = WithSession(ctx, sess, tc.f)
 				testhelpers.RequireNotNil(t, err, "expected err for %s got nil", tc.name)
 
 				if err != ErrWrongClient {
-					t.Errorf("expected error using wrong client for function %s; got: %s", tc.f.String(), err)
+					t.Errorf("expected error using wrong client for function %s; got: %s", reflect.ValueOf(tc.f).String(), err)
 				}
 			})
 		}
@@ -561,18 +561,11 @@ func TestSessions(t *testing.T) {
 				testhelpers.RequireNil(t, err, "error starting session: %s", err)
 				sess.EndSession(ctx)
 
-				opts := append(tc.opts, sess)
-				valOpts := make([]reflect.Value, 0, len(opts))
-				for _, opt := range opts {
-					valOpts = append(valOpts, reflect.ValueOf(opt))
-				}
-
-				returnVals := tc.f.Call(valOpts)
-				err = getReturnError(returnVals)
+				err = WithSession(ctx, sess, tc.f)
 				testhelpers.RequireNotNil(t, err, "expected error for %s got nil", tc.name)
 
 				if err != session.ErrSessionEnded {
-					t.Errorf("expected error using ended session for function %s; got: %s", tc.f.String(), err)
+					t.Errorf("expected error using ended session for function %s; got: %s", reflect.ValueOf(tc.f).String(), err)
 				}
 			})
 		}
@@ -727,91 +720,91 @@ func TestSessions(t *testing.T) {
 		}
 	})
 
-	t.Run("TestSessionUnbundling", func(t *testing.T) {
-		client := createTestClient(t)
-		sess1, err := client.StartSession()
-		sess2, err := client.StartSession()
-		testhelpers.RequireNil(t, err, "Unexpected error starting session: %s", err)
-
-		t.Run("TestAggregateOpt", func(t *testing.T) {
-			_, s, err := aggregateopt.BundleAggregate(sess1, aggregateopt.BundleAggregate(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestChangeStreamOpt", func(t *testing.T) {
-			_, s, err := changestreamopt.BundleChangeStream(sess1, changestreamopt.BundleChangeStream(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestCountOpt", func(t *testing.T) {
-			_, s, err := countopt.BundleCount(sess1, countopt.BundleCount(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestCountOpt", func(t *testing.T) {
-			_, s, err := deleteopt.BundleDelete(sess1, deleteopt.BundleDelete(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestDistinctOpt", func(t *testing.T) {
-			_, s, err := distinctopt.BundleDistinct(sess1, distinctopt.BundleDistinct(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestFindOpt", func(t *testing.T) {
-			_, s, err := findopt.BundleOne(sess1, findopt.BundleOne(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-
-			_, s, err = findopt.BundleFind(sess1, findopt.BundleFind(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-
-			_, s, err = findopt.BundleDeleteOne(sess1, findopt.BundleDeleteOne(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-
-			_, s, err = findopt.BundleReplaceOne(sess1, findopt.BundleReplaceOne(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-
-			_, s, err = findopt.BundleUpdateOne(sess1, findopt.BundleUpdateOne(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestIndexOpt", func(t *testing.T) {
-			_, s, err := indexopt.BundleCreate(sess1, indexopt.BundleCreate(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-
-			_, s, err = indexopt.BundleDrop(sess1, indexopt.BundleDrop(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-
-			_, s, err = indexopt.BundleList(sess1, indexopt.BundleList(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestInsertOpt", func(t *testing.T) {
-			_, s, err := insertopt.BundleMany(sess1, insertopt.BundleMany(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-
-			_, s, err = insertopt.BundleOne(sess1, insertopt.BundleOne(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestListCollOpt", func(t *testing.T) {
-			_, s, err := listcollectionopt.BundleListCollections(sess1, listcollectionopt.BundleListCollections(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestListDBOpt", func(t *testing.T) {
-			_, s, err := listdbopt.BundleListDatabases(sess1, listdbopt.BundleListDatabases(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestReplaceOpt", func(t *testing.T) {
-			_, s, err := replaceopt.BundleReplace(sess1, replaceopt.BundleReplace(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-
-		t.Run("TestUpdateOpt", func(t *testing.T) {
-			_, s, err := updateopt.BundleUpdate(sess1, updateopt.BundleUpdate(sess2)).Unbundle(true)
-			checkUnbundle(t, s, sess2, client.id, err)
-		})
-	})
+	//t.Run("TestSessionUnbundling", func(t *testing.T) {
+	//	client := createTestClient(t)
+	//	sess1, err := client.StartSession()
+	//	sess2, err := client.StartSession()
+	//	testhelpers.RequireNil(t, err, "Unexpected error starting session: %s", err)
+	//
+	//	t.Run("TestAggregateOpt", func(t *testing.T) {
+	//		_, s, err := aggregateopt.BundleAggregate(sess1, aggregateopt.BundleAggregate(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestChangeStreamOpt", func(t *testing.T) {
+	//		_, s, err := changestreamopt.BundleChangeStream(sess1, changestreamopt.BundleChangeStream(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestCountOpt", func(t *testing.T) {
+	//		_, s, err := countopt.BundleCount(sess1, countopt.BundleCount(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestCountOpt", func(t *testing.T) {
+	//		_, s, err := deleteopt.BundleDelete(sess1, deleteopt.BundleDelete(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestDistinctOpt", func(t *testing.T) {
+	//		_, s, err := distinctopt.BundleDistinct(sess1, distinctopt.BundleDistinct(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestFindOpt", func(t *testing.T) {
+	//		_, s, err := findopt.BundleOne(sess1, findopt.BundleOne(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//
+	//		_, s, err = findopt.BundleFind(sess1, findopt.BundleFind(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//
+	//		_, s, err = findopt.BundleDeleteOne(sess1, findopt.BundleDeleteOne(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//
+	//		_, s, err = findopt.BundleReplaceOne(sess1, findopt.BundleReplaceOne(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//
+	//		_, s, err = findopt.BundleUpdateOne(sess1, findopt.BundleUpdateOne(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestIndexOpt", func(t *testing.T) {
+	//		_, s, err := indexopt.BundleCreate(sess1, indexopt.BundleCreate(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//
+	//		_, s, err = indexopt.BundleDrop(sess1, indexopt.BundleDrop(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//
+	//		_, s, err = indexopt.BundleList(sess1, indexopt.BundleList(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestInsertOpt", func(t *testing.T) {
+	//		_, s, err := insertopt.BundleMany(sess1, insertopt.BundleMany(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//
+	//		_, s, err = insertopt.BundleOne(sess1, insertopt.BundleOne(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestListCollOpt", func(t *testing.T) {
+	//		_, s, err := listcollectionopt.BundleListCollections(sess1, listcollectionopt.BundleListCollections(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestListDBOpt", func(t *testing.T) {
+	//		_, s, err := listdbopt.BundleListDatabases(sess1, listdbopt.BundleListDatabases(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestReplaceOpt", func(t *testing.T) {
+	//		_, s, err := replaceopt.BundleReplace(sess1, replaceopt.BundleReplace(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//
+	//	t.Run("TestUpdateOpt", func(t *testing.T) {
+	//		_, s, err := updateopt.BundleUpdate(sess1, updateopt.BundleUpdate(sess2)).Unbundle(true)
+	//		checkUnbundle(t, s, sess2, client.id, err)
+	//	})
+	//})
 }
