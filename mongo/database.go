@@ -16,7 +16,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
-	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
@@ -99,10 +98,13 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		ctx = context.Background()
 	}
 
-	runCmd, sess, err := runcmdopt.BundleRunCmd(opts...).Unbundle()
+	runCmd, _, err := runcmdopt.BundleRunCmd(opts...).Unbundle()
 	if err != nil {
 		return nil, err
 	}
+
+	sess := sessionFromContext(ctx)
+
 	rp := runCmd.ReadPreference
 	if rp == nil {
 		if sess != nil && sess.TransactionRunning() {
@@ -138,12 +140,7 @@ func (db *Database) Drop(ctx context.Context, opts ...dbopt.DropDB) error {
 		ctx = context.Background()
 	}
 
-	var sess *session.Client
-	for _, opt := range opts {
-		if conv, ok := opt.(dbopt.DropDBSession); ok {
-			sess = conv.ConvertDropDBSession()
-		}
-	}
+	sess := sessionFromContext(ctx)
 
 	err := db.client.ValidSession(sess)
 	if err != nil {
@@ -173,10 +170,12 @@ func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, 
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	listCollOpts, sess, err := listcollectionopt.BundleListCollections(opts...).Unbundle(true)
+	listCollOpts, _, err := listcollectionopt.BundleListCollections(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
+
+	sess := sessionFromContext(ctx)
 
 	err = db.client.ValidSession(sess)
 	if err != nil {

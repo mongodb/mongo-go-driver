@@ -46,10 +46,12 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		return nil, err
 	}
 
-	csOpts, sess, err := changestreamopt.BundleChangeStream(opts...).Unbundle(true)
+	csOpts, _, err := changestreamopt.BundleChangeStream(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
 	}
+
+	sess := sessionFromContext(ctx)
 
 	err = coll.client.ValidSession(sess)
 	if err != nil {

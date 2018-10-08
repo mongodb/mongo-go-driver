@@ -9,7 +9,6 @@ package mongo
 import (
 	"context"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
@@ -82,11 +81,11 @@ func createReadFuncMap(t *testing.T, dbName string, collName string) (*Client, *
 	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
 
 	functions := []CollFunction{
-		{"Aggregate", reflect.ValueOf(coll.Aggregate), []interface{}{ctx, emptyDoc}},
-		{"Count", reflect.ValueOf(coll.Count), []interface{}{ctx, emptyDoc}},
-		{"Distinct", reflect.ValueOf(coll.Distinct), []interface{}{ctx, "field", emptyDoc}},
-		{"Find", reflect.ValueOf(coll.Find), []interface{}{ctx, emptyDoc}},
-		{"FindOne", reflect.ValueOf(coll.FindOne), []interface{}{ctx, emptyDoc}},
+		{"Aggregate", coll, nil, func(mctx SessionContext) error { _, err := coll.Aggregate(mctx, emptyDoc); return err }},
+		{"Count", coll, nil, func(mctx SessionContext) error { _, err := coll.Count(mctx, emptyDoc); return err }},
+		{"Distinct", coll, nil, func(mctx SessionContext) error { _, err := coll.Distinct(mctx, "field", emptyDoc); return err }},
+		{"Find", coll, nil, func(mctx SessionContext) error { _, err := coll.Find(mctx, emptyDoc); return err }},
+		{"FindOne", coll, nil, func(mctx SessionContext) error { res := coll.FindOne(mctx, emptyDoc); return res.err }},
 	}
 
 	_, err = coll.InsertOne(ctx, startingDoc)
@@ -137,25 +136,31 @@ func createWriteFuncMap(t *testing.T, dbName string, collName string) (*Client, 
 	manyIndexes := []IndexModel{barIndex, bazIndex}
 
 	functions := []CollFunction{
-		{"InsertOne", reflect.ValueOf(coll.InsertOne), []interface{}{ctx, doc}},
-		{"InsertMany", reflect.ValueOf(coll.InsertMany), []interface{}{ctx, []interface{}{doc2}}},
-		{"DeleteOne", reflect.ValueOf(coll.DeleteOne), []interface{}{ctx, emptyDoc}},
-		{"DeleteMany", reflect.ValueOf(coll.DeleteMany), []interface{}{ctx, emptyDoc}},
-		{"UpdateOne", reflect.ValueOf(coll.UpdateOne), []interface{}{ctx, emptyDoc, updateDoc}},
-		{"UpdateMany", reflect.ValueOf(coll.UpdateMany), []interface{}{ctx, emptyDoc, updateDoc}},
-		{"ReplaceOne", reflect.ValueOf(coll.ReplaceOne), []interface{}{ctx, emptyDoc, emptyDoc}},
-		{"FindOneAndDelete", reflect.ValueOf(coll.FindOneAndDelete), []interface{}{ctx, emptyDoc}},
-		{"FindOneAndReplace", reflect.ValueOf(coll.FindOneAndReplace), []interface{}{ctx, emptyDoc, emptyDoc}},
-		{"FindOneAndUpdate", reflect.ValueOf(coll.FindOneAndUpdate), []interface{}{ctx, emptyDoc, updateDoc}},
-		{"DropCollection", reflect.ValueOf(coll.Drop), []interface{}{ctx}},
-		{"DropDatabase", reflect.ValueOf(db.Drop), []interface{}{ctx}},
-		{"ListCollections", reflect.ValueOf(db.ListCollections), []interface{}{ctx, emptyDoc}},
-		{"ListDatabases", reflect.ValueOf(client.ListDatabases), []interface{}{ctx, emptyDoc}},
-		{"CreateOneIndex", reflect.ValueOf(iv.CreateOne), []interface{}{ctx, fooIndex}},
-		{"CreateManyIndexes", reflect.ValueOf(iv.CreateMany), []interface{}{ctx, manyIndexes}},
-		{"DropOneIndex", reflect.ValueOf(iv.DropOne), []interface{}{ctx, "barIndex"}},
-		{"DropAllIndexes", reflect.ValueOf(iv.DropAll), []interface{}{ctx}},
-		{"ListIndexes", reflect.ValueOf(iv.List), []interface{}{ctx}},
+		{"InsertOne", coll, nil, func(mctx SessionContext) error { _, err := coll.InsertOne(mctx, doc); return err }},
+		{"InsertMany", coll, nil, func(mctx SessionContext) error { _, err := coll.InsertMany(mctx, []interface{}{doc2}); return err }},
+		{"DeleteOne", coll, nil, func(mctx SessionContext) error { _, err := coll.DeleteOne(mctx, emptyDoc); return err }},
+		{"DeleteMany", coll, nil, func(mctx SessionContext) error { _, err := coll.DeleteMany(mctx, emptyDoc); return err }},
+		{"UpdateOne", coll, nil, func(mctx SessionContext) error { _, err := coll.UpdateOne(mctx, emptyDoc, updateDoc); return err }},
+		{"UpdateMany", coll, nil, func(mctx SessionContext) error { _, err := coll.UpdateMany(mctx, emptyDoc, updateDoc); return err }},
+		{"ReplaceOne", coll, nil, func(mctx SessionContext) error { _, err := coll.ReplaceOne(mctx, emptyDoc, emptyDoc); return err }},
+		{"FindOneAndDelete", coll, nil, func(mctx SessionContext) error { res := coll.FindOneAndDelete(mctx, emptyDoc); return res.err }},
+		{"FindOneAndReplace", coll, nil, func(mctx SessionContext) error {
+			res := coll.FindOneAndReplace(mctx, emptyDoc, emptyDoc)
+			return res.err
+		}},
+		{"FindOneAndUpdate", coll, nil, func(mctx SessionContext) error {
+			res := coll.FindOneAndUpdate(mctx, emptyDoc, updateDoc)
+			return res.err
+		}},
+		{"DropCollection", coll, nil, func(mctx SessionContext) error { err := coll.Drop(mctx); return err }},
+		{"DropDatabase", coll, nil, func(mctx SessionContext) error { err := db.Drop(mctx); return err }},
+		{"ListCollections", coll, nil, func(mctx SessionContext) error { _, err := db.ListCollections(mctx, emptyDoc); return err }},
+		{"ListDatabases", coll, nil, func(mctx SessionContext) error { _, err := client.ListDatabases(mctx, emptyDoc); return err }},
+		{"CreateOneIndex", coll, nil, func(mctx SessionContext) error { _, err := iv.CreateOne(mctx, fooIndex); return err }},
+		{"CreateManyIndexes", coll, nil, func(mctx SessionContext) error { _, err := iv.CreateMany(mctx, manyIndexes); return err }},
+		{"DropOneIndex", coll, nil, func(mctx SessionContext) error { _, err := iv.DropOne(mctx, "barIndex"); return err }},
+		{"DropAllIndexes", coll, nil, func(mctx SessionContext) error { _, err := iv.DropAll(mctx); return err }},
+		{"ListIndexes", coll, nil, func(mctx SessionContext) error { _, err := iv.List(mctx); return err }},
 	}
 
 	return client, db, coll, functions
@@ -183,7 +188,7 @@ func TestCausalConsistency(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error creating session: %s", err)
 		defer sess.EndSession(ctx)
 
-		if sess.OperationTime != nil {
+		if sess.OperationTime() != nil {
 			t.Fatal("operation time is not nil")
 		}
 	})
@@ -192,16 +197,17 @@ func TestCausalConsistency(t *testing.T) {
 		// First read in causally consistent session must not send afterClusterTime to the server
 
 		client := createSessionsMonitoredClient(t, ccMonitor)
-		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
-		testhelpers.RequireNil(t, err, "error creating session: %s", err)
-		defer sess.EndSession(ctx)
 
 		db := client.Database("FirstCommandDB")
-		err = db.Drop(ctx)
+		err := db.Drop(ctx)
 		testhelpers.RequireNil(t, err, "error dropping db: %s", err)
 
 		coll := db.Collection("FirstCommandColl")
-		_, err = coll.Find(ctx, emptyDoc, sess)
+		err = client.UseSessionWithOptions(ctx, []sessionopt.Session{sessionopt.CausalConsistency(true)},
+			func(mctx SessionContext) error {
+				_, err := coll.Find(mctx, emptyDoc)
+				return err
+			})
 		testhelpers.RequireNil(t, err, "error running find: %s", err)
 
 		testhelpers.RequireNotNil(t, ccStarted, "no started command found")
@@ -228,13 +234,16 @@ func TestCausalConsistency(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error dropping db: %s", err)
 
 		coll := db.Collection("OptimeUpdateColl")
-		_, _ = coll.Find(ctx, emptyDoc, sess)
+		_ = WithSession(ctx, sess, func(mctx SessionContext) error {
+			_, _ = coll.Find(mctx, emptyDoc)
+			return nil
+		})
 
 		testhelpers.RequireNotNil(t, ccSucceeded, "no succeeded command")
 		serverT, serverI := ccSucceeded.Reply.Lookup("operationTime").Timestamp()
 
-		testhelpers.RequireNotNil(t, sess.OperationTime, "operation time nil after first command")
-		compareOperationTimes(t, &bson.Timestamp{serverT, serverI}, sess.OperationTime)
+		testhelpers.RequireNotNil(t, sess.OperationTime(), "operation time nil after first command")
+		compareOperationTimes(t, &bson.Timestamp{serverT, serverI}, sess.OperationTime())
 	})
 
 	t.Run("TestOperationTimeSent", func(t *testing.T) {
@@ -252,14 +261,15 @@ func TestCausalConsistency(t *testing.T) {
 				testhelpers.RequireNil(t, err, "error creating session for %s: %s", tc.name, err)
 				defer sess.EndSession(ctx)
 
-				opts := append(tc.opts, sess)
-				docRes := coll.FindOne(ctx, emptyDoc, sess)
-				testhelpers.RequireNil(t, docRes.err, "find one error for %s: %s", tc.name, docRes.err)
+				err = WithSession(ctx, sess, func(mctx SessionContext) error {
+					docRes := coll.FindOne(mctx, emptyDoc)
+					return docRes.err
+				})
+				testhelpers.RequireNil(t, err, "find one error for %s: %s", tc.name, err)
 
-				currOptime := sess.OperationTime
+				currOptime := sess.OperationTime()
 
-				returnVals := tc.f.Call(getOptValues(opts))
-				err = getReturnError(returnVals)
+				err = WithSession(ctx, sess, tc.f)
 				testhelpers.RequireNil(t, err, "error running %s: %s", tc.name, err)
 
 				testhelpers.RequireNotNil(t, ccStarted, "no started command")
@@ -285,13 +295,15 @@ func TestCausalConsistency(t *testing.T) {
 				testhelpers.RequireNil(t, err, "error starting session: %s", err)
 				defer sess.EndSession(ctx)
 
-				opts := append(tc.opts, sess)
-				returnVals := tc.f.Call(getOptValues(opts))
-				err = getReturnError(returnVals)
+				err = WithSession(ctx, sess, tc.f)
 				testhelpers.RequireNil(t, err, "error running %s: %s", tc.name, err)
 
-				currentOptime := sess.OperationTime
-				_ = coll.FindOne(ctx, emptyDoc, sess)
+				currentOptime := sess.OperationTime()
+
+				_ = WithSession(ctx, sess, func(mctx SessionContext) error {
+					_ = coll.FindOne(mctx, emptyDoc)
+					return nil
+				})
 
 				testhelpers.RequireNotNil(t, ccStarted, "no started command")
 				sentOptime := getOperationTime(t, ccStarted.Command)
@@ -308,16 +320,17 @@ func TestCausalConsistency(t *testing.T) {
 		skipIfBelow36(t)
 
 		client := createSessionsMonitoredClient(t, ccMonitor)
-		sess, err := client.StartSession(sessionopt.CausalConsistency(false))
-		testhelpers.RequireNil(t, err, "error creating session: %s", err)
-		defer sess.EndSession(ctx)
 
 		db := client.Database("NonConsistentReadDB")
-		err = db.Drop(ctx)
+		err := db.Drop(ctx)
 		testhelpers.RequireNil(t, err, "error dropping db: %s", err)
 
 		coll := db.Collection("NonConsistentReadColl")
-		_, _ = coll.Find(ctx, emptyDoc, sess)
+		_ = client.UseSessionWithOptions(ctx, []sessionopt.Session{sessionopt.CausalConsistency(false)},
+			func(mctx SessionContext) error {
+				_, _ = coll.Find(mctx, emptyDoc)
+				return nil
+			})
 
 		testhelpers.RequireNotNil(t, ccStarted, "no started command")
 		if ccStarted.CommandName != "find" {
@@ -338,12 +351,12 @@ func TestCausalConsistency(t *testing.T) {
 
 		skipIfSessionsSupported(t, db)
 
-		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
-		testhelpers.RequireNil(t, err, "error starting session: %s", err)
-		defer sess.EndSession(ctx)
-
 		coll := db.Collection("InvalidTopologyColl")
-		_, _ = coll.Find(ctx, emptyDoc, sess)
+		_ = client.UseSessionWithOptions(ctx, []sessionopt.Session{sessionopt.CausalConsistency(true)},
+			func(mctx SessionContext) error {
+				_, _ = coll.Find(mctx, emptyDoc)
+				return nil
+			})
 
 		testhelpers.RequireNotNil(t, ccStarted, "no started command found")
 		if ccStarted.CommandName != "find" {
@@ -370,10 +383,16 @@ func TestCausalConsistency(t *testing.T) {
 
 		coll := db.Collection("DefaultReadConcernColl")
 		coll.readConcern = readconcern.New()
-		_ = coll.FindOne(ctx, emptyDoc, sess)
+		_ = WithSession(ctx, sess, func(mctx SessionContext) error {
+			_ = coll.FindOne(mctx, emptyDoc)
+			return nil
+		})
 
-		currOptime := sess.OperationTime
-		_ = coll.FindOne(ctx, emptyDoc, sess)
+		currOptime := sess.OperationTime()
+		_ = WithSession(ctx, sess, func(mctx SessionContext) error {
+			_ = coll.FindOne(mctx, emptyDoc)
+			return nil
+		})
 
 		testhelpers.RequireNotNil(t, ccStarted, "no started command found")
 		if ccStarted.CommandName != "find" {
@@ -402,10 +421,17 @@ func TestCausalConsistency(t *testing.T) {
 		coll := db.Collection("CustomReadConcernColl")
 		coll.readConcern = readconcern.Majority()
 
-		_ = coll.FindOne(ctx, emptyDoc, sess)
-		currOptime := sess.OperationTime
+		_ = WithSession(ctx, sess, func(mctx SessionContext) error {
+			_ = coll.FindOne(mctx, emptyDoc)
+			return nil
+		})
 
-		_ = coll.FindOne(ctx, emptyDoc, sess)
+		currOptime := sess.OperationTime()
+
+		_ = WithSession(ctx, sess, func(mctx SessionContext) error {
+			_ = coll.FindOne(mctx, emptyDoc)
+			return nil
+		})
 
 		testhelpers.RequireNotNil(t, ccStarted, "no started command found")
 		if ccStarted.CommandName != "find" {
@@ -431,7 +457,7 @@ func TestCausalConsistency(t *testing.T) {
 		coll.writeConcern = writeconcern.New(writeconcern.W(0))
 		_, _ = coll.InsertOne(ctx, doc)
 
-		if sess.OperationTime != nil {
+		if sess.OperationTime() != nil {
 			t.Fatal("operation time updated for unacknowledged write")
 		}
 	})

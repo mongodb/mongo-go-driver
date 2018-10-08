@@ -199,10 +199,13 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 			}
 		}
 
-		sess0, err := client.StartSession(sess0Opts)
+		session0, err := client.StartSession(sess0Opts)
 		require.NoError(t, err)
-		sess1, err := client.StartSession(sess1Opts)
+		session1, err := client.StartSession(sess1Opts)
 		require.NoError(t, err)
+
+		sess0 := session0.(*sessionImpl)
+		sess1 := session1.(*sessionImpl)
 
 		lsid0 := sess0.SessionID
 		lsid1 := sess1.SessionID
@@ -228,7 +231,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 			op.ArgMap = getArgMap(t, op.Arguments)
 
 			// Get the session if specified in arguments
-			var sess *Session
+			var sess *sessionImpl
 			if sessStr, ok := op.ArgMap["session"]; ok {
 				switch sessStr.(string) {
 				case "session0":
@@ -375,7 +378,7 @@ func createFailPointDoc(t *testing.T, failPoint *failPoint) *bson.Document {
 	return failDoc
 }
 
-func executeSessionOperation(op *transOperation, sess *Session) error {
+func executeSessionOperation(op *transOperation, sess *sessionImpl) error {
 	switch op.Name {
 	case "startTransaction":
 		// options are only argument
@@ -392,7 +395,7 @@ func executeSessionOperation(op *transOperation, sess *Session) error {
 	return nil
 }
 
-func executeCollectionOperation(t *testing.T, op *transOperation, sess *Session, coll *Collection) error {
+func executeCollectionOperation(t *testing.T, op *transOperation, sess *sessionImpl, coll *Collection) error {
 	switch op.Name {
 	case "count":
 		_, err := executeCount(sess, coll, op.ArgMap)
@@ -483,7 +486,7 @@ func executeCollectionOperation(t *testing.T, op *transOperation, sess *Session,
 	return nil
 }
 
-func executeDatabaseOperation(t *testing.T, op *transOperation, sess *Session, db *Database) error {
+func executeDatabaseOperation(t *testing.T, op *transOperation, sess *sessionImpl, db *Database) error {
 	switch op.Name {
 	case "runCommand":
 		res, err := executeRunCommand(sess, db, op.ArgMap, op.Arguments)
