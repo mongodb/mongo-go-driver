@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "972a1fa0_d936a61f",
+        "filename": "bson/bsoncodec/bson_corpus_spec_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-08T15:07:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4e1b1303_16960cec",
+      "range": {
+        "startLine": 87,
+        "startChar": 0,
+        "endLine": 113,
+        "endChar": 1
+      },
+      "revId": "e31b622b419a559531205f13898f983e2bd6f00d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5904eeb2_95ca039a",
         "filename": "bson/extjson_builder.go",
         "patchSetId": 4
