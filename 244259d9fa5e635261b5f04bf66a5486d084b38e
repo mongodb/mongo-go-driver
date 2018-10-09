@@ -19,6 +19,29 @@
     },
     {
       "key": {
+        "uuid": "63597e36_b4c48a10",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 427,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-09T21:59:18Z",
+      "side": 1,
+      "message": "I think we can make this the second option and not make it variadic. This is what we\u0027ll be doing when we switch to the new options API and since we already have Bundle types users will still be able to specify more than a single option.",
+      "range": {
+        "startLine": 427,
+        "startChar": 91,
+        "endLine": 427,
+        "endChar": 117
+      },
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b64fdf8b_1db0aad2",
         "filename": "mongo/collection.go",
         "patchSetId": 1
@@ -30,6 +53,24 @@
       "writtenOn": "2018-10-09T21:07:16Z",
       "side": 1,
       "message": "Since other files are calling this method, there is probably a better place to put it... probably in session.go",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d9c3af27_48a8c122",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1346,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-09T21:59:18Z",
+      "side": 1,
+      "message": "I would name this \"sessionFromContext\", we generally try to avoid prefixing \"get\" on things in Go. As Craig suggested previously, we should also add a \"contextWithSession\" function that takes a Session and returns a context.Context with that session embedded in it (or returns a SessionContext).",
+      "parentUuid": "b64fdf8b_1db0aad2",
       "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -53,6 +94,24 @@
     },
     {
       "key": {
+        "uuid": "d3ff376c_96899800",
+        "filename": "mongo/session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-09T21:59:18Z",
+      "side": 1,
+      "message": "Session can only be implemented by us, but a user could theoretically make a SessionContext with a Session and something else that implements context.Context.",
+      "parentUuid": "a6a2a393_7384005a",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d5d374e3_3c7a497a",
         "filename": "mongo/session.go",
         "patchSetId": 1
@@ -70,6 +129,24 @@
     },
     {
       "key": {
+        "uuid": "9ad28a22_2debfe35",
+        "filename": "mongo/session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-09T21:59:18Z",
+      "side": 1,
+      "message": "I\u0027d rather not call it Close because go vet will likely complain for differing from a known interface implementation, since the io.Closer\u0027s Close method does not take a context.Context.",
+      "parentUuid": "d5d374e3_3c7a497a",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f60ea9ab_7dd4d254",
         "filename": "mongo/session.go",
         "patchSetId": 1
@@ -81,6 +158,24 @@
       "writtenOn": "2018-10-09T21:07:16Z",
       "side": 1,
       "message": "Are all of these methods required to be exposed? When will a user call AdvanceClusterTime or AdvanceOperationTime?",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "627b7314_a4575aab",
+        "filename": "mongo/session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-09T21:59:18Z",
+      "side": 1,
+      "message": "If a user wants to use CausalConsistency between Sessions they would need to call both of these methods. I do agree this interface is large, but it\u0027s not the usual kind of interface so I think we can get away with it.",
+      "parentUuid": "f60ea9ab_7dd4d254",
       "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
