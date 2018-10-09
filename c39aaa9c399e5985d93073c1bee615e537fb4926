@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "99f33f4d_a217c6f4",
+        "filename": "bson/bsoncodec/bson_corpus_spec_test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-09T20:29:52Z",
+      "side": 1,
+      "message": "What\u0027s the intention here?  Seems like it\u0027s assuming that every UTF-8 character that\u0027s greater than 127 is a 2-byte character?  If so, it\u0027s not the case, though it may be true for the characters currently used in the tests.  Maybe add a comment explaining what you\u0027re doing here and what the assumptions are.",
+      "range": {
+        "startLine": 119,
+        "startChar": 0,
+        "endLine": 119,
+        "endChar": 1
+      },
+      "revId": "c39aaa9c399e5985d93073c1bee615e537fb4926",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fdd83786_26f33d4d",
+        "filename": "bson/bsoncodec/bson_corpus_spec_test.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-09T20:29:52Z",
+      "side": 1,
+      "message": "Add default case that fails the test.  That way a new test for a different bson type won\u0027t silently succeed.",
+      "revId": "c39aaa9c399e5985d93073c1bee615e537fb4926",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a34fa452_7542753f",
+        "filename": "bson/bsoncodec/extjson_parser.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-09T20:29:52Z",
+      "side": 1,
+      "message": "I don\u0027t think knowledge of DBRef should be pushed down all the way to the JSON parser.  In the Java driver we ignore these two tests:\n\n    // JsonReader knows nothing of DBRef so these are not parse errors\n    \"Bad DBRef (ref is number, not string)\",\n    \"Bad DBRef (db is number, not string)\");",
+      "range": {
+        "startLine": 201,
+        "startChar": 0,
+        "endLine": 201,
+        "endChar": 1
+      },
+      "revId": "c39aaa9c399e5985d93073c1bee615e537fb4926",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
