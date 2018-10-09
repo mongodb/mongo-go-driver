@@ -201,6 +201,30 @@
     },
     {
       "key": {
+        "uuid": "7ef8b510_6d3f18c8",
+        "filename": "bson/bsoncodec/extjson_writer.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 580,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-09T22:28:56Z",
+      "side": 1,
+      "message": "Oh, that makes much more sense. :-)",
+      "parentUuid": "62b1171e_93e6c803",
+      "range": {
+        "startLine": 580,
+        "startChar": 0,
+        "endLine": 580,
+        "endChar": 1
+      },
+      "revId": "a2122cf81df39f1eb657915816161fe2f53004b1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4ce8cdb_d9b6f417",
         "filename": "bson/bsoncodec/value_writer_test.go",
         "patchSetId": 6
