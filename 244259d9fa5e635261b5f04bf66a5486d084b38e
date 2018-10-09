@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8ba743da_6f413c11",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 404,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-09T21:07:16Z",
+      "side": 1,
+      "message": "I would create a method in session.go to create a context with the session inside it. It would probably go right beside the getSessionFromContext method. That way, all use of the sessionKey{} key is relegated to 2 functions in a single file.",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b64fdf8b_1db0aad2",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1346,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-09T21:07:16Z",
+      "side": 1,
+      "message": "Since other files are calling this method, there is probably a better place to put it... probably in session.go",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6a2a393_7384005a",
+        "filename": "mongo/session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-09T21:07:16Z",
+      "side": 1,
+      "message": "Since both required methods are exported, anyone could implement this and pass it around. Do we want to allow users to implement this themselves?",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d5d374e3_3c7a497a",
+        "filename": "mongo/session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-09T21:07:16Z",
+      "side": 1,
+      "message": "Is this name mandated? Or can we call this Close()?",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f60ea9ab_7dd4d254",
+        "filename": "mongo/session.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-09T21:07:16Z",
+      "side": 1,
+      "message": "Are all of these methods required to be exposed? When will a user call AdvanceClusterTime or AdvanceOperationTime?",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
