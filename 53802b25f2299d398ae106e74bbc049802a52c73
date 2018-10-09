@@ -22,6 +22,30 @@
       "revId": "53802b25f2299d398ae106e74bbc049802a52c73",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7caad006_70027201",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-09T19:07:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "caedbb07_5a8f04d6",
+      "range": {
+        "startLine": 106,
+        "startChar": 3,
+        "endLine": 106,
+        "endChar": 20
+      },
+      "revId": "53802b25f2299d398ae106e74bbc049802a52c73",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
