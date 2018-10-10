@@ -9,17 +9,14 @@ package integration
 import (
 	"context"
 	"fmt"
-	"os"
-	"testing"
-	"time"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/assert"
+	"os"
+	"testing"
 )
 
 func initMonitor() (chan *event.CommandStartedEvent, chan *event.CommandSucceededEvent, chan *event.CommandFailedEvent, *event.CommandMonitor) {
@@ -76,10 +73,12 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	cursor, err := (&command.Find{
 		NS:     command.Namespace{DB: dbName, Collection: colName},
 		Filter: bson.NewDocument(bson.EC.SubDocument("_id", bson.NewDocument(bson.EC.Int32("$gte", 1)))),
-		Opts: []option.FindOptioner{
-			option.OptBatchSize(3),
-			option.OptMaxAwaitTime(time.Millisecond * 250),
-			option.OptCursorType(option.TailableAwait)},
+		Opts: []*bson.Element{
+			bson.EC.Int32("batchSize", 3),
+			bson.EC.Int64("maxAwaitTimeMS", 250),
+			bson.EC.Boolean("tailable", true),
+			bson.EC.Boolean("awaitData", true),
+		},
 	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 	noerr(t, err)
 
