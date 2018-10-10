@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b93fb13e_68a74c80",
+        "filename": "bson/bsoncodec/extjson_writer.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 594,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-10T19:59:34Z",
+      "side": 1,
+      "message": "I think we can literally copy what the encoding/json package does. The string method already handles HTML escaping, so we don\u0027t need to call it again. You\u0027ll need to copy the tables over as well.\n\nhttps://github.com/golang/go/blob/45e668879d763dd6b312034c98f8c5ffa7228ce6/src/encoding/json/tables.go\nhttps://github.com/golang/go/blob/45e668879d763dd6b312034c98f8c5ffa7228ce6/src/encoding/json/encode.go#L886-L955",
+      "range": {
+        "startLine": 582,
+        "startChar": 1,
+        "endLine": 594,
+        "endChar": 11
+      },
+      "revId": "266cb82a3c6233d71b7d15cdadf9f7abd4411447",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
