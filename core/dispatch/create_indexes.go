@@ -9,12 +9,15 @@ package dispatch
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/options"
+	"time"
 )
 
 // CreateIndexes handles the full cycle dispatch and execution of a createIndexes
@@ -26,6 +29,7 @@ func CreateIndexes(
 	selector description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
+	opts ...*options.CreateIndexesOptions,
 ) (result.CreateIndexes, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -39,9 +43,14 @@ func CreateIndexes(
 	}
 	defer conn.Close()
 
+	cio := options.MergeCreateIndexesOptions(opts...)
+	if cio.MaxTime != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(*cio.MaxTime/time.Millisecond)))
+	}
+
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() {
-		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit, nil)
 		if err != nil {
 			return result.CreateIndexes{}, err
 		}

@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -33,7 +32,7 @@ type Insert struct {
 	Clock           *session.ClusterClock
 	NS              Namespace
 	Docs            []*bson.Document
-	Opts            []option.InsertOptioner
+	Opts            []*bson.Element
 	WriteConcern    *writeconcern.WriteConcern
 	Session         *session.Client
 
@@ -53,21 +52,15 @@ func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMess
 }
 
 func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedServer) (*WriteBatch, error) {
-	opts := make([]option.Optioner, len(i.Opts))
-	for ind, opt := range i.Opts {
-		opts[ind] = opt
-	}
-
-	command, err := encodeBatch(docs, opts, InsertCommand, i.NS.Collection)
+	command, err := encodeBatch(docs, i.Opts, InsertCommand, i.NS.Collection)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, opt := range i.Opts {
-		if ordered, ok := opt.(option.OptOrdered); ok {
-			if !ordered {
-				i.ContinueOnError = true
-			}
+		if opt.Key() == "ordered" && !opt.Value().Boolean() {
+			i.ContinueOnError = true
+			break
 		}
 	}
 

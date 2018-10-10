@@ -8,6 +8,8 @@ package dispatch
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/options"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -28,6 +30,7 @@ func Insert(
 	clientID uuid.UUID,
 	pool *session.Pool,
 	retryWrite bool,
+	opts ...*options.InsertManyOptions,
 ) (result.Insert, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -37,11 +40,20 @@ func Insert(
 
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() {
-		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit, nil)
 		if err != nil {
 			return result.Insert{}, err
 		}
 		defer cmd.Session.EndSession()
+	}
+
+	insertOpts := options.MergeInsertManyOptions(opts...)
+
+	if insertOpts.BypassDocumentValidation != nil && ss.Description().WireVersion.Includes(4) {
+		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("bypassDocumentValidation", *insertOpts.BypassDocumentValidation))
+	}
+	if insertOpts.Ordered != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("ordered", *insertOpts.Ordered))
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

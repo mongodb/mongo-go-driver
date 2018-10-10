@@ -25,8 +25,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
-	"github.com/mongodb/mongo-go-driver/mongo/sessionopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 func createTestClient(t *testing.T) *Client {
@@ -63,11 +62,8 @@ func TestClientOptions(t *testing.T) {
 	t.Parallel()
 
 	c, err := NewClientWithOptions("mongodb://localhost",
-		clientopt.MaxConnIdleTime(200),
-		clientopt.ReplicaSet("test"),
-		clientopt.LocalThreshold(10),
-		clientopt.MaxConnIdleTime(100),
-		clientopt.LocalThreshold(20))
+		options.Client().SetMaxConnIdleTime(200).SetReplicaSet("test").SetLocalThreshold(10).
+			SetMaxConnIdleTime(100).SetLocalThreshold(20))
 	require.NoError(t, err)
 
 	require.Equal(t, time.Duration(20), c.connString.LocalThreshold)
@@ -389,14 +385,14 @@ func TestClient_CausalConsistency(t *testing.T) {
 	err = c.Connect(ctx)
 	require.NoError(t, err)
 
-	s, err := c.StartSession(sessionopt.CausalConsistency(true))
+	s, err := c.StartSession(options.Session().SetCausalConsistency(true))
 	sess := s.(*sessionImpl)
 	require.NoError(t, err)
 	require.NotNil(t, sess)
 	require.True(t, sess.Consistent)
 	sess.EndSession(ctx)
 
-	s, err = c.StartSession(sessionopt.CausalConsistency(false))
+	s, err = c.StartSession(options.Session().SetCausalConsistency(false))
 	sess = s.(*sessionImpl)
 	require.NoError(t, err)
 	require.NotNil(t, sess)
@@ -425,7 +421,7 @@ func TestClient_Ping_DefaultReadPreference(t *testing.T) {
 }
 
 func TestClient_Ping_InvalidHost(t *testing.T) {
-	c, err := NewClientWithOptions("mongodb://nohost:27017", clientopt.ServerSelectionTimeout(1*time.Millisecond))
+	c, err := NewClientWithOptions("mongodb://nohost:27017", options.Client().SetServerSelectionTimeout(1*time.Millisecond))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 

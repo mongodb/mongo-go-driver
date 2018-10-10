@@ -8,12 +8,16 @@ package dispatch
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // CountDocuments handles the full cycle dispatch and execution of a countDocuments command against the provided
@@ -25,6 +29,8 @@ func CountDocuments(
 	selector description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
+	registry *bsoncodec.Registry,
+	opts ...*options.CountOptions,
 ) (int64, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -47,11 +53,32 @@ func CountDocuments(
 
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() {
-		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit, nil)
 		if err != nil {
 			return 0, err
 		}
 		defer cmd.Session.EndSession()
+	}
+
+	countOpts := options.MergeCountOptions(opts...)
+
+	// ignore Skip and Limit because we already have these options in the pipeline
+	if countOpts.MaxTime != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(time.Duration(*countOpts.MaxTime)/time.Millisecond)))
+	}
+	if countOpts.Collation != nil {
+		if desc.WireVersion.Max < 5 {
+			return 0, ErrCollation
+		}
+		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", countOpts.Collation.ToDocument()))
+	}
+	if countOpts.Hint != nil {
+		hintElem, err := interfaceToElement("hint", countOpts.Hint, registry)
+		if err != nil {
+			return 0, err
+		}
+
+		cmd.Opts = append(cmd.Opts, hintElem)
 	}
 
 	return cmd.RoundTrip(ctx, desc, ss, conn)

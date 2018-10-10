@@ -9,6 +9,8 @@ package dispatch
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -16,6 +18,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/options"
+	"time"
 )
 
 // FindOneAndReplace handles the full cycle dispatch and execution of a FindOneAndReplace command against the provided
@@ -28,6 +32,8 @@ func FindOneAndReplace(
 	clientID uuid.UUID,
 	pool *session.Pool,
 	retryWrite bool,
+	registry *bsoncodec.Registry,
+	opts ...*options.FindOneAndReplaceOptions,
 ) (result.FindAndModify, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -37,11 +43,47 @@ func FindOneAndReplace(
 
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() {
-		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit, nil)
 		if err != nil {
 			return result.FindAndModify{}, err
 		}
 		defer cmd.Session.EndSession()
+	}
+
+	ro := options.MergeFindOneAndReplaceOptions(opts...)
+	if ro.BypassDocumentValidation != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("byapssDocumentValidation", *ro.BypassDocumentValidation))
+	}
+	if ro.Collation != nil {
+		if ss.Description().WireVersion.Max < 5 {
+			return result.FindAndModify{}, ErrCollation
+		}
+		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", ro.Collation.ToDocument()))
+	}
+	if ro.MaxTime != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(*ro.MaxTime/time.Millisecond)))
+	}
+	if ro.Projection != nil {
+		maxElem, err := interfaceToElement("fields", ro.Projection, registry)
+		if err != nil {
+			return result.FindAndModify{}, err
+		}
+
+		cmd.Opts = append(cmd.Opts, maxElem)
+	}
+	if ro.ReturnDocument != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("new", *ro.ReturnDocument == options.After))
+	}
+	if ro.Sort != nil {
+		sortElem, err := interfaceToElement("sort", ro.Sort, registry)
+		if err != nil {
+			return result.FindAndModify{}, err
+		}
+
+		cmd.Opts = append(cmd.Opts, sortElem)
+	}
+	if ro.Upsert != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("upsert", *ro.Upsert))
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

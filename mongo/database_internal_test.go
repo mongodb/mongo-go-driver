@@ -19,11 +19,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
-	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/stretchr/testify/require"
 )
 
-func createTestDatabase(t *testing.T, name *string, opts ...dbopt.Option) *Database {
+func createTestDatabase(t *testing.T, name *string, opts ...*options.DatabaseOptions) *Database {
 	if name == nil {
 		db := testutil.DBName(t)
 		name = &db
@@ -63,8 +63,8 @@ func TestDatabase_Options(t *testing.T) {
 	rcLocal := readconcern.Local()
 	rcMajority := readconcern.Majority()
 
-	opts := []dbopt.Option{dbopt.ReadPreference(rpPrimary), dbopt.ReadConcern(rcLocal), dbopt.WriteConcern(wc1),
-		dbopt.ReadPreference(rpSecondary), dbopt.ReadConcern(rcMajority), dbopt.WriteConcern(wc2)}
+	opts := options.Database().SetReadPreference(rpPrimary).SetReadConcern(rcLocal).SetWriteConcern(wc1).
+		SetReadPreference(rpSecondary).SetReadConcern(rcMajority).SetWriteConcern(wc2)
 
 	expectedDb := &Database{
 		readConcern:    rcMajority,
@@ -74,12 +74,7 @@ func TestDatabase_Options(t *testing.T) {
 
 	t.Run("IndividualOptions", func(t *testing.T) {
 		// if options specified multiple times, last instance should take precedence
-		db := createTestDatabase(t, &name, opts...)
-		compareDbs(t, expectedDb, db)
-	})
-
-	t.Run("Bundle", func(t *testing.T) {
-		db := createTestDatabase(t, &name, dbopt.BundleDatabase(opts...))
+		db := createTestDatabase(t, &name, opts)
 		compareDbs(t, expectedDb, db)
 	})
 }
@@ -94,7 +89,7 @@ func TestDatabase_InheritOptions(t *testing.T) {
 	client.readConcern = rcLocal
 
 	wc1 := writeconcern.New(writeconcern.W(10))
-	db := client.Database(name, dbopt.WriteConcern(wc1))
+	db := client.Database(name, options.Database().SetWriteConcern(wc1))
 
 	// db should inherit read preference and read concern from client
 	switch {
@@ -290,7 +285,7 @@ func TestDatabase_ListCollections(t *testing.T) {
 				t.Skip()
 			}
 			dbName := tt.name
-			db := createTestDatabase(t, &dbName, dbopt.ReadPreference(tt.rp))
+			db := createTestDatabase(t, &dbName, options.Database().SetReadPreference(tt.rp))
 
 			defer func() {
 				err := db.Drop(context.Background())
