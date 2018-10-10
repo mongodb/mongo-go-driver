@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -23,7 +22,7 @@ import (
 type DropIndexes struct {
 	NS           Namespace
 	Index        string
-	Opts         []option.DropIndexesOptioner
+	Opts         []*bson.Element
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -47,16 +46,7 @@ func (di *DropIndexes) encode(desc description.SelectedServer) (*Write, error) {
 		bson.EC.String("dropIndexes", di.NS.Collection),
 		bson.EC.String("index", di.Index),
 	)
-
-	for _, opt := range di.Opts {
-		if opt == nil {
-			continue
-		}
-		err := opt.Option(cmd)
-		if err != nil {
-			return nil, err
-		}
-	}
+	cmd.Append(di.Opts...)
 
 	return &Write{
 		Clock:        di.Clock,

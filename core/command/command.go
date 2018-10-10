@@ -13,7 +13,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -434,7 +433,7 @@ splitInserts:
 
 func encodeBatch(
 	docs []*bson.Document,
-	opts []option.Optioner,
+	opts []*bson.Element,
 	cmdKind WriteCommandKind,
 	collName string,
 ) (*bson.Document, error) {
@@ -462,17 +461,7 @@ func encodeBatch(
 		vals = append(vals, bson.VC.Document(doc))
 	}
 	cmd.Append(bson.EC.ArrayFromElements(docString, vals...))
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		err := opt.Option(cmd)
-		if err != nil {
-			return nil, err
-		}
-	}
+	cmd.Append(opts...)
 
 	return cmd, nil
 }

@@ -15,6 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var consistent = true
+var sessionOpts = &ClientOptions{
+	CausalConsistency: &consistent,
+}
+
 func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.Timestamp) {
 	if expected.T != actual.T {
 		t.Fatalf("T value mismatch; expected %d got %d", expected.T, actual.T)
@@ -47,7 +52,7 @@ func TestClientSession(t *testing.T) {
 
 	t.Run("TestAdvanceClusterTime", func(t *testing.T) {
 		id, _ := uuid.New()
-		sess, err := NewClientSession(&Pool{}, id, Explicit, OptCausalConsistency(true))
+		sess, err := NewClientSession(&Pool{}, id, Explicit, sessionOpts)
 		require.Nil(t, err, "Unexpected error")
 		err = sess.AdvanceClusterTime(clusterTime2)
 		require.Nil(t, err, "Unexpected error")
@@ -69,7 +74,7 @@ func TestClientSession(t *testing.T) {
 
 	t.Run("TestEndSession", func(t *testing.T) {
 		id, _ := uuid.New()
-		sess, err := NewClientSession(&Pool{}, id, Explicit, OptCausalConsistency(true))
+		sess, err := NewClientSession(&Pool{}, id, Explicit, sessionOpts)
 		require.Nil(t, err, "Unexpected error")
 		sess.EndSession()
 		err = sess.UpdateUseTime()
@@ -78,7 +83,7 @@ func TestClientSession(t *testing.T) {
 
 	t.Run("TestAdvanceOperationTime", func(t *testing.T) {
 		id, _ := uuid.New()
-		sess, err := NewClientSession(&Pool{}, id, Explicit, OptCausalConsistency(true))
+		sess, err := NewClientSession(&Pool{}, id, Explicit, sessionOpts)
 		require.Nil(t, err, "Unexpected error")
 
 		optime1 := &bson.Timestamp{
@@ -116,7 +121,7 @@ func TestClientSession(t *testing.T) {
 
 	t.Run("TestTransactionState", func(t *testing.T) {
 		id, _ := uuid.New()
-		sess, err := NewClientSession(&Pool{}, id, Explicit)
+		sess, err := NewClientSession(&Pool{}, id, Explicit, nil)
 		require.Nil(t, err, "Unexpected error")
 
 		err = sess.CommitTransaction()
@@ -133,13 +138,13 @@ func TestClientSession(t *testing.T) {
 			t.Errorf("incorrect session state, expected None, received %v", sess.state)
 		}
 
-		err = sess.StartTransaction()
+		err = sess.StartTransaction(nil)
 		require.Nil(t, err, "error starting transaction: %s", err)
 		if sess.state != Starting {
 			t.Errorf("incorrect session state, expected Starting, received %v", sess.state)
 		}
 
-		err = sess.StartTransaction()
+		err = sess.StartTransaction(nil)
 		if err != ErrTransactInProgress {
 			t.Errorf("expected error, got %v", err)
 		}
@@ -149,7 +154,7 @@ func TestClientSession(t *testing.T) {
 			t.Errorf("incorrect session state, expected InProgress, received %v", sess.state)
 		}
 
-		err = sess.StartTransaction()
+		err = sess.StartTransaction(nil)
 		if err != ErrTransactInProgress {
 			t.Errorf("expected error, got %v", err)
 		}
@@ -165,7 +170,7 @@ func TestClientSession(t *testing.T) {
 			t.Errorf("expected error, got %v", err)
 		}
 
-		err = sess.StartTransaction()
+		err = sess.StartTransaction(nil)
 		require.Nil(t, err, "error starting transaction: %s", err)
 		if sess.state != Starting {
 			t.Errorf("incorrect session state, expected Starting, received %v", sess.state)

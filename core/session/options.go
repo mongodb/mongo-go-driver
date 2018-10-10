@@ -12,82 +12,41 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 )
 
-// ClientOptioner is the interface implemented by types that can be used as options for configuring a client session.
-type ClientOptioner interface {
-	Option(*Client) error
+// ClientOptions represents all possible options for creating a client session.
+type ClientOptions struct {
+	CausalConsistency     *bool
+	DefaultReadConcern    *readconcern.ReadConcern
+	DefaultWriteConcern   *writeconcern.WriteConcern
+	DefaultReadPreference *readpref.ReadPref
 }
 
-// OptCausalConsistency specifies if a session should be causally consistent.
-type OptCausalConsistency bool
-
-// Option implements the ClientOptioner interface.
-func (opt OptCausalConsistency) Option(c *Client) error {
-	c.Consistent = bool(opt)
-	return nil
+// TransactionOptions represents all possible options for starting a transaction in a session.
+type TransactionOptions struct {
+	ReadConcern    *readconcern.ReadConcern
+	WriteConcern   *writeconcern.WriteConcern
+	ReadPreference *readpref.ReadPref
 }
 
-// OptDefaultReadConcern specifies the read concern that should be used for transactions started from this session.
-type OptDefaultReadConcern struct {
-	*readconcern.ReadConcern
-}
+// MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
+func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
+	c := &ClientOptions{}
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.CausalConsistency != nil {
+			c.CausalConsistency = opt.CausalConsistency
+		}
+		if opt.DefaultReadConcern != nil {
+			c.DefaultReadConcern = opt.DefaultReadConcern
+		}
+		if opt.DefaultReadPreference != nil {
+			c.DefaultReadPreference = opt.DefaultReadPreference
+		}
+		if opt.DefaultWriteConcern != nil {
+			c.DefaultWriteConcern = opt.DefaultWriteConcern
+		}
+	}
 
-// Option implements the ClientOptioner interface.
-func (opt OptDefaultReadConcern) Option(c *Client) error {
-	c.transactionRc = opt.ReadConcern
-	return nil
-}
-
-// OptDefaultWriteConcern specifies the read concern that should be used for transactions started from this session.
-type OptDefaultWriteConcern struct {
-	*writeconcern.WriteConcern
-}
-
-// Option implements the ClientOptioner interface.
-func (opt OptDefaultWriteConcern) Option(c *Client) error {
-	c.transactionWc = opt.WriteConcern
-	return nil
-}
-
-// OptDefaultReadPreference specifies the read concern that should be used for transactions started from this session.
-type OptDefaultReadPreference struct {
-	*readpref.ReadPref
-}
-
-// Option implements the ClientOptioner interface.
-func (opt OptDefaultReadPreference) Option(c *Client) error {
-	c.transactionRp = opt.ReadPref
-	return nil
-}
-
-// OptCurrentReadConcern specifies the read concern to be used for the current transaction.
-type OptCurrentReadConcern struct {
-	*readconcern.ReadConcern
-}
-
-// Option implements the ClientOptioner interface.
-func (opt OptCurrentReadConcern) Option(c *Client) error {
-	c.CurrentRc = opt.ReadConcern
-	return nil
-}
-
-// OptCurrentWriteConcern specifies the read concern to be used for the current transaction.
-type OptCurrentWriteConcern struct {
-	*writeconcern.WriteConcern
-}
-
-// Option implements the ClientOptioner interface.
-func (opt OptCurrentWriteConcern) Option(c *Client) error {
-	c.CurrentWc = opt.WriteConcern
-	return nil
-}
-
-// OptCurrentReadPreference specifies the read concern to be used for the current transaction.
-type OptCurrentReadPreference struct {
-	*readpref.ReadPref
-}
-
-// Option implements the ClientOptioner interface.
-func (opt OptCurrentReadPreference) Option(c *Client) error {
-	c.CurrentRp = opt.ReadPref
-	return nil
+	return c
 }

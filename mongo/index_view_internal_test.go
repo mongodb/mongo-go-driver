@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/mongo/indexopt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/stretchr/testify/require"
 )
 
@@ -443,10 +443,7 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
-	var opts []indexopt.Create
-	optMax := indexopt.MaxTime(1000)
-	opts = append(opts, optMax)
-
+	opts := options.CreateIndexes().SetMaxTime(1000)
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
 		[]IndexModel{
@@ -462,7 +459,7 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 				),
 			},
 		},
-		opts...,
+		opts,
 	)
 	require.NoError(t, err)
 	require.NoError(t, err)
@@ -518,10 +515,7 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	expectedNS := fmt.Sprintf("%s.%s", t.Name(), dbName)
 	indexView := coll.Indexes()
 
-	var opts []indexopt.Drop
-	optMax := indexopt.MaxTime(1000)
-	opts = append(opts, optMax)
-
+	opts := options.DropIndexes().SetMaxTime(1000)
 	indexNames, err := indexView.CreateMany(
 		context.Background(),
 		[]IndexModel{
@@ -544,7 +538,7 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 
 	_, err = indexView.DropAll(
 		context.Background(),
-		opts...,
+		opts,
 	)
 	require.NoError(t, err)
 

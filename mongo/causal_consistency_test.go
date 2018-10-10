@@ -16,7 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/sessionopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 var ccStarted *event.CommandStartedEvent
@@ -203,7 +203,7 @@ func TestCausalConsistency(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error dropping db: %s", err)
 
 		coll := db.Collection("FirstCommandColl")
-		err = client.UseSessionWithOptions(ctx, []sessionopt.Session{sessionopt.CausalConsistency(true)},
+		err = client.UseSessionWithOptions(ctx, options.Session().SetCausalConsistency(true),
 			func(mctx SessionContext) error {
 				_, err := coll.Find(mctx, emptyDoc)
 				return err
@@ -257,7 +257,7 @@ func TestCausalConsistency(t *testing.T) {
 
 		for _, tc := range readMap {
 			t.Run(tc.name, func(t *testing.T) {
-				sess, err := client.StartSession(sessionopt.CausalConsistency(true))
+				sess, err := client.StartSession(options.Session().SetCausalConsistency(true))
 				testhelpers.RequireNil(t, err, "error creating session for %s: %s", tc.name, err)
 				defer sess.EndSession(ctx)
 
@@ -291,7 +291,7 @@ func TestCausalConsistency(t *testing.T) {
 
 		for _, tc := range writeMap {
 			t.Run(tc.name, func(t *testing.T) {
-				sess, err := client.StartSession(sessionopt.CausalConsistency(true))
+				sess, err := client.StartSession(options.Session().SetCausalConsistency(true))
 				testhelpers.RequireNil(t, err, "error starting session: %s", err)
 				defer sess.EndSession(ctx)
 
@@ -326,7 +326,7 @@ func TestCausalConsistency(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error dropping db: %s", err)
 
 		coll := db.Collection("NonConsistentReadColl")
-		_ = client.UseSessionWithOptions(ctx, []sessionopt.Session{sessionopt.CausalConsistency(false)},
+		_ = client.UseSessionWithOptions(ctx, options.Session().SetCausalConsistency(false),
 			func(mctx SessionContext) error {
 				_, _ = coll.Find(mctx, emptyDoc)
 				return nil
@@ -352,7 +352,7 @@ func TestCausalConsistency(t *testing.T) {
 		skipIfSessionsSupported(t, db)
 
 		coll := db.Collection("InvalidTopologyColl")
-		_ = client.UseSessionWithOptions(ctx, []sessionopt.Session{sessionopt.CausalConsistency(true)},
+		_ = client.UseSessionWithOptions(ctx, options.Session().SetCausalConsistency(true),
 			func(mctx SessionContext) error {
 				_, _ = coll.Find(mctx, emptyDoc)
 				return nil
@@ -374,7 +374,7 @@ func TestCausalConsistency(t *testing.T) {
 		skipIfBelow36(t)
 
 		client := createSessionsMonitoredClient(t, ccMonitor)
-		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
+		sess, err := client.StartSession(options.Session().SetCausalConsistency(true))
 		testhelpers.RequireNil(t, err, "error starting session: %s", err)
 
 		db := client.Database("DefaultReadConcernDB")
@@ -410,7 +410,7 @@ func TestCausalConsistency(t *testing.T) {
 		skipIfBelow36(t)
 
 		client := createSessionsMonitoredClient(t, ccMonitor)
-		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
+		sess, err := client.StartSession(options.Session().SetCausalConsistency(true))
 		testhelpers.RequireNil(t, err, "error starting session: %s", err)
 		defer sess.EndSession(ctx)
 
@@ -445,7 +445,7 @@ func TestCausalConsistency(t *testing.T) {
 		// Unacknowledged write should not update the operationTime property of a session
 
 		client := createSessionsMonitoredClient(t, nil)
-		sess, err := client.StartSession(sessionopt.CausalConsistency(true))
+		sess, err := client.StartSession(options.Session().SetCausalConsistency(true))
 		testhelpers.RequireNil(t, err, "error starting session: %s", err)
 		defer sess.EndSession(ctx)
 
