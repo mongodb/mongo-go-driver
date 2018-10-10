@@ -30,7 +30,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/stretchr/testify/require"
 )
 
@@ -200,7 +200,7 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 		coll := db.Collection(collName)
 		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, data))
 		if len(docsToInsert) > 0 {
-			coll2, err := coll.Clone(collectionopt.WriteConcern(writeconcern.New(writeconcern.WMajority())))
+			coll2, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
 			require.NoError(t, err)
 			_, err = coll2.InsertMany(ctx, docsToInsert)
 			require.NoError(t, err)
@@ -340,7 +340,7 @@ func createRetryMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Cl
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 		clock:          clock,
-		registry:       defaultRegistry,
+		registry:       bson.DefaultRegistry,
 	}
 
 	subscription, err := c.topology.Subscribe()

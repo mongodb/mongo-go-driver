@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 type testFile struct {
@@ -183,7 +184,7 @@ func runGridFSTestFile(t *testing.T, filepath string, db *mongo.Database) {
 		chunkSize = DefaultChunkSize
 	}
 
-	bucket, err := NewBucket(db, ChunkSizeBytes(chunkSize))
+	bucket, err := NewBucket(db, options.GridFSBucket().SetChunkSizeBytes(chunkSize))
 	testhelpers.RequireNil(t, err, "error creating bucket: %s", err)
 	err = bucket.SetWriteDeadline(deadline)
 	testhelpers.RequireNil(t, err, "error setting write deadline: %s", err)
@@ -418,12 +419,11 @@ func runUploadAssert(t *testing.T, test test, fileID objectid.ObjectID) {
 	}
 }
 
-func parseUploadOptions(args *bson.Document) []UploadOptioner {
-	var opts []UploadOptioner
+func parseUploadOptions(args *bson.Document) *options.UploadOptions {
+	opts := options.GridFSUpload()
 
 	if optionsVal, err := args.LookupErr("options"); err == nil {
-		options := optionsVal.MutableDocument()
-		iter := options.Iterator()
+		iter := optionsVal.MutableDocument().Iterator()
 
 		for iter.Next() {
 			elem := iter.Element()
@@ -432,9 +432,9 @@ func parseUploadOptions(args *bson.Document) []UploadOptioner {
 			switch elem.Key() {
 			case "chunkSizeBytes":
 				size := val.Int32()
-				opts = append(opts, ChunkSizeBytes(size))
+				opts = opts.SetChunkSizeBytes(size)
 			case "metadata":
-				opts = append(opts, Metadata(val.MutableDocument()))
+				opts = opts.SetMetadata(val.MutableDocument())
 			}
 		}
 	}
@@ -447,7 +447,7 @@ func runUploadFromStreamTest(t *testing.T, test test, bucket *Bucket) {
 	opts := parseUploadOptions(args)
 	hexBytes := convertHexToBytes(t, args.Lookup("source", "$hex").StringValue())
 
-	fileID, err := bucket.UploadFromStream(args.Lookup("filename").StringValue(), bytes.NewBuffer(hexBytes), opts...)
+	fileID, err := bucket.UploadFromStream(args.Lookup("filename").StringValue(), bytes.NewBuffer(hexBytes), opts)
 	testhelpers.RequireNil(t, err, "error uploading from stream: %s", err)
 
 	runUploadAssert(t, test, fileID)
@@ -459,7 +459,7 @@ func runUploadTest(t *testing.T, test test, bucket *Bucket) {
 
 	opts := parseUploadOptions(args)
 	hexBytes := convertHexToBytes(t, args.Lookup("source", "$hex").StringValue())
-	stream, err := bucket.OpenUploadStream(args.Lookup("filename").StringValue(), opts...)
+	stream, err := bucket.OpenUploadStream(args.Lookup("filename").StringValue(), opts)
 	testhelpers.RequireNil(t, err, "error opening upload stream for %s: %s", t.Name(), err)
 
 	err = stream.SetWriteDeadline(deadline)
@@ -639,14 +639,14 @@ func runDownloadToStreamTest(t *testing.T, test test, bucket *Bucket) {
 	compareDownloadToStreamAssert(t, test.Assert, n, err)
 }
 
-func parseDownloadByNameOpts(t *testing.T, args *bson.Document) []NameOptioner {
-	opts := []NameOptioner{}
+func parseDownloadByNameOpts(t *testing.T, args *bson.Document) *options.NameOptions {
+	opts := options.GridFSName()
 
 	if optsVal, err := args.LookupErr("options"); err == nil {
 		optsDoc := optsVal.MutableDocument()
 
 		if revVal, err := optsDoc.LookupErr("revision"); err == nil {
-			opts = append(opts, Revision(revVal.Int32()))
+			opts = opts.SetRevision(revVal.Int32())
 		}
 	}
 
@@ -657,7 +657,7 @@ func runDownloadByNameTest(t *testing.T, test test, bucket *Bucket) {
 	// act section
 	args := msgToDoc(t, test.Act.Arguments)
 	opts := parseDownloadByNameOpts(t, args)
-	stream, streamErr := bucket.OpenDownloadStreamByName(args.Lookup("filename").StringValue(), opts...)
+	stream, streamErr := bucket.OpenDownloadStreamByName(args.Lookup("filename").StringValue(), opts)
 	compareDownloadAssert(t, test.Assert, stream, streamErr)
 }
 
@@ -665,7 +665,7 @@ func runDownloadByNameToStreamTest(t *testing.T, test test, bucket *Bucket) {
 	args := msgToDoc(t, test.Act.Arguments)
 	opts := parseDownloadByNameOpts(t, args)
 	downloadStream := bytes.NewBuffer(downloadBuffer)
-	n, err := bucket.DownloadToStreamByName(args.Lookup("filename").StringValue(), downloadStream, opts...)
+	n, err := bucket.DownloadToStreamByName(args.Lookup("filename").StringValue(), downloadStream, opts)
 
 	compareDownloadToStreamAssert(t, test.Assert, n, err)
 }

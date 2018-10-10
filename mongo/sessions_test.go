@@ -28,12 +28,10 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/stretchr/testify/require"
 )
 
@@ -322,16 +320,6 @@ func checkLsidIncluded(t *testing.T, shouldInclude bool) {
 		testhelpers.RequireNil(t, err, "key lsid not found in command for test %s", t.Name())
 	} else {
 		testhelpers.RequireNotNil(t, err, "key lsid found in command for test %s", t.Name())
-	}
-}
-
-func checkUnbundle(t *testing.T, s1 *session.Client, s2 *sessionImpl, cid uuid.UUID, err error) {
-	testhelpers.RequireNil(t, err, "Unexpected error unbundling: %s", err)
-	if s1.ClientID != cid {
-		t.Fatalf("expected client ID: %s, received client ID: %s", s1.ClientID, cid)
-	}
-	if s1.SessionID != s2.SessionID {
-		t.Fatalf("expected session ID: %s, received session ID: %s", s1.SessionID, s2.SessionID)
 	}
 }
 
@@ -635,7 +623,7 @@ func TestSessions(t *testing.T) {
 		_, err = coll.InsertMany(ctx, docs) // pool should have 1 session
 		require.Nil(t, err, "Error on insert")
 
-		cur, err := coll.Find(ctx, emptyDoc, findopt.BatchSize(3))
+		cur, err := coll.Find(ctx, emptyDoc, options.Find().SetBatchSize(3))
 		require.Nil(t, err, "Error on find")
 
 		testCheckedOut(t, client, 1)
@@ -661,8 +649,8 @@ func TestSessions(t *testing.T) {
 		wcMajority := writeconcern.New(writeconcern.WMajority())
 		client := createSessionsMonitoredClient(t, sessionsMonitor)
 		db := client.Database("TestFindAndGetMoreSessionIDsDB")
-		coll := db.Collection("TestFindAndGetMoreSessionIDsColl", collectionopt.WriteConcern(wcMajority),
-			collectionopt.ReadConcern(readconcern.Majority()))
+		coll := db.Collection("TestFindAndGetMoreSessionIDsColl",
+			options.Collection().SetWriteConcern(wcMajority).SetReadConcern(readconcern.Majority()))
 		docs := []interface{}{
 			bson.NewDocument(bson.EC.Int32("a", 1)),
 			bson.NewDocument(bson.EC.Int32("a", 2)),
@@ -693,7 +681,7 @@ func TestSessions(t *testing.T) {
 				}
 
 				coll.readPreference = tc.rp
-				cur, err := coll.Find(ctx, emptyDoc, findopt.BatchSize(2))
+				cur, err := coll.Find(ctx, emptyDoc, options.Find().SetBatchSize(2))
 				testhelpers.RequireNil(t, err, "error running find: %s", err)
 
 				testhelpers.RequireNotNil(t, sessionStarted, "no started command registered for find")
@@ -719,92 +707,4 @@ func TestSessions(t *testing.T) {
 			})
 		}
 	})
-
-	//t.Run("TestSessionUnbundling", func(t *testing.T) {
-	//	client := createTestClient(t)
-	//	sess1, err := client.StartSession()
-	//	sess2, err := client.StartSession()
-	//	testhelpers.RequireNil(t, err, "Unexpected error starting session: %s", err)
-	//
-	//	t.Run("TestAggregateOpt", func(t *testing.T) {
-	//		_, s, err := aggregateopt.BundleAggregate(sess1, aggregateopt.BundleAggregate(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestChangeStreamOpt", func(t *testing.T) {
-	//		_, s, err := changestreamopt.BundleChangeStream(sess1, changestreamopt.BundleChangeStream(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestCountOpt", func(t *testing.T) {
-	//		_, s, err := countopt.BundleCount(sess1, countopt.BundleCount(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestCountOpt", func(t *testing.T) {
-	//		_, s, err := deleteopt.BundleDelete(sess1, deleteopt.BundleDelete(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestDistinctOpt", func(t *testing.T) {
-	//		_, s, err := distinctopt.BundleDistinct(sess1, distinctopt.BundleDistinct(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestFindOpt", func(t *testing.T) {
-	//		_, s, err := findopt.BundleOne(sess1, findopt.BundleOne(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//
-	//		_, s, err = findopt.BundleFind(sess1, findopt.BundleFind(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//
-	//		_, s, err = findopt.BundleDeleteOne(sess1, findopt.BundleDeleteOne(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//
-	//		_, s, err = findopt.BundleReplaceOne(sess1, findopt.BundleReplaceOne(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//
-	//		_, s, err = findopt.BundleUpdateOne(sess1, findopt.BundleUpdateOne(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestIndexOpt", func(t *testing.T) {
-	//		_, s, err := indexopt.BundleCreate(sess1, indexopt.BundleCreate(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//
-	//		_, s, err = indexopt.BundleDrop(sess1, indexopt.BundleDrop(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//
-	//		_, s, err = indexopt.BundleList(sess1, indexopt.BundleList(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestInsertOpt", func(t *testing.T) {
-	//		_, s, err := insertopt.BundleMany(sess1, insertopt.BundleMany(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//
-	//		_, s, err = insertopt.BundleOne(sess1, insertopt.BundleOne(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestListCollOpt", func(t *testing.T) {
-	//		_, s, err := listcollectionopt.BundleListCollections(sess1, listcollectionopt.BundleListCollections(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestListDBOpt", func(t *testing.T) {
-	//		_, s, err := listdbopt.BundleListDatabases(sess1, listdbopt.BundleListDatabases(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestReplaceOpt", func(t *testing.T) {
-	//		_, s, err := replaceopt.BundleReplace(sess1, replaceopt.BundleReplace(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//
-	//	t.Run("TestUpdateOpt", func(t *testing.T) {
-	//		_, s, err := updateopt.BundleUpdate(sess1, updateopt.BundleUpdate(sess2)).Unbundle(true)
-	//		checkUnbundle(t, s, sess2, client.id, err)
-	//	})
-	//})
 }

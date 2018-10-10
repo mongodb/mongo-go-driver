@@ -12,7 +12,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -25,7 +24,7 @@ import (
 type Count struct {
 	NS          Namespace
 	Query       *bson.Document
-	Opts        []option.CountOptioner
+	Opts        []*bson.Element
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -51,15 +50,7 @@ func (c *Count) encode(desc description.SelectedServer) (*Read, error) {
 	}
 
 	command := bson.NewDocument(bson.EC.String("count", c.NS.Collection), bson.EC.SubDocument("query", c.Query))
-	for _, opt := range c.Opts {
-		if opt == nil {
-			continue
-		}
-		err := opt.Option(command)
-		if err != nil {
-			return nil, err
-		}
-	}
+	command.Append(c.Opts...)
 
 	return &Read{
 		Clock:       c.Clock,
