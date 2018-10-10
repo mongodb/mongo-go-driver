@@ -9,6 +9,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/mongodb/mongo-go-driver/options"
 	"log"
 	"math/rand"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
@@ -132,10 +132,10 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 			)
 
 			id, _ := uuid.New()
+			aggOpts := options.Aggregate().SetBatchSize(200)
 			cmd := command.Aggregate{
 				NS:       ns,
 				Pipeline: pipeline,
-				Opts:     []option.AggregateOptioner{option.OptBatchSize(200)},
 				ReadPref: rp,
 			}
 			cursor, err := dispatch.Aggregate(
@@ -144,6 +144,7 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 				description.ReadPrefSelector(rp),
 				id,
 				&session.Pool{},
+				aggOpts,
 			)
 			if err != nil {
 				log.Printf("%d-failed executing aggregate: %s", idx, err)

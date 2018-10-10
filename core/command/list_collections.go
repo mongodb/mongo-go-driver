@@ -8,6 +8,7 @@ package command
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/options"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -25,6 +26,7 @@ type ListCollections struct {
 	DB       string
 	Filter   *bson.Document
 	Opts     []option.ListCollectionsOptioner
+	NOpts    []*bson.Element // TODO
 	ReadPref *readpref.ReadPref
 	Session  *session.Client
 
@@ -79,20 +81,20 @@ func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuil
 }
 
 func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *ListCollections {
-
-	opts := make([]option.CursorOptioner, 0)
-	for _, opt := range lc.Opts {
-		curOpt, ok := opt.(option.CursorOptioner)
-		if !ok {
-			continue
+	cursorOpts := options.Cursor()
+	for _, opt := range lc.NOpts {
+		switch opt.Key() {
+		case "batchSize":
+			cursorOpts = cursorOpts.SetBatchSize(opt.Value().Int32())
+		case "maxAwaitTimeMS":
+			cursorOpts = cursorOpts.SetMaxAwaitTimeMS(opt.Value().Int64())
 		}
-		opts = append(opts, curOpt)
 	}
 
 	labels, err := getErrorLabels(&rdr)
 	lc.err = err
 
-	res, err := cb.BuildCursor(rdr, lc.Session, lc.Clock, opts...)
+	res, err := cb.BuildCursor(rdr, lc.Session, lc.Clock, cursorOpts)
 	lc.result = res
 	if err != nil {
 		lc.err = Error{Message: err.Error(), Labels: labels}

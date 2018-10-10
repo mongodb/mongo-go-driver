@@ -8,6 +8,10 @@ package dispatch
 
 import (
 	"context"
+	"errors"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/options"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -26,6 +30,7 @@ func Distinct(
 	selector description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
+	opts ...*options.DistinctOptions,
 ) (result.Distinct, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -53,6 +58,18 @@ func Distinct(
 			return result.Distinct{}, err
 		}
 		defer cmd.Session.EndSession()
+	}
+
+	distinctOpts := options.ToDistinctOptions(opts...)
+
+	if distinctOpts.MaxTimeMS != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(time.Duration(*distinctOpts.MaxTimeMS)/time.Millisecond)))
+	}
+	if distinctOpts.Collation != nil {
+		if desc.WireVersion.Max < 5 {
+			return result.Distinct{}, errors.New("collation specified for invalid server version")
+		}
+		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", distinctOpts.Collation.ToDocument()))
 	}
 
 	return cmd.RoundTrip(ctx, desc, conn)

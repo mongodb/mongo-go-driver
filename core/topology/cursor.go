@@ -10,11 +10,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mongodb/mongo-go-driver/options"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
@@ -27,11 +27,11 @@ type cursor struct {
 	id            int64
 	err           error
 	server        *Server
-	opts          []option.CursorOptioner
+	opts          []*bson.Element
 	registry      *bsoncodec.Registry
 }
 
-func newCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
+func newCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...*options.CursorOptions) (command.Cursor, error) {
 	cur, err := result.Lookup("cursor")
 	if err != nil {
 		return nil, err
@@ -44,15 +44,23 @@ func newCursor(result bson.Reader, clientSession *session.Client, clock *session
 	if err != nil {
 		return nil, err
 	}
-	var elem *bson.Element
 	c := &cursor{
 		clientSession: clientSession,
 		clock:         clock,
 		current:       -1,
 		server:        server,
 		registry:      server.cfg.registry,
-		opts:          opts,
 	}
+
+	cursorOpts := options.ToCursorOptions(opts...)
+	if cursorOpts.BatchSize != nil {
+		c.opts = append(c.opts, bson.EC.Int32("batchSize", *cursorOpts.BatchSize))
+	}
+	if cursorOpts.MaxAwaitTimeMS != nil {
+		c.opts = append(c.opts, bson.EC.Int64("maxAwaitTimeMS", *cursorOpts.MaxAwaitTimeMS))
+	}
+
+	var elem *bson.Element
 	var ok bool
 	for itr.Next() {
 		elem = itr.Element()

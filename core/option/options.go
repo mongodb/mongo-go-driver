@@ -38,13 +38,6 @@ type FindOneOptioner interface {
 	findOneOption()
 }
 
-// CountOptioner is the interface implemented by types that can be used as
-// Options for Count commands.
-type CountOptioner interface {
-	Optioner
-	countOption()
-}
-
 // DeleteOptioner is the interface implemented by types that can be used as
 // Options for Delete commands.
 type DeleteOptioner interface {
@@ -64,41 +57,6 @@ type UpdateOptioner interface {
 type ReplaceOptioner interface {
 	UpdateOptioner
 	replaceOption()
-}
-
-// DistinctOptioner is the interface implemented by types that can be used as
-// Options for Distinct commands.
-type DistinctOptioner interface {
-	Optioner
-	distinctOption()
-}
-
-// AggregateOptioner is the interface implemented by types that can be used
-// as Options for an Aggregate command.
-type AggregateOptioner interface {
-	Optioner
-	aggregateOption()
-}
-
-// InsertOptioner is the interface implemented by types that can be used as
-// Options for insert commands.
-type InsertOptioner interface {
-	Optioner
-	insertOption()
-}
-
-// InsertOneOptioner is the interface implemented by types that can be used as
-// Options for InsertOne commands.
-type InsertOneOptioner interface {
-	InsertOptioner
-	insertOneOption()
-}
-
-// InsertManyOptioner is the interface implemented by types that can be used as
-// Options for InsertMany commands.
-type InsertManyOptioner interface {
-	InsertOptioner
-	insertManyOption()
 }
 
 // FindOneAndDeleteOptioner is the interface implemented by types that can be
@@ -122,13 +80,6 @@ type FindOneAndReplaceOptioner interface {
 	findOneAndReplaceOption()
 }
 
-// ChangeStreamOptioner is the interface implemented by types that can be used as Options for
-// change stream operations.
-type ChangeStreamOptioner interface {
-	Optioner
-	changeStreamOption()
-}
-
 // DropCollectionsOptioner is the interface implemented by types that can be used as
 // Options for DropCollections operations.
 type DropCollectionsOptioner interface {
@@ -148,13 +99,6 @@ type ListCollectionsOptioner interface {
 type ListDatabasesOptioner interface {
 	Optioner
 	listDatabasesOption()
-}
-
-// CursorOptioner is the interface implemented by types that can be used as
-// Options for Cursor operations.
-type CursorOptioner interface {
-	Optioner
-	cursorOption()
 }
 
 //ListIndexesOptioner is the interface implemented by types that can be used as
@@ -179,26 +123,8 @@ type DropIndexesOptioner interface {
 }
 
 var (
-	_ AggregateOptioner         = (*OptAllowDiskUse)(nil)
-	_ AggregateOptioner         = (*OptBatchSize)(nil)
-	_ AggregateOptioner         = (*OptBypassDocumentValidation)(nil)
-	_ AggregateOptioner         = (*OptCollation)(nil)
-	_ AggregateOptioner         = (*OptComment)(nil)
-	_ AggregateOptioner         = (*OptMaxTime)(nil)
-	_ AggregateOptioner         = (*OptMaxAwaitTime)(nil)
-	_ CountOptioner             = (*OptCollation)(nil)
-	_ CountOptioner             = (*OptHint)(nil)
-	_ CountOptioner             = (*OptLimit)(nil)
-	_ CountOptioner             = (*OptMaxTime)(nil)
-	_ CountOptioner             = (*OptSkip)(nil)
 	_ CreateIndexesOptioner     = (*OptMaxTime)(nil)
-	_ CursorOptioner            = OptBatchSize(0)
-	_ CursorOptioner            = (*OptMaxAwaitTime)(nil)
 	_ DeleteOptioner            = (*OptCollation)(nil)
-	_ DistinctOptioner          = (*OptCollation)(nil)
-	_ DistinctOptioner          = (*OptMaxTime)(nil)
-	_ DistinctOptioner          = (*OptCollation)(nil)
-	_ DistinctOptioner          = (*OptMaxTime)(nil)
 	_ DropIndexesOptioner       = (*OptMaxTime)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptCollation)(nil)
 	_ FindOneAndDeleteOptioner  = (*OptMaxTime)(nil)
@@ -256,14 +182,6 @@ var (
 	_ FindOneOptioner           = (*OptSkip)(nil)
 	_ FindOneOptioner           = (*OptSnapshot)(nil)
 	_ FindOneOptioner           = (*OptSort)(nil)
-	_ InsertManyOptioner        = (*OptBypassDocumentValidation)(nil)
-	_ InsertManyOptioner        = (*OptOrdered)(nil)
-	_ InsertOneOptioner         = (*OptBypassDocumentValidation)(nil)
-	_ InsertOptioner            = (*OptBypassDocumentValidation)(nil)
-	_ InsertOptioner            = (*OptOrdered)(nil)
-	_ InsertOneOptioner         = (*OptBypassDocumentValidation)(nil)
-	_ InsertOptioner            = (*OptBypassDocumentValidation)(nil)
-	_ InsertOptioner            = (*OptOrdered)(nil)
 	_ ListDatabasesOptioner     = OptNameOnly(false)
 	_ ListCollectionsOptioner   = OptNameOnly(false)
 	_ ListIndexesOptioner       = OptBatchSize(0)
@@ -275,11 +193,6 @@ var (
 	_ UpdateOptioner            = (*OptArrayFilters)(nil)
 	_ UpdateOptioner            = (*OptBypassDocumentValidation)(nil)
 	_ UpdateOptioner            = (*OptCollation)(nil)
-	_ ChangeStreamOptioner      = (*OptBatchSize)(nil)
-	_ ChangeStreamOptioner      = (*OptCollation)(nil)
-	_ ChangeStreamOptioner      = (*OptFullDocument)(nil)
-	_ ChangeStreamOptioner      = (*OptMaxAwaitTime)(nil)
-	_ ChangeStreamOptioner      = (*OptResumeAfter)(nil)
 )
 
 // OptAllowDiskUse is for internal use.
@@ -290,8 +203,6 @@ func (opt OptAllowDiskUse) Option(d *bson.Document) error {
 	d.Append(bson.EC.Boolean("allowDiskUse", bool(opt)))
 	return nil
 }
-
-func (opt OptAllowDiskUse) aggregateOption() {}
 
 // String implements the Stringer interface.
 func (opt OptAllowDiskUse) String() string {
@@ -434,12 +345,9 @@ func (opt OptBatchSize) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptBatchSize) aggregateOption()    {}
-func (OptBatchSize) changeStreamOption() {}
-func (OptBatchSize) findOption()         {}
-func (OptBatchSize) findOneOption()      {}
-func (OptBatchSize) listIndexesOption()  {}
-func (OptBatchSize) cursorOption()       {}
+func (OptBatchSize) findOption()        {}
+func (OptBatchSize) findOneOption()     {}
+func (OptBatchSize) listIndexesOption() {}
 
 // String implements the Stringer interface.
 func (opt OptBatchSize) String() string {
@@ -455,12 +363,8 @@ func (opt OptBypassDocumentValidation) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptBypassDocumentValidation) aggregateOption()         {}
 func (OptBypassDocumentValidation) findOneAndReplaceOption() {}
 func (OptBypassDocumentValidation) findOneAndUpdateOption()  {}
-func (OptBypassDocumentValidation) insertManyOption()        {}
-func (OptBypassDocumentValidation) insertOption()            {}
-func (OptBypassDocumentValidation) insertOneOption()         {}
 func (OptBypassDocumentValidation) replaceOption()           {}
 func (OptBypassDocumentValidation) updateOption()            {}
 
@@ -478,11 +382,7 @@ func (opt OptCollation) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptCollation) aggregateOption()         {}
-func (OptCollation) changeStreamOption()      {}
-func (OptCollation) countOption()             {}
 func (OptCollation) deleteOption()            {}
-func (OptCollation) distinctOption()          {}
 func (OptCollation) findOption()              {}
 func (OptCollation) findOneOption()           {}
 func (OptCollation) findOneAndDeleteOption()  {}
@@ -505,9 +405,8 @@ func (opt OptComment) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptComment) aggregateOption() {}
-func (OptComment) findOption()      {}
-func (OptComment) findOneOption()   {}
+func (OptComment) findOption()    {}
+func (OptComment) findOneOption() {}
 
 // String implements the Stringer interface.
 func (opt OptComment) String() string {
@@ -536,22 +435,6 @@ func (opt OptCursorType) String() string {
 	return "OptCursorType " + strconv.FormatInt(int64(opt), 10)
 }
 
-// OptFullDocument is for internal use.
-type OptFullDocument string
-
-// Option implements the Optioner interface.
-func (opt OptFullDocument) Option(d *bson.Document) error {
-	d.Append(bson.EC.String("fullDocument", string(opt)))
-	return nil
-}
-
-func (OptFullDocument) changeStreamOption() {}
-
-// String implements the Stringer interface.
-func (opt OptFullDocument) String() string {
-	return "OptFullDocument: " + string(opt)
-}
-
 // OptHint is for internal use.
 type OptHint struct{ Hint interface{} }
 
@@ -566,10 +449,8 @@ func (opt OptHint) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptHint) countOption()     {}
-func (OptHint) findOption()      {}
-func (OptHint) findOneOption()   {}
-func (OptHint) aggregateOption() {}
+func (OptHint) findOption()    {}
+func (OptHint) findOneOption() {}
 
 // String implements the Stringer interface.
 func (opt OptHint) String() string {
@@ -585,7 +466,6 @@ func (opt OptLimit) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptLimit) countOption()   {}
 func (OptLimit) findOption()    {}
 func (OptLimit) findOneOption() {}
 
@@ -628,11 +508,8 @@ func (opt OptMaxAwaitTime) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptMaxAwaitTime) aggregateOption()    {}
-func (OptMaxAwaitTime) changeStreamOption() {}
-func (OptMaxAwaitTime) cursorOption()       {}
-func (OptMaxAwaitTime) findOption()         {}
-func (OptMaxAwaitTime) findOneOption()      {}
+func (OptMaxAwaitTime) findOption()    {}
+func (OptMaxAwaitTime) findOneOption() {}
 
 // String implements the Stringer interface.
 func (opt OptMaxAwaitTime) String() string {
@@ -665,9 +542,6 @@ func (opt OptMaxTime) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptMaxTime) aggregateOption()         {}
-func (OptMaxTime) countOption()             {}
-func (OptMaxTime) distinctOption()          {}
 func (OptMaxTime) findOption()              {}
 func (OptMaxTime) findOneOption()           {}
 func (OptMaxTime) findOneAndDeleteOption()  {}
@@ -741,23 +615,6 @@ func (opt OptOplogReplay) String() string {
 	return "OptOplogReplay: " + strconv.FormatBool(bool(opt))
 }
 
-// OptOrdered is for internal use.
-type OptOrdered bool
-
-// Option implements the Optioner interface.
-func (opt OptOrdered) Option(d *bson.Document) error {
-	d.Append(bson.EC.Boolean("ordered", bool(opt)))
-	return nil
-}
-
-func (OptOrdered) insertManyOption() {}
-func (OptOrdered) insertOption()     {}
-
-// String implements the Stringer interface.
-func (opt OptOrdered) String() string {
-	return "OptOrdered: " + strconv.FormatBool(bool(opt))
-}
-
 // OptProjection is for internal use.
 type OptProjection struct {
 	Registry   *bsoncodec.Registry
@@ -813,24 +670,6 @@ func (OptFields) findOneAndUpdateOption()  {}
 // String implements the Stringer interface.
 func (opt OptFields) String() string {
 	return "OptFields"
-}
-
-// OptResumeAfter is for internal use.
-type OptResumeAfter struct{ ResumeAfter *bson.Document }
-
-// Option implements the Optioner interface.
-func (opt OptResumeAfter) Option(d *bson.Document) error {
-	if opt.ResumeAfter != nil {
-		d.Append(bson.EC.SubDocument("resumeAfter", opt.ResumeAfter))
-	}
-	return nil
-}
-
-func (OptResumeAfter) changeStreamOption() {}
-
-// String implements the Stringer interface.
-func (opt OptResumeAfter) String() string {
-	return "OptResumeAfter"
 }
 
 // OptReturnDocument is for internal use.
@@ -893,7 +732,6 @@ func (opt OptSkip) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptSkip) countOption()   {}
 func (OptSkip) findOption()    {}
 func (OptSkip) findOneOption() {}
 

@@ -8,6 +8,8 @@ package command
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/options"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -25,6 +27,7 @@ type Find struct {
 	NS          Namespace
 	Filter      *bson.Document
 	Opts        []option.FindOptioner
+	NOpts       []*bson.Element // TODO: actually replace Opts
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -61,7 +64,10 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 
 	for _, opt := range f.Opts {
 		switch t := opt.(type) {
-		case nil, option.OptMaxAwaitTime:
+		case nil:
+			continue
+		case option.OptMaxAwaitTime:
+			f.NOpts = append(f.NOpts, bson.EC.Int64("maxAwaitTimeMS", int64(time.Duration(t)/time.Millisecond)))
 			continue
 		case option.OptLimit:
 			limit = int64(t)
@@ -69,6 +75,7 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 		case option.OptBatchSize:
 			batchSize = int32(t)
 			err = opt.Option(command)
+			f.NOpts = append(f.NOpts, bson.EC.Int32("batchSize", batchSize))
 		case option.OptProjection:
 			err = t.Option(command)
 		default:
@@ -106,19 +113,20 @@ func (f *Find) Decode(desc description.SelectedServer, cb CursorBuilder, wm wire
 }
 
 func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *Find {
-	opts := make([]option.CursorOptioner, 0)
-	for _, opt := range f.Opts {
-		curOpt, ok := opt.(option.CursorOptioner)
-		if !ok {
-			continue
+	cursorOpts := options.Cursor()
+	for _, opt := range f.NOpts {
+		switch opt.Key() {
+		case "batchSize":
+			cursorOpts = cursorOpts.SetBatchSize(opt.Value().Int32())
+		case "maxAwaitTimeMS":
+			cursorOpts = cursorOpts.SetMaxAwaitTimeMS(opt.Value().Int64())
 		}
-		opts = append(opts, curOpt)
 	}
 
 	labels, err := getErrorLabels(&rdr)
 	f.err = err
 
-	res, err := cb.BuildCursor(rdr, f.Session, f.Clock, opts...)
+	res, err := cb.BuildCursor(rdr, f.Session, f.Clock, cursorOpts)
 	f.result = res
 	if err != nil {
 		f.err = Error{Message: err.Error(), Labels: labels}

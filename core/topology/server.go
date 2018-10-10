@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"errors"
+	"github.com/mongodb/mongo-go-driver/options"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -21,7 +22,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
@@ -436,7 +436,7 @@ func (s *Server) updateAverageRTT(delay time.Duration) time.Duration {
 func (s *Server) Drain() error { return s.pool.Drain() }
 
 // BuildCursor implements the command.CursorBuilder interface for the Server type.
-func (s *Server) BuildCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, opts ...option.CursorOptioner) (command.Cursor, error) {
+func (s *Server) BuildCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, opts ...*options.CursorOptions) (command.Cursor, error) {
 	return newCursor(result, clientSession, clock, s, opts...)
 }
 

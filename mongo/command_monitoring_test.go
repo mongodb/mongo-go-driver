@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/options"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -27,8 +28,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
-	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
-	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 )
 
 const cmTestsDir = "../data/command-monitoring"
@@ -91,7 +90,7 @@ func drainChannels() {
 	}
 }
 
-func insertDocuments(docsArray *bson.Array, coll *Collection, opts ...insertopt.Many) error {
+func insertDocuments(docsArray *bson.Array, coll *Collection, opts ...*options.InsertManyOptions) error {
 	iter, err := docsArray.Iterator()
 	if err != nil {
 		return err
@@ -756,22 +755,22 @@ func getRp(rpDoc *bson.Document) *readpref.ReadPref {
 func cmInsertManyTest(t *testing.T, testCase *bson.Document, operation *bson.Document, coll *Collection) {
 	t.Logf("RUNNING %s\n", testCase.Lookup("description").StringValue())
 	args := operation.Lookup("arguments").MutableDocument()
-	var opts []insertopt.Many
+	opts := options.InsertMany()
 	var orderedGiven bool
 
 	if optionsDoc, err := args.LookupErr("options"); err == nil {
 		if ordered, err := optionsDoc.MutableDocument().LookupErr("ordered"); err == nil {
 			orderedGiven = true
-			opts = append(opts, insertopt.Ordered(ordered.Boolean()))
+			opts = opts.SetOrdered(ordered.Boolean())
 		}
 	}
 
 	// TODO: ordered?
 	if !orderedGiven {
-		opts = append(opts, insertopt.Ordered(true))
+		opts = opts.SetOrdered(true)
 	}
 	// ignore errors because write errors constitute a successful command
-	_ = insertDocuments(args.Lookup("documents").MutableArray(), coll, opts...)
+	_ = insertDocuments(args.Lookup("documents").MutableArray(), coll, opts)
 	compareExpectations(t, testCase)
 }
 
@@ -819,21 +818,19 @@ func cmInsertOneTest(t *testing.T, testCase *bson.Document, operation *bson.Docu
 	compareExpectations(t, testCase)
 }
 
-func getUpdateParams(args *bson.Document) (*bson.Document, *bson.Document, []updateopt.Update) {
+func getUpdateParams(args *bson.Document) (*bson.Document, *bson.Document, []*options.UpdateOptions) {
 	filter := args.Lookup("filter").MutableDocument()
 	update := args.Lookup("update").MutableDocument()
 
-	opts := []updateopt.Update{
-		updateopt.Upsert(false), // can be overwritten by test options
-	}
+	opts := []*options.UpdateOptions{options.Update().SetUpsert(false)}
 	if upsert, err := args.LookupErr("upsert"); err == nil {
-		opts = append(opts, updateopt.Upsert(upsert.Boolean()))
+		opts = append(opts, options.Update().SetUpsert(upsert.Boolean()))
 	}
 
 	return filter, update, opts
 }
 
-func runUpdateOne(args *bson.Document, coll *Collection, updateOpts ...updateopt.Update) {
+func runUpdateOne(args *bson.Document, coll *Collection, updateOpts ...*options.UpdateOptions) {
 	filter, update, opts := getUpdateParams(args)
 	opts = append(opts, updateOpts...)
 	_, _ = coll.UpdateOne(context.Background(), filter, update, opts...)

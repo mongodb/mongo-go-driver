@@ -225,7 +225,9 @@ func runInsert(
 	}
 
 	if bypassDocValidationSet {
-		cmd.Opts = []option.InsertOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
+		// TODO this is temporary!
+		cmd.Opts = []*bson.Element{bson.EC.Boolean("bypassDocumentValidation", bypassDocValidation)}
+		//cmd.Opts = []option.InsertOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
 	}
 
 	if !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) || !retryWrite || !batch.canRetry {
@@ -362,7 +364,9 @@ func runUpdate(
 		WriteConcern:    wc,
 	}
 	if bypassDocValidationSet {
-		cmd.Opts = []option.UpdateOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
+		// TODO this is temporary!
+		cmd.Opts = []*bson.Element{bson.EC.Boolean("bypassDocumentValidation", bypassDocValidation)}
+		//cmd.Opts = []option.UpdateOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
 	}
 
 	if !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) || !retryWrite || !batch.canRetry {

@@ -12,7 +12,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -27,7 +26,7 @@ type Delete struct {
 	ContinueOnError bool
 	NS              Namespace
 	Deletes         []*bson.Document
-	Opts            []option.DeleteOptioner
+	Opts            []*bson.Element
 	WriteConcern    *writeconcern.WriteConcern
 	Clock           *session.ClusterClock
 	Session         *session.Client
@@ -71,18 +70,13 @@ func (d *Delete) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		copyDocs = append(copyDocs, doc.Copy())
 	}
 
-	var options []option.Optioner
+	var options []*bson.Element
 	for _, opt := range d.Opts {
-		switch opt.(type) {
-		case nil:
-			continue
-		case option.OptCollation:
+		if opt.Key() == "collation" {
 			for _, doc := range copyDocs {
-				if err := opt.Option(doc); err != nil {
-					return nil, err
-				}
+				doc.Append(opt)
 			}
-		default:
+		} else {
 			options = append(options, opt)
 		}
 	}

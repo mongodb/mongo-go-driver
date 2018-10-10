@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/mongodb/mongo-go-driver/options"
 	"io/ioutil"
 	"math"
 	"path"
@@ -23,7 +24,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/bulkwriteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
@@ -192,14 +192,14 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 	t.Run(test.Description, func(t *testing.T) {
 		pipeline := test.Operation.Arguments["pipeline"].([]interface{})
 
-		opts := aggregateopt.BundleAggregate()
+		opts := options.Aggregate()
 
 		if batchSize, found := test.Operation.Arguments["batchSize"]; found {
-			opts = opts.BatchSize(int32(batchSize.(float64)))
+			opts = opts.SetBatchSize(int32(batchSize.(float64)))
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = opts.Collation(collationFromMap(collation.(map[string]interface{})))
+			opts = opts.SetCollation(*newCollationFromMap(collation.(map[string]interface{})))
 		}
 
 		out := false

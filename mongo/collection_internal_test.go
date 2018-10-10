@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"os"
 	"testing"
 
@@ -19,16 +20,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
-	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/countopt"
-	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
-	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
-	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
-	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
-	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
-	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -354,7 +347,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// without option ordered
-		_, err = coll.InsertMany(context.Background(), docs, insertopt.Ordered(false))
+		_, err = coll.InsertMany(context.Background(), docs, options.InsertMany().SetOrdered(false))
 		got, ok := err.(BulkWriteException)
 		if !ok {
 			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
@@ -500,10 +493,7 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 
 	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 
-	collationOpt := &mongoopt.Collation{
-		Locale: "en_US",
-	}
-	result, err := coll.DeleteOne(context.Background(), filter, deleteopt.Collation(collationOpt))
+	result, err := coll.DeleteOne(context.Background(), filter, options.Delete().SetCollation(options.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 
@@ -623,7 +613,7 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 	filter := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("x", bson.EC.Int32("$lt", 1)))
 
-	result, err := coll.DeleteMany(context.Background(), filter, deleteopt.Collation(&mongoopt.Collation{Locale: "en_US"}))
+	result, err := coll.DeleteMany(context.Background(), filter, options.Delete().SetCollation(options.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
 
@@ -751,7 +741,7 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 	update := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
-	result, err := coll.UpdateOne(context.Background(), filter, update, updateopt.Upsert(true))
+	result, err := coll.UpdateOne(context.Background(), filter, update, options.Update().SetUpsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -891,7 +881,7 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 	update := bson.NewDocument(
 		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
 
-	result, err := coll.UpdateMany(context.Background(), filter, update, updateopt.Upsert(true))
+	result, err := coll.UpdateMany(context.Background(), filter, update, options.Update().SetUpsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -1023,7 +1013,7 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	filter := bson.NewDocument(bson.EC.Int32("x", 0))
 	replacement := bson.NewDocument(bson.EC.Int32("y", 1))
 
-	result, err := coll.ReplaceOne(context.Background(), filter, replacement, replaceopt.Upsert(true))
+	result, err := coll.ReplaceOne(context.Background(), filter, replacement, options.Replace().SetUpsert(true))
 	require.Nil(t, err)
 	require.Equal(t, result.MatchedCount, int64(0))
 	require.Equal(t, result.ModifiedCount, int64(0))
@@ -1126,7 +1116,8 @@ func TestCollection_Aggregate(t *testing.T) {
 			),
 		))
 
-	cursor, err := coll.Aggregate(context.Background(), pipeline, aggregateopt.BundleAggregate())
+	//cursor, err := coll.Aggregate(context.Background(), pipeline, aggregateopt.BundleAggregate())
+	cursor, err := coll.Aggregate(context.Background(), pipeline, options.Aggregate())
 	require.Nil(t, err)
 
 	for i := 2; i < 5; i++ {
@@ -1147,7 +1138,7 @@ func TestCollection_Aggregate(t *testing.T) {
 
 }
 
-func testAggregateWithOptions(t *testing.T, createIndex bool, opts aggregateopt.Aggregate) error {
+func testAggregateWithOptions(t *testing.T, createIndex bool, opts *options.AggregateOptions) error {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
@@ -1229,9 +1220,10 @@ func TestCollection_Aggregate_IndexHint(t *testing.T) {
 
 	t.Parallel()
 
-	hint := aggregateopt.Hint(bson.NewDocument(bson.EC.Int32("x", 1)))
+	//hint := aggregateopt.Hint(bson.NewDocument(bson.EC.Int32("x", 1)))
+	aggOpts := options.Aggregate().SetHint(bson.NewDocument(bson.EC.Int32("x", 1)))
 
-	err := testAggregateWithOptions(t, true, hint)
+	err := testAggregateWithOptions(t, true, aggOpts)
 	require.NoError(t, err)
 }
 
@@ -1242,7 +1234,9 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 
 	t.Parallel()
 
-	err := testAggregateWithOptions(t, false, aggregateopt.AllowDiskUse(true))
+	aggOpts := options.Aggregate().SetAllowDiskUse(true)
+
+	err := testAggregateWithOptions(t, false, aggOpts)
 	require.NoError(t, err)
 }
 
@@ -1289,7 +1283,7 @@ func TestCollection_Count_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.Count(context.Background(), nil, countopt.Limit(3))
+	count, err := coll.Count(context.Background(), nil, options.Count().SetLimit(int64(3)))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -1337,7 +1331,7 @@ func TestCollection_CountDocuments_withLimitOptions(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.CountDocuments(context.Background(), nil, countopt.Limit(3))
+	count, err := coll.CountDocuments(context.Background(), nil, options.Count().SetLimit(3))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -1352,7 +1346,7 @@ func TestCollection_CountDocuments_withSkipOptions(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.CountDocuments(context.Background(), nil, countopt.Skip(3))
+	count, err := coll.CountDocuments(context.Background(), nil, options.Count().SetSkip(3))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(2))
 }
@@ -1383,7 +1377,7 @@ func TestCollection_EstimatedDocumentCount_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.EstimatedDocumentCount(context.Background(), countopt.MaxTimeMs(100))
+	count, err := coll.EstimatedDocumentCount(context.Background(), options.EstimatedDocumentCount().SetMaxTimeMS(100))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(5))
 }
@@ -1431,7 +1425,7 @@ func TestCollection_Distinct_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	results, err := coll.Distinct(context.Background(), "x", nil, distinctopt.Collation(&mongoopt.Collation{Locale: "en_US"}))
+	results, err := coll.Distinct(context.Background(), "x", nil, options.Distinct().SetCollation(options.Collation{Locale: "en_US"}))
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)})
 }
