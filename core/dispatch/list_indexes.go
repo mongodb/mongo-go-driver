@@ -9,11 +9,14 @@ package dispatch
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/options"
+	"time"
 )
 
 // ListIndexes handles the full cycle dispatch and execution of a listIndexes command against the provided
@@ -25,6 +28,7 @@ func ListIndexes(
 	selector description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
+	opts ...*options.ListIndexesOptions,
 ) (command.Cursor, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -37,6 +41,16 @@ func ListIndexes(
 		return nil, err
 	}
 	defer conn.Close()
+
+	lio := options.MergeListIndexesOptions(opts...)
+	if lio.BatchSize != nil {
+		elem := bson.EC.Int32("batchSize", *lio.BatchSize)
+		cmd.Opts = append(cmd.Opts, elem)
+		cmd.CursorOpts = append(cmd.CursorOpts, elem)
+	}
+	if lio.MaxTime != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(*lio.MaxTime/time.Millisecond)))
+	}
 
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() {

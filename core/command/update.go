@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -26,7 +25,7 @@ type Update struct {
 	Clock           *session.ClusterClock
 	NS              Namespace
 	Docs            []*bson.Document
-	Opts            []option.UpdateOptioner
+	Opts            []*bson.Element
 	WriteConcern    *writeconcern.WriteConcern
 	Session         *session.Client
 
@@ -70,18 +69,13 @@ func (u *Update) encodeBatch(docs []*bson.Document, desc description.SelectedSer
 		copyDocs = append(copyDocs, newDoc)
 	}
 
-	var options []option.Optioner
+	var options []*bson.Element
 	for _, opt := range u.Opts {
-		switch opt.(type) {
-		case nil:
-			continue
-		case option.OptUpsert, option.OptCollation, option.OptArrayFilters:
+		switch opt.Key() {
+		case "upsert", "collation", "arrayFilters":
 			// options that are encoded on each individual document
 			for _, doc := range copyDocs {
-				err := opt.Option(doc)
-				if err != nil {
-					return nil, err
-				}
+				doc.Append(opt)
 			}
 		default:
 			options = append(options, opt)

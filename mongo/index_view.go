@@ -15,7 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/mongo/indexopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // ErrInvalidIndexValue indicates that the index Keys document has a value that isn't either a number or a string.
@@ -39,22 +39,16 @@ type IndexModel struct {
 }
 
 // List returns a cursor iterating over all the indexes in the collection.
-func (iv IndexView) List(ctx context.Context, opts ...indexopt.List) (Cursor, error) {
-	listOpts, _, err := indexopt.BundleList(opts...).Unbundle(true)
-	if err != nil {
-		return nil, err
-	}
-
+func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOptions) (Cursor, error) {
 	sess := sessionFromContext(ctx)
 
-	err = iv.coll.client.ValidSession(sess)
+	err := iv.coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
 
 	listCmd := command.ListIndexes{
 		NS:      iv.coll.namespace(),
-		Opts:    listOpts,
 		Session: sess,
 		Clock:   iv.coll.client.clock,
 	}
@@ -65,11 +59,12 @@ func (iv IndexView) List(ctx context.Context, opts ...indexopt.List) (Cursor, er
 		iv.coll.writeSelector,
 		iv.coll.client.id,
 		iv.coll.client.topology.SessionPool,
+		opts...,
 	)
 }
 
 // CreateOne creates a single index in the collection specified by the model.
-func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...indexopt.Create) (string, error) {
+func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*options.CreateIndexesOptions) (string, error) {
 	names, err := iv.CreateMany(ctx, []IndexModel{model}, opts...)
 	if err != nil {
 		return "", err
@@ -80,7 +75,7 @@ func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...ind
 
 // CreateMany creates multiple indexes in the collection specified by the models. The names of the
 // creates indexes are returned.
-func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ...indexopt.Create) ([]string, error) {
+func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ...*options.CreateIndexesOptions) ([]string, error) {
 	names := make([]string, 0, len(models))
 	indexes := bson.NewArray()
 
@@ -110,14 +105,9 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		indexes.Append(bson.VC.Document(index))
 	}
 
-	createOpts, _, err := indexopt.BundleCreate(opts...).Unbundle(true)
-	if err != nil {
-		return nil, err
-	}
-
 	sess := sessionFromContext(ctx)
 
-	err = iv.coll.client.ValidSession(sess)
+	err := iv.coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +115,6 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 	cmd := command.CreateIndexes{
 		NS:      iv.coll.namespace(),
 		Indexes: indexes,
-		Opts:    createOpts,
 		Session: sess,
 		Clock:   iv.coll.client.clock,
 	}
@@ -136,6 +125,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		iv.coll.writeSelector,
 		iv.coll.client.id,
 		iv.coll.client.topology.SessionPool,
+		opts...,
 	)
 	if err != nil {
 		return nil, err
@@ -144,20 +134,14 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 	return names, nil
 }
 
-// DropOne drops the index with the given name from the collection.
-func (iv IndexView) DropOne(ctx context.Context, name string, opts ...indexopt.Drop) (bson.Raw, error) {
+func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
 	if name == "*" {
 		return nil, ErrMultipleIndexDrop
 	}
 
-	dropOpts, _, err := indexopt.BundleDrop(opts...).Unbundle(true)
-	if err != nil {
-		return nil, err
-	}
-
 	sess := sessionFromContext(ctx)
 
-	err = iv.coll.client.ValidSession(sess)
+	err := iv.coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +149,6 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...indexopt.D
 	cmd := command.DropIndexes{
 		NS:      iv.coll.namespace(),
 		Index:   name,
-		Opts:    dropOpts,
 		Session: sess,
 		Clock:   iv.coll.client.clock,
 	}
@@ -176,19 +159,15 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...indexopt.D
 		iv.coll.writeSelector,
 		iv.coll.client.id,
 		iv.coll.client.topology.SessionPool,
+		opts...,
 	)
 }
 
 // DropAll drops all indexes in the collection.
-func (iv IndexView) DropAll(ctx context.Context, opts ...indexopt.Drop) (bson.Raw, error) {
-	dropOpts, _, err := indexopt.BundleDrop(opts...).Unbundle(true)
-	if err != nil {
-		return nil, err
-	}
-
+func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
 	sess := sessionFromContext(ctx)
 
-	err = iv.coll.client.ValidSession(sess)
+	err := iv.coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +175,6 @@ func (iv IndexView) DropAll(ctx context.Context, opts ...indexopt.Drop) (bson.Ra
 	cmd := command.DropIndexes{
 		NS:      iv.coll.namespace(),
 		Index:   "*",
-		Opts:    dropOpts,
 		Session: sess,
 		Clock:   iv.coll.client.clock,
 	}
@@ -207,6 +185,7 @@ func (iv IndexView) DropAll(ctx context.Context, opts ...indexopt.Drop) (bson.Ra
 		iv.coll.writeSelector,
 		iv.coll.client.id,
 		iv.coll.client.topology.SessionPool,
+		opts...,
 	)
 }
 
