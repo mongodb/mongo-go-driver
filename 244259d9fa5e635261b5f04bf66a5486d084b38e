@@ -42,6 +42,30 @@
     },
     {
       "key": {
+        "uuid": "bcbd49b7_244d84fa",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 427,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-10T20:21:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "63597e36_b4c48a10",
+      "range": {
+        "startLine": 427,
+        "startChar": 91,
+        "endLine": 427,
+        "endChar": 117
+      },
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b64fdf8b_1db0aad2",
         "filename": "mongo/collection.go",
         "patchSetId": 1
@@ -74,6 +98,24 @@
       "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6892d788_b3eca53e",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1346,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-10T20:21:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d9c3af27_48a8c122",
+      "revId": "244259d9fa5e635261b5f04bf66a5486d084b38e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {

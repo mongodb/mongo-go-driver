@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f8c3dfe9_cd968338",
+        "filename": "mongo/client.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 422,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-10T20:21:02Z",
+      "side": 1,
+      "message": "Whoops, wasn\u0027t clear, I meant a single sessionopt.Session. However I would leave this as is for now. We\u0027ll just update it to a single option when we do the improved CRUD API implementation.",
+      "range": {
+        "startLine": 422,
+        "startChar": 60,
+        "endLine": 422,
+        "endChar": 85
+      },
+      "revId": "b5a8fcf382a66a6235d3baa24c67f8a903544c0c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
