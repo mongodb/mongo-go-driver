@@ -9,14 +9,10 @@ package mongo
 import (
 	"context"
 	"errors"
-	"time"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
-	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
-	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // ErrMissingResumeToken indicates that a change stream notification from the server did not
@@ -25,7 +21,7 @@ var ErrMissingResumeToken = errors.New("cannot provide resume functionality when
 
 type changeStream struct {
 	pipeline    *bson.Array
-	options     []option.ChangeStreamOptioner
+	options     []*bson.Element
 	coll        *Collection
 	cursor      Cursor
 	session     *session.Client
@@ -38,18 +34,14 @@ const errorCodeNotMaster int32 = 10107
 const errorCodeCursorNotFound int32 = 43
 
 func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{},
-	opts ...changestreamopt.ChangeStream) (*changeStream, error) {
+	opts ...*options.ChangeStreamOptions) (*changeStream, error) {
 
 	pipelineArr, err := transformAggregatePipeline(coll.registry, pipeline)
 	if err != nil {
 		return nil, err
 	}
 
-	csOpts, _, err := changestreamopt.BundleChangeStream(opts...).Unbundle(true)
-	if err != nil {
-		return nil, err
-	}
-
+	csOpts := options.ToChangeStreamOptions(opts...)
 	sess := sessionFromContext(ctx)
 
 	err = coll.client.ValidSession(sess)
@@ -57,36 +49,38 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		return nil, err
 	}
 
-	changeStreamOptions := bson.NewDocument()
-	aggOptions := make([]aggregateopt.Aggregate, 0)
+	changeStreamOptions := make([]*bson.Element, 0)
+	aggOpts := options.Aggregate()
 
-	for _, opt := range csOpts {
-		switch t := opt.(type) {
-		case nil:
-			continue
-		case option.OptMaxAwaitTime:
-			aggOptions = append(aggOptions, aggregateopt.MaxAwaitTime(time.Duration(t)))
-		default:
-			err = opt.Option(changeStreamOptions)
-			if err != nil {
-				return nil, err
-			}
-		}
+	if csOpts.BatchSize != nil {
+		changeStreamOptions = append(changeStreamOptions, bson.EC.Int32("batchSize", *csOpts.BatchSize))
+	}
+	if csOpts.Collation != nil {
+		changeStreamOptions = append(changeStreamOptions, bson.EC.SubDocument("collation", csOpts.Collation.ToDocument()))
+	}
+	if csOpts.FullDocument != nil {
+		changeStreamOptions = append(changeStreamOptions, bson.EC.String("fullDocument", string(*csOpts.FullDocument)))
+	}
+	if csOpts.MaxAwaitTime != nil {
+		aggOpts.MaxAwaitTime = csOpts.MaxAwaitTime
+	}
+	if csOpts.ResumeAfter != nil {
+		changeStreamOptions = append(changeStreamOptions, bson.EC.SubDocument("resumeAfter", csOpts.ResumeAfter))
 	}
 
 	pipelineArr.Prepend(
 		bson.VC.Document(
 			bson.NewDocument(
-				bson.EC.SubDocument("$changeStream", changeStreamOptions))))
+				bson.EC.SubDocument("$changeStream", bson.NewDocument(changeStreamOptions...)))))
 
-	cursor, err := coll.Aggregate(ctx, pipelineArr, aggOptions...)
+	cursor, err := coll.Aggregate(ctx, pipelineArr, aggOpts)
 	if err != nil {
 		return nil, err
 	}
 
 	cs := &changeStream{
 		pipeline: pipelineArr,
-		options:  csOpts,
+		options:  changeStreamOptions,
 		coll:     coll,
 		cursor:   cursor,
 		session:  sess,
@@ -117,19 +111,18 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		}
 	}
 
-	resumeToken := changestreamopt.ResumeAfter(cs.resumeToken).ConvertChangeStreamOption()
 	found := false
 
 	for i, opt := range cs.options {
-		if _, ok := opt.(option.OptResumeAfter); ok {
-			cs.options[i] = resumeToken
+		if opt.Key() == "resumeAfter" {
+			cs.options[i] = bson.EC.SubDocument("resumeAfter", cs.resumeToken)
 			found = true
 			break
 		}
 	}
 
-	if !found {
-		cs.options = append(cs.options, resumeToken)
+	if !found && cs.resumeToken != nil {
+		cs.options = append(cs.options, bson.EC.SubDocument("resumeAfter", cs.resumeToken))
 	}
 
 	oldns := cs.coll.namespace()
@@ -153,19 +146,9 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 
 	_, _ = killCursors.RoundTrip(ctx, ss.Description(), conn)
 
-	changeStreamOptions := bson.NewDocument()
-
-	for _, opt := range cs.options {
-		err = opt.Option(changeStreamOptions)
-		if err != nil {
-			cs.err = err
-			return false
-		}
-	}
-
 	cs.pipeline.Set(0, bson.VC.Document(
 		bson.NewDocument(
-			bson.EC.SubDocument("$changeStream", changeStreamOptions)),
+			bson.EC.SubDocument("$changeStream", bson.NewDocument(cs.options...))),
 	),
 	)
 

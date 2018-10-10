@@ -10,11 +10,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
@@ -27,11 +25,11 @@ type cursor struct {
 	id            int64
 	err           error
 	server        *Server
-	opts          []option.CursorOptioner
+	opts          []*bson.Element
 	registry      *bsoncodec.Registry
 }
 
-func newCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
+func newCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...*bson.Element) (command.Cursor, error) {
 	cur, err := result.Lookup("cursor")
 	if err != nil {
 		return nil, err
@@ -44,7 +42,6 @@ func newCursor(result bson.Reader, clientSession *session.Client, clock *session
 	if err != nil {
 		return nil, err
 	}
-	var elem *bson.Element
 	c := &cursor{
 		clientSession: clientSession,
 		clock:         clock,
@@ -53,6 +50,8 @@ func newCursor(result bson.Reader, clientSession *session.Client, clock *session
 		registry:      server.cfg.registry,
 		opts:          opts,
 	}
+
+	var elem *bson.Element
 	var ok bool
 	for itr.Next() {
 		elem = itr.Element()

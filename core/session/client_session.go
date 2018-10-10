@@ -87,6 +87,21 @@ type Client struct {
 	state state
 }
 
+// ClientOptions represents all possible options for creating a client session.
+type ClientOptions struct {
+	CausalConsistency     *bool
+	DefaultReadConcern    *readconcern.ReadConcern
+	DefaultWriteConcern   *writeconcern.WriteConcern
+	DefaultReadPreference *readpref.ReadPref
+}
+
+// TransactionOptions represents all possible options for starting a transaction in a session.
+type TransactionOptions struct {
+	ReadConcern    *readconcern.ReadConcern
+	WriteConcern   *writeconcern.WriteConcern
+	ReadPreference *readpref.ReadPref
+}
+
 func getClusterTime(clusterTime *bson.Document) (uint32, uint32) {
 	if clusterTime == nil {
 		return 0, 0
@@ -124,20 +139,18 @@ func MaxClusterTime(ct1 *bson.Document, ct2 *bson.Document) *bson.Document {
 }
 
 // NewClientSession creates a Client.
-func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...ClientOptioner) (*Client, error) {
+func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts *ClientOptions) (*Client, error) {
 	c := &Client{
-		Consistent:  true, // causal consistency defaults to true
 		ClientID:    clientID,
 		SessionType: sessionType,
 		pool:        pool,
 	}
 
-	var err error
-	for _, opt := range opts {
-		err = opt.Option(c)
-		if err != nil {
-			return nil, err
-		}
+	if opts != nil {
+		c.Consistent = *opts.CausalConsistency
+		c.transactionRc = opts.DefaultReadConcern
+		c.transactionRp = opts.DefaultReadPreference
+		c.transactionWc = opts.DefaultWriteConcern
 	}
 
 	servSess, err := pool.GetSession()
@@ -233,7 +246,7 @@ func (c *Client) CheckStartTransaction() error {
 
 // StartTransaction initializes the transaction options and advances the state machine.
 // It does not contact the server to start the transaction.
-func (c *Client) StartTransaction(opts ...ClientOptioner) error {
+func (c *Client) StartTransaction(opts *TransactionOptions) error {
 	err := c.CheckStartTransaction()
 	if err != nil {
 		return err
@@ -242,11 +255,10 @@ func (c *Client) StartTransaction(opts ...ClientOptioner) error {
 	c.IncrementTxnNumber()
 	c.RetryingCommit = false
 
-	for _, opt := range opts {
-		err := opt.Option(c)
-		if err != nil {
-			return err
-		}
+	if opts != nil {
+		c.CurrentRc = opts.ReadConcern
+		c.CurrentRp = opts.ReadPreference
+		c.CurrentWc = opts.WriteConcern
 	}
 
 	if c.CurrentRc == nil {

@@ -13,7 +13,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -25,6 +24,22 @@ import (
 type WriteBatch struct {
 	*Write
 	numDocs int
+}
+
+// Extract the cursor options from a slice of command options.
+func getCursorOptions(opts []*bson.Element) []*bson.Element {
+	var cursorOpts []*bson.Element
+
+	for _, elem := range opts {
+		switch elem.Key() {
+		case "batchSize":
+			cursorOpts = append(cursorOpts, bson.EC.Int32(elem.Key(), elem.Value().Int32()))
+		case "maxAwaitTimeMS":
+			cursorOpts = append(cursorOpts, bson.EC.Int64(elem.Key(), elem.Value().Int64()))
+		}
+	}
+
+	return cursorOpts
 }
 
 // DecodeError attempts to decode the wiremessage as an error
@@ -434,7 +449,7 @@ splitInserts:
 
 func encodeBatch(
 	docs []*bson.Document,
-	opts []option.Optioner,
+	opts []*bson.Element,
 	cmdKind WriteCommandKind,
 	collName string,
 ) (*bson.Document, error) {
@@ -462,17 +477,7 @@ func encodeBatch(
 		vals = append(vals, bson.VC.Document(doc))
 	}
 	cmd.Append(bson.EC.ArrayFromElements(docString, vals...))
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		err := opt.Option(cmd)
-		if err != nil {
-			return nil, err
-		}
-	}
+	cmd.Append(opts...)
 
 	return cmd, nil
 }

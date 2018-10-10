@@ -8,9 +8,7 @@ package command
 
 import (
 	"context"
-
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
@@ -61,7 +59,7 @@ type Cursor interface {
 
 // CursorBuilder is a type that can build a Cursor.
 type CursorBuilder interface {
-	BuildCursor(bson.Reader, *session.Client, *session.ClusterClock, ...option.CursorOptioner) (Cursor, error)
+	BuildCursor(bson.Reader, *session.Client, *session.ClusterClock, ...*bson.Element) (Cursor, error)
 }
 
 type emptyCursor struct{}
