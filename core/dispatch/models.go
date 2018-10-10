@@ -1,11 +1,8 @@
 package dispatch
 
 import (
-	"github.com/mongodb/mongo-go-driver/core/option"
+	"github.com/mongodb/mongo-go-driver/options"
 )
-
-// TODO: for all collations: servers < 3.5 -> error if value given. unack writes using opcodes -> error if value given
-// default is to not send a value
 
 // WriteModel is the interface satisfied by all models for bulk writes.
 type WriteModel interface {
@@ -22,7 +19,7 @@ func (InsertOneModel) writeModel() {}
 // DeleteOneModel is the write model for delete operations.
 type DeleteOneModel struct {
 	Filter    interface{}
-	Collation *option.Collation
+	Collation *options.Collation
 }
 
 func (DeleteOneModel) writeModel() {}
@@ -30,14 +27,14 @@ func (DeleteOneModel) writeModel() {}
 // DeleteManyModel is the write model for deleteMany operations.
 type DeleteManyModel struct {
 	Filter    interface{}
-	Collation *option.Collation
+	Collation *options.Collation
 }
 
 func (DeleteManyModel) writeModel() {}
 
 // UpdateModel contains the fields that are shared between the ReplaceOneModel, UpdateOneModel, and UpdateManyModel types
 type UpdateModel struct {
-	Collation *option.Collation
+	Collation *options.Collation
 	Upsert    bool
 	UpsertSet bool
 }
@@ -57,7 +54,8 @@ type UpdateOneModel struct {
 	Update interface{}
 	// default is to not send a value. for servers < 3.6, error raised if value given. for unack writes using opcodes,
 	// error raised if value given
-	ArrayFilters []interface{}
+	ArrayFilters    options.ArrayFilters
+	ArrayFiltersSet bool
 	UpdateModel
 }
 
@@ -69,7 +67,8 @@ type UpdateManyModel struct {
 	Update interface{}
 	// default is to not send a value. for servers < 3.6, error raised if value given. for unack writes using opcodes,
 	// error raised if value given
-	ArrayFilters []interface{}
+	ArrayFilters    options.ArrayFilters
+	ArrayFiltersSet bool
 	UpdateModel
 }
 

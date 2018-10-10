@@ -10,7 +10,6 @@ import (
 	"context"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
@@ -21,7 +20,7 @@ import (
 type GetMore struct {
 	ID      int64
 	NS      Namespace
-	Opts    []option.CursorOptioner
+	Opts    []*bson.Element
 	Clock   *session.ClusterClock
 	Session *session.Client
 
@@ -45,17 +44,12 @@ func (gm *GetMore) encode(desc description.SelectedServer) (*Read, error) {
 		bson.EC.String("collection", gm.NS.Collection),
 	)
 
-	var err error
-
 	for _, opt := range gm.Opts {
-		switch t := opt.(type) {
-		case option.OptMaxAwaitTime:
-			err = option.OptMaxTime(t).Option(cmd)
+		switch opt.Key() {
+		case "maxAwaitTimeMS":
+			cmd.Append(bson.EC.Int64("maxTimeMS", opt.Value().Int64()))
 		default:
-			err = opt.Option(cmd)
-		}
-		if err != nil {
-			return nil, err
+			cmd.Append(opt)
 		}
 	}
 

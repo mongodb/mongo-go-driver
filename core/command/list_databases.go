@@ -12,7 +12,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -24,7 +23,7 @@ import (
 type ListDatabases struct {
 	Clock   *session.ClusterClock
 	Filter  *bson.Document
-	Opts    []option.ListDatabasesOptioner
+	Opts    []*bson.Element
 	Session *session.Client
 
 	result result.ListDatabases
@@ -46,16 +45,7 @@ func (ld *ListDatabases) encode(desc description.SelectedServer) (*Read, error) 
 	if ld.Filter != nil {
 		cmd.Append(bson.EC.SubDocument("filter", ld.Filter))
 	}
-
-	for _, opt := range ld.Opts {
-		if opt == nil {
-			continue
-		}
-		err := opt.Option(cmd)
-		if err != nil {
-			return nil, err
-		}
-	}
+	cmd.Append(ld.Opts...)
 
 	return &Read{
 		Clock:   ld.Clock,

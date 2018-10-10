@@ -8,10 +8,8 @@ package command
 
 import (
 	"context"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -24,7 +22,7 @@ import (
 type Find struct {
 	NS          Namespace
 	Filter      *bson.Document
-	Opts        []option.FindOptioner
+	Opts        []*bson.Element
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -57,25 +55,19 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 
 	var limit int64
 	var batchSize int32
-	var err error
 
 	for _, opt := range f.Opts {
-		switch t := opt.(type) {
-		case nil, option.OptMaxAwaitTime:
+		switch opt.Key() {
+		case "maxAwaitTimeMS":
 			continue
-		case option.OptLimit:
-			limit = int64(t)
-			err = opt.Option(command)
-		case option.OptBatchSize:
-			batchSize = int32(t)
-			err = opt.Option(command)
-		case option.OptProjection:
-			err = t.Option(command)
+		case "limit":
+			limit = opt.Value().Int64()
+			command.Append(opt)
+		case "batchSize":
+			batchSize = opt.Value().Int32()
+			command.Append(opt)
 		default:
-			err = opt.Option(command)
-		}
-		if err != nil {
-			return nil, err
+			command.Append(opt)
 		}
 	}
 
@@ -106,19 +98,10 @@ func (f *Find) Decode(desc description.SelectedServer, cb CursorBuilder, wm wire
 }
 
 func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *Find {
-	opts := make([]option.CursorOptioner, 0)
-	for _, opt := range f.Opts {
-		curOpt, ok := opt.(option.CursorOptioner)
-		if !ok {
-			continue
-		}
-		opts = append(opts, curOpt)
-	}
-
 	labels, err := getErrorLabels(&rdr)
 	f.err = err
 
-	res, err := cb.BuildCursor(rdr, f.Session, f.Clock, opts...)
+	res, err := cb.BuildCursor(rdr, f.Session, f.Clock, getCursorOptions(f.Opts)...)
 	f.result = res
 	if err != nil {
 		f.err = Error{Message: err.Error(), Labels: labels}

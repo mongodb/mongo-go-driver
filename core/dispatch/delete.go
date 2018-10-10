@@ -8,6 +8,8 @@ package dispatch
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/options"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -28,6 +30,7 @@ func Delete(
 	clientID uuid.UUID,
 	pool *session.Pool,
 	retryWrite bool,
+	opts ...*options.DeleteOptions,
 ) (result.Delete, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -37,11 +40,19 @@ func Delete(
 
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if cmd.Session == nil && topo.SupportsSessions() && writeconcern.AckWrite(cmd.WriteConcern) {
-		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit)
+		cmd.Session, err = session.NewClientSession(pool, clientID, session.Implicit, nil)
 		if err != nil {
 			return result.Delete{}, err
 		}
 		defer cmd.Session.EndSession()
+	}
+
+	deleteOpts := options.ToDeleteOptions(opts...)
+	if deleteOpts.Collation != nil {
+		if ss.Description().WireVersion.Max < 5 {
+			return result.Delete{}, ErrCollation
+		}
+		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", deleteOpts.Collation.ToDocument()))
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

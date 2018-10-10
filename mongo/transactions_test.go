@@ -30,9 +30,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/sessionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/transactionopt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/stretchr/testify/require"
 )
 
@@ -183,14 +181,14 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		coll := db.Collection(collName)
 		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
 		if len(docsToInsert) > 0 {
-			coll2, err := coll.Clone(collectionopt.WriteConcern(writeconcern.New(writeconcern.WMajority())))
+			coll2, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
 			require.NoError(t, err)
 			_, err = coll2.InsertMany(context.Background(), docsToInsert)
 			require.NoError(t, err)
 		}
 
-		var sess0Opts *sessionopt.SessionBundle
-		var sess1Opts *sessionopt.SessionBundle
+		var sess0Opts *options.SessionOptions
+		var sess1Opts *options.SessionOptions
 		if test.SessionOptions != nil {
 			if test.SessionOptions["session0"] != nil {
 				sess0Opts = getSessionOptions(test.SessionOptions["session0"].(map[string]interface{}))
@@ -222,7 +220,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 		for _, op := range test.Operations {
 			// create collection with default read preference Primary (needed to prevent server selection fail)
-			coll = db.Collection(collName, collectionopt.ReadPreference(readpref.Primary()))
+			coll = db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()))
 			addCollectionOptions(coll, op.CollectionOptions)
 
 			// Arguments aren't marshaled directly into a map because runcommand
@@ -266,7 +264,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 		if test.Outcome != nil {
 			// Verify with primary read pref
-			coll2, err := coll.Clone(collectionopt.ReadPreference(readpref.Primary()))
+			coll2, err := coll.Clone(options.Collection().SetReadPreference(readpref.Primary()))
 			require.NoError(t, err)
 			verifyCollectionContents(t, coll2, test.Outcome.Collection.Data)
 		}
@@ -382,7 +380,7 @@ func executeSessionOperation(op *transOperation, sess *sessionImpl) error {
 	switch op.Name {
 	case "startTransaction":
 		// options are only argument
-		var transOpts transactionopt.Transaction
+		var transOpts *options.TransactionOptions
 		if op.ArgMap["options"] != nil {
 			transOpts = getTransactionOptions(op.ArgMap["options"].(map[string]interface{}))
 		}
@@ -647,22 +645,22 @@ func getArgMap(t *testing.T, args json.RawMessage) map[string]interface{} {
 	return argmap
 }
 
-func getSessionOptions(opts map[string]interface{}) *sessionopt.SessionBundle {
-	sessOpts := sessionopt.BundleSession()
+func getSessionOptions(opts map[string]interface{}) *options.SessionOptions {
+	sessOpts := options.Session()
 	for name, opt := range opts {
 		switch name {
 		case "causalConsistency":
-			sessOpts = sessOpts.CausalConsistency(opt.(bool))
+			sessOpts = sessOpts.SetCausalConsistency(opt.(bool))
 		case "defaultTransactionOptions":
 			transOpts := opt.(map[string]interface{})
 			if transOpts["readConcern"] != nil {
-				sessOpts = sessOpts.DefaultReadConcern(getReadConcern(transOpts["readConcern"]))
+				sessOpts = sessOpts.SetDefaultReadConcern(getReadConcern(transOpts["readConcern"]))
 			}
 			if transOpts["writeConcern"] != nil {
-				sessOpts = sessOpts.DefaultWriteConcern(getWriteConcern(transOpts["writeConcern"]))
+				sessOpts = sessOpts.SetDefaultWriteConcern(getWriteConcern(transOpts["writeConcern"]))
 			}
 			if transOpts["readPreference"] != nil {
-				sessOpts = sessOpts.DefaultReadPreference(getReadPref(transOpts["readPreference"]))
+				sessOpts = sessOpts.SetDefaultReadPreference(getReadPref(transOpts["readPreference"]))
 			}
 		}
 	}
@@ -670,16 +668,16 @@ func getSessionOptions(opts map[string]interface{}) *sessionopt.SessionBundle {
 	return sessOpts
 }
 
-func getTransactionOptions(opts map[string]interface{}) *transactionopt.TransactionBundle {
-	transOpts := transactionopt.BundleTransaction()
+func getTransactionOptions(opts map[string]interface{}) *options.TransactionOptions {
+	transOpts := options.Transaction()
 	for name, opt := range opts {
 		switch name {
 		case "writeConcern":
-			transOpts = transOpts.WriteConcern(getWriteConcern(opt))
+			transOpts = transOpts.SetWriteConcern(getWriteConcern(opt))
 		case "readPreference":
-			transOpts = transOpts.ReadPreference(getReadPref(opt))
+			transOpts = transOpts.SetReadPreference(getReadPref(opt))
 		case "readConcern":
-			transOpts = transOpts.ReadConcern(getReadConcern(opt))
+			transOpts = transOpts.SetReadConcern(getReadConcern(opt))
 		}
 	}
 	return transOpts

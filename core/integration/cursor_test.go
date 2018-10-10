@@ -15,7 +15,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/assert"
@@ -47,10 +46,12 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	cursor, err := (&command.Find{
 		NS:     command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 		Filter: bson.NewDocument(bson.EC.SubDocument("ts", bson.NewDocument(bson.EC.Timestamp("$gte", 5, 0)))),
-		Opts: []option.FindOptioner{
-			option.OptLimit(0),
-			option.OptBatchSize(1),
-			option.OptCursorType(option.TailableAwait)},
+		Opts: []*bson.Element{
+			bson.EC.Int64("limit", 0),
+			bson.EC.Int32("batchSize", 1),
+			bson.EC.Boolean("tailable", true),
+			bson.EC.Boolean("awaitData", true),
+		},
 	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 	noerr(t, err)
 

@@ -3,25 +3,17 @@ package dispatch
 import (
 	"context"
 
-	"errors"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/options"
 )
-
-// ErrCollation is caused if a collation is given for an invalid server version.
-var ErrCollation = errors.New("collation cannot be set for server versions < 3.4")
-
-// ErrArrayFilters is caused if array filters are given for an invalid server version.
-var ErrArrayFilters = errors.New("array filters cannot be set for server versions < 3.6")
 
 // BulkWriteError is an error from one operation in a bulk write.
 type BulkWriteError struct {
@@ -56,10 +48,8 @@ func BulkWrite(
 	retryWrite bool,
 	sess *session.Client,
 	writeConcern *writeconcern.WriteConcern,
-	ordered bool,
 	clock *session.ClusterClock,
-	bypassDocValidation bool,
-	bypassDocValidationSet bool,
+	opts ...*options.BulkWriteOptions,
 ) (result.BulkWrite, error) {
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
@@ -73,13 +63,17 @@ func BulkWrite(
 
 	// If no explicit session and deployment supports sessions, start implicit session.
 	if sess == nil && topo.SupportsSessions() {
-		sess, err = session.NewClientSession(pool, clientID, session.Implicit)
+		sess, err = session.NewClientSession(pool, clientID, session.Implicit, nil)
 		if err != nil {
 			return result.BulkWrite{}, err
 		}
 
 		defer sess.EndSession()
 	}
+
+	bwOpts := options.ToBulkWriteOptions(opts...)
+
+	ordered := *bwOpts.Ordered
 
 	batches := createBatches(models, ordered)
 	bwRes := result.BulkWrite{
@@ -97,7 +91,7 @@ func BulkWrite(
 		}
 
 		batchRes, batchErr, err := runBatch(ctx, ns, topo, selector, ss, sess, clock, writeConcern, retryWrite,
-			bypassDocValidation, bypassDocValidationSet, continueOnError, batch)
+			bwOpts.BypassDocumentValidation, continueOnError, batch)
 
 		mergeResults(&bwRes, batchRes, opIndex)
 		bwErr.WriteConcernError = batchErr.WriteConcernError
@@ -131,8 +125,7 @@ func runBatch(
 	clock *session.ClusterClock,
 	wc *writeconcern.WriteConcern,
 	retryWrite bool,
-	bypassDocValidation bool,
-	bypassDocValidationSet bool,
+	bypassDocValidation *bool,
 	continueOnError bool,
 	batch bulkWriteBatch,
 ) (result.BulkWrite, BulkWriteException, error) {
@@ -145,7 +138,7 @@ func runBatch(
 	switch batch.models[0].(type) {
 	case InsertOneModel:
 		res, err := runInsert(ctx, ns, topo, selector, ss, sess, clock, wc, retryWrite, batch, bypassDocValidation,
-			bypassDocValidationSet, continueOnError)
+			continueOnError)
 		if err != nil {
 			return result.BulkWrite{}, BulkWriteException{}, err
 		}
@@ -162,7 +155,7 @@ func runBatch(
 		writeErrors = res.WriteErrors
 	case ReplaceOneModel, UpdateOneModel, UpdateManyModel:
 		res, err := runUpdate(ctx, ns, topo, selector, ss, sess, clock, wc, retryWrite, batch, bypassDocValidation,
-			bypassDocValidationSet, continueOnError)
+			continueOnError)
 		if err != nil {
 			return result.BulkWrite{}, BulkWriteException{}, err
 		}
@@ -198,8 +191,7 @@ func runInsert(
 	wc *writeconcern.WriteConcern,
 	retryWrite bool,
 	batch bulkWriteBatch,
-	bypassDocValidation bool,
-	bypassDocValidationSet bool,
+	bypassDocValidation *bool,
 	continueOnError bool,
 ) (result.Insert, error) {
 	docs := make([]*bson.Document, len(batch.models))
@@ -224,8 +216,8 @@ func runInsert(
 		WriteConcern:    wc,
 	}
 
-	if bypassDocValidationSet {
-		cmd.Opts = []option.InsertOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
+	if bypassDocValidation != nil {
+		cmd.Opts = []*bson.Element{bson.EC.Boolean("bypassDocumentValidation", *bypassDocValidation)}
 	}
 
 	if !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) || !retryWrite || !batch.canRetry {
@@ -328,8 +320,7 @@ func runUpdate(
 	wc *writeconcern.WriteConcern,
 	retryWrite bool,
 	batch bulkWriteBatch,
-	bypassDocValidation bool,
-	bypassDocValidationSet bool,
+	bypassDocValidation *bool,
 	continueOnError bool,
 ) (result.Update, error) {
 	docs := make([]*bson.Document, len(batch.models))
@@ -339,11 +330,11 @@ func runUpdate(
 		var err error
 
 		if rom, ok := model.(ReplaceOneModel); ok {
-			doc, err = createUpdateDoc(rom.Filter, rom.Replacement, nil, rom.UpdateModel, false)
+			doc, err = createUpdateDoc(rom.Filter, rom.Replacement, options.ArrayFilters{}, false, rom.UpdateModel, false)
 		} else if uom, ok := model.(UpdateOneModel); ok {
-			doc, err = createUpdateDoc(uom.Filter, uom.Update, uom.ArrayFilters, uom.UpdateModel, false)
+			doc, err = createUpdateDoc(uom.Filter, uom.Update, uom.ArrayFilters, uom.ArrayFiltersSet, uom.UpdateModel, false)
 		} else if umm, ok := model.(UpdateManyModel); ok {
-			doc, err = createUpdateDoc(umm.Filter, umm.Update, umm.ArrayFilters, umm.UpdateModel, true)
+			doc, err = createUpdateDoc(umm.Filter, umm.Update, umm.ArrayFilters, umm.ArrayFiltersSet, umm.UpdateModel, true)
 		}
 
 		if err != nil {
@@ -361,8 +352,10 @@ func runUpdate(
 		Clock:           clock,
 		WriteConcern:    wc,
 	}
-	if bypassDocValidationSet {
-		cmd.Opts = []option.UpdateOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
+	if bypassDocValidation != nil {
+		// TODO this is temporary!
+		cmd.Opts = []*bson.Element{bson.EC.Boolean("bypassDocumentValidation", *bypassDocValidation)}
+		//cmd.Opts = []option.UpdateOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
 	}
 
 	if !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) || !retryWrite || !batch.canRetry {
@@ -405,10 +398,10 @@ func verifyOptions(models []WriteModel, ss *topology.SelectedServer) error {
 		case ReplaceOneModel:
 			collationSet = converted.Collation != nil
 		case UpdateOneModel:
-			afSet = converted.ArrayFilters != nil
+			afSet = converted.ArrayFiltersSet
 			collationSet = converted.Collation != nil
 		case UpdateManyModel:
-			afSet = converted.ArrayFilters != nil
+			afSet = converted.ArrayFiltersSet
 			collationSet = converted.Collation != nil
 		}
 
@@ -538,7 +531,8 @@ func shouldRetry(cmdErr error, wcErr *result.WriteConcernError) bool {
 func createUpdateDoc(
 	filter interface{},
 	update interface{},
-	arrayFilters []interface{},
+	arrayFilters options.ArrayFilters,
+	arrayFiltersSet bool,
 	updateModel UpdateModel,
 	multi bool,
 ) (*bson.Document, error) {
@@ -558,27 +552,16 @@ func createUpdateDoc(
 		bson.EC.Boolean("multi", multi),
 	)
 
-	if arrayFilters != nil {
-		arr := bson.NewArray()
-		for _, f := range arrayFilters {
-			d, err := interfaceToBson(f)
-			if err != nil {
-				return nil, err
-			}
-
-			arr.Append(bson.VC.Document(d))
+	if arrayFiltersSet {
+		arr, err := arrayFilters.ToArray()
+		if err != nil {
+			return nil, err
 		}
-
 		doc.Append(bson.EC.Array("arrayFilters", arr))
 	}
 
 	if updateModel.Collation != nil {
-		collationDoc, err := updateModel.Collation.MarshalBSONDocument()
-		if err != nil {
-			return nil, err
-		}
-
-		doc.Append(bson.EC.SubDocument("collation", collationDoc))
+		doc.Append(bson.EC.SubDocument("collation", updateModel.Collation.ToDocument()))
 	}
 
 	if updateModel.UpsertSet {
@@ -590,7 +573,7 @@ func createUpdateDoc(
 
 func createDeleteDoc(
 	filter interface{},
-	collation *option.Collation,
+	collation *options.Collation,
 	many bool,
 ) (*bson.Document, error) {
 	f, err := interfaceToBson(filter)
@@ -609,12 +592,7 @@ func createDeleteDoc(
 	)
 
 	if collation != nil {
-		collationDoc, err := collation.MarshalBSONDocument()
-		if err != nil {
-			return nil, err
-		}
-
-		doc.Append(bson.EC.SubDocument("collation", collationDoc))
+		doc.Append(bson.EC.SubDocument("collation", collation.ToDocument()))
 	}
 
 	return doc, nil

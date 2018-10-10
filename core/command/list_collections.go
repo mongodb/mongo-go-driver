@@ -8,10 +8,8 @@ package command
 
 import (
 	"context"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -24,7 +22,7 @@ type ListCollections struct {
 	Clock    *session.ClusterClock
 	DB       string
 	Filter   *bson.Document
-	Opts     []option.ListCollectionsOptioner
+	Opts     []*bson.Element
 	ReadPref *readpref.ReadPref
 	Session  *session.Client
 
@@ -47,16 +45,7 @@ func (lc *ListCollections) encode(desc description.SelectedServer) (*Read, error
 	if lc.Filter != nil {
 		cmd.Append(bson.EC.SubDocument("filter", lc.Filter))
 	}
-
-	for _, opt := range lc.Opts {
-		if opt == nil {
-			continue
-		}
-		err := opt.Option(cmd)
-		if err != nil {
-			return nil, err
-		}
-	}
+	cmd.Append(lc.Opts...)
 
 	return &Read{
 		Clock:    lc.Clock,
@@ -79,20 +68,10 @@ func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuil
 }
 
 func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *ListCollections {
-
-	opts := make([]option.CursorOptioner, 0)
-	for _, opt := range lc.Opts {
-		curOpt, ok := opt.(option.CursorOptioner)
-		if !ok {
-			continue
-		}
-		opts = append(opts, curOpt)
-	}
-
 	labels, err := getErrorLabels(&rdr)
 	lc.err = err
 
-	res, err := cb.BuildCursor(rdr, lc.Session, lc.Clock, opts...)
+	res, err := cb.BuildCursor(rdr, lc.Session, lc.Clock, getCursorOptions(lc.Opts)...)
 	lc.result = res
 	if err != nil {
 		lc.err = Error{Message: err.Error(), Labels: labels}

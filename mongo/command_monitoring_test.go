@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/options"
 	"io/ioutil"
 	"path"
 	"testing"
@@ -26,9 +27,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/findopt"
-	"github.com/mongodb/mongo-go-driver/mongo/insertopt"
-	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
 )
 
 const cmTestsDir = "../data/command-monitoring"
@@ -91,7 +89,7 @@ func drainChannels() {
 	}
 }
 
-func insertDocuments(docsArray *bson.Array, coll *Collection, opts ...insertopt.Many) error {
+func insertDocuments(docsArray *bson.Array, coll *Collection, opts ...*options.InsertManyOptions) error {
 	iter, err := docsArray.Iterator()
 	if err != nil {
 		return err
@@ -676,28 +674,28 @@ func compareExpectations(t *testing.T, testCase *bson.Document) {
 	}
 }
 
-func cmFindOptions(arguments *bson.Document) []findopt.Find {
-	var opts []findopt.Find
+func cmFindOptions(arguments *bson.Document) *options.FindOptions {
+	opts := options.Find()
 
 	if sort, err := arguments.LookupErr("sort"); err == nil {
-		opts = append(opts, findopt.Sort(sort.MutableDocument()))
+		opts = opts.SetSort(sort.MutableDocument())
 	}
 
 	if skip, err := arguments.LookupErr("skip"); err == nil {
-		opts = append(opts, findopt.Skip(skip.Int64()))
+		opts = opts.SetSkip(skip.Int64())
 	}
 
 	if limit, err := arguments.LookupErr("limit"); err == nil {
-		opts = append(opts, findopt.Limit(limit.Int64()))
+		opts = opts.SetLimit(limit.Int64())
 	}
 
 	if batchSize, err := arguments.LookupErr("batchSize"); err == nil {
-		opts = append(opts, findopt.BatchSize(int32(batchSize.Int64())))
+		opts = opts.SetBatchSize(int32(batchSize.Int64()))
 	}
 
 	if collation, err := arguments.LookupErr("collation"); err == nil {
 		collMap := collation.Interface().(map[string]interface{})
-		opts = append(opts, findopt.Collation(collationFromMap(collMap)))
+		opts = opts.SetCollation(collationFromMap(collMap))
 	}
 
 	modifiersVal, err := arguments.LookupErr("modifiers")
@@ -710,27 +708,22 @@ func cmFindOptions(arguments *bson.Document) []findopt.Find {
 		elem := iter.Element()
 		val := elem.Value()
 
-		var opt findopt.Find
 		switch elem.Key() {
 		case "$comment":
-			opt = findopt.Comment(val.StringValue())
+			opts = opts.SetComment(val.StringValue())
 		case "$hint":
-			opt = findopt.Hint(val.MutableDocument())
+			opts = opts.SetHint(val.MutableDocument())
 		case "$max":
-			opt = findopt.Max(val.MutableDocument())
+			opts = opts.SetMax(val.MutableDocument())
 		case "$maxTimeMS":
 			ns := time.Duration(val.Int32()) * time.Millisecond
-			opt = findopt.MaxTime(ns)
+			opts = opts.SetMaxTime(ns)
 		case "$min":
-			opt = findopt.Min(val.MutableDocument())
+			opts = opts.SetMin(val.MutableDocument())
 		case "$returnKey":
-			opt = findopt.ReturnKey(val.Boolean())
+			opts = opts.SetReturnKey(val.Boolean())
 		case "$showDiskLoc":
-			opt = findopt.ShowRecordID(val.Boolean())
-		}
-
-		if opt != nil {
-			opts = append(opts, opt)
+			opts = opts.SetShowRecordID(val.Boolean())
 		}
 	}
 
@@ -756,22 +749,22 @@ func getRp(rpDoc *bson.Document) *readpref.ReadPref {
 func cmInsertManyTest(t *testing.T, testCase *bson.Document, operation *bson.Document, coll *Collection) {
 	t.Logf("RUNNING %s\n", testCase.Lookup("description").StringValue())
 	args := operation.Lookup("arguments").MutableDocument()
-	var opts []insertopt.Many
+	opts := options.InsertMany()
 	var orderedGiven bool
 
 	if optionsDoc, err := args.LookupErr("options"); err == nil {
 		if ordered, err := optionsDoc.MutableDocument().LookupErr("ordered"); err == nil {
 			orderedGiven = true
-			opts = append(opts, insertopt.Ordered(ordered.Boolean()))
+			opts = opts.SetOrdered(ordered.Boolean())
 		}
 	}
 
 	// TODO: ordered?
 	if !orderedGiven {
-		opts = append(opts, insertopt.Ordered(true))
+		opts = opts.SetOrdered(true)
 	}
 	// ignore errors because write errors constitute a successful command
-	_ = insertDocuments(args.Lookup("documents").MutableArray(), coll, opts...)
+	_ = insertDocuments(args.Lookup("documents").MutableArray(), coll, opts)
 	compareExpectations(t, testCase)
 }
 
@@ -785,7 +778,7 @@ func cmFindTest(t *testing.T, testCase *bson.Document, operation *bson.Document,
 		coll.readPreference = getRp(rpVal.MutableDocument())
 	}
 
-	cursor, _ := coll.Find(context.Background(), filter, opts...) // ignore errors at this stage
+	cursor, _ := coll.Find(context.Background(), filter, opts) // ignore errors at this stage
 
 	if cursor != nil {
 		for cursor.Next(context.Background()) {
@@ -819,21 +812,19 @@ func cmInsertOneTest(t *testing.T, testCase *bson.Document, operation *bson.Docu
 	compareExpectations(t, testCase)
 }
 
-func getUpdateParams(args *bson.Document) (*bson.Document, *bson.Document, []updateopt.Update) {
+func getUpdateParams(args *bson.Document) (*bson.Document, *bson.Document, []*options.UpdateOptions) {
 	filter := args.Lookup("filter").MutableDocument()
 	update := args.Lookup("update").MutableDocument()
 
-	opts := []updateopt.Update{
-		updateopt.Upsert(false), // can be overwritten by test options
-	}
+	opts := []*options.UpdateOptions{options.Update().SetUpsert(false)}
 	if upsert, err := args.LookupErr("upsert"); err == nil {
-		opts = append(opts, updateopt.Upsert(upsert.Boolean()))
+		opts = append(opts, options.Update().SetUpsert(upsert.Boolean()))
 	}
 
 	return filter, update, opts
 }
 
-func runUpdateOne(args *bson.Document, coll *Collection, updateOpts ...updateopt.Update) {
+func runUpdateOne(args *bson.Document, coll *Collection, updateOpts ...*options.UpdateOptions) {
 	filter, update, opts := getUpdateParams(args)
 	opts = append(opts, updateOpts...)
 	_, _ = coll.UpdateOne(context.Background(), filter, update, opts...)

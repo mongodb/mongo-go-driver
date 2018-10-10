@@ -8,10 +8,8 @@ package command
 
 import (
 	"context"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -25,7 +23,7 @@ import (
 type Aggregate struct {
 	NS           Namespace
 	Pipeline     *bson.Array
-	Opts         []option.AggregateOptioner
+	Opts         []*bson.Element
 	ReadPref     *readpref.ReadPref
 	WriteConcern *writeconcern.WriteConcern
 	ReadConcern  *readconcern.ReadConcern
@@ -58,22 +56,16 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 	command.Append(bson.EC.SubDocument("cursor", cursor))
 
 	for _, opt := range a.Opts {
-		switch t := opt.(type) {
-		case nil, option.OptMaxAwaitTime:
+		switch opt.Key() {
+		case "maxAwaitTimeMS":
 			continue
-		case option.OptBatchSize:
-			if t == 0 && a.HasDollarOut() {
+		case "batchSize":
+			if opt.Value().Int32() == 0 && a.HasDollarOut() {
 				continue
 			}
-			err := opt.Option(cursor)
-			if err != nil {
-				return nil, err
-			}
+			cursor.Append(opt)
 		default:
-			err := opt.Option(command)
-			if err != nil {
-				return nil, err
-			}
+			command.Append(opt)
 		}
 	}
 
@@ -135,19 +127,10 @@ func (a *Aggregate) Decode(desc description.SelectedServer, cb CursorBuilder, wm
 }
 
 func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *Aggregate {
-	opts := make([]option.CursorOptioner, 0)
-	for _, opt := range a.Opts {
-		curOpt, ok := opt.(option.CursorOptioner)
-		if !ok {
-			continue
-		}
-		opts = append(opts, curOpt)
-	}
-
 	labels, err := getErrorLabels(&rdr)
 	a.err = err
 
-	res, err := cb.BuildCursor(rdr, a.Session, a.Clock, opts...)
+	res, err := cb.BuildCursor(rdr, a.Session, a.Clock, getCursorOptions(a.Opts)...)
 	a.result = res
 	if err != nil {
 		a.err = Error{Message: err.Error(), Labels: labels}
