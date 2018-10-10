@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/mongodb/mongo-go-driver/options"
 	"math"
 	"strings"
 	"testing"
@@ -19,7 +20,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
-	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
@@ -69,17 +69,17 @@ func addCollectionOptions(c *Collection, opts map[string]interface{}) {
 
 func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface{}) (int64, error) {
 	var filter map[string]interface{}
-	var bundle *countopt.CountBundle
+	opts := new(options.CountOptions)
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "skip":
-			bundle = bundle.Skip(int64(opt.(float64)))
+			opts = opts.SetSkip(int64(opt.(float64)))
 		case "limit":
-			bundle = bundle.Limit(int64(opt.(float64)))
+			opts = opts.SetLimit(int64(opt.(float64)))
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(*newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -89,9 +89,9 @@ func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.Count(sessCtx, filter, bundle)
+		return coll.Count(sessCtx, filter, opts)
 	}
-	return coll.Count(ctx, filter, bundle)
+	return coll.Count(ctx, filter, opts)
 }
 
 func executeDistinct(sess *sessionImpl, coll *Collection, args map[string]interface{}) ([]interface{}, error) {
@@ -773,6 +773,48 @@ func compareArrays(t *testing.T, expected *bson.Array, actual *bson.Array) {
 
 func collationFromMap(m map[string]interface{}) *mongoopt.Collation {
 	var collation mongoopt.Collation
+
+	if locale, found := m["locale"]; found {
+		collation.Locale = locale.(string)
+	}
+
+	if caseLevel, found := m["caseLevel"]; found {
+		collation.CaseLevel = caseLevel.(bool)
+	}
+
+	if caseFirst, found := m["caseFirst"]; found {
+		collation.CaseFirst = caseFirst.(string)
+	}
+
+	if strength, found := m["strength"]; found {
+		collation.Strength = int(strength.(float64))
+	}
+
+	if numericOrdering, found := m["numericOrdering"]; found {
+		collation.NumericOrdering = numericOrdering.(bool)
+	}
+
+	if alternate, found := m["alternate"]; found {
+		collation.Alternate = alternate.(string)
+	}
+
+	if maxVariable, found := m["maxVariable"]; found {
+		collation.MaxVariable = maxVariable.(string)
+	}
+
+	if backwards, found := m["backwards"]; found {
+		collation.Backwards = backwards.(bool)
+	}
+
+	return &collation
+}
+
+// Matt: bad name, I know; also, type-aliasing, I know.
+// The issue is, options.Collation has a ToDocument function and mongoopt.Collation has a convert function
+// type aliasing doesn't allow defining new functions on non-local types.
+// When all options are updated to the improved api, this function will be the only one and will simply be named "collationFromMap"
+func newCollationFromMap(m map[string]interface{}) *options.Collation {
+	var collation options.Collation
 
 	if locale, found := m["locale"]; found {
 		collation.Locale = locale.(string)

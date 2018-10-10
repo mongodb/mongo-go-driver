@@ -8,12 +8,15 @@ package dispatch
 
 import (
 	"context"
+	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // Count handles the full cycle dispatch and execution of a count command against the provided
@@ -25,6 +28,7 @@ func Count(
 	selector description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
+	opts *options.CountOptions,
 ) (int64, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -52,6 +56,28 @@ func Count(
 			return 0, err
 		}
 		defer cmd.Session.EndSession()
+	}
+
+	if opts.MaxTimeMS != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(time.Duration(*opts.MaxTimeMS)/time.Millisecond)))
+	}
+	if opts.Skip != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("skip", *opts.Skip))
+	}
+	if opts.Limit != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("limit", *opts.Limit))
+	}
+	if opts.Collation != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", opts.Collation.ToDocument()))
+	}
+	if opts.Hint != nil {
+		switch t := opts.Hint.(type) {
+		case string:
+			cmd.Opts = append(cmd.Opts, bson.EC.String("hint", t))
+			cmd.Opts = append(cmd.Opts, bson.EC.String("hint", t))
+		case *bson.Document:
+			cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("hint", t))
+		}
 	}
 
 	return cmd.RoundTrip(ctx, desc, conn)

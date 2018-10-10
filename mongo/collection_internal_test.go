@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"os"
 	"testing"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/findopt"
@@ -1289,7 +1289,8 @@ func TestCollection_Count_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.Count(context.Background(), nil, countopt.Limit(3))
+	limit := int64(3)
+	count, err := coll.Count(context.Background(), nil, &options.CountOptions{Limit: &limit})
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -1337,7 +1338,8 @@ func TestCollection_CountDocuments_withLimitOptions(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.CountDocuments(context.Background(), nil, countopt.Limit(3))
+	limit := int64(3)
+	count, err := coll.CountDocuments(context.Background(), nil, &options.CountOptions{Limit: &limit})
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -1352,7 +1354,8 @@ func TestCollection_CountDocuments_withSkipOptions(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.CountDocuments(context.Background(), nil, countopt.Skip(3))
+	skip := int64(3)
+	count, err := coll.CountDocuments(context.Background(), nil, &options.CountOptions{Skip: &skip})
 	require.Nil(t, err)
 	require.Equal(t, count, int64(2))
 }
@@ -1383,7 +1386,8 @@ func TestCollection_EstimatedDocumentCount_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.EstimatedDocumentCount(context.Background(), countopt.MaxTimeMs(100))
+	maxTimeMS := int32(100)
+	count, err := coll.EstimatedDocumentCount(context.Background(), &options.EstimatedDocumentCountOptions{MaxTimeMS: &maxTimeMS})
 	require.Nil(t, err)
 	require.Equal(t, count, int64(5))
 }
