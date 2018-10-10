@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -27,7 +26,7 @@ type Distinct struct {
 	NS          Namespace
 	Field       string
 	Query       *bson.Document
-	Opts        []option.DistinctOptioner
+	Opts        []*bson.Element
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -59,15 +58,7 @@ func (d *Distinct) encode(desc description.SelectedServer) (*Read, error) {
 		command.Append(bson.EC.SubDocument("query", d.Query))
 	}
 
-	for _, opt := range d.Opts {
-		if opt == nil {
-			continue
-		}
-		err := opt.Option(command)
-		if err != nil {
-			return nil, err
-		}
-	}
+	command.Append(d.Opts...)
 
 	return &Read{
 		Clock:       d.Clock,

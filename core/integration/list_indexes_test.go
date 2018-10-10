@@ -13,7 +13,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 )
 
@@ -135,7 +134,10 @@ func TestCommandListIndexes(t *testing.T) {
 		testutil.AutoCreateIndexes(t, []string{"c"})
 
 		ns := command.NewNamespace(dbName, testutil.ColName(t))
-		cursor, err := (&command.ListIndexes{NS: ns, Opts: []option.ListIndexesOptioner{option.OptBatchSize(1)}}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		opts := []*bson.Element{
+			bson.EC.Int32("batchSize", 1),
+		}
+		cursor, err := (&command.ListIndexes{NS: ns, Opts: opts}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
 		indexes := []string{}

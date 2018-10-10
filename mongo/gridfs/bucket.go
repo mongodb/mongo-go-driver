@@ -15,8 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/findopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // TODO: add sessions options
@@ -54,7 +53,7 @@ type Upload struct {
 }
 
 // NewBucket creates a GridFS bucket.
-func NewBucket(db *mongo.Database, opts ...BucketOptioner) (*Bucket, error) {
+func NewBucket(db *mongo.Database, opts ...*options.BucketOptions) (*Bucket, error) {
 	b := &Bucket{
 		name:      "fs",
 		chunkSize: DefaultChunkSize,
@@ -64,26 +63,27 @@ func NewBucket(db *mongo.Database, opts ...BucketOptioner) (*Bucket, error) {
 		rp:        db.ReadPreference(),
 	}
 
-	bucketOpts, err := BundleBucket(opts...).Unbundle(true)
-	if err != nil {
-		return nil, err
+	bo := options.MergeBucketOptions(opts...)
+	if bo.Name != nil {
+		b.name = *bo.Name
+	}
+	if bo.ChunkSizeBytes != nil {
+		b.chunkSize = *bo.ChunkSizeBytes
+	}
+	if bo.WriteConcern != nil {
+		b.wc = bo.WriteConcern
+	}
+	if bo.ReadConcern != nil {
+		b.rc = bo.ReadConcern
+	}
+	if bo.ReadPreference != nil {
+		b.rp = bo.ReadPreference
 	}
 
-	for _, opt := range bucketOpts {
-		err = opt.bucketOption(b)
-		if err != nil {
-			return nil, err
-		}
-	}
+	var collOpts = options.Collection().SetWriteConcern(b.wc).SetReadConcern(b.rc).SetReadPreference(b.rp)
 
-	var collOpts = []collectionopt.Option{
-		collectionopt.WriteConcern(b.wc),
-		collectionopt.ReadConcern(b.rc),
-		collectionopt.ReadPreference(b.rp),
-	}
-
-	b.chunksColl = db.Collection(b.name+".chunks", collOpts...)
-	b.filesColl = db.Collection(b.name+".files", collOpts...)
+	b.chunksColl = db.Collection(b.name+".chunks", collOpts)
+	b.filesColl = db.Collection(b.name+".files", collOpts)
 	b.readBuf = make([]byte, b.chunkSize)
 	b.writeBuf = make([]byte, b.chunkSize)
 
@@ -103,12 +103,12 @@ func (b *Bucket) SetReadDeadline(t time.Time) error {
 }
 
 // OpenUploadStream creates a file ID new upload stream for a file given the filename.
-func (b *Bucket) OpenUploadStream(filename string, opts ...UploadOptioner) (*UploadStream, error) {
+func (b *Bucket) OpenUploadStream(filename string, opts ...*options.UploadOptions) (*UploadStream, error) {
 	return b.OpenUploadStreamWithID(objectid.New(), filename, opts...)
 }
 
 // OpenUploadStreamWithID creates a new upload stream for a file given the file ID and filename.
-func (b *Bucket) OpenUploadStreamWithID(fileID objectid.ObjectID, filename string, opts ...UploadOptioner) (*UploadStream, error) {
+func (b *Bucket) OpenUploadStreamWithID(fileID objectid.ObjectID, filename string, opts ...*options.UploadOptions) (*UploadStream, error) {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
 		defer cancel()
@@ -127,14 +127,14 @@ func (b *Bucket) OpenUploadStreamWithID(fileID objectid.ObjectID, filename strin
 }
 
 // UploadFromStream creates a fileID and uploads a file given a source stream.
-func (b *Bucket) UploadFromStream(filename string, source io.Reader, opts ...UploadOptioner) (objectid.ObjectID, error) {
+func (b *Bucket) UploadFromStream(filename string, source io.Reader, opts ...*options.UploadOptions) (objectid.ObjectID, error) {
 	fileID := objectid.New()
 	err := b.UploadFromStreamWithID(fileID, filename, source, opts...)
 	return fileID, err
 }
 
 // UploadFromStreamWithID uploads a file given a source stream.
-func (b *Bucket) UploadFromStreamWithID(fileID objectid.ObjectID, filename string, source io.Reader, opts ...UploadOptioner) error {
+func (b *Bucket) UploadFromStreamWithID(fileID objectid.ObjectID, filename string, source io.Reader, opts ...*options.UploadOptions) error {
 	us, err := b.OpenUploadStreamWithID(fileID, filename, opts...)
 	if err != nil {
 		return err
@@ -187,14 +187,13 @@ func (b *Bucket) DownloadToStream(fileID objectid.ObjectID, stream io.Writer) (i
 }
 
 // OpenDownloadStreamByName opens a download stream for the file with the given filename.
-func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...NameOptioner) (*DownloadStream, error) {
+func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...*options.NameOptions) (*DownloadStream, error) {
 	var numSkip int32 = -1
 	var sortOrder int32 = 1
 
-	for _, opt := range opts {
-		if revision, ok := opt.(OptRevision); ok {
-			numSkip = int32(revision)
-		}
+	nameOpts := options.MergeNameOptions(opts...)
+	if nameOpts.Revision != nil {
+		numSkip = *nameOpts.Revision
 	}
 
 	if numSkip < 0 {
@@ -202,20 +201,17 @@ func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...NameOptioner)
 		numSkip = (-1 * numSkip) - 1
 	}
 
-	findOpts := []findopt.Find{
-		findopt.Skip(int64(numSkip)),
-		findopt.Sort(bson.NewDocument(
-			bson.EC.Int32("uploadDate", sortOrder),
-		)),
-	}
+	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bson.NewDocument(
+		bson.EC.Int32("uploadDate", sortOrder),
+	))
 
 	return b.openDownloadStream(bson.NewDocument(
 		bson.EC.String("filename", filename),
-	), findOpts...)
+	), findOpts)
 }
 
 // DownloadToStreamByName downloads the file with the given name to the given io.Writer.
-func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts ...NameOptioner) (int64, error) {
+func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts ...*options.NameOptions) (int64, error) {
 	ds, err := b.OpenDownloadStreamByName(filename, opts...)
 	if err != nil {
 		return 0, err
@@ -248,18 +244,34 @@ func (b *Bucket) Delete(fileID objectid.ObjectID) error {
 }
 
 // Find returns the files collection documents that match the given filter.
-func (b *Bucket) Find(filter interface{}, opts ...FindOptioner) (mongo.Cursor, error) {
+func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (mongo.Cursor, error) {
 	ctx, cancel := deadlineContext(b.readDeadline)
 	if cancel != nil {
 		defer cancel()
 	}
 
-	findOpts := make([]findopt.Find, 0, len(opts))
-	for i, opt := range opts {
-		findOpts[i] = opt.convertFindOption()
+	gfsOpts := options.MergeGridFSFindOptions(opts...)
+	find := options.Find()
+	if gfsOpts.BatchSize != nil {
+		find.SetBatchSize(*gfsOpts.BatchSize)
+	}
+	if gfsOpts.Limit != nil {
+		find.SetLimit(int64(*gfsOpts.Limit))
+	}
+	if gfsOpts.MaxTime != nil {
+		find.SetMaxTime(*gfsOpts.MaxTime)
+	}
+	if gfsOpts.NoCursorTimeout != nil {
+		find.SetNoCursorTimeout(*gfsOpts.NoCursorTimeout)
+	}
+	if gfsOpts.Skip != nil {
+		find.SetSkip(int64(*gfsOpts.Skip))
+	}
+	if gfsOpts.Sort != nil {
+		find.SetSort(gfsOpts.Sort)
 	}
 
-	return b.filesColl.Find(ctx, filter, findOpts...)
+	return b.filesColl.Find(ctx, filter, find)
 }
 
 // Rename renames the stored file with the specified file ID.
@@ -302,7 +314,7 @@ func (b *Bucket) Drop() error {
 	return b.chunksColl.Drop(ctx)
 }
 
-func (b *Bucket) openDownloadStream(filter interface{}, opts ...findopt.Find) (*DownloadStream, error) {
+func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOptions) (*DownloadStream, error) {
 	ctx, cancel := deadlineContext(b.readDeadline)
 	if cancel != nil {
 		defer cancel()
@@ -370,7 +382,7 @@ func (b *Bucket) deleteChunks(ctx context.Context, fileID objectid.ObjectID) err
 	return err
 }
 
-func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...findopt.Find) (mongo.Cursor, error) {
+func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (mongo.Cursor, error) {
 	cursor, err := b.filesColl.Find(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
@@ -387,7 +399,7 @@ func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...findo
 func (b *Bucket) findChunks(ctx context.Context, fileID objectid.ObjectID) (mongo.Cursor, error) {
 	chunksCursor, err := b.chunksColl.Find(ctx, bson.NewDocument(
 		bson.EC.ObjectID("files_id", fileID),
-	), findopt.Sort(bson.NewDocument(
+	), options.Find().SetSort(bson.NewDocument(
 		bson.EC.Int32("n", 1), // sort by chunk index
 	)))
 	if err != nil {
@@ -443,12 +455,12 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 // create indexes on the files and chunks collection if needed
 func (b *Bucket) createIndexes(ctx context.Context) error {
 	// must use primary read pref mode to check if files coll empty
-	cloned, err := b.filesColl.Clone(collectionopt.ReadPreference(readpref.Primary()))
+	cloned, err := b.filesColl.Clone(options.Collection().SetReadPreference(readpref.Primary()))
 	if err != nil {
 		return err
 	}
 
-	docRes := cloned.FindOne(ctx, bson.NewDocument(), findopt.Projection(bson.NewDocument(
+	docRes := cloned.FindOne(ctx, bson.NewDocument(), options.FindOne().SetProjection(bson.NewDocument(
 		bson.EC.Int32("_id", 1),
 	)))
 
@@ -496,17 +508,17 @@ func (b *Bucket) checkFirstWrite(ctx context.Context) error {
 	return nil
 }
 
-func (b *Bucket) parseUploadOptions(opts ...UploadOptioner) (*Upload, error) {
+func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, error) {
 	upload := &Upload{
 		chunkSize: b.chunkSize, // upload chunk size defaults to bucket's value
 	}
 
-	var err error
-	for _, opt := range opts {
-		err = opt.uploadOption(upload)
-		if err != nil {
-			return nil, err
-		}
+	uo := options.MergeUploadOptions(opts...)
+	if uo.ChunkSizeBytes != nil {
+		upload.chunkSize = *uo.ChunkSizeBytes
+	}
+	if uo.Metadata != nil {
+		upload.metadata = uo.Metadata
 	}
 
 	return upload, nil

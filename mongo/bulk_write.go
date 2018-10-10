@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // WriteModel is the interface satisfied by all models for bulk writes.
@@ -47,8 +47,8 @@ func (dom *DeleteOneModel) Filter(filter interface{}) *DeleteOneModel {
 }
 
 // Collation sets the collation for the DeleteOneModel.
-func (dom *DeleteOneModel) Collation(collation *mongoopt.Collation) *DeleteOneModel {
-	dom.DeleteOneModel.Collation = collation.Convert()
+func (dom *DeleteOneModel) Collation(collation *options.Collation) *DeleteOneModel {
+	dom.DeleteOneModel.Collation = collation
 	return dom
 }
 
@@ -73,8 +73,8 @@ func (dmm *DeleteManyModel) Filter(filter interface{}) *DeleteManyModel {
 }
 
 // Collation sets the collation for the DeleteManyModel.
-func (dmm *DeleteManyModel) Collation(collation *mongoopt.Collation) *DeleteManyModel {
-	dmm.DeleteManyModel.Collation = collation.Convert()
+func (dmm *DeleteManyModel) Collation(collation *options.Collation) *DeleteManyModel {
+	dmm.DeleteManyModel.Collation = collation
 	return dmm
 }
 
@@ -105,8 +105,8 @@ func (rom *ReplaceOneModel) Replacement(rep interface{}) *ReplaceOneModel {
 }
 
 // Collation sets the collation for the ReplaceOneModel.
-func (rom *ReplaceOneModel) Collation(collation *mongoopt.Collation) *ReplaceOneModel {
-	rom.ReplaceOneModel.Collation = collation.Convert()
+func (rom *ReplaceOneModel) Collation(collation *options.Collation) *ReplaceOneModel {
+	rom.ReplaceOneModel.Collation = collation
 	return rom
 }
 
@@ -144,14 +144,15 @@ func (uom *UpdateOneModel) Update(update interface{}) *UpdateOneModel {
 }
 
 // ArrayFilters specifies a set of filters specifying to which array elements an update should apply.
-func (uom *UpdateOneModel) ArrayFilters(filters []interface{}) *UpdateOneModel {
+func (uom *UpdateOneModel) ArrayFilters(filters options.ArrayFilters) *UpdateOneModel {
 	uom.UpdateOneModel.ArrayFilters = filters
+	uom.UpdateOneModel.ArrayFiltersSet = true
 	return uom
 }
 
 // Collation sets the collation for the UpdateOneModel.
-func (uom *UpdateOneModel) Collation(collation *mongoopt.Collation) *UpdateOneModel {
-	uom.UpdateOneModel.Collation = collation.Convert()
+func (uom *UpdateOneModel) Collation(collation *options.Collation) *UpdateOneModel {
+	uom.UpdateOneModel.Collation = collation
 	return uom
 }
 
@@ -189,14 +190,15 @@ func (umm *UpdateManyModel) Update(update interface{}) *UpdateManyModel {
 }
 
 // ArrayFilters specifies a set of filters specifying to which array elements an update should apply.
-func (umm *UpdateManyModel) ArrayFilters(filters []interface{}) *UpdateManyModel {
+func (umm *UpdateManyModel) ArrayFilters(filters options.ArrayFilters) *UpdateManyModel {
 	umm.UpdateManyModel.ArrayFilters = filters
+	umm.UpdateManyModel.ArrayFiltersSet = true
 	return umm
 }
 
 // Collation sets the collation for the UpdateManyModel.
-func (umm *UpdateManyModel) Collation(collation *mongoopt.Collation) *UpdateManyModel {
-	umm.UpdateManyModel.Collation = collation.Convert()
+func (umm *UpdateManyModel) Collation(collation *options.Collation) *UpdateManyModel {
+	umm.UpdateManyModel.Collation = collation
 	return umm
 }
 

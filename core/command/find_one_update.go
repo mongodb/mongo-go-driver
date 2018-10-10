@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -25,7 +24,7 @@ type FindOneAndUpdate struct {
 	NS           Namespace
 	Query        *bson.Document
 	Update       *bson.Document
-	Opts         []option.FindOneAndUpdateOptioner
+	Opts         []*bson.Element
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -54,16 +53,7 @@ func (f *FindOneAndUpdate) encode(desc description.SelectedServer) (*Write, erro
 		bson.EC.SubDocument("query", f.Query),
 		bson.EC.SubDocument("update", f.Update),
 	)
-
-	for _, opt := range f.Opts {
-		if opt == nil {
-			continue
-		}
-		err := opt.Option(command)
-		if err != nil {
-			return nil, err
-		}
-	}
+	command.Append(f.Opts...)
 
 	return &Write{
 		Clock:        f.Clock,
