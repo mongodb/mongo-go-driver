@@ -15,8 +15,8 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/mongodb/mongo-go-driver/mongo/findopt"
 	"github.com/stretchr/testify/require"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 func requireCursorLength(t *testing.T, cursor mongo.Cursor, length int) {
@@ -1166,10 +1166,10 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 44
 
-		projection := findopt.Projection(bson.NewDocument(
+		projection := bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
-		))
+		)
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
@@ -1177,7 +1177,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			options.Find().SetProjection(projection),
 		)
 
 		// End Example 44
@@ -1206,11 +1206,11 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 45
 
-		projection := findopt.Projection(bson.NewDocument(
+		projection := bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("_id", 0),
-		))
+		)
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
@@ -1218,7 +1218,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			options.Find().SetProjection(projection),
 		)
 
 		// End Example 45
@@ -1247,10 +1247,10 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 46
 
-		projection := findopt.Projection(bson.NewDocument(
+		projection := bson.NewDocument(
 			bson.EC.Int32("status", 0),
 			bson.EC.Int32("instock", 0),
-		))
+		)
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
@@ -1258,7 +1258,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			options.Find().SetProjection(projection),
 		)
 
 		// End Example 46
@@ -1287,11 +1287,11 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 47
 
-		projection := findopt.Projection(bson.NewDocument(
+		projection := bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("size.uom", 1),
-		))
+		)
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
@@ -1299,7 +1299,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			options.Find().SetProjection(projection),
 		)
 
 		// End Example 47
@@ -1333,9 +1333,9 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 48
 
-		projection := findopt.Projection(bson.NewDocument(
+		projection := bson.NewDocument(
 			bson.EC.Int32("size.uom", 0),
-		))
+		)
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
@@ -1343,7 +1343,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			options.Find().SetProjection(projection),
 		)
 
 		// End Example 48
@@ -1377,11 +1377,11 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 49
 
-		projection := findopt.Projection(bson.NewDocument(
+		projection := bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("instock.qty", 1),
-		))
+		)
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
@@ -1389,7 +1389,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			options.Find().SetProjection(projection),
 		)
 
 		// End Example 49
@@ -1435,13 +1435,13 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 50
 
-		projection := findopt.Projection(bson.NewDocument(
+		projection := bson.NewDocument(
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 			bson.EC.SubDocumentFromElements("instock",
 				bson.EC.Int32("$slice", -1),
 			),
-		))
+		)
 		require.NoError(t, err)
 
 		cursor, err := coll.Find(
@@ -1449,7 +1449,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.NewDocument(
 				bson.EC.String("status", "A"),
 			),
-			projection,
+			options.Find().SetProjection(projection),
 		)
 
 		// End Example 50

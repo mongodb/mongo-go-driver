@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"net"
 	"reflect"
 	"strings"
@@ -17,7 +18,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
-	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 )
 
 // Dialer is used to make network connections.
@@ -150,7 +150,7 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 }
 
 // Build the aggregation pipeline for the CountDocument command.
-func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts ...countopt.Count) (*bson.Array, error) {
+func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts *options.CountOptions) (*bson.Array, error) {
 	pipeline := bson.NewArray()
 	filterDoc, err := transformDocument(registry, filter)
 
@@ -158,16 +158,16 @@ func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interf
 		return nil, err
 	}
 	pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.SubDocument("$match", filterDoc))))
-	for _, opt := range opts {
-		switch t := opt.(type) {
-		case countopt.OptSkip:
-			skip := int64(t)
-			pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.Int64("$skip", skip))))
-		case countopt.OptLimit:
-			limit := int64(t)
-			pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.Int64("$limit", limit))))
+
+	if opts != nil {
+		if opts.Skip != nil {
+			pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.Int64("$skip", *opts.Skip))))
+		}
+		if opts.Limit != nil {
+			pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.Int64("$limit", *opts.Limit))))
 		}
 	}
+
 	pipeline.Append(bson.VC.Document(bson.NewDocument(
 		bson.EC.SubDocument("$group", bson.NewDocument(
 			bson.EC.Null("_id"),

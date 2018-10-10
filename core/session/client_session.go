@@ -124,20 +124,26 @@ func MaxClusterTime(ct1 *bson.Document, ct2 *bson.Document) *bson.Document {
 }
 
 // NewClientSession creates a Client.
-func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...ClientOptioner) (*Client, error) {
+func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...*ClientOptions) (*Client, error) {
 	c := &Client{
-		Consistent:  true, // causal consistency defaults to true
+		Consistent:  true, // set default
 		ClientID:    clientID,
 		SessionType: sessionType,
 		pool:        pool,
 	}
 
-	var err error
-	for _, opt := range opts {
-		err = opt.Option(c)
-		if err != nil {
-			return nil, err
-		}
+	mergedOpts := mergeClientOptions(opts...)
+	if mergedOpts.CausalConsistency != nil {
+		c.Consistent = *mergedOpts.CausalConsistency
+	}
+	if mergedOpts.DefaultReadPreference != nil {
+		c.transactionRp = mergedOpts.DefaultReadPreference
+	}
+	if mergedOpts.DefaultReadConcern != nil {
+		c.transactionRc = mergedOpts.DefaultReadConcern
+	}
+	if mergedOpts.DefaultWriteConcern != nil {
+		c.transactionWc = mergedOpts.DefaultWriteConcern
 	}
 
 	servSess, err := pool.GetSession()
@@ -233,7 +239,7 @@ func (c *Client) CheckStartTransaction() error {
 
 // StartTransaction initializes the transaction options and advances the state machine.
 // It does not contact the server to start the transaction.
-func (c *Client) StartTransaction(opts ...ClientOptioner) error {
+func (c *Client) StartTransaction(opts *TransactionOptions) error {
 	err := c.CheckStartTransaction()
 	if err != nil {
 		return err
@@ -242,11 +248,10 @@ func (c *Client) StartTransaction(opts ...ClientOptioner) error {
 	c.IncrementTxnNumber()
 	c.RetryingCommit = false
 
-	for _, opt := range opts {
-		err := opt.Option(c)
-		if err != nil {
-			return err
-		}
+	if opts != nil {
+		c.CurrentRc = opts.ReadConcern
+		c.CurrentRp = opts.ReadPreference
+		c.CurrentWc = opts.WriteConcern
 	}
 
 	if c.CurrentRc == nil {
