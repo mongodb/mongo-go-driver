@@ -17,10 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
-	"github.com/mongodb/mongo-go-driver/mongo/listcollectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // Database performs operations on a given database.
@@ -35,11 +32,8 @@ type Database struct {
 	registry       *bsoncodec.Registry
 }
 
-func newDatabase(client *Client, name string, opts ...dbopt.Option) *Database {
-	dbOpt, err := dbopt.BundleDatabase(opts...).Unbundle()
-	if err != nil {
-		return nil
-	}
+func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
+	dbOpt := options.MergeDatabaseOptions(opts...)
 
 	rc := client.readConcern
 	if dbOpt.ReadConcern != nil {
@@ -89,25 +83,20 @@ func (db *Database) Name() string {
 }
 
 // Collection gets a handle for a given collection in the database.
-func (db *Database) Collection(name string, opts ...collectionopt.Option) *Collection {
+func (db *Database) Collection(name string, opts ...*options.CollectionOptions) *Collection {
 	return newCollection(db, name, opts...)
 }
 
 // RunCommand runs a command on the database. A user can supply a custom
 // context to this method, or nil to default to context.Background().
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...runcmdopt.Option) (bson.Raw, error) {
-
+func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (bson.Raw, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	runCmd, _, err := runcmdopt.BundleRunCmd(opts...).Unbundle()
-	if err != nil {
-		return nil, err
-	}
-
 	sess := sessionFromContext(ctx)
 
+	runCmd := options.MergeRunCmdOptions(opts...)
 	rp := runCmd.ReadPreference
 	if rp == nil {
 		if sess != nil && sess.TransactionRunning() {
@@ -138,7 +127,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 }
 
 // Drop drops this database from mongodb.
-func (db *Database) Drop(ctx context.Context, opts ...dbopt.DropDB) error {
+func (db *Database) Drop(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -169,18 +158,14 @@ func (db *Database) Drop(ctx context.Context, opts ...dbopt.DropDB) error {
 }
 
 // ListCollections list collections from mongodb database.
-func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, opts ...listcollectionopt.ListCollections) (command.Cursor, error) {
+func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, opts ...*options.ListCollectionsOptions) (command.Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
-	}
-	listCollOpts, _, err := listcollectionopt.BundleListCollections(opts...).Unbundle(true)
-	if err != nil {
-		return nil, err
 	}
 
 	sess := sessionFromContext(ctx)
 
-	err = db.client.ValidSession(sess)
+	err := db.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +173,6 @@ func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, 
 	cmd := command.ListCollections{
 		DB:       db.name,
 		Filter:   filter,
-		Opts:     listCollOpts,
 		ReadPref: db.readPreference,
 		Session:  sess,
 		Clock:    db.client.clock,
@@ -200,6 +184,7 @@ func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, 
 		db.readSelector,
 		db.client.id,
 		db.client.topology.SessionPool,
+		opts...,
 	)
 	if err != nil && !command.IsNotFound(err) {
 		return nil, err

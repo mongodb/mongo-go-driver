@@ -23,15 +23,10 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/clientopt"
-	"github.com/mongodb/mongo-go-driver/mongo/dbopt"
-	"github.com/mongodb/mongo-go-driver/mongo/listdbopt"
-	"github.com/mongodb/mongo-go-driver/mongo/sessionopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
-
-var defaultRegistry = bson.NewRegistryBuilder().Build()
 
 // Client performs operations on a given topology.
 type Client struct {
@@ -50,7 +45,7 @@ type Client struct {
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
-func Connect(ctx context.Context, uri string, opts ...clientopt.Option) (*Client, error) {
+func Connect(ctx context.Context, uri string, opts ...*options.ClientOptions) (*Client, error) {
 	c, err := NewClientWithOptions(uri, opts...)
 	if err != nil {
 		return nil, err
@@ -69,13 +64,13 @@ func NewClient(uri string) (*Client, error) {
 		return nil, err
 	}
 
-	return newClient(cs, nil)
+	return newClient(cs)
 }
 
 // NewClientWithOptions creates a new client to connect to to a cluster specified by the connection
 // string and the options manually passed in. If the same option is configured in both the
 // connection string and the manual options, the manual option will be ignored.
-func NewClientWithOptions(uri string, opts ...clientopt.Option) (*Client, error) {
+func NewClientWithOptions(uri string, opts ...*options.ClientOptions) (*Client, error) {
 	cs, err := connstring.Parse(uri)
 	if err != nil {
 		return nil, err
@@ -87,7 +82,7 @@ func NewClientWithOptions(uri string, opts ...clientopt.Option) (*Client, error)
 // NewClientFromConnString creates a new client to connect to a cluster, with configuration
 // specified by the connection string.
 func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
-	return newClient(cs, nil)
+	return newClient(cs)
 }
 
 // Connect initializes the Client by starting background monitoring goroutines.
@@ -132,25 +127,31 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 }
 
 // StartSession starts a new session.
-func (c *Client) StartSession(opts ...sessionopt.Session) (Session, error) {
+func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
 	if c.topology.SessionPool == nil {
 		return nil, topology.ErrTopologyClosed
 	}
 
-	// By default the session inherits the default read/write concerns of the client
-	defaultOpts := []sessionopt.Session{
-		sessionopt.DefaultReadConcern(c.readConcern),
-		sessionopt.DefaultReadPreference(c.readPreference),
-		sessionopt.DefaultWriteConcern(c.writeConcern),
+	sopts := options.MergeSessionOptions(opts...)
+	coreOpts := &session.ClientOptions{
+		DefaultReadConcern:    c.readConcern,
+		DefaultReadPreference: c.readPreference,
+		DefaultWriteConcern:   c.writeConcern,
+	}
+	if sopts.CausalConsistency != nil {
+		coreOpts.CausalConsistency = sopts.CausalConsistency
+	}
+	if sopts.DefaultReadConcern != nil {
+		coreOpts.DefaultReadConcern = sopts.DefaultReadConcern
+	}
+	if sopts.DefaultWriteConcern != nil {
+		coreOpts.DefaultWriteConcern = sopts.DefaultWriteConcern
+	}
+	if sopts.DefaultReadPreference != nil {
+		coreOpts.DefaultReadPreference = sopts.DefaultReadPreference
 	}
 
-	// If the user provided the default read/write concerns explicitly, this will overwrite with them.
-	sessionOpts, err := sessionopt.BundleSession(append(defaultOpts, opts...)...).Unbundle(true)
-	if err != nil {
-		return nil, err
-	}
-
-	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, sessionOpts...)
+	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, coreOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -172,11 +173,8 @@ func (c *Client) endSessions(ctx context.Context) {
 	_, _ = dispatch.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
 }
 
-func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, error) {
-	clientOpt, err := clientopt.BundleClient(opts...).Unbundle(cs)
-	if err != nil {
-		return nil, err
-	}
+func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Client, error) {
+	clientOpt := options.MergeClientOptions(cs, opts...)
 
 	client := &Client{
 		topologyOptions: clientOpt.TopologyOptions,
@@ -185,11 +183,11 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 		registry:        clientOpt.Registry,
 	}
 
-	uuid, err := uuid.New()
+	clientID, err := uuid.New()
 	if err != nil {
 		return nil, err
 	}
-	client.id = uuid
+	client.id = clientID
 
 	topts := append(
 		client.topologyOptions,
@@ -232,7 +230,7 @@ func newClient(cs connstring.ConnString, opts ...clientopt.Option) (*Client, err
 	}
 
 	if client.registry == nil {
-		client.registry = defaultRegistry
+		client.registry = bson.DefaultRegistry
 	}
 	return client, nil
 }
@@ -320,7 +318,7 @@ func (c *Client) ValidSession(sess *session.Client) error {
 }
 
 // Database returns a handle for a given database.
-func (c *Client) Database(name string, opts ...dbopt.Option) *Database {
+func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Database {
 	return newDatabase(c, name, opts...)
 }
 
@@ -330,18 +328,14 @@ func (c *Client) ConnectionString() string {
 }
 
 // ListDatabases returns a ListDatabasesResult.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...listdbopt.ListDatabases) (ListDatabasesResult, error) {
+func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
-	}
-	listDbOpts, _, err := listdbopt.BundleListDatabases(opts...).Unbundle(true)
-	if err != nil {
-		return ListDatabasesResult{}, err
 	}
 
 	sess := sessionFromContext(ctx)
 
-	err = c.ValidSession(sess)
+	err := c.ValidSession(sess)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
@@ -353,7 +347,6 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 
 	cmd := command.ListDatabases{
 		Filter:  f,
-		Opts:    listDbOpts,
 		Session: sess,
 		Clock:   c.clock,
 	}
@@ -364,6 +357,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		description.ReadPrefSelector(readpref.Primary()),
 		c.id,
 		c.topology.SessionPool,
+		opts...,
 	)
 	if err != nil {
 		return ListDatabasesResult{}, err
@@ -373,8 +367,9 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 }
 
 // ListDatabaseNames returns a slice containing the names of all of the databases on the server.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...listdbopt.ListDatabases) ([]string, error) {
-	opts = append(opts, listdbopt.NameOnly(true))
+func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
+	opts = append(opts, options.ListDatabases().SetNameOnly(true))
+
 	res, err := c.ListDatabases(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
@@ -415,13 +410,13 @@ func WithSession(ctx context.Context, sess Session, fn func(SessionContext) erro
 // Errors returned from the closure are transparently returned from
 // this method.
 func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) error {
-	return c.UseSessionWithOptions(ctx, []sessionopt.Session{}, fn)
+	return c.UseSessionWithOptions(ctx, options.Session(), fn)
 }
 
 // UseSessionWithOptions works like UseSession but allows the caller
 // to specify the options used to create the session.
-func (c *Client) UseSessionWithOptions(ctx context.Context, opts []sessionopt.Session, fn func(SessionContext) error) error {
-	defaultSess, err := c.StartSession(opts...)
+func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
+	defaultSess, err := c.StartSession(opts)
 	if err != nil {
 		return err
 	}

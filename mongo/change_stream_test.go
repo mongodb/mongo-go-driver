@@ -9,15 +9,13 @@ package mongo
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
-
-	"strings"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/stretchr/testify/require"
 )
 
@@ -212,7 +210,7 @@ func TestChangeStream_resumableError(t *testing.T) {
 	hasResume := false
 
 	for _, opt := range changes.(*changeStream).options {
-		if _, ok := opt.(option.OptResumeAfter); ok {
+		if opt.Key() == "resumeAfter" {
 			hasResume = true
 			break
 		}

@@ -18,15 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
-	"github.com/mongodb/mongo-go-driver/mongo/countopt"
-	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
-	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
-	"github.com/mongodb/mongo-go-driver/mongo/findopt"
-	"github.com/mongodb/mongo-go-driver/mongo/mongoopt"
-	"github.com/mongodb/mongo-go-driver/mongo/replaceopt"
-	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
-	"github.com/mongodb/mongo-go-driver/mongo/updateopt"
+	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/stretchr/testify/require"
 )
 
@@ -69,17 +61,17 @@ func addCollectionOptions(c *Collection, opts map[string]interface{}) {
 
 func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface{}) (int64, error) {
 	var filter map[string]interface{}
-	var bundle *countopt.CountBundle
+	opts := options.Count()
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "skip":
-			bundle = bundle.Skip(int64(opt.(float64)))
+			opts = opts.SetSkip(int64(opt.(float64)))
 		case "limit":
-			bundle = bundle.Limit(int64(opt.(float64)))
+			opts = opts.SetLimit(int64(opt.(float64)))
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -89,15 +81,15 @@ func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.Count(sessCtx, filter, bundle)
+		return coll.Count(sessCtx, filter, opts)
 	}
-	return coll.Count(ctx, filter, bundle)
+	return coll.Count(ctx, filter, opts)
 }
 
 func executeDistinct(sess *sessionImpl, coll *Collection, args map[string]interface{}) ([]interface{}, error) {
 	var fieldName string
 	var filter map[string]interface{}
-	var bundle *distinctopt.DistinctBundle
+	opts := options.Distinct()
 	for name, opt := range args {
 		switch name {
 		case "filter":
@@ -105,7 +97,7 @@ func executeDistinct(sess *sessionImpl, coll *Collection, args map[string]interf
 		case "fieldName":
 			fieldName = opt.(string)
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -114,9 +106,9 @@ func executeDistinct(sess *sessionImpl, coll *Collection, args map[string]interf
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.Distinct(sessCtx, fieldName, filter, bundle)
+		return coll.Distinct(sessCtx, fieldName, filter, opts)
 	}
-	return coll.Distinct(ctx, fieldName, filter, bundle)
+	return coll.Distinct(ctx, fieldName, filter, opts)
 }
 
 func executeInsertOne(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*InsertOneResult, error) {
@@ -165,22 +157,22 @@ func executeInsertMany(sess *sessionImpl, coll *Collection, args map[string]inte
 }
 
 func executeFind(sess *sessionImpl, coll *Collection, args map[string]interface{}) (Cursor, error) {
-	var bundle *findopt.FindBundle
+	opts := options.Find()
 	var filter map[string]interface{}
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "sort":
-			bundle = bundle.Sort(opt.(map[string]interface{}))
+			opts = opts.SetSort(opt.(map[string]interface{}))
 		case "skip":
-			bundle = bundle.Skip(int64(opt.(float64)))
+			opts = opts.SetSkip(int64(opt.(float64)))
 		case "limit":
-			bundle = bundle.Limit(int64(opt.(float64)))
+			opts = opts.SetLimit(int64(opt.(float64)))
 		case "batchSize":
-			bundle = bundle.BatchSize(int32(opt.(float64)))
+			opts = opts.SetBatchSize(int32(opt.(float64)))
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -189,24 +181,24 @@ func executeFind(sess *sessionImpl, coll *Collection, args map[string]interface{
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.Find(sessCtx, filter, bundle)
+		return coll.Find(sessCtx, filter, opts)
 	}
-	return coll.Find(ctx, filter, bundle)
+	return coll.Find(ctx, filter, opts)
 }
 
 func executeFindOneAndDelete(sess *sessionImpl, coll *Collection, args map[string]interface{}) *DocumentResult {
-	var bundle *findopt.DeleteOneBundle
+	opts := options.FindOneAndDelete()
 	var filter map[string]interface{}
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "sort":
-			bundle = bundle.Sort(opt.(map[string]interface{}))
+			opts = opts.SetSort(opt.(map[string]interface{}))
 		case "projection":
-			bundle = bundle.Projection(opt.(map[string]interface{}))
+			opts = opts.SetProjection(opt.(map[string]interface{}))
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -215,13 +207,13 @@ func executeFindOneAndDelete(sess *sessionImpl, coll *Collection, args map[strin
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.FindOneAndDelete(sessCtx, filter, bundle)
+		return coll.FindOneAndDelete(sessCtx, filter, opts)
 	}
-	return coll.FindOneAndDelete(ctx, filter, bundle)
+	return coll.FindOneAndDelete(ctx, filter, opts)
 }
 
 func executeFindOneAndUpdate(sess *sessionImpl, coll *Collection, args map[string]interface{}) *DocumentResult {
-	var bundle *findopt.UpdateOneBundle
+	opts := options.FindOneAndUpdate()
 	var filter map[string]interface{}
 	var update map[string]interface{}
 	for name, opt := range args {
@@ -231,22 +223,24 @@ func executeFindOneAndUpdate(sess *sessionImpl, coll *Collection, args map[strin
 		case "update":
 			update = opt.(map[string]interface{})
 		case "arrayFilters":
-			bundle = bundle.ArrayFilters(opt.([]interface{})...)
+			opts = opts.SetArrayFilters(options.ArrayFilters{
+				Filters: opt.([]interface{}),
+			})
 		case "sort":
-			bundle = bundle.Sort(opt.(map[string]interface{}))
+			opts = opts.SetSort(opt.(map[string]interface{}))
 		case "projection":
-			bundle = bundle.Projection(opt.(map[string]interface{}))
+			opts = opts.SetProjection(opt.(map[string]interface{}))
 		case "upsert":
-			bundle = bundle.Upsert(opt.(bool))
+			opts = opts.SetUpsert(opt.(bool))
 		case "returnDocument":
 			switch opt.(string) {
 			case "After":
-				bundle = bundle.ReturnDocument(mongoopt.After)
+				opts = opts.SetReturnDocument(options.After)
 			case "Before":
-				bundle = bundle.ReturnDocument(mongoopt.Before)
+				opts = opts.SetReturnDocument(options.Before)
 			}
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -263,13 +257,13 @@ func executeFindOneAndUpdate(sess *sessionImpl, coll *Collection, args map[strin
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.FindOneAndUpdate(sessCtx, filter, update, bundle)
+		return coll.FindOneAndUpdate(sessCtx, filter, update, opts)
 	}
-	return coll.FindOneAndUpdate(ctx, filter, update, bundle)
+	return coll.FindOneAndUpdate(ctx, filter, update, opts)
 }
 
 func executeFindOneAndReplace(sess *sessionImpl, coll *Collection, args map[string]interface{}) *DocumentResult {
-	var bundle *findopt.ReplaceOneBundle
+	opts := options.FindOneAndReplace()
 	var filter map[string]interface{}
 	var replacement map[string]interface{}
 	for name, opt := range args {
@@ -279,20 +273,20 @@ func executeFindOneAndReplace(sess *sessionImpl, coll *Collection, args map[stri
 		case "replacement":
 			replacement = opt.(map[string]interface{})
 		case "sort":
-			bundle = bundle.Sort(opt.(map[string]interface{}))
+			opts = opts.SetSort(opt.(map[string]interface{}))
 		case "projection":
-			bundle = bundle.Projection(opt.(map[string]interface{}))
+			opts = opts.SetProjection(opt.(map[string]interface{}))
 		case "upsert":
-			bundle = bundle.Upsert(opt.(bool))
+			opts = opts.SetUpsert(opt.(bool))
 		case "returnDocument":
 			switch opt.(string) {
 			case "After":
-				bundle = bundle.ReturnDocument(mongoopt.After)
+				opts = opts.SetReturnDocument(options.After)
 			case "Before":
-				bundle = bundle.ReturnDocument(mongoopt.Before)
+				opts = opts.SetReturnDocument(options.Before)
 			}
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -309,20 +303,20 @@ func executeFindOneAndReplace(sess *sessionImpl, coll *Collection, args map[stri
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.FindOneAndReplace(sessCtx, filter, replacement, bundle)
+		return coll.FindOneAndReplace(sessCtx, filter, replacement, opts)
 	}
-	return coll.FindOneAndReplace(ctx, filter, replacement, bundle)
+	return coll.FindOneAndReplace(ctx, filter, replacement, opts)
 }
 
 func executeDeleteOne(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*DeleteResult, error) {
-	var bundle *deleteopt.DeleteBundle
+	opts := options.Delete()
 	var filter map[string]interface{}
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -338,20 +332,20 @@ func executeDeleteOne(sess *sessionImpl, coll *Collection, args map[string]inter
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.DeleteOne(sessCtx, filter, bundle)
+		return coll.DeleteOne(sessCtx, filter, opts)
 	}
-	return coll.DeleteOne(ctx, filter, bundle)
+	return coll.DeleteOne(ctx, filter, opts)
 }
 
 func executeDeleteMany(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*DeleteResult, error) {
-	var bundle *deleteopt.DeleteBundle
+	opts := options.Delete()
 	var filter map[string]interface{}
 	for name, opt := range args {
 		switch name {
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -367,13 +361,13 @@ func executeDeleteMany(sess *sessionImpl, coll *Collection, args map[string]inte
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.DeleteMany(sessCtx, filter, bundle)
+		return coll.DeleteMany(sessCtx, filter, opts)
 	}
-	return coll.DeleteMany(ctx, filter, bundle)
+	return coll.DeleteMany(ctx, filter, opts)
 }
 
 func executeReplaceOne(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
-	var bundle *replaceopt.ReplaceBundle
+	opts := options.Replace()
 	var filter map[string]interface{}
 	var replacement map[string]interface{}
 	for name, opt := range args {
@@ -383,9 +377,9 @@ func executeReplaceOne(sess *sessionImpl, coll *Collection, args map[string]inte
 		case "replacement":
 			replacement = opt.(map[string]interface{})
 		case "upsert":
-			bundle = bundle.Upsert(opt.(bool))
+			opts = opts.SetUpsert(opt.(bool))
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -399,19 +393,22 @@ func executeReplaceOne(sess *sessionImpl, coll *Collection, args map[string]inte
 
 	// TODO temporarily default upsert to false explicitly to make test pass
 	// because we do not send upsert=false by default
-	bundle = replaceopt.BundleReplace(replaceopt.Upsert(false), bundle)
+	//opts = opts.SetUpsert(false)
+	if opts.Upsert == nil {
+		opts = opts.SetUpsert(false)
+	}
 	if sess != nil {
 		sessCtx := sessionContext{
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.ReplaceOne(sessCtx, filter, replacement, bundle)
+		return coll.ReplaceOne(sessCtx, filter, replacement, opts)
 	}
-	return coll.ReplaceOne(ctx, filter, replacement, bundle)
+	return coll.ReplaceOne(ctx, filter, replacement, opts)
 }
 
 func executeUpdateOne(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
-	var bundle *updateopt.UpdateBundle
+	opts := options.Update()
 	var filter map[string]interface{}
 	var update map[string]interface{}
 	for name, opt := range args {
@@ -421,11 +418,11 @@ func executeUpdateOne(sess *sessionImpl, coll *Collection, args map[string]inter
 		case "update":
 			update = opt.(map[string]interface{})
 		case "arrayFilters":
-			bundle = bundle.ArrayFilters(opt.([]interface{})...)
+			opts = opts.SetArrayFilters(options.ArrayFilters{Filters: opt.([]interface{})})
 		case "upsert":
-			bundle = bundle.Upsert(opt.(bool))
+			opts = opts.SetUpsert(opt.(bool))
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -437,21 +434,21 @@ func executeUpdateOne(sess *sessionImpl, coll *Collection, args map[string]inter
 	replaceFloatsWithInts(filter)
 	replaceFloatsWithInts(update)
 
-	// TODO temporarily default upsert to false explicitly to make test pass
-	// because we do not send upsert=false by default
-	bundle = updateopt.BundleUpdate(updateopt.Upsert(false), bundle)
+	if opts.Upsert == nil {
+		opts = opts.SetUpsert(false)
+	}
 	if sess != nil {
 		sessCtx := sessionContext{
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.UpdateOne(sessCtx, filter, update, bundle)
+		return coll.UpdateOne(sessCtx, filter, update, opts)
 	}
-	return coll.UpdateOne(ctx, filter, update, bundle)
+	return coll.UpdateOne(ctx, filter, update, opts)
 }
 
 func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*UpdateResult, error) {
-	var bundle *updateopt.UpdateBundle
+	opts := options.Update()
 	var filter map[string]interface{}
 	var update map[string]interface{}
 	for name, opt := range args {
@@ -461,11 +458,11 @@ func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]inte
 		case "update":
 			update = opt.(map[string]interface{})
 		case "arrayFilters":
-			bundle = bundle.ArrayFilters(opt.([]interface{})...)
+			opts = opts.SetArrayFilters(options.ArrayFilters{Filters: opt.([]interface{})})
 		case "upsert":
-			bundle = bundle.Upsert(opt.(bool))
+			opts = opts.SetUpsert(opt.(bool))
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -477,30 +474,30 @@ func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]inte
 	replaceFloatsWithInts(filter)
 	replaceFloatsWithInts(update)
 
-	// TODO temporarily default upsert to false explicitly to make test pass
-	// because we do not send upsert=false by default
-	bundle = updateopt.BundleUpdate(updateopt.Upsert(false), bundle)
+	if opts.Upsert == nil {
+		opts = opts.SetUpsert(false)
+	}
 	if sess != nil {
 		sessCtx := sessionContext{
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.UpdateMany(sessCtx, filter, update, bundle)
+		return coll.UpdateMany(sessCtx, filter, update, opts)
 	}
-	return coll.UpdateMany(ctx, filter, update, bundle)
+	return coll.UpdateMany(ctx, filter, update, opts)
 }
 
 func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]interface{}) (Cursor, error) {
-	var bundle *aggregateopt.AggregateBundle
 	var pipeline []interface{}
+	opts := options.Aggregate()
 	for name, opt := range args {
 		switch name {
 		case "pipeline":
 			pipeline = opt.([]interface{})
 		case "batchSize":
-			bundle = bundle.BatchSize(int32(opt.(float64)))
+			opts = opts.SetBatchSize(int32(opt.(float64)))
 		case "collation":
-			bundle = bundle.Collation(collationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -509,14 +506,14 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.Aggregate(sessCtx, pipeline, bundle)
+		return coll.Aggregate(sessCtx, pipeline, opts)
 	}
-	return coll.Aggregate(ctx, pipeline, bundle)
+	return coll.Aggregate(ctx, pipeline, opts)
 }
 
 func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Raw, error) {
 	var cmd *bson.Document
-	var bundle *runcmdopt.RunCmdBundle
+	opts := options.RunCmd()
 	for name, opt := range argmap {
 		switch name {
 		case "command":
@@ -538,7 +535,7 @@ func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}
 				return nil, err
 			}
 		case "readPreference":
-			bundle = bundle.ReadPreference(getReadPref(opt))
+			opts = opts.SetReadPreference(getReadPref(opt))
 		}
 	}
 
@@ -547,9 +544,9 @@ func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return db.RunCommand(sessCtx, cmd, bundle)
+		return db.RunCommand(sessCtx, cmd, opts)
 	}
-	return db.RunCommand(ctx, cmd, bundle)
+	return db.RunCommand(ctx, cmd, opts)
 }
 
 func verifyBulkWriteResult(t *testing.T, res *BulkWriteResult, result json.RawMessage) {
@@ -810,8 +807,50 @@ func compareArrays(t *testing.T, expected *bson.Array, actual *bson.Array) {
 	}
 }
 
-func collationFromMap(m map[string]interface{}) *mongoopt.Collation {
-	var collation mongoopt.Collation
+func collationFromMap(m map[string]interface{}) *options.Collation {
+	var collation options.Collation
+
+	if locale, found := m["locale"]; found {
+		collation.Locale = locale.(string)
+	}
+
+	if caseLevel, found := m["caseLevel"]; found {
+		collation.CaseLevel = caseLevel.(bool)
+	}
+
+	if caseFirst, found := m["caseFirst"]; found {
+		collation.CaseFirst = caseFirst.(string)
+	}
+
+	if strength, found := m["strength"]; found {
+		collation.Strength = int(strength.(float64))
+	}
+
+	if numericOrdering, found := m["numericOrdering"]; found {
+		collation.NumericOrdering = numericOrdering.(bool)
+	}
+
+	if alternate, found := m["alternate"]; found {
+		collation.Alternate = alternate.(string)
+	}
+
+	if maxVariable, found := m["maxVariable"]; found {
+		collation.MaxVariable = maxVariable.(string)
+	}
+
+	if backwards, found := m["backwards"]; found {
+		collation.Backwards = backwards.(bool)
+	}
+
+	return &collation
+}
+
+// Matt: bad name, I know; also, type-aliasing, I know.
+// The issue is, options.Collation has a ToDocument function and mongoopt.Collation has a convert function
+// type aliasing doesn't allow defining new functions on non-local types.
+// When all options are updated to the improved api, this function will be the only one and will simply be named "collationFromMap"
+func newCollationFromMap(m map[string]interface{}) *options.Collation {
+	var collation options.Collation
 
 	if locale, found := m["locale"]; found {
 		collation.Locale = locale.(string)

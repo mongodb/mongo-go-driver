@@ -11,7 +11,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -24,7 +23,7 @@ import (
 type CreateIndexes struct {
 	NS           Namespace
 	Indexes      *bson.Array
-	Opts         []option.CreateIndexesOptioner
+	Opts         []*bson.Element
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -48,16 +47,7 @@ func (ci *CreateIndexes) encode(desc description.SelectedServer) (*Write, error)
 		bson.EC.String("createIndexes", ci.NS.Collection),
 		bson.EC.Array("indexes", ci.Indexes),
 	)
-
-	for _, opt := range ci.Opts {
-		if opt == nil {
-			continue
-		}
-		err := opt.Option(cmd)
-		if err != nil {
-			return nil, err
-		}
-	}
+	cmd.Append(ci.Opts...)
 
 	return &Write{
 		Clock:        ci.Clock,
