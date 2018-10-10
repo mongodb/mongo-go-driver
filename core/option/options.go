@@ -38,13 +38,6 @@ type FindOneOptioner interface {
 	findOneOption()
 }
 
-// CountOptioner is the interface implemented by types that can be used as
-// Options for Count commands.
-type CountOptioner interface {
-	Optioner
-	countOption()
-}
-
 // DeleteOptioner is the interface implemented by types that can be used as
 // Options for Delete commands.
 type DeleteOptioner interface {
@@ -186,11 +179,6 @@ var (
 	_ AggregateOptioner         = (*OptComment)(nil)
 	_ AggregateOptioner         = (*OptMaxTime)(nil)
 	_ AggregateOptioner         = (*OptMaxAwaitTime)(nil)
-	_ CountOptioner             = (*OptCollation)(nil)
-	_ CountOptioner             = (*OptHint)(nil)
-	_ CountOptioner             = (*OptLimit)(nil)
-	_ CountOptioner             = (*OptMaxTime)(nil)
-	_ CountOptioner             = (*OptSkip)(nil)
 	_ CreateIndexesOptioner     = (*OptMaxTime)(nil)
 	_ CursorOptioner            = OptBatchSize(0)
 	_ CursorOptioner            = (*OptMaxAwaitTime)(nil)
@@ -480,7 +468,6 @@ func (opt OptCollation) Option(d *bson.Document) error {
 
 func (OptCollation) aggregateOption()         {}
 func (OptCollation) changeStreamOption()      {}
-func (OptCollation) countOption()             {}
 func (OptCollation) deleteOption()            {}
 func (OptCollation) distinctOption()          {}
 func (OptCollation) findOption()              {}
@@ -566,7 +553,6 @@ func (opt OptHint) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptHint) countOption()     {}
 func (OptHint) findOption()      {}
 func (OptHint) findOneOption()   {}
 func (OptHint) aggregateOption() {}
@@ -585,7 +571,6 @@ func (opt OptLimit) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptLimit) countOption()   {}
 func (OptLimit) findOption()    {}
 func (OptLimit) findOneOption() {}
 
@@ -666,7 +651,6 @@ func (opt OptMaxTime) Option(d *bson.Document) error {
 }
 
 func (OptMaxTime) aggregateOption()         {}
-func (OptMaxTime) countOption()             {}
 func (OptMaxTime) distinctOption()          {}
 func (OptMaxTime) findOption()              {}
 func (OptMaxTime) findOneOption()           {}
@@ -893,7 +877,6 @@ func (opt OptSkip) Option(d *bson.Document) error {
 	return nil
 }
 
-func (OptSkip) countOption()   {}
 func (OptSkip) findOption()    {}
 func (OptSkip) findOneOption() {}
 

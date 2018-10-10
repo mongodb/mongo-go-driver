@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"github.com/mongodb/mongo-go-driver/options"
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
@@ -24,7 +25,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/aggregateopt"
 	"github.com/mongodb/mongo-go-driver/mongo/changestreamopt"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
-	"github.com/mongodb/mongo-go-driver/mongo/countopt"
 	"github.com/mongodb/mongo-go-driver/mongo/deleteopt"
 	"github.com/mongodb/mongo-go-driver/mongo/distinctopt"
 	"github.com/mongodb/mongo-go-driver/mongo/dropcollopt"
@@ -741,18 +741,13 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 // *bson.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Count(ctx context.Context, filter interface{},
-	opts ...countopt.Count) (int64, error) {
+	opts ...*options.CountOptions) (int64, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	f, err := transformDocument(coll.registry, filter)
-	if err != nil {
-		return 0, err
-	}
-
-	countOpts, _, err := countopt.BundleCount(opts...).Unbundle(true)
 	if err != nil {
 		return 0, err
 	}
@@ -773,7 +768,6 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 	cmd := command.Count{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Query:       f,
-		Opts:        countOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: rc,
 		Session:     sess,
@@ -786,6 +780,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		coll.readSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		opts...,
 	)
 }
 
@@ -795,18 +790,15 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 // This method uses countDocumentsAggregatePipeline to turn the filter parameter and options
 // into aggregate pipeline.
 func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
-	opts ...countopt.Count) (int64, error) {
+	opts ...*options.CountOptions) (int64, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	pipelineArr, err := countDocumentsAggregatePipeline(coll.registry, filter, opts...)
-	if err != nil {
-		return 0, err
-	}
+	countOpts := options.ToCountOptions(opts...)
 
-	countOpts, _, err := countopt.BundleCount(opts...).Unbundle(true)
+	pipelineArr, err := countDocumentsAggregatePipeline(coll.registry, filter, countOpts)
 	if err != nil {
 		return 0, err
 	}
@@ -827,37 +819,33 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	cmd := command.CountDocuments{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Pipeline:    pipelineArr,
-		Opts:        countOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: rc,
 		Session:     sess,
 		Clock:       coll.client.clock,
 	}
+
 	return dispatch.CountDocuments(
 		ctx, cmd,
 		coll.client.topology,
 		coll.readSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		countOpts,
 	)
 }
 
 // EstimatedDocumentCount gets an estimate of the count of documents in a collection using collection metadata.
 func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
-	opts ...countopt.EstimatedDocumentCount) (int64, error) {
+	opts ...*options.EstimatedDocumentCountOptions) (int64, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	countOpts, _, err := countopt.BundleEstimatedDocumentCount(opts...).Unbundle(true)
-	if err != nil {
-		return 0, err
-	}
-
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err := coll.client.ValidSession(sess)
 	if err != nil {
 		return 0, err
 	}
@@ -871,18 +859,25 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	cmd := command.Count{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
 		Query:       bson.NewDocument(),
-		Opts:        countOpts,
 		ReadPref:    coll.readPreference,
 		ReadConcern: rc,
 		Session:     sess,
 		Clock:       coll.client.clock,
 	}
+
+	// TODO: using dispatch.Count requires using options.CountOptions; should there be a dispatch.EstimatedDocumentCount?
+	countOpts := options.Count()
+	if len(opts) >= 1 {
+		countOpts = countOpts.SetMaxTimeMS(*opts[len(opts)-1].MaxTimeMS)
+	}
+
 	return dispatch.Count(
 		ctx, cmd,
 		coll.client.topology,
 		coll.readSelector,
 		coll.client.id,
 		coll.client.topology.SessionPool,
+		countOpts,
 	)
 }
 

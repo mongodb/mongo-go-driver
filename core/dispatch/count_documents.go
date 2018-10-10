@@ -8,12 +8,15 @@ package dispatch
 
 import (
 	"context"
+	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // CountDocuments handles the full cycle dispatch and execution of a countDocuments command against the provided
@@ -25,6 +28,7 @@ func CountDocuments(
 	selector description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
+	opts ...*options.CountOptions,
 ) (int64, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -52,6 +56,24 @@ func CountDocuments(
 			return 0, err
 		}
 		defer cmd.Session.EndSession()
+	}
+
+	countOpts := options.ToCountOptions(opts...)
+
+	// ignore Skip and Limit because we already have these options in the pipeline
+	if countOpts.MaxTimeMS != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(time.Duration(*countOpts.MaxTimeMS)/time.Millisecond)))
+	}
+	if countOpts.Collation != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", countOpts.Collation.ToDocument()))
+	}
+	if countOpts.Hint != nil {
+		switch t := (*countOpts.Hint).(type) {
+		case *options.HintString:
+			cmd.Opts = append(cmd.Opts, bson.EC.String("hint", t.S))
+		case *options.HintDocument:
+			cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("hint", t.D))
+		}
 	}
 
 	return cmd.RoundTrip(ctx, desc, ss, conn)
