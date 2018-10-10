@@ -22,6 +22,30 @@
       "revId": "8e6f5eb87bf5cbec5ea08159943d48cfc4af5fc7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eda1df43_cc2629e3",
+        "filename": "bson/bsoncodec/extjson_tables.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-10-10T20:55:59Z",
+      "side": 1,
+      "message": "Oh yes, I pasted that in out of habit from making new files. It\u0027s from the go standard library (link Kris sent). That file actually has the copyright comment at the top that I\u0027ll put in.",
+      "parentUuid": "d0f21ab6_9f3f6301",
+      "range": {
+        "startLine": 1,
+        "startChar": 1,
+        "endLine": 1,
+        "endChar": 2
+      },
+      "revId": "8e6f5eb87bf5cbec5ea08159943d48cfc4af5fc7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
