@@ -16,7 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/mongo/transactionopt"
+	"github.com/mongodb/mongo-go-driver/options"
 )
 
 // ErrWrongClient is returned when a user attempts to pass in a session created by a different client than
@@ -44,7 +44,7 @@ type sessionKey struct {
 // and to enable causally consistent behavior for applications.
 type Session interface {
 	EndSession(context.Context)
-	StartTransaction(...transactionopt.Transaction) error
+	StartTransaction(...*options.TransactionOptions) error
 	AbortTransaction(context.Context) error
 	CommitTransaction(context.Context) error
 	ClusterTime() *bson.Document
@@ -71,7 +71,7 @@ func (s *sessionImpl) EndSession(ctx context.Context) {
 }
 
 // StartTransaction starts a transaction for this session.
-func (s *sessionImpl) StartTransaction(opts ...transactionopt.Transaction) error {
+func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) error {
 	err := s.CheckStartTransaction()
 	if err != nil {
 		return err
@@ -79,12 +79,14 @@ func (s *sessionImpl) StartTransaction(opts ...transactionopt.Transaction) error
 
 	s.didCommitAfterStart = false
 
-	tranOpts, err := transactionopt.BundleTransaction(opts...).Unbundle(true)
-	if err != nil {
-		return err
+	topts := options.MergeTransactionOptions(opts...)
+	coreOpts := &session.TransactionOptions{
+		ReadConcern:    topts.ReadConcern,
+		ReadPreference: topts.ReadPreference,
+		WriteConcern:   topts.WriteConcern,
 	}
 
-	return s.Client.StartTransaction(tranOpts...)
+	return s.Client.StartTransaction(coreOpts)
 }
 
 // AbortTransaction aborts the session's transaction, returning any errors and error codes

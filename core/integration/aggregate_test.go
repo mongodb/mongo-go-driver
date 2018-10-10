@@ -20,7 +20,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/integration/internal/israce"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
@@ -72,7 +71,7 @@ func TestCommandAggregate(t *testing.T) {
 				),
 				bson.VC.Document(bson.NewDocument(bson.EC.SubDocument("$sort", bson.NewDocument(bson.EC.Int32("_id", -1))))),
 			),
-			Opts: []option.AggregateOptioner{option.OptBatchSize(2)},
+			Opts: []*bson.Element{bson.EC.Int32("batchSize", 2)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
@@ -114,13 +113,13 @@ func TestCommandAggregate(t *testing.T) {
 		_, err = (&command.Aggregate{
 			NS:       command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bson.NewArray(),
-			Opts:     []option.AggregateOptioner{option.OptAllowDiskUse(true)},
+			Opts:     []*bson.Element{bson.EC.Boolean("allowDiskUse", true)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		if err != nil {
 			t.Errorf("Expected no error from allowing disk use, but got %v", err)
 		}
 	})
-	t.Run("MaxTimeMS", func(t *testing.T) {
+	t.Run("MaxTime", func(t *testing.T) {
 		t.Skip("max time is flaky on the server")
 
 		server, err := topology.ConnectServer(context.Background(), address.Address(*host))
@@ -140,7 +139,7 @@ func TestCommandAggregate(t *testing.T) {
 		_, err = (&command.Aggregate{
 			NS:       command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bson.NewArray(),
-			Opts:     []option.AggregateOptioner{option.OptMaxTime(time.Millisecond)},
+			Opts:     []*bson.Element{bson.EC.Int64("maxTimeMS", 1)},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		if !strings.Contains(err.Error(), "operation exceeded time limit") {
 			t.Errorf("Expected time limit exceeded error, but got %v", err)
@@ -199,7 +198,11 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 				bson.EC.SubDocument("$match", bson.NewDocument(
 					bson.EC.SubDocument("fullDocument._id", bson.NewDocument(bson.EC.Int32("$gte", 1))),
 				))))),
-		Opts: []option.AggregateOptioner{option.OptBatchSize(2), option.OptMaxAwaitTime(time.Millisecond * 50)},
+		Opts: []*bson.Element{bson.EC.Int32("batchSize", 2)},
+		CursorOpts: []*bson.Element{
+			bson.EC.Int32("batchSize", 2),
+			bson.EC.Int64("maxTimeMS", 50),
+		},
 	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 	noerr(t, err)
 

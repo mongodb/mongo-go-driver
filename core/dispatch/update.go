@@ -8,6 +8,8 @@ package dispatch
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/options"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -28,6 +30,7 @@ func Update(
 	clientID uuid.UUID,
 	pool *session.Pool,
 	retryWrite bool,
+	opts ...*options.UpdateOptions,
 ) (result.Update, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
@@ -42,6 +45,31 @@ func Update(
 			return result.Update{}, err
 		}
 		defer cmd.Session.EndSession()
+	}
+
+	updateOpts := options.MergeUpdateOptions(opts...)
+
+	if updateOpts.ArrayFilters != nil {
+		if ss.Description().WireVersion.Max < 6 {
+			return result.Update{}, ErrArrayFilters
+		}
+		arr, err := updateOpts.ArrayFilters.ToArray()
+		if err != nil {
+			return result.Update{}, err
+		}
+		cmd.Opts = append(cmd.Opts, bson.EC.Array("arrayFilters", arr))
+	}
+	if updateOpts.BypassDocumentValidation != nil && ss.Description().WireVersion.Includes(4) {
+		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("bypassDocumentValidation", *updateOpts.BypassDocumentValidation))
+	}
+	if updateOpts.Collation != nil {
+		if ss.Description().WireVersion.Max < 5 {
+			return result.Update{}, ErrCollation
+		}
+		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", updateOpts.Collation.ToDocument()))
+	}
+	if updateOpts.Upsert != nil {
+		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("upsert", *updateOpts.Upsert))
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

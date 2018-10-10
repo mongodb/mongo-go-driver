@@ -10,12 +10,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
 )
 
@@ -28,11 +26,11 @@ type cursor struct {
 	id            int64
 	err           error
 	server        *Server
-	opts          []option.CursorOptioner
+	opts          []*bson.Element
 	registry      *bsoncodec.Registry
 }
 
-func newCursor(result bson.Raw, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
+func newCursor(result bson.Raw, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...*bson.Element) (command.Cursor, error) {
 	cur, err := result.LookupErr("cursor")
 	if err != nil {
 		return nil, err
@@ -53,6 +51,7 @@ func newCursor(result bson.Raw, clientSession *session.Client, clock *session.Cl
 		registry:      server.cfg.registry,
 		opts:          opts,
 	}
+
 	var ok bool
 	for _, elem := range elems {
 		switch elem.Key() {
