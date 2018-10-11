@@ -142,6 +142,24 @@
     },
     {
       "key": {
+        "uuid": "56e52cf9_27bb6e8c",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T23:13:29Z",
+      "side": 1,
+      "message": "I wouldn\u0027t return an error... I\u0027d just panic. This isn\u0027t going to be something that might or might not trigger at runtime at some time in the indefinite future. It\u0027s a user error that will keep their application from starting up.",
+      "parentUuid": "19deb634_a92a4195",
+      "revId": "efa6acc07785b891c202a931a897a1579b1579cc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a8240894_15d89b76",
         "filename": "bson/types.go",
         "patchSetId": 8
