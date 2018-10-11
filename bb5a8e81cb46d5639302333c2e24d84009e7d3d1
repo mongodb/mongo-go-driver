@@ -2,6 +2,57 @@
   "comments": [
     {
       "key": {
+        "uuid": "63d30e1d_1427159a",
+        "filename": "core/dispatch/count.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T11:01:35Z",
+      "side": 1,
+      "message": "Need to handle the case where the user didn\u0027t give us what we expected. It would be much better to catch this earlier, preferably at the call site where the user did the wrong thing.\n\nSince we are taking an interface, the user could give us anything. If we wanted to, we could fix that by adding an options.Hint interface and implementing it twice. On the other hand, since it\u0027s an interface and we have a way to marshal interfaces, this could be resolved that way as long as we have access to the registry.",
+      "revId": "bb5a8e81cb46d5639302333c2e24d84009e7d3d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "23f0a8dd_b0869c0d",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 777,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T11:01:35Z",
+      "side": 1,
+      "message": "This is allocating something you may immediately overwrite. Also, what happens when there is more than one?\n\nvar countOpts *options.CountOptions\nif len(opts) \u003e 1 {\n  // do something... last one wins, etc...\n} else if len(opts) \u003d\u003d 1 {\n  countOpts \u003d opts[0]\n} else {\n  countOpts \u003d new(options.CountOptions)\n}\n\nThis is going to be common everywhere as the options stuff gets done, so might want to figure out how to centralize this in the options package.",
+      "revId": "bb5a8e81cb46d5639302333c2e24d84009e7d3d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e7210a6b_23185280",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T11:01:35Z",
+      "side": 1,
+      "message": "What about other options?  I\u0027m not sure this options here needs to be variadic... it\u0027s not user facing. Before calling this, we should resolve this and pass a single *options.CountOptions.",
+      "revId": "bb5a8e81cb46d5639302333c2e24d84009e7d3d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "05efe92b_e93a8ec5",
         "filename": "options/countoptions.go",
         "patchSetId": 1
