@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "8b1d8d22_3f7f6cc5",
+        "filename": "core/dispatch/count.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-10-11T15:08:22Z",
+      "side": 1,
+      "message": "The previous version also just ignored any types other than string or *bson.Document. I see why this is not ideal, though.\n\nWhen you say it would be better to catch this \"preferably at the call site where the user did the wrong thing,\" does that refer to when they call CountOptions.SetHint(...)? That currently just returns a *CountOptions (since the new API wants to allow convenient chaining of those functions), so I don\u0027t think we should put the error there.\n\nHaving the options.Hint interface might be best so that we can maintain the new api as described in the google doc and still have SetHint return a *CountOptions and also still have the CountOptions converted to a []bson.Element a the dispatch level.",
+      "parentUuid": "63d30e1d_1427159a",
+      "revId": "bb5a8e81cb46d5639302333c2e24d84009e7d3d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "23f0a8dd_b0869c0d",
         "filename": "mongo/collection.go",
         "patchSetId": 1
