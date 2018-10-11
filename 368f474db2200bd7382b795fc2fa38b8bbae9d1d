@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "275aa20d_05bc7daf",
+        "filename": "core/dispatch/count.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T20:27:11Z",
+      "side": 1,
+      "message": "There will be a better way, yes... I\u0027m not sure off the top of my head, Kris will know better. however, you are absolutely going to need a bsoncodec.Registry for this because the user may be using a custom type and registered a codec for it.",
+      "revId": "368f474db2200bd7382b795fc2fa38b8bbae9d1d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
