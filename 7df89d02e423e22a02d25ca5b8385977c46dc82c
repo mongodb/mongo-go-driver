@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c361532d_e251869c",
+        "filename": "mongo/bulk_write.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T16:40:48Z",
+      "side": 1,
+      "message": "can this be unexported? I don\u0027t think we need this outside of this level.",
+      "revId": "7df89d02e423e22a02d25ca5b8385977c46dc82c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a2a01616_9f5289fa",
+        "filename": "mongo/bulkwriteopt/bulkwriteopt.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T16:40:48Z",
+      "side": 1,
+      "message": "Since Kris has a plan for new options, should this move to that model?",
+      "revId": "7df89d02e423e22a02d25ca5b8385977c46dc82c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
