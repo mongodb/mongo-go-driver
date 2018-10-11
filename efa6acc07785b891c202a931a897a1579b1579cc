@@ -160,6 +160,24 @@
     },
     {
       "key": {
+        "uuid": "be7ecd10_df4cd7f0",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T23:15:32Z",
+      "side": 1,
+      "message": "And it\u0027s clear that this should break because we shouldn\u0027t return the registry builder from the method. It probably shouldn\u0027t have any return value.",
+      "parentUuid": "56e52cf9_27bb6e8c",
+      "revId": "efa6acc07785b891c202a931a897a1579b1579cc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a8240894_15d89b76",
         "filename": "bson/types.go",
         "patchSetId": 8
