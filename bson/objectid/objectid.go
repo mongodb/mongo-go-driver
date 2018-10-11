@@ -77,6 +77,11 @@ func FromHex(s string) (ObjectID, error) {
 	return oid, nil
 }
 
+// MarshalJSON returns the ObjectID as a string
+func (id ObjectID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(id.Hex())
+}
+
 // UnmarshalJSON populates the byte slice with the ObjectID. If the byte slice is 64 bytes long, it
 // will be populated with the hex representation of the ObjectID. If the byte slice is twelve bytes
 // long, it will be populated with the BSON representation of the ObjectID. Otherwise, it will
@@ -88,14 +93,25 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 		copy(id[:], b)
 	default:
 		// Extended JSON
-		m := make(map[string]string)
-		err := json.Unmarshal(b, &m)
+		var res interface{}
+		err := json.Unmarshal(b, &res)
 		if err != nil {
 			return err
 		}
-		str, ok := m["$oid"]
+		str, ok := res.(string)
 		if !ok {
-			return errors.New("not an extended JSON ObjectID")
+			m, ok := res.(map[string]interface{})
+			if !ok {
+				return errors.New("not an extended JSON ObjectID")
+			}
+			oid, ok := m["$oid"]
+			if !ok {
+				return errors.New("not an extended JSON ObjectID")
+			}
+			str, ok = oid.(string)
+			if !ok {
+				return errors.New("not an extended JSON ObjectID")
+			}
 		}
 
 		if len(str) != 24 {
