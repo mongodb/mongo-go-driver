@@ -10,10 +10,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"math"
 	"strings"
 	"testing"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
@@ -570,7 +571,7 @@ func verifyBulkWriteResult(t *testing.T, res *BulkWriteResult, result json.RawMe
 	// replace floats with ints
 	for opID, upsertID := range expected.UpsertedIDs {
 		if floatID, ok := upsertID.(float64); ok {
-			expected.UpsertedIDs[opID] = int64(floatID)
+			expected.UpsertedIDs[opID] = int32(floatID)
 		}
 	}
 
