@@ -45,6 +45,30 @@
       "revId": "6ed6e0018b49644c8b2483f132aa275ea498c2d7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a10811d2_45f76c77",
+        "filename": "core/dispatch/count.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-10-11T18:45:23Z",
+      "side": 1,
+      "message": "In the new patch, I may be missing the quicker/more concise way to transform an interface{} into a *bson.Document. I Marshal the interface{} and then Unmarshal that result into a document.",
+      "parentUuid": "7426e1bc_8aec0b75",
+      "range": {
+        "startLine": 77,
+        "startChar": 2,
+        "endLine": 79,
+        "endChar": 3
+      },
+      "revId": "6ed6e0018b49644c8b2483f132aa275ea498c2d7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
