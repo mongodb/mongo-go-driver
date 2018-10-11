@@ -158,7 +158,7 @@ func (db *Database) Drop(ctx context.Context) error {
 }
 
 // ListCollections list collections from mongodb database.
-func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, opts ...*options.ListCollectionsOptions) (Cursor, error) {
+func (db *Database) ListCollections(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -170,9 +170,17 @@ func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, 
 		return nil, err
 	}
 
+	var filterDoc *bson.Document
+	if filter != nil {
+		filterDoc, err = transformDocument(db.registry, filter)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	cmd := command.ListCollections{
 		DB:       db.name,
-		Filter:   filter,
+		Filter:   filterDoc,
 		ReadPref: db.readPreference,
 		Session:  sess,
 		Clock:    db.client.clock,
