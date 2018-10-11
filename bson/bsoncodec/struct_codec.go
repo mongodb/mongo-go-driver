@@ -220,6 +220,12 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr ValueReader, i interface{
 
 func (sc *StructCodec) isZero(i interface{}) bool {
 	v := reflect.ValueOf(i)
+
+	// check the value validity
+	if !v.IsValid() {
+		return true
+	}
+
 	if z, ok := v.Interface().(bson.Zeroer); ok {
 		return z.IsZero()
 	}
