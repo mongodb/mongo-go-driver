@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cbf24328_fb2f9aaf",
+        "filename": "bson/array.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T17:21:48Z",
+      "side": 1,
+      "message": "I think this check needs to go above 350, otherwise you\u0027ll nil reference panic.",
+      "revId": "efa6acc07785b891c202a931a897a1579b1579cc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9ba614b0_29e3f6b4",
+        "filename": "bson/bsoncodec/bsoncodec.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T17:21:48Z",
+      "side": 1,
+      "message": "There are a whole bunch of types in bsoncodec/types.go already, why can these not be there?",
+      "revId": "efa6acc07785b891c202a931a897a1579b1579cc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f0248462_ce406877",
+        "filename": "bson/bsonrw/value_reader.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T17:21:48Z",
+      "side": 1,
+      "message": "NewBSONValueReader is the better name.",
+      "revId": "efa6acc07785b891c202a931a897a1579b1579cc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7d327da0_de37bd1b",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T17:21:48Z",
+      "side": 1,
+      "message": "Do we need to be tricky here? This is was very confusing. Why not just require the caller to provide a registry? And why not register the DefaultValueEncoders/Decoders outside this call as well? This should all just be part of NewDefaultRegistry(). If they don\u0027t want anything registered, they can get that from the bsoncodec package.",
+      "revId": "efa6acc07785b891c202a931a897a1579b1579cc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a8240894_15d89b76",
+        "filename": "bson/types.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-11T17:21:48Z",
+      "side": 1,
+      "message": "Why not have these point to the bsontype as well?\n\nTypeDouble \u003d bsontype.Double\n\nThat way, less chance of an errant typo.",
+      "revId": "efa6acc07785b891c202a931a897a1579b1579cc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
