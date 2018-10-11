@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "05efe92b_e93a8ec5",
+        "filename": "options/countoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-11T02:57:46Z",
+      "side": 1,
+      "message": "Add Godoc based on the CRUD spec",
+      "range": {
+        "startLine": 17,
+        "startChar": 0,
+        "endLine": 17,
+        "endChar": 4
+      },
+      "revId": "bb5a8e81cb46d5639302333c2e24d84009e7d3d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d7f11ec0_0b281ce0",
+        "filename": "options/estimatedcountoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-11T02:57:46Z",
+      "side": 1,
+      "message": "Add GoDoc",
+      "range": {
+        "startLine": 10,
+        "startChar": 0,
+        "endLine": 10,
+        "endChar": 1
+      },
+      "revId": "bb5a8e81cb46d5639302333c2e24d84009e7d3d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b145a214_de43b362",
+        "filename": "options/mongooptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-10-11T02:57:46Z",
+      "side": 1,
+      "message": "Godoc",
+      "range": {
+        "startLine": 16,
+        "startChar": 0,
+        "endLine": 16,
+        "endChar": 1
+      },
+      "revId": "bb5a8e81cb46d5639302333c2e24d84009e7d3d1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
