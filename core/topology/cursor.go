@@ -147,6 +147,10 @@ func (c *cursor) Err() error {
 }
 
 func (c *cursor) Close(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	defer c.closeImplicitSession()
 	conn, err := c.server.Connection(ctx)
 	if err != nil {
