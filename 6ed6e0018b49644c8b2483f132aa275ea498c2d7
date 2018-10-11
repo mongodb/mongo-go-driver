@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "25a2df37_aaf691e5",
+        "filename": "core/dispatch/count.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-11T15:55:36Z",
+      "side": 1,
+      "message": "This should be variadic as well. That way the collection methods can directly pass the options to the dispatch functions.",
+      "range": {
+        "startLine": 31,
+        "startChar": 1,
+        "endLine": 31,
+        "endChar": 28
+      },
+      "revId": "6ed6e0018b49644c8b2483f132aa275ea498c2d7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7426e1bc_8aec0b75",
+        "filename": "core/dispatch/count.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-11T15:55:36Z",
+      "side": 1,
+      "message": "We should likely be using a registry and transforming this into a document and returning an error if we get one.",
+      "range": {
+        "startLine": 77,
+        "startChar": 2,
+        "endLine": 79,
+        "endChar": 3
+      },
+      "revId": "6ed6e0018b49644c8b2483f132aa275ea498c2d7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
