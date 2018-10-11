@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "69e7c8a6_47c8dc42",
+        "filename": "bson/bsoncodec/json_scanner.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-10-11T17:48:14Z",
+      "side": 1,
+      "message": "I can add single quoted keys easily.\n\nNo quote keys I\u0027d need to change the default case. What would valid keys be without quotes? Can they start with any characters still? To support no quote keys, I could add a little state to the scanner to know if it\u0027s expecting to read a key or not (so that it could expect a colon as the terminator and it would know whether or not it should scan a number, literal, or string).\n\nShould I add this before merging?",
+      "parentUuid": "a12f1172_73f1355d",
+      "revId": "ced0397cfc8011f105cd5bd287a37a2b13f66a0d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f00fff8c_e7f2ef64",
         "filename": "bson/bsoncodec/marshal.go",
         "patchSetId": 13
