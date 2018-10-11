@@ -166,7 +166,7 @@ func (db *Database) Drop(ctx context.Context, opts ...dbopt.DropDB) error {
 }
 
 // ListCollections list collections from mongodb database.
-func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, opts ...listcollectionopt.ListCollections) (command.Cursor, error) {
+func (db *Database) ListCollections(ctx context.Context, filter *bson.Document, opts ...listcollectionopt.ListCollections) (Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
