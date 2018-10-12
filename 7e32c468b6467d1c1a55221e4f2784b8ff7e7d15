@@ -16,6 +16,24 @@
       "revId": "7e32c468b6467d1c1a55221e4f2784b8ff7e7d15",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b4e31f80_7d64a9c8",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 5
+      },
+      "lineNbr": 566,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-12T18:18:43Z",
+      "side": 1,
+      "message": "Yes! That\u0027s the bug I was looking for :-)",
+      "parentUuid": "61e38491_b93d2859",
+      "revId": "7e32c468b6467d1c1a55221e4f2784b8ff7e7d15",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
