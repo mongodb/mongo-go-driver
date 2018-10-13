@@ -15,7 +15,7 @@ type Command struct {
 	CommandName string
 	Metadata    string
 	CommandArgs string
-	InputDocs   []bson.Reader
+	InputDocs   []bson.Raw
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.

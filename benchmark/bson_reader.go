@@ -14,7 +14,7 @@ func bsonReaderDecoding(ctx context.Context, tm TimerManager, iters, numKeys int
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		keys, err := doc.Keys(true)
+		keys, err := doc.Elements()
 		if err != nil {
 			return err
 		}

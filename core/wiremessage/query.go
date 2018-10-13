@@ -22,8 +22,8 @@ type Query struct {
 	FullCollectionName   string
 	NumberToSkip         int32
 	NumberToReturn       int32
-	Query                bson.Reader
-	ReturnFieldsSelector bson.Reader
+	Query                bson.Raw
+	ReturnFieldsSelector bson.Raw
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.
@@ -46,14 +46,14 @@ func (q Query) ValidateWireMessage() error {
 		return errors.New("incorrect header: collection name does not contain a dot")
 	}
 	if q.Query != nil && len(q.Query) > 0 {
-		_, err := q.Query.Validate()
+		err := q.Query.Validate()
 		if err != nil {
 			return err
 		}
 	}
 
 	if q.ReturnFieldsSelector != nil && len(q.ReturnFieldsSelector) > 0 {
-		_, err := q.ReturnFieldsSelector.Validate()
+		err := q.ReturnFieldsSelector.Validate()
 		if err != nil {
 			return err
 		}
@@ -141,13 +141,13 @@ func (q *Query) UnmarshalWireMessage(b []byte) error {
 
 // AcknowledgedWrite returns true if this command represents an acknowledged write
 func (q *Query) AcknowledgedWrite() bool {
-	wcElem, err := q.Query.Lookup("writeConcern")
+	wcElem, err := q.Query.LookupErr("writeConcern")
 	if err != nil {
 		// no wc --> ack
 		return true
 	}
 
-	return writeconcern.AcknowledgedElement(wcElem)
+	return writeconcern.AcknowledgedElementRaw(wcElem)
 }
 
 // QueryFlag represents the flags on an OP_QUERY message.

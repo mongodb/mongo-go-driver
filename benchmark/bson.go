@@ -36,7 +36,7 @@ func loadSourceDocument(pathParts ...string) (*bson.Document, error) {
 	return doc, nil
 }
 
-func loadSourceReader(pathParts ...string) (bson.Reader, error) {
+func loadSourceReader(pathParts ...string) (bson.Raw, error) {
 	doc, err := loadSourceDocument(pathParts...)
 	if err != nil {
 		return nil, err
@@ -46,5 +46,5 @@ func loadSourceReader(pathParts ...string) (bson.Reader, error) {
 		return nil, err
 	}
 
-	return bson.Reader(raw), nil
+	return bson.Raw(raw), nil
 }

@@ -94,15 +94,15 @@ func TestClient_TLSConnection(t *testing.T) {
 	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("serverStatus", 1)))
 	require.NoError(t, err)
 
-	security, err := result.Lookup("security")
+	security, err := result.LookupErr("security")
 	require.Nil(t, err)
 
-	require.Equal(t, security.Value().Type(), bson.TypeEmbeddedDocument)
+	require.Equal(t, security.Type, bson.TypeEmbeddedDocument)
 
-	_, found := security.Value().ReaderDocument().Lookup("SSLServerSubjectName")
+	_, found := security.Document().LookupErr("SSLServerSubjectName")
 	require.Nil(t, found)
 
-	_, found = security.Value().ReaderDocument().Lookup("SSLServerHasCertificateAuthority")
+	_, found = security.Document().LookupErr("SSLServerHasCertificateAuthority")
 	require.Nil(t, found)
 
 }
@@ -170,16 +170,15 @@ func TestClient_X509Auth(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	users, err := rdr.Lookup("authInfo", "authenticatedUsers")
+	users, err := rdr.LookupErr("authInfo", "authenticatedUsers")
 	require.NoError(t, err)
 
-	array := users.Value().MutableArray()
+	array := users.Array()
+	elems, err := array.Elements()
+	require.NoError(t, err)
 
-	for i := uint(0); i < uint(array.Len()); i++ {
-		v, err := array.Lookup(i)
-		require.NoError(t, err)
-
-		rdr := v.ReaderDocument()
+	for _, v := range elems {
+		rdr := v.Value().Document()
 		var u struct {
 			User string
 			DB   string

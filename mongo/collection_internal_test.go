@@ -1453,21 +1453,21 @@ func TestCollection_Find_found(t *testing.T) {
 	require.Nil(t, err)
 
 	results := make([]int, 0, 5)
-	var doc bson.Reader
+	var doc bson.Raw
 	for cursor.Next(context.Background()) {
 		err = cursor.Decode(&doc)
 		require.NoError(t, err)
 
-		_, err = doc.Lookup("_id")
+		_, err = doc.LookupErr("_id")
 		require.NoError(t, err)
 
-		i, err := doc.Lookup("x")
+		i, err := doc.LookupErr("x")
 		require.NoError(t, err)
-		if i.Value().Type() != bson.TypeInt32 {
-			t.Errorf("Incorrect type for x. Got %s, but wanted Int32", i.Value().Type())
+		if i.Type != bson.TypeInt32 {
+			t.Errorf("Incorrect type for x. Got %s, but wanted Int32", i.Type)
 			t.FailNow()
 		}
-		results = append(results, int(i.Value().Int32()))
+		results = append(results, int(i.Int32()))
 	}
 
 	require.Len(t, results, 5)

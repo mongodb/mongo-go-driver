@@ -13,7 +13,7 @@ import (
 
 // decodeCommandOpReply handles decoding the OP_REPLY response to an OP_QUERY
 // command.
-func decodeCommandOpReply(reply wiremessage.Reply) (bson.Reader, error) {
+func decodeCommandOpReply(reply wiremessage.Reply) (bson.Raw, error) {
 	if reply.NumberReturned == 0 {
 		return nil, ErrNoDocCommandResponse
 	}
@@ -24,7 +24,7 @@ func decodeCommandOpReply(reply wiremessage.Reply) (bson.Reader, error) {
 		return nil, NewCommandResponseError("malformed OP_REPLY: NumberReturned does not match number of documents returned", nil)
 	}
 	rdr := reply.Documents[0]
-	_, err := rdr.Validate()
+	err := rdr.Validate()
 	if err != nil {
 		return nil, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 	}

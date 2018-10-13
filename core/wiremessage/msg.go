@@ -221,7 +221,7 @@ type Section interface {
 // SectionBody represents the kind body of an OP_MSG message.
 type SectionBody struct {
 	PayloadType SectionType
-	Document    bson.Reader
+	Document    bson.Raw
 }
 
 // Kind implements the Section interface.
@@ -246,7 +246,7 @@ type SectionDocumentSequence struct {
 	PayloadType SectionType
 	Size        int32
 	Identifier  string
-	Documents   []bson.Reader
+	Documents   []bson.Raw
 }
 
 // Kind implements the Section interface.
