@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/stretchr/testify/require"
 )
@@ -44,6 +45,14 @@ func requireValuesEqual(t *testing.T, expected *Value, actual *Value) {
 }
 
 func TestConstructor(t *testing.T) {
+	t.Run("FromRawValueErr", func(t *testing.T) {
+		elem := bsoncore.AppendDoubleElement(nil, "pi", 3.14159)
+		val := convertFromCoreValue(bsoncore.Element(elem).Value())
+		pe, err := EC.FromRawValueErr("pi", val)
+		noerr(t, err)
+		_, err = pe.Validate()
+		noerr(t, err)
+	})
 	t.Run("Document", func(t *testing.T) {
 		t.Run("double", func(t *testing.T) {
 			buf := []byte{
@@ -121,7 +130,7 @@ func TestConstructor(t *testing.T) {
 				0x0A, 'b', 'a', 'r', 0x00,
 				0x00,
 			}
-			rdr := Reader{
+			rdr := Raw{
 				0x0A, 0x00, 0x00, 0x00,
 				0x0A, 'b', 'a', 'r', 0x00,
 				0x00,
@@ -578,7 +587,7 @@ func TestConstructor(t *testing.T) {
 				0x05, 0x06, 0x07, 0x08,
 				0x00,
 			}
-			rdr := Reader{
+			rdr := Raw{
 				0x10, 0x00, 0x00, 0x00,
 				0x01, '0', 0x00,
 				0x01, 0x02, 0x03, 0x04,

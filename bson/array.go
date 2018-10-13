@@ -154,9 +154,9 @@ func (a *Array) Set(index uint, value *Value) *Array {
 //   - *Array
 //   - *Document
 //   - []byte
-//   - bson.Reader
+//   - bson.Raw
 //
-// Note that in the case of *Document, []byte, and bson.Reader, the keys will be ignored and only
+// Note that in the case of *Document, []byte, and bson.Raw, the keys will be ignored and only
 // the values will be appended.
 func (a *Array) Concat(docs ...interface{}) error {
 	for _, arr := range docs {
@@ -194,11 +194,11 @@ func (a *Array) Concat(docs ...interface{}) error {
 				a.Append(e.value)
 			}
 		case []byte:
-			if err := a.concatReader(Reader(val)); err != nil {
+			if err := a.concatRaw(Raw(val)); err != nil {
 				return err
 			}
-		case Reader:
-			if err := a.concatReader(val); err != nil {
+		case Raw:
+			if err := a.concatRaw(val); err != nil {
 				return err
 			}
 		default:
@@ -209,12 +209,15 @@ func (a *Array) Concat(docs ...interface{}) error {
 	return nil
 }
 
-func (a *Array) concatReader(r Reader) error {
-	_, err := r.readElements(func(e *Element) error {
-		a.Append(e.value)
-
-		return nil
-	})
+func (a *Array) concatRaw(r Raw) error {
+	elems, err := r.Elements()
+	if err != nil {
+		return err
+	}
+	for _, elem := range elems {
+		idx := bytes.IndexByte(elem[1:], 0x00) // elements will only contain valid elements
+		a.Append(&Value{start: 0, offset: uint32(idx + 2), data: elem})
+	}
 
 	return err
 }

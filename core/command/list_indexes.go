@@ -75,7 +75,7 @@ func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder,
 	return li.decode(desc, cb, rdr)
 }
 
-func (li *ListIndexes) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *ListIndexes {
+func (li *ListIndexes) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *ListIndexes {
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range li.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)

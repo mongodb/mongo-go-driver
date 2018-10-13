@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 )
 
 // ErrInconsistent indicates that an inconsistent write concern was specified.
@@ -130,6 +131,27 @@ func AcknowledgedElement(elem *bson.Element) bool {
 	}
 
 	return wVal.Int32() != 0
+}
+
+// AcknowledgedElementRaw returns true if a BSON RawValue for a write concern represents an acknowledged write concern.
+// The element's value must be a document representing a write concern.
+func AcknowledgedElementRaw(rawv bson.RawValue) bool {
+	doc, ok := bsoncore.Value{Type: rawv.Type, Data: rawv.Value}.DocumentOK()
+	if !ok {
+		return false
+	}
+
+	val, err := doc.LookupErr("w")
+	if err != nil {
+		// key w not found --> acknowledged
+		return true
+	}
+
+	i32, ok := val.Int32OK()
+	if !ok {
+		return false
+	}
+	return i32 != 0
 }
 
 // Acknowledged indicates whether or not a write with the given write concern will be acknowledged.

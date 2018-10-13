@@ -134,7 +134,7 @@ func (a *Aggregate) Decode(desc description.SelectedServer, cb CursorBuilder, wm
 	return a.decode(desc, cb, rdr)
 }
 
-func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *Aggregate {
+func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *Aggregate {
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range a.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)

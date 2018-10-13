@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
@@ -27,7 +29,12 @@ func TestCursorNextDoesNotPanicIfContextisNil(t *testing.T) {
 	// While more through testing might be ideal this check
 	// prevents a regression of GODRIVER-298
 
-	c := cursor{batch: bson.NewArray(bson.VC.String("a"), bson.VC.String("b"))}
+	c := cursor{
+		batch: []bson.RawValue{
+			{Type: bsontype.String, Value: bsoncore.AppendString(nil, "a")},
+			{Type: bsontype.String, Value: bsoncore.AppendString(nil, "b")},
+		},
+	}
 
 	var iterNext bool
 	assert.NotPanics(t, func() {
@@ -44,7 +51,7 @@ func TestCursorLoopsUntilDocAvailable(t *testing.T) {
 	s := createDefaultConnectedServer(t, false)
 	c := cursor{
 		id:     1,
-		batch:  bson.NewArray(),
+		batch:  []bson.RawValue{},
 		server: s,
 	}
 
@@ -58,7 +65,7 @@ func TestCursorReturnsFalseOnContextCancellation(t *testing.T) {
 	s := createDefaultConnectedServer(t, false)
 	c := cursor{
 		id:     1,
-		batch:  bson.NewArray(),
+		batch:  []bson.RawValue{},
 		server: s,
 	}
 
@@ -76,7 +83,7 @@ func TestCursorNextReturnsFalseIfErrorOccurred(t *testing.T) {
 	s := createDefaultConnectedServer(t, true)
 	c := cursor{
 		id:     1,
-		batch:  bson.NewArray(),
+		batch:  []bson.RawValue{},
 		server: s,
 	}
 	assert.False(t, c.Next(nil))
@@ -85,7 +92,7 @@ func TestCursorNextReturnsFalseIfErrorOccurred(t *testing.T) {
 func TestCursorNextReturnsFalseIfResIdZeroAndNoMoreDocs(t *testing.T) {
 	// Next should return false if the cursor id is 0 and there are no documents in the next batch
 
-	c := cursor{id: 0, batch: bson.NewArray()}
+	c := cursor{id: 0, batch: []bson.RawValue{}}
 	assert.False(t, c.Next(nil))
 }
 

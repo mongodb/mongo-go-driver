@@ -318,21 +318,21 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...findopt.Find) (*
 		return nil, err
 	}
 
-	fileLenElem, err := fileRdr.Lookup("length")
+	fileLenElem, err := fileRdr.LookupErr("length")
 	if err != nil {
 		return nil, err
 	}
-	fileIDElem, err := fileRdr.Lookup("_id")
+	fileIDElem, err := fileRdr.LookupErr("_id")
 	if err != nil {
 		return nil, err
 	}
 
-	fileLen := fileLenElem.Value().Int32()
+	fileLen := fileLenElem.Int32()
 	if fileLen == 0 {
 		return newDownloadStream(nil, b.chunkSize, 0), nil
 	}
 
-	chunksCursor, err := b.findChunks(ctx, fileIDElem.Value().ObjectID())
+	chunksCursor, err := b.findChunks(ctx, fileIDElem.ObjectID())
 	if err != nil {
 		return nil, err
 	}
@@ -414,12 +414,17 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 			return err
 		}
 
-		keyElem, err := rdr.Lookup("key")
+		keyElem, err := rdr.LookupErr("key")
 		if err != nil {
 			return err
 		}
 
-		if model.Keys.Equal(keyElem.Value().MutableDocument()) {
+		keyElemDoc, err := bson.ReadDocument(keyElem.Document())
+		if err != nil {
+			return err
+		}
+
+		if model.Keys.Equal(keyElemDoc) {
 			found = true
 			break
 		}
