@@ -197,7 +197,7 @@ func (cs *changeStream) Decode(out interface{}) error {
 	return bson.UnmarshalWithRegistry(cs.coll.registry, br, out)
 }
 
-func (cs *changeStream) DecodeBytes() (bson.Reader, error) {
+func (cs *changeStream) DecodeBytes() (bson.Raw, error) {
 	br, err := cs.cursor.DecodeBytes()
 	if err != nil {
 		return nil, err

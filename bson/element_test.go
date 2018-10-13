@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
@@ -914,7 +915,7 @@ func TestElement(t *testing.T) {
 			testCases := []struct {
 				name  string
 				elem  *Element
-				val   Reader
+				val   Raw
 				fault error
 			}{
 				{"Nil Value", &Element{nil}, nil, ErrUninitializedElement},
@@ -933,7 +934,7 @@ func TestElement(t *testing.T) {
 						start: 0, offset: 2,
 						data: []byte{0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00},
 					}},
-					Reader{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
+					Raw{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
 				},
 			}
 
@@ -957,7 +958,7 @@ func TestElement(t *testing.T) {
 			testCases := []struct {
 				name  string
 				elem  *Element
-				val   Reader
+				val   Raw
 				fault error
 			}{
 				{"Nil Value", &Element{nil}, nil, ErrUninitializedElement},
@@ -976,7 +977,7 @@ func TestElement(t *testing.T) {
 						start: 0, offset: 2,
 						data: []byte{0x04, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00},
 					}},
-					Reader{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
+					Raw{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
 				},
 			}
 
@@ -1418,7 +1419,7 @@ func TestElement(t *testing.T) {
 				name  string
 				elem  *Element
 				code  string
-				scope Reader
+				scope Raw
 				fault error
 			}{
 				{"Nil Value", &Element{nil}, "", nil, ErrUninitializedElement},
@@ -1441,7 +1442,7 @@ func TestElement(t *testing.T) {
 							0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00,
 							0x05, 0x00, 0x00, 0x00, 0x00,
 						}}},
-					"foo", Reader{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
+					"foo", Raw{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
 				},
 			}
 
@@ -1858,7 +1859,7 @@ func testValidateValue(t *testing.T) {
 			{"Document/should deep validate",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x03, 0x00, 0x09, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'o', 'o'},
-				}}, false, 9, ErrInvalidKey,
+				}}, false, 9, bsoncore.ErrMissingNull,
 			},
 			{"Document/success",
 				&Element{&Value{
@@ -1888,7 +1889,7 @@ func testValidateValue(t *testing.T) {
 			{"Array/should deep validate",
 				&Element{&Value{
 					start: 0, offset: 2, data: []byte{0x04, 0x00, 0x09, 0x00, 0x00, 0x00, 'f', 'o', 'o', 'o', 'o'},
-				}}, false, 9, ErrInvalidKey,
+				}}, false, 9, bsoncore.ErrMissingNull,
 			},
 			{"Array/success",
 				&Element{&Value{
@@ -2358,7 +2359,7 @@ func testValidateValue(t *testing.T) {
 						0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00,
 						0xFF, 0x00, 0x00, 0x00, 0x00,
 					}}},
-				false, 12, ErrInvalidLength,
+				false, 17, bsoncore.DocumentValidationError("document length exceeds available bytes. length=255 remainingBytes=5"),
 			},
 			{"Success",
 				&Element{&Value{
@@ -2584,7 +2585,7 @@ func testValidateValue(t *testing.T) {
 		}
 	})
 	t.Run("fmt.Stringer", func(t *testing.T) {
-		var rdr Reader
+		var rdr Raw
 		var err error
 		rdr, err = NewDocument(EC.String("foo", "bar"),
 			EC.SubDocumentFromElements("fooer",
@@ -2607,12 +2608,12 @@ func testValidateValue(t *testing.T) {
 						EC.SubDocumentFromElements("barer", EC.Int32("ok", 1)),
 					),
 				),
-				`bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Reader{bson.Element{[embedded document]"barer": bson.Reader{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
+				`bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": {"barer": {"ok": {"$numberInt":"1"}}}}}`,
 			},
 			{
 				"nested reader",
 				rdr,
-				`bson.Reader{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Reader{bson.Element{[embedded document]"barer": bson.Reader{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
+				`{"foo": "bar","fooer": {"barer": {"ok": {"$numberInt":"1"}}}}`,
 			},
 		}
 

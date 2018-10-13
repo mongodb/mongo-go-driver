@@ -28,7 +28,7 @@ type Read struct {
 	Clock       *session.ClusterClock
 	Session     *session.Client
 
-	result bson.Reader
+	result bson.Raw
 	err    error
 }
 
@@ -77,7 +77,7 @@ func (r *Read) createReadPref(kind description.ServerKind) *bson.Document {
 // addReadPref will add a read preference to the query document.
 //
 // NOTE: This method must always return either a valid bson.Reader or an error.
-func (r *Read) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, query bson.Reader) (bson.Reader, error) {
+func (r *Read) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, query bson.Raw) (bson.Raw, error) {
 	doc := r.createReadPref(kind)
 	if doc == nil {
 		return query, nil
@@ -239,7 +239,7 @@ func (r *Read) Decode(desc description.SelectedServer, wm wiremessage.WireMessag
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (r *Read) Result() (bson.Reader, error) {
+func (r *Read) Result() (bson.Raw, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -253,7 +253,7 @@ func (r *Read) Err() error {
 }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	wm, err := r.Encode(desc)
 	if err != nil {
 		return nil, err

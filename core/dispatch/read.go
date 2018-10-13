@@ -27,7 +27,7 @@ func Read(
 	selector description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
-) (bson.Reader, error) {
+) (bson.Raw, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
