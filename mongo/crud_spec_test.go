@@ -96,12 +96,12 @@ func getServerVersion(db *Database) (string, error) {
 		return "", err
 	}
 
-	version, err := serverStatus.Lookup("version")
+	version, err := serverStatus.LookupErr("version")
 	if err != nil {
 		return "", err
 	}
 
-	return version.Value().StringValue(), nil
+	return version.StringValue(), nil
 }
 
 // Test case for all CRUD spec tests.

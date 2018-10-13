@@ -27,7 +27,7 @@ func TestQuery(t *testing.T) {
 				Query{
 					MsgHeader:          Header{},
 					FullCollectionName: "foo.bar",
-					Query:              bson.Reader{0x05, 0x00, 0x00, 0x00, 0x00},
+					Query:              bson.Raw{0x05, 0x00, 0x00, 0x00, 0x00},
 				},
 				[]byte{
 					0x29, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -77,7 +77,7 @@ func TestQuery(t *testing.T) {
 						OpCode:        OpQuery,
 					},
 					FullCollectionName: "foo.bar",
-					Query:              bson.Reader{0x05, 0x00, 0x00, 0x00, 0x00},
+					Query:              bson.Raw{0x05, 0x00, 0x00, 0x00, 0x00},
 				},
 				nil,
 			},

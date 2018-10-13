@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -23,7 +24,7 @@ type cursor struct {
 	clock         *session.ClusterClock
 	namespace     command.Namespace
 	current       int
-	batch         *bson.Array
+	batch         []bson.RawValue
 	id            int64
 	err           error
 	server        *Server
@@ -31,20 +32,19 @@ type cursor struct {
 	registry      *bsoncodec.Registry
 }
 
-func newCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
-	cur, err := result.Lookup("cursor")
+func newCursor(result bson.Raw, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
+	cur, err := result.LookupErr("cursor")
 	if err != nil {
 		return nil, err
 	}
-	if cur.Value().Type() != bson.TypeEmbeddedDocument {
-		return nil, fmt.Errorf("cursor should be an embedded document but it is a BSON %s", cur.Value().Type())
+	if cur.Type != bson.TypeEmbeddedDocument {
+		return nil, fmt.Errorf("cursor should be an embedded document but it is a BSON %s", cur.Type)
 	}
 
-	itr, err := cur.Value().ReaderDocument().Iterator()
+	elems, err := cur.Document().Elements()
 	if err != nil {
 		return nil, err
 	}
-	var elem *bson.Element
 	c := &cursor{
 		clientSession: clientSession,
 		clock:         clock,
@@ -54,17 +54,21 @@ func newCursor(result bson.Reader, clientSession *session.Client, clock *session
 		opts:          opts,
 	}
 	var ok bool
-	for itr.Next() {
-		elem = itr.Element()
+	for _, elem := range elems {
 		switch elem.Key() {
 		case "firstBatch":
-			c.batch, ok = elem.Value().MutableArrayOK()
+			var arr bson.Raw
+			arr, ok = elem.Value().ArrayOK()
 			if !ok {
-				return nil, fmt.Errorf("firstBatch should be an array but it is a BSON %s", elem.Value().Type())
+				return nil, fmt.Errorf("firstBatch should be an array but it is a BSON %s", elem.Value().Type)
+			}
+			c.batch, err = arr.Values()
+			if err != nil {
+				return nil, err
 			}
 		case "ns":
-			if elem.Value().Type() != bson.TypeString {
-				return nil, fmt.Errorf("namespace should be a string but it is a BSON %s", elem.Value().Type())
+			if elem.Value().Type != bson.TypeString {
+				return nil, fmt.Errorf("namespace should be a string but it is a BSON %s", elem.Value().Type)
 			}
 			namespace := command.ParseNamespace(elem.Value().StringValue())
 			err = namespace.Validate()
@@ -75,7 +79,7 @@ func newCursor(result bson.Reader, clientSession *session.Client, clock *session
 		case "id":
 			c.id, ok = elem.Value().Int64OK()
 			if !ok {
-				return nil, fmt.Errorf("id should be an int64 but it is a BSON %s", elem.Value().Type())
+				return nil, fmt.Errorf("id should be an int64 but it is a BSON %s", elem.Value().Type)
 			}
 		}
 	}
@@ -104,15 +108,15 @@ func (c *cursor) Next(ctx context.Context) bool {
 	}
 
 	c.current++
-	if c.current < c.batch.Len() {
+	if c.current < len(c.batch) {
 		return true
 	}
 
 	c.getMore(ctx)
 
 	// call the getMore command in a loop until at least one document is returned in the next batch
-	for c.batch.Len() == 0 {
-		if c.err != nil || (c.id == 0 && c.batch.Len() == 0) {
+	for len(c.batch) == 0 {
+		if c.err != nil || (c.id == 0 && len(c.batch) == 0) {
 			return false
 		}
 
@@ -131,15 +135,12 @@ func (c *cursor) Decode(v interface{}) error {
 	return bson.UnmarshalWithRegistry(c.registry, br, v)
 }
 
-func (c *cursor) DecodeBytes() (bson.Reader, error) {
-	br, err := c.batch.Lookup(uint(c.current))
-	if err != nil {
-		return nil, err
-	}
-	if br.Type() != bson.TypeEmbeddedDocument {
+func (c *cursor) DecodeBytes() (bson.Raw, error) {
+	br := c.batch[c.current]
+	if br.Type != bson.TypeEmbeddedDocument {
 		return nil, errors.New("Non-Document in batch of documents for cursor")
 	}
-	return br.ReaderDocument(), nil
+	return br.Document(), nil
 }
 
 func (c *cursor) Err() error {
@@ -168,7 +169,12 @@ func (c *cursor) Close(ctx context.Context) error {
 }
 
 func (c *cursor) getMore(ctx context.Context) {
-	c.batch.Reset()
+	// clear out the batch slice so we can reuse it.
+	for idx := range c.batch {
+		c.batch[idx].Type = bsontype.Type(0)
+		c.batch[idx].Value = nil
+	}
+	c.batch = c.batch[:0]
 	c.current = 0
 
 	if c.id == 0 {
@@ -200,15 +206,15 @@ func (c *cursor) getMore(ctx context.Context) {
 		return
 	}
 
-	id, err := response.Lookup("cursor", "id")
+	id, err := response.LookupErr("cursor", "id")
 	if err != nil {
 		c.err = err
 		return
 	}
 	var ok bool
-	c.id, ok = id.Value().Int64OK()
+	c.id, ok = id.Int64OK()
 	if !ok {
-		c.err = fmt.Errorf("BSON Type %s is not %s", id.Value().Type(), bson.TypeInt64)
+		c.err = fmt.Errorf("BSON Type %s is not %s", id.Type, bson.TypeInt64)
 		return
 	}
 
@@ -217,16 +223,18 @@ func (c *cursor) getMore(ctx context.Context) {
 		c.closeImplicitSession()
 	}
 
-	batch, err := response.Lookup("cursor", "nextBatch")
+	batch, err := response.LookupErr("cursor", "nextBatch")
 	if err != nil {
 		c.err = err
 		return
 	}
-	c.batch, ok = batch.Value().MutableArrayOK()
+	var arr bson.Raw
+	arr, ok = batch.ArrayOK()
 	if !ok {
-		c.err = fmt.Errorf("BSON Type %s is not %s", batch.Value().Type(), bson.TypeArray)
+		c.err = fmt.Errorf("BSON Type %s is not %s", batch.Type, bson.TypeArray)
 		return
 	}
+	c.batch, c.err = arr.Values()
 
 	return
 }

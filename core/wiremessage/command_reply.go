@@ -11,9 +11,9 @@ import "github.com/mongodb/mongo-go-driver/bson"
 // CommandReply represents the OP_COMMANDREPLY message of the MongoDB wire protocol.
 type CommandReply struct {
 	MsgHeader    Header
-	Metadata     bson.Reader
-	CommandReply bson.Reader
-	OutputDocs   []bson.Reader
+	Metadata     bson.Raw
+	CommandReply bson.Raw
+	OutputDocs   []bson.Raw
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.

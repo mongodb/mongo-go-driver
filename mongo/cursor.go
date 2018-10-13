@@ -46,7 +46,7 @@ type Cursor interface {
 
 	Decode(interface{}) error
 
-	DecodeBytes() (bson.Reader, error)
+	DecodeBytes() (bson.Raw, error)
 
 	// Returns the error status of the cursor
 	Err() error

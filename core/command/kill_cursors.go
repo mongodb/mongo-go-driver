@@ -65,7 +65,7 @@ func (kc *KillCursors) Decode(desc description.SelectedServer, wm wiremessage.Wi
 	return kc.decode(desc, rdr)
 }
 
-func (kc *KillCursors) decode(desc description.SelectedServer, rdr bson.Reader) *KillCursors {
+func (kc *KillCursors) decode(desc description.SelectedServer, rdr bson.Raw) *KillCursors {
 	err := bson.Unmarshal(rdr, &kc.result)
 	if err != nil {
 		kc.err = err

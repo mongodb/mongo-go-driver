@@ -11,7 +11,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 )
 
-func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Reader, error) {
+func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Raw, error) {
 	var mainDoc bson.Document
 
 	for _, section := range msg.Sections {
@@ -42,8 +42,8 @@ func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Reader, error) {
 		return nil, err
 	}
 
-	rdr := bson.Reader(byteArray)
-	_, err = rdr.Validate()
+	rdr := bson.Raw(byteArray)
+	err = rdr.Validate()
 	if err != nil {
 		return nil, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 	}
