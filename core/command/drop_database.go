@@ -25,7 +25,7 @@ type DropDatabase struct {
 	Clock        *session.ClusterClock
 	Session      *session.Client
 
-	result bson.Reader
+	result bson.Raw
 	err    error
 }
 
@@ -65,13 +65,13 @@ func (dd *DropDatabase) Decode(desc description.SelectedServer, wm wiremessage.W
 	return dd.decode(desc, rdr)
 }
 
-func (dd *DropDatabase) decode(desc description.SelectedServer, rdr bson.Reader) *DropDatabase {
+func (dd *DropDatabase) decode(desc description.SelectedServer, rdr bson.Raw) *DropDatabase {
 	dd.result = rdr
 	return dd
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (dd *DropDatabase) Result() (bson.Reader, error) {
+func (dd *DropDatabase) Result() (bson.Raw, error) {
 	if dd.err != nil {
 		return nil, dd.err
 	}
@@ -83,7 +83,7 @@ func (dd *DropDatabase) Result() (bson.Reader, error) {
 func (dd *DropDatabase) Err() error { return dd.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (dd *DropDatabase) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (dd *DropDatabase) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	cmd, err := dd.encode(desc)
 	if err != nil {
 		return nil, err

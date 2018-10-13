@@ -37,7 +37,7 @@ func TestReply(t *testing.T) {
 						MessageLength: 56,
 					},
 					CursorID: 256,
-					Documents: []bson.Reader{
+					Documents: []bson.Raw{
 						{0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00},
 						{0x0A, 0x00, 0x00, 0x00, 0x0A, 'f', 'o', 'o', 0x00, 0x00},
 					},

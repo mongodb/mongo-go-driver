@@ -13,6 +13,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/elements"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
@@ -29,6 +30,55 @@ type ElementConstructor struct{}
 
 // ValueConstructor is used as a namespace for document element constructor functions.
 type ValueConstructor struct{}
+
+// FromRawElement creates a new *Element from a RawElement, if the RawElement is not valid, FromRaw returns
+// a null element with an empty key.
+func (c ElementConstructor) FromRawElement(re RawElement) *Element {
+	elem, err := c.FromRawElementErr(re)
+	if err != nil {
+		return c.Null("")
+	}
+	return elem
+}
+
+// FromRawElementErr creates a new *Element from a RawElement, if the RawElement is not valid, an error is
+// returned.
+func (ElementConstructor) FromRawElementErr(re RawElement) (*Element, error) {
+	if len(re) <= 0 {
+		return nil, bsoncore.ErrElementMissingType
+	}
+	idx := bytes.IndexByte(re[1:], 0x00)
+	if idx == -1 {
+		return nil, bsoncore.ErrElementMissingKey
+	}
+
+	return &Element{value: &Value{start: 0, offset: uint32(idx + 2), data: re}}, nil
+}
+
+// FromRawValue creates a new *Element from a RawValue, if the RawValue is not valid, this method
+// will make an element with they key and null for the value.
+func (c ElementConstructor) FromRawValue(key string, rv RawValue) *Element {
+	elem, err := c.FromRawValueErr(key, rv)
+	if err != nil {
+		return c.Null(key)
+	}
+	return elem
+}
+
+// FromRawValueErr creates a new *Element from a RawValue, if the RawValue is not valid this method
+// returns an error.
+func (ElementConstructor) FromRawValueErr(key string, rv RawValue) (*Element, error) {
+	err := rv.Validate()
+	if err != nil {
+		return nil, err
+	}
+	return &Element{
+		value: &Value{
+			start: 0, offset: uint32(len(key) + 2),
+			data: append(append([]byte{byte(rv.Type)}, append([]byte(key), byte(0x00))...), rv.Value...),
+		},
+	}, nil
+}
 
 // Interface will attempt to turn the provided key and value into an Element.
 // For common types, type casting is used, if the type is more complex, such as
@@ -94,7 +144,7 @@ func (ElementConstructor) Interface(key string, value interface{}) *Element {
 		elem = t
 	case *Document:
 		elem = EC.SubDocument(key, t)
-	case Reader:
+	case Raw:
 		elem = EC.SubDocumentFromReader(key, t)
 	case *Value:
 		elem = convertValueToElem(key, t)
@@ -115,7 +165,7 @@ func (c ElementConstructor) InterfaceErr(key string, value interface{}) (*Elemen
 	var err error
 	switch t := value.(type) {
 	case bool, int8, int16, int32, int, int64, uint8, uint16,
-		uint32, float32, float64, string, *Element, *Document, Reader:
+		uint32, float32, float64, string, *Element, *Document, Raw:
 		elem = c.Interface(key, value)
 	case uint:
 		switch {
@@ -195,7 +245,7 @@ func (ElementConstructor) SubDocument(key string, d *Document) *Element {
 }
 
 // SubDocumentFromReader creates a subdocument element with the given key and value.
-func (ElementConstructor) SubDocumentFromReader(key string, r Reader) *Element {
+func (ElementConstructor) SubDocumentFromReader(key string, r Raw) *Element {
 	size := uint32(1 + len(key) + 1 + len(r))
 	b := make([]byte, size)
 	elem := newElement(0, uint32(1+len(key)+1))
@@ -585,7 +635,7 @@ func (ValueConstructor) Document(d *Document) *Value {
 }
 
 // DocumentFromReader creates a subdocument element from the given value.
-func (ValueConstructor) DocumentFromReader(r Reader) *Value {
+func (ValueConstructor) DocumentFromReader(r Raw) *Value {
 	return EC.SubDocumentFromReader("", r).value
 }
 

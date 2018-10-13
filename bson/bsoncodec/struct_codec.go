@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
 var defaultStructCodec = &StructCodec{
@@ -197,6 +198,14 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, i int
 
 		if !field.CanSet() { // Being settable is a super set of being addressable.
 			return fmt.Errorf("cannot decode element '%s' into field %v; it is not settable", name, field)
+		}
+		if field.Kind() == reflect.Ptr && vr.Type() == bsontype.Null {
+			err = vr.ReadNull()
+			if err != nil {
+				return err
+			}
+			field.Set(reflect.Zero(field.Type()))
+			continue
 		}
 		if field.Kind() == reflect.Ptr && field.IsNil() {
 			field.Set(reflect.New(field.Type()).Elem())

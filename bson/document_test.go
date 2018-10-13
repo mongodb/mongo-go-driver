@@ -15,39 +15,40 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDocument(t *testing.T) {
 	t.Run("NewDocument", func(t *testing.T) {
 		t.Run("TooShort", func(t *testing.T) {
-			want := NewErrTooSmall()
+			want := bsoncore.NewInsufficientBytesError(nil, nil)
 			_, got := ReadDocument([]byte{'\x00', '\x00'})
-			if !want.Equals(got) {
+			if !compareErrors(got, want) {
 				t.Errorf("Did not get expected error. got %#v; want %#v", got, want)
 			}
 		})
 		t.Run("InvalidLength", func(t *testing.T) {
-			want := ErrInvalidLength
+			want := bsoncore.NewDocumentLengthError(200, 5)
 			b := make([]byte, 5)
 			binary.LittleEndian.PutUint32(b[0:4], 200)
 			_, got := ReadDocument(b)
-			if got != want {
+			if !compareErrors(got, want) {
 				t.Errorf("Did not get expected error. got %#v; want %#v", got, want)
 			}
 		})
 		t.Run("keyLength-error", func(t *testing.T) {
-			want := ErrInvalidKey
+			want := bsoncore.ErrMissingNull
 			b := make([]byte, 8)
 			binary.LittleEndian.PutUint32(b[0:4], 8)
 			b[4], b[5], b[6], b[7] = '\x02', 'f', 'o', 'o'
 			_, got := ReadDocument(b)
-			if got != want {
+			if !compareErrors(got, want) {
 				t.Errorf("Did not get expected error. got %#v; want %#v", got, want)
 			}
 		})
 		t.Run("Missing-Null-Terminator", func(t *testing.T) {
-			want := ErrInvalidReadOnlyDocument
+			want := bsoncore.ErrMissingNull
 			b := make([]byte, 9)
 			binary.LittleEndian.PutUint32(b[0:4], 9)
 			b[4], b[5], b[6], b[7], b[8] = '\x0A', 'f', 'o', 'o', '\x00'
@@ -57,12 +58,12 @@ func TestDocument(t *testing.T) {
 			}
 		})
 		t.Run("validateValue-error", func(t *testing.T) {
-			want := NewErrTooSmall()
+			want := bsoncore.NewInsufficientBytesError(nil, nil)
 			b := make([]byte, 11)
 			binary.LittleEndian.PutUint32(b[0:4], 11)
-			b[4], b[5], b[6], b[7], b[8], b[9], b[10] = '\x01', 'f', 'o', 'o', '\x00', '\x01', '\x02'
+			b[4], b[5], b[6], b[7], b[8], b[9], b[10] = '\x01', 'f', 'o', 'o', '\x00', '\x01', '\x00'
 			_, got := ReadDocument(b)
-			if !want.Equals(got) {
+			if !compareErrors(got, want) {
 				t.Errorf("Did not get expected error. got %#v; want %#v", got, want)
 			}
 		})
@@ -648,7 +649,7 @@ func TestDocument(t *testing.T) {
 				"concat single reader",
 				NewDocument(),
 				[]interface{}{
-					Reader([]byte{
+					Raw([]byte{
 						// length
 						0x12, 0x0, 0x0, 0x0,
 
@@ -672,7 +673,7 @@ func TestDocument(t *testing.T) {
 				"concat multiple readers",
 				NewDocument(),
 				[]interface{}{
-					Reader([]byte{
+					Raw([]byte{
 						// length
 						0x12, 0x0, 0x0, 0x0,
 
@@ -688,7 +689,7 @@ func TestDocument(t *testing.T) {
 						// null terminator
 						0x0,
 					}),
-					Reader([]byte{
+					Raw([]byte{
 						// length
 						0x14, 0x0, 0x0, 0x0,
 
@@ -730,7 +731,7 @@ func TestDocument(t *testing.T) {
 						// null terminator
 						0x0,
 					},
-					Reader([]byte{
+					Raw([]byte{
 						// length
 						0xb, 0x0, 0x0, 0x0,
 
@@ -915,8 +916,9 @@ func TestDocument(t *testing.T) {
 				t.Errorf("Unexpected error while writing document to buffer: %s", err)
 			}
 			_, err = NewDocument().ReadFrom(&buf)
-			if !NewErrTooSmall().Equals(err) {
-				t.Errorf("Expected error not returned. got %s; want %s", err, NewErrTooSmall())
+			want := bsoncore.NewInsufficientBytesError(nil, nil)
+			if !compareErrors(err, want) {
+				t.Errorf("Expected error not returned. got %s; want %s", err, want)
 			}
 		})
 		testCases := []struct {

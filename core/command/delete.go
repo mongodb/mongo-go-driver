@@ -115,7 +115,7 @@ func (d *Delete) Decode(desc description.SelectedServer, wm wiremessage.WireMess
 	return d.decode(desc, rdr)
 }
 
-func (d *Delete) decode(desc description.SelectedServer, rdr bson.Reader) *Delete {
+func (d *Delete) decode(desc description.SelectedServer, rdr bson.Raw) *Delete {
 	d.err = bson.Unmarshal(rdr, &d.result)
 	return d
 }

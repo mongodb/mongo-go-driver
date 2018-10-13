@@ -50,7 +50,7 @@ type Cursor interface {
 
 	// Returns the next document as a bson.Reader. The user must copy the
 	// bytes to retain them.
-	DecodeBytes() (bson.Reader, error)
+	DecodeBytes() (bson.Raw, error)
 
 	// Returns the error status of the cursor
 	Err() error
@@ -61,14 +61,14 @@ type Cursor interface {
 
 // CursorBuilder is a type that can build a Cursor.
 type CursorBuilder interface {
-	BuildCursor(bson.Reader, *session.Client, *session.ClusterClock, ...option.CursorOptioner) (Cursor, error)
+	BuildCursor(bson.Raw, *session.Client, *session.ClusterClock, ...option.CursorOptioner) (Cursor, error)
 }
 
 type emptyCursor struct{}
 
-func (ec emptyCursor) ID() int64                         { return -1 }
-func (ec emptyCursor) Next(context.Context) bool         { return false }
-func (ec emptyCursor) Decode(interface{}) error          { return nil }
-func (ec emptyCursor) DecodeBytes() (bson.Reader, error) { return nil, nil }
-func (ec emptyCursor) Err() error                        { return nil }
-func (ec emptyCursor) Close(context.Context) error       { return nil }
+func (ec emptyCursor) ID() int64                      { return -1 }
+func (ec emptyCursor) Next(context.Context) bool      { return false }
+func (ec emptyCursor) Decode(interface{}) error       { return nil }
+func (ec emptyCursor) DecodeBytes() (bson.Raw, error) { return nil, nil }
+func (ec emptyCursor) Err() error                     { return nil }
+func (ec emptyCursor) Close(context.Context) error    { return nil }

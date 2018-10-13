@@ -145,7 +145,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 }
 
 // DropOne drops the index with the given name from the collection.
-func (iv IndexView) DropOne(ctx context.Context, name string, opts ...indexopt.Drop) (bson.Reader, error) {
+func (iv IndexView) DropOne(ctx context.Context, name string, opts ...indexopt.Drop) (bson.Raw, error) {
 	if name == "*" {
 		return nil, ErrMultipleIndexDrop
 	}
@@ -180,7 +180,7 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...indexopt.D
 }
 
 // DropAll drops all indexes in the collection.
-func (iv IndexView) DropAll(ctx context.Context, opts ...indexopt.Drop) (bson.Reader, error) {
+func (iv IndexView) DropAll(ctx context.Context, opts ...indexopt.Drop) (bson.Raw, error) {
 	dropOpts, _, err := indexopt.BundleDrop(opts...).Unbundle(true)
 	if err != nil {
 		return nil, err
