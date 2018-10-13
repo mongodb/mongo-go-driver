@@ -208,7 +208,7 @@ func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
 			rcDoc, err := rc.MarshalBSONElement()
 			require.NoError(t, err)
 
-			rcBytes := rcDoc.Value().ReaderDocument()
+			rcBytes := rcDoc.Value().RawDocument()
 
 			actual := make(map[string]interface{})
 			err = bson.Unmarshal(rcBytes, &actual)
@@ -232,7 +232,7 @@ func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
 
 			require.NoError(t, err)
 
-			wcBytes := wcDoc.Value().ReaderDocument()
+			wcBytes := wcDoc.Value().RawDocument()
 
 			actual := make(map[string]interface{})
 			err = bson.Unmarshal(wcBytes, &actual)

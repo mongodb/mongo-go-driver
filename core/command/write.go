@@ -28,7 +28,7 @@ type Write struct {
 	Clock        *session.ClusterClock
 	Session      *session.Client
 
-	result bson.Reader
+	result bson.Raw
 	err    error
 }
 
@@ -192,7 +192,7 @@ func (w *Write) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (w *Write) Result() (bson.Reader, error) {
+func (w *Write) Result() (bson.Raw, error) {
 	if w.err != nil {
 		return nil, w.err
 	}
@@ -206,7 +206,7 @@ func (w *Write) Err() error {
 }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriteCloser.
-func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	wm, err := w.Encode(desc)
 	if err != nil {
 		return nil, err

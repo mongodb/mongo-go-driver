@@ -8,7 +8,7 @@ import (
 )
 
 func BSONFlatStructDecoding(ctx context.Context, tm TimerManager, iters int) error {
-	r, err := loadSourceReader(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
+	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func BSONFlatStructDecoding(ctx context.Context, tm TimerManager, iters int) err
 }
 
 func BSONFlatStructEncoding(ctx context.Context, tm TimerManager, iters int) error {
-	r, err := loadSourceReader(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
+	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func BSONFlatStructEncoding(ctx context.Context, tm TimerManager, iters int) err
 }
 
 func BSONFlatStructTagsEncoding(ctx context.Context, tm TimerManager, iters int) error {
-	r, err := loadSourceReader(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
+	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func BSONFlatStructTagsEncoding(ctx context.Context, tm TimerManager, iters int)
 }
 
 func BSONFlatStructTagsDecoding(ctx context.Context, tm TimerManager, iters int) error {
-	r, err := loadSourceReader(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
+	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
 	if err != nil {
 		return err
 	}

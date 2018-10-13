@@ -2,9 +2,6 @@ package benchmark
 
 import "testing"
 
-func BenchmarkBSONFlatReaderDecoding(b *testing.B) { WrapCase(BSONFlatReaderDecoding)(b) }
-func BenchmarkBSONDeepReaderDecoding(b *testing.B) { WrapCase(BSONDeepReaderDecoding)(b) }
-
 // func BenchmarkBSONFullReaderDecoding(b *testing.B)       { WrapCase(BSONFullReaderDecoding)(b) }
 
 func BenchmarkBSONFlatDocumentEncoding(b *testing.B)     { WrapCase(BSONFlatDocumentEncoding)(b) }

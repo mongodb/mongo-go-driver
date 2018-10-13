@@ -91,7 +91,7 @@ func (d *Distinct) Decode(desc description.SelectedServer, wm wiremessage.WireMe
 	return d.decode(desc, rdr)
 }
 
-func (d *Distinct) decode(desc description.SelectedServer, rdr bson.Reader) *Distinct {
+func (d *Distinct) decode(desc description.SelectedServer, rdr bson.Raw) *Distinct {
 	d.err = bson.Unmarshal(rdr, &d.result)
 	return d
 }

@@ -1239,7 +1239,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		noerr(t, err)
 		doc, err = bsoncore.AppendDocumentEnd(doc, idx)
 		noerr(t, err)
-		dvr := bsonrw.NewBSONValueReader(doc)
+		dvr := bsonrw.NewBSONDocumentReader(doc)
 		noerr(t, err)
 		dr, err := dvr.ReadDocument()
 		noerr(t, err)
@@ -1655,7 +1655,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("Decode", func(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					vr := bsonrw.NewBSONValueReader(tc.b)
+					vr := bsonrw.NewBSONDocumentReader(tc.b)
 					reg := buildDefaultRegistry()
 					vtype := reflect.TypeOf(tc.value)
 					dec, err := reg.LookupDecoder(vtype)

@@ -61,6 +61,6 @@ func MakeReply(t *testing.T, doc *bson.Document) wiremessage.WireMessage {
 	}
 	return wiremessage.Reply{
 		NumberReturned: 1,
-		Documents:      []bson.Reader{rdr},
+		Documents:      []bson.Raw{rdr},
 	}
 }

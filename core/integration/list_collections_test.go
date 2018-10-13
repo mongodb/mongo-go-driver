@@ -39,11 +39,11 @@ func TestCommandListCollections(t *testing.T) {
 			}
 		case command.QueryFailureError:
 			rdr := errt.Response
-			v, err := rdr.Lookup("code")
+			v, err := rdr.LookupErr("code")
 			noerr(t, err)
-			code, ok := v.Value().Int32OK()
+			code, ok := v.Int32OK()
 			if !ok {
-				t.Errorf("Incorrect value for code. It is a BSON %v", v.Value().Type())
+				t.Errorf("Incorrect value for code. It is a BSON %v", v.Type)
 			}
 			if code != 73 {
 				t.Errorf("Incorrect error code returned from server. got %d; want %d", code, 73)

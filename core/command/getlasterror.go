@@ -72,7 +72,7 @@ func (gle *GetLastError) Decode(wm wiremessage.WireMessage) *GetLastError {
 	return gle.decode(rdr)
 }
 
-func (gle *GetLastError) decode(rdr bson.Reader) *GetLastError {
+func (gle *GetLastError) decode(rdr bson.Raw) *GetLastError {
 	err := bson.Unmarshal(rdr, &gle.res)
 	if err != nil {
 		gle.err = err

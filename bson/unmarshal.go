@@ -35,7 +35,7 @@ func Unmarshal(data []byte, val interface{}) error {
 // stores the result in the value pointed to by val. If val is nil or not
 // a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 func UnmarshalWithRegistry(r *bsoncodec.Registry, data []byte, val interface{}) error {
-	vr := bsonrw.NewBSONValueReader(data)
+	vr := bsonrw.NewBSONDocumentReader(data)
 	return unmarshalFromReader(r, vr, val)
 }
 

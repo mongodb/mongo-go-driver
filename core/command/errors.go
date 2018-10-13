@@ -43,7 +43,7 @@ var retryableCodes = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 8
 // QueryFailureError is an error representing a command failure as a document.
 type QueryFailureError struct {
 	Message  string
-	Response bson.Reader
+	Response bson.Raw
 }
 
 // Error implements the error interface.
