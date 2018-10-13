@@ -42,7 +42,7 @@ type Value struct {
 }
 
 // Offset returns the offset to the beginning of the value in the underlying data. When called on
-// a value obtained from a Reader, it can be used to find the value manually within the Reader's
+// a value obtained from a Raw, it can be used to find the value manually within the Raw's
 // bytes.
 func (v *Value) Offset() uint32 {
 	return v.offset
@@ -61,12 +61,12 @@ func (v *Value) Interface() interface{} {
 		return v.StringValue()
 	case TypeEmbeddedDocument:
 		if v.d == nil {
-			return v.ReaderDocument()
+			return v.RawDocument()
 		}
 		return v.d
 	case TypeArray:
 		if v.d == nil {
-			return v.ReaderArray()
+			return v.RawArray()
 		}
 		return v.MutableArray()
 	case TypeBinary:
@@ -172,8 +172,8 @@ func (v *Value) validate(sizeOnly bool) (uint32, error) {
 			return total, NewErrTooSmall()
 		}
 		if !sizeOnly {
-			n, err := Reader(v.data[v.offset : v.offset+uint32(l)]).Validate()
-			total += n - 4
+			err := Raw(v.data[v.offset : v.offset+uint32(l)]).Validate()
+			total += uint32(len(v.data[v.offset:v.offset+uint32(l)]) - 4)
 			if err != nil {
 				return total, err
 			}
@@ -202,8 +202,8 @@ func (v *Value) validate(sizeOnly bool) (uint32, error) {
 			return total, NewErrTooSmall()
 		}
 		if !sizeOnly {
-			n, err := Reader(v.data[v.offset : v.offset+uint32(l)]).Validate()
-			total += n - 4
+			err := Raw(v.data[v.offset : v.offset+uint32(l)]).Validate()
+			total += uint32(len(v.data[v.offset:v.offset+uint32(l)]) - 4)
 			if err != nil {
 				return total, err
 			}
@@ -323,8 +323,8 @@ func (v *Value) validate(sizeOnly bool) (uint32, error) {
 				return total, ErrInvalidString
 			}
 			total += uint32(sLength)
-			n, err := Reader(v.data[v.offset+8+uint32(sLength) : v.offset+uint32(l)]).Validate()
-			total += n
+			err := Raw(v.data[v.offset+8+uint32(sLength) : v.offset+uint32(l)]).Validate()
+			total += uint32(len(v.data[v.offset+8+uint32(sLength) : v.offset+uint32(l)]))
 			if err != nil {
 				return total, err
 			}
@@ -423,9 +423,9 @@ func (v *Value) StringValueOK() (string, bool) {
 	return v.StringValue(), true
 }
 
-// ReaderDocument returns the BSON document the Value represents as a bson.Reader. It panics if the
+// RawDocument returns the BSON document the Value represents as a bson.Raw. It panics if the
 // value is a BSON type other than document.
-func (v *Value) ReaderDocument() Reader {
+func (v *Value) RawDocument() Raw {
 	if v == nil || v.offset == 0 || v.data == nil {
 		panic(ErrUninitializedElement)
 	}
@@ -434,29 +434,29 @@ func (v *Value) ReaderDocument() Reader {
 		panic(ElementTypeError{"compact.Element.Document", bsontype.Type(v.data[v.start])})
 	}
 
-	var r Reader
+	var r Raw
 	if v.d == nil {
 		l := readi32(v.data[v.offset : v.offset+4])
-		r = Reader(v.data[v.offset : v.offset+uint32(l)])
+		r = Raw(v.data[v.offset : v.offset+uint32(l)])
 	} else {
 		scope, err := v.d.MarshalBSON()
 		if err != nil {
 			panic(err)
 		}
 
-		r = Reader(scope)
+		r = Raw(scope)
 	}
 
 	return r
 }
 
-// ReaderDocumentOK is the same as ReaderDocument, except it returns a boolean
+// RawDocumentOK is the same as ReaderDocument, except it returns a boolean
 // instead of panicking.
-func (v *Value) ReaderDocumentOK() (Reader, bool) {
+func (v *Value) RawDocumentOK() (Raw, bool) {
 	if v == nil || v.offset == 0 || v.data == nil || bsontype.Type(v.data[v.start]) != TypeEmbeddedDocument {
 		return nil, false
 	}
-	return v.ReaderDocument(), true
+	return v.RawDocument(), true
 }
 
 // MutableDocument returns the subdocument for this element.
@@ -487,9 +487,9 @@ func (v *Value) MutableDocumentOK() (*Document, bool) {
 	return v.MutableDocument(), true
 }
 
-// ReaderArray returns the BSON document the Value represents as a bson.Reader. It panics if the
+// RawArray returns the BSON document the Value represents as a bson.Raw. It panics if the
 // value is a BSON type other than array.
-func (v *Value) ReaderArray() Reader {
+func (v *Value) RawArray() Raw {
 	if v == nil || v.offset == 0 || v.data == nil {
 		panic(ErrUninitializedElement)
 	}
@@ -498,29 +498,29 @@ func (v *Value) ReaderArray() Reader {
 		panic(ElementTypeError{"compact.Element.Array", bsontype.Type(v.data[v.start])})
 	}
 
-	var r Reader
+	var r Raw
 	if v.d == nil {
 		l := readi32(v.data[v.offset : v.offset+4])
-		r = Reader(v.data[v.offset : v.offset+uint32(l)])
+		r = Raw(v.data[v.offset : v.offset+uint32(l)])
 	} else {
 		scope, err := v.d.MarshalBSON()
 		if err != nil {
 			panic(err)
 		}
 
-		r = Reader(scope)
+		r = Raw(scope)
 	}
 
 	return r
 }
 
-// ReaderArrayOK is the same as ReaderArray, except it returns a boolean instead
+// RawArrayOK is the same as RawArray, except it returns a boolean instead
 // of panicking.
-func (v *Value) ReaderArrayOK() (Reader, bool) {
+func (v *Value) RawArrayOK() (Raw, bool) {
 	if v == nil || v.offset == 0 || v.data == nil || bsontype.Type(v.data[v.start]) != TypeArray {
 		return nil, false
 	}
-	return v.ReaderArray(), true
+	return v.RawArray(), true
 }
 
 // MutableArray returns the array for this element.
@@ -728,7 +728,7 @@ func (v *Value) JavaScript() string {
 	return string(v.data[v.offset+4 : int32(v.offset)+4+l-1])
 }
 
-// JavaScriptOK is the same as Javascript, excepti that it returns a boolean
+// JavaScriptOK is the same as Javascript, except that it returns a boolean
 // instead of panicking.
 func (v *Value) JavaScriptOK() (string, bool) {
 	if v == nil || v.offset == 0 || v.data == nil || bsontype.Type(v.data[v.start]) != TypeJavaScript {
@@ -750,10 +750,10 @@ func (v *Value) Symbol() string {
 	return string(v.data[v.offset+4 : int32(v.offset)+4+l-1])
 }
 
-// ReaderJavaScriptWithScope returns the BSON JavaScript code with scope the Value represents, with
-// the scope being returned as a bson.Reader. It panics if the value is a BSON type other than
+// RawJavaScriptWithScope returns the BSON JavaScript code with scope the Value represents, with
+// the scope being returned as a bson.Raw. It panics if the value is a BSON type other than
 // JavaScript code with scope.
-func (v *Value) ReaderJavaScriptWithScope() (string, Reader) {
+func (v *Value) RawJavaScriptWithScope() (string, Raw) {
 	if v == nil || v.offset == 0 || v.data == nil {
 		panic(ErrUninitializedElement)
 	}
@@ -768,29 +768,29 @@ func (v *Value) ReaderJavaScriptWithScope() (string, Reader) {
 	// size, and an int32 for the string length the value is invalid.
 	str := string(v.data[v.offset+8 : v.offset+8+uint32(sLength)-1])
 
-	var r Reader
+	var r Raw
 	if v.d == nil {
 		l := readi32(v.data[v.offset : v.offset+4])
-		r = Reader(v.data[v.offset+8+uint32(sLength) : v.offset+uint32(l)])
+		r = Raw(v.data[v.offset+8+uint32(sLength) : v.offset+uint32(l)])
 	} else {
 		scope, err := v.d.MarshalBSON()
 		if err != nil {
 			panic(err)
 		}
 
-		r = Reader(scope)
+		r = Raw(scope)
 	}
 
 	return str, r
 }
 
-// ReaderJavaScriptWithScopeOK is the same as ReaderJavaScriptWithScope,
+// RawJavaScriptWithScopeOK is the same as RawJavaScriptWithScope,
 // except that it returns a boolean instead of panicking.
-func (v *Value) ReaderJavaScriptWithScopeOK() (string, Reader, bool) {
+func (v *Value) RawJavaScriptWithScopeOK() (string, Raw, bool) {
 	if v == nil || v.offset == 0 || v.data == nil || bsontype.Type(v.data[v.start]) != TypeCodeWithScope {
 		return "", nil, false
 	}
-	s, r := v.ReaderJavaScriptWithScope()
+	s, r := v.RawJavaScriptWithScope()
 	return s, r, true
 }
 

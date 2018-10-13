@@ -13,6 +13,7 @@ import (
 	"io"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson/elements"
 )
@@ -494,11 +495,11 @@ func (d *Document) Concat(docs ...interface{}) error {
 			}
 			d.Append(doc.elems...)
 		case []byte:
-			if err := d.concatReader(Reader(doc)); err != nil {
+			if err := d.concatRaw(Raw(doc)); err != nil {
 				return err
 			}
-		case Reader:
-			if err := d.concatReader(doc); err != nil {
+		case Raw:
+			if err := d.concatRaw(doc); err != nil {
 				return err
 			}
 		default:
@@ -509,12 +510,15 @@ func (d *Document) Concat(docs ...interface{}) error {
 	return nil
 }
 
-func (d *Document) concatReader(r Reader) error {
-	_, err := r.readElements(func(e *Element) error {
-		d.Append(e)
-
-		return nil
-	})
+func (d *Document) concatRaw(r Raw) error {
+	elems, err := r.Elements()
+	if err != nil {
+		return err
+	}
+	for _, elem := range elems {
+		idx := bytes.IndexByte(elem[1:], 0x00) // elements will only contain valid elements
+		d.Append(&Element{value: &Value{start: 0, offset: uint32(idx + 2), data: elem}})
+	}
 
 	return err
 }
@@ -666,27 +670,19 @@ func (d *Document) UnmarshalBSON(b []byte) error {
 		return ErrNilDocument
 	}
 
-	// Read byte array
-	//   - Create an Element for each element found
-	//   - Update the index with the key of the element
-	//   TODO: Maybe do 2 pass and alloc the elems and index once?
-	// 		   We should benchmark 2 pass vs multiple allocs for growing the slice
-	_, err := Reader(b).readElements(func(elem *Element) error {
-		d.elems = append(d.elems, elem)
-		i := sort.Search(len(d.index), func(i int) bool {
-			return bytes.Compare(
-				d.keyFromIndex(i), elem.value.data[elem.value.start+1:elem.value.offset]) >= 0
-		})
-		if i < len(d.index) {
-			d.index = append(d.index, 0)
-			copy(d.index[i+1:], d.index[i:])
-			d.index[i] = uint32(len(d.elems) - 1)
-		} else {
-			d.index = append(d.index, uint32(len(d.elems)-1))
-		}
-		return nil
-	})
-	return err
+	if err := Raw(b).Validate(); err != nil {
+		return err
+	}
+
+	elems, err := Raw(b).Elements()
+	if err != nil {
+		return err
+	}
+	for _, elem := range elems {
+		idx := bytes.IndexByte(elem[1:], 0x00) // elements will only contain valid elements
+		d.Append(&Element{value: &Value{start: 0, offset: uint32(idx + 2), data: elem}})
+	}
+	return nil
 }
 
 // ReadFrom will read one BSON document from the given io.Reader.
@@ -804,4 +800,23 @@ func (d *Document) ToExtJSONErr(canonical bool) (string, error) {
 	// TODO: when dependency is reversed, use bsoncodec.MarshalExtJSON(d, canonical) instead of the extjson_bytes_converter code
 
 	return ToExtJSON(canonical, b)
+}
+
+// Keys represents the keys of a BSON document.
+type Keys []Key
+
+// Key represents an individual key of a BSON document. The Prefix property is
+// used to represent the depth of this key.
+type Key struct {
+	Prefix []string
+	Name   string
+}
+
+// String implements the fmt.Stringer interface.
+func (k Key) String() string {
+	str := strings.Join(k.Prefix, ".")
+	if str != "" {
+		return str + "." + k.Name
+	}
+	return k.Name
 }

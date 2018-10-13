@@ -13,7 +13,7 @@ type Insert struct {
 	MsgHeader          Header
 	Flags              InsertFlag
 	FullCollectionName string
-	Documents          []bson.Reader
+	Documents          []bson.Raw
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.

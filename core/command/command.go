@@ -12,6 +12,8 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/option"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
@@ -29,7 +31,7 @@ type WriteBatch struct {
 
 // DecodeError attempts to decode the wiremessage as an error
 func DecodeError(wm wiremessage.WireMessage) error {
-	var rdr bson.Reader
+	var rdr bson.Raw
 	switch msg := wm.(type) {
 	case wiremessage.Msg:
 		for _, section := range msg.Sections {
@@ -45,7 +47,7 @@ func DecodeError(wm wiremessage.WireMessage) error {
 		rdr = msg.Documents[0]
 	}
 
-	_, err := rdr.Validate()
+	err := rdr.Validate()
 	if err != nil {
 		return nil
 	}
@@ -62,20 +64,19 @@ func DecodeError(wm wiremessage.WireMessage) error {
 
 // helper method to extract an error from a reader if there is one; first returned item is the
 // error if it exists, the second holds parsing errors
-func extractError(rdr bson.Reader) error {
+func extractError(rdr bson.Raw) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
-	itr, err := rdr.Iterator()
+	elems, err := rdr.Elements()
 	if err != nil {
 		return err
 	}
 
-	for itr.Next() {
-		elem := itr.Element()
+	for _, elem := range elems {
 		switch elem.Key() {
 		case "ok":
-			switch elem.Value().Type() {
+			switch elem.Value().Type {
 			case bson.TypeInt32:
 				if elem.Value().Int32() == 1 {
 					return nil
@@ -102,13 +103,13 @@ func extractError(rdr bson.Reader) error {
 				code = c
 			}
 		case "errorLabels":
-			if arr, okay := elem.Value().MutableArrayOK(); okay {
-				iter, err := arr.Iterator()
+			if arr, okay := elem.Value().ArrayOK(); okay {
+				elems, err := arr.Elements()
 				if err != nil {
 					continue
 				}
-				for iter.Next() {
-					if str, ok := iter.Value().StringValueOK(); ok {
+				for _, elem := range elems {
+					if str, ok := elem.Value().StringValueOK(); ok {
 						labels = append(labels, str)
 					}
 				}
@@ -129,17 +130,17 @@ func extractError(rdr bson.Reader) error {
 	}
 }
 
-func responseClusterTime(response bson.Reader) *bson.Document {
-	clusterTime, err := response.Lookup("$clusterTime")
+func responseClusterTime(response bson.Raw) *bson.Document {
+	clusterTime, err := response.LookupErr("$clusterTime")
 	if err != nil {
 		// $clusterTime not included by the server
 		return nil
 	}
 
-	return bson.NewDocument(clusterTime)
+	return bson.NewDocument(bson.EC.FromRawValue("$clusterTime", clusterTime))
 }
 
-func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, response bson.Reader) error {
+func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, response bson.Raw) error {
 	clusterTime := responseClusterTime(response)
 	if clusterTime == nil {
 		return nil
@@ -159,27 +160,27 @@ func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, respo
 	return nil
 }
 
-func updateOperationTime(sess *session.Client, response bson.Reader) error {
+func updateOperationTime(sess *session.Client, response bson.Raw) error {
 	if sess == nil {
 		return nil
 	}
 
-	opTimeElem, err := response.Lookup("operationTime")
+	opTimeElem, err := response.LookupErr("operationTime")
 	if err != nil {
 		// operationTime not included by the server
 		return nil
 	}
 
-	t, i := opTimeElem.Value().Timestamp()
+	t, i := opTimeElem.Timestamp()
 	return sess.AdvanceOperationTime(&bson.Timestamp{
 		T: t,
 		I: i,
 	})
 }
 
-func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
+func marshalCommand(cmd *bson.Document) (bson.Raw, error) {
 	if cmd == nil {
-		return bson.Reader{5, 0, 0, 0, 0}, nil
+		return bson.Raw{5, 0, 0, 0, 0}, nil
 	}
 
 	return cmd.MarshalBSON()
@@ -309,19 +310,19 @@ func addWriteConcern(cmd *bson.Document, wc *writeconcern.WriteConcern) error {
 }
 
 // Get the error labels from a command response
-func getErrorLabels(rdr *bson.Reader) ([]string, error) {
+func getErrorLabels(rdr *bson.Raw) ([]string, error) {
 	var labels []string
-	labelsElem, err := rdr.Lookup("errorLabels")
-	if err != bson.ErrElementNotFound {
+	labelsElem, err := rdr.LookupErr("errorLabels")
+	if err != bsoncore.ErrElementNotFound {
 		return nil, err
 	}
-	if labelsElem != nil {
-		labelsIt, err := labelsElem.Value().ReaderArray().Iterator()
+	if labelsElem.Type == bsontype.Array {
+		labelsIt, err := labelsElem.Array().Elements()
 		if err != nil {
 			return nil, err
 		}
-		for labelsIt.Next() {
-			labels = append(labels, labelsIt.Element().Value().StringValue())
+		for _, elem := range labelsIt {
+			labels = append(labels, elem.Value().StringValue())
 		}
 	}
 	return labels, nil
@@ -352,7 +353,7 @@ func opmsgRemoveArray(cmdDoc *bson.Document) (*bson.Array, string) {
 
 // Add the $db and $readPreference keys to the command
 // If the command has no read preference, pass nil for rpDoc
-func opmsgAddGlobals(cmd *bson.Document, dbName string, rpDoc *bson.Document) (bson.Reader, error) {
+func opmsgAddGlobals(cmd *bson.Document, dbName string, rpDoc *bson.Document) (bson.Raw, error) {
 	cmd.Append(bson.EC.String("$db", dbName))
 	if rpDoc != nil {
 		cmd.Append(bson.EC.SubDocument("$readPreference", rpDoc))
@@ -370,7 +371,7 @@ func opmsgCreateDocSequence(arr *bson.Array, identifier string) (wiremessage.Sec
 	docSequence := wiremessage.SectionDocumentSequence{
 		PayloadType: wiremessage.DocumentSequence,
 		Identifier:  identifier,
-		Documents:   make([]bson.Reader, 0, arr.Len()),
+		Documents:   make([]bson.Raw, 0, arr.Len()),
 	}
 
 	iter, err := arr.Iterator()
@@ -379,7 +380,7 @@ func opmsgCreateDocSequence(arr *bson.Array, identifier string) (wiremessage.Sec
 	}
 
 	for iter.Next() {
-		docSequence.Documents = append(docSequence.Documents, iter.Value().ReaderDocument())
+		docSequence.Documents = append(docSequence.Documents, iter.Value().RawDocument())
 	}
 
 	docSequence.Size = int32(docSequence.PayloadLen())

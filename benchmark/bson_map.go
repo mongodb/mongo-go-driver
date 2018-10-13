@@ -9,7 +9,7 @@ import (
 )
 
 func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet string) error {
-	r, err := loadSourceReader(getProjectRoot(), perfDataDir, bsonDataDir, dataSet)
+	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, dataSet)
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet st
 }
 
 func bsonMapEncoding(ctx context.Context, tm TimerManager, iters int, dataSet string) error {
-	r, err := loadSourceReader(getProjectRoot(), perfDataDir, bsonDataDir, dataSet)
+	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, dataSet)
 	if err != nil {
 		return err
 	}

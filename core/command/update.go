@@ -116,7 +116,7 @@ func (u *Update) Decode(desc description.SelectedServer, wm wiremessage.WireMess
 	return u.decode(desc, rdr)
 }
 
-func (u *Update) decode(desc description.SelectedServer, rdr bson.Reader) *Update {
+func (u *Update) decode(desc description.SelectedServer, rdr bson.Raw) *Update {
 	u.err = bson.Unmarshal(rdr, &u.result)
 	return u
 }

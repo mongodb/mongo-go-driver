@@ -75,7 +75,7 @@ func (ld *ListDatabases) Decode(desc description.SelectedServer, wm wiremessage.
 	return ld.decode(desc, rdr)
 }
 
-func (ld *ListDatabases) decode(desc description.SelectedServer, rdr bson.Reader) *ListDatabases {
+func (ld *ListDatabases) decode(desc description.SelectedServer, rdr bson.Raw) *ListDatabases {
 	ld.err = bson.Unmarshal(rdr, &ld.result)
 	return ld
 }

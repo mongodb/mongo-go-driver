@@ -252,7 +252,7 @@ func (c *connection) compressMessage(wm wiremessage.WireMessage) (wiremessage.Wi
 
 	switch converted := wm.(type) {
 	case wiremessage.Query:
-		firstElem, err := converted.Query.ElementAt(0)
+		firstElem, err := converted.Query.IndexErr(0)
 		if err != nil {
 			return wiremessage.Compressed{}, err
 		}
@@ -265,7 +265,7 @@ func (c *connection) compressMessage(wm wiremessage.WireMessage) (wiremessage.Wi
 		origOpcode = wiremessage.OpQuery
 		responseTo = converted.MsgHeader.ResponseTo
 	case wiremessage.Msg:
-		firstElem, err := converted.Sections[0].(wiremessage.SectionBody).Document.ElementAt(0)
+		firstElem, err := converted.Sections[0].(wiremessage.SectionBody).Document.IndexErr(0)
 		if err != nil {
 			return wiremessage.Compressed{}, err
 		}
