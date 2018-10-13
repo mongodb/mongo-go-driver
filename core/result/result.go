@@ -58,7 +58,7 @@ type Distinct struct {
 
 // FindAndModify is a result from a findAndModify command.
 type FindAndModify struct {
-	Value           bson.Reader
+	Value           bson.Raw
 	LastErrorObject struct {
 		UpdatedExisting bool
 		Upserted        interface{}
@@ -77,7 +77,7 @@ type WriteError struct {
 type WriteConcernError struct {
 	Code    int
 	ErrMsg  string
-	ErrInfo bson.Reader
+	ErrInfo bson.Raw
 }
 
 // ListDatabases is the result from a listDatabases command.

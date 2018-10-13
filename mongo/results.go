@@ -84,7 +84,7 @@ type UpdateResult struct {
 
 // UnmarshalBSON implements the bson.Unmarshaler interface.
 func (result *UpdateResult) UnmarshalBSON(b []byte) error {
-	itr, err := bson.Reader(b).Iterator()
+	itr, err := bson.Raw(b).Iterator()
 	if err != nil {
 		return err
 	}

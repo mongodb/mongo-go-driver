@@ -83,7 +83,7 @@ func (c *Count) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 	return c.decode(desc, rdr)
 }
 
-func (c *Count) decode(desc description.SelectedServer, rdr bson.Reader) *Count {
+func (c *Count) decode(desc description.SelectedServer, rdr bson.Raw) *Count {
 	val, err := rdr.Lookup("n")
 	switch {
 	case err == bson.ErrElementNotFound:

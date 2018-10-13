@@ -22,8 +22,8 @@ type Query struct {
 	FullCollectionName   string
 	NumberToSkip         int32
 	NumberToReturn       int32
-	Query                bson.Reader
-	ReturnFieldsSelector bson.Reader
+	Query                bson.Raw
+	ReturnFieldsSelector bson.Raw
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.

@@ -56,7 +56,7 @@ func TestCommandAggregate(t *testing.T) {
 		wc := writeconcern.New(writeconcern.WMajority())
 		testutil.AutoInsertDocs(t, wc, ds...)
 
-		readers := make([]bson.Reader, 0, len(ds))
+		readers := make([]bson.Raw, 0, len(ds))
 		for _, doc := range ds {
 			r, err := doc.MarshalBSON()
 			noerr(t, err)
@@ -76,7 +76,7 @@ func TestCommandAggregate(t *testing.T) {
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
-		var next bson.Reader
+		var next bson.Raw
 
 		for i := 4; i > 1; i-- {
 			if !cursor.Next(context.Background()) {
@@ -85,7 +85,7 @@ func TestCommandAggregate(t *testing.T) {
 			err = cursor.Decode(&next)
 			noerr(t, err)
 			if !bytes.Equal(next[:len(readers[i])], readers[i]) {
-				t.Errorf("Did not get expected document. got %v; want %v", bson.Reader(next[:len(readers[i])]), readers[i])
+				t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next[:len(readers[i])]), readers[i])
 			}
 		}
 
@@ -105,7 +105,7 @@ func TestCommandAggregate(t *testing.T) {
 		wc := writeconcern.New(writeconcern.WMajority())
 		testutil.AutoInsertDocs(t, wc, ds...)
 
-		readers := make([]bson.Reader, 0, len(ds))
+		readers := make([]bson.Raw, 0, len(ds))
 		for _, doc := range ds {
 			r, err := doc.MarshalBSON()
 			noerr(t, err)

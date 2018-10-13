@@ -31,7 +31,7 @@ type cursor struct {
 	registry      *bsoncodec.Registry
 }
 
-func newCursor(result bson.Reader, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
+func newCursor(result bson.Raw, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...option.CursorOptioner) (command.Cursor, error) {
 	cur, err := result.Lookup("cursor")
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func (c *cursor) Decode(v interface{}) error {
 	return bson.UnmarshalWithRegistry(c.registry, br, v)
 }
 
-func (c *cursor) DecodeBytes() (bson.Reader, error) {
+func (c *cursor) DecodeBytes() (bson.Raw, error) {
 	br, err := c.batch.Lookup(uint(c.current))
 	if err != nil {
 		return nil, err

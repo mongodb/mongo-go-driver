@@ -1453,7 +1453,7 @@ func TestCollection_Find_found(t *testing.T) {
 	require.Nil(t, err)
 
 	results := make([]int, 0, 5)
-	var doc bson.Reader
+	var doc bson.Raw
 	for cursor.Next(context.Background()) {
 		err = cursor.Decode(&doc)
 		require.NoError(t, err)
