@@ -94,7 +94,7 @@ func (ElementConstructor) Interface(key string, value interface{}) *Element {
 		elem = t
 	case *Document:
 		elem = EC.SubDocument(key, t)
-	case Reader:
+	case Raw:
 		elem = EC.SubDocumentFromReader(key, t)
 	case *Value:
 		elem = convertValueToElem(key, t)
@@ -115,7 +115,7 @@ func (c ElementConstructor) InterfaceErr(key string, value interface{}) (*Elemen
 	var err error
 	switch t := value.(type) {
 	case bool, int8, int16, int32, int, int64, uint8, uint16,
-		uint32, float32, float64, string, *Element, *Document, Reader:
+		uint32, float32, float64, string, *Element, *Document, Raw:
 		elem = c.Interface(key, value)
 	case uint:
 		switch {
@@ -195,7 +195,7 @@ func (ElementConstructor) SubDocument(key string, d *Document) *Element {
 }
 
 // SubDocumentFromReader creates a subdocument element with the given key and value.
-func (ElementConstructor) SubDocumentFromReader(key string, r Reader) *Element {
+func (ElementConstructor) SubDocumentFromReader(key string, r Raw) *Element {
 	size := uint32(1 + len(key) + 1 + len(r))
 	b := make([]byte, size)
 	elem := newElement(0, uint32(1+len(key)+1))
@@ -585,7 +585,7 @@ func (ValueConstructor) Document(d *Document) *Value {
 }
 
 // DocumentFromReader creates a subdocument element from the given value.
-func (ValueConstructor) DocumentFromReader(r Reader) *Value {
+func (ValueConstructor) DocumentFromReader(r Raw) *Value {
 	return EC.SubDocumentFromReader("", r).value
 }
 

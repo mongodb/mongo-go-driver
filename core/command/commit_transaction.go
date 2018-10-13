@@ -51,7 +51,7 @@ func (ct *CommitTransaction) Decode(desc description.SelectedServer, wm wiremess
 	return ct.decode(desc, rdr)
 }
 
-func (ct *CommitTransaction) decode(desc description.SelectedServer, rdr bson.Reader) *CommitTransaction {
+func (ct *CommitTransaction) decode(desc description.SelectedServer, rdr bson.Raw) *CommitTransaction {
 	ct.err = bson.Unmarshal(rdr, &ct.result)
 	if ct.err == nil && ct.result.WriteConcernError != nil {
 		ct.err = Error{

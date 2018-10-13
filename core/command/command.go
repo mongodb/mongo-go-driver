@@ -29,7 +29,7 @@ type WriteBatch struct {
 
 // DecodeError attempts to decode the wiremessage as an error
 func DecodeError(wm wiremessage.WireMessage) error {
-	var rdr bson.Reader
+	var rdr bson.Raw
 	switch msg := wm.(type) {
 	case wiremessage.Msg:
 		for _, section := range msg.Sections {
@@ -62,7 +62,7 @@ func DecodeError(wm wiremessage.WireMessage) error {
 
 // helper method to extract an error from a reader if there is one; first returned item is the
 // error if it exists, the second holds parsing errors
-func extractError(rdr bson.Reader) error {
+func extractError(rdr bson.Raw) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
@@ -129,7 +129,7 @@ func extractError(rdr bson.Reader) error {
 	}
 }
 
-func responseClusterTime(response bson.Reader) *bson.Document {
+func responseClusterTime(response bson.Raw) *bson.Document {
 	clusterTime, err := response.Lookup("$clusterTime")
 	if err != nil {
 		// $clusterTime not included by the server
@@ -139,7 +139,7 @@ func responseClusterTime(response bson.Reader) *bson.Document {
 	return bson.NewDocument(clusterTime)
 }
 
-func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, response bson.Reader) error {
+func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, response bson.Raw) error {
 	clusterTime := responseClusterTime(response)
 	if clusterTime == nil {
 		return nil
@@ -159,7 +159,7 @@ func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, respo
 	return nil
 }
 
-func updateOperationTime(sess *session.Client, response bson.Reader) error {
+func updateOperationTime(sess *session.Client, response bson.Raw) error {
 	if sess == nil {
 		return nil
 	}
@@ -177,9 +177,9 @@ func updateOperationTime(sess *session.Client, response bson.Reader) error {
 	})
 }
 
-func marshalCommand(cmd *bson.Document) (bson.Reader, error) {
+func marshalCommand(cmd *bson.Document) (bson.Raw, error) {
 	if cmd == nil {
-		return bson.Reader{5, 0, 0, 0, 0}, nil
+		return bson.Raw{5, 0, 0, 0, 0}, nil
 	}
 
 	return cmd.MarshalBSON()
@@ -309,7 +309,7 @@ func addWriteConcern(cmd *bson.Document, wc *writeconcern.WriteConcern) error {
 }
 
 // Get the error labels from a command response
-func getErrorLabels(rdr *bson.Reader) ([]string, error) {
+func getErrorLabels(rdr *bson.Raw) ([]string, error) {
 	var labels []string
 	labelsElem, err := rdr.Lookup("errorLabels")
 	if err != bson.ErrElementNotFound {
@@ -352,7 +352,7 @@ func opmsgRemoveArray(cmdDoc *bson.Document) (*bson.Array, string) {
 
 // Add the $db and $readPreference keys to the command
 // If the command has no read preference, pass nil for rpDoc
-func opmsgAddGlobals(cmd *bson.Document, dbName string, rpDoc *bson.Document) (bson.Reader, error) {
+func opmsgAddGlobals(cmd *bson.Document, dbName string, rpDoc *bson.Document) (bson.Raw, error) {
 	cmd.Append(bson.EC.String("$db", dbName))
 	if rpDoc != nil {
 		cmd.Append(bson.EC.SubDocument("$readPreference", rpDoc))
@@ -370,7 +370,7 @@ func opmsgCreateDocSequence(arr *bson.Array, identifier string) (wiremessage.Sec
 	docSequence := wiremessage.SectionDocumentSequence{
 		PayloadType: wiremessage.DocumentSequence,
 		Identifier:  identifier,
-		Documents:   make([]bson.Reader, 0, arr.Len()),
+		Documents:   make([]bson.Raw, 0, arr.Len()),
 	}
 
 	iter, err := arr.Iterator()

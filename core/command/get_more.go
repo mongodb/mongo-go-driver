@@ -26,7 +26,7 @@ type GetMore struct {
 	Clock   *session.ClusterClock
 	Session *session.Client
 
-	result bson.Reader
+	result bson.Raw
 	err    error
 }
 
@@ -80,13 +80,13 @@ func (gm *GetMore) Decode(desc description.SelectedServer, wm wiremessage.WireMe
 	return gm.decode(desc, rdr)
 }
 
-func (gm *GetMore) decode(desc description.SelectedServer, rdr bson.Reader) *GetMore {
+func (gm *GetMore) decode(desc description.SelectedServer, rdr bson.Raw) *GetMore {
 	gm.result = rdr
 	return gm
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (gm *GetMore) Result() (bson.Reader, error) {
+func (gm *GetMore) Result() (bson.Raw, error) {
 	if gm.err != nil {
 		return nil, gm.err
 	}
@@ -98,7 +98,7 @@ func (gm *GetMore) Result() (bson.Reader, error) {
 func (gm *GetMore) Err() error { return gm.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (gm *GetMore) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	cmd, err := gm.encode(desc)
 	if err != nil {
 		return nil, err

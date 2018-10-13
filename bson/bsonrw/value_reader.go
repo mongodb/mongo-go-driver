@@ -91,6 +91,20 @@ func NewBSONValueReader(b []byte) ValueReader {
 	return newValueReader(b)
 }
 
+// NewBSONValueReaderValueMode returns a ValueReader that starts in the Value mode instead of in top
+// level document mode. This enables the creation of a ValueReader for a single BSON value.
+func NewBSONValueReaderValueMode(t bsontype.Type, val []byte) ValueReader {
+	stack := make([]vrState, 1, 5)
+	stack[0] = vrState{
+		mode:  mValue,
+		vType: t,
+	}
+	return &valueReader{
+		d:     val,
+		stack: stack,
+	}
+}
+
 func newValueReader(b []byte) *valueReader {
 	stack := make([]vrState, 1, 5)
 	stack[0] = vrState{

@@ -86,7 +86,7 @@ func (f *FindOneAndReplace) Decode(desc description.SelectedServer, wm wiremessa
 	return f.decode(desc, rdr)
 }
 
-func (f *FindOneAndReplace) decode(desc description.SelectedServer, rdr bson.Reader) *FindOneAndReplace {
+func (f *FindOneAndReplace) decode(desc description.SelectedServer, rdr bson.Raw) *FindOneAndReplace {
 	f.result, f.err = unmarshalFindAndModifyResult(rdr)
 	return f
 }

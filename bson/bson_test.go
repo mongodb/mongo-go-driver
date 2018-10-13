@@ -7,10 +7,12 @@
 package bson
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 )
 
 func noerr(t *testing.T, err error) {
@@ -73,4 +75,36 @@ func TestNonNullTimeRoundTrip(t *testing.T) {
 	if !cmp.Equal(val, rtval) {
 		t.Errorf("Did not round trip properly. got %v; want %v", val, rtval)
 	}
+}
+
+func TestD(t *testing.T) {
+	t.Run("can marshal", func(t *testing.T) {
+		d := D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
+		idx, want := bsoncore.AppendDocumentStart(nil)
+		want = bsoncore.AppendStringElement(want, "foo", "bar")
+		want = bsoncore.AppendStringElement(want, "hello", "world")
+		want = bsoncore.AppendDoubleElement(want, "pi", 3.14159)
+		want, err := bsoncore.AppendDocumentEnd(want, idx)
+		noerr(t, err)
+		got, err := Marshal(d)
+		noerr(t, err)
+		if !bytes.Equal(got, want) {
+			t.Errorf("Marshaled documents do not match. got %v; want %v", Raw(got), Raw(want))
+		}
+	})
+	t.Run("can unmarshal", func(t *testing.T) {
+		want := D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
+		idx, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendStringElement(doc, "foo", "bar")
+		doc = bsoncore.AppendStringElement(doc, "hello", "world")
+		doc = bsoncore.AppendDoubleElement(doc, "pi", 3.14159)
+		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
+		noerr(t, err)
+		var got D
+		err = Unmarshal(doc, &got)
+		noerr(t, err)
+		if !cmp.Equal(got, want) {
+			t.Errorf("Unmarshaled documents do not match. got %v; want %v", got, want)
+		}
+	})
 }
