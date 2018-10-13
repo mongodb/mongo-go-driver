@@ -83,8 +83,8 @@ func (c *Count) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 	return c.decode(desc, rdr)
 }
 
-func (c *Count) decode(desc description.SelectedServer, rdr bson.Reader) *Count {
-	val, err := rdr.Lookup("n")
+func (c *Count) decode(desc description.SelectedServer, rdr bson.Raw) *Count {
+	val, err := rdr.LookupErr("n")
 	switch {
 	case err == bson.ErrElementNotFound:
 		c.err = errors.New("invalid response from server, no 'n' field")
@@ -94,11 +94,11 @@ func (c *Count) decode(desc description.SelectedServer, rdr bson.Reader) *Count 
 		return c
 	}
 
-	switch val.Value().Type() {
+	switch val.Type {
 	case bson.TypeInt32:
-		c.result = int64(val.Value().Int32())
+		c.result = int64(val.Int32())
 	case bson.TypeInt64:
-		c.result = val.Value().Int64()
+		c.result = val.Int64()
 	default:
 		c.err = errors.New("invalid response from server, value field is not a number")
 	}

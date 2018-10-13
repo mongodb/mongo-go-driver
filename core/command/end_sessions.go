@@ -114,7 +114,7 @@ func (es *EndSessions) Decode(desc description.SelectedServer, wm wiremessage.Wi
 	return es.decode(desc, rdr)
 }
 
-func (es *EndSessions) decode(desc description.SelectedServer, rdr bson.Reader) *EndSessions {
+func (es *EndSessions) decode(desc description.SelectedServer, rdr bson.Raw) *EndSessions {
 	var res result.EndSessions
 	es.errors = append(es.errors, bson.Unmarshal(rdr, &res))
 	es.results = append(es.results, res)

@@ -18,9 +18,10 @@ import (
 
 	"io"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/stretchr/testify/require"
-	"reflect"
 )
 
 // Test helpers
@@ -51,6 +52,7 @@ func RequireNotNil(t *testing.T, variable interface{}, msgFormat string, msgVars
 
 // RequireNil throws an error if var is not nil
 func RequireNil(t *testing.T, variable interface{}, msgFormat string, msgVars ...interface{}) {
+	t.Helper()
 	if !IsNil(variable) {
 		t.Fatalf(msgFormat, msgVars...)
 	}

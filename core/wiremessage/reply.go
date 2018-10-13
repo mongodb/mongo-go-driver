@@ -21,7 +21,7 @@ type Reply struct {
 	CursorID       int64
 	StartingFrom   int32
 	NumberReturned int32
-	Documents      []bson.Reader
+	Documents      []bson.Raw
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.

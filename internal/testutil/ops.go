@@ -142,7 +142,7 @@ func DisableMaxTimeFailPoint(t *testing.T, s *topology.Server) {
 }
 
 // RunCommand runs an arbitrary command on a given database of target server
-func RunCommand(t *testing.T, s *topology.Server, db string, b *bson.Document) (bson.Reader, error) {
+func RunCommand(t *testing.T, s *topology.Server, db string, b *bson.Document) (bson.Raw, error) {
 	conn, err := s.Connection(context.Background())
 	if err != nil {
 		return nil, err

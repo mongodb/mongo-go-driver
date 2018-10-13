@@ -24,7 +24,7 @@ var ErrNoDocuments = errors.New("mongo: no documents in result")
 type DocumentResult struct {
 	err error
 	cur Cursor
-	rdr bson.Reader
+	rdr bson.Raw
 	reg *bsoncodec.Registry
 }
 

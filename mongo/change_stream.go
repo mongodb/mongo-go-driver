@@ -197,19 +197,23 @@ func (cs *changeStream) Decode(out interface{}) error {
 	return bson.UnmarshalWithRegistry(cs.coll.registry, br, out)
 }
 
-func (cs *changeStream) DecodeBytes() (bson.Reader, error) {
+func (cs *changeStream) DecodeBytes() (bson.Raw, error) {
 	br, err := cs.cursor.DecodeBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	id, err := br.Lookup("_id")
+	id, err := br.LookupErr("_id")
 	if err != nil {
 		_ = cs.Close(context.Background())
 		return nil, ErrMissingResumeToken
 	}
 
-	cs.resumeToken = id.Value().MutableDocument()
+	cs.resumeToken, err = bson.ReadDocument(id.Document())
+	if err != nil {
+		_ = cs.Close(context.Background())
+		return nil, ErrMissingResumeToken
+	}
 
 	return br, nil
 }

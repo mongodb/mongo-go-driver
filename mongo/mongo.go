@@ -55,6 +55,18 @@ func (me MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
 }
 
+// Pipeline is a type that makes creating aggregation pipelines easier. It is a
+// helper and is intended for serializing to BSON.
+//
+// Example usage:
+//
+// 		mongo.Pipeline{{
+// 			{"$group", bson.D{{"_id", "$state"}, {"totalPop", bson.D{"$sum", "$pop"}}}},
+// 			{"$match": bson.D{{"totalPop", bson.D{"$gte", 10*1000*1000}}}},
+// 		}}
+//
+type Pipeline []D
+
 func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
 	if registry == nil {
 		registry = bson.NewRegistryBuilder().Build()
@@ -67,7 +79,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Doc
 	}
 	if bs, ok := val.([]byte); ok {
 		// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
-		val = bson.Reader(bs)
+		val = bson.Raw(bs)
 	}
 
 	// TODO(skriptble): Use a pool of these instead.

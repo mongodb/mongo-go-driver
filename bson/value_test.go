@@ -34,7 +34,7 @@ func TestValue(t *testing.T) {
 		})
 		t.Run("document", func(t *testing.T) {
 			defer handle()
-			(*Value)(nil).ReaderDocument()
+			(*Value)(nil).RawDocument()
 		})
 	})
 	t.Run("key", func(t *testing.T) {
@@ -103,9 +103,9 @@ func TestValue(t *testing.T) {
 					NewDocument(EC.Boolean("foo", true)),
 				)).MarshalBSON()
 			noerr(t, err)
-			elem, err := Reader(b).Lookup("cws")
+			val, err := Raw(b).LookupErr("cws")
 			noerr(t, err)
-			return elem.Value()
+			return &Value{start: 0, offset: 1, data: append([]byte{byte(val.Type)}, val.Value...)}
 		}
 		testCases := []struct {
 			name  string
@@ -149,7 +149,7 @@ func TestValue(t *testing.T) {
 			},
 			{
 				"equal document",
-				VC.DocumentFromReader(Reader{0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x01, 0x00}),
+				VC.DocumentFromReader(Raw{0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x01, 0x00}),
 				VC.DocumentFromElements(EC.Boolean("", true)),
 				true,
 			},

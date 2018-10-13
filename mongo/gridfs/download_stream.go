@@ -165,22 +165,22 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 		return err
 	}
 
-	chunkIndex, err := nextChunk.Lookup("n")
+	chunkIndex, err := nextChunk.LookupErr("n")
 	if err != nil {
 		return err
 	}
 
-	if chunkIndex.Value().Int32() != ds.expectedChunk {
+	if chunkIndex.Int32() != ds.expectedChunk {
 		return ErrWrongIndex
 	}
 
 	ds.expectedChunk++
-	data, err := nextChunk.Lookup("data")
+	data, err := nextChunk.LookupErr("data")
 	if err != nil {
 		return err
 	}
 
-	_, dataBytes := data.Value().Binary()
+	_, dataBytes := data.Binary()
 
 	bytesLen := int32(len(dataBytes))
 	if ds.expectedChunk == ds.numChunks {

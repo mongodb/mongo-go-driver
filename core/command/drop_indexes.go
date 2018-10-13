@@ -28,7 +28,7 @@ type DropIndexes struct {
 	Clock        *session.ClusterClock
 	Session      *session.Client
 
-	result bson.Reader
+	result bson.Raw
 	err    error
 }
 
@@ -79,13 +79,13 @@ func (di *DropIndexes) Decode(desc description.SelectedServer, wm wiremessage.Wi
 	return di.decode(desc, rdr)
 }
 
-func (di *DropIndexes) decode(desc description.SelectedServer, rdr bson.Reader) *DropIndexes {
+func (di *DropIndexes) decode(desc description.SelectedServer, rdr bson.Raw) *DropIndexes {
 	di.result = rdr
 	return di
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (di *DropIndexes) Result() (bson.Reader, error) {
+func (di *DropIndexes) Result() (bson.Raw, error) {
 	if di.err != nil {
 		return nil, di.err
 	}
@@ -97,7 +97,7 @@ func (di *DropIndexes) Result() (bson.Reader, error) {
 func (di *DropIndexes) Err() error { return di.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (di *DropIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Reader, error) {
+func (di *DropIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	cmd, err := di.encode(desc)
 	if err != nil {
 		return nil, err

@@ -78,7 +78,7 @@ func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuil
 	return lc.decode(desc, cb, rdr)
 }
 
-func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *ListCollections {
+func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *ListCollections {
 
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range lc.Opts {
