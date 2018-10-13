@@ -61,7 +61,7 @@ func writeErrorsFromResult(rwes []result.WriteError) WriteErrors {
 type WriteConcernError struct {
 	Code    int
 	Message string
-	Details bson.Reader
+	Details bson.Raw
 }
 
 func (wce WriteConcernError) Error() string { return wce.Message }

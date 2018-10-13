@@ -514,7 +514,8 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 	return coll.Aggregate(ctx, pipeline, bundle)
 }
 
-func executeRunCommand(sess *sessionImpl, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Reader, error) {
+func executeRunCommand(sess *Session, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Raw, error) {
+	var cmd *bson.Document
 	var bundle *runcmdopt.RunCmdBundle
 	cmd := bson.NewDocument()
 	for name, opt := range argmap {
@@ -716,7 +717,7 @@ func verifyUpdateResult(t *testing.T, res *UpdateResult, result json.RawMessage)
 	require.Equal(t, expected.UpsertedCount, actualUpsertedCount)
 }
 
-func verifyRunCommandResult(t *testing.T, res bson.Reader, result json.RawMessage) {
+func verifyRunCommandResult(t *testing.T, res bson.Raw, result json.RawMessage) {
 	jsonBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
 

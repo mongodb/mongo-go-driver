@@ -914,7 +914,7 @@ func TestElement(t *testing.T) {
 			testCases := []struct {
 				name  string
 				elem  *Element
-				val   Reader
+				val   Raw
 				fault error
 			}{
 				{"Nil Value", &Element{nil}, nil, ErrUninitializedElement},
@@ -933,7 +933,7 @@ func TestElement(t *testing.T) {
 						start: 0, offset: 2,
 						data: []byte{0x03, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00},
 					}},
-					Reader{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
+					Raw{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
 				},
 			}
 
@@ -957,7 +957,7 @@ func TestElement(t *testing.T) {
 			testCases := []struct {
 				name  string
 				elem  *Element
-				val   Reader
+				val   Raw
 				fault error
 			}{
 				{"Nil Value", &Element{nil}, nil, ErrUninitializedElement},
@@ -976,7 +976,7 @@ func TestElement(t *testing.T) {
 						start: 0, offset: 2,
 						data: []byte{0x04, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00},
 					}},
-					Reader{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
+					Raw{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
 				},
 			}
 
@@ -1418,7 +1418,7 @@ func TestElement(t *testing.T) {
 				name  string
 				elem  *Element
 				code  string
-				scope Reader
+				scope Raw
 				fault error
 			}{
 				{"Nil Value", &Element{nil}, "", nil, ErrUninitializedElement},
@@ -1441,7 +1441,7 @@ func TestElement(t *testing.T) {
 							0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00,
 							0x05, 0x00, 0x00, 0x00, 0x00,
 						}}},
-					"foo", Reader{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
+					"foo", Raw{0x05, 0x00, 0x00, 0x00, 0x00}, nil,
 				},
 			}
 
@@ -2584,7 +2584,7 @@ func testValidateValue(t *testing.T) {
 		}
 	})
 	t.Run("fmt.Stringer", func(t *testing.T) {
-		var rdr Reader
+		var rdr Raw
 		var err error
 		rdr, err = NewDocument(EC.String("foo", "bar"),
 			EC.SubDocumentFromElements("fooer",

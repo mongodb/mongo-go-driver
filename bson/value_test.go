@@ -103,7 +103,7 @@ func TestValue(t *testing.T) {
 					NewDocument(EC.Boolean("foo", true)),
 				)).MarshalBSON()
 			noerr(t, err)
-			elem, err := Reader(b).Lookup("cws")
+			elem, err := Raw(b).Lookup("cws")
 			noerr(t, err)
 			return elem.Value()
 		}
@@ -149,7 +149,7 @@ func TestValue(t *testing.T) {
 			},
 			{
 				"equal document",
-				VC.DocumentFromReader(Reader{0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x01, 0x00}),
+				VC.DocumentFromReader(Raw{0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x01, 0x00}),
 				VC.DocumentFromElements(EC.Boolean("", true)),
 				true,
 			},

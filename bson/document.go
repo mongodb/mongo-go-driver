@@ -494,10 +494,10 @@ func (d *Document) Concat(docs ...interface{}) error {
 			}
 			d.Append(doc.elems...)
 		case []byte:
-			if err := d.concatReader(Reader(doc)); err != nil {
+			if err := d.concatReader(Raw(doc)); err != nil {
 				return err
 			}
-		case Reader:
+		case Raw:
 			if err := d.concatReader(doc); err != nil {
 				return err
 			}
@@ -509,7 +509,7 @@ func (d *Document) Concat(docs ...interface{}) error {
 	return nil
 }
 
-func (d *Document) concatReader(r Reader) error {
+func (d *Document) concatReader(r Raw) error {
 	_, err := r.readElements(func(e *Element) error {
 		d.Append(e)
 
@@ -671,7 +671,7 @@ func (d *Document) UnmarshalBSON(b []byte) error {
 	//   - Update the index with the key of the element
 	//   TODO: Maybe do 2 pass and alloc the elems and index once?
 	// 		   We should benchmark 2 pass vs multiple allocs for growing the slice
-	_, err := Reader(b).readElements(func(elem *Element) error {
+	_, err := Raw(b).readElements(func(elem *Element) error {
 		d.elems = append(d.elems, elem)
 		i := sort.Search(len(d.index), func(i int) bool {
 			return bytes.Compare(

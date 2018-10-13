@@ -648,7 +648,7 @@ func TestDocument(t *testing.T) {
 				"concat single reader",
 				NewDocument(),
 				[]interface{}{
-					Reader([]byte{
+					Raw([]byte{
 						// length
 						0x12, 0x0, 0x0, 0x0,
 
@@ -672,7 +672,7 @@ func TestDocument(t *testing.T) {
 				"concat multiple readers",
 				NewDocument(),
 				[]interface{}{
-					Reader([]byte{
+					Raw([]byte{
 						// length
 						0x12, 0x0, 0x0, 0x0,
 
@@ -688,7 +688,7 @@ func TestDocument(t *testing.T) {
 						// null terminator
 						0x0,
 					}),
-					Reader([]byte{
+					Raw([]byte{
 						// length
 						0x14, 0x0, 0x0, 0x0,
 
@@ -730,7 +730,7 @@ func TestDocument(t *testing.T) {
 						// null terminator
 						0x0,
 					},
-					Reader([]byte{
+					Raw([]byte{
 						// length
 						0xb, 0x0, 0x0, 0x0,
 

@@ -13,8 +13,8 @@ type Update struct {
 	MsgHeader          Header
 	FullCollectionName string
 	Flags              UpdateFlag
-	Selector           bson.Reader
-	Update             bson.Reader
+	Selector           bson.Raw
+	Update             bson.Raw
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.

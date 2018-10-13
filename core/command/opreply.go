@@ -13,7 +13,7 @@ import (
 
 // decodeCommandOpReply handles decoding the OP_REPLY response to an OP_QUERY
 // command.
-func decodeCommandOpReply(reply wiremessage.Reply) (bson.Reader, error) {
+func decodeCommandOpReply(reply wiremessage.Reply) (bson.Raw, error) {
 	if reply.NumberReturned == 0 {
 		return nil, ErrNoDocCommandResponse
 	}

@@ -19,7 +19,7 @@ import (
 )
 
 func ExampleReader_Validate() {
-	rdr := make(Reader, 500)
+	rdr := make(Raw, 500)
 	rdr[250], rdr[251], rdr[252], rdr[253], rdr[254] = '\x05', '\x00', '\x00', '\x00', '\x00'
 	n, err := rdr[250:].Validate()
 	fmt.Println(n, err)
@@ -29,7 +29,7 @@ func ExampleReader_Validate() {
 
 func BenchmarkReaderValidate(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		rdr := make(Reader, 500)
+		rdr := make(Raw, 500)
 		rdr[250], rdr[251], rdr[252], rdr[253], rdr[254] = '\x05', '\x00', '\x00', '\x00', '\x00'
 		_, _ = rdr[250:].Validate()
 	}
@@ -40,14 +40,14 @@ func TestReader(t *testing.T) {
 	t.Run("Validate", func(t *testing.T) {
 		t.Run("TooShort", func(t *testing.T) {
 			want := NewErrTooSmall()
-			_, got := Reader{'\x00', '\x00'}.Validate()
+			_, got := Raw{'\x00', '\x00'}.Validate()
 			if !want.Equals(got) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})
 		t.Run("InvalidLength", func(t *testing.T) {
 			want := ErrInvalidLength
-			r := make(Reader, 5)
+			r := make(Raw, 5)
 			binary.LittleEndian.PutUint32(r[0:4], 200)
 			_, got := r.Validate()
 			if got != want {
@@ -56,7 +56,7 @@ func TestReader(t *testing.T) {
 		})
 		t.Run("keyLength-error", func(t *testing.T) {
 			want := ErrInvalidKey
-			r := make(Reader, 8)
+			r := make(Raw, 8)
 			binary.LittleEndian.PutUint32(r[0:4], 8)
 			r[4], r[5], r[6], r[7] = '\x02', 'f', 'o', 'o'
 			_, got := r.Validate()
@@ -66,7 +66,7 @@ func TestReader(t *testing.T) {
 		})
 		t.Run("Missing-Null-Terminator", func(t *testing.T) {
 			want := ErrInvalidReadOnlyDocument
-			r := make(Reader, 9)
+			r := make(Raw, 9)
 			binary.LittleEndian.PutUint32(r[0:4], 9)
 			r[4], r[5], r[6], r[7], r[8] = '\x0A', 'f', 'o', 'o', '\x00'
 			_, got := r.Validate()
@@ -76,7 +76,7 @@ func TestReader(t *testing.T) {
 		})
 		t.Run("validateValue-error", func(t *testing.T) {
 			want := NewErrTooSmall()
-			r := make(Reader, 11)
+			r := make(Raw, 11)
 			binary.LittleEndian.PutUint32(r[0:4], 11)
 			r[4], r[5], r[6], r[7], r[8], r[9], r[10] = '\x01', 'f', 'o', 'o', '\x00', '\x01', '\x02'
 			_, got := r.Validate()
@@ -86,13 +86,13 @@ func TestReader(t *testing.T) {
 		})
 		testCases := []struct {
 			name string
-			r    Reader
+			r    Raw
 			want uint32
 			err  error
 		}{
-			{"null", Reader{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}, 8, nil},
+			{"null", Raw{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}, 8, nil},
 			{"subdocument",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
 					'f', 'o', 'o', '\x00',
@@ -102,7 +102,7 @@ func TestReader(t *testing.T) {
 				21, nil,
 			},
 			{"array",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x04',
 					'f', 'o', 'o', '\x00',
@@ -128,26 +128,26 @@ func TestReader(t *testing.T) {
 	t.Run("Keys", func(t *testing.T) {
 		testCases := []struct {
 			name      string
-			r         Reader
+			r         Raw
 			want      Keys
 			err       error
 			recursive bool
 		}{
 			{"one",
-				Reader{
+				Raw{
 					'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00',
 				},
 				Keys{{Name: "x"}}, nil, false,
 			},
 			{"two",
-				Reader{
+				Raw{
 					'\x0B', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00',
 					'\x0A', 'y', '\x00', '\x00',
 				},
 				Keys{{Name: "x"}, {Name: "y"}}, nil, false,
 			},
 			{"one-flat",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
 					'f', 'o', 'o', '\x00',
@@ -157,7 +157,7 @@ func TestReader(t *testing.T) {
 				Keys{{Name: "foo"}}, nil, false,
 			},
 			{"one-recursive",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
 					'f', 'o', 'o', '\x00',
@@ -167,7 +167,7 @@ func TestReader(t *testing.T) {
 				Keys{{Name: "foo"}, {Prefix: []string{"foo"}, Name: "a"}, {Prefix: []string{"foo"}, Name: "b"}}, nil, true,
 			},
 			{"one-array-recursive",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x04',
 					'f', 'o', 'o', '\x00',
@@ -177,7 +177,7 @@ func TestReader(t *testing.T) {
 				Keys{{Name: "foo"}, {Prefix: []string{"foo"}, Name: "1"}, {Prefix: []string{"foo"}, Name: "2"}}, nil, true,
 			},
 			{"invalid-subdocument",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
 					'f', 'o', 'o', '\x00',
@@ -187,7 +187,7 @@ func TestReader(t *testing.T) {
 				nil, NewErrTooSmall(), true,
 			},
 			{"invalid-array",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x04',
 					'f', 'o', 'o', '\x00',
@@ -210,14 +210,14 @@ func TestReader(t *testing.T) {
 	})
 	t.Run("Lookup", func(t *testing.T) {
 		t.Run("empty-key", func(t *testing.T) {
-			rdr := Reader{'\x05', '\x00', '\x00', '\x00', '\x00'}
+			rdr := Raw{'\x05', '\x00', '\x00', '\x00', '\x00'}
 			_, err := rdr.Lookup()
 			if err != ErrEmptyKey {
 				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, ErrEmptyKey)
 			}
 		})
 		t.Run("corrupted-subdocument", func(t *testing.T) {
-			rdr := Reader{
+			rdr := Raw{
 				'\x0D', '\x00', '\x00', '\x00',
 				'\x03', 'x', '\x00',
 				'\x06', '\x00', '\x00', '\x00',
@@ -231,7 +231,7 @@ func TestReader(t *testing.T) {
 			}
 		})
 		t.Run("corrupted-array", func(t *testing.T) {
-			rdr := Reader{
+			rdr := Raw{
 				'\x0D', '\x00', '\x00', '\x00',
 				'\x04', 'x', '\x00',
 				'\x06', '\x00', '\x00', '\x00',
@@ -245,7 +245,7 @@ func TestReader(t *testing.T) {
 			}
 		})
 		t.Run("invalid-traversal", func(t *testing.T) {
-			rdr := Reader{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}
+			rdr := Raw{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}
 			_, err := rdr.Lookup("x", "y")
 			if err != ErrInvalidDepthTraversal {
 				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, ErrInvalidDepthTraversal)
@@ -253,20 +253,20 @@ func TestReader(t *testing.T) {
 		})
 		testCases := []struct {
 			name string
-			r    Reader
+			r    Raw
 			key  []string
 			want *Element
 			err  error
 		}{
 			{"first",
-				Reader{
+				Raw{
 					'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00',
 				},
 				[]string{"x"},
 				&Element{&Value{start: 4, offset: 7}}, nil,
 			},
 			{"first-second",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x03',
 					'f', 'o', 'o', '\x00',
@@ -277,7 +277,7 @@ func TestReader(t *testing.T) {
 				&Element{&Value{start: 7, offset: 10}}, nil,
 			},
 			{"first-second-array",
-				Reader{
+				Raw{
 					'\x15', '\x00', '\x00', '\x00',
 					'\x04',
 					'f', 'o', 'o', '\x00',
@@ -303,14 +303,14 @@ func TestReader(t *testing.T) {
 	})
 	t.Run("ElementAt", func(t *testing.T) {
 		t.Run("Out of bounds", func(t *testing.T) {
-			rdr := Reader{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0}
+			rdr := Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0}
 			_, err := rdr.ElementAt(3)
 			if err != ErrOutOfBounds {
 				t.Errorf("Out of bounds should be returned when accessing element beyond end of document. got %v; want %v", err, ErrOutOfBounds)
 			}
 		})
 		t.Run("Validation Error", func(t *testing.T) {
-			rdr := Reader{0x07, 0x00, 0x00, 0x00, 0x00}
+			rdr := Raw{0x07, 0x00, 0x00, 0x00, 0x00}
 			_, err := rdr.ElementAt(1)
 			if err != ErrInvalidLength {
 				t.Errorf("Did not receive expected error. got %v; want %v", err, ErrInvalidLength)
@@ -318,18 +318,18 @@ func TestReader(t *testing.T) {
 		})
 		testCases := []struct {
 			name  string
-			rdr   Reader
+			rdr   Raw
 			index uint
 			want  *Element
 		}{
 			{"first",
-				Reader{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
+				Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
 				0, fromElement(EC.Null("x"))},
 			{"second",
-				Reader{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
+				Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
 				1, fromElement(EC.Null("y"))},
 			{"third",
-				Reader{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
+				Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0},
 				2, fromElement(EC.Null("z"))},
 		}
 
@@ -348,7 +348,7 @@ func TestReader(t *testing.T) {
 	t.Run("Iterator", func(t *testing.T) {
 		testCases := []struct {
 			name     string
-			rdr      Reader
+			rdr      Raw
 			initErr  error
 			elems    []*Element
 			finalErr error
@@ -456,7 +456,7 @@ func TestReader(t *testing.T) {
 		testCases := []struct {
 			name       string
 			ioReader   io.Reader
-			bsonReader Reader
+			bsonReader Raw
 			err        error
 		}{
 			{

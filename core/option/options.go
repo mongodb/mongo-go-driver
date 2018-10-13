@@ -339,7 +339,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Doc
 
 	if bs, ok := val.([]byte); ok {
 		// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
-		val = bson.Reader(bs)
+		val = bson.Raw(bs)
 	}
 
 	// TODO(skriptble): Use a pool of these instead.

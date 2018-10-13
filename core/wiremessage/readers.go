@@ -33,7 +33,7 @@ func readInt64(b []byte, pos int32) int64 {
 
 // readDocument will attempt to read a bson.Reader from the given slice of bytes
 // from the given position.
-func readDocument(b []byte, pos int32) (bson.Reader, int, Error) {
+func readDocument(b []byte, pos int32) (bson.Raw, int, Error) {
 	if int(pos)+4 > len(b) {
 		return nil, 0, Error{Message: "document too small to be valid"}
 	}
@@ -45,7 +45,7 @@ func readDocument(b []byte, pos int32) (bson.Reader, int, Error) {
 		return nil, 0, Error{Message: "document invalid, last byte is not null"}
 	}
 	// TODO(GODRIVER-138): When we add 3.0 support, alter this so we either do one larger make or use a pool.
-	rdr := make(bson.Reader, size)
+	rdr := make(bson.Raw, size)
 	copy(rdr, b[pos:int(pos)+size])
 	return rdr, size, Error{Type: ErrNil}
 }

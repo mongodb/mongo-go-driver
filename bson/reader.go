@@ -18,16 +18,16 @@ import (
 var ErrNilReader = errors.New("nil reader")
 var errValidateDone = errors.New("validation loop complete")
 
-// Reader is a wrapper around a byte slice. It will interpret the slice as a
-// BSON document. Most of the methods on Reader are low cost and are meant for
+// Raw is a wrapper around a byte slice. It will interpret the slice as a
+// BSON document. Most of the methods on Raw are low cost and are meant for
 // simple operations that are run a few times. Because there is no metadata
 // stored all methods run in O(n) time. If a more efficient lookup method is
 // necessary then the Document type should be used.
-type Reader []byte
+type Raw []byte
 
 // NewFromIOReader reads in a document from the given io.Reader and constructs a bson.Reader from
 // it.
-func NewFromIOReader(r io.Reader) (Reader, error) {
+func NewFromIOReader(r io.Reader) (Raw, error) {
 	if r == nil {
 		return nil, ErrNilReader
 	}
@@ -65,7 +65,7 @@ func NewFromIOReader(r io.Reader) (Reader, error) {
 
 // Validate validates the document. This method only validates the first document in
 // the slice, to validate other documents, the slice must be resliced.
-func (r Reader) Validate() (size uint32, err error) {
+func (r Raw) Validate() (size uint32, err error) {
 	return r.readElements(func(elem *Element) error {
 		var err error
 		switch elem.value.Type() {
@@ -80,7 +80,7 @@ func (r Reader) Validate() (size uint32, err error) {
 
 // validateKey will ensure the key is valid and return the length of the key
 // including the null terminator.
-func (r Reader) validateKey(pos, end uint32) (uint32, error) {
+func (r Raw) validateKey(pos, end uint32) (uint32, error) {
 	// Read a CString, return the length, including the '\x00'
 	var total uint32
 	for ; pos < end && r[pos] != '\x00'; pos++ {
@@ -102,7 +102,7 @@ func (r Reader) validateKey(pos, end uint32) (uint32, error) {
 //
 // TODO(skriptble): Determine if this should return an error on empty key and
 // key not found.
-func (r Reader) Lookup(key ...string) (*Element, error) {
+func (r Raw) Lookup(key ...string) (*Element, error) {
 	if len(key) < 1 {
 		return nil, ErrEmptyKey
 	}
@@ -146,7 +146,7 @@ func (r Reader) Lookup(key ...string) (*Element, error) {
 // ElementAt searches for a retrieves the element at the given index. This
 // method will validate all the elements up to and including the element at
 // the given index.
-func (r Reader) ElementAt(index uint) (*Element, error) {
+func (r Raw) ElementAt(index uint) (*Element, error) {
 	var current uint
 	var elem *Element
 	_, err := r.readElements(func(e *Element) error {
@@ -168,7 +168,7 @@ func (r Reader) ElementAt(index uint) (*Element, error) {
 
 // Iterator returns a ReaderIterator that can be used to iterate through the
 // elements of this Reader.
-func (r Reader) Iterator() (*ReaderIterator, error) {
+func (r Raw) Iterator() (*ReaderIterator, error) {
 	return NewReaderIterator(r)
 }
 
@@ -176,12 +176,12 @@ func (r Reader) Iterator() (*ReaderIterator, error) {
 // method will also return the keys for subdocuments and arrays.
 //
 // The keys will be return in order.
-func (r Reader) Keys(recursive bool) (Keys, error) {
+func (r Raw) Keys(recursive bool) (Keys, error) {
 	return r.recursiveKeys(recursive)
 }
 
 // String implements the fmt.Stringer interface.
-func (r Reader) String() string {
+func (r Raw) String() string {
 	var buf bytes.Buffer
 	buf.Write([]byte("bson.Reader{"))
 	idx := 0
@@ -201,7 +201,7 @@ func (r Reader) String() string {
 // MarshalBSON implements the bsoncodec.Marshaler interface.
 //
 // This method does not copy the bytes from r.
-func (r Reader) MarshalBSON() ([]byte, error) {
+func (r Raw) MarshalBSON() ([]byte, error) {
 	_, err := r.Validate()
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func (r Reader) MarshalBSON() ([]byte, error) {
 
 // recursiveKeys implements the logic for the Keys method. This is a separate
 // function to facilitate recursive calls.
-func (r Reader) recursiveKeys(recursive bool, prefix ...string) (Keys, error) {
+func (r Raw) recursiveKeys(recursive bool, prefix ...string) (Keys, error) {
 	ks := make(Keys, 0)
 	_, err := r.readElements(func(elem *Element) error {
 		key := elem.Key()
@@ -248,7 +248,7 @@ func (r Reader) recursiveKeys(recursive bool, prefix ...string) (Keys, error) {
 // from the function, this method will return. This method will return nil when
 // the function returns errValidateDone, in all other cases a non-nil error will
 // be returned by this method.
-func (r Reader) readElements(f func(e *Element) error) (uint32, error) {
+func (r Raw) readElements(f func(e *Element) error) (uint32, error) {
 	if len(r) < 5 {
 		return 0, NewErrTooSmall()
 	}

@@ -47,13 +47,7 @@ type Element []byte
 // func (Element) validate() (int32, error) { return 0, nil }
 // func (Element) CompareKey([]byte) bool   { return false }
 
-// Value represents a BSON value with a type and raw bytes.
-type Value struct {
-	Type bsontype.Type
-	Data []byte
-}
-
-// func (Value) Validate() error { return nil }
+type Array []byte
 
 // AppendType will append t to dst and return the extended buffer.
 func AppendType(dst []byte, t bsontype.Type) []byte { return append(dst, byte(t)) }

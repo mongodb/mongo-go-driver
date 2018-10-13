@@ -29,6 +29,7 @@ func (pc PrimitiveCodecs) RegisterPrimitiveCodecs(rb *bsoncodec.RegistryBuilder)
 		RegisterEncoder(tDocument, bsoncodec.ValueEncoderFunc(pc.DocumentEncodeValue)).
 		RegisterEncoder(tArray, bsoncodec.ValueEncoderFunc(pc.ArrayEncodeValue)).
 		RegisterEncoder(tValue, bsoncodec.ValueEncoderFunc(pc.ValueEncodeValue)).
+		RegisterEncoder(reflect.PtrTo(tRawValue), bsoncodec.ValueEncoderFunc(pc.RawValueEncodeValue)).
 		RegisterEncoder(reflect.PtrTo(tElementSlice), bsoncodec.ValueEncoderFunc(pc.ElementSliceEncodeValue)).
 		RegisterEncoder(reflect.PtrTo(tBinary), bsoncodec.ValueEncoderFunc(pc.BinaryEncodeValue)).
 		RegisterEncoder(reflect.PtrTo(tUndefined), bsoncodec.ValueEncoderFunc(pc.UndefinedEncodeValue)).
@@ -44,6 +45,7 @@ func (pc PrimitiveCodecs) RegisterPrimitiveCodecs(rb *bsoncodec.RegistryBuilder)
 		RegisterDecoder(tDocument, bsoncodec.ValueDecoderFunc(pc.DocumentDecodeValue)).
 		RegisterDecoder(tArray, bsoncodec.ValueDecoderFunc(pc.ArrayDecodeValue)).
 		RegisterDecoder(tValue, bsoncodec.ValueDecoderFunc(pc.ValueDecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tRawValue), bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue)).
 		RegisterDecoder(reflect.PtrTo(tElementSlice), bsoncodec.ValueDecoderFunc(pc.ElementSliceDecodeValue)).
 		RegisterDecoder(reflect.PtrTo(tBinary), bsoncodec.ValueDecoderFunc(pc.BinaryDecodeValue)).
 		RegisterDecoder(reflect.PtrTo(tUndefined), bsoncodec.ValueDecoderFunc(pc.UndefinedDecodeValue)).
@@ -552,6 +554,58 @@ func (PrimitiveCodecs) MaxKeyDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.V
 	return vr.ReadMaxKey()
 }
 
+func (PrimitiveCodecs) RawValueEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
+	var rawvalue RawValue
+	switch t := i.(type) {
+	case RawValue:
+		rawvalue = t
+	case *RawValue:
+		rawvalue = *t
+	default:
+		return bsoncodec.ValueEncoderError{
+			Name:     "RawValueEncodeValue",
+			Types:    []interface{}{RawValue{}, (*RawValue)(nil)},
+			Received: i,
+		}
+	}
+
+	return bsonrw.Copier{}.CopyValueFromBytes(vw, rawvalue.Type, rawvalue.Value)
+}
+
+func (PrimitiveCodecs) RawValueDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	var target *RawValue
+	var err error = bsoncodec.ValueDecoderError{
+		Name:     "RawValueDecodeValue",
+		Types:    []interface{}{(*RawValue)(nil), (**RawValue)(nil)},
+		Received: i,
+	}
+	switch t := i.(type) {
+	case *RawValue:
+		if t == nil {
+			return err
+		}
+		target = t
+	case **RawValue:
+		if t == nil {
+			return err
+		}
+		if *t == nil {
+			*t = new(RawValue)
+		}
+		target = *t
+	default:
+		return err
+	}
+
+	t, val, err := bsonrw.Copier{}.CopyValueToBytes(vr)
+	if err != nil {
+		return err
+	}
+
+	target.Type, target.Value, target.r = t, val, dc.Registry
+	return nil
+}
+
 // ValueEncodeValue is the ValueEncoderFunc for *Value.
 func (pc PrimitiveCodecs) ValueEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	val, ok := i.(*Value)
@@ -586,11 +640,11 @@ func (pc PrimitiveCodecs) ValueDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw
 
 // ReaderEncodeValue is the ValueEncoderFunc for Reader.
 func (PrimitiveCodecs) ReaderEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	rdr, ok := i.(Reader)
+	rdr, ok := i.(Raw)
 	if !ok {
 		return bsoncodec.ValueEncoderError{
 			Name:     "ReaderEncodeValue",
-			Types:    []interface{}{Reader{}},
+			Types:    []interface{}{Raw{}},
 			Received: i,
 		}
 	}
@@ -600,9 +654,9 @@ func (PrimitiveCodecs) ReaderEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.V
 
 // ReaderDecodeValue is the ValueDecoderFunc for Reader.
 func (PrimitiveCodecs) ReaderDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	rdr, ok := i.(*Reader)
+	rdr, ok := i.(*Raw)
 	if !ok {
-		return bsoncodec.ValueDecoderError{Name: "ReaderDecodeValue", Types: []interface{}{(*Reader)(nil)}, Received: i}
+		return bsoncodec.ValueDecoderError{Name: "ReaderDecodeValue", Types: []interface{}{(*Raw)(nil)}, Received: i}
 	}
 
 	if rdr == nil {
@@ -610,7 +664,7 @@ func (PrimitiveCodecs) ReaderDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.V
 	}
 
 	if *rdr == nil {
-		*rdr = make(Reader, 0)
+		*rdr = make(Raw, 0)
 	} else {
 		*rdr = (*rdr)[:0]
 	}

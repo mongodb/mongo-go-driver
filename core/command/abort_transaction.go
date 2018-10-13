@@ -51,7 +51,7 @@ func (at *AbortTransaction) Decode(desc description.SelectedServer, wm wiremessa
 	return at.decode(desc, rdr)
 }
 
-func (at *AbortTransaction) decode(desc description.SelectedServer, rdr bson.Reader) *AbortTransaction {
+func (at *AbortTransaction) decode(desc description.SelectedServer, rdr bson.Raw) *AbortTransaction {
 	at.err = bson.Unmarshal(rdr, &at.result)
 	if at.err == nil && at.result.WriteConcernError != nil {
 		at.err = Error{

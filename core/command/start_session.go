@@ -50,7 +50,7 @@ func (ss *StartSession) Decode(desc description.SelectedServer, wm wiremessage.W
 	return ss.decode(desc, rdr)
 }
 
-func (ss *StartSession) decode(desc description.SelectedServer, rdr bson.Reader) *StartSession {
+func (ss *StartSession) decode(desc description.SelectedServer, rdr bson.Raw) *StartSession {
 	ss.err = bson.Unmarshal(rdr, &ss.result)
 	return ss
 }

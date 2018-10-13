@@ -194,10 +194,10 @@ func (a *Array) Concat(docs ...interface{}) error {
 				a.Append(e.value)
 			}
 		case []byte:
-			if err := a.concatReader(Reader(val)); err != nil {
+			if err := a.concatReader(Raw(val)); err != nil {
 				return err
 			}
-		case Reader:
+		case Raw:
 			if err := a.concatReader(val); err != nil {
 				return err
 			}
@@ -209,7 +209,7 @@ func (a *Array) Concat(docs ...interface{}) error {
 	return nil
 }
 
-func (a *Array) concatReader(r Reader) error {
+func (a *Array) concatReader(r Raw) error {
 	_, err := r.readElements(func(e *Element) error {
 		a.Append(e.value)
 

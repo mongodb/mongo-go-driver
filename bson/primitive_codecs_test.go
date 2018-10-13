@@ -366,6 +366,40 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
+			"RawValueEncodeValue",
+			bsoncodec.ValueEncoderFunc(pc.RawValueEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					bsoncodec.ValueEncoderError{
+						Name:     "RawValueEncodeValue",
+						Types:    []interface{}{RawValue{}, (*RawValue)(nil)},
+						Received: wrong,
+					},
+				},
+				{
+					"RawValue/success",
+					RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
+					nil,
+					nil,
+					bsonrwtest.WriteDouble,
+					nil,
+				},
+				{
+					"*RawValue/success",
+					&RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
+					nil,
+					nil,
+					bsonrwtest.WriteDouble,
+					nil,
+				},
+			},
+		},
+		{
 			"ValueEncodeValue",
 			bsoncodec.ValueEncoderFunc(pc.ValueEncodeValue),
 			[]subtest{
@@ -398,11 +432,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{Name: "ReaderEncodeValue", Types: []interface{}{Reader{}}, Received: wrong},
+					bsoncodec.ValueEncoderError{Name: "ReaderEncodeValue", Types: []interface{}{Raw{}}, Received: wrong},
 				},
 				{
 					"WriteDocument Error",
-					Reader{},
+					Raw{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("wd error"), ErrAfter: bsonrwtest.WriteDocument},
 					bsonrwtest.WriteDocument,
@@ -410,7 +444,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"Reader.Iterator Error",
-					Reader{0xFF, 0x00, 0x00, 0x00, 0x00},
+					Raw{0xFF, 0x00, 0x00, 0x00, 0x00},
 					nil,
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteDocument,
@@ -418,7 +452,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"WriteDocumentElement Error",
-					Reader(bytesFromDoc(NewDocument(EC.Null("foo")))),
+					Raw(bytesFromDoc(NewDocument(EC.Null("foo")))),
 					nil,
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("wde error"), ErrAfter: bsonrwtest.WriteDocumentElement},
 					bsonrwtest.WriteDocumentElement,
@@ -426,7 +460,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"encodeValue error",
-					Reader(bytesFromDoc(NewDocument(EC.Null("foo")))),
+					Raw(bytesFromDoc(NewDocument(EC.Null("foo")))),
 					nil,
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("ev error"), ErrAfter: bsonrwtest.WriteNull},
 					bsonrwtest.WriteNull,
@@ -434,7 +468,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"iterator error",
-					Reader{0x0C, 0x00, 0x00, 0x00, 0x01, 'f', 'o', 'o', 0x00, 0x01, 0x02, 0x03},
+					Raw{0x0C, 0x00, 0x00, 0x00, 0x01, 'f', 'o', 'o', 0x00, 0x01, 0x02, 0x03},
 					nil,
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.WriteDocumentElement,
@@ -861,7 +895,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			err = dr.WriteDocumentEnd()
 			noerr(t, err)
 
-			elem, err := Reader(slc).Lookup("foo")
+			elem, err := Raw(slc).Lookup("foo")
 			noerr(t, err)
 			rgot := elem.Value().ReaderArray()
 			doc, err := ReadDocument(rgot)
@@ -914,7 +948,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 						M string
 					}
 					O  *Document
-					P  Reader
+					P  Raw
 					Q  objectid.ObjectID
 					T  []struct{}
 					Y  json.Number
@@ -924,6 +958,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC decimal.Decimal128
 					AD *time.Time
 					AE testValueMarshaler
+					AF RawValue
+					AG *RawValue
 				}{
 					A: true,
 					B: 123,
@@ -941,7 +977,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 						M: "foobar",
 					},
 					O:  NewDocument(EC.Int64("countdown", 9876543210)),
-					P:  Reader{0x05, 0x00, 0x00, 0x00, 0x00},
+					P:  Raw{0x05, 0x00, 0x00, 0x00, 0x00},
 					Q:  oid,
 					T:  nil,
 					Y:  json.Number("5"),
@@ -951,6 +987,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC: decimal128,
 					AD: &now,
 					AE: testValueMarshaler{t: TypeString, buf: bsoncore.AppendString(nil, "hello, world")},
+					AF: RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "hello, raw value")},
+					AG: &RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
 				},
 				docToBytes(NewDocument(
 					EC.Boolean("a", true),
@@ -975,6 +1013,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					EC.Decimal128("ac", decimal128),
 					EC.DateTime("ad", now.UnixNano()/int64(time.Millisecond)),
 					EC.String("ae", "hello, world"),
+					EC.String("af", "hello, raw value"),
+					EC.Double("ag", 3.14159),
 				)),
 				nil,
 			},
@@ -997,7 +1037,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					N  [][]string
 					O  []*Element
 					P  []*Document
-					Q  []Reader
+					Q  []Raw
 					R  []objectid.ObjectID
 					T  []struct{}
 					W  []map[string]struct{}
@@ -1030,7 +1070,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					N:  [][]string{{"foo", "bar"}},
 					O:  []*Element{EC.Null("N")},
 					P:  []*Document{NewDocument(EC.Int64("countdown", 9876543210))},
-					Q:  []Reader{{0x05, 0x00, 0x00, 0x00, 0x00}},
+					Q:  []Raw{{0x05, 0x00, 0x00, 0x00, 0x00}},
 					R:  oids,
 					T:  nil,
 					W:  nil,
@@ -1092,7 +1132,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				if diff := cmp.Diff([]byte(b), tc.b); diff != "" {
 					t.Errorf("Bytes written differ: (-got +want)\n%s", diff)
 					t.Errorf("Bytes\ngot: %v\nwant:%v\n", b, tc.b)
-					t.Errorf("Readers\ngot: %v\nwant:%v\n", Reader(b), Reader(tc.b))
+					t.Errorf("Readers\ngot: %v\nwant:%v\n", Raw(b), Raw(tc.b))
 				}
 			})
 		}
@@ -1654,6 +1694,64 @@ func TestDefaultValueDecoders(t *testing.T) {
 			},
 		},
 		{
+			"RawValueDecodeValue",
+			bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					&bsonrwtest.ValueReaderWriter{},
+					bsonrwtest.Nothing,
+					bsoncodec.ValueDecoderError{
+						Name:     "RawValueDecodeValue",
+						Types:    []interface{}{(*RawValue)(nil), (**RawValue)(nil)},
+						Received: &wrong,
+					},
+				},
+				{
+					"ReadValue Error",
+					RawValue{},
+					nil,
+					&bsonrwtest.ValueReaderWriter{
+						BSONType: bsontype.Binary,
+						Err:      errors.New("rb error"),
+						ErrAfter: bsonrwtest.ReadBinary,
+					},
+					bsonrwtest.ReadBinary,
+					errors.New("rb error"),
+				},
+				{
+					"RawValue/success",
+					RawValue{Type: bsontype.Binary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
+					nil,
+					&bsonrwtest.ValueReaderWriter{
+						BSONType: bsontype.Binary,
+						Return: bsoncore.Value{
+							Type: bsontype.Binary,
+							Data: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03}),
+						},
+					},
+					bsonrwtest.ReadBinary,
+					nil,
+				},
+				{
+					"*RawValue/success",
+					&RawValue{Type: bsontype.Binary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
+					nil,
+					&bsonrwtest.ValueReaderWriter{
+						BSONType: bsontype.Binary,
+						Return: bsoncore.Value{
+							Type: bsontype.Binary,
+							Data: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03}),
+						},
+					},
+					bsonrwtest.ReadBinary,
+					nil,
+				},
+			},
+		},
+		{
 			"ValueDecodeValue",
 			bsoncodec.ValueDecoderFunc(pc.ValueDecodeValue),
 			[]subtest{
@@ -1686,11 +1784,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "ReaderDecodeValue", Types: []interface{}{(*Reader)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "ReaderDecodeValue", Types: []interface{}{(*Raw)(nil)}, Received: &wrong},
 				},
 				{
 					"*Reader is nil",
-					(*Reader)(nil),
+					(*Raw)(nil),
 					nil,
 					nil,
 					bsonrwtest.Nothing,
@@ -1698,7 +1796,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"Copy error",
-					Reader{},
+					Raw{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("copy error"), ErrAfter: bsonrwtest.ReadDocument},
 					bsonrwtest.ReadDocument,
@@ -1932,7 +2030,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				err   error
 			}{
 				{
-					"Returnue",
+					"ReadValue",
 					dc,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: errors.New("re error"), ErrAfter: bsonrwtest.ReadValue},
 					errors.New("re error"),
@@ -2081,9 +2179,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 			},
 			{
 				"map[string]Reader",
-				map[string]Reader{"Z": {0x05, 0x00, 0x00, 0x00, 0x00}},
+				map[string]Raw{"Z": {0x05, 0x00, 0x00, 0x00, 0x00}},
 				docToBytes(NewDocument(
-					EC.SubDocumentFromReader("Z", Reader{0x05, 0x00, 0x00, 0x00, 0x00}),
+					EC.SubDocumentFromReader("Z", Raw{0x05, 0x00, 0x00, 0x00, 0x00}),
 				)),
 				nil,
 			},
@@ -2256,7 +2354,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						M string
 					}
 					O  *Document
-					P  Reader
+					P  Raw
 					Q  objectid.ObjectID
 					T  []struct{}
 					Y  json.Number
@@ -2266,6 +2364,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AC decimal.Decimal128
 					AD *time.Time
 					AE *testValueUnmarshaler
+					AF RawValue
+					AG *RawValue
 				}{
 					A: true,
 					B: 123,
@@ -2283,7 +2383,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						M: "foobar",
 					},
 					O:  NewDocument(EC.Int64("countdown", 9876543210)),
-					P:  Reader{0x05, 0x00, 0x00, 0x00, 0x00},
+					P:  Raw{0x05, 0x00, 0x00, 0x00, 0x00},
 					Q:  oid,
 					T:  nil,
 					Y:  json.Number("5"),
@@ -2293,6 +2393,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AC: decimal128,
 					AD: &now,
 					AE: &testValueUnmarshaler{t: bsontype.String, val: bsoncore.AppendString(nil, "hello, world!")},
+					AF: RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
+					AG: &RawValue{Type: bsontype.Binary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
 				},
 				docToBytes(NewDocument(
 					EC.Boolean("a", true),
@@ -2317,6 +2419,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 					EC.Decimal128("ac", decimal128),
 					EC.DateTime("ad", now.UnixNano()/int64(time.Millisecond)),
 					EC.String("ae", "hello, world!"),
+					EC.Double("af", 3.14159),
+					EC.BinaryWithSubtype("ag", []byte{0x01, 0x02, 0x03}, 0xFF),
 				)),
 				nil,
 			},
@@ -2339,7 +2443,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					N  [][]string
 					O  []*Element
 					P  []*Document
-					Q  []Reader
+					Q  []Raw
 					R  []objectid.ObjectID
 					T  []struct{}
 					W  []map[string]struct{}
@@ -2372,7 +2476,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					N:  [][]string{{"foo", "bar"}},
 					O:  []*Element{EC.Null("N")},
 					P:  []*Document{NewDocument(EC.Int64("countdown", 9876543210))},
-					Q:  []Reader{{0x05, 0x00, 0x00, 0x00, 0x00}},
+					Q:  []Raw{{0x05, 0x00, 0x00, 0x00, 0x00}},
 					R:  oids,
 					T:  nil,
 					W:  nil,

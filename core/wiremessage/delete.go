@@ -13,7 +13,7 @@ type Delete struct {
 	MsgHeader          Header
 	FullCollectionName string
 	Flags              DeleteFlag
-	Selector           bson.Reader
+	Selector           bson.Raw
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.
