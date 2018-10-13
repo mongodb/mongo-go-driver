@@ -163,7 +163,7 @@ func normalizeRelaxedDouble(t *testing.T, key string, rEJ string) string {
 // bsonToNative decodes the BSON bytes (b) into a native Document
 func bsonToNative(t *testing.T, b []byte, bType, testDesc string) *Document {
 	doc := NewDocument()
-	err := pc.DocumentDecodeValue(dc, bsonrw.NewBSONValueReader(b), &doc)
+	err := pc.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
 	expectNoError(t, err, fmt.Sprintf("%s: decoding %s BSON", testDesc, bType))
 	return doc
 }
@@ -299,7 +299,7 @@ func runTest(t *testing.T, file string) {
 			expectNoError(t, err, d.Description)
 
 			doc := NewDocument()
-			err = pc.DocumentDecodeValue(dc, bsonrw.NewBSONValueReader(b), &doc)
+			err = pc.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
 			expectError(t, err, fmt.Sprintf("%s: expected decode error", d.Description))
 		}
 

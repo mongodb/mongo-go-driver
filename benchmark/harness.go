@@ -107,18 +107,18 @@ func getAllCases() []*CaseDefinition {
 		//	Size:    57340000,
 		//	Runtime: StandardRuntime,
 		// },
-		{
-			Bench:   BSONFlatReaderDecoding,
-			Count:   tenThousand,
-			Size:    75310000,
-			Runtime: StandardRuntime,
-		},
-		{
-			Bench:   BSONDeepReaderDecoding,
-			Count:   tenThousand,
-			Size:    19640000,
-			Runtime: StandardRuntime,
-		},
+		// {
+		// 	Bench:   BSONFlatReaderDecoding,
+		// 	Count:   tenThousand,
+		// 	Size:    75310000,
+		// 	Runtime: StandardRuntime,
+		// },
+		// {
+		// 	Bench:   BSONDeepReaderDecoding,
+		// 	Count:   tenThousand,
+		// 	Size:    19640000,
+		// 	Runtime: StandardRuntime,
+		// },
 		// {
 		//	Bench:   BSONFullReaderDecoding,
 		//	Count:   tenThousand,

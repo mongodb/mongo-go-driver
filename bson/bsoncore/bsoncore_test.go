@@ -13,6 +13,30 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
+func noerr(t *testing.T, err error) {
+	if err != nil {
+		t.Helper()
+		t.Errorf("Unexpected error: (%T)%v", err, err)
+		t.FailNow()
+	}
+}
+
+func compareErrors(err1, err2 error) bool {
+	if err1 == nil && err2 == nil {
+		return true
+	}
+
+	if err1 == nil || err2 == nil {
+		return false
+	}
+
+	if err1.Error() != err2.Error() {
+		return false
+	}
+
+	return true
+}
+
 func TestAppend(t *testing.T) {
 	bits := math.Float64bits(3.14159)
 	pi := make([]byte, 8)

@@ -105,7 +105,7 @@ func (f *Find) Decode(desc description.SelectedServer, cb CursorBuilder, wm wire
 	return f.decode(desc, cb, rdr)
 }
 
-func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Reader) *Find {
+func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *Find {
 	opts := make([]option.CursorOptioner, 0)
 	for _, opt := range f.Opts {
 		curOpt, ok := opt.(option.CursorOptioner)

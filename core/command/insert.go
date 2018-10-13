@@ -112,7 +112,7 @@ func (i *Insert) Decode(desc description.SelectedServer, wm wiremessage.WireMess
 	return i.decode(desc, rdr)
 }
 
-func (i *Insert) decode(desc description.SelectedServer, rdr bson.Reader) *Insert {
+func (i *Insert) decode(desc description.SelectedServer, rdr bson.Raw) *Insert {
 	i.err = bson.Unmarshal(rdr, &i.result)
 	return i
 }

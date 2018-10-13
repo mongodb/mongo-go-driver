@@ -80,7 +80,7 @@ func (ci *CreateIndexes) Decode(desc description.SelectedServer, wm wiremessage.
 	return ci.decode(desc, rdr)
 }
 
-func (ci *CreateIndexes) decode(desc description.SelectedServer, rdr bson.Reader) *CreateIndexes {
+func (ci *CreateIndexes) decode(desc description.SelectedServer, rdr bson.Raw) *CreateIndexes {
 	ci.err = bson.Unmarshal(rdr, &ci.result)
 	return ci
 }

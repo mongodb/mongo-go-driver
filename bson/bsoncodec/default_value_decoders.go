@@ -803,6 +803,15 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, ar bsonrw.ArrayR
 			return nil, err
 		}
 
+		if eType.Kind() == reflect.Ptr && vr.Type() == bsontype.Null {
+			err = vr.ReadNull()
+			if err != nil {
+				return nil, err
+			}
+			elems = append(elems, reflect.Zero(eType))
+			continue
+		}
+
 		ptr := reflect.New(eType)
 
 		err = decoder.DecodeValue(dc, vr, ptr.Interface())

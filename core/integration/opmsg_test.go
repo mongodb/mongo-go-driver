@@ -32,7 +32,7 @@ func createServerConn(t *testing.T) (*topology.SelectedServer, connection.Connec
 	return server, conn
 }
 
-func compareDocs(t *testing.T, reader bson.Reader, doc *bson.Document) {
+func compareDocs(t *testing.T, reader bson.Raw, doc *bson.Document) {
 	marshaled, err := doc.MarshalBSON()
 	if err != nil {
 		t.Errorf("error marshaling document: %s", err)
