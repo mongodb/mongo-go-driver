@@ -29,7 +29,7 @@ var ErrMultipleIndexDrop = errors.New("multiple indexes would be dropped")
 
 // IndexView is used to create, drop, and list indexes on a given collection.
 type IndexView struct {
-	coll *Collection
+	Coll *Collection
 }
 
 // IndexModel contains information about an index.
