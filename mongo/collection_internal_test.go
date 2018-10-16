@@ -139,7 +139,7 @@ func TestCollection_InheritOptions(t *testing.T) {
 	db.readConcern = rcLocal
 	coll := db.Collection(name, collectionopt.WriteConcern(wc1))
 
-	// coll should inherit read preference and read concern from client
+	// Coll should inherit read preference and read concern from client
 	switch {
 	case coll.readPreference != rpPrimary:
 		t.Errorf("expected read preference primary. got %#v", coll.readPreference)

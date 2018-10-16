@@ -1374,7 +1374,7 @@ func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 
 // Indexes returns the index view for this collection.
 func (coll *Collection) Indexes() IndexView {
-	return IndexView{coll: coll}
+	return IndexView{Coll: coll}
 }
 
 // Drop drops this collection from database.

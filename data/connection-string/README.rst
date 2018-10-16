@@ -43,7 +43,7 @@ array of test case objects, each of which have the following keys:
   - ``password``: A string containing the parsed password.
   - ``db``: A string containing the parsed authentication database. For legacy
     implementations that support namespaces (databases and collections) this may
-    be the full namespace eg: ``<db>.<coll>``
+    be the full namespace eg: ``<db>.<Coll>``
 - ``options``: An object containing key/value pairs for each parsed query string
   option.
 

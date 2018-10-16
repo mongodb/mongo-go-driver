@@ -29,7 +29,7 @@ var ErrMultipleIndexDrop = errors.New("multiple indexes would be dropped")
 
 // IndexView is used to create, drop, and list indexes on a given collection.
 type IndexView struct {
-	coll *Collection
+	Coll *Collection
 }
 
 // IndexModel contains information about an index.
@@ -47,24 +47,24 @@ func (iv IndexView) List(ctx context.Context, opts ...indexopt.List) (Cursor, er
 
 	sess := sessionFromContext(ctx)
 
-	err = iv.coll.client.ValidSession(sess)
+	err = iv.Coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
 
 	listCmd := command.ListIndexes{
-		NS:      iv.coll.namespace(),
+		NS:      iv.Coll.namespace(),
 		Opts:    listOpts,
 		Session: sess,
-		Clock:   iv.coll.client.clock,
+		Clock:   iv.Coll.client.clock,
 	}
 
 	return dispatch.ListIndexes(
 		ctx, listCmd,
-		iv.coll.client.topology,
-		iv.coll.writeSelector,
-		iv.coll.client.id,
-		iv.coll.client.topology.SessionPool,
+		iv.Coll.client.topology,
+		iv.Coll.writeSelector,
+		iv.Coll.client.id,
+		iv.Coll.client.topology.SessionPool,
 	)
 }
 
@@ -117,25 +117,25 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 	sess := sessionFromContext(ctx)
 
-	err = iv.coll.client.ValidSession(sess)
+	err = iv.Coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
 
 	cmd := command.CreateIndexes{
-		NS:      iv.coll.namespace(),
+		NS:      iv.Coll.namespace(),
 		Indexes: indexes,
 		Opts:    createOpts,
 		Session: sess,
-		Clock:   iv.coll.client.clock,
+		Clock:   iv.Coll.client.clock,
 	}
 
 	_, err = dispatch.CreateIndexes(
 		ctx, cmd,
-		iv.coll.client.topology,
-		iv.coll.writeSelector,
-		iv.coll.client.id,
-		iv.coll.client.topology.SessionPool,
+		iv.Coll.client.topology,
+		iv.Coll.writeSelector,
+		iv.Coll.client.id,
+		iv.Coll.client.topology.SessionPool,
 	)
 	if err != nil {
 		return nil, err
@@ -157,25 +157,25 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...indexopt.D
 
 	sess := sessionFromContext(ctx)
 
-	err = iv.coll.client.ValidSession(sess)
+	err = iv.Coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
 
 	cmd := command.DropIndexes{
-		NS:      iv.coll.namespace(),
+		NS:      iv.Coll.namespace(),
 		Index:   name,
 		Opts:    dropOpts,
 		Session: sess,
-		Clock:   iv.coll.client.clock,
+		Clock:   iv.Coll.client.clock,
 	}
 
 	return dispatch.DropIndexes(
 		ctx, cmd,
-		iv.coll.client.topology,
-		iv.coll.writeSelector,
-		iv.coll.client.id,
-		iv.coll.client.topology.SessionPool,
+		iv.Coll.client.topology,
+		iv.Coll.writeSelector,
+		iv.Coll.client.id,
+		iv.Coll.client.topology.SessionPool,
 	)
 }
 
@@ -188,25 +188,25 @@ func (iv IndexView) DropAll(ctx context.Context, opts ...indexopt.Drop) (bson.Re
 
 	sess := sessionFromContext(ctx)
 
-	err = iv.coll.client.ValidSession(sess)
+	err = iv.Coll.client.ValidSession(sess)
 	if err != nil {
 		return nil, err
 	}
 
 	cmd := command.DropIndexes{
-		NS:      iv.coll.namespace(),
+		NS:      iv.Coll.namespace(),
 		Index:   "*",
 		Opts:    dropOpts,
 		Session: sess,
-		Clock:   iv.coll.client.clock,
+		Clock:   iv.Coll.client.clock,
 	}
 
 	return dispatch.DropIndexes(
 		ctx, cmd,
-		iv.coll.client.topology,
-		iv.coll.writeSelector,
-		iv.coll.client.id,
-		iv.coll.client.topology.SessionPool,
+		iv.Coll.client.topology,
+		iv.Coll.writeSelector,
+		iv.Coll.client.id,
+		iv.Coll.client.topology.SessionPool,
 	)
 }
 
