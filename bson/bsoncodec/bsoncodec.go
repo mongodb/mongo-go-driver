@@ -64,15 +64,19 @@ func (vee ValueEncoderError) Error() string {
 // ValueDecoderError is an error returned from a ValueDecoder when the provided
 // value can't be decoded by the ValueDecoder.
 type ValueDecoderError struct {
-	Name     string
-	Types    []interface{}
-	Received interface{}
+	Name        string
+	Types       []interface{}
+	Received    interface{}
+	ReceivedNil bool
 }
 
 func (vde ValueDecoderError) Error() string {
 	types := make([]string, 0, len(vde.Types))
 	for _, t := range vde.Types {
 		types = append(types, fmt.Sprintf("%T", t))
+	}
+	if vde.ReceivedNil {
+		return fmt.Sprintf("%s can only process settable (non-nil) %s, but got a nil %T", vde.Name, strings.Join(types, ", "), vde.Received)
 	}
 	return fmt.Sprintf("%s can only process %s, but got a %T", vde.Name, strings.Join(types, ", "), vde.Received)
 }
