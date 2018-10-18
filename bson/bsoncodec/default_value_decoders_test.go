@@ -45,6 +45,33 @@ func TestDefaultValueDecoders(t *testing.T) {
 	type myfloat64 float64
 	type mystring string
 
+	boolptr := func(payload bool) *bool { return &payload }
+	myboolptr := func(payload bool) *mybool { mypayload := mybool(payload); return &mypayload }
+	uint8ptr := func(payload uint8) *uint8 { return &payload }
+	myuint8ptr := func(payload uint8) *myuint8 { mypayload := myuint8(payload); return &mypayload }
+	uint16ptr := func(payload uint16) *uint16 { return &payload }
+	myuint16ptr := func(payload uint16) *myuint16 { mypayload := myuint16(payload); return &mypayload }
+	uint32ptr := func(payload uint32) *uint32 { return &payload }
+	myuint32ptr := func(payload uint32) *myuint32 { mypayload := myuint32(payload); return &mypayload }
+	uintptr := func(payload uint) *uint { return &payload }
+	myuintptr := func(payload uint) *myuint { mypayload := myuint(payload); return &mypayload }
+	uint64ptr := func(payload uint64) *uint64 { return &payload }
+	myuint64ptr := func(payload uint64) *myuint64 { mypayload := myuint64(payload); return &mypayload }
+	int8ptr := func(payload int8) *int8 { return &payload }
+	myint8ptr := func(payload int8) *myint8 { mypayload := myint8(payload); return &mypayload }
+	int16ptr := func(payload int16) *int16 { return &payload }
+	myint16ptr := func(payload int16) *myint16 { mypayload := myint16(payload); return &mypayload }
+	int32ptr := func(payload int32) *int32 { return &payload }
+	myint32ptr := func(payload int32) *myint32 { mypayload := myint32(payload); return &mypayload }
+	intptr := func(payload int) *int { return &payload }
+	myintptr := func(payload int) *myint { mypayload := myint(payload); return &mypayload }
+	int64ptr := func(payload int64) *int64 { return &payload }
+	myint64ptr := func(payload int64) *myint64 { mypayload := myint64(payload); return &mypayload }
+	float32ptr := func(payload float32) *float32 { return &payload }
+	myfloat32ptr := func(payload float32) *myfloat32 { mypayload := myfloat32(payload); return &mypayload }
+	float64ptr := func(payload float64) *float64 { return &payload }
+	myfloat64ptr := func(payload float64) *myfloat64 { mypayload := myfloat64(payload); return &mypayload }
+
 	const cansetreflectiontest = "cansetreflectiontest"
 
 	intAllowedDecodeTypes := []interface{}{(*int8)(nil), (*int16)(nil), (*int32)(nil), (*int64)(nil), (*int)(nil)}
@@ -96,8 +123,24 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
+					"fast path pointer",
+					boolptr(true),
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Boolean, Return: bool(true)},
+					bsonrwtest.ReadBoolean,
+					nil,
+				},
+				{
 					"reflection path",
 					mybool(true),
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Boolean, Return: bool(true)},
+					bsonrwtest.ReadBoolean,
+					nil,
+				},
+				{
+					"fast path pointer",
+					myboolptr(true),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Boolean, Return: bool(true)},
 					bsonrwtest.ReadBoolean,
@@ -189,6 +232,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{"int32/fast path", int32(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(1234)}, bsonrwtest.ReadInt32, nil},
 				{"int64/fast path", int64(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1234)}, bsonrwtest.ReadInt64, nil},
 				{"int/fast path", int(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1234)}, bsonrwtest.ReadInt64, nil},
+				{"int8/fast path", int8ptr(127), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(127)}, bsonrwtest.ReadInt32, nil},
+				{"int16/fast path", int16ptr(32676), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(32676)}, bsonrwtest.ReadInt32, nil},
+				{"int32/fast path", int32ptr(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(1234)}, bsonrwtest.ReadInt32, nil},
+				{"int64/fast path", int64ptr(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1234)}, bsonrwtest.ReadInt64, nil},
+				{"int/fast path", intptr(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1234)}, bsonrwtest.ReadInt64, nil},
 				{
 					"int8/fast path - nil", (*int8)(nil), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)}, bsonrwtest.ReadInt32,
@@ -266,6 +314,31 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"int/reflection path", myint(2047), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(2047)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"int8/reflection path", myint8ptr(127), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(127)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"int16/reflection path", myint16ptr(255), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(255)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"int32/reflection path", myint32ptr(511), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(511)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"int64/reflection path", myint64ptr(1023), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(1023)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"int/reflection path", myintptr(2047), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(2047)}, bsonrwtest.ReadInt32,
 					nil,
 				},
@@ -378,6 +451,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{"uint32/fast path", uint32(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(1234)}, bsonrwtest.ReadInt32, nil},
 				{"uint64/fast path", uint64(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1234)}, bsonrwtest.ReadInt64, nil},
 				{"uint/fast path", uint(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1234)}, bsonrwtest.ReadInt64, nil},
+				{"uint8/fast path", uint8ptr(127), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(127)}, bsonrwtest.ReadInt32, nil},
+				{"uint16/fast path", uint16ptr(255), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(255)}, bsonrwtest.ReadInt32, nil},
+				{"uint32/fast path", uint32ptr(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(1234)}, bsonrwtest.ReadInt32, nil},
+				{"uint64/fast path", uint64ptr(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1234)}, bsonrwtest.ReadInt64, nil},
+				{"uint/fast path", uintptr(1234), nil, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int64, Return: int64(1234)}, bsonrwtest.ReadInt64, nil},
 				{
 					"uint8/fast path - nil", (*uint8)(nil), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)}, bsonrwtest.ReadInt32,
@@ -465,6 +543,31 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"uint/reflection path", myuint(2047), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(2047)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"uint8/reflection path", myuint8ptr(127), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(127)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"uint16/reflection path", myuint16ptr(255), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(255)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"uint32/reflection path", myuint32ptr(511), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(511)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"uint64/reflection path", myuint64ptr(1023), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(1023)}, bsonrwtest.ReadInt32,
+					nil,
+				},
+				{
+					"uint/reflection path", myuintptr(2047), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(2047)}, bsonrwtest.ReadInt32,
 					nil,
 				},
@@ -578,6 +681,16 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
+					"float32/fast path ptr (equal)", float32ptr(3.0), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.0)}, bsonrwtest.ReadDouble,
+					nil,
+				},
+				{
+					"float64/fast path ptr", float64ptr(3.14159), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)}, bsonrwtest.ReadDouble,
+					nil,
+				},
+				{
 					"float64/fast path", float64(3.14159), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)}, bsonrwtest.ReadDouble,
 					nil,
@@ -608,7 +721,17 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
+					"float32/reflection path (equal)", myfloat32ptr(3.0), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.0)}, bsonrwtest.ReadDouble,
+					nil,
+				},
+				{
 					"float64/reflection path", myfloat64(3.14159), nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)}, bsonrwtest.ReadDouble,
+					nil,
+				},
+				{
+					"float64/reflection path", myfloat64ptr(3.14159), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)}, bsonrwtest.ReadDouble,
 					nil,
 				},

@@ -103,7 +103,13 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i int
 		}
 
 		ectx := EncodeContext{Registry: r.Registry, MinSize: desc.minSize}
-		err = encoder.EncodeValue(ectx, vw2, rv.Interface())
+
+		// HACK: pass *Document as is
+		if rv.Kind() == reflect.Ptr && rv.Type().Elem().Name() != "Document" {
+			err = encoder.EncodeValue(ectx, vw2, rv.Elem().Interface())
+		} else {
+			err = encoder.EncodeValue(ectx, vw2, rv.Interface())
+		}
 		if err != nil {
 			return err
 		}
