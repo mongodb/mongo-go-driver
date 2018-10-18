@@ -101,9 +101,24 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i int
 		if err != nil {
 			return err
 		}
+		// a BSON null should be inserted when a nil ppinter is encountered.
+		if rv.Kind() == reflect.Ptr && rv.IsNil() {
+			err = vw2.WriteNull()
+			if err != nil {
+				return err
+			}
+			continue
+		}
 
 		ectx := EncodeContext{Registry: r.Registry, MinSize: desc.minSize}
-		err = encoder.EncodeValue(ectx, vw2, rv.Interface())
+
+		// FIXME: find a better way to check if rv is pointer to document
+		// DocumentEncodeValue only process *bson.Document, **bson.Document
+		if rv.Kind() == reflect.Ptr && rv.Type().Elem().Name() != "Document" {
+			err = encoder.EncodeValue(ectx, vw2, rv.Elem().Interface())
+		} else {
+			err = encoder.EncodeValue(ectx, vw2, rv.Interface())
+		}
 		if err != nil {
 			return err
 		}
