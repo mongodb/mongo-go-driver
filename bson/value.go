@@ -60,9 +60,15 @@ func (v *Value) Interface() interface{} {
 	case TypeString:
 		return v.StringValue()
 	case TypeEmbeddedDocument:
-		return v.ReaderDocument().String()
+		if v.d == nil {
+			return v.ReaderDocument()
+		}
+		return v.d
 	case TypeArray:
-		return v.MutableArray().String()
+		if v.d == nil {
+			return v.ReaderArray()
+		}
+		return v.MutableArray()
 	case TypeBinary:
 		_, data := v.Binary()
 		return data
