@@ -74,6 +74,11 @@ func newCollection(db *Database, name string, opts ...collectionopt.Option) *Col
 		description.LatencySelector(db.client.localThreshold),
 	})
 
+	writeSelector := description.CompositeSelector([]description.ServerSelector{
+		description.WriteSelector(),
+		description.LatencySelector(db.client.localThreshold),
+	})
+
 	coll := &Collection{
 		client:         db.client,
 		db:             db,
@@ -82,7 +87,7 @@ func newCollection(db *Database, name string, opts ...collectionopt.Option) *Col
 		readConcern:    rc,
 		writeConcern:   wc,
 		readSelector:   readSelector,
-		writeSelector:  db.writeSelector,
+		writeSelector:  writeSelector,
 		registry:       db.registry,
 	}
 
