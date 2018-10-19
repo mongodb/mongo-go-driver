@@ -70,7 +70,10 @@ func newDatabase(client *Client, name string, opts ...dbopt.Option) *Database {
 		description.LatencySelector(db.client.localThreshold),
 	})
 
-	db.writeSelector = description.WriteSelector()
+	db.writeSelector = description.CompositeSelector([]description.ServerSelector{
+		description.WriteSelector(),
+		description.LatencySelector(db.client.localThreshold),
+	})
 
 	return db
 }
