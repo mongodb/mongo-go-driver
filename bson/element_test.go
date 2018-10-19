@@ -2607,7 +2607,7 @@ func testValidateValue(t *testing.T) {
 						EC.SubDocumentFromElements("barer", EC.Int32("ok", 1)),
 					),
 				),
-				`bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Reader{bson.Element{[embedded document]"barer": bson.Reader{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
+				`bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Document{bson.Element{[embedded document]"barer": bson.Document{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
 			},
 			{
 				"nested reader",
