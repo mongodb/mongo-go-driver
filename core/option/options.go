@@ -236,7 +236,6 @@ var (
 	_ FindOptioner              = (*OptReturnKey)(nil)
 	_ FindOptioner              = (*OptShowRecordID)(nil)
 	_ FindOptioner              = (*OptSkip)(nil)
-	_ FindOptioner              = (*OptSnapshot)(nil)
 	_ FindOptioner              = (*OptSort)(nil)
 	_ FindOneOptioner           = (*OptAllowPartialResults)(nil)
 	_ FindOneOptioner           = (*OptBatchSize)(nil)
@@ -254,7 +253,6 @@ var (
 	_ FindOneOptioner           = (*OptReturnKey)(nil)
 	_ FindOneOptioner           = (*OptShowRecordID)(nil)
 	_ FindOneOptioner           = (*OptSkip)(nil)
-	_ FindOneOptioner           = (*OptSnapshot)(nil)
 	_ FindOneOptioner           = (*OptSort)(nil)
 	_ InsertManyOptioner        = (*OptBypassDocumentValidation)(nil)
 	_ InsertManyOptioner        = (*OptOrdered)(nil)
@@ -860,23 +858,6 @@ func (OptSkip) findOneOption() {}
 // String implements the Stringer interface.
 func (opt OptSkip) String() string {
 	return "OptSkip: " + strconv.FormatInt(int64(opt), 10)
-}
-
-// OptSnapshot is for internal use.
-type OptSnapshot bool
-
-// Option implements the Optioner interface.
-func (opt OptSnapshot) Option(d *bson.Document) error {
-	d.Append(bson.EC.Boolean("snapshot", bool(opt)))
-	return nil
-}
-
-func (OptSnapshot) findOption()    {}
-func (OptSnapshot) findOneOption() {}
-
-// String implements the Stringer interface.
-func (opt OptSnapshot) String() string {
-	return "OptSnapshot: " + strconv.FormatBool(bool(opt))
 }
 
 // OptSort is for internal use.

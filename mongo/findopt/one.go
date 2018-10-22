@@ -231,17 +231,6 @@ func (ob *OneBundle) Skip(i int64) *OneBundle {
 	return bundle
 }
 
-// Snapshot adds an option to prevent the server from returning multiple copies because of an intervening
-// write operation
-func (ob *OneBundle) Snapshot(b bool) *OneBundle {
-	bundle := &OneBundle{
-		option: Snapshot(b),
-		next:   ob,
-	}
-
-	return bundle
-}
-
 // Sort adds an option to specify the order in which to return results.
 func (ob *OneBundle) Sort(sort interface{}) *OneBundle {
 	bundle := &OneBundle{
