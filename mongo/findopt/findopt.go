@@ -40,7 +40,6 @@ var (
 	_ Find       = (*OptReturnKey)(nil)
 	_ Find       = (*OptShowRecordID)(nil)
 	_ Find       = (*OptSkip)(nil)
-	_ Find       = (*OptSnapshot)(nil)
 	_ Find       = (*OptSort)(nil)
 	_ One        = (*OneBundle)(nil)
 	_ One        = (*OptAllowPartialResults)(nil)
@@ -60,7 +59,6 @@ var (
 	_ One        = (*OptReturnKey)(nil)
 	_ One        = (*OptShowRecordID)(nil)
 	_ One        = (*OptSkip)(nil)
-	_ One        = (*OptSnapshot)(nil)
 	_ One        = (*OptSort)(nil)
 	_ ReplaceOne = (*ReplaceOneBundle)(nil)
 	_ ReplaceOne = (*OptBypassDocumentValidation)(nil)
@@ -211,13 +209,6 @@ func ShowRecordID(b bool) OptShowRecordID {
 // Find, One
 func Skip(i int64) OptSkip {
 	return OptSkip(i)
-}
-
-// Snapshot prevents the cursor from returning a document more than once because of an
-// intervening write operation.
-// Find, One
-func Snapshot(b bool) OptSnapshot {
-	return OptSnapshot(b)
 }
 
 // Sort specifies the order in which to return results.
@@ -636,23 +627,6 @@ func (opt OptSkip) ConvertFindOption() option.FindOptioner {
 // ConvertFindOneOption implements the One interface.
 func (opt OptSkip) ConvertFindOneOption() option.FindOptioner {
 	return option.OptSkip(opt)
-}
-
-// OptSnapshot prevents the cursor from returning a document more than once because of an
-// intervening write operation.
-type OptSnapshot option.OptSnapshot
-
-func (OptSnapshot) find() {}
-func (OptSnapshot) one()  {}
-
-// ConvertFindOption implements the Find interface.
-func (opt OptSnapshot) ConvertFindOption() option.FindOptioner {
-	return option.OptSnapshot(opt)
-}
-
-// ConvertFindOneOption implements the One interface.
-func (opt OptSnapshot) ConvertFindOneOption() option.FindOptioner {
-	return option.OptSnapshot(opt)
 }
 
 // OptSort specifies the order in which to return results.

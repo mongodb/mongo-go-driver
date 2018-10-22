@@ -241,17 +241,6 @@ func (fb *FindBundle) Skip(i int64) *FindBundle {
 	return bundle
 }
 
-// Snapshot adds an option to prevent the cursor from returning a document more than once because of an
-// intervening write operation.
-func (fb *FindBundle) Snapshot(b bool) *FindBundle {
-	bundle := &FindBundle{
-		option: Snapshot(b),
-		next:   fb,
-	}
-
-	return bundle
-}
-
 // Sort adds an option to specify the order in which to return results.
 func (fb *FindBundle) Sort(sort interface{}) *FindBundle {
 	bundle := &FindBundle{

@@ -181,7 +181,6 @@ func TestFindOpt(t *testing.T) {
 			ReturnKey(true),
 			ShowRecordID(false),
 			Skip(50),
-			Snapshot(false),
 			Sort("sort for find"),
 		}
 		params := make([]Find, len(opts))
@@ -206,14 +205,14 @@ func TestFindOpt(t *testing.T) {
 
 	t.Run("Nil Option Bundle", func(t *testing.T) {
 		sess := FindSessionOpt{}
-		opts, _, err := BundleFind(Snapshot(true), BundleFind(nil), sess, nil).unbundle()
+		opts, _, err := BundleFind(OptAllowPartialResults(true), BundleFind(nil), sess, nil).unbundle()
 		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
 
 		if len(opts) != 1 {
 			t.Errorf("expected bundle length 1. got: %d", len(opts))
 		}
 
-		opts, _, err = BundleFind(nil, sess, BundleFind(nil), Snapshot(true)).unbundle()
+		opts, _, err = BundleFind(nil, sess, BundleFind(nil), OptAllowPartialResults(true)).unbundle()
 		testhelpers.RequireNil(t, err, "got non-nil error from unbundle: %s", err)
 
 		if len(opts) != 1 {
