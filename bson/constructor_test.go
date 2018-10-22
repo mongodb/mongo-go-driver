@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
@@ -729,6 +730,29 @@ func TestConstructor(t *testing.T) {
 			actual := VC.DateTime(17)
 
 			requireValuesEqual(t, expected, actual)
+		})
+
+		t.Run("time", func(t *testing.T) {
+			buf := []byte{
+				// type
+				0x9,
+				// key
+				0x0,
+				// value
+				0xC9, 0x6C, 0x3C, 0xAF, 0x60, 0x1, 0x0, 0x0,
+			}
+
+			expected := &Value{start: 0, offset: 2, data: buf, d: nil}
+
+			date := time.Date(2018, 1, 1, 1, 1, 1, int(1*time.Millisecond), time.UTC)
+			actualTime := VC.Time(date)
+			actualDateTime := VC.DateTime(date.UnixNano() / 1e6)
+
+			fmt.Printf("%v\n", expected.data)
+			fmt.Printf("%v\n", actualDateTime.data)
+			fmt.Printf("%v\n", bytes.Equal(expected.data, actualDateTime.data))
+			requireValuesEqual(t, expected, actualTime)
+			requireValuesEqual(t, expected, actualDateTime)
 		})
 
 		t.Run("Null", func(t *testing.T) {
