@@ -227,7 +227,6 @@ var (
 	_ FindOptioner              = (*OptHint)(nil)
 	_ FindOptioner              = (*OptLimit)(nil)
 	_ FindOptioner              = (*OptMaxAwaitTime)(nil)
-	_ FindOptioner              = (*OptMaxScan)(nil)
 	_ FindOptioner              = (*OptMaxTime)(nil)
 	_ FindOptioner              = (*OptMin)(nil)
 	_ FindOptioner              = (*OptNoCursorTimeout)(nil)
@@ -245,7 +244,6 @@ var (
 	_ FindOneOptioner           = (*OptComment)(nil)
 	_ FindOneOptioner           = (*OptHint)(nil)
 	_ FindOneOptioner           = (*OptMaxAwaitTime)(nil)
-	_ FindOneOptioner           = (*OptMaxScan)(nil)
 	_ FindOneOptioner           = (*OptMaxTime)(nil)
 	_ FindOneOptioner           = (*OptMin)(nil)
 	_ FindOneOptioner           = (*OptNoCursorTimeout)(nil)
@@ -597,23 +595,6 @@ func (OptMaxAwaitTime) findOneOption()      {}
 // String implements the Stringer interface.
 func (opt OptMaxAwaitTime) String() string {
 	return "OptMaxAwaitTime: " + strconv.FormatInt(int64(opt), 10)
-}
-
-// OptMaxScan is for internal use.
-type OptMaxScan int64
-
-// Option implements the Optioner interface.
-func (opt OptMaxScan) Option(d *bson.Document) error {
-	d.Append(bson.EC.Int64("maxScan", int64(opt)))
-	return nil
-}
-
-func (OptMaxScan) findOption()    {}
-func (OptMaxScan) findOneOption() {}
-
-// String implements the Stringer interface.
-func (opt OptMaxScan) String() string {
-	return "OptMaxScan: " + strconv.FormatInt(int64(opt), 10)
 }
 
 // OptMaxTime is for internal use.

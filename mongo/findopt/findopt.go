@@ -31,7 +31,6 @@ var (
 	_ Find       = (*OptLimit)(nil)
 	_ Find       = (*OptMax)(nil)
 	_ Find       = (*OptMaxAwaitTime)(nil)
-	_ Find       = (*OptMaxScan)(nil)
 	_ Find       = (*OptMaxTime)(nil)
 	_ Find       = (*OptMin)(nil)
 	_ Find       = (*OptNoCursorTimeout)(nil)
@@ -51,7 +50,6 @@ var (
 	_ One        = (*OptHint)(nil)
 	_ One        = (*OptMax)(nil)
 	_ One        = (*OptMaxAwaitTime)(nil)
-	_ One        = (*OptMaxScan)(nil)
 	_ One        = (*OptMaxTime)(nil)
 	_ One        = (*OptMin)(nil)
 	_ One        = (*OptNoCursorTimeout)(nil)
@@ -149,12 +147,6 @@ func Max(max interface{}) OptMax {
 // Find, One
 func MaxAwaitTime(d time.Duration) OptMaxAwaitTime {
 	return OptMaxAwaitTime(d)
-}
-
-// MaxScan specifies the maximum number of documents or index keys to scan.
-// Find, One
-func MaxScan(i int64) OptMaxScan {
-	return OptMaxScan(i)
 }
 
 // MaxTime specifies the max time to allow the query to run.
@@ -434,22 +426,6 @@ func (opt OptMaxAwaitTime) ConvertFindOption() option.FindOptioner {
 // ConvertFindOneOption implements the One interface.
 func (opt OptMaxAwaitTime) ConvertFindOneOption() option.FindOptioner {
 	return option.OptMaxAwaitTime(opt)
-}
-
-// OptMaxScan specifies the maximum number of documents or index keys to scan.
-type OptMaxScan option.OptMaxScan
-
-func (OptMaxScan) find() {}
-func (OptMaxScan) one()  {}
-
-// ConvertFindOption implements the Find interface.
-func (opt OptMaxScan) ConvertFindOption() option.FindOptioner {
-	return option.OptMaxScan(opt)
-}
-
-// ConvertFindOneOption implements the One interface.
-func (opt OptMaxScan) ConvertFindOneOption() option.FindOptioner {
-	return option.OptMaxScan(opt)
 }
 
 // OptMaxTime specifies the max time to allow the query to run.
