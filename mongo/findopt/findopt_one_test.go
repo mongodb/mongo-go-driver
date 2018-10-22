@@ -171,7 +171,6 @@ func TestFindOneOpt(t *testing.T) {
 			Hint("hint for find"),
 			Max("max for find"),
 			MaxAwaitTime(100),
-			MaxScan(1000),
 			MaxTime(5000),
 			Min("min for find"),
 			NoCursorTimeout(false),
