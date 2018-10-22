@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e6d57c65_936a897e",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-22T15:11:58Z",
+      "side": 1,
+      "message": "This also fixes GODRIVER-529, let\u0027s add that here and move them both into the body of the commit.\n\n    return underlying type for a document for value.Interface()\n\n    GODRIVER-548\n    GODRIVER-529",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 12
+      },
+      "revId": "7f63db76a05d0e01b2ad70b93364b923e626ff65",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d8c4a43f_ef1be700",
+        "filename": "bson/value.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-22T15:11:58Z",
+      "side": 1,
+      "message": "This should be v.ReaderArray.",
+      "range": {
+        "startLine": 69,
+        "startChar": 10,
+        "endLine": 69,
+        "endChar": 26
+      },
+      "revId": "7f63db76a05d0e01b2ad70b93364b923e626ff65",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8e6968fe_17f7201f",
+        "filename": "bson/value.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-22T15:11:58Z",
+      "side": 1,
+      "message": "We should call MutableArray here so we return an *Array and not a *Document.",
+      "range": {
+        "startLine": 71,
+        "startChar": 9,
+        "endLine": 71,
+        "endChar": 12
+      },
+      "revId": "7f63db76a05d0e01b2ad70b93364b923e626ff65",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
