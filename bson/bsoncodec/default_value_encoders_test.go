@@ -45,6 +45,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 	*pjsnum = json.Number("3.14159")
 	d128 := decimal.NewDecimal128(12345, 67890)
 
+	var ptimeNil *(time.Time)
+	var pobjectidNil *(objectid.ObjectID)
+	var pd128Nil *(decimal.Decimal128)
+	var pjsnumNil *(json.Number)
+	var purlNil *(url.URL)
+	var pbytesliceNil *[]byte
+
 	type subtest struct {
 		name   string
 		val    interface{}
@@ -183,6 +190,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"time.Time", now, nil, nil, bsonrwtest.WriteDateTime, nil},
 				{"*time.Time", &now, nil, nil, bsonrwtest.WriteDateTime, nil},
+				{"*time.Time/nil", ptimeNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -311,6 +319,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					nil, nil, bsonrwtest.WriteObjectID, nil,
 				},
+				{"*objectid.ObjectID/nil/success", pobjectidNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -331,6 +340,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"Decimal128/success", d128, nil, nil, bsonrwtest.WriteDecimal128, nil},
 				{"*Decimal128/success", &d128, nil, nil, bsonrwtest.WriteDecimal128, nil},
+				{"*Decimal128/nil/success", pd128Nil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -369,6 +379,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					pjsnum,
 					nil, nil, bsonrwtest.WriteDouble, nil,
 				},
+				{"*json.Number/nil/success", pjsnumNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -389,6 +400,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"url.URL", url.URL{Scheme: "http", Host: "example.com"}, nil, nil, bsonrwtest.WriteString, nil},
 				{"*url.URL", &url.URL{Scheme: "http", Host: "example.com"}, nil, nil, bsonrwtest.WriteString, nil},
+				{"*url.URL/nil", purlNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -409,6 +421,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"[]byte", []byte{0x01, 0x02, 0x03}, nil, nil, bsonrwtest.WriteBinary, nil},
 				{"*[]byte", &([]byte{0x01, 0x02, 0x03}), nil, nil, bsonrwtest.WriteBinary, nil},
+				{"*[]byte/nil", pbytesliceNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{

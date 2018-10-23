@@ -75,6 +75,21 @@ func TestDefaultValueEncoders(t *testing.T) {
 	pdatetime := new(DateTime)
 	*pdatetime = DateTime(1234567890)
 
+	var pjsNil *JavaScriptCode
+	var psymbolNil *Symbol
+	var pbinarynil *Binary
+	var pundefnil *Undefinedv2
+	var pdatetimeNil *DateTime
+	var pregexNil *Regex
+	var pdbpointerNil *DBPointer
+	var pcwsNil *CodeWithScope
+	var ptimestampNil *Timestamp
+	var pminkeyNil *MinKeyv2
+	var pmaxkeyNil *MaxKeyv2
+	var pvalueNil *Value
+	var psliceNil *[]*Element
+	var parrayNil *Array
+
 	type subtest struct {
 		name   string
 		val    interface{}
@@ -107,6 +122,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"JavaScript", JavaScriptCode("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
 				{"*JavaScript", pjs, nil, nil, bsonrwtest.WriteJavascript, nil},
+				{"*JavaScript/nil", pjsNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -127,6 +143,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"Symbol", Symbol("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
 				{"*Symbol", psymbol, nil, nil, bsonrwtest.WriteJavascript, nil},
+				{"*Symbol/nil", psymbolNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -147,6 +164,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"Binary/success", Binary{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
 				{"*Binary/success", &Binary{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
+				{"*Binary/nil/success", pbinarynil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -167,6 +185,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"Undefined/success", Undefinedv2{}, nil, nil, bsonrwtest.WriteUndefined, nil},
 				{"*Undefined/success", &Undefinedv2{}, nil, nil, bsonrwtest.WriteUndefined, nil},
+				{"*Undefined/success", pundefnil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -187,6 +206,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"DateTime/success", DateTime(1234567890), nil, nil, bsonrwtest.WriteDateTime, nil},
 				{"*DateTime/success", pdatetime, nil, nil, bsonrwtest.WriteDateTime, nil},
+				{"*DateTime/nil/success", pdatetimeNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -227,6 +247,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"Regex/success", Regex{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
 				{"*Regex/success", &Regex{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
+				{"*Regex/nil/success", pregexNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -261,6 +282,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					},
 					nil, nil, bsonrwtest.WriteDBPointer, nil,
 				},
+				{"*DBPointer/nil/success", pdbpointerNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -303,6 +325,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					},
 					nil, nil, bsonrwtest.WriteDocumentEnd, nil,
 				},
+				{"*CodeWithScope/nil/success", pcwsNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -323,6 +346,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"Timestamp/success", Timestamp{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
 				{"*Timestamp/success", &Timestamp{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
+				{"*Timestamp/nil/success", ptimestampNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -343,6 +367,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"MinKey/success", MinKeyv2{}, nil, nil, bsonrwtest.WriteMinKey, nil},
 				{"*MinKey/success", &MinKeyv2{}, nil, nil, bsonrwtest.WriteMinKey, nil},
+				{"*MinKey/nil/success", pminkeyNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -363,6 +388,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{"MaxKey/success", MaxKeyv2{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
 				{"*MaxKey/success", &MaxKeyv2{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
+				{"*MaxKey/nil/success", pmaxkeyNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -420,6 +446,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.WriteNull,
 					nil,
 				},
+				{"*Value/nil/success", pvalueNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -1879,6 +1906,20 @@ func TestDefaultValueDecoders(t *testing.T) {
 					bsonrwtest.ReadElement,
 					errors.New("re error"),
 				},
+			},
+		},
+		{
+			"ElementSliceEncodeValue",
+			bsoncodec.ValueEncoderFunc(pc.ElementSliceEncodeValue),
+			[]subtest{
+				{"*[]*Element/nil/success", psliceNil, nil, nil, bsonrwtest.WriteNull, nil},
+			},
+		},
+		{
+			"ArrayEncodeValue",
+			bsoncodec.ValueEncoderFunc(pc.ArrayEncodeValue),
+			[]subtest{
+				{"*Array/nil/success", parrayNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 	}
