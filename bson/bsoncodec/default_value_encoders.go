@@ -207,6 +207,9 @@ func (dve DefaultValueEncoders) ObjectIDEncodeValue(ec EncodeContext, vw bsonrw.
 	case objectid.ObjectID:
 		oid = t
 	case *objectid.ObjectID:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		oid = *t
 	default:
 		return ValueEncoderError{
@@ -226,6 +229,9 @@ func (dve DefaultValueEncoders) Decimal128EncodeValue(ec EncodeContext, vw bsonr
 	case decimal.Decimal128:
 		d128 = t
 	case *decimal.Decimal128:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		d128 = *t
 	default:
 		return ValueEncoderError{
@@ -245,6 +251,9 @@ func (dve DefaultValueEncoders) JSONNumberEncodeValue(ec EncodeContext, vw bsonr
 	case json.Number:
 		jsnum = t
 	case *json.Number:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		jsnum = *t
 	default:
 		return ValueEncoderError{
@@ -274,6 +283,9 @@ func (dve DefaultValueEncoders) URLEncodeValue(ec EncodeContext, vw bsonrw.Value
 	case url.URL:
 		u = &t
 	case *url.URL:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		u = t
 	default:
 		return ValueEncoderError{
@@ -293,6 +305,9 @@ func (dve DefaultValueEncoders) TimeEncodeValue(ec EncodeContext, vw bsonrw.Valu
 	case time.Time:
 		tt = t
 	case *time.Time:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		tt = *t
 	default:
 		return ValueEncoderError{
@@ -312,6 +327,9 @@ func (dve DefaultValueEncoders) ByteSliceEncodeValue(ec EncodeContext, vw bsonrw
 	case []byte:
 		slcb = t
 	case *[]byte:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		slcb = *t
 	default:
 		return ValueEncoderError{
