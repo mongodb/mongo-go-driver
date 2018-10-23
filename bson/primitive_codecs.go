@@ -66,6 +66,9 @@ func (PrimitiveCodecs) JavaScriptEncodeValue(ectx bsoncodec.EncodeContext, vw bs
 	case JavaScriptCode:
 		js = t
 	case *JavaScriptCode:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		js = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -85,6 +88,9 @@ func (PrimitiveCodecs) SymbolEncodeValue(ectx bsoncodec.EncodeContext, vw bsonrw
 	case Symbol:
 		symbol = t
 	case *Symbol:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		symbol = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -166,6 +172,9 @@ func (PrimitiveCodecs) BinaryEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.V
 	case Binary:
 		b = t
 	case *Binary:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		b = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -210,7 +219,11 @@ func (PrimitiveCodecs) BinaryDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.V
 // UndefinedEncodeValue is the ValueEncoderFunc for Undefined.
 func (PrimitiveCodecs) UndefinedEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	switch i.(type) {
-	case Undefinedv2, *Undefinedv2:
+	case Undefinedv2:
+	case *Undefinedv2:
+		if i.(*Undefinedv2) == nil {
+			return vw.WriteNull()
+		}
 	default:
 		return bsoncodec.ValueEncoderError{
 			Name:     "UndefinedEncodeValue",
@@ -244,6 +257,9 @@ func (PrimitiveCodecs) DateTimeEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 	case DateTime:
 		dt = t
 	case *DateTime:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		dt = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -313,6 +329,9 @@ func (PrimitiveCodecs) RegexEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.Va
 	case Regex:
 		regex = t
 	case *Regex:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		regex = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -352,6 +371,9 @@ func (PrimitiveCodecs) DBPointerEncodeValue(ec bsoncodec.EncodeContext, vw bsonr
 	case DBPointer:
 		dbp = t
 	case *DBPointer:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		dbp = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -391,6 +413,10 @@ func (pc PrimitiveCodecs) DocumentEncodeValue(ec bsoncodec.EncodeContext, vw bso
 		return bsoncodec.ValueEncoderError{Name: "DocumentEncodeValue", Types: []interface{}{(*Document)(nil), (**Document)(nil)}, Received: i}
 	}
 
+	if doc == nil {
+		return vw.WriteNull()
+	}
+
 	dw, err := vw.WriteDocument()
 	if err != nil {
 		return err
@@ -406,6 +432,9 @@ func (pc PrimitiveCodecs) CodeWithScopeEncodeValue(ec bsoncodec.EncodeContext, v
 	case CodeWithScope:
 		cws = t
 	case *CodeWithScope:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		cws = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -460,6 +489,9 @@ func (PrimitiveCodecs) TimestampEncodeValue(ec bsoncodec.EncodeContext, vw bsonr
 	case Timestamp:
 		ts = t
 	case *Timestamp:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		ts = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -495,7 +527,11 @@ func (PrimitiveCodecs) TimestampDecodeValue(dc bsoncodec.DecodeContext, vr bsonr
 // MinKeyEncodeValue is the ValueEncoderFunc for MinKey.
 func (PrimitiveCodecs) MinKeyEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	switch i.(type) {
-	case MinKeyv2, *MinKeyv2:
+	case MinKeyv2:
+	case *MinKeyv2:
+		if i.(*MinKeyv2) == nil {
+			return vw.WriteNull()
+		}
 	default:
 		return bsoncodec.ValueEncoderError{
 			Name:     "MinKeyEncodeValue",
@@ -525,7 +561,11 @@ func (PrimitiveCodecs) MinKeyDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.V
 // MaxKeyEncodeValue is the ValueEncoderFunc for MaxKey.
 func (PrimitiveCodecs) MaxKeyEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	switch i.(type) {
-	case MaxKeyv2, *MaxKeyv2:
+	case MaxKeyv2:
+	case *MaxKeyv2:
+		if i.(*MaxKeyv2) == nil {
+			return vw.WriteNull()
+		}
 	default:
 		return bsoncodec.ValueEncoderError{
 			Name:     "MaxKeyEncodeValue",
@@ -561,6 +601,9 @@ func (pc PrimitiveCodecs) ValueEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 			Types:    []interface{}{(*Value)(nil)},
 			Received: i,
 		}
+	}
+	if val == nil {
+		return vw.WriteNull()
 	}
 
 	if err := val.Validate(); err != nil {
@@ -627,6 +670,9 @@ func (pc PrimitiveCodecs) ElementSliceEncodeValue(ec bsoncodec.EncodeContext, vw
 	case []*Element:
 		slce = t
 	case *[]*Element:
+		if t == nil {
+			return vw.WriteNull()
+		}
 		slce = *t
 	default:
 		return bsoncodec.ValueEncoderError{
@@ -697,6 +743,9 @@ func (pc PrimitiveCodecs) ArrayEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 	arr, ok := i.(*Array)
 	if !ok {
 		return bsoncodec.ValueEncoderError{Name: "ArrayEncodeValue", Types: []interface{}{(*Array)(nil)}, Received: i}
+	}
+	if arr == nil {
+		return vw.WriteNull()
 	}
 
 	aw, err := vw.WriteArray()
