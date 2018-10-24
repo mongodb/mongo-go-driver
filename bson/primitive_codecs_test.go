@@ -1107,6 +1107,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 	var psymbol = new(Symbol)
 	*psymbol = Symbol("foobarbaz")
 
+	var pjsnil *JavaScriptCode
+	var psymbolnil *Symbol
+	var pbinarynil *Binary
+	var pdtnil *DateTime
+
 	var wrong = func(string, string) string { return "wrong" }
 
 	const cansetreflectiontest = "cansetreflectiontest"
@@ -1169,6 +1174,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 					bsonrwtest.ReadJavascript,
 					nil,
 				},
+				{
+					"*JavaScriptCode/null/success",
+					&pjsnil,
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
+					bsonrwtest.ReadNull,
+					nil,
+				},
 			},
 		},
 		{
@@ -1213,6 +1226,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: "foobarbaz"},
 					bsonrwtest.ReadSymbol,
+					nil,
+				},
+				{
+					"*Symbol/null/success",
+					&psymbolnil,
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
+					bsonrwtest.ReadNull,
 					nil,
 				},
 			},
@@ -1277,6 +1298,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 						},
 					},
 					bsonrwtest.ReadBinary,
+					nil,
+				},
+				{
+					"*Binary/null/success",
+					&pbinarynil,
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
+					bsonrwtest.ReadNull,
 					nil,
 				},
 			},
@@ -1353,6 +1382,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(1234567890)},
 					bsonrwtest.ReadDateTime,
+					nil,
+				},
+				{
+					"*DateTime/null/success",
+					&pdtnil,
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
+					bsonrwtest.ReadNull,
 					nil,
 				},
 			},
@@ -1737,9 +1774,17 @@ func TestDefaultValueDecoders(t *testing.T) {
 					}
 					var unwrap bool
 					rtype := reflect.TypeOf(rc.val)
+					want := rc.val
 					if rtype.Kind() == reflect.Ptr {
+						fmt.Println("a")
+						fmt.Println(reflect.ValueOf(rc.val).Elem().Kind())
 						if reflect.ValueOf(rc.val).IsNil() {
 							got = rc.val
+						} else if reflect.ValueOf(rc.val).Elem().Kind() == reflect.Ptr &&
+							reflect.ValueOf(rc.val).Elem().IsNil() {
+							got = rc.val
+							unwrap = true
+							want = reflect.ValueOf(want).Elem().Interface()
 						} else {
 							val := reflect.New(rtype).Elem()
 							elem := reflect.New(rtype.Elem())
@@ -1751,7 +1796,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 						unwrap = true
 						got = reflect.New(reflect.TypeOf(rc.val)).Interface()
 					}
-					want := rc.val
 					err := tc.vd.DecodeValue(dc, llvrw, got)
 					if !compareErrors(err, rc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
@@ -1899,6 +1943,19 @@ func TestDefaultValueDecoders(t *testing.T) {
 				t.Errorf("\ngot :%v\nwant:%v", got, want)
 			}
 		})
+
+		t.Run("null/success", func(t *testing.T) {
+			var want *Document
+			var got *Document
+			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
+			reader := bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null}
+			err := pc.DocumentDecodeValue(dc, &reader, &got)
+			noerr(t, err)
+			if !(got).Equal(want) {
+				t.Error("Documents do not match")
+				t.Errorf("\ngot :%v\nwant:%v", got, want)
+			}
+		})
 	})
 	t.Run("ArrayDecodeValue", func(t *testing.T) {
 		t.Run("CodecDecodeError", func(t *testing.T) {
@@ -2009,6 +2066,19 @@ func TestDefaultValueDecoders(t *testing.T) {
 			err = pc.ArrayDecodeValue(dc, vr, &got)
 			noerr(t, err)
 			if !got.Equal(want) {
+				t.Error("Documents do not match")
+				t.Errorf("\ngot :%v\nwant:%v", got, want)
+			}
+		})
+
+		t.Run("null/success", func(t *testing.T) {
+			var want *Array
+			var got *Array
+			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
+			reader := bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null}
+			err := pc.ArrayDecodeValue(dc, &reader, &got)
+			noerr(t, err)
+			if !(got).Equal(want) {
 				t.Error("Documents do not match")
 				t.Errorf("\ngot :%v\nwant:%v", got, want)
 			}

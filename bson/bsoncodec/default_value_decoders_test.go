@@ -47,6 +47,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 	d128 := decimal.NewDecimal128(12345, 67890)
 	var ptrPtrValueUnmarshaler **testValueUnmarshaler
 
+	var ptimenil *time.Time
+	var purlnil *url.URL
+
 	type subtest struct {
 		name   string
 		val    interface{}
@@ -674,6 +677,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 					bsonrwtest.ReadDateTime,
 					nil,
 				},
+				{
+					"*DateTime/null/success",
+					&ptimenil,
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
+					bsonrwtest.ReadNull,
+					nil,
+				},
 			},
 		},
 		{
@@ -1009,6 +1020,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 					bsonrwtest.ReadString,
 					nil,
 				},
+				{
+					"*url.URL/null",
+					&purlnil,
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
+					bsonrwtest.ReadNull,
+					nil,
+				},
 			},
 		},
 		{
@@ -1124,9 +1143,15 @@ func TestDefaultValueDecoders(t *testing.T) {
 					}
 					var unwrap bool
 					rtype := reflect.TypeOf(rc.val)
+					want := rc.val
 					if rtype.Kind() == reflect.Ptr {
 						if reflect.ValueOf(rc.val).IsNil() {
 							got = rc.val
+						} else if reflect.ValueOf(rc.val).Elem().Kind() == reflect.Ptr &&
+							reflect.ValueOf(rc.val).Elem().IsNil() {
+							got = rc.val
+							unwrap = true
+							want = reflect.ValueOf(want).Elem().Interface()
 						} else {
 							val := reflect.New(rtype).Elem()
 							elem := reflect.New(rtype.Elem())
@@ -1138,7 +1163,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 						unwrap = true
 						got = reflect.New(reflect.TypeOf(rc.val)).Interface()
 					}
-					want := rc.val
 					err := tc.vd.DecodeValue(dc, llvrw, got)
 					if !compareErrors(err, rc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
