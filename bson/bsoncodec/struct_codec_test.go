@@ -2,9 +2,37 @@ package bsoncodec
 
 import (
 	"testing"
+	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestDecodeNullValue(t *testing.T) {
+
+	ind, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendStringElement(doc, "b", "foo")
+	doc = bsoncore.AppendNullElement(doc, "blank")
+	doc, _ = bsoncore.AppendDocumentEnd(doc, ind)
+
+	type teststruct struct {
+		Blank *time.Time
+		B     string
+	}
+	var got *teststruct
+	dc := DecodeContext{Registry: buildDefaultRegistry()}
+	parser, err := NewStructCodec(DefaultStructTagParser)
+	noerr(t, err)
+	vr := bsonrw.NewBSONValueReader(doc)
+	err = parser.DecodeValue(dc, vr, &got)
+	noerr(t, err)
+	want := teststruct{nil, "foo"}
+	if got.Blank != want.Blank || got.B != want.B {
+		t.Error("Documents do not match")
+		t.Errorf("\ngot :%v\nwant:%v", got, want.B)
+	}
+}
 
 func TestZeoerInterfaceUsedByDecoder(t *testing.T) {
 	enc := &StructCodec{}

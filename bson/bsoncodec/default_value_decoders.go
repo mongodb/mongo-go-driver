@@ -75,6 +75,7 @@ func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw
 	}
 
 	val := reflect.ValueOf(i)
+
 	if !val.IsValid() || val.Kind() != reflect.Ptr || !val.Elem().CanSet() {
 		return errors.New("BooleanDecodeValue can only be used to decode settable (non-nil) values")
 	}
@@ -501,6 +502,15 @@ func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr bsonr
 
 // URLDecodeValue is the ValueDecoderFunc for url.URL.
 func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if target, ok := i.(**url.URL); vr.Type() == bsontype.Null && ok && target != nil {
+		err := vr.ReadNull()
+		if err != nil {
+			return err
+		}
+		*target = (*url.URL)(nil)
+		return nil
+	}
+
 	if vr.Type() != bsontype.String {
 		return fmt.Errorf("cannot decode %v into a *url.URL", vr.Type())
 	}
@@ -537,6 +547,15 @@ func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.Value
 
 // TimeDecodeValue is the ValueDecoderFunc for time.Time.
 func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if target, ok := i.(**time.Time); vr.Type() == bsontype.Null && ok && target != nil {
+		err := vr.ReadNull()
+		if err != nil {
+			return err
+		}
+		*target = (*time.Time)(nil)
+		return nil
+	}
+
 	if vr.Type() != bsontype.DateTime {
 		return fmt.Errorf("cannot decode %v into a time.Time", vr.Type())
 	}

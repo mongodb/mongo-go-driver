@@ -99,6 +99,15 @@ func (PrimitiveCodecs) SymbolEncodeValue(ectx bsoncodec.EncodeContext, vw bsonrw
 
 // JavaScriptDecodeValue is the ValueDecoderFunc for the JavaScriptPrimitive type.
 func (PrimitiveCodecs) JavaScriptDecodeValue(dctx bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if target, ok := i.(**JavaScriptCode); vr.Type() == bsontype.Null && ok && target != nil {
+		err := vr.ReadNull()
+		if err != nil {
+			return err
+		}
+		*target = (*JavaScriptCode)(nil)
+		return nil
+	}
+
 	if vr.Type() != bsontype.JavaScript {
 		return fmt.Errorf("cannot decode %v into a JavaScriptPrimitive", vr.Type())
 	}
@@ -132,6 +141,15 @@ func (PrimitiveCodecs) JavaScriptDecodeValue(dctx bsoncodec.DecodeContext, vr bs
 
 // SymbolDecodeValue is the ValueDecoderFunc for the SymbolPrimitive type.
 func (PrimitiveCodecs) SymbolDecodeValue(dctx bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if target, ok := i.(**Symbol); vr.Type() == bsontype.Null && ok && target != nil {
+		err := vr.ReadNull()
+		if err != nil {
+			return err
+		}
+		*target = (*Symbol)(nil)
+		return nil
+	}
+
 	if vr.Type() != bsontype.Symbol {
 		return fmt.Errorf("cannot decode %v into a SymbolPrimitive", vr.Type())
 	}
@@ -180,6 +198,15 @@ func (PrimitiveCodecs) BinaryEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.V
 
 // BinaryDecodeValue is the ValueDecoderFunc for Binary.
 func (PrimitiveCodecs) BinaryDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if target, ok := i.(**Binary); vr.Type() == bsontype.Null && ok && target != nil {
+		err := vr.ReadNull()
+		if err != nil {
+			return err
+		}
+		*target = (*Binary)(nil)
+		return nil
+	}
+
 	if vr.Type() != bsontype.Binary {
 		return fmt.Errorf("cannot decode %v into a Binary", vr.Type())
 	}
@@ -258,6 +285,15 @@ func (PrimitiveCodecs) DateTimeEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 
 // DateTimeDecodeValue is the ValueDecoderFunc for DateTime.
 func (PrimitiveCodecs) DateTimeDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	if target, ok := i.(**DateTime); vr.Type() == bsontype.Null && ok && target != nil {
+		err := vr.ReadNull()
+		if err != nil {
+			return err
+		}
+		*target = (*DateTime)(nil)
+		return nil
+	}
+
 	if vr.Type() != bsontype.DateTime {
 		return fmt.Errorf("cannot decode %v into a DateTime", vr.Type())
 	}
@@ -684,6 +720,15 @@ func (pc PrimitiveCodecs) DocumentDecodeValue(dctx bsoncodec.DecodeContext, vr b
 		return errors.New("DocumentDecodeValue can only be used to decode non-nil **Document")
 	}
 
+	if vr.Type() == bsontype.Null {
+		err := vr.ReadNull()
+		if err != nil {
+			return err
+		}
+		*doc = (*Document)(nil)
+		return nil
+	}
+
 	dr, err := vr.ReadDocument()
 	if err != nil {
 		return err
@@ -736,6 +781,15 @@ func (pc PrimitiveCodecs) ArrayDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw
 
 	if parr == nil {
 		return errors.New("ArrayDecodeValue can only be used to decode non-nil **Array")
+	}
+
+	if vr.Type() == bsontype.Null {
+		err := vr.ReadNull()
+		if err != nil {
+			return err
+		}
+		*parr = (*Array)(nil)
+		return nil
 	}
 
 	ar, err := vr.ReadArray()
