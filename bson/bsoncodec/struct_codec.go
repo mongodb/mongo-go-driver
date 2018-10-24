@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
 var defaultStructCodec = &StructCodec{
@@ -201,16 +202,25 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, i int
 		if field.Kind() == reflect.Ptr && field.IsNil() {
 			field.Set(reflect.New(field.Type()).Elem())
 		}
-		field = field.Addr()
 
-		dctx := DecodeContext{Registry: r.Registry, Truncate: fd.truncate}
-		if fd.decoder == nil {
-			return ErrNoDecoder{Type: field.Elem().Type()}
-		}
+		if vr.Type() != bsontype.Null {
+			field = field.Addr()
 
-		err = fd.decoder.DecodeValue(dctx, vr, field.Interface())
-		if err != nil {
-			return err
+			dctx := DecodeContext{Registry: r.Registry, Truncate: fd.truncate}
+			if fd.decoder == nil {
+				return ErrNoDecoder{Type: field.Elem().Type()}
+			}
+
+			err = fd.decoder.DecodeValue(dctx, vr, field.Interface())
+			if err != nil {
+				return err
+			}
+		} else {
+			err = vr.ReadNull()		
+			if err != nil {
+			 	return err
+			}
+			field.Set(reflect.Zero(reflect.TypeOf(field.Interface())))
 		}
 	}
 
