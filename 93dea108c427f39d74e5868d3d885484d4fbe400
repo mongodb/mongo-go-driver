@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e57cb14b_4f6acfce",
+        "filename": "bson/bsoncore/document.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 323,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-25T23:14:52Z",
+      "side": 1,
+      "message": "1. Who is going to use this? I\u0027m having trouble imagining a scenario where I don\u0027t care about the keys.\n\n2. The comment isn\u0027t correct. The document could have invalid embedded documents.",
+      "revId": "93dea108c427f39d74e5868d3d885484d4fbe400",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

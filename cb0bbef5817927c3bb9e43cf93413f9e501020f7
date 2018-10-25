@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f9c01e24_7be6920b",
+        "filename": "bson/raw.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-25T23:14:52Z",
+      "side": 1,
+      "message": "All valid elements? all valid values... but values don\u0027t have element names in them, so I\u0027m confused.",
+      "revId": "cb0bbef5817927c3bb9e43cf93413f9e501020f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
