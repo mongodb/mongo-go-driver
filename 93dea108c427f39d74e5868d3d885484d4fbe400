@@ -16,6 +16,24 @@
       "revId": "93dea108c427f39d74e5868d3d885484d4fbe400",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c5e75a18_cf10453a",
+        "filename": "bson/bsoncore/document.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 323,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T15:02:20Z",
+      "side": 1,
+      "message": "There is no Array type, so this is useful when you have a BSON array and just want the values. Fixed the comments.",
+      "parentUuid": "e57cb14b_4f6acfce",
+      "revId": "93dea108c427f39d74e5868d3d885484d4fbe400",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
