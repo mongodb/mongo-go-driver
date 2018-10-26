@@ -16,6 +16,24 @@
       "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e5eeee8f_83e40eec",
+        "filename": "options/runcmdoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-26T18:49:57Z",
+      "side": 1,
+      "message": "I\u0027m ok with calling it Merge but I\u0027m not sure what the expectations of putting the Merge function on the actual struct would be. Also, the merging logic might be a little more complicated if the function was on the struct. Right now, ToRunCmdOptions just creates an empty RunCmdOptions struct and iterates over the given *RunCmdOptions. If it was on the struct, the creating an empty options part would have to be changed to make a clone of the receiver instead.",
+      "parentUuid": "eb66e9b1_1156fa55",
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
