@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eb66e9b1_1156fa55",
+        "filename": "options/runcmdoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T17:12:25Z",
+      "side": 1,
+      "message": "What do you think of using `Merge` instead of `To`. We already have RunCmdOptions, so we are really just merging them.\n\nAlso, as a second thought, what about putting the Merge function on RunCmdOptions itself? Then we can just do rcopts.Merge(other1, other2). Behavior would be exactly the same, but this way, you don\u0027t clutter the package with a whole bunch of ToXXXOptions.\n\nSomething to consider is what the go community would expect Merge function to do. Should it alter the original or is leaving the original alone and returning a new one ok? If the former, this isn\u0027t an option because we don\u0027t want to overwrite the receiver.",
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
