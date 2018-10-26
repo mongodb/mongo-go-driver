@@ -1,0 +1,412 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1f10425a_d2167cbd",
+        "filename": "benchmark/bson.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "name still has Reader in it.",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "12243156_1a961d8f",
+        "filename": "benchmark/bson_reader.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Should this file be retitled since we don\u0027t have a bson_reader anymore?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6220a880_06a4eb51",
+        "filename": "benchmark/harness.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Why are we commenting out benchmarks?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ae0cf27d_15b7aeb9",
+        "filename": "bson/array.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "name still has Reader in it.",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "490458e7_17dedb5e",
+        "filename": "bson/array.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "how do you know they\u0027ll only contain valid elements?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bb556bd9_a40787f0",
+        "filename": "bson/bsoncore/array.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Is this file important?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "493545a8_5a5a43b0",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "It would probably be helpful in all of these \"ReadXXX\" methods to indicate where the src bytes are supposed to be positioned... For instance, this documentation seems to indicate that it will read the first key. Am I supposed to be positioned on a key, or can I be positioned on an element and it\u0027ll skip the type part?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "abbf89b4_ff1f133f",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "header of what? I\u0027m inferring that this is the header of an element, the type and key. Can we call the function something more to that effect? ReadElementTypeAndKeyBytes, ReadElementHeaderBytes, etc...",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7709cc3d_4c79b52f",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Is it more likely to have elements as a []byte or an []Element?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0365da2c_c5871e9b",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "should this return (doc Document, rem[] byte, ok bool)?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c246088c_0ae3eeea",
+        "filename": "bson/bsoncore/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 330,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "It might be useful to indicate that this is used when the Document is actually an array. \n\nAny reason not to have an Array type so that this doesn\u0027t need to be confusing?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e6acec34_b6ec9f99",
+        "filename": "bson/bsoncore/element.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "We return a string from the Key() method, but then we compare here with a []byte... seems inconsistent.",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "efbd9c69_a2951614",
+        "filename": "bson/bsoncore/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "What\u0027s the reason for this method? We don\u0027t have multiply/divide... We also don\u0027t have compare... Not sure if we should have this in here at all, but just one operation feels really incomplete.",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b6031638_5bec35f3",
+        "filename": "bson/bsoncore/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 348,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Yeah, this feels weird. I understand that an Array is a document underneath, but users don\u0027t need to nor should we require them to understand that. It might be that Array looks exactly like a Document with a different Lookup method (taking an index instead of a key), but they should probably be a distinct type.",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dfd5f253_ef356d10",
+        "filename": "bson/bsonrw/value_reader.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Is this method only called from NewBSONDocumentReader? if so, can we get rid of this method? It appears to do exactly what NewBSONDocumentReader is doing.",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "83cc322c_0cdb0fca",
+        "filename": "bson/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 513,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Reader is still in the name.",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b29180d9_4c1749af",
+        "filename": "bson/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 519,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Is this comment true?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c2e725e_70092a3d",
+        "filename": "bson/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 682,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Is this comment true?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ab0b7ea_e3c88a0f",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 646,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Reader -\u003e Raw",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1035a71d_6be47d6b",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 660,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Reader in the name still... should be Raw",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "840ecfe0_33b4e2bf",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 987,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Question: how much overhead does this cause to eagerly create this error when in a vast majority of cases, it will never get used... It feels like there is some allocation going on, bother for the assignment to the error interface as well as the slice of Types... \n\nThis probably applies to all of these methods. Could probably just create a fail() function at the top of the methods that returns this thing, but doesn\u0027t actually create it unless necessary.\n\n```\nfail :\u003d func() error {\n    return bsoncodec.ValueDecoderError{Name: \"DDecodeValue\", Types: []interface{}{(*D)(nil), (**D)(nil)}, Received: i}\n}\n```",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0b97f616_296ebfcc",
+        "filename": "bson/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 428,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Read -\u003e Raw",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "58c6e330_da9830d0",
+        "filename": "bson/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 455,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Reader -\u003e Raw",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dc51132b_ca9013ab",
+        "filename": "bson/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 756,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-26T16:58:51Z",
+      "side": 1,
+      "message": "Reader -\u003e Raw",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
