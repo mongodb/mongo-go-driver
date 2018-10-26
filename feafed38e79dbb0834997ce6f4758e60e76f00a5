@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "bbf99f41_61fd75d1",
+        "filename": "benchmark/bson.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1f10425a_d2167cbd",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "12243156_1a961d8f",
         "filename": "benchmark/bson_reader.go",
         "patchSetId": 7
@@ -36,6 +54,24 @@
     },
     {
       "key": {
+        "uuid": "54f46acb_d5cbeb64",
+        "filename": "benchmark/bson_reader.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "I\u0027ll remove it.",
+      "parentUuid": "12243156_1a961d8f",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6220a880_06a4eb51",
         "filename": "benchmark/harness.go",
         "patchSetId": 7
@@ -47,6 +83,24 @@
       "writtenOn": "2018-10-26T16:58:51Z",
       "side": 1,
       "message": "Why are we commenting out benchmarks?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2315acaf_ae707d24",
+        "filename": "benchmark/harness.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "We can\u0027t really run them like we used to so I commented these ones out. I\u0027m not sure why we were running tests on this in the first place. I\u0027ll remove them.",
+      "parentUuid": "6220a880_06a4eb51",
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -70,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "c71d5c66_88610453",
+        "filename": "bson/array.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ae0cf27d_15b7aeb9",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "490458e7_17dedb5e",
         "filename": "bson/array.go",
         "patchSetId": 7
@@ -84,6 +156,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "05d95888_9f77fd38",
+        "filename": "bson/array.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "r.Elements will ensure this.",
+      "parentUuid": "490458e7_17dedb5e",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -104,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "87bf19b5_a9e960fc",
+        "filename": "bson/bsoncore/array.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bb556bd9_a40787f0",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "493545a8_5a5a43b0",
         "filename": "bson/bsoncore/bsoncore.go",
         "patchSetId": 7
@@ -121,6 +229,24 @@
     },
     {
       "key": {
+        "uuid": "96746d5a_83b80cb3",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "You need to be positioned on a key, but I\u0027ll remove the word first here.",
+      "parentUuid": "493545a8_5a5a43b0",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "abbf89b4_ff1f133f",
         "filename": "bson/bsoncore/bsoncore.go",
         "patchSetId": 7
@@ -132,6 +258,24 @@
       "writtenOn": "2018-10-26T16:58:51Z",
       "side": 1,
       "message": "header of what? I\u0027m inferring that this is the header of an element, the type and key. Can we call the function something more to that effect? ReadElementTypeAndKeyBytes, ReadElementHeaderBytes, etc...",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "37fe7d42_23aee7fc",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "I would rather keep it short and since it says what it does in the doc comment I don\u0027t think people will be too confused. I\u0027ll update the doc comment to indicate it\u0027s the header for an element.",
+      "parentUuid": "abbf89b4_ff1f133f",
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -155,6 +299,24 @@
     },
     {
       "key": {
+        "uuid": "10c978ec_6ebd26eb",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "A []byte since all of the Append* functions return a []byte.",
+      "parentUuid": "7709cc3d_4c79b52f",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0365da2c_c5871e9b",
         "filename": "bson/bsoncore/bsoncore.go",
         "patchSetId": 7
@@ -172,6 +334,24 @@
     },
     {
       "key": {
+        "uuid": "60ef0a49_8fba0df1",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Yeah.",
+      "parentUuid": "0365da2c_c5871e9b",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c246088c_0ae3eeea",
         "filename": "bson/bsoncore/document.go",
         "patchSetId": 7
@@ -183,6 +363,24 @@
       "writtenOn": "2018-10-26T16:58:51Z",
       "side": 1,
       "message": "It might be useful to indicate that this is used when the Document is actually an array. \n\nAny reason not to have an Array type so that this doesn\u0027t need to be confusing?",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fd8d6c70_60e15ef5",
+        "filename": "bson/bsoncore/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 330,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "An array type, overall, complicates things because there\u0027s a type switch that happens. The aim of this is to be a low level BSON package, if you don\u0027t have a good understanding of BSON then you shouldn\u0027t be using it.",
+      "parentUuid": "c246088c_0ae3eeea",
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -206,6 +404,24 @@
     },
     {
       "key": {
+        "uuid": "8e5bb1ad_49f2020d",
+        "filename": "bson/bsoncore/element.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "This is so don\u0027t have to do an extra alloc if you have a key that\u0027s already bytes, but I don\u0027t see why we can\u0027t add a KeyBytes method as well.",
+      "parentUuid": "e6acec34_b6ec9f99",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "efbd9c69_a2951614",
         "filename": "bson/bsoncore/value.go",
         "patchSetId": 7
@@ -220,6 +436,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c0b1eb4e_0e0bbaac",
+        "filename": "bson/bsoncore/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "This is a left over from something Eliot needed. I inquired if he still needs it and if he doesn\u0027t I\u0027ll remove this.",
+      "parentUuid": "efbd9c69_a2951614",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -240,6 +474,24 @@
     },
     {
       "key": {
+        "uuid": "996add9d_4837bc33",
+        "filename": "bson/bsoncore/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 348,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "I disagree, a user already has to know that an array is a document because we only have 1 version of the Append* functions. I really do not want to double the number of Append* functions just so people can have a type that doesn\u0027t actually exist in BSON. Also, tracking the index for them would be a large pain.\n\nThis is a low level BSON library, and there\u0027s an expectation that you need to understand BSON to use it.",
+      "parentUuid": "b6031638_5bec35f3",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dfd5f253_ef356d10",
         "filename": "bson/bsonrw/value_reader.go",
         "patchSetId": 7
@@ -251,6 +503,24 @@
       "writtenOn": "2018-10-26T16:58:51Z",
       "side": 1,
       "message": "Is this method only called from NewBSONDocumentReader? if so, can we get rid of this method? It appears to do exactly what NewBSONDocumentReader is doing.",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e536dd8e_7d47348e",
+        "filename": "bson/bsonrw/value_reader.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "We use it in tests and it\u0027s helpful to be able to create a *valueReader directly instead of having to create a ValueReader and then cast it to a *valueReader.",
+      "parentUuid": "dfd5f253_ef356d10",
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -274,6 +544,24 @@
     },
     {
       "key": {
+        "uuid": "5388f1f7_d3b3cd4e",
+        "filename": "bson/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 513,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "83cc322c_0cdb0fca",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b29180d9_4c1749af",
         "filename": "bson/document.go",
         "patchSetId": 7
@@ -288,6 +576,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aa6969c2_2634dcad",
+        "filename": "bson/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 519,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Yes, same as the other one.",
+      "parentUuid": "b29180d9_4c1749af",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -308,6 +614,24 @@
     },
     {
       "key": {
+        "uuid": "afd92951_c35c07b3",
+        "filename": "bson/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 682,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Yes.",
+      "parentUuid": "8c2e725e_70092a3d",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8ab0b7ea_e3c88a0f",
         "filename": "bson/primitive_codecs.go",
         "patchSetId": 7
@@ -322,6 +646,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7ad95c4d_f31308bd",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 646,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8ab0b7ea_e3c88a0f",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -342,6 +684,24 @@
     },
     {
       "key": {
+        "uuid": "0fa2096a_a0c5c2f9",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 660,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1035a71d_6be47d6b",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "840ecfe0_33b4e2bf",
         "filename": "bson/primitive_codecs.go",
         "patchSetId": 7
@@ -353,6 +713,24 @@
       "writtenOn": "2018-10-26T16:58:51Z",
       "side": 1,
       "message": "Question: how much overhead does this cause to eagerly create this error when in a vast majority of cases, it will never get used... It feels like there is some allocation going on, bother for the assignment to the error interface as well as the slice of Types... \n\nThis probably applies to all of these methods. Could probably just create a fail() function at the top of the methods that returns this thing, but doesn\u0027t actually create it unless necessary.\n\n```\nfail :\u003d func() error {\n    return bsoncodec.ValueDecoderError{Name: \"DDecodeValue\", Types: []interface{}{(*D)(nil), (**D)(nil)}, Received: i}\n}\n```",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6fd0ee3_e80cb3ee",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 987,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "I\u0027m not entirely sure, but I find that it reads better than calling this thing multiple times and I think that it\u0027s a pre-optimizing to change this now. We could likely do some benchmarks and see or add something to the backlog for it.",
+      "parentUuid": "840ecfe0_33b4e2bf",
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -376,6 +754,24 @@
     },
     {
       "key": {
+        "uuid": "b78585cb_74dca7c5",
+        "filename": "bson/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 428,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "These are likely going to go away but I\u0027ll change it.",
+      "parentUuid": "0b97f616_296ebfcc",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "58c6e330_da9830d0",
         "filename": "bson/value.go",
         "patchSetId": 7
@@ -393,6 +789,24 @@
     },
     {
       "key": {
+        "uuid": "6392ce54_8151e270",
+        "filename": "bson/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 455,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "58c6e330_da9830d0",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dc51132b_ca9013ab",
         "filename": "bson/value.go",
         "patchSetId": 7
@@ -407,6 +821,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "75bc4868_df3041d7",
+        "filename": "bson/value.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 756,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-26T19:00:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "dc51132b_ca9013ab",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
