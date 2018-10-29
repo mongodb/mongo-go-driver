@@ -114,9 +114,14 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 			rp = sess.CurrentRp // override with transaction read pref if specified
 		}
 		if rp == nil {
-			rp = db.readPreference // inherit from db if nothing specified in options
+			rp = readpref.Primary() // set to primary if nothing specified in options
 		}
 	}
+
+	readSelect := description.CompositeSelector([]description.ServerSelector{
+		description.ReadPrefSelector(rp),
+		description.LatencySelector(db.client.localThreshold),
+	})
 
 	runCmdDoc, err := transformDocument(db.registry, runCommand)
 	if err != nil {
@@ -131,7 +136,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 			Clock:    db.client.clock,
 		},
 		db.client.topology,
-		db.writeSelector,
+		readSelect,
 		db.client.id,
 		db.client.topology.SessionPool,
 	)
