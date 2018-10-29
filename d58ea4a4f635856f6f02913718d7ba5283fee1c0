@@ -2,6 +2,224 @@
   "comments": [
     {
       "key": {
+        "uuid": "78c3be53_b69152c7",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "We should probably be more defensive here, e.g. use Int32OK, since this will be user supplied and we should likely return an error instead of panicking.",
+      "range": {
+        "startLine": 36,
+        "startChar": 73,
+        "endLine": 36,
+        "endChar": 81
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c1288f23_f7c8c295",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "Is there a reason we\u0027re doing a copy here?",
+      "range": {
+        "startLine": 36,
+        "startChar": 35,
+        "endLine": 36,
+        "endChar": 81
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7af21195_be175269",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "This should be called maxTimeMS not maxAwaitTimeMS.",
+      "range": {
+        "startLine": 38,
+        "startChar": 49,
+        "endLine": 38,
+        "endChar": 59
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5aab33ab_049479ad",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "Should this be aggOpts.MaxAwaitTime?",
+      "range": {
+        "startLine": 94,
+        "startChar": 4,
+        "endLine": 94,
+        "endChar": 19
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ce5367f9_72f97f91",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 612,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "This should take a Registry and we should use bson.MarshalWithRegistery here.",
+      "range": {
+        "startLine": 612,
+        "startChar": 5,
+        "endLine": 612,
+        "endChar": 20
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f8162ac5_43eb2423",
+        "filename": "core/dispatch/find.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "This should only be specified on the cursor, it doesn\u0027t get sent with the find command.",
+      "range": {
+        "startLine": 108,
+        "startChar": 1,
+        "endLine": 110,
+        "endChar": 2
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "be2e507a_448ac9e6",
+        "filename": "core/examples/workload/main.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "This will create an empty registry, so we should just use bson.DefaultRegistry.",
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3d25af16_d67aa240",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "Is there a reason this isn\u0027t variadic?",
+      "range": {
+        "startLine": 142,
+        "startChar": 72,
+        "endLine": 142,
+        "endChar": 91
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4194e7c1_bf3dd425",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "We should likely just use bson.DefaultRegistry instead of building a new one.",
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ca975f58_446acf01",
+        "filename": "options/gridfsoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "the FS should be capital here.",
+      "range": {
+        "startLine": 30,
+        "startChar": 9,
+        "endLine": 30,
+        "endChar": 11
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "eb66e9b1_1156fa55",
         "filename": "options/runcmdoptions.go",
         "patchSetId": 7
@@ -31,6 +249,24 @@
       "side": 1,
       "message": "I\u0027m ok with calling it Merge but I\u0027m not sure what the expectations of putting the Merge function on the actual struct would be. Also, the merging logic might be a little more complicated if the function was on the struct. Right now, ToRunCmdOptions just creates an empty RunCmdOptions struct and iterates over the given *RunCmdOptions. If it was on the struct, the creating an empty options part would have to be changed to make a clone of the receiver instead.",
       "parentUuid": "eb66e9b1_1156fa55",
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "480fcf99_4bbc5c0f",
+        "filename": "options/runcmdoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:43:49Z",
+      "side": 1,
+      "message": "We shouldn\u0027t modify the receiver or in practice we\u0027ll have to make a copy anyway to avoid mutating the user provided options (the first one passed in might be the defaults that they don\u0027t want to change). I do agree that Merge is a better name here.",
+      "parentUuid": "e5eeee8f_83e40eec",
       "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
