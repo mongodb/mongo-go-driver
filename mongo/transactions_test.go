@@ -30,6 +30,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/collectionopt"
+	"github.com/mongodb/mongo-go-driver/mongo/runcmdopt"
 	"github.com/mongodb/mongo-go-driver/mongo/sessionopt"
 	"github.com/mongodb/mongo-go-driver/mongo/transactionopt"
 	"github.com/stretchr/testify/require"
@@ -175,6 +176,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 			bson.NewDocument(
 				bson.EC.String("create", collName),
 			),
+			runcmdopt.ReadPreference(readpref.Primary()),
 		)
 		require.NoError(t, err)
 

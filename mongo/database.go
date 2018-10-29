@@ -118,6 +118,14 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		}
 	}
 
+	readSelect := db.readSelector
+	if rp != db.readPreference {
+		readSelect = description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(rp),
+			description.LatencySelector(db.client.localThreshold),
+		})
+	}
+
 	runCmdDoc, err := transformDocument(db.registry, runCommand)
 	if err != nil {
 		return nil, err
@@ -131,7 +139,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 			Clock:    db.client.clock,
 		},
 		db.client.topology,
-		db.writeSelector,
+		readSelect,
 		db.client.id,
 		db.client.topology.SessionPool,
 	)
