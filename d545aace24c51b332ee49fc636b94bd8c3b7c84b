@@ -97,6 +97,30 @@
     },
     {
       "key": {
+        "uuid": "28c1d9d9_ad1f9670",
+        "filename": "bson/bson.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-10-29T19:53:41Z",
+      "side": 1,
+      "message": "I\u0027m not sure that anyone is going to complain about 1 character in the interest of clarity.  A BSON pipeline isn\u0027t a concept. A user browsing this would likely get misled into believing that BSON knows about pipelines.",
+      "parentUuid": "a682bace_c85021b1",
+      "range": {
+        "startLine": 89,
+        "startChar": 0,
+        "endLine": 89,
+        "endChar": 4
+      },
+      "revId": "d545aace24c51b332ee49fc636b94bd8c3b7c84b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0a845f25_1af43657",
         "filename": "bson/bsoncodec/default_value_decoders.go",
         "patchSetId": 9
