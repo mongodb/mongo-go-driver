@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 // Package bsoncore contains functions that can be used to encode and decode BSON
 // elements and values to or from a slice of bytes. These functions are aimed at
 // allowing low level manipulation of BSON and can be used to build a higher
