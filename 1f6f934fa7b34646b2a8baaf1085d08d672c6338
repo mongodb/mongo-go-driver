@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5d221a81_08c61a8b",
+        "filename": "bson/bsoncodec/struct_codec.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 224,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T17:57:29Z",
+      "side": 1,
+      "message": "In Go, we try to have the success path have as few indents as possible. So here, instead of making it an if else block, we should have the if check be vr.Type() \u003d\u003d bsontype.Null and put the logic in the else in that block, followed by a continue.\n\nWe also only need to do this for pointer\u0027s specifically, if we have a value we need to pass it on.\n\nYou can look at https://review.gerrithub.io/c/mongodb/mongo-go-driver/+/429291/9/bson/bsoncodec/default_value_decoders.go#806 for reference.",
+      "range": {
+        "startLine": 206,
+        "startChar": 2,
+        "endLine": 224,
+        "endChar": 3
+      },
+      "revId": "1f6f934fa7b34646b2a8baaf1085d08d672c6338",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
