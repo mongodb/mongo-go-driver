@@ -48,6 +48,54 @@
     },
     {
       "key": {
+        "uuid": "16515a06_9b0139d1",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "Doesn\u0027t this value originally come from the user calling SetBatchSize() on a FindOptions struct, which only takes int32? If so, we know that it will always be an int32 by the time we get here.",
+      "parentUuid": "78c3be53_b69152c7",
+      "range": {
+        "startLine": 36,
+        "startChar": 73,
+        "endLine": 36,
+        "endChar": 81
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f897637e_45b04aed",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c1288f23_f7c8c295",
+      "range": {
+        "startLine": 36,
+        "startChar": 35,
+        "endLine": 36,
+        "endChar": 81
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7af21195_be175269",
         "filename": "core/command/command.go",
         "patchSetId": 7
@@ -68,6 +116,30 @@
       "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4e9529e2_311bbeef",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "The latest patch has a separate cursor opts slice on the command itself, so I got rid of this function.",
+      "parentUuid": "7af21195_be175269",
+      "range": {
+        "startLine": 38,
+        "startChar": 49,
+        "endLine": 38,
+        "endChar": 59
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "dab579fc_a4523bac",
+        "filename": "core/dispatch/aggregate.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5aab33ab_049479ad",
+      "range": {
+        "startLine": 94,
+        "startChar": 4,
+        "endLine": 94,
+        "endChar": 19
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ce5367f9_72f97f91",
         "filename": "core/dispatch/bulk_write.go",
         "patchSetId": 7
@@ -114,6 +210,30 @@
       "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3ac1d4d9_be2bb030",
+        "filename": "core/dispatch/bulk_write.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 612,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ce5367f9_72f97f91",
+      "range": {
+        "startLine": 612,
+        "startChar": 5,
+        "endLine": 612,
+        "endChar": 20
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -140,6 +260,30 @@
     },
     {
       "key": {
+        "uuid": "ffdb3dc4_0b4ad767",
+        "filename": "core/dispatch/find.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f8162ac5_43eb2423",
+      "range": {
+        "startLine": 108,
+        "startChar": 1,
+        "endLine": 110,
+        "endChar": 2
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "be2e507a_448ac9e6",
         "filename": "core/examples/workload/main.go",
         "patchSetId": 7
@@ -157,6 +301,24 @@
     },
     {
       "key": {
+        "uuid": "295f2b32_265069db",
+        "filename": "core/examples/workload/main.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "be2e507a_448ac9e6",
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3d25af16_d67aa240",
         "filename": "core/session/client_session.go",
         "patchSetId": 7
@@ -168,6 +330,30 @@
       "writtenOn": "2018-10-29T17:43:49Z",
       "side": 1,
       "message": "Is there a reason this isn\u0027t variadic?",
+      "range": {
+        "startLine": 142,
+        "startChar": 72,
+        "endLine": 142,
+        "endChar": 91
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4ee8ec6e_78190022",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "The user-facing API to create a new session in client.go is variadic and combines all the opts using MergeSessionOptions. Because there was only one set of options after doing the merge, it didn\u0027t make much sense for this to be variadic and to copy over the merge logic into here, so I made it as a single parameter. Also it\u0027s only called by internal core functions, so it didn\u0027t seem like a big deal to require nil to be passed.",
+      "parentUuid": "3d25af16_d67aa240",
       "range": {
         "startLine": 142,
         "startChar": 72,
@@ -197,6 +383,24 @@
     },
     {
       "key": {
+        "uuid": "bc2435bd_72ff9e66",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4194e7c1_bf3dd425",
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ca975f58_446acf01",
         "filename": "options/gridfsoptions.go",
         "patchSetId": 7
@@ -217,6 +421,30 @@
       "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "95759e4c_dcad1d6c",
+        "filename": "options/gridfsoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ca975f58_446acf01",
+      "range": {
+        "startLine": 30,
+        "startChar": 9,
+        "endLine": 30,
+        "endChar": 11
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -270,6 +498,24 @@
       "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b937666a_a7f2fcd3",
+        "filename": "options/runcmdoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-29T23:31:18Z",
+      "side": 1,
+      "message": "changed everything to Merge instead of To.",
+      "parentUuid": "480fcf99_4bbc5c0f",
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
