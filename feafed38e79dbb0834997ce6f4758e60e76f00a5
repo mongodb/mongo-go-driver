@@ -353,6 +353,24 @@
     },
     {
       "key": {
+        "uuid": "a93aa626_40f2f37b",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:26:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "10c978ec_6ebd26eb",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0365da2c_c5871e9b",
         "filename": "bson/bsoncore/bsoncore.go",
         "patchSetId": 7
@@ -420,6 +438,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "58bdedf1_853036b2",
+        "filename": "bson/bsoncore/document.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 330,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:26:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fd8d6c70_60e15ef5",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -560,6 +596,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d7ee9801_da9962e4",
+        "filename": "bson/bsonrw/value_reader.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:26:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e536dd8e_7d47348e",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
