@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "041c830c_143136ab",
+        "filename": "bson/bson.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:10:38Z",
+      "side": 1,
+      "message": "This is a small type that\u0027s helpful, much like the M type. Users would use it, not us. While I understand it\u0027s a mongo thing and not specifically a BSON thing, there has been a large amount of pain around pipelines and it would be nice to remove some of that.",
+      "parentUuid": "4401a80b_9dcdcf5a",
+      "range": {
+        "startLine": 89,
+        "startChar": 0,
+        "endLine": 89,
+        "endChar": 4
+      },
+      "revId": "d545aace24c51b332ee49fc636b94bd8c3b7c84b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0a845f25_1af43657",
         "filename": "bson/bsoncodec/default_value_decoders.go",
         "patchSetId": 9
@@ -39,6 +63,24 @@
       "revId": "d545aace24c51b332ee49fc636b94bd8c3b7c84b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6617eaba_f32f4396",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 806,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:10:38Z",
+      "side": 1,
+      "message": "This wasn\u0027t supposed to be committed. Removed.",
+      "parentUuid": "0a845f25_1af43657",
+      "revId": "d545aace24c51b332ee49fc636b94bd8c3b7c84b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
