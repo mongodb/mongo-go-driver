@@ -107,6 +107,24 @@
     },
     {
       "key": {
+        "uuid": "310746bf_f0d838bd",
+        "filename": "benchmark/harness.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:24:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2315acaf_ae707d24",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ae0cf27d_15b7aeb9",
         "filename": "bson/array.go",
         "patchSetId": 7
@@ -279,6 +297,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2a82b58e_7a04887b",
+        "filename": "bson/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:24:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "37fe7d42_23aee7fc",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -734,6 +770,24 @@
       "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d32306fd_dd3ba4f1",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 987,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:24:02Z",
+      "side": 1,
+      "message": "There were only a couple of places we did this so I just did it in this patch.",
+      "parentUuid": "a6fd0ee3_e80cb3ee",
+      "revId": "feafed38e79dbb0834997ce6f4758e60e76f00a5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {

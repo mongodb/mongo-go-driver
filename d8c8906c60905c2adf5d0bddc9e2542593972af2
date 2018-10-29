@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "76c56d0c_a1b5633e",
+        "filename": "bson/bsonrw/value_reader.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-29T18:24:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "206639ed_901ef056",
+      "revId": "d8c8906c60905c2adf5d0bddc9e2542593972af2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5ae29283_84ad42dd",
         "filename": "bson/flex.go",
         "patchSetId": 1
