@@ -376,3 +376,6 @@ func (a *Array) Equal(a2 *Array) bool {
 	}
 	return true
 }
+
+// embed implements the Embedabble interface.
+func (a *Array) embed() {}
