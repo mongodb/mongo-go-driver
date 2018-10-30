@@ -121,3 +121,33 @@ type testMarshaler struct {
 }
 
 func (tm testMarshaler) MarshalBSON() ([]byte, error) { return tm.buf, tm.err }
+
+func docToBytes(d Doc) []byte {
+	b, err := d.MarshalBSON()
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func arrToBytes(a Arr) []byte {
+	_, b, err := a.MarshalBSONValue()
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+type byteMarshaler []byte
+
+func (bm byteMarshaler) MarshalBSON() ([]byte, error) { return bm, nil }
+
+type _Interface interface {
+	method()
+}
+
+type _impl struct {
+	Foo string
+}
+
+func (_impl) method() {}

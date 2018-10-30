@@ -9,6 +9,12 @@
 
 package bson
 
+import (
+	"math"
+	"strconv"
+	"strings"
+)
+
 // node is a compact representation of an element within a BSON document.
 // The first 4 bytes are where the element starts in an underlying []byte. The
 // last 4 bytes are where the value for that element begins.
@@ -75,3 +81,23 @@ type M map[string]interface{}
 // 		bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
 //
 type A []interface{}
+
+func formatDouble(f float64) string {
+	var s string
+	if math.IsInf(f, 1) {
+		s = "Infinity"
+	} else if math.IsInf(f, -1) {
+		s = "-Infinity"
+	} else if math.IsNaN(f) {
+		s = "NaN"
+	} else {
+		// Print exactly one decimalType place for integers; otherwise, print as many are necessary to
+		// perfectly represent it.
+		s = strconv.FormatFloat(f, 'G', -1, 64)
+		if !strings.ContainsRune(s, '.') {
+			s += ".0"
+		}
+	}
+
+	return s
+}
