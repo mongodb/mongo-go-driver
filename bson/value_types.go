@@ -12,77 +12,65 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
-// Binary represents a BSON binary value.
-type Binary struct {
+// BinaryPrimitive represents a BSON binary value.
+type BinaryPrimitive struct {
 	Subtype byte
 	Data    []byte
 }
 
-// Undefined represents the BSON undefined value.
-var Undefined struct{}
+// UndefinedPrimitive represents the BSON undefined value type.
+type UndefinedPrimitive struct{}
 
-// Undefinedv2 represents the BSON undefined value type.
-type Undefinedv2 struct{}
+// DateTimePrimitive represents the BSON datetime value.
+type DateTimePrimitive int64
 
-// DateTime represents the BSON datetime value.
-type DateTime int64
+// NullPrimitive repreesnts the BSON null value.
+type NullPrimitive struct{}
 
-// Null represents the BSON null value.
-var Null struct{}
-
-// Nullv2 repreesnts the BSON null value.
-type Nullv2 struct{}
-
-// Regex represents a BSON regex value.
-type Regex struct {
+// RegexPrimitive represents a BSON regex value.
+type RegexPrimitive struct {
 	Pattern string
 	Options string
 }
 
-func (r Regex) String() string {
-	return fmt.Sprintf(`{"pattern": "%s", "options": "%s"}`, r.Pattern, r.Options)
+func (rp RegexPrimitive) String() string {
+	return fmt.Sprintf(`{"pattern": "%s", "options": "%s"}`, rp.Pattern, rp.Options)
 }
 
-// DBPointer represents a BSON dbpointer value.
-type DBPointer struct {
+// DBPointerPrimitive represents a BSON dbpointer value.
+type DBPointerPrimitive struct {
 	DB      string
 	Pointer objectid.ObjectID
 }
 
-func (d DBPointer) String() string {
+func (d DBPointerPrimitive) String() string {
 	return fmt.Sprintf(`{"db": "%s", "pointer": "%s"}`, d.DB, d.Pointer)
 }
 
-// JavaScriptCode represents a BSON JavaScript code value.
-type JavaScriptCode string
+// JavaScriptCodePrimitive represents a BSON JavaScript code value.
+type JavaScriptCodePrimitive string
 
-// Symbol represents a BSON symbol value.
-type Symbol string
+// SymbolPrimitive represents a BSON symbol value.
+type SymbolPrimitive string
 
-// CodeWithScope represents a BSON JavaScript code with scope value.
-type CodeWithScope struct {
+// CodeWithScopePrimitive represents a BSON JavaScript code with scope value.
+type CodeWithScopePrimitive struct {
 	Code  string
 	Scope *Document
 }
 
-func (cws CodeWithScope) String() string {
+func (cws CodeWithScopePrimitive) String() string {
 	return fmt.Sprintf(`{"code": "%s", "scope": %s}`, cws.Code, cws.Scope)
 }
 
-// Timestamp represents a BSON timestamp value.
-type Timestamp struct {
+// TimestampPrimitive represents a BSON timestamp value.
+type TimestampPrimitive struct {
 	T uint32
 	I uint32
 }
 
-// MinKey represents the BSON maxkey value.
-var MinKey struct{}
+// MinKeyPrimitive represents the BSON minkey value.
+type MinKeyPrimitive struct{}
 
-// MaxKey represents the BSON minkey value.
-var MaxKey struct{}
-
-// MinKeyv2 represents the BSON minkey value.
-type MinKeyv2 struct{}
-
-// MaxKeyv2 represents the BSON maxkey value.
-type MaxKeyv2 struct{}
+// MaxKeyPrimitive represents the BSON maxkey value.
+type MaxKeyPrimitive struct{}
