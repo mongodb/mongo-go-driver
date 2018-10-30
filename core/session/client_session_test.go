@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.Timestamp) {
+func compareOperationTimes(t *testing.T, expected *bson.TimestampPrimitive, actual *bson.TimestampPrimitive) {
 	if expected.T != actual.T {
 		t.Fatalf("T value mismatch; expected %d got %d", expected.T, actual.T)
 	}
@@ -81,7 +81,7 @@ func TestClientSession(t *testing.T) {
 		sess, err := NewClientSession(&Pool{}, id, Explicit, OptCausalConsistency(true))
 		require.Nil(t, err, "Unexpected error")
 
-		optime1 := &bson.Timestamp{
+		optime1 := &bson.TimestampPrimitive{
 			T: 1,
 			I: 0,
 		}
@@ -89,7 +89,7 @@ func TestClientSession(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error updating first operation time: %s", err)
 		compareOperationTimes(t, optime1, sess.OperationTime)
 
-		optime2 := &bson.Timestamp{
+		optime2 := &bson.TimestampPrimitive{
 			T: 2,
 			I: 0,
 		}
@@ -97,7 +97,7 @@ func TestClientSession(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error updating second operation time: %s", err)
 		compareOperationTimes(t, optime2, sess.OperationTime)
 
-		optime3 := &bson.Timestamp{
+		optime3 := &bson.TimestampPrimitive{
 			T: 2,
 			I: 1,
 		}
@@ -105,7 +105,7 @@ func TestClientSession(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error updating third operation time: %s", err)
 		compareOperationTimes(t, optime3, sess.OperationTime)
 
-		err = sess.AdvanceOperationTime(&bson.Timestamp{
+		err = sess.AdvanceOperationTime(&bson.TimestampPrimitive{
 			T: 1,
 			I: 10,
 		})

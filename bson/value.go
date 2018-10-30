@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 // Value represents a BSON value. It can be obtained as part of a bson.Element or created for use
@@ -84,22 +85,22 @@ func (v *Value) Interface() interface{} {
 		return nil
 	case TypeRegex:
 		p, o := v.Regex()
-		return Regex{Pattern: p, Options: o}
+		return primitive.Regex{Pattern: p, Options: o}
 	case TypeDBPointer:
 		db, pointer := v.DBPointer()
-		return DBPointer{DB: db, Pointer: pointer}
+		return primitive.DBPointer{DB: db, Pointer: pointer}
 	case TypeJavaScript:
 		return v.JavaScript()
 	case TypeSymbol:
 		return v.Symbol()
 	case TypeCodeWithScope:
 		code, scope := v.MutableJavaScriptWithScope()
-		return CodeWithScope{Code: code, Scope: scope}
+		return primitive.CodeWithScope{Code: primitive.JavaScript(code), Scope: scope}
 	case TypeInt32:
 		return v.Int32()
 	case TypeTimestamp:
 		t, i := v.Timestamp()
-		return Timestamp{T: t, I: i}
+		return primitive.Timestamp{T: t, I: i}
 	case TypeInt64:
 		return v.Int64()
 	case TypeDecimal128:
