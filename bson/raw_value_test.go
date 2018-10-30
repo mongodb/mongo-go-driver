@@ -1,0 +1,77 @@
+package bson
+
+import (
+	"fmt"
+	"reflect"
+	"testing"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
+)
+
+func TestRawValue(t *testing.T) {
+	t.Run("Unmarshal", func(t *testing.T) {
+		t.Run("Uses registry attached to value", func(t *testing.T) {
+			reg := bsoncodec.NewRegistryBuilder().Build()
+			val := RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "foobar"), r: reg}
+			var s string
+			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(&s)}
+			got := val.Unmarshal(&s)
+			if !compareErrors(got, want) {
+				t.Errorf("Expected errors to match. got %v; want %v", got, want)
+			}
+		})
+		t.Run("Uses default registry if no registry attached", func(t *testing.T) {
+			want := "foobar"
+			val := RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, want)}
+			var got string
+			err := val.Unmarshal(&got)
+			noerr(t, err)
+			if got != want {
+				t.Errorf("Expected strings to match. got %s; want %s", got, want)
+			}
+		})
+	})
+	t.Run("UnmarshalWithRegistry", func(t *testing.T) {
+		t.Run("Returns error when registry is nil", func(t *testing.T) {
+			want := ErrNilRegistry
+			var val RawValue
+			got := val.UnmarshalWithRegistry(nil, Doc{})
+			if got != want {
+				t.Errorf("Exepcted errors to match. got %v; want %v", got, want)
+			}
+		})
+		t.Run("Returns lookup error", func(t *testing.T) {
+			reg := bsoncodec.NewRegistryBuilder().Build()
+			var val RawValue
+			var s string
+			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(&s)}
+			got := val.UnmarshalWithRegistry(reg, &s)
+			if !compareErrors(got, want) {
+				t.Errorf("Execpted errors to match. got %v; want %v", got, want)
+			}
+		})
+		t.Run("Returns DecodeValue error", func(t *testing.T) {
+			reg := NewRegistryBuilder().Build()
+			val := RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)}
+			var s string
+			want := fmt.Errorf("cannot decode %v into a string type", bsontype.Double)
+			got := val.UnmarshalWithRegistry(reg, &s)
+			if !compareErrors(got, want) {
+				t.Errorf("Expected errors to match. got %v; want %v", got, want)
+			}
+		})
+		t.Run("Success", func(t *testing.T) {
+			reg := NewRegistryBuilder().Build()
+			want := float64(3.14159)
+			val := RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, want)}
+			var got float64
+			err := val.UnmarshalWithRegistry(reg, &got)
+			noerr(t, err)
+			if got != want {
+				t.Errorf("Expected results to match. got %g; want %g", got, want)
+			}
+		})
+	})
+}
