@@ -8,344 +8,238 @@ package bson
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"io"
 	"strconv"
 
-	"github.com/mongodb/mongo-go-driver/bson/elements"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
-// Array represents an array in BSON. The methods of this type are more
-// expensive than those on Document because they require potentially updating
-// multiple keys to ensure the array stays valid at all times.
-type Array struct {
-	doc *Document
+// ErrNilArray indicates that an operation was attempted on a nil *Array.
+var ErrNilArray = errors.New("array is nil")
+
+// Array represents an array in BSON.
+type Arrayv2 struct {
+	values []Valuev2
 }
 
 // NewArray creates a new array with the specified value.
-func NewArray(values ...*Value) *Array {
-	elems := make([]*Element, 0, len(values))
-	for _, v := range values {
-		elems = append(elems, &Element{value: v})
-	}
-
-	return &Array{doc: NewDocument(elems...)}
-}
-
-// ArrayFromDocument creates an array from a *Document. The returned array
-// does not make a copy of the *Document, so any changes made to either will
-// be present in both.
-func ArrayFromDocument(doc *Document) *Array {
-	return &Array{doc: doc}
+func NewArrayv2(values ...Valuev2) *Arrayv2 {
+	arr := &Arrayv2{values: make([]Valuev2, len(values))}
+	copy(arr.values, values)
+	return arr
 }
 
 // Len returns the number of elements in the array.
-func (a *Array) Len() int {
-	return len(a.doc.elems)
+func (a *Arrayv2) Len() int {
+	if a == nil {
+		return 0
+	}
+	return len(a.values)
 }
 
 // Reset clears all elements from the array.
-func (a *Array) Reset() {
-	a.doc.Reset()
-}
-
-// Validate ensures that the array's underlying BSON is valid. It returns the the number of bytes
-// in the underlying BSON if it is valid or an error if it isn't.
-func (a *Array) Validate() (uint32, error) {
-	var size uint32 = 4 + 1
-	for i, elem := range a.doc.elems {
-		n, err := elem.value.validate(false)
-		if err != nil {
-			return 0, err
-		}
-
-		// type
-		size++
-		// key
-		size += uint32(len(strconv.Itoa(i))) + 1
-		// value
-		size += n
+func (a *Arrayv2) Reset() {
+	if a == nil {
+		return
 	}
 
-	return size, nil
+	for idx := range a.values {
+		a.values[idx] = a.values[idx].reset()
+	}
+	a.values = a.values[:0]
 }
 
-// Lookup returns the value in the array at the given index or an error if it cannot be found.
-//
-// TODO: We should fix this to align with the semantics of the *Document type,
-// e.g. have Lookup return just a *Value or panic if it's out of bounds and have
-// a LookupOK that returns a bool. Although if we want to align with the
-// semantics of how Go arrays and slices work, we would not provide a LookupOK
-// and force users to use the Len method before hand to avoid panics.
-func (a *Array) Lookup(index uint) (*Value, error) {
-	v, ok := a.doc.ElementAtOK(index)
-	if !ok {
-		return nil, ErrOutOfBounds
+func (a *Arrayv2) Values() []Valuev2 {
+	if a == nil {
+		return nil
 	}
-
-	return v.value, nil
+	vals := make([]Valuev2, 0, len(a.values))
+	for _, val := range a.values {
+		vals = append(vals, val)
+	}
+	return vals
 }
 
-func (a *Array) lookupTraverse(index uint, keys ...string) (*Value, error) {
-	value, err := a.Lookup(index)
-	if err != nil {
-		return nil, err
+// Index functions in a similar way to a Go native array or slice, that is, if the given index is
+// out of bounds, this method will panic. Len can be used to retrieve the length of this Array.
+func (a *Arrayv2) Index(index uint) Valuev2 { return a.values[index] }
+
+func (a *Arrayv2) lookupTraverse(index uint, keys ...string) (Elementv2, error) {
+	if a == nil {
+		return Elementv2{}, KeyNotFound{}
 	}
+	if index > uint(len(a.values)) {
+		return Elementv2{}, KeyNotFound{}
+	}
+	val := a.values[index]
 
 	if len(keys) == 0 {
-		return value, nil
+		return Elementv2{Key: strconv.Itoa(int(index)), Value: val}, nil
 	}
 
-	switch value.Type() {
-	case TypeEmbeddedDocument:
-		element, err := value.MutableDocument().LookupElementErr(keys...)
-		if err != nil {
-			return nil, err
-		}
-
-		return element.Value(), nil
-	case TypeArray:
+	var err error
+	var elem Elementv2
+	switch val.Type() {
+	case bsontype.EmbeddedDocument:
+		elem, err = val.Document().LookupElementErr(keys...)
+	case bsontype.Array:
 		index, err := strconv.ParseUint(keys[0], 10, 0)
 		if err != nil {
-			return nil, ErrInvalidArrayKey
+			err = KeyNotFound{}
+			break
 		}
 
-		val, err := value.MutableArray().lookupTraverse(uint(index), keys[1:]...)
-		if err != nil {
-			return nil, err
-		}
-
-		return val, nil
+		elem, err = val.Array().lookupTraverse(uint(index), keys[1:]...)
 	default:
-		return nil, ErrInvalidDepthTraversal
+		err = KeyNotFound{Type: elem.Value.Type()}
+	}
+
+	switch tt := err.(type) {
+	case KeyNotFound:
+		tt.Depth++
+		return Elementv2{}, tt
+	case nil:
+		return elem, nil
+	default:
+		return Elementv2{}, err
 	}
 }
 
-// Append adds the given values to the end of the array. It returns a reference to itself.
-func (a *Array) Append(values ...*Value) *Array {
-	a.doc.Append(elemsFromValues(values)...)
-
+// Append adds the given values to the end of the array.
+//
+// Append is safe to call on a nil Array.
+func (a *Arrayv2) Append(values ...Valuev2) *Arrayv2 {
+	if a == nil {
+		a = &Arrayv2{values: make([]Valuev2, 0, len(values))}
+	}
+	a.values = append(a.values, values...)
 	return a
 }
 
-// Prepend adds the given values to the beginning of the array. It returns a reference to itself.
-func (a *Array) Prepend(values ...*Value) *Array {
-	a.doc.Prepend(elemsFromValues(values)...)
+// Prepend adds the given values to the beginning of the array.
+//
+// Append is safe to call on a nil Array.
+func (a *Arrayv2) Prepend(values ...Valuev2) *Arrayv2 {
+	if a == nil {
+		a = &Arrayv2{values: make([]Valuev2, 0, len(values))}
+	}
+	a.values = append(a.values, values...)
+	copy(a.values[len(values):], a.values)
+	copy(a.values[:len(values)], values)
 
 	return a
 }
 
 // Set replaces the value at the given index with the parameter value. It panics if the index is
 // out of bounds.
-func (a *Array) Set(index uint, value *Value) *Array {
-	if index >= uint(len(a.doc.elems)) {
-		panic(ErrOutOfBounds)
-	}
-
-	a.doc.elems[index] = &Element{value}
-
+func (a *Arrayv2) Set(index uint, value Valuev2) *Arrayv2 {
+	a.values[index] = value
 	return a
 }
 
-// Concat will append all the values from each of the arguments onto the array.
-//
-// Each argument must be one of the following:
-//
-//   - *Array
-//   - *Document
-//   - []byte
-//   - bson.Raw
-//
-// Note that in the case of *Document, []byte, and bson.Raw, the keys will be ignored and only
-// the values will be appended.
-func (a *Array) Concat(docs ...interface{}) error {
-	for _, arr := range docs {
-		if arr == nil {
-			if a.doc.IgnoreNilInsert {
-				continue
-			}
-
-			return ErrNilDocument
-		}
-
-		switch val := arr.(type) {
-		case *Array:
-			if val == nil {
-				if a.doc.IgnoreNilInsert {
-					continue
-				}
-
-				return ErrNilDocument
-			}
-
-			for _, e := range val.doc.elems {
-				a.Append(e.value)
-			}
-		case *Document:
-			if val == nil {
-				if a.doc.IgnoreNilInsert {
-					continue
-				}
-
-				return ErrNilDocument
-			}
-
-			for _, e := range val.elems {
-				a.Append(e.value)
-			}
-		case []byte:
-			if err := a.concatRaw(Raw(val)); err != nil {
-				return err
-			}
-		case Raw:
-			if err := a.concatRaw(val); err != nil {
-				return err
-			}
-		default:
-			return ErrInvalidDocumentType
-		}
-	}
-
-	return nil
-}
-
-func (a *Array) concatRaw(r Raw) error {
-	elems, err := r.Elements()
-	if err != nil {
-		return err
-	}
-	for _, elem := range elems {
-		idx := bytes.IndexByte(elem[1:], 0x00) // elements will only contain valid elements
-		a.Append(&Value{start: 0, offset: uint32(idx + 2), data: elem})
-	}
-
-	return err
-}
-
 // Delete removes the value at the given index from the array.
-func (a *Array) Delete(index uint) *Value {
-	if index >= uint(len(a.doc.elems)) {
-		return nil
+func (a *Arrayv2) Delete(index uint) Valuev2 {
+	if index >= uint(len(a.values)) {
+		return Valuev2{}
 	}
 
-	elem := a.doc.elems[index]
-	a.doc.elems = append(a.doc.elems[:index], a.doc.elems[index+1:]...)
+	value := a.values[index]
+	a.values = append(a.values[:index], a.values[index+1:]...)
 
-	return elem.value
+	return value
 }
 
-// WriteTo implements the io.WriterTo interface.
-func (a *Array) WriteTo(w io.Writer) (int64, error) {
-	b, err := a.MarshalBSON()
-	if err != nil {
-		return 0, err
+func (a *Arrayv2) deleteTraverse(key ...string) Elementv2 {
+	if len(key) == 0 || a == nil {
+		return Elementv2{}
 	}
-	n, err := w.Write(b)
-	return int64(n), err
+	index, err := strconv.ParseUint(key[1], 10, 0)
+	if err != nil || uint64(a.Len()) <= index {
+		return Elementv2{}
+	}
+	if len(key) == 1 {
+		val := a.Delete(uint(index))
+		return Elementv2{Key: key[1], Value: val}
+	}
+
+	val := a.Index(uint(index))
+	switch val.Type() {
+	case bsontype.EmbeddedDocument:
+		return val.Document().Delete(key[1:]...)
+	case bsontype.Array:
+		return val.Array().deleteTraverse(key[1:]...)
+	default:
+		return Elementv2{}
+	}
 }
 
 // String implements the fmt.Stringer interface.
-func (a *Array) String() string {
+func (a *Arrayv2) String() string {
 	var buf bytes.Buffer
 	buf.Write([]byte("bson.Array["))
-	for idx, elem := range a.doc.elems {
+	for idx, val := range a.values {
 		if idx > 0 {
 			buf.Write([]byte(", "))
 		}
-		fmt.Fprintf(&buf, "%s", elem)
+		fmt.Fprintf(&buf, "%s", val)
 	}
 	buf.WriteByte(']')
 
 	return buf.String()
 }
 
-// WriteArray will serialize this array to the provided writer beginning
-// at the provided start position.
-func (a *Array) WriteArray(start uint, writer []byte) (int64, error) {
-	var total int64
-	var pos = start
-
-	size, err := a.Validate()
-	if err != nil {
-		return total, err
+// MarshalBSONValue implements the bsoncodec.ValueMarshaler interface.
+func (a *Arrayv2) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	if a == nil {
+		return bsontype.Null, nil, nil
 	}
 
-	n, err := a.writeByteSlice(pos, size, writer)
-	total += n
-	pos += uint(n)
-	if err != nil {
-		return total, err
-	}
-
-	return total, nil
-}
-
-// writeByteSlice handles serializing this array to a slice of bytes starting
-// at the given start position.
-func (a *Array) writeByteSlice(start uint, size uint32, b []byte) (int64, error) {
-	var total int64
-	var pos = start
-
-	if len(b) < int(start)+int(size) {
-		return 0, NewErrTooSmall()
-	}
-	n, err := elements.Int32.Encode(start, b, int32(size))
-	total += int64(n)
-	pos += uint(n)
-	if err != nil {
-		return total, err
-	}
-
-	for i, elem := range a.doc.elems {
-		b[pos] = elem.value.data[elem.value.start]
-		total++
-		pos++
-
-		key := []byte(strconv.Itoa(i))
-		key = append(key, 0)
-		copy(b[pos:], key)
-		total += int64(len(key))
-		pos += uint(len(key))
-
-		n, err := elem.writeElement(false, pos, b)
-		total += int64(n)
-		pos += uint(n)
+	idx, dst := bsoncore.AppendArrayStart(nil)
+	for idx, value := range a.values {
+		t, data, err := value.MarshalBSONValue()
 		if err != nil {
-			return total, err
+			return bsontype.Type(0), nil, err
 		}
+		dst = append(dst, byte(t))
+		dst = append(dst, strconv.Itoa(idx)...)
+		dst = append(dst, 0x00)
+		dst = append(dst, data...)
 	}
-
-	n, err = elements.Byte.Encode(pos, b, '\x00')
-	total += int64(n)
-	pos += uint(n)
+	dst, err := bsoncore.AppendArrayEnd(dst, idx)
 	if err != nil {
-		return total, err
+		return bsontype.Type(0), nil, err
 	}
-	return total, nil
+	return bsontype.Array, dst, nil
 }
 
-// MarshalBSON implements the Marshaler interface.
-func (a *Array) MarshalBSON() ([]byte, error) {
-	size, err := a.Validate()
-	if err != nil {
-		return nil, err
+// UnmarshalBSONValue implements the bsoncodec.ValueUnmarshaler interface.
+func (a *Arrayv2) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
+	if a == nil {
+		return ErrNilArray
 	}
-	b := make([]byte, size)
-	_, err = a.writeByteSlice(0, size, b)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
+	a.Reset()
 
-// Iterator returns a ArrayIterator that can be used to iterate through the
-// elements of this Array.
-func (a *Array) Iterator() (*ArrayIterator, error) {
-	return NewArrayIterator(a)
+	elements, err := Raw(data).Elements()
+	if err != nil {
+		return err
+	}
+
+	for _, elem := range elements {
+		var val Valuev2
+		rawval := elem.Value()
+		err = val.UnmarshalBSONValue(rawval.Type, rawval.Value)
+		if err != nil {
+			return err
+		}
+		a.values = append(a.values, val)
+	}
+	return nil
 }
 
 // Equal compares this document to another, returning true if they are equal.
-func (a *Array) Equal(a2 *Array) bool {
+func (a *Arrayv2) Equal(a2 *Arrayv2) bool {
 	if a == nil && a2 == nil {
 		return true
 	}
@@ -354,25 +248,18 @@ func (a *Array) Equal(a2 *Array) bool {
 		return false
 	}
 
-	if a.doc == nil && a2.doc == nil {
-		return true
-	}
-
-	if a.doc == nil || a2.doc == nil {
+	if len(a.values) != len(a2.values) {
 		return false
 	}
 
-	if (len(a.doc.elems) != len(a2.doc.elems)) || (len(a.doc.index) != len(a2.doc.index)) {
-		return false
-	}
-
-	for index := range a.doc.elems {
-		v1 := a.doc.elems[index].value
-		v2 := a2.doc.elems[index].value
-
-		if !v1.Equal(v2) {
+	for idx := range a.values {
+		if !a.values[idx].Equal(a2.values[idx]) {
 			return false
 		}
 	}
+
 	return true
 }
+
+// embed implements the Embedabble interface.
+func (a *Arrayv2) embed() {}

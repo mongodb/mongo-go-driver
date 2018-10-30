@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/stretchr/testify/require"
 )
 
 func noerr(t *testing.T, err error) {
@@ -20,6 +21,16 @@ func noerr(t *testing.T, err error) {
 		t.Helper()
 		t.Errorf("Unexpected error: (%T)%v", err, err)
 		t.FailNow()
+	}
+}
+
+func requireErrEqual(t *testing.T, err1 error, err2 error) { require.True(t, compareErrors(err1, err2)) }
+
+func elementSliceEqual(t *testing.T, e1 []Elementv2, e2 []Elementv2) {
+	require.Equal(t, len(e1), len(e2))
+
+	for i := range e1 {
+		require.True(t, readerElementComparer(e1[i], e2[i]))
 	}
 }
 
