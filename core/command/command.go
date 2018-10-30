@@ -171,7 +171,7 @@ func updateOperationTime(sess *session.Client, response bson.Raw) error {
 	}
 
 	t, i := opTimeElem.Timestamp()
-	return sess.AdvanceOperationTime(&bson.Timestamp{
+	return sess.AdvanceOperationTime(&bson.TimestampPrimitive{
 		T: t,
 		I: i,
 	})

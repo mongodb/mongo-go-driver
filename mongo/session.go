@@ -49,8 +49,8 @@ type Session interface {
 	CommitTransaction(context.Context) error
 	ClusterTime() *bson.Document
 	AdvanceClusterTime(*bson.Document) error
-	OperationTime() *bson.Timestamp
-	AdvanceOperationTime(*bson.Timestamp) error
+	OperationTime() *bson.TimestampPrimitive
+	AdvanceOperationTime(*bson.TimestampPrimitive) error
 	session()
 }
 
@@ -150,11 +150,11 @@ func (s *sessionImpl) AdvanceClusterTime(d *bson.Document) error {
 	return s.Client.AdvanceClusterTime(d)
 }
 
-func (s *sessionImpl) OperationTime() *bson.Timestamp {
+func (s *sessionImpl) OperationTime() *bson.TimestampPrimitive {
 	return s.Client.OperationTime
 }
 
-func (s *sessionImpl) AdvanceOperationTime(ts *bson.Timestamp) error {
+func (s *sessionImpl) AdvanceOperationTime(ts *bson.TimestampPrimitive) error {
 	return s.Client.AdvanceOperationTime(ts)
 }
 
