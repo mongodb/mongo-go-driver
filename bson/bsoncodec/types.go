@@ -51,3 +51,4 @@ var tJSONNumber = reflect.TypeOf(json.Number(""))
 
 var tValueMarshaler = reflect.TypeOf((*ValueMarshaler)(nil)).Elem()
 var tValueUnmarshaler = reflect.TypeOf((*ValueUnmarshaler)(nil)).Elem()
+var tProxy = reflect.TypeOf((*Proxy)(nil)).Elem()
