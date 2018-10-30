@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "63cc2afb_b5e8896d",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-30T18:22:46Z",
+      "side": 1,
+      "message": "No longer an issue since we\u0027ve deleted this code.",
+      "parentUuid": "16515a06_9b0139d1",
+      "range": {
+        "startLine": 36,
+        "startChar": 73,
+        "endLine": 36,
+        "endChar": 81
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7af21195_be175269",
         "filename": "core/command/command.go",
         "patchSetId": 7
@@ -354,6 +378,30 @@
       "side": 1,
       "message": "The user-facing API to create a new session in client.go is variadic and combines all the opts using MergeSessionOptions. Because there was only one set of options after doing the merge, it didn\u0027t make much sense for this to be variadic and to copy over the merge logic into here, so I made it as a single parameter. Also it\u0027s only called by internal core functions, so it didn\u0027t seem like a big deal to require nil to be passed.",
       "parentUuid": "3d25af16_d67aa240",
+      "range": {
+        "startLine": 142,
+        "startChar": 72,
+        "endLine": 142,
+        "endChar": 91
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "39924bc1_8f4c9cc4",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-10-30T18:22:46Z",
+      "side": 1,
+      "message": "I\u0027m mostly thinking of users like BIC who will also use this function to create sessions and it\u0027ll make their API cluttered with extra nil\u0027s.",
+      "parentUuid": "4ee8ec6e_78190022",
       "range": {
         "startLine": 142,
         "startChar": 72,
