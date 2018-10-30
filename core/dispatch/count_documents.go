@@ -8,8 +8,9 @@ package dispatch
 
 import (
 	"context"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"time"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
@@ -64,13 +65,15 @@ func CountDocuments(
 
 	// ignore Skip and Limit because we already have these options in the pipeline
 	if countOpts.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(time.Duration(*countOpts.MaxTime)/time.Millisecond)))
+		cmd.Opts = append(cmd.Opts, bson.Elem{
+			"maxTimeMS", bson.Int64(int64(time.Duration(*countOpts.MaxTime) / time.Millisecond)),
+		})
 	}
 	if countOpts.Collation != nil {
 		if desc.WireVersion.Max < 5 {
 			return 0, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", countOpts.Collation.ToDocument()))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(countOpts.Collation.ToDocument())})
 	}
 	if countOpts.Hint != nil {
 		hintElem, err := interfaceToElement("hint", countOpts.Hint, registry)

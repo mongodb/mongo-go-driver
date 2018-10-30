@@ -9,14 +9,15 @@ package integration
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 func initMonitor() (chan *event.CommandStartedEvent, chan *event.CommandSucceededEvent, chan *event.CommandFailedEvent, *event.CommandMonitor) {
@@ -48,22 +49,22 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	noerr(t, err)
 
 	// create capped collection
-	createCmd := bson.NewDocument(
-		bson.EC.String("create", colName),
-		bson.EC.Boolean("capped", true),
-		bson.EC.Int32("size", 1000))
+	createCmd := bson.Doc{
+		{"create", bson.String(colName)},
+		{"capped", bson.Boolean(true)},
+		{"size", bson.Int32(1000)}}
 	_, err = testutil.RunCommand(t, server.Server, dbName, createCmd)
 	noerr(t, err)
 
 	// insert some documents
-	insertCmd := bson.NewDocument(
-		bson.EC.String("insert", colName),
-		bson.EC.ArrayFromElements("documents",
-			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 1))),
-			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 2))),
-			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 3))),
-			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 4))),
-			bson.VC.Document(bson.NewDocument(bson.EC.Int32("_id", 5)))))
+	insertCmd := bson.Doc{
+		{"insert", bson.String(colName)},
+		{"documents", bson.Array(bson.Arr{
+			bson.Document(bson.Doc{{"_id", bson.Int32(1)}}),
+			bson.Document(bson.Doc{{"_id", bson.Int32(2)}}),
+			bson.Document(bson.Doc{{"_id", bson.Int32(3)}}),
+			bson.Document(bson.Doc{{"_id", bson.Int32(4)}}),
+			bson.Document(bson.Doc{{"_id", bson.Int32(5)}})})}}
 	_, err = testutil.RunCommand(t, server.Server, dbName, insertCmd)
 
 	conn, err := server.Connection(context.Background())
@@ -72,15 +73,15 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	// find those documents, setting cursor type to TAILABLEAWAIT
 	cursor, err := (&command.Find{
 		NS:     command.Namespace{DB: dbName, Collection: colName},
-		Filter: bson.NewDocument(bson.EC.SubDocument("_id", bson.NewDocument(bson.EC.Int32("$gte", 1)))),
-		Opts: []*bson.Element{
-			bson.EC.Int32("batchSize", 3),
-			bson.EC.Boolean("tailable", true),
-			bson.EC.Boolean("awaitData", true),
+		Filter: bson.Doc{{"_id", bson.Document(bson.Doc{{"$gte", bson.Int32(1)}})}},
+		Opts: []bson.Elem{
+			{"batchSize", bson.Int32(3)},
+			{"tailable", bson.Boolean(true)},
+			{"awaitData", bson.Boolean(true)},
 		},
-		CursorOpts: []*bson.Element{
-			bson.EC.Int32("batchSize", 3),
-			bson.EC.Int64("maxTimeMS", 250),
+		CursorOpts: []bson.Elem{
+			{"batchSize", bson.Int32(3)},
+			{"maxTimeMS", bson.Int64(250)},
 		},
 	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 	noerr(t, err)
@@ -107,7 +108,7 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 			assert.Equal(t, 3, int(started.Command.Lookup("batchSize").Int32()))
 			assert.True(t, started.Command.Lookup("tailable").Boolean())
 			assert.True(t, started.Command.Lookup("awaitData").Boolean())
-			assert.Nil(t, started.Command.Lookup("maxAwaitTimeMS"),
+			assert.Equal(t, started.Command.Lookup("maxAwaitTimeMS"), bson.Val{},
 				"Should not have sent maxAwaitTimeMS in find command")
 		case "getMore":
 			assert.Equal(t, 3, int(started.Command.Lookup("batchSize").Int32()))
@@ -127,22 +128,20 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 		case "find":
 			assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
 
-			actual := succeeded.Reply.Lookup("cursor", "firstBatch").MutableArray()
+			actual := succeeded.Reply.Lookup("cursor", "firstBatch").Array()
 
-			for i := 0; i < actual.Len(); i++ {
-				v, _ := actual.Lookup(uint(i))
-				assert.Equal(t, id, int(v.MutableDocument().Lookup("_id").Int32()))
+			for _, v := range actual {
+				assert.Equal(t, id, int(v.Document().Lookup("_id").Int32()))
 				id++
 			}
 		case "getMore":
 			assert.Equal(t, "getMore", succeeded.CommandName)
 			assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
 
-			actual := succeeded.Reply.Lookup("cursor", "nextBatch").MutableArray()
+			actual := succeeded.Reply.Lookup("cursor", "nextBatch").Array()
 
-			for i := 0; i < actual.Len(); i++ {
-				v, _ := actual.Lookup(uint(i))
-				assert.Equal(t, id, int(v.MutableDocument().Lookup("_id").Int32()))
+			for _, v := range actual {
+				assert.Equal(t, id, int(v.Document().Lookup("_id").Int32()))
 				id++
 			}
 		default:

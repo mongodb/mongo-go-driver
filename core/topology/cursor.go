@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
@@ -26,11 +27,11 @@ type cursor struct {
 	id            int64
 	err           error
 	server        *Server
-	opts          []*bson.Element
+	opts          []bson.Elem
 	registry      *bsoncodec.Registry
 }
 
-func newCursor(result bson.Raw, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...*bson.Element) (command.Cursor, error) {
+func newCursor(result bson.Raw, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...bson.Elem) (command.Cursor, error) {
 	cur, err := result.LookupErr("cursor")
 	if err != nil {
 		return nil, err

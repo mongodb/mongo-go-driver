@@ -168,7 +168,7 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 	require.NoError(t, err)
 	err = client.Connect(context.Background())
 	require.NoError(t, err)
-	_, err = client.ListDatabases(context.Background(), bson.NewDocument())
+	_, err = client.ListDatabases(context.Background(), bson.Doc{})
 	require.NoError(t, err)
 	got := atomic.LoadInt32(&td.called)
 	if got < 1 {

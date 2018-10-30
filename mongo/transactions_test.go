@@ -20,6 +20,7 @@ import (
 	"path"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
@@ -151,10 +152,10 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bson.NewDocument(
-					bson.EC.String("configureFailPoint", test.FailPoint.ConfigureFailPoint),
-					bson.EC.String("mode", "off"),
-				))
+				_, _ = dbAdmin.RunCommand(ctx, bson.Doc{
+					{"configureFailPoint", bson.String(test.FailPoint.ConfigureFailPoint)},
+					{"mode", bson.String("off")},
+				})
 			}()
 		}
 
@@ -170,9 +171,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 		_, err = db.RunCommand(
 			context.Background(),
-			bson.NewDocument(
-				bson.EC.String("create", collName),
-			),
+			bson.Doc{{"create", bson.String(collName)}},
 		)
 		require.NoError(t, err)
 
@@ -275,12 +274,10 @@ func killSessions(t *testing.T, client *Client) {
 	s, err := client.topology.SelectServer(ctx, description.WriteSelector())
 	require.NoError(t, err)
 
-	vals := make([]*bson.Value, 0, 0)
+	vals := make(bson.Arr, 0, 0)
 	cmd := command.Write{
-		DB: "admin",
-		Command: bson.NewDocument(
-			bson.EC.ArrayFromElements("killAllSessions", vals...),
-		),
+		DB:      "admin",
+		Command: bson.Doc{{"killAllSessions", bson.Array(vals)}},
 	}
 	conn, err := s.Connection(ctx)
 	require.NoError(t, err)
@@ -309,10 +306,8 @@ func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonit
 	return c
 }
 
-func createFailPointDoc(t *testing.T, failPoint *failPoint) *bson.Document {
-	failDoc := bson.NewDocument(
-		bson.EC.String("configureFailPoint", failPoint.ConfigureFailPoint),
-	)
+func createFailPointDoc(t *testing.T, failPoint *failPoint) bson.Doc {
+	failDoc := bson.Doc{{"configureFailPoint", bson.String(failPoint.ConfigureFailPoint)}}
 
 	modeBytes, err := failPoint.Mode.MarshalJSON()
 	require.NoError(t, err)
@@ -323,53 +318,51 @@ func createFailPointDoc(t *testing.T, failPoint *failPoint) *bson.Document {
 	}
 	err = json.Unmarshal(modeBytes, &modeStruct)
 	if err != nil {
-		failDoc.Append(bson.EC.String("mode", "alwaysOn"))
+		failDoc = append(failDoc, bson.Elem{"mode", bson.String("alwaysOn")})
 	} else {
-		modeDoc := bson.NewDocument()
+		modeDoc := bson.Doc{}
 		if modeStruct.Times != 0 {
-			modeDoc.Append(bson.EC.Int32("times", modeStruct.Times))
+			modeDoc = append(modeDoc, bson.Elem{"times", bson.Int32(modeStruct.Times)})
 		}
 		if modeStruct.Skip != 0 {
-			modeDoc.Append(bson.EC.Int32("skip", modeStruct.Skip))
+			modeDoc = append(modeDoc, bson.Elem{"skip", bson.Int32(modeStruct.Skip)})
 		}
-		failDoc.Append(bson.EC.SubDocument("mode", modeDoc))
+		failDoc = append(failDoc, bson.Elem{"mode", bson.Document(modeDoc)})
 	}
 
 	if failPoint.Data != nil {
-		dataDoc := bson.NewDocument()
+		dataDoc := bson.Doc{}
 
 		if failPoint.Data.FailCommands != nil {
-			failCommandElems := make([]*bson.Value, len(failPoint.Data.FailCommands))
+			failCommandElems := make(bson.Arr, len(failPoint.Data.FailCommands))
 			for i, str := range failPoint.Data.FailCommands {
-				failCommandElems[i] = bson.VC.String(str)
+				failCommandElems[i] = bson.String(str)
 			}
-			dataDoc.Append(bson.EC.ArrayFromElements("failCommands", failCommandElems...))
+			dataDoc = append(dataDoc, bson.Elem{"failCommands", bson.Array(failCommandElems)})
 		}
 
 		if failPoint.Data.CloseConnection {
-			dataDoc.Append(bson.EC.Boolean("closeConnection", failPoint.Data.CloseConnection))
+			dataDoc = append(dataDoc, bson.Elem{"closeConnection", bson.Boolean(failPoint.Data.CloseConnection)})
 		}
 
 		if failPoint.Data.ErrorCode != 0 {
-			dataDoc.Append(bson.EC.Int32("errorCode", failPoint.Data.ErrorCode))
+			dataDoc = append(dataDoc, bson.Elem{"errorCode", bson.Int32(failPoint.Data.ErrorCode)})
 		}
 
 		if failPoint.Data.WriteConcernError != nil {
-			dataDoc.Append(
-				bson.EC.SubDocument("writeConcernError", bson.NewDocument(
-					bson.EC.Int32("code", failPoint.Data.WriteConcernError.Code),
-					bson.EC.String("errmsg", failPoint.Data.WriteConcernError.Errmsg),
-				)),
+			dataDoc = append(dataDoc,
+				bson.Elem{"writeConcernError", bson.Document(bson.Doc{
+					{"code", bson.Int32(failPoint.Data.WriteConcernError.Code)},
+					{"errmsg", bson.String(failPoint.Data.WriteConcernError.Errmsg)},
+				})},
 			)
 		}
 
 		if failPoint.Data.FailBeforeCommitExceptionCode != 0 {
-			dataDoc.Append(
-				bson.EC.Int32("failBeforeCommitExceptionCode", failPoint.Data.FailBeforeCommitExceptionCode),
-			)
+			dataDoc = append(dataDoc, bson.Elem{"failBeforeCommitExceptionCode", bson.Int32(failPoint.Data.FailBeforeCommitExceptionCode)})
 		}
 
-		failDoc.Append(bson.EC.SubDocument("data", dataDoc))
+		failDoc = append(failDoc, bson.Elem{"data", bson.Document(dataDoc)})
 	}
 
 	return failDoc
@@ -561,7 +554,7 @@ func getErrorFromResult(t *testing.T, result json.RawMessage) *transError {
 	return &expected
 }
 
-func checkExpectations(t *testing.T, expectations []*transExpectation, id0 *bson.Document, id1 *bson.Document) {
+func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bson.Doc, id1 bson.Doc) {
 	for _, expectation := range expectations {
 		var evt *event.CommandStartedEvent
 		select {
@@ -576,22 +569,20 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 *bson
 		jsonBytes, err := expectation.CommandStartedEvent.Command.MarshalJSON()
 		require.NoError(t, err)
 
-		expected := bson.NewDocument()
+		expected := bson.Doc{}
 		err = bson.UnmarshalExtJSON(jsonBytes, true, &expected)
 		require.NoError(t, err)
 
 		actual := evt.Command
-		iter := expected.Iterator()
-		for iter.Next() {
-			elem := iter.Element()
-			key := elem.Key()
-			val := elem.Value()
+		for _, elem := range expected {
+			key := elem.Key
+			val := elem.Value
 
 			actualVal := actual.Lookup(key)
 
 			// Keys that may be nil
 			if val.Type() == bson.TypeNull {
-				require.Nil(t, actual.LookupElement(key), "Expected %s to be nil", key)
+				require.Equal(t, actual.LookupElement(key), bson.Elem{}, "Expected %s to be nil", key)
 				continue
 			} else if key == "ordered" {
 				// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for some of these cases (e.g. insertOne)
@@ -599,13 +590,13 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 *bson
 			}
 
 			// Keys that should not be nil
-			require.NotNil(t, actualVal, "Expected %v, got nil for key: %s", elem, key)
+			require.NotEqual(t, actualVal.Type(), bsontype.Null, "Expected %v, got nil for key: %s", elem, key)
 			if key == "lsid" {
 				if val.StringValue() == "session0" {
-					require.True(t, id0.Equal(actualVal.MutableDocument()), "Session ID mismatch")
+					require.True(t, id0.Equal(actualVal.Document()), "Session ID mismatch")
 				}
 				if val.StringValue() == "session1" {
-					require.True(t, id1.Equal(actualVal.MutableDocument()), "Session ID mismatch")
+					require.True(t, id1.Equal(actualVal.Document()), "Session ID mismatch")
 				}
 			} else if key == "getMore" {
 				require.NotNil(t, actualVal, "Expected %v, got nil for key: %s", elem, key)
@@ -615,14 +606,14 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 *bson
 					require.Equal(t, expectedCursorID, actualVal.Int64())
 				}
 			} else if key == "readConcern" {
-				rcExpectDoc := val.MutableDocument()
-				rcActualDoc := actualVal.MutableDocument()
+				rcExpectDoc := val.Document()
+				rcActualDoc := actualVal.Document()
 				clusterTime := rcExpectDoc.Lookup("afterClusterTime")
 				level := rcExpectDoc.Lookup("level")
-				if clusterTime != nil {
+				if clusterTime.Type() != bsontype.Null {
 					require.NotNil(t, rcActualDoc.Lookup("afterClusterTime"))
 				}
-				if level != nil {
+				if level.Type() != bsontype.Null {
 					compareElements(t, rcExpectDoc.LookupElement("level"), rcActualDoc.LookupElement("level"))
 				}
 			} else {

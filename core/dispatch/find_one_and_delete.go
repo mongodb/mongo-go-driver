@@ -9,6 +9,8 @@ package dispatch
 import (
 	"context"
 
+	"time"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
@@ -19,7 +21,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/options"
-	"time"
 )
 
 // FindOneAndDelete handles the full cycle dispatch and execution of a FindOneAndDelete command against the provided
@@ -55,10 +56,10 @@ func FindOneAndDelete(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.FindAndModify{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", do.Collation.ToDocument()))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(do.Collation.ToDocument())})
 	}
 	if do.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMs", int64(*do.MaxTime/time.Millisecond)))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMs", bson.Int64(int64(*do.MaxTime / time.Millisecond))})
 	}
 	if do.Projection != nil {
 		projElem, err := interfaceToElement("fields", do.Projection, registry)

@@ -106,14 +106,16 @@ func createDefaultConnectedServer(t *testing.T, willErr bool) *Server {
 	return s
 }
 
-func createOKBatchReplyDoc(id int64, batchDocs *bson.Array) *bson.Document {
-	return bson.NewDocument(
-		bson.EC.Int32("ok", 1),
-		bson.EC.SubDocument(
+func createOKBatchReplyDoc(id int64, batchDocs bson.Arr) bson.Doc {
+	return bson.Doc{
+		{"ok", bson.Int32(1)},
+		{
 			"cursor",
-			bson.NewDocument(
-				bson.EC.Int64("id", id),
-				bson.EC.Array("nextBatch", batchDocs))))
+			bson.Document(bson.Doc{
+				{"id", bson.Int64(id)},
+				{"nextBatch", bson.Array(batchDocs)},
+			}),
+		}}
 }
 
 // Mock Pool implementation
@@ -161,7 +163,7 @@ func (*mockConnection) WriteWireMessage(ctx context.Context, wm wiremessage.Wire
 func (m *mockConnection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessage, error) {
 	if m.writes < 4 {
 		// write empty batch
-		d := createOKBatchReplyDoc(2, bson.NewArray())
+		d := createOKBatchReplyDoc(2, bson.Arr{})
 
 		return internal.MakeReply(m.t, d), nil
 	} else if m.willErr {
@@ -169,7 +171,7 @@ func (m *mockConnection) ReadWireMessage(ctx context.Context) (wiremessage.WireM
 		return nil, errors.New("intentional mock error")
 	} else {
 		// write non-empty batch
-		d := createOKBatchReplyDoc(2, bson.NewArray(bson.VC.String("a")))
+		d := createOKBatchReplyDoc(2, bson.Arr{bson.String("a")})
 
 		return internal.MakeReply(m.t, d), nil
 	}

@@ -43,9 +43,7 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 
 	_, err = db.RunCommand(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.String("create", dbName),
-		),
+		bson.Doc{{"create", bson.String(dbName)}},
 	)
 	require.NoError(t, err)
 
@@ -99,9 +97,7 @@ func TestIndexView_CreateOne(t *testing.T) {
 	indexName, err := indexView.CreateOne(
 		context.Background(),
 		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("foo", -1),
-			),
+			Keys: bson.Doc{{"foo", bson.Int32(-1)}},
 		},
 	)
 	require.NoError(t, err)
@@ -142,9 +138,7 @@ func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 	indexName, err := indexView.CreateOne(
 		context.Background(),
 		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("foo", -1),
-			),
+			Keys:    bson.Doc{{"foo", bson.Int32(-1)}},
 			Options: NewIndexOptionsBuilder().Name("testname").Build(),
 		},
 	)
@@ -187,9 +181,7 @@ func TestIndexView_CreateOneWithAllOptions(t *testing.T) {
 	_, err := indexView.CreateOne(
 		context.Background(),
 		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.String("foo", "text"),
-			),
+			Keys: bson.Doc{{"foo", bson.String("text")}},
 			Options: NewIndexOptionsBuilder().
 				Background(false).
 				ExpireAfterSeconds(10).
@@ -200,18 +192,14 @@ func TestIndexView_CreateOneWithAllOptions(t *testing.T) {
 				DefaultLanguage("english").
 				LanguageOverride("english").
 				TextVersion(1).
-				Weights(bson.NewDocument()).
+				Weights(bson.Doc{}).
 				SphereVersion(1).
 				Bits(32).
 				Max(10).
 				Min(1).
 				BucketSize(1).
-				PartialFilterExpression(bson.NewDocument()).
-				StorageEngine(bson.NewDocument(
-					bson.EC.SubDocument("wiredTiger", bson.NewDocument(
-						bson.EC.String("configString", "block_compressor=zlib"),
-					)),
-				)).
+				PartialFilterExpression(bson.Doc{}).
+				StorageEngine(bson.Doc{{"wiredTiger", bson.Document(bson.Doc{{"configString", bson.String("block_compressor=zlib")}})}}).
 				Build(),
 		},
 	)
@@ -231,13 +219,9 @@ func TestIndexView_CreateOneWithCollationOption(t *testing.T) {
 	_, err := indexView.CreateOne(
 		context.Background(),
 		IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.String("bar", "text"),
-			),
+			Keys: bson.Doc{{"bar", bson.String("text")}},
 			Options: NewIndexOptionsBuilder().
-				Collation(bson.NewDocument(
-					bson.EC.String("locale", "simple"),
-				)).
+				Collation(bson.Doc{{"locale", bson.String("simple")}}).
 				Build(),
 		},
 	)
@@ -278,15 +262,13 @@ func TestIndexView_CreateMany(t *testing.T) {
 		context.Background(),
 		[]IndexModel{
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("foo", -1),
-				),
+				Keys: bson.Doc{{"foo", bson.Int32(-1)}},
 			},
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("bar", 1),
-					bson.EC.Int32("baz", -1),
-				),
+				Keys: bson.Doc{
+					{"bar", bson.Int32(1)},
+					{"baz", bson.Int32(-1)},
+				},
 			},
 		},
 	)
@@ -343,15 +325,13 @@ func TestIndexView_DropOne(t *testing.T) {
 		context.Background(),
 		[]IndexModel{
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("foo", -1),
-				),
+				Keys: bson.Doc{{"foo", bson.Int32(-1)}},
 			},
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("bar", 1),
-					bson.EC.Int32("baz", -1),
-				),
+				Keys: bson.Doc{
+					{"bar", bson.Int32(1)},
+					{"baz", bson.Int32(-1)},
+				},
 			},
 		},
 	)
@@ -395,15 +375,13 @@ func TestIndexView_DropAll(t *testing.T) {
 		context.Background(),
 		[]IndexModel{
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("foo", -1),
-				),
+				Keys: bson.Doc{{"foo", bson.Int32(-1)}},
 			},
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("bar", 1),
-					bson.EC.Int32("baz", -1),
-				),
+				Keys: bson.Doc{
+					{"bar", bson.Int32(1)},
+					{"baz", bson.Int32(-1)},
+				},
 			},
 		},
 	)
@@ -448,15 +426,13 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 		context.Background(),
 		[]IndexModel{
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("foo", -1),
-				),
+				Keys: bson.Doc{{"foo", bson.Int32(-1)}},
 			},
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("bar", 1),
-					bson.EC.Int32("baz", -1),
-				),
+				Keys: bson.Doc{
+					{"bar", bson.Int32(1)},
+					{"baz", bson.Int32(-1)},
+				},
 			},
 		},
 		opts,
@@ -520,15 +496,13 @@ func TestIndexView_DropIndexesOptioner(t *testing.T) {
 		context.Background(),
 		[]IndexModel{
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("foo", -1),
-				),
+				Keys: bson.Doc{{"foo", bson.Int32(-1)}},
 			},
 			{
-				Keys: bson.NewDocument(
-					bson.EC.Int32("bar", 1),
-					bson.EC.Int32("baz", -1),
-				),
+				Keys: bson.Doc{
+					{"bar", bson.Int32(1)},
+					{"baz", bson.Int32(-1)},
+				},
 			},
 		},
 	)

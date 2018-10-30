@@ -175,7 +175,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, err
 	}
 
-	var filterDoc *bson.Document
+	var filterDoc bson.Doc
 	if filter != nil {
 		filterDoc, err = transformDocument(db.registry, filter)
 		if err != nil {

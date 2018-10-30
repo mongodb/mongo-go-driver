@@ -11,6 +11,7 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
@@ -47,10 +48,10 @@ type Session interface {
 	StartTransaction(...*options.TransactionOptions) error
 	AbortTransaction(context.Context) error
 	CommitTransaction(context.Context) error
-	ClusterTime() *bson.Document
-	AdvanceClusterTime(*bson.Document) error
-	OperationTime() *bson.Timestamp
-	AdvanceOperationTime(*bson.Timestamp) error
+	ClusterTime() bson.Doc
+	AdvanceClusterTime(bson.Doc) error
+	OperationTime() *primitive.Timestamp
+	AdvanceOperationTime(*primitive.Timestamp) error
 	session()
 }
 
@@ -142,19 +143,19 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	return err
 }
 
-func (s *sessionImpl) ClusterTime() *bson.Document {
+func (s *sessionImpl) ClusterTime() bson.Doc {
 	return s.Client.ClusterTime
 }
 
-func (s *sessionImpl) AdvanceClusterTime(d *bson.Document) error {
+func (s *sessionImpl) AdvanceClusterTime(d bson.Doc) error {
 	return s.Client.AdvanceClusterTime(d)
 }
 
-func (s *sessionImpl) OperationTime() *bson.Timestamp {
+func (s *sessionImpl) OperationTime() *primitive.Timestamp {
 	return s.Client.OperationTime
 }
 
-func (s *sessionImpl) AdvanceOperationTime(ts *bson.Timestamp) error {
+func (s *sessionImpl) AdvanceOperationTime(ts *primitive.Timestamp) error {
 	return s.Client.AdvanceOperationTime(ts)
 }
 

@@ -13,12 +13,12 @@ import (
 )
 
 func TestClusterClock(t *testing.T) {
-	var clusterTime1 = bson.NewDocument(bson.EC.SubDocument("$clusterTime",
-		bson.NewDocument(bson.EC.Timestamp("clusterTime", 10, 5))))
-	var clusterTime2 = bson.NewDocument(bson.EC.SubDocument("$clusterTime",
-		bson.NewDocument(bson.EC.Timestamp("clusterTime", 5, 5))))
-	var clusterTime3 = bson.NewDocument(bson.EC.SubDocument("$clusterTime",
-		bson.NewDocument(bson.EC.Timestamp("clusterTime", 5, 0))))
+	var clusterTime1 = bson.Doc{{"$clusterTime",
+		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(10, 5)}})}}
+	var clusterTime2 = bson.Doc{{"$clusterTime",
+		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(5, 5)}})}}
+	var clusterTime3 = bson.Doc{{"$clusterTime",
+		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(5, 0)}})}}
 
 	t.Run("ClusterTime", func(t *testing.T) {
 		clock := ClusterClock{}
@@ -31,7 +31,7 @@ func TestClusterClock(t *testing.T) {
 		clock.AdvanceClusterTime(clusterTime2)
 
 		<-done
-		if clock.GetClusterTime() != clusterTime1 {
+		if !clock.GetClusterTime().Equal(clusterTime1) {
 			t.Errorf("Expected cluster time %v, received %v", clusterTime1, clock.GetClusterTime())
 		}
 	})

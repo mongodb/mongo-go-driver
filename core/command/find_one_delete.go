@@ -22,8 +22,8 @@ import (
 // The findOneAndDelete command deletes a single document that matches a query and returns it.
 type FindOneAndDelete struct {
 	NS           Namespace
-	Query        *bson.Document
-	Opts         []*bson.Element
+	Query        bson.Doc
+	Opts         []bson.Elem
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -47,12 +47,12 @@ func (f *FindOneAndDelete) encode(desc description.SelectedServer) (*Write, erro
 		return nil, err
 	}
 
-	command := bson.NewDocument(
-		bson.EC.String("findAndModify", f.NS.Collection),
-		bson.EC.SubDocument("query", f.Query),
-		bson.EC.Boolean("remove", true),
-	)
-	command.Append(f.Opts...)
+	command := bson.Doc{
+		{"findAndModify", bson.String(f.NS.Collection)},
+		{"query", bson.Document(f.Query)},
+		{"remove", bson.Boolean(true)},
+	}
+	command = append(command, f.Opts...)
 
 	return &Write{
 		Clock:        f.Clock,

@@ -34,7 +34,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next *bson.Document
+		var next bson.Doc
 
 		for cursor.Next(context.Background()) {
 			err = cursor.Decode(&next)
@@ -63,7 +63,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next *bson.Document
+		var next bson.Doc
 
 		for cursor.Next(context.Background()) {
 			err = cursor.Decode(&next)
@@ -98,9 +98,10 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next *bson.Document
+		var next bson.Doc
 
 		for cursor.Next(context.Background()) {
+			next = next[:0]
 			err = cursor.Decode(&next)
 			noerr(t, err)
 
@@ -134,16 +135,17 @@ func TestCommandListIndexes(t *testing.T) {
 		testutil.AutoCreateIndexes(t, []string{"c"})
 
 		ns := command.NewNamespace(dbName, testutil.ColName(t))
-		opts := []*bson.Element{
-			bson.EC.Int32("batchSize", 1),
+		opts := []bson.Elem{
+			{"batchSize", bson.Int32(1)},
 		}
 		cursor, err := (&command.ListIndexes{NS: ns, Opts: opts}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
 		indexes := []string{}
-		var next *bson.Document
+		var next bson.Doc
 
 		for cursor.Next(context.Background()) {
+			next = next[:0]
 			err = cursor.Decode(&next)
 			noerr(t, err)
 

@@ -46,7 +46,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 
 	tm.ResetTimer()
 
-	cursor, err := coll.Find(ctx, bson.NewDocument())
+	cursor, err := coll.Find(ctx, bson.Doc{})
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data strin
 		return err
 	}
 
-	_, err = db.RunCommand(ctx, bson.NewDocument(bson.EC.String("create", "corpus")))
+	_, err = db.RunCommand(ctx, bson.Doc{{"create", bson.String("corpus")}})
 	if err != nil {
 		return err
 	}

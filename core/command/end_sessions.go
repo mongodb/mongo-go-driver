@@ -24,7 +24,7 @@ import (
 // EndSessions represents an endSessions command.
 type EndSessions struct {
 	Clock      *session.ClusterClock
-	SessionIDs []*bson.Document
+	SessionIDs []bson.Doc
 
 	results []result.EndSessions
 	errors  []error
@@ -33,14 +33,14 @@ type EndSessions struct {
 // BatchSize is the max number of sessions to be included in 1 endSessions command.
 const BatchSize = 10000
 
-func (es *EndSessions) split() [][]*bson.Document {
-	batches := [][]*bson.Document{}
+func (es *EndSessions) split() [][]bson.Doc {
+	batches := [][]bson.Doc{}
 	docIndex := 0
 	totalNumDocs := len(es.SessionIDs)
 
 createBatches:
 	for {
-		batch := []*bson.Document{}
+		batch := []bson.Doc{}
 
 		for i := 0; i < BatchSize; i++ {
 			if docIndex == totalNumDocs {
@@ -57,15 +57,13 @@ createBatches:
 	return batches
 }
 
-func (es *EndSessions) encodeBatch(batch []*bson.Document, desc description.SelectedServer) *Write {
-	vals := make([]*bson.Value, 0, len(batch))
+func (es *EndSessions) encodeBatch(batch []bson.Doc, desc description.SelectedServer) *Write {
+	vals := make(bson.Arr, 0, len(batch))
 	for _, doc := range batch {
-		vals = append(vals, bson.VC.Document(doc))
+		vals = append(vals, bson.Document(doc))
 	}
 
-	cmd := bson.NewDocument(
-		bson.EC.ArrayFromElements("endSessions", vals...),
-	)
+	cmd := bson.Doc{{"endSessions", bson.Array(vals)}}
 
 	return &Write{
 		Clock:   es.Clock,

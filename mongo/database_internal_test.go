@@ -107,7 +107,7 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("ismaster", 1)))
+	result, err := db.RunCommand(context.Background(), bson.Doc{{"ismaster", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	isMaster, err := result.LookupErr("ismaster")
@@ -145,11 +145,11 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 
 	_, err = db.RunCommand(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.String("create", cappedName),
-			bson.EC.Boolean("capped", true),
-			bson.EC.Int32("size", 64*1024),
-		),
+		bson.Doc{
+			{"create", bson.String(cappedName)},
+			{"capped", bson.Boolean(true)},
+			{"size", bson.Int32(64 * 1024)},
+		},
 	)
 	if err != nil {
 		return "", "", err
@@ -157,8 +157,8 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 	cappedColl := db.Collection(cappedName)
 
 	id := objectid.New()
-	want := bson.EC.ObjectID("_id", id)
-	doc := bson.NewDocument(want, bson.EC.Int32("x", 1))
+	want := bson.Elem{"_id", bson.ObjectID(id)}
+	doc := bson.Doc{want, {"x", bson.Int32(1)}}
 
 	_, err = uncappedColl.InsertOne(context.Background(), doc)
 	if err != nil {
@@ -180,7 +180,7 @@ func verifyListCollections(cursor Cursor, uncappedName string, cappedName string
 	var cappedFound bool
 
 	for cursor.Next(context.Background()) {
-		next := bson.NewDocument()
+		next := bson.Doc{}
 		err = cursor.Decode(next)
 		if err != nil {
 			return err
@@ -237,11 +237,9 @@ func listCollectionsTest(db *Database, cappedOnly bool) error {
 		return err
 	}
 
-	var filter *bson.Document
+	var filter bson.Doc
 	if cappedOnly {
-		filter = bson.NewDocument(
-			bson.EC.Boolean("options.capped", true),
-		)
+		filter = bson.Doc{{"options.capped", bson.Boolean(true)}}
 	}
 
 	for i := 0; i < 10; i++ {

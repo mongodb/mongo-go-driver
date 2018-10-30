@@ -25,17 +25,17 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	noerr(t, err)
 
 	// create capped collection
-	createCmd := bson.NewDocument(
-		bson.EC.String("create", testutil.ColName(t)),
-		bson.EC.Boolean("capped", true),
-		bson.EC.Int32("size", 1000))
+	createCmd := bson.Doc{
+		{"create", bson.String(testutil.ColName(t))},
+		{"capped", bson.Boolean(true)},
+		{"size", bson.Int32(1000)}}
 	_, err = testutil.RunCommand(t, server.Server, dbName, createCmd)
 
 	conn, err := server.Connection(context.Background())
 	noerr(t, err)
 
 	// Insert a document
-	d := bson.NewDocument(bson.EC.Int32("_id", 1), bson.EC.Timestamp("ts", 5, 0))
+	d := bson.Doc{{"_id", bson.Int32(1)}, {"ts", bson.Timestamp(5, 0)}}
 	wc := writeconcern.New(writeconcern.WMajority())
 	testutil.AutoInsertDocs(t, wc, d)
 
@@ -45,12 +45,12 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	// find that document, setting cursor type to TAILABLEAWAIT
 	cursor, err := (&command.Find{
 		NS:     command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
-		Filter: bson.NewDocument(bson.EC.SubDocument("ts", bson.NewDocument(bson.EC.Timestamp("$gte", 5, 0)))),
-		Opts: []*bson.Element{
-			bson.EC.Int64("limit", 0),
-			bson.EC.Int32("batchSize", 1),
-			bson.EC.Boolean("tailable", true),
-			bson.EC.Boolean("awaitData", true),
+		Filter: bson.Doc{{"ts", bson.Document(bson.Doc{{"$gte", bson.Timestamp(5, 0)}})}},
+		Opts: []bson.Elem{
+			{"limit", bson.Int64(0)},
+			{"batchSize", bson.Int32(1)},
+			{"tailable", bson.Boolean(true)},
+			{"awaitData", bson.Boolean(true)},
 		},
 	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 	noerr(t, err)
@@ -68,7 +68,7 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	}
 
 	// insert another document in 500 MS
-	d = bson.NewDocument(bson.EC.Int32("_id", 2), bson.EC.Timestamp("ts", 6, 0))
+	d = bson.Doc{{"_id", bson.Int32(2)}, {"ts", bson.Timestamp(6, 0)}}
 
 	rdr, err = d.MarshalBSON()
 	noerr(t, err)

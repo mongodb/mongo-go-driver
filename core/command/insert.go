@@ -31,8 +31,8 @@ type Insert struct {
 	ContinueOnError bool
 	Clock           *session.ClusterClock
 	NS              Namespace
-	Docs            []*bson.Document
-	Opts            []*bson.Element
+	Docs            []bson.Doc
+	Opts            []bson.Elem
 	WriteConcern    *writeconcern.WriteConcern
 	Session         *session.Client
 
@@ -51,14 +51,14 @@ func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMess
 	return batchesToWireMessage(i.batches, desc)
 }
 
-func (i *Insert) encodeBatch(docs []*bson.Document, desc description.SelectedServer) (*WriteBatch, error) {
+func (i *Insert) encodeBatch(docs []bson.Doc, desc description.SelectedServer) (*WriteBatch, error) {
 	command, err := encodeBatch(docs, i.Opts, InsertCommand, i.NS.Collection)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, opt := range i.Opts {
-		if opt.Key() == "ordered" && !opt.Value().Boolean() {
+		if opt.Key == "ordered" && !opt.Value.Boolean() {
 			i.ContinueOnError = true
 			break
 		}

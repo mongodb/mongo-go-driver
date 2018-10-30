@@ -8,6 +8,7 @@ package dispatch
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/options"
 
@@ -57,19 +58,19 @@ func Update(
 		if err != nil {
 			return result.Update{}, err
 		}
-		cmd.Opts = append(cmd.Opts, bson.EC.Array("arrayFilters", arr))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"arrayFilters", bson.Array(arr)})
 	}
 	if updateOpts.BypassDocumentValidation != nil && ss.Description().WireVersion.Includes(4) {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("bypassDocumentValidation", *updateOpts.BypassDocumentValidation))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"bypassDocumentValidation", bson.Boolean(*updateOpts.BypassDocumentValidation)})
 	}
 	if updateOpts.Collation != nil {
 		if ss.Description().WireVersion.Max < 5 {
 			return result.Update{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", updateOpts.Collation.ToDocument()))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(updateOpts.Collation.ToDocument())})
 	}
 	if updateOpts.Upsert != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("upsert", *updateOpts.Upsert))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"upsert", bson.Boolean(*updateOpts.Upsert)})
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

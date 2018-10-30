@@ -8,6 +8,7 @@ package command
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
@@ -21,9 +22,9 @@ import (
 type ListCollections struct {
 	Clock      *session.ClusterClock
 	DB         string
-	Filter     *bson.Document
-	CursorOpts []*bson.Element
-	Opts       []*bson.Element
+	Filter     bson.Doc
+	CursorOpts []bson.Elem
+	Opts       []bson.Elem
 	ReadPref   *readpref.ReadPref
 	Session    *session.Client
 
@@ -41,12 +42,12 @@ func (lc *ListCollections) Encode(desc description.SelectedServer) (wiremessage.
 }
 
 func (lc *ListCollections) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.NewDocument(bson.EC.Int32("listCollections", 1))
+	cmd := bson.Doc{{"listCollections", bson.Int32(1)}}
 
 	if lc.Filter != nil {
-		cmd.Append(bson.EC.SubDocument("filter", lc.Filter))
+		cmd = append(cmd, bson.Elem{"filter", bson.Document(lc.Filter)})
 	}
-	cmd.Append(lc.Opts...)
+	cmd = append(cmd, lc.Opts...)
 
 	return &Read{
 		Clock:    lc.Clock,

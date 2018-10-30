@@ -144,11 +144,11 @@ func (p *Pool) ReturnSession(ss *Server) {
 }
 
 // IDSlice returns a slice of session IDs for each session in the pool
-func (p *Pool) IDSlice() []*bson.Document {
+func (p *Pool) IDSlice() []bson.Doc {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	ids := []*bson.Document{}
+	ids := []bson.Doc{}
 	for node := p.head; node != nil; node = node.next {
 		ids = append(ids, node.SessionID)
 	}

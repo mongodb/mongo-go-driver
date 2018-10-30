@@ -34,11 +34,11 @@ func TestCommand(t *testing.T) {
 	noerr(t, err)
 
 	ctx := context.Background()
-	var result *bson.Document
+	var result bson.Doc
 
 	cmd := &command.Read{
 		DB:      "admin",
-		Command: bson.NewDocument(bson.EC.Int32("getnonce", 1)),
+		Command: bson.Doc{{"getnonce", bson.Int32(1)}},
 	}
 	rw, err := server.Connection(ctx)
 	noerr(t, err)
@@ -46,7 +46,7 @@ func TestCommand(t *testing.T) {
 	rdr, err := cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
 	noerr(t, err)
 
-	result, err = bson.ReadDocument(rdr)
+	result, err = bson.ReadDoc(rdr)
 	noerr(t, err)
 
 	val, err := result.LookupErr("ok")
@@ -63,15 +63,15 @@ func TestCommand(t *testing.T) {
 	require.Equal(t, val.Type(), bson.TypeString)
 	require.NotEqual(t, "", val.StringValue(), "MongoDB returned empty nonce")
 
-	result.Reset()
-	cmd.Command = bson.NewDocument(bson.EC.Int32("ping", 1))
+	result = result[:0]
+	cmd.Command = bson.Doc{{"ping", bson.Int32(1)}}
 
 	rw, err = server.Connection(ctx)
 	noerr(t, err)
 	rdr, err = cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
 	noerr(t, err)
 
-	result, err = bson.ReadDocument(rdr)
+	result, err = bson.ReadDoc(rdr)
 	require.NoError(t, err)
 
 	val, err = result.LookupErr("ok")
@@ -92,7 +92,7 @@ func TestWriteCommands(t *testing.T) {
 			cmd := &command.Insert{
 				WriteConcern: nil,
 				NS:           command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
-				Docs:         []*bson.Document{bson.NewDocument(bson.EC.String("_id", "helloworld"))},
+				Docs:         []bson.Doc{{{"_id", bson.String("helloworld")}}},
 			}
 			_, err = cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
 			noerr(t, err)

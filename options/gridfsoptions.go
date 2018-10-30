@@ -7,11 +7,12 @@
 package options
 
 import (
+	"time"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
-	"time"
 )
 
 // DefaultName is the default name for a GridFS bucket.
@@ -102,8 +103,8 @@ func MergeBucketOptions(opts ...*BucketOptions) *BucketOptions {
 
 // UploadOptions represents all possible options for a GridFS upload operation.
 type UploadOptions struct {
-	ChunkSizeBytes *int32         // Chunk size in bytes. Defaults to the chunk size of the bucket.
-	Metadata       *bson.Document // User data for the 'metadata' field of the files collection document.
+	ChunkSizeBytes *int32   // Chunk size in bytes. Defaults to the chunk size of the bucket.
+	Metadata       bson.Doc // User data for the 'metadata' field of the files collection document.
 }
 
 // GridFSUpload creates a new *UploadOptions
@@ -120,7 +121,7 @@ func (u *UploadOptions) SetChunkSizeBytes(i int32) *UploadOptions {
 }
 
 // SetMetadata specfies the metadata for the upload.
-func (u *UploadOptions) SetMetadata(doc *bson.Document) *UploadOptions {
+func (u *UploadOptions) SetMetadata(doc bson.Doc) *UploadOptions {
 	u.Metadata = doc
 	return u
 }

@@ -53,7 +53,7 @@ func ListDatabases(
 
 	ld := options.MergeListDatabasesOptions(opts...)
 	if ld.NameOnly != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("nameOnly", *ld.NameOnly))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"nameOnly", bson.Boolean(*ld.NameOnly)})
 	}
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)

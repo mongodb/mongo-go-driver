@@ -55,7 +55,7 @@ type Bucket struct {
 // Upload contains options to upload a file to a bucket.
 type Upload struct {
 	chunkSize int32
-	metadata  *bson.Document
+	metadata  bson.Doc
 }
 
 // NewBucket creates a GridFS bucket.
@@ -176,9 +176,9 @@ func (b *Bucket) UploadFromStreamWithID(fileID objectid.ObjectID, filename strin
 
 // OpenDownloadStream creates a stream from which the contents of the file can be read.
 func (b *Bucket) OpenDownloadStream(fileID objectid.ObjectID) (*DownloadStream, error) {
-	return b.openDownloadStream(bson.NewDocument(
-		bson.EC.ObjectID("_id", fileID),
-	))
+	return b.openDownloadStream(bson.Doc{
+		{"_id", bson.ObjectID(fileID)},
+	})
 }
 
 // DownloadToStream downloads the file with the specified fileID and writes it to the provided io.Writer.
@@ -207,13 +207,9 @@ func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...*options.Name
 		numSkip = (-1 * numSkip) - 1
 	}
 
-	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bson.NewDocument(
-		bson.EC.Int32("uploadDate", sortOrder),
-	))
+	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bson.Doc{{"uploadDate", bson.Int32(sortOrder)}})
 
-	return b.openDownloadStream(bson.NewDocument(
-		bson.EC.String("filename", filename),
-	), findOpts)
+	return b.openDownloadStream(bson.Doc{{"filename", bson.String(filename)}}, findOpts)
 }
 
 // DownloadToStreamByName downloads the file with the given name to the given io.Writer.
@@ -235,9 +231,7 @@ func (b *Bucket) Delete(fileID objectid.ObjectID) error {
 		defer cancel()
 	}
 
-	res, err := b.filesColl.DeleteOne(ctx, bson.NewDocument(
-		bson.EC.ObjectID("_id", fileID),
-	))
+	res, err := b.filesColl.DeleteOne(ctx, bson.Doc{{"_id", bson.ObjectID(fileID)}})
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
 	}
@@ -287,13 +281,10 @@ func (b *Bucket) Rename(fileID objectid.ObjectID, newFilename string) error {
 		defer cancel()
 	}
 
-	res, err := b.filesColl.UpdateOne(ctx, bson.NewDocument(
-		bson.EC.ObjectID("_id", fileID),
-	), bson.NewDocument(
-		bson.EC.SubDocument("$set", bson.NewDocument(
-			bson.EC.String("filename", newFilename),
-		)),
-	))
+	res, err := b.filesColl.UpdateOne(ctx,
+		bson.Doc{{"_id", bson.ObjectID(fileID)}},
+		bson.Doc{{"$set", bson.Document(bson.Doc{{"filename", bson.String(newFilename)}})}},
+	)
 	if err != nil {
 		return err
 	}
@@ -382,9 +373,7 @@ func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, 
 }
 
 func (b *Bucket) deleteChunks(ctx context.Context, fileID objectid.ObjectID) error {
-	_, err := b.chunksColl.DeleteMany(ctx, bson.NewDocument(
-		bson.EC.ObjectID("files_id", fileID),
-	))
+	_, err := b.chunksColl.DeleteMany(ctx, bson.Doc{{"files_id", bson.ObjectID(fileID)}})
 	return err
 }
 
@@ -403,11 +392,9 @@ func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*opti
 }
 
 func (b *Bucket) findChunks(ctx context.Context, fileID objectid.ObjectID) (mongo.Cursor, error) {
-	chunksCursor, err := b.chunksColl.Find(ctx, bson.NewDocument(
-		bson.EC.ObjectID("files_id", fileID),
-	), options.Find().SetSort(bson.NewDocument(
-		bson.EC.Int32("n", 1), // sort by chunk index
-	)))
+	chunksCursor, err := b.chunksColl.Find(ctx,
+		bson.Doc{{"files_id", bson.ObjectID(fileID)}},
+		options.Find().SetSort(bson.Doc{{"n", bson.Int32(1)}})) // sort by chunk index
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +424,7 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 			return err
 		}
 
-		keyElemDoc, err := bson.ReadDocument(keyElem.Document())
+		keyElemDoc, err := bson.ReadDoc(keyElem.Document())
 		if err != nil {
 			return err
 		}
@@ -466,9 +453,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 		return err
 	}
 
-	docRes := cloned.FindOne(ctx, bson.NewDocument(), options.FindOne().SetProjection(bson.NewDocument(
-		bson.EC.Int32("_id", 1),
-	)))
+	docRes := cloned.FindOne(ctx, bson.Doc{}, options.FindOne().SetProjection(bson.Doc{{"_id", bson.Int32(1)}}))
 
 	err = docRes.Decode(nil)
 	if err == mongo.ErrNoDocuments {
@@ -476,17 +461,17 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 		chunksIv := b.chunksColl.Indexes()
 
 		filesModel := mongo.IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("filename", 1),
-				bson.EC.Int32("uploadDate", 1),
-			),
+			Keys: bson.Doc{
+				{"filename", bson.Int32(1)},
+				{"uploadDate", bson.Int32(1)},
+			},
 		}
 
 		chunksModel := mongo.IndexModel{
-			Keys: bson.NewDocument(
-				bson.EC.Int32("files_id", 1),
-				bson.EC.Int32("n", 1),
-			),
+			Keys: bson.Doc{
+				{"files_id", bson.Int32(1)},
+				{"n", bson.Int32(1)},
+			},
 		}
 
 		if err = createIndexIfNotExists(ctx, filesIv, filesModel); err != nil {

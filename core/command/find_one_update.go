@@ -22,9 +22,9 @@ import (
 // The findOneAndUpdate command modifies and returns a single document.
 type FindOneAndUpdate struct {
 	NS           Namespace
-	Query        *bson.Document
-	Update       *bson.Document
-	Opts         []*bson.Element
+	Query        bson.Doc
+	Update       bson.Doc
+	Opts         []bson.Elem
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -48,12 +48,12 @@ func (f *FindOneAndUpdate) encode(desc description.SelectedServer) (*Write, erro
 		return nil, err
 	}
 
-	command := bson.NewDocument(
-		bson.EC.String("findAndModify", f.NS.Collection),
-		bson.EC.SubDocument("query", f.Query),
-		bson.EC.SubDocument("update", f.Update),
-	)
-	command.Append(f.Opts...)
+	command := bson.Doc{
+		{"findAndModify", bson.String(f.NS.Collection)},
+		{"query", bson.Document(f.Query)},
+		{"update", bson.Document(f.Update)},
+	}
+	command = append(command, f.Opts...)
 
 	return &Write{
 		Clock:        f.Clock,

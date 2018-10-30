@@ -512,7 +512,7 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 }
 
 func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Raw, error) {
-	var cmd *bson.Document
+	var cmd bson.Doc
 	opts := options.RunCmd()
 	for name, opt := range argmap {
 		switch name {
@@ -590,7 +590,7 @@ func verifyInsertOneResult(t *testing.T, res *InsertOneResult, result json.RawMe
 
 	if expectedID != nil {
 		require.NotNil(t, res)
-		require.Equal(t, expectedID, res.InsertedID.(*bson.Element).Value().Interface())
+		require.Equal(t, expectedID, res.InsertedID.(bson.Elem).Value.Interface())
 	}
 }
 
@@ -606,7 +606,7 @@ func verifyInsertManyResult(t *testing.T, res *InsertManyResult, result json.Raw
 		replaceFloatsWithInts(expected.InsertedIds)
 
 		for i, elem := range res.InsertedIDs {
-			res.InsertedIDs[i] = elem.(*bson.Element).Value().Interface()
+			res.InsertedIDs[i] = elem.(bson.Elem).Value.Interface()
 		}
 
 		for _, val := range expected.InsertedIds {
@@ -620,7 +620,7 @@ func verifyCursorResult(t *testing.T, cur Cursor, result json.RawMessage) {
 		require.NotNil(t, cur)
 		require.True(t, cur.Next(context.Background()))
 
-		var actual *bson.Document
+		var actual bson.Doc
 		require.NoError(t, cur.Decode(&actual))
 
 		compareDocs(t, expected, actual)
@@ -634,7 +634,7 @@ func verifyDocumentResult(t *testing.T, res *DocumentResult, result json.RawMess
 	jsonBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
 
-	var actual *bson.Document
+	var actual bson.Doc
 	err = res.Decode(&actual)
 	if err == ErrNoDocuments {
 		var expected map[string]interface{}
@@ -647,7 +647,7 @@ func verifyDocumentResult(t *testing.T, res *DocumentResult, result json.RawMess
 
 	require.NoError(t, err)
 
-	doc := bson.NewDocument()
+	doc := bson.Doc{}
 	err = bson.UnmarshalExtJSON(jsonBytes, true, &doc)
 	require.NoError(t, err)
 
@@ -717,12 +717,12 @@ func verifyRunCommandResult(t *testing.T, res bson.Raw, result json.RawMessage) 
 	jsonBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
 
-	expected := bson.NewDocument()
+	expected := bson.Doc{}
 	err = bson.UnmarshalExtJSON(jsonBytes, true, &expected)
 	require.NoError(t, err)
 
 	require.NotNil(t, res)
-	actual, err := bson.ReadDocument(res)
+	actual, err := bson.ReadDoc(res)
 	require.NoError(t, err)
 
 	// All runcommand results in tests are for key "n" only
@@ -748,61 +748,50 @@ func sanitizeCollectionName(kind string, name string) string {
 	return name
 }
 
-func compareElements(t *testing.T, expected *bson.Element, actual *bson.Element) {
-	if expected.Value().IsNumber() {
-		if expectedNum, ok := expected.Value().Int64OK(); ok {
-			switch actual.Value().Type() {
+func compareElements(t *testing.T, expected bson.Elem, actual bson.Elem) {
+	if expected.Value.IsNumber() {
+		if expectedNum, ok := expected.Value.Int64OK(); ok {
+			switch actual.Value.Type() {
 			case bson.TypeInt32:
-				require.Equal(t, expectedNum, int64(actual.Value().Int32()), "For key %v", expected.Key())
+				require.Equal(t, expectedNum, int64(actual.Value.Int32()), "For key %v", expected.Key)
 			case bson.TypeInt64:
-				require.Equal(t, expectedNum, actual.Value().Int64(), "For key %v\n", expected.Key())
+				require.Equal(t, expectedNum, actual.Value.Int64(), "For key %v\n", expected.Key)
 			case bson.TypeDouble:
-				require.Equal(t, expectedNum, int64(actual.Value().Double()), "For key %v\n", expected.Key())
+				require.Equal(t, expectedNum, int64(actual.Value.Double()), "For key %v\n", expected.Key)
 			}
 		} else {
-			expectedNum := expected.Value().Int32()
-			switch actual.Value().Type() {
+			expectedNum := expected.Value.Int32()
+			switch actual.Value.Type() {
 			case bson.TypeInt32:
-				require.Equal(t, expectedNum, actual.Value().Int32(), "For key %v", expected.Key())
+				require.Equal(t, expectedNum, actual.Value.Int32(), "For key %v", expected.Key)
 			case bson.TypeInt64:
-				require.Equal(t, expectedNum, int32(actual.Value().Int64()), "For key %v\n", expected.Key())
+				require.Equal(t, expectedNum, int32(actual.Value.Int64()), "For key %v\n", expected.Key)
 			case bson.TypeDouble:
-				require.Equal(t, expectedNum, int32(actual.Value().Double()), "For key %v\n", expected.Key())
+				require.Equal(t, expectedNum, int32(actual.Value.Double()), "For key %v\n", expected.Key)
 			}
 		}
-	} else if conv, ok := expected.Value().MutableDocumentOK(); ok {
-		actualConv, actualOk := actual.Value().MutableDocumentOK()
+	} else if conv, ok := expected.Value.DocumentOK(); ok {
+		actualConv, actualOk := actual.Value.DocumentOK()
 		require.True(t, actualOk)
 		compareDocs(t, conv, actualConv)
-	} else if conv, ok := expected.Value().MutableArrayOK(); ok {
-		actualConv, actualOk := actual.Value().MutableArrayOK()
+	} else if conv, ok := expected.Value.ArrayOK(); ok {
+		actualConv, actualOk := actual.Value.ArrayOK()
 		require.True(t, actualOk)
 		compareArrays(t, conv, actualConv)
 	} else {
-		exp, err := expected.MarshalBSON()
-		require.NoError(t, err)
-		act, err := actual.MarshalBSON()
-		require.NoError(t, err)
-
-		require.True(t, bytes.Equal(exp, act), "For key %s, expected %v\nactual: %v", expected.Key(), expected, actual)
+		require.True(t, actual.Equal(expected), "For key %s, expected %v\nactual: %v", expected.Key, expected, actual)
 	}
 }
 
-func compareArrays(t *testing.T, expected *bson.Array, actual *bson.Array) {
-	if expected.Len() != actual.Len() {
-		t.Errorf("array length mismatch. expected %d got %d", expected.Len(), actual.Len())
+func compareArrays(t *testing.T, expected bson.Arr, actual bson.Arr) {
+	if len(expected) != len(actual) {
+		t.Errorf("array length mismatch. expected %d got %d", len(expected), len(actual))
 		t.FailNow()
 	}
 
-	expectedIter, err := expected.Iterator()
-	testhelpers.RequireNil(t, err, "error creating iterator for expected array: %s", err)
-
-	actualIter, err := actual.Iterator()
-	testhelpers.RequireNil(t, err, "error creating iterator for actual array: %s", err)
-
-	for expectedIter.Next() && actualIter.Next() {
-		expectedDoc := expectedIter.Value().MutableDocument()
-		actualDoc := actualIter.Value().MutableDocument()
+	for idx := range expected {
+		expectedDoc := expected[idx].Document()
+		actualDoc := actual[idx].Document()
 		compareDocs(t, expectedDoc, actualDoc)
 	}
 }
@@ -887,26 +876,24 @@ func newCollationFromMap(m map[string]interface{}) *options.Collation {
 	return &collation
 }
 
-func docSliceFromRaw(t *testing.T, raw json.RawMessage) []*bson.Document {
+func docSliceFromRaw(t *testing.T, raw json.RawMessage) []bson.Doc {
 	jsonBytes, err := raw.MarshalJSON()
 	require.NoError(t, err)
 
-	array := bson.NewArray()
+	array := bson.Arr{}
 	err = bson.UnmarshalExtJSON(jsonBytes, true, &array)
 	require.NoError(t, err)
 
-	docs := make([]*bson.Document, 0)
+	docs := make([]bson.Doc, 0)
 
-	for i := 0; i < array.Len(); i++ {
-		item, err := array.Lookup(uint(i))
-		require.NoError(t, err)
-		docs = append(docs, item.MutableDocument())
+	for _, val := range array {
+		docs = append(docs, val.Document())
 	}
 
 	return docs
 }
 
-func docSliceToInterfaceSlice(docs []*bson.Document) []interface{} {
+func docSliceToInterfaceSlice(docs []bson.Doc) []interface{} {
 	out := make([]interface{}, 0, len(docs))
 
 	for _, doc := range docs {

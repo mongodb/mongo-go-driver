@@ -40,9 +40,7 @@ func (dd *DropDatabase) Encode(desc description.SelectedServer) (wiremessage.Wir
 }
 
 func (dd *DropDatabase) encode(desc description.SelectedServer) (*Write, error) {
-	cmd := bson.NewDocument(
-		bson.EC.Int32("dropDatabase", 1),
-	)
+	cmd := bson.Doc{{"dropDatabase", bson.Int32(1)}}
 
 	return &Write{
 		Clock:        dd.Clock,

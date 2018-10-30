@@ -30,7 +30,7 @@ func (ss *StartSession) Encode(desc description.SelectedServer) (wiremessage.Wir
 }
 
 func (ss *StartSession) encode(desc description.SelectedServer) *Write {
-	cmd := bson.NewDocument(bson.EC.Int32("startSession", 1))
+	cmd := bson.Doc{{"startSession", bson.Int32(1)}}
 	return &Write{
 		Clock:   ss.Clock,
 		DB:      "admin",

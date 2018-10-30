@@ -32,7 +32,7 @@ func createServerConn(t *testing.T) (*topology.SelectedServer, connection.Connec
 	return server, conn
 }
 
-func compareDocs(t *testing.T, reader bson.Raw, doc *bson.Document) {
+func compareDocs(t *testing.T, reader bson.Raw, doc bson.Doc) {
 	marshaled, err := doc.MarshalBSON()
 	if err != nil {
 		t.Errorf("error marshaling document: %s", err)
@@ -50,7 +50,7 @@ func createNamespace(t *testing.T) command.Namespace {
 	}
 }
 
-func compareResults(t *testing.T, channelConn *internal.ChannelConn, docs ...*bson.Document) {
+func compareResults(t *testing.T, channelConn *internal.ChannelConn, docs ...bson.Doc) {
 	if len(channelConn.Written) != 1 {
 		t.Errorf("expected 1 messages to be sent but got %d", len(channelConn.Written))
 	}
@@ -92,14 +92,14 @@ func TestOpMsg(t *testing.T) {
 	t.Run("SingleDocInsert", func(t *testing.T) {
 		ctx := context.TODO()
 		server, conn := createServerConn(t)
-		doc := bson.NewDocument(bson.EC.String("x", "testing single doc insert"))
+		doc := bson.Doc{{"x", bson.String("testing single doc insert")}}
 
 		cmd := &command.Insert{
 			NS: command.Namespace{
 				DB:         dbName,
 				Collection: testutil.ColName(t),
 			},
-			Docs: []*bson.Document{doc},
+			Docs: []bson.Doc{doc},
 		}
 
 		res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
@@ -113,18 +113,18 @@ func TestOpMsg(t *testing.T) {
 	t.Run("SingleDocUpdate", func(t *testing.T) {
 		ctx := context.TODO()
 		server, conn := createServerConn(t)
-		doc := bson.NewDocument(
-			bson.EC.SubDocument("$set", bson.NewDocument(
-				bson.EC.String("x", "updated x"),
-			),
-			))
+		doc := bson.Doc{
+			{"$set", bson.Document(bson.Doc{
+				{"x", bson.String("updated x")},
+			}),
+			}}
 
-		updateDocs := []*bson.Document{
-			bson.NewDocument(
-				bson.EC.SubDocument("q", bson.NewDocument()),
-				bson.EC.SubDocument("u", doc),
-				bson.EC.Boolean("multi", true),
-			),
+		updateDocs := []bson.Doc{
+			{
+				{"q", bson.Document(bson.Doc{})},
+				{"u", bson.Document(doc)},
+				{"multi", bson.Boolean(true)},
+			},
 		}
 
 		cmd := &command.Update{
@@ -143,12 +143,12 @@ func TestOpMsg(t *testing.T) {
 	t.Run("SingleDocDelete", func(t *testing.T) {
 		ctx := context.TODO()
 		server, conn := createServerConn(t)
-		doc := bson.NewDocument(bson.EC.String("x", "testing single doc insert"))
+		doc := bson.Doc{{"x", bson.String("testing single doc insert")}}
 
-		deleteDocs := []*bson.Document{
-			bson.NewDocument(
-				bson.EC.SubDocument("q", doc),
-				bson.EC.Int32("limit", 0)),
+		deleteDocs := []bson.Doc{
+			{
+				{"q", bson.Document(doc)},
+				{"limit", bson.Int32(0)}},
 		}
 		cmd := &command.Delete{
 			NS:      createNamespace(t),
@@ -167,15 +167,15 @@ func TestOpMsg(t *testing.T) {
 		ctx := context.TODO()
 		server, conn := createServerConn(t)
 
-		doc1 := bson.NewDocument(bson.EC.String("x", "testing multi doc insert"))
-		doc2 := bson.NewDocument(bson.EC.Int32("y", 50))
+		doc1 := bson.Doc{{"x", bson.String("testing multi doc insert")}}
+		doc2 := bson.Doc{{"y", bson.Int32(50)}}
 
 		cmd := &command.Insert{
 			NS: command.Namespace{
 				DB:         dbName,
 				Collection: testutil.ColName(t),
 			},
-			Docs: []*bson.Document{doc1, doc2},
+			Docs: []bson.Doc{doc1, doc2},
 		}
 
 		channelConn := createChannelConn()
@@ -200,29 +200,29 @@ func TestOpMsg(t *testing.T) {
 		ctx := context.TODO()
 		server, conn := createServerConn(t)
 
-		doc1 := bson.NewDocument(
-			bson.EC.SubDocument("$set", bson.NewDocument(
-				bson.EC.String("x", "updated x"),
-			)),
-		)
+		doc1 := bson.Doc{
+			{"$set", bson.Document(bson.Doc{
+				{"x", bson.String("updated x")},
+			})},
+		}
 
-		doc2 := bson.NewDocument(
-			bson.EC.SubDocument("$set", bson.NewDocument(
-				bson.EC.String("y", "updated y"),
-			)),
-		)
+		doc2 := bson.Doc{
+			{"$set", bson.Document(bson.Doc{
+				{"y", bson.String("updated y")},
+			})},
+		}
 
-		updateDocs := []*bson.Document{
-			bson.NewDocument(
-				bson.EC.SubDocument("q", bson.NewDocument()),
-				bson.EC.SubDocument("u", doc1),
-				bson.EC.Boolean("multi", true),
-			),
-			bson.NewDocument(
-				bson.EC.SubDocument("q", bson.NewDocument()),
-				bson.EC.SubDocument("u", doc2),
-				bson.EC.Boolean("multi", true),
-			),
+		updateDocs := []bson.Doc{
+			{
+				{"q", bson.Document(bson.Doc{})},
+				{"u", bson.Document(doc1)},
+				{"multi", bson.Boolean(true)},
+			},
+			{
+				{"q", bson.Document(bson.Doc{})},
+				{"u", bson.Document(doc2)},
+				{"multi", bson.Boolean(true)},
+			},
 		}
 
 		cmd := &command.Update{
@@ -251,22 +251,18 @@ func TestOpMsg(t *testing.T) {
 		ctx := context.TODO()
 		server, conn := createServerConn(t)
 
-		doc1 := bson.NewDocument(
-			bson.EC.String("x", "x"),
-		)
-		doc2 := bson.NewDocument(
-			bson.EC.String("y", "y"),
-		)
+		doc1 := bson.Doc{{"x", bson.String("x")}}
+		doc2 := bson.Doc{{"y", bson.String("y")}}
 
-		deleteDocs := []*bson.Document{
-			bson.NewDocument(
-				bson.EC.SubDocument("q", doc1),
-				bson.EC.Int32("limit", 0),
-			),
-			bson.NewDocument(
-				bson.EC.SubDocument("q", doc2),
-				bson.EC.Int32("limit", 0),
-			),
+		deleteDocs := []bson.Doc{
+			{
+				{"q", bson.Document(doc1)},
+				{"limit", bson.Int32(0)},
+			},
+			{
+				{"q", bson.Document(doc2)},
+				{"limit", bson.Int32(0)},
+			},
 		}
 
 		cmd := &command.Delete{

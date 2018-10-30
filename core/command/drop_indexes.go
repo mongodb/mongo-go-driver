@@ -22,7 +22,7 @@ import (
 type DropIndexes struct {
 	NS           Namespace
 	Index        string
-	Opts         []*bson.Element
+	Opts         []bson.Elem
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -42,11 +42,11 @@ func (di *DropIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 }
 
 func (di *DropIndexes) encode(desc description.SelectedServer) (*Write, error) {
-	cmd := bson.NewDocument(
-		bson.EC.String("dropIndexes", di.NS.Collection),
-		bson.EC.String("index", di.Index),
-	)
-	cmd.Append(di.Opts...)
+	cmd := bson.Doc{
+		{"dropIndexes", bson.String(di.NS.Collection)},
+		{"index", bson.String(di.Index)},
+	}
+	cmd = append(cmd, di.Opts...)
 
 	return &Write{
 		Clock:        di.Clock,

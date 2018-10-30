@@ -12,7 +12,7 @@ import (
 )
 
 func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Raw, error) {
-	var mainDoc bson.Document
+	var mainDoc bson.Doc
 
 	for _, section := range msg.Sections {
 		switch converted := section.(type) {
@@ -22,18 +22,18 @@ func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Raw, error) {
 				return nil, err
 			}
 		case wiremessage.SectionDocumentSequence:
-			arr := bson.NewArray()
+			arr := bson.Arr{}
 			for _, doc := range converted.Documents {
-				newDoc := bson.NewDocument()
+				newDoc := bson.Doc{}
 				err := newDoc.UnmarshalBSON(doc)
 				if err != nil {
 					return nil, err
 				}
 
-				arr.Append(bson.VC.Document(newDoc))
+				arr = append(arr, bson.Document(newDoc))
 			}
 
-			mainDoc.Append(bson.EC.Array(converted.Identifier, arr))
+			mainDoc = append(mainDoc, bson.Elem{converted.Identifier, bson.Array(arr)})
 		}
 	}
 

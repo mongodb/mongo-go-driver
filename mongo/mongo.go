@@ -10,10 +10,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mongodb/mongo-go-driver/options"
 	"net"
 	"reflect"
 	"strings"
+
+	"github.com/mongodb/mongo-go-driver/options"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
@@ -67,14 +68,14 @@ func (me MarshalError) Error() string {
 //
 type Pipeline []bson.D
 
-func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
+func transformDocument(registry *bsoncodec.Registry, val interface{}) (bson.Doc, error) {
 	if registry == nil {
 		registry = bson.NewRegistryBuilder().Build()
 	}
 	if val == nil {
-		return bson.NewDocument(), nil
+		return bson.Doc{}, nil
 	}
-	if doc, ok := val.(*bson.Document); ok {
+	if doc, ok := val.(bson.Doc); ok {
 		return doc.Copy(), nil
 	}
 	if bs, ok := val.([]byte); ok {
@@ -88,46 +89,53 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Doc
 	if err != nil {
 		return nil, MarshalError{Value: val, Err: err}
 	}
-	return bson.ReadDocument(b)
+	return bson.ReadDoc(b)
 }
 
-func ensureID(d *bson.Document) (interface{}, error) {
+func ensureID(d bson.Doc) (bson.Doc, interface{}) {
 	var id interface{}
 
 	elem, err := d.LookupElementErr("_id")
-	switch {
-	case err == bson.ErrElementNotFound:
-		oid := objectid.New()
-		d.Append(bson.EC.ObjectID("_id", oid))
-		id = oid
-	case err != nil:
-		return nil, err
-	default:
+	switch err.(type) {
+	case nil:
 		id = elem
+	default:
+		oid := objectid.New()
+		d = append(d, bson.Elem{"_id", bson.ObjectID(oid)})
+		id = oid
 	}
-	return id, nil
+	return d, id
 }
 
-func ensureDollarKey(doc *bson.Document) error {
-	if elem, ok := doc.ElementAtOK(0); !ok || !strings.HasPrefix(elem.Key(), "$") {
+func ensureDollarKey(doc bson.Doc) error {
+	if len(doc) > 0 && !strings.HasPrefix(doc[0].Key, "$") {
 		return errors.New("update document must contain key beginning with '$'")
 	}
 	return nil
 }
 
-func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface{}) (*bson.Array, error) {
-	var pipelineArr *bson.Array
+func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface{}) (bson.Arr, error) {
+	pipelineArr := bson.Arr{}
 	switch t := pipeline.(type) {
-	case *bson.Array:
-		pipelineArr = t
-	case []*bson.Document:
-		pipelineArr = bson.NewArray()
+	case Pipeline:
+		for _, d := range t {
+			doc, err := transformDocument(registry, d)
+			if err != nil {
+				return nil, err
+			}
+			pipelineArr = append(pipelineArr, bson.Document(doc))
+		}
+	case bson.Arr:
+		pipelineArr = make(bson.Arr, len(t))
+		copy(pipelineArr, t)
+	case []bson.Doc:
+		pipelineArr = bson.Arr{}
 
 		for _, doc := range t {
-			pipelineArr.Append(bson.VC.Document(doc))
+			pipelineArr = append(pipelineArr, bson.Document(doc))
 		}
 	case []interface{}:
-		pipelineArr = bson.NewArray()
+		pipelineArr = bson.Arr{}
 
 		for _, val := range t {
 			doc, err := transformDocument(registry, val)
@@ -135,7 +143,7 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 				return nil, err
 			}
 
-			pipelineArr.Append(bson.VC.Document(doc))
+			pipelineArr = append(pipelineArr, bson.Document(doc))
 		}
 	default:
 		p, err := transformDocument(registry, pipeline)
@@ -143,38 +151,39 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 			return nil, err
 		}
 
-		pipelineArr = bson.ArrayFromDocument(p)
+		for _, elem := range p {
+			pipelineArr = append(pipelineArr, elem.Value)
+		}
 	}
 
 	return pipelineArr, nil
 }
 
 // Build the aggregation pipeline for the CountDocument command.
-func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts *options.CountOptions) (*bson.Array, error) {
-	pipeline := bson.NewArray()
+func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts *options.CountOptions) (bson.Arr, error) {
+	pipeline := bson.Arr{}
 	filterDoc, err := transformDocument(registry, filter)
 
 	if err != nil {
 		return nil, err
 	}
-	pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.SubDocument("$match", filterDoc))))
+	pipeline = append(pipeline, bson.Document(bson.Doc{{"$match", bson.Document(filterDoc)}}))
 
 	if opts != nil {
 		if opts.Skip != nil {
-			pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.Int64("$skip", *opts.Skip))))
+			pipeline = append(pipeline, bson.Document(bson.Doc{{"$skip", bson.Int64(*opts.Skip)}}))
 		}
 		if opts.Limit != nil {
-			pipeline.Append(bson.VC.Document(bson.NewDocument(bson.EC.Int64("$limit", *opts.Limit))))
+			pipeline = append(pipeline, bson.Document(bson.Doc{{"$limit", bson.Int64(*opts.Limit)}}))
 		}
 	}
 
-	pipeline.Append(bson.VC.Document(bson.NewDocument(
-		bson.EC.SubDocument("$group", bson.NewDocument(
-			bson.EC.Null("_id"),
-			bson.EC.SubDocument("n", bson.NewDocument(
-				bson.EC.Int32("$sum", 1)),
-			)),
-		)),
+	pipeline = append(pipeline, bson.Document(bson.Doc{
+		{"$group", bson.Document(bson.Doc{
+			{"_id", bson.Null()},
+			{"n", bson.Document(bson.Doc{{"$sum", bson.Int32(1)}})},
+		})},
+	},
 	))
 
 	return pipeline, nil

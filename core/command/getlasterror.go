@@ -45,7 +45,7 @@ func (gle *GetLastError) Encode() (wiremessage.WireMessage, error) {
 
 func (gle *GetLastError) encode() (*Read, error) {
 	// This can probably just be a global variable that we reuse.
-	cmd := bson.NewDocument(bson.EC.Int32("getLastError", 1))
+	cmd := bson.Doc{{"getLastError", bson.Int32(1)}}
 
 	return &Read{
 		Clock:    gle.Clock,

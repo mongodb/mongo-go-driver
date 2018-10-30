@@ -169,27 +169,27 @@ func (m *Msg) UnmarshalWireMessage(b []byte) error {
 }
 
 // GetMainDocument returns the document containing the message to send.
-func (m *Msg) GetMainDocument() (*bson.Document, error) {
-	return bson.ReadDocument(m.Sections[0].(SectionBody).Document)
+func (m *Msg) GetMainDocument() (bson.Doc, error) {
+	return bson.ReadDoc(m.Sections[0].(SectionBody).Document)
 }
 
 // GetSequenceArray returns this message's document sequence as a BSON array along with the array identifier.
 // If this message has no associated document sequence, a nil array is returned.
-func (m *Msg) GetSequenceArray() (*bson.Array, string, error) {
+func (m *Msg) GetSequenceArray() (bson.Arr, string, error) {
 	if len(m.Sections) == 1 {
 		return nil, "", nil
 	}
 
-	arr := bson.NewArray()
+	arr := bson.Arr{}
 	sds := m.Sections[1].(SectionDocumentSequence)
 
 	for _, rdr := range sds.Documents {
-		doc, err := bson.ReadDocument([]byte(rdr))
+		doc, err := bson.ReadDoc([]byte(rdr))
 		if err != nil {
 			return nil, "", err
 		}
 
-		arr.Append(bson.VC.Document(doc))
+		arr = append(arr, bson.Document(doc))
 	}
 
 	return arr, sds.Identifier, nil

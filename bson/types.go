@@ -6,7 +6,15 @@
 
 package bson
 
-import "github.com/mongodb/mongo-go-driver/bson/bsontype"
+import (
+	"reflect"
+	"time"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
+	"github.com/mongodb/mongo-go-driver/bson/decimal"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
+)
 
 // These constants uniquely refer to each BSON type.
 const (
@@ -32,3 +40,52 @@ const (
 	TypeMinKey           = bsontype.MinKey
 	TypeMaxKey           = bsontype.MaxKey
 )
+
+var tBinary = reflect.TypeOf(primitive.Binary{})
+var tBool = reflect.TypeOf(false)
+var tCodeWithScope = reflect.TypeOf(primitive.CodeWithScope{})
+var tDBPointer = reflect.TypeOf(primitive.DBPointer{})
+var tDecimal = reflect.TypeOf(decimal.Decimal128{})
+var tDocument = reflect.TypeOf((Doc)(nil))
+var tMDoc = reflect.TypeOf((MDoc)(nil))
+var tD = reflect.TypeOf(D{})
+var tElementSlice = reflect.TypeOf(([]Elem)(nil))
+var tDateTime = reflect.TypeOf(primitive.DateTime(0))
+var tUndefined = reflect.TypeOf(primitive.Undefined{})
+var tNull = reflect.TypeOf(primitive.Null{})
+var tArray = reflect.TypeOf((Arr)(nil))
+var tValue = reflect.TypeOf(Val{})
+var tRawValue = reflect.TypeOf(RawValue{})
+var tFloat32 = reflect.TypeOf(float32(0))
+var tFloat64 = reflect.TypeOf(float64(0))
+var tInt = reflect.TypeOf(int(0))
+var tInt8 = reflect.TypeOf(int8(0))
+var tInt16 = reflect.TypeOf(int16(0))
+var tInt32 = reflect.TypeOf(int32(0))
+var tInt64 = reflect.TypeOf(int64(0))
+var tJavaScript = reflect.TypeOf(primitive.JavaScript(""))
+var tOID = reflect.TypeOf(objectid.ObjectID{})
+var tRaw = reflect.TypeOf(Raw(nil))
+var tRegex = reflect.TypeOf(primitive.Regex{})
+var tString = reflect.TypeOf("")
+var tSymbol = reflect.TypeOf(primitive.Symbol(""))
+var tTime = reflect.TypeOf(time.Time{})
+var tTimestamp = reflect.TypeOf(primitive.Timestamp{})
+var tUint = reflect.TypeOf(uint(0))
+var tUint8 = reflect.TypeOf(uint8(0))
+var tUint16 = reflect.TypeOf(uint16(0))
+var tUint32 = reflect.TypeOf(uint32(0))
+var tUint64 = reflect.TypeOf(uint64(0))
+var tMinKey = reflect.TypeOf(primitive.MinKey{})
+var tMaxKey = reflect.TypeOf(primitive.MaxKey{})
+
+var tEmpty = reflect.TypeOf((*interface{})(nil)).Elem()
+var tEmptySlice = reflect.TypeOf([]interface{}(nil))
+
+var zeroVal reflect.Value
+
+// this references the quantity of milliseconds between zero time and
+// the unix epoch. useful for making sure that we convert time.Time
+// objects correctly to match the legacy bson library's handling of
+// time.Time values.
+const zeroEpochMs = int64(62135596800000)

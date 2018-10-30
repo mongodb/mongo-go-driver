@@ -38,14 +38,14 @@ func (kc *KillCursors) Encode(desc description.SelectedServer) (wiremessage.Wire
 }
 
 func (kc *KillCursors) encode(desc description.SelectedServer) (*Read, error) {
-	idVals := make([]*bson.Value, 0, len(kc.IDs))
+	idVals := make([]bson.Val, 0, len(kc.IDs))
 	for _, id := range kc.IDs {
-		idVals = append(idVals, bson.VC.Int64(id))
+		idVals = append(idVals, bson.Int64(id))
 	}
-	cmd := bson.NewDocument(
-		bson.EC.String("killCursors", kc.NS.Collection),
-		bson.EC.ArrayFromElements("cursors", idVals...),
-	)
+	cmd := bson.Doc{
+		{"killCursors", bson.String(kc.NS.Collection)},
+		{"cursors", bson.Array(idVals)},
+	}
 
 	return &Read{
 		Clock:   kc.Clock,

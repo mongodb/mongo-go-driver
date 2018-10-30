@@ -25,8 +25,8 @@ import (
 type Distinct struct {
 	NS          Namespace
 	Field       string
-	Query       *bson.Document
-	Opts        []*bson.Element
+	Query       bson.Doc
+	Opts        []bson.Elem
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -52,13 +52,13 @@ func (d *Distinct) encode(desc description.SelectedServer) (*Read, error) {
 		return nil, err
 	}
 
-	command := bson.NewDocument(bson.EC.String("distinct", d.NS.Collection), bson.EC.String("key", d.Field))
+	command := bson.Doc{{"distinct", bson.String(d.NS.Collection)}, {"key", bson.String(d.Field)}}
 
 	if d.Query != nil {
-		command.Append(bson.EC.SubDocument("query", d.Query))
+		command = append(command, bson.Elem{"query", bson.Document(d.Query)})
 	}
 
-	command.Append(d.Opts...)
+	command = append(command, d.Opts...)
 
 	return &Read{
 		Clock:       d.Clock,

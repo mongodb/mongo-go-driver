@@ -10,13 +10,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/mongodb/mongo-go-driver/options"
 	"io/ioutil"
 	"math"
 	"path"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/mongodb/mongo-go-driver/options"
 
 	"fmt"
 
@@ -87,7 +88,7 @@ func compareVersions(t *testing.T, v1 string, v2 string) int {
 func getServerVersion(db *Database) (string, error) {
 	serverStatus, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(bson.EC.Int32("serverStatus", 1)),
+		bson.Doc{{"serverStatus", bson.Int32(1)}},
 	)
 	if err != nil {
 		return "", err
@@ -131,13 +132,13 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 
 		_, _ = db.RunCommand(
 			context.Background(),
-			bson.NewDocument(bson.EC.String("drop", collName)),
+			bson.Doc{{"drop", bson.String(collName)}},
 		)
 
 		if test.Outcome.Collection != nil && len(test.Outcome.Collection.Name) > 0 {
 			_, _ = db.RunCommand(
 				context.Background(),
-				bson.NewDocument(bson.EC.String("drop", test.Outcome.Collection.Name)),
+				bson.Doc{{"drop", bson.String(test.Outcome.Collection.Name)}},
 			)
 		}
 
@@ -372,25 +373,21 @@ func bulkWriteTest(t *testing.T, coll *Collection, test *testCase) {
 		if err != nil {
 			t.Fatalf("error marshalling options: %s", err)
 		}
-		optsDoc, err := bson.ReadDocument(optsBytes)
+		optsDoc, err := bson.ReadDoc(optsBytes)
 		if err != nil {
 			t.Fatalf("error creating options doc: %s", err)
 		}
 
-		optsKeys, err := optsDoc.Keys(false)
-		if err != nil {
-			t.Fatalf("error getting keys from options doc: %s", err)
-		}
-
 		opts := options.BulkWrite()
-		for _, k := range optsKeys {
-			val := optsDoc.Lookup(k.String())
+		for _, elem := range optsDoc {
+			k := elem.Key
+			val := optsDoc.Lookup(k)
 
-			switch k.String() {
+			switch k {
 			case "ordered":
 				opts = opts.SetOrdered(val.Boolean())
 			default:
-				fmt.Printf("unkonwn bulk write opt: %s\n", k.String())
+				fmt.Printf("unkonwn bulk write opt: %s\n", k)
 			}
 		}
 

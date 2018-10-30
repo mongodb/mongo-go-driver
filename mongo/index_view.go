@@ -13,6 +13,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/options"
@@ -34,8 +35,8 @@ type IndexView struct {
 
 // IndexModel contains information about an index.
 type IndexModel struct {
-	Keys    *bson.Document
-	Options *bson.Document
+	Keys    bson.Doc
+	Options bson.Doc
 }
 
 // List returns a cursor iterating over all the indexes in the collection.
@@ -77,7 +78,7 @@ func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*op
 // creates indexes are returned.
 func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ...*options.CreateIndexesOptions) ([]string, error) {
 	names := make([]string, 0, len(models))
-	indexes := bson.NewArray()
+	indexes := bson.Arr{}
 
 	for _, model := range models {
 		if model.Keys == nil {
@@ -91,18 +92,13 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 		names = append(names, name)
 
-		index := bson.NewDocument(
-			bson.EC.SubDocument("key", model.Keys),
-		)
+		index := bson.Doc{{"key", bson.Document(model.Keys)}}
 		if model.Options != nil {
-			err = index.Concat(model.Options)
-			if err != nil {
-				return nil, err
-			}
+			index = append(index, model.Options...)
 		}
-		index.Set(bson.EC.String("name", name))
+		index = index.Set("name", bson.String(name))
 
-		indexes.Append(bson.VC.Document(index))
+		indexes = append(indexes, bson.Document(index))
 	}
 
 	sess := sessionFromContext(ctx)
@@ -194,8 +190,8 @@ func getOrGenerateIndexName(model IndexModel) (string, error) {
 	if model.Options != nil {
 		nameVal, err := model.Options.LookupErr("name")
 
-		switch err {
-		case bson.ErrElementNotFound:
+		switch err.(type) {
+		case bson.KeyNotFound:
 			break
 		case nil:
 			if nameVal.Type() != bson.TypeString {
@@ -209,10 +205,9 @@ func getOrGenerateIndexName(model IndexModel) (string, error) {
 	}
 
 	name := bytes.NewBufferString("")
-	itr := model.Keys.Iterator()
 	first := true
 
-	for itr.Next() {
+	for _, elem := range model.Keys {
 		if !first {
 			_, err := name.WriteRune('_')
 			if err != nil {
@@ -220,8 +215,7 @@ func getOrGenerateIndexName(model IndexModel) (string, error) {
 			}
 		}
 
-		elem := itr.Element()
-		_, err := name.WriteString(elem.Key())
+		_, err := name.WriteString(elem.Key)
 		if err != nil {
 			return "", err
 		}
@@ -233,13 +227,13 @@ func getOrGenerateIndexName(model IndexModel) (string, error) {
 
 		var value string
 
-		switch elem.Value().Type() {
-		case bson.TypeInt32:
-			value = fmt.Sprintf("%d", elem.Value().Int32())
-		case bson.TypeInt64:
-			value = fmt.Sprintf("%d", elem.Value().Int64())
-		case bson.TypeString:
-			value = elem.Value().StringValue()
+		switch elem.Value.Type() {
+		case bsontype.Int32:
+			value = fmt.Sprintf("%d", elem.Value.Int32())
+		case bsontype.Int64:
+			value = fmt.Sprintf("%d", elem.Value.Int64())
+		case bsontype.String:
+			value = elem.Value.StringValue()
 		default:
 			return "", ErrInvalidIndexValue
 		}
@@ -250,9 +244,6 @@ func getOrGenerateIndexName(model IndexModel) (string, error) {
 		}
 
 		first = false
-	}
-	if err := itr.Err(); err != nil {
-		return "", err
 	}
 
 	return name.String(), nil
