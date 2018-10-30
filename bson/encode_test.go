@@ -6,7 +6,7 @@
 
 package bson
 
-func docToBytes(d *Document) []byte {
+func docToBytes(d *Documentv2) []byte {
 	b, err := d.MarshalBSON()
 	if err != nil {
 		panic(err)
@@ -14,8 +14,8 @@ func docToBytes(d *Document) []byte {
 	return b
 }
 
-func arrToBytes(a *Array) []byte {
-	b, err := a.MarshalBSON()
+func arrToBytes(a *Arrayv2) []byte {
+	_, b, err := a.MarshalBSONValue()
 	if err != nil {
 		panic(err)
 	}

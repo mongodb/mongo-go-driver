@@ -346,32 +346,10 @@ func TestRaw(t *testing.T) {
 	})
 }
 
-func readerElementEqual(e1, e2 *Element) bool {
-	if e1.value.start != e2.value.start {
-		return false
-	}
-	if e1.value.offset != e2.value.offset {
-		return false
-	}
-	return true
-}
+func readerElementEqual(e1, e2 Elementv2) bool { return e1.Equal(e2) }
 
-func readerElementComparer(e1, e2 *Element) bool {
-	b1, err := e1.MarshalBSON()
-	if err != nil {
-		return false
-	}
-	b2, err := e2.MarshalBSON()
-	if err != nil {
-		return false
-	}
-	if !bytes.Equal(b1, b2) {
-		return false
-	}
+func readerElementComparer(e1, e2 Elementv2) bool { return e1.Equal(e2) }
 
-	return true
-}
-
-func fromElement(e *Element) *Element {
-	return (*Element)(e)
+func fromElement(e Elementv2) Elementv2 {
+	return e
 }

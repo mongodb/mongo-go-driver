@@ -18,6 +18,6 @@ var marshalingTestCases = []marshalingTestCase{
 		struct {
 			Foo bool
 		}{Foo: true},
-		docToBytes(NewDocument(EC.Boolean("foo", true))),
+		docToBytes(NewDocumentv2(Elementv2{"foo", Boolean(true)})),
 	},
 }

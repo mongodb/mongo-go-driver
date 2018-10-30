@@ -37,7 +37,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns error when registry is nil", func(t *testing.T) {
 			want := ErrNilRegistry
 			var val RawValue
-			got := val.UnmarshalWithRegistry(nil, new(Document))
+			got := val.UnmarshalWithRegistry(nil, new(Documentv2))
 			if got != want {
 				t.Errorf("Exepcted errors to match. got %v; want %v", got, want)
 			}

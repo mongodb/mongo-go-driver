@@ -24,7 +24,7 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 		&struct {
 			Foo bool
 		}{Foo: true},
-		docToBytes(NewDocument(EC.Boolean("foo", true))),
+		docToBytes(NewDocumentv2(EC("foo", Boolean(true)))),
 	},
 	{
 		"nested document",
@@ -43,7 +43,7 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 				Bar bool
 			}{Bar: true},
 		},
-		docToBytes(NewDocument(EC.SubDocumentFromElements("foo", EC.Boolean("bar", true)))),
+		docToBytes(NewDocumentv2(EC("foo", EmbedElement("bar", Boolean(true))))),
 	},
 	{
 		"simple array",
@@ -56,6 +56,6 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 		}{
 			Foo: []bool{true},
 		},
-		docToBytes(NewDocument(EC.ArrayFromElements("foo", VC.Boolean(true)))),
+		docToBytes(NewDocumentv2(EC("foo", EmbedValues(Boolean(true))))),
 	},
 }

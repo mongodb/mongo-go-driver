@@ -105,8 +105,8 @@ func TestMarshal_roundtripFromBytes(t *testing.T) {
 		0x0,
 	}
 
-	doc := NewDocument()
-	require.NoError(t, Unmarshal(before, doc))
+	var doc *Documentv2
+	require.NoError(t, Unmarshal(before, &doc))
 
 	after, err := Marshal(doc)
 	require.NoError(t, err)
@@ -115,16 +115,15 @@ func TestMarshal_roundtripFromBytes(t *testing.T) {
 }
 
 func TestMarshal_roundtripFromDoc(t *testing.T) {
-	before := NewDocument(
-		EC.String("foo", "bar"),
-		EC.Int32("baz", -27),
-		EC.ArrayFromElements("bing", VC.Null(), VC.Regex("word", "i")),
-	)
+	before := NewDocumentv2().
+		Append("foo", String("bar")).
+		Append("baz", Int32(-27)).
+		Append("bing", EmbedValues(Null(), Regex("word", "i")))
 
 	b, err := Marshal(before)
 	require.NoError(t, err)
 
-	after := NewDocument()
+	var after *Documentv2
 	require.NoError(t, Unmarshal(b, &after))
 
 	require.True(t, before.Equal(after))
