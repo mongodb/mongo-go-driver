@@ -35,6 +35,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterEncoder(tJSONNumber, ValueEncoderFunc(dve.JSONNumberEncodeValue)).
 		RegisterEncoder(tURL, ValueEncoderFunc(dve.URLEncodeValue)).
 		RegisterEncoder(tValueMarshaler, ValueEncoderFunc(dve.ValueMarshalerEncodeValue)).
+		RegisterEncoder(tProxy, ValueEncoderFunc(dve.ProxyEncodeValue)).
 		RegisterDefaultEncoder(reflect.Bool, ValueEncoderFunc(dve.BooleanEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int, ValueEncoderFunc(dve.IntEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int8, ValueEncoderFunc(dve.IntEncodeValue)).
@@ -441,4 +442,26 @@ func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw b
 		return err
 	}
 	return bsonrw.Copier{}.CopyValueFromBytes(vw, t, val)
+}
+
+// ProxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
+func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
+	proxy, ok := i.(Proxy)
+	if !ok {
+		return ValueEncoderError{
+			Name:     "ProxyEncodeValue",
+			Types:    []interface{}{(Proxy)(nil)},
+			Received: i,
+		}
+	}
+
+	val, err := proxy.ProxyBSON()
+	if err != nil {
+		return err
+	}
+	encoder, err := ec.LookupEncoder(reflect.TypeOf(val))
+	if err != nil {
+		return err
+	}
+	return encoder.EncodeValue(ec, vw, val)
 }
