@@ -85,45 +85,45 @@ func WTimeout(d time.Duration) Option {
 }
 
 // MarshalBSONElement marshals the write concern into a *bson.Element.
-func (wc *WriteConcern) MarshalBSONElement() (*bson.Element, error) {
+func (wc *WriteConcern) MarshalBSONElement() (bson.Elem, error) {
 	if !wc.IsValid() {
-		return nil, ErrInconsistent
+		return bson.Elem{}, ErrInconsistent
 	}
 
-	var elems []*bson.Element
+	elems := bson.Doc{}
 
 	if wc.w != nil {
 		switch t := wc.w.(type) {
 		case int:
 			if t < 0 {
-				return nil, ErrNegativeW
+				return bson.Elem{}, ErrNegativeW
 			}
 
-			elems = append(elems, bson.EC.Int32("w", int32(t)))
+			elems = append(elems, bson.Elem{"w", bson.Int32(int32(t))})
 		case string:
-			elems = append(elems, bson.EC.String("w", t))
+			elems = append(elems, bson.Elem{"w", bson.String(t)})
 		}
 	}
 
 	if wc.j {
-		elems = append(elems, bson.EC.Boolean("j", wc.j))
+		elems = append(elems, bson.Elem{"j", bson.Boolean(wc.j)})
 	}
 
 	if wc.wTimeout < 0 {
-		return nil, ErrNegativeWTimeout
+		return bson.Elem{}, ErrNegativeWTimeout
 	}
 
 	if wc.wTimeout != 0 {
-		elems = append(elems, bson.EC.Int64("wtimeout", int64(wc.wTimeout/time.Millisecond)))
+		elems = append(elems, bson.Elem{"wtimeout", bson.Int64(int64(wc.wTimeout / time.Millisecond))})
 	}
 
-	return bson.EC.SubDocumentFromElements("writeConcern", elems...), nil
+	return bson.Elem{"writeConcern", bson.Document(elems)}, nil
 }
 
 // AcknowledgedElement returns true if a BSON element for a write concern represents an acknowledged write concern.
 // The element's value must be a document representing a write concern.
-func AcknowledgedElement(elem *bson.Element) bool {
-	wcDoc := elem.Value().MutableDocument()
+func AcknowledgedElement(elem bson.Elem) bool {
+	wcDoc := elem.Value.Document()
 	wVal, err := wcDoc.LookupErr("w")
 	if err != nil {
 		// key w not found --> acknowledged

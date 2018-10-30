@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/core/address"
 	"github.com/mongodb/mongo-go-driver/core/compressor"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -33,7 +34,7 @@ import (
 )
 
 var globalClientConnectionID uint64
-var emptyDoc = bson.NewDocument()
+var emptyDoc = bson.Doc{}
 
 func nextClientConnectionID() uint64 {
 	return atomic.AddUint64(&globalClientConnectionID, 1)
@@ -367,13 +368,13 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		ConnectionID: c.id,
 	}
 
-	var cmd *bson.Document
+	var cmd bson.Doc
 	var err error
 
 	var acknowledged bool
 	switch converted := wm.(type) {
 	case wiremessage.Query:
-		cmd, err = bson.ReadDocument([]byte(converted.Query))
+		cmd, err = bson.ReadDoc([]byte(converted.Query))
 		if err != nil {
 			return err
 		}
@@ -382,9 +383,9 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		startedEvent.DatabaseName = converted.FullCollectionName[:len(converted.FullCollectionName)-5] // remove $.cmd
 		startedEvent.RequestID = int64(converted.MsgHeader.RequestID)
 
-		cmdElem := cmd.ElementAt(0)
-		if cmdElem.Key() == "$query" {
-			cmd = cmdElem.Value().MutableDocument()
+		cmdElem := cmd[0]
+		if cmdElem.Key == "$query" {
+			cmd = cmdElem.Value.Document()
 		}
 	case wiremessage.Msg:
 		cmd, err = converted.GetMainDocument()
@@ -399,7 +400,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		}
 		if arr != nil {
 			cmd = cmd.Copy() // make copy to avoid changing original command
-			cmd.Append(bson.EC.Array(identifier, arr))
+			cmd = append(cmd, bson.Elem{identifier, bson.Array(arr)})
 		}
 
 		dbVal, err := cmd.LookupErr("$db")
@@ -412,7 +413,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 	}
 
 	startedEvent.Command = cmd
-	startedEvent.CommandName = cmd.ElementAt(0).Key()
+	startedEvent.CommandName = cmd[0].Key
 	if !canMonitor(startedEvent.CommandName) {
 		startedEvent.Command = emptyDoc
 	}
@@ -434,9 +435,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 
 		c.cmdMonitor.Succeeded(ctx, &event.CommandSucceededEvent{
 			CommandFinishedEvent: finishedEvent,
-			Reply: bson.NewDocument(
-				bson.EC.Int32("ok", 1),
-			),
+			Reply:                bson.Doc{{"ok", bson.Int32(1)}},
 		})
 
 		return nil
@@ -446,36 +445,34 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 	return nil
 }
 
-func processReply(reply *bson.Document) (bool, string) {
-	iter := reply.Iterator()
+func processReply(reply bson.Doc) (bool, string) {
 	var success bool
 	var errmsg string
 	var errCode int32
 
-	for iter.Next() {
-		elem := iter.Element()
-		switch elem.Key() {
+	for _, elem := range reply {
+		switch elem.Key {
 		case "ok":
-			switch elem.Value().Type() {
-			case bson.TypeInt32:
-				if elem.Value().Int32() == 1 {
+			switch elem.Value.Type() {
+			case bsontype.Int32:
+				if elem.Value.Int32() == 1 {
 					success = true
 				}
-			case bson.TypeInt64:
-				if elem.Value().Int64() == 1 {
+			case bsontype.Int64:
+				if elem.Value.Int64() == 1 {
 					success = true
 				}
-			case bson.TypeDouble:
-				if elem.Value().Double() == 1 {
+			case bsontype.Double:
+				if elem.Value.Double() == 1 {
 					success = true
 				}
 			}
 		case "errmsg":
-			if str, ok := elem.Value().StringValueOK(); ok {
+			if str, ok := elem.Value.StringValueOK(); ok {
 				errmsg = str
 			}
 		case "code":
-			if c, ok := elem.Value().Int32OK(); ok {
+			if c, ok := elem.Value.Int32OK(); ok {
 				errCode = c
 			}
 		}
@@ -494,7 +491,7 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 		return nil
 	}
 
-	var reply *bson.Document
+	var reply bson.Doc
 	var requestID int64
 	var err error
 
@@ -544,7 +541,7 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 			}
 			if arr != nil {
 				reply = reply.Copy() // make copy to avoid changing original command
-				reply.Append(bson.EC.Array(identifier, arr))
+				reply = append(reply, bson.Elem{identifier, bson.Array(arr)})
 			}
 		}
 

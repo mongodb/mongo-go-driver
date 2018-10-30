@@ -23,8 +23,8 @@ import (
 // The countDocuments command counts how many documents in a collection match the given query.
 type CountDocuments struct {
 	NS          Namespace
-	Pipeline    *bson.Array
-	Opts        []*bson.Element
+	Pipeline    bson.Arr
+	Opts        []bson.Elem
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -39,12 +39,10 @@ func (c *CountDocuments) Encode(desc description.SelectedServer) (wiremessage.Wi
 	if err := c.NS.Validate(); err != nil {
 		return nil, err
 	}
-	command := bson.NewDocument()
-	command.Append(bson.EC.String("aggregate", c.NS.Collection), bson.EC.Array("pipeline", c.Pipeline))
+	command := bson.Doc{{"aggregate", bson.String(c.NS.Collection)}, {"pipeline", bson.Array(c.Pipeline)}}
 
-	cursor := bson.NewDocument()
-	command.Append(bson.EC.SubDocument("cursor", cursor))
-	command.Append(c.Opts...)
+	command = append(command, bson.Elem{"cursor", bson.Document(bson.Doc{})})
+	command = append(command, c.Opts...)
 
 	return (&Read{DB: c.NS.DB, ReadPref: c.ReadPref, Command: command}).Encode(desc)
 }
@@ -63,7 +61,7 @@ func (c *CountDocuments) Decode(ctx context.Context, desc description.SelectedSe
 		return c
 	}
 
-	var doc *bson.Document
+	var doc bson.Doc
 	if cur.Next(ctx) {
 		err = cur.Decode(&doc)
 		if err != nil {
@@ -71,11 +69,12 @@ func (c *CountDocuments) Decode(ctx context.Context, desc description.SelectedSe
 			return c
 		}
 		val, err := doc.LookupErr("n")
-		switch {
-		case err == bson.ErrElementNotFound:
+		switch err.(type) {
+		case bson.KeyNotFound:
 			c.err = errors.New("Invalid response from server, no 'n' field")
 			return c
-		case err != nil:
+		case nil:
+		default:
 			c.err = err
 			return c
 		}

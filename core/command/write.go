@@ -23,7 +23,7 @@ import (
 // This can be used to send arbitrary write commands to the database.
 type Write struct {
 	DB           string
-	Command      *bson.Document
+	Command      bson.Doc
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -33,11 +33,11 @@ type Write struct {
 }
 
 // Encode c as OP_MSG
-func (w *Write) encodeOpMsg(desc description.SelectedServer, cmd *bson.Document) (wiremessage.WireMessage, error) {
-	var arr *bson.Array
+func (w *Write) encodeOpMsg(desc description.SelectedServer, cmd bson.Doc) (wiremessage.WireMessage, error) {
+	var arr bson.Arr
 	var identifier string
 
-	arr, identifier = opmsgRemoveArray(cmd)
+	cmd, arr, identifier = opmsgRemoveArray(cmd)
 
 	msg := wiremessage.Msg{
 		MsgHeader: wiremessage.Header{RequestID: wiremessage.NextRequestID()},
@@ -74,7 +74,7 @@ func (w *Write) encodeOpMsg(desc description.SelectedServer, cmd *bson.Document)
 }
 
 // Encode w as OP_QUERY
-func (w *Write) encodeOpQuery(desc description.SelectedServer, cmd *bson.Document) (wiremessage.WireMessage, error) {
+func (w *Write) encodeOpQuery(desc description.SelectedServer, cmd bson.Doc) (wiremessage.WireMessage, error) {
 	rdr, err := marshalCommand(cmd)
 	if err != nil {
 		return nil, err
@@ -124,12 +124,12 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 	var err error
 	if w.Session != nil && w.Session.TransactionStarting() {
 		// Starting transactions have a read concern, even in writes.
-		err = addReadConcern(cmd, desc, nil, w.Session)
+		cmd, err = addReadConcern(cmd, desc, nil, w.Session)
 		if err != nil {
 			return nil, err
 		}
 	}
-	err = addWriteConcern(cmd, w.WriteConcern)
+	cmd, err = addWriteConcern(cmd, w.WriteConcern)
 	if err != nil {
 		return nil, err
 	}
@@ -144,20 +144,17 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 		}
 	} else {
 		// only encode session ID for acknowledged writes
-		err = addSessionFields(cmd, desc, w.Session)
+		cmd, err = addSessionFields(cmd, desc, w.Session)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if w.Session != nil && w.Session.RetryWrite {
-		cmd.Append(bson.EC.Int64("txnNumber", w.Session.TxnNumber))
+		cmd = append(cmd, bson.Elem{"txnNumber", bson.Int64(w.Session.TxnNumber)})
 	}
 
-	err = addClusterTime(cmd, desc, w.Session, w.Clock)
-	if err != nil {
-		return nil, err
-	}
+	cmd = addClusterTime(cmd, desc, w.Session, w.Clock)
 
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return w.encodeOpQuery(desc, cmd)

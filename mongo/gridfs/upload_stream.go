@@ -138,9 +138,7 @@ func (us *UploadStream) Abort() error {
 		defer cancel()
 	}
 
-	_, err := us.chunksColl.DeleteMany(ctx, bson.NewDocument(
-		bson.EC.ObjectID("files_id", us.FileID),
-	))
+	_, err := us.chunksColl.DeleteMany(ctx, bson.Doc{{"files_id", bson.ObjectID(us.FileID)}})
 	if err != nil {
 		return err
 	}
@@ -162,12 +160,12 @@ func (us *UploadStream) uploadChunks(ctx context.Context) error {
 			chunkData = us.buffer[i : i+int(us.chunkSize)]
 		}
 
-		docs[us.chunkIndex] = bson.NewDocument(
-			bson.EC.ObjectID("_id", objectid.New()),
-			bson.EC.ObjectID("files_id", us.FileID),
-			bson.EC.Int32("n", int32(us.chunkIndex)),
-			bson.EC.Binary("data", chunkData),
-		)
+		docs[us.chunkIndex] = bson.Doc{
+			{"_id", bson.ObjectID(objectid.New())},
+			{"files_id", bson.ObjectID(us.FileID)},
+			{"n", bson.Int32(int32(us.chunkIndex))},
+			{"data", bson.Binary(0x00, chunkData)},
+		}
 
 		us.chunkIndex++
 		us.fileLen += int64(len(chunkData))
@@ -182,16 +180,16 @@ func (us *UploadStream) uploadChunks(ctx context.Context) error {
 }
 
 func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
-	doc := bson.NewDocument(
-		bson.EC.ObjectID("_id", us.FileID),
-		bson.EC.Int64("length", us.fileLen),
-		bson.EC.Int32("chunkSize", us.chunkSize),
-		bson.EC.DateTime("uploadDate", time.Now().UnixNano()/int64(time.Millisecond)),
-		bson.EC.String("filename", us.filename),
-	)
+	doc := bson.Doc{
+		{"_id", bson.ObjectID(us.FileID)},
+		{"length", bson.Int64(us.fileLen)},
+		{"chunkSize", bson.Int32(us.chunkSize)},
+		{"uploadDate", bson.DateTime(time.Now().UnixNano() / int64(time.Millisecond))},
+		{"filename", bson.String(us.filename)},
+	}
 
 	if us.metadata != nil {
-		doc.Append(bson.EC.SubDocument("metadata", us.metadata))
+		doc = append(doc, bson.Elem{"metadata", bson.Document(us.metadata)})
 	}
 
 	_, err := us.filesColl.InsertOne(ctx, doc)

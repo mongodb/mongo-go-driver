@@ -24,8 +24,8 @@ import (
 type Delete struct {
 	ContinueOnError bool
 	NS              Namespace
-	Deletes         []*bson.Document
-	Opts            []*bson.Element
+	Deletes         []bson.Doc
+	Opts            []bson.Elem
 	WriteConcern    *writeconcern.WriteConcern
 	Clock           *session.ClusterClock
 	Session         *session.Client
@@ -63,17 +63,17 @@ func (d *Delete) encode(desc description.SelectedServer) error {
 	return nil
 }
 
-func (d *Delete) encodeBatch(docs []*bson.Document, desc description.SelectedServer) (*WriteBatch, error) {
-	copyDocs := make([]*bson.Document, 0, len(docs))
+func (d *Delete) encodeBatch(docs []bson.Doc, desc description.SelectedServer) (*WriteBatch, error) {
+	copyDocs := make([]bson.Doc, 0, len(docs))
 	for _, doc := range docs {
 		copyDocs = append(copyDocs, doc.Copy())
 	}
 
-	var options []*bson.Element
+	var options []bson.Elem
 	for _, opt := range d.Opts {
-		if opt.Key() == "collation" {
-			for _, doc := range copyDocs {
-				doc.Append(opt)
+		if opt.Key == "collation" {
+			for idx := range copyDocs {
+				copyDocs[idx] = append(copyDocs[idx], opt)
 			}
 		} else {
 			options = append(options, opt)

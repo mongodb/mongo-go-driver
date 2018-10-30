@@ -9,6 +9,8 @@ package dispatch
 import (
 	"context"
 
+	"time"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
@@ -19,7 +21,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/options"
-	"time"
 )
 
 // FindOneAndReplace handles the full cycle dispatch and execution of a FindOneAndReplace command against the provided
@@ -52,16 +53,16 @@ func FindOneAndReplace(
 
 	ro := options.MergeFindOneAndReplaceOptions(opts...)
 	if ro.BypassDocumentValidation != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("byapssDocumentValidation", *ro.BypassDocumentValidation))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"byapssDocumentValidation", bson.Boolean(*ro.BypassDocumentValidation)})
 	}
 	if ro.Collation != nil {
 		if ss.Description().WireVersion.Max < 5 {
 			return result.FindAndModify{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", ro.Collation.ToDocument()))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(ro.Collation.ToDocument())})
 	}
 	if ro.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(*ro.MaxTime/time.Millisecond)))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*ro.MaxTime / time.Millisecond))})
 	}
 	if ro.Projection != nil {
 		maxElem, err := interfaceToElement("fields", ro.Projection, registry)
@@ -72,7 +73,7 @@ func FindOneAndReplace(
 		cmd.Opts = append(cmd.Opts, maxElem)
 	}
 	if ro.ReturnDocument != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("new", *ro.ReturnDocument == options.After))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"new", bson.Boolean(*ro.ReturnDocument == options.After)})
 	}
 	if ro.Sort != nil {
 		sortElem, err := interfaceToElement("sort", ro.Sort, registry)
@@ -83,7 +84,7 @@ func FindOneAndReplace(
 		cmd.Opts = append(cmd.Opts, sortElem)
 	}
 	if ro.Upsert != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("upsert", *ro.Upsert))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"upsert", bson.Boolean(*ro.Upsert)})
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

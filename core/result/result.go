@@ -29,7 +29,7 @@ type Insert struct {
 
 // StartSession is a result from a StartSession command.
 type StartSession struct {
-	ID *bson.Document `bson:"id"`
+	ID bson.Doc `bson:"id"`
 }
 
 // EndSessions is a result from an EndSessions command.
@@ -94,7 +94,7 @@ type ListDatabases struct {
 type IsMaster struct {
 	Arbiters                     []string          `bson:"arbiters,omitempty"`
 	ArbiterOnly                  bool              `bson:"arbiterOnly,omitempty"`
-	ClusterTime                  *bson.Document    `bson:"$clusterTime,omitempty"`
+	ClusterTime                  bson.Doc          `bson:"$clusterTime,omitempty"`
 	Compression                  []string          `bson:"compression,omitempty"`
 	ElectionID                   objectid.ObjectID `bson:"electionId,omitempty"`
 	Hidden                       bool              `bson:"hidden,omitempty"`

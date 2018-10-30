@@ -47,7 +47,7 @@ func TestCreateAuthenticator(t *testing.T) {
 	}
 }
 
-func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload *bson.Document, dbName string) {
+func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload bson.Doc, dbName string) {
 	switch converted := wm.(type) {
 	case wiremessage.Query:
 		payloadBytes, err := expectedPayload.MarshalBSON()
@@ -56,7 +56,7 @@ func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload 
 		}
 		require.True(t, reflect.DeepEqual([]byte(converted.Query), payloadBytes))
 	case wiremessage.Msg:
-		msgPayload := expectedPayload.Append(bson.EC.String("$db", dbName))
+		msgPayload := append(expectedPayload, bson.Elem{"$db", bson.String(dbName)})
 		payloadBytes, err := msgPayload.MarshalBSON()
 		if err != nil {
 			t.Fatalf("couldn't marshal msg bson: %v", err)

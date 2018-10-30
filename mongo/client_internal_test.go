@@ -87,7 +87,7 @@ func TestClient_TLSConnection(t *testing.T) {
 	c := createTestClient(t)
 	db := c.Database("test")
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("serverStatus", 1)))
+	result, err := db.RunCommand(context.Background(), bson.Doc{{"serverStatus", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	security, err := result.LookupErr("security")
@@ -124,22 +124,17 @@ func TestClient_X509Auth(t *testing.T) {
 	// We don't care if the user doesn't already exist.
 	_, _ = db.RunCommand(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.String("dropUser", user),
-		),
+		bson.Doc{{"dropUser", bson.String(user)}},
 	)
 
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.String("createUser", user),
-			bson.EC.ArrayFromElements("roles",
-				bson.VC.DocumentFromElements(
-					bson.EC.String("role", "readWrite"),
-					bson.EC.String("db", "test"),
-				),
-			),
-		),
+		bson.Doc{
+			{"createUser", bson.String(user)},
+			{"roles", bson.Array(bson.Arr{bson.Document(
+				bson.Doc{{"role", bson.String("readWrite")}, {"db", bson.String("test")}},
+			)})},
+		},
 	)
 	require.NoError(t, err)
 
@@ -160,9 +155,7 @@ func TestClient_X509Auth(t *testing.T) {
 	db = authClient.Database("test")
 	rdr, err := db.RunCommand(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.Int32("connectionStatus", 1),
-		),
+		bson.Doc{{"connectionStatus", bson.Int32(1)}},
 	)
 	require.NoError(t, err)
 
@@ -206,9 +199,7 @@ func TestClient_ListDatabases_noFilter(t *testing.T) {
 	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
 	_, err := coll.InsertOne(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.Int32("x", 1),
-		),
+		bson.Doc{{"x", bson.Int32(1)}},
 	)
 	require.NoError(t, err)
 
@@ -243,17 +234,13 @@ func TestClient_ListDatabases_filter(t *testing.T) {
 	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
 	_, err := coll.InsertOne(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.Int32("x", 1),
-		),
+		bson.Doc{{"x", bson.Int32(1)}},
 	)
 	require.NoError(t, err)
 
 	dbs, err := c.ListDatabases(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.Regex("name", dbName, ""),
-		),
+		bson.Doc{{"name", bson.Regex(dbName, "")}},
 	)
 
 	require.Equal(t, len(dbs.Databases), 1)
@@ -276,9 +263,7 @@ func TestClient_ListDatabaseNames_noFilter(t *testing.T) {
 	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
 	_, err := coll.InsertOne(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.Int32("x", 1),
-		),
+		bson.Doc{{"x", bson.Int32(1)}},
 	)
 	require.NoError(t, err)
 
@@ -311,17 +296,13 @@ func TestClient_ListDatabaseNames_filter(t *testing.T) {
 	coll.writeConcern = writeconcern.New(writeconcern.WMajority())
 	_, err := coll.InsertOne(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.Int32("x", 1),
-		),
+		bson.Doc{{"x", bson.Int32(1)}},
 	)
 	require.NoError(t, err)
 
 	dbs, err := c.ListDatabaseNames(
 		context.Background(),
-		bson.NewDocument(
-			bson.EC.Regex("name", dbName, ""),
-		),
+		bson.Doc{{"name", bson.Regex(dbName, "")}},
 	)
 
 	require.NoError(t, err)

@@ -8,9 +8,10 @@ package options
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"reflect"
 )
 
 // Collation allows users to specify language-specific rules for string comparison, such as
@@ -27,31 +28,31 @@ type Collation struct {
 }
 
 // ToDocument converts the Collation to a *bson.Document
-func (co *Collation) ToDocument() *bson.Document {
-	doc := bson.NewDocument()
+func (co *Collation) ToDocument() bson.Doc {
+	doc := bson.Doc{}
 	if co.Locale != "" {
-		doc.Append(bson.EC.String("locale", co.Locale))
+		doc = append(doc, bson.Elem{"locale", bson.String(co.Locale)})
 	}
 	if co.CaseLevel {
-		doc.Append(bson.EC.Boolean("caseLevel", true))
+		doc = append(doc, bson.Elem{"caseLevel", bson.Boolean(true)})
 	}
 	if co.CaseFirst != "" {
-		doc.Append(bson.EC.String("caseFirst", co.CaseFirst))
+		doc = append(doc, bson.Elem{"caseFirst", bson.String(co.CaseFirst)})
 	}
 	if co.Strength != 0 {
-		doc.Append(bson.EC.Int32("strength", int32(co.Strength)))
+		doc = append(doc, bson.Elem{"strength", bson.Int32(int32(co.Strength))})
 	}
 	if co.NumericOrdering {
-		doc.Append(bson.EC.Boolean("numericOrdering", true))
+		doc = append(doc, bson.Elem{"numericOrdering", bson.Boolean(true)})
 	}
 	if co.Alternate != "" {
-		doc.Append(bson.EC.String("alternate", co.Alternate))
+		doc = append(doc, bson.Elem{"alternate", bson.String(co.Alternate)})
 	}
 	if co.MaxVariable != "" {
-		doc.Append(bson.EC.String("maxVariable", co.MaxVariable))
+		doc = append(doc, bson.Elem{"maxVariable", bson.String(co.MaxVariable)})
 	}
 	if co.Backwards {
-		doc.Append(bson.EC.Boolean("backwards", true))
+		doc = append(doc, bson.Elem{"backwards", bson.Boolean(true)})
 	}
 	return doc
 }
@@ -100,8 +101,8 @@ type ArrayFilters struct {
 	Filters  []interface{}       // The filters to apply
 }
 
-func (af *ArrayFilters) ToArray() (*bson.Array, error) {
-	docs := make([]*bson.Document, 0, len(af.Filters))
+func (af *ArrayFilters) ToArray() (bson.Arr, error) {
+	docs := make([]bson.Doc, 0, len(af.Filters))
 	for _, f := range af.Filters {
 		d, err := transformDocument(af.Registry, f)
 		if err != nil {
@@ -110,9 +111,9 @@ func (af *ArrayFilters) ToArray() (*bson.Array, error) {
 		docs = append(docs, d)
 	}
 
-	arr := bson.NewArray()
+	arr := bson.Arr{}
 	for _, doc := range docs {
-		arr.Append(bson.VC.Document(doc))
+		arr = append(arr, bson.Document(doc))
 	}
 
 	return arr, nil
@@ -132,9 +133,9 @@ func (me MarshalError) Error() string {
 
 var defaultRegistry = bson.DefaultRegistry
 
-func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
+func transformDocument(registry *bsoncodec.Registry, val interface{}) (bson.Doc, error) {
 	if val == nil {
-		return bson.NewDocument(), nil
+		return bson.Doc{}, nil
 	}
 	reg := defaultRegistry
 	if registry != nil {
@@ -152,5 +153,5 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Doc
 	if err != nil {
 		return nil, MarshalError{Value: val, Err: err}
 	}
-	return bson.ReadDocument(b)
+	return bson.ReadDoc(b)
 }

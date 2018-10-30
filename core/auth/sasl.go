@@ -50,11 +50,11 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 
 	saslStartCmd := command.Read{
 		DB: db,
-		Command: bson.NewDocument(
-			bson.EC.Int32("saslStart", 1),
-			bson.EC.String("mechanism", mech),
-			bson.EC.Binary("payload", payload),
-		),
+		Command: bson.Doc{
+			{"saslStart", bson.Int32(1)},
+			{"mechanism", bson.String(mech)},
+			{"payload", bson.Binary(0x00, payload)},
+		},
 	}
 
 	type saslResponse struct {
@@ -99,11 +99,11 @@ func ConductSaslConversation(ctx context.Context, desc description.Server, rw wi
 
 		saslContinueCmd := command.Read{
 			DB: db,
-			Command: bson.NewDocument(
-				bson.EC.Int32("saslContinue", 1),
-				bson.EC.Int32("conversationId", int32(cid)),
-				bson.EC.Binary("payload", payload),
-			),
+			Command: bson.Doc{
+				{"saslContinue", bson.Int32(1)},
+				{"conversationId", bson.Int32(int32(cid))},
+				{"payload", bson.Binary(0x00, payload)},
+			},
 		}
 
 		rdr, err = saslContinueCmd.RoundTrip(ctx, ssdesc, rw)

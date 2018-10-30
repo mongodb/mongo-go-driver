@@ -27,7 +27,7 @@ type BuildInfo struct {
 // Encode will encode this command into a wire message for the given server description.
 func (bi *BuildInfo) Encode() (wiremessage.WireMessage, error) {
 	// This can probably just be a global variable that we reuse.
-	cmd := bson.NewDocument(bson.EC.Int32("buildInfo", 1))
+	cmd := bson.Doc{{"buildInfo", bson.Int32(1)}}
 	rdr, err := cmd.MarshalBSON()
 	if err != nil {
 		return nil, err

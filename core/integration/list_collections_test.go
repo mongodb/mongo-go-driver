@@ -65,17 +65,18 @@ func TestCommandListCollections(t *testing.T) {
 		testutil.DropCollection(t, testutil.DBName(t), collOne)
 		testutil.DropCollection(t, testutil.DBName(t), collTwo)
 		testutil.DropCollection(t, testutil.DBName(t), collThree)
-		testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bson.NewDocument(bson.EC.Int32("_id", 1)))
-		testutil.InsertDocs(t, testutil.DBName(t), collTwo, wc, bson.NewDocument(bson.EC.Int32("_id", 2)))
-		testutil.InsertDocs(t, testutil.DBName(t), collThree, wc, bson.NewDocument(bson.EC.Int32("_id", 3)))
+		testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bson.Doc{{"_id", bson.Int32(1)}})
+		testutil.InsertDocs(t, testutil.DBName(t), collTwo, wc, bson.Doc{{"_id", bson.Int32(2)}})
+		testutil.InsertDocs(t, testutil.DBName(t), collThree, wc, bson.Doc{{"_id", bson.Int32(3)}})
 
 		cursor, err := (&command.ListCollections{DB: dbName}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
 		names := map[string]bool{}
-		var next *bson.Document
+		next := bson.Doc{}
 
 		for cursor.Next(context.Background()) {
+			next = next[:0]
 			err = cursor.Decode(&next)
 			noerr(t, err)
 

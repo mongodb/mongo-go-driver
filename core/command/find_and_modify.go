@@ -10,6 +10,7 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/core/result"
 )
 
@@ -19,7 +20,7 @@ func unmarshalFindAndModifyResult(rdr bson.Raw) (result.FindAndModify, error) {
 
 	val, err := rdr.LookupErr("value")
 	switch {
-	case err == bson.ErrElementNotFound:
+	case err == bsoncore.ErrElementNotFound:
 		return result.FindAndModify{}, errors.New("invalid response from server, no value field")
 	case err != nil:
 		return result.FindAndModify{}, err

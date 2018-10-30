@@ -9,6 +9,8 @@ package dispatch
 import (
 	"context"
 
+	"time"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
@@ -19,7 +21,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/options"
-	"time"
 )
 
 // FindOneAndUpdate handles the full cycle dispatch and execution of a FindOneAndUpdate command against the provided
@@ -57,19 +58,19 @@ func FindOneAndUpdate(
 			return result.FindAndModify{}, err
 		}
 
-		cmd.Opts = append(cmd.Opts, bson.EC.Array("arrayFilters", arr))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"arrayFilters", bson.Array(arr)})
 	}
 	if uo.BypassDocumentValidation != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("bypassDocumentValidation", *uo.BypassDocumentValidation))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"bypassDocumentValidation", bson.Boolean(*uo.BypassDocumentValidation)})
 	}
 	if uo.Collation != nil {
 		if ss.Description().WireVersion.Max < 5 {
 			return result.FindAndModify{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", uo.Collation.ToDocument()))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(uo.Collation.ToDocument())})
 	}
 	if uo.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(*uo.MaxTime/time.Millisecond)))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*uo.MaxTime / time.Millisecond))})
 	}
 	if uo.Projection != nil {
 		projElem, err := interfaceToElement("fields", uo.Projection, registry)
@@ -80,7 +81,7 @@ func FindOneAndUpdate(
 		cmd.Opts = append(cmd.Opts, projElem)
 	}
 	if uo.ReturnDocument != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("new", *uo.ReturnDocument == options.After))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"new", bson.Boolean(*uo.ReturnDocument == options.After)})
 	}
 	if uo.Sort != nil {
 		sortElem, err := interfaceToElement("sort", uo.Sort, registry)
@@ -91,7 +92,7 @@ func FindOneAndUpdate(
 		cmd.Opts = append(cmd.Opts, sortElem)
 	}
 	if uo.Upsert != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("upsert", *uo.Upsert))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"upsert", bson.Boolean(*uo.Upsert)})
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

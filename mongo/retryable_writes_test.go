@@ -141,7 +141,7 @@ func TestTxnNumberIncluded(t *testing.T) {
 			if tc.includesTxn {
 				require.NotNil(t, evt.Command.Lookup("txnNumber"))
 			} else {
-				require.Nil(t, evt.Command.Lookup("txnNumber"))
+				require.Equal(t, evt.Command.Lookup("txnNumber"), bson.Val{})
 			}
 		})
 	}
@@ -214,10 +214,10 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bson.NewDocument(
-					bson.EC.String("configureFailPoint", test.FailPoint.ConfigureFailPoint),
-					bson.EC.String("mode", "off"),
-				))
+				_, _ = dbAdmin.RunCommand(ctx, bson.Doc{
+					{"configureFailPoint", bson.String(test.FailPoint.ConfigureFailPoint)},
+					{"mode", bson.String("off")},
+				})
 			}()
 		}
 

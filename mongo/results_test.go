@@ -16,9 +16,10 @@ import (
 func TestDeleteResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
-	doc := bson.NewDocument(
-		bson.EC.Int64("n", 2),
-		bson.EC.Int64("ok", 1))
+	doc := bson.Doc{
+		{"n", bson.Int64(2)},
+		{"ok", bson.Int64(1)},
+	}
 
 	b, err := doc.MarshalBSON()
 	require.Nil(t, err)
@@ -36,10 +37,10 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 	buf, err := bson.Marshal(result)
 	require.Nil(t, err)
 
-	doc, err := bson.ReadDocument(buf)
+	doc, err := bson.ReadDoc(buf)
 	require.Nil(t, err)
 
-	require.Equal(t, doc.Len(), 1)
+	require.Equal(t, len(doc), 1)
 	e, err := doc.LookupErr("n")
 	require.NoError(t, err)
 	require.Equal(t, e.Type(), bson.TypeInt64)
@@ -49,16 +50,16 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 func TestUpdateOneResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
-	doc := bson.NewDocument(
-		bson.EC.Int32("n", 1),
-		bson.EC.Int32("nModified", 2),
-		bson.EC.ArrayFromElements(
-			"upserted",
-			bson.VC.DocumentFromElements(
-				bson.EC.Int32("index", 0),
-				bson.EC.Int32("_id", 3),
-			),
-		))
+	doc := bson.Doc{
+		{"n", bson.Int32(1)},
+		{"nModified", bson.Int32(2)},
+		{"upserted", bson.Array(bson.Arr{
+			bson.Document(bson.Doc{
+				{"index", bson.Int32(0)},
+				{"_id", bson.Int32(3)},
+			}),
+		}),
+		}}
 
 	b, err := doc.MarshalBSON()
 	require.Nil(t, err)

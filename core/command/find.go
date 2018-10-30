@@ -8,6 +8,7 @@ package command
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
@@ -21,9 +22,9 @@ import (
 // The find command finds documents within a collection that match a filter.
 type Find struct {
 	NS          Namespace
-	Filter      *bson.Document
-	CursorOpts  []*bson.Element
-	Opts        []*bson.Element
+	Filter      bson.Doc
+	CursorOpts  []bson.Elem
+	Opts        []bson.Elem
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -48,13 +49,13 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 		return nil, err
 	}
 
-	command := bson.NewDocument(bson.EC.String("find", f.NS.Collection))
+	command := bson.Doc{{"find", bson.String(f.NS.Collection)}}
 
 	if f.Filter != nil {
-		command.Append(bson.EC.SubDocument("filter", f.Filter))
+		command = append(command, bson.Elem{"filter", bson.Document(f.Filter)})
 	}
 
-	command.Append(f.Opts...)
+	command = append(command, f.Opts...)
 
 	return &Read{
 		Clock:       f.Clock,

@@ -21,8 +21,8 @@ import (
 // The listDatabases command lists the databases in a MongoDB deployment.
 type ListDatabases struct {
 	Clock   *session.ClusterClock
-	Filter  *bson.Document
-	Opts    []*bson.Element
+	Filter  bson.Doc
+	Opts    []bson.Elem
 	Session *session.Client
 
 	result result.ListDatabases
@@ -39,12 +39,12 @@ func (ld *ListDatabases) Encode(desc description.SelectedServer) (wiremessage.Wi
 }
 
 func (ld *ListDatabases) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.NewDocument(bson.EC.Int32("listDatabases", 1))
+	cmd := bson.Doc{{"listDatabases", bson.Int32(1)}}
 
 	if ld.Filter != nil {
-		cmd.Append(bson.EC.SubDocument("filter", ld.Filter))
+		cmd = append(cmd, bson.Elem{"filter", bson.Document(ld.Filter)})
 	}
-	cmd.Append(ld.Opts...)
+	cmd = append(cmd, ld.Opts...)
 
 	return &Read{
 		Clock:   ld.Clock,

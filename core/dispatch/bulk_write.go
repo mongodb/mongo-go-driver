@@ -203,7 +203,7 @@ func runInsert(
 	continueOnError bool,
 	registry *bsoncodec.Registry,
 ) (result.Insert, error) {
-	docs := make([]*bson.Document, len(batch.models))
+	docs := make([]bson.Doc, len(batch.models))
 	var i int
 	for _, model := range batch.models {
 		converted := model.(InsertOneModel)
@@ -226,7 +226,7 @@ func runInsert(
 	}
 
 	if bypassDocValidation != nil {
-		cmd.Opts = []*bson.Element{bson.EC.Boolean("bypassDocumentValidation", *bypassDocValidation)}
+		cmd.Opts = []bson.Elem{{"bypassDocumentValidation", bson.Boolean(*bypassDocValidation)}}
 	}
 
 	if !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) || !retryWrite || !batch.canRetry {
@@ -266,11 +266,11 @@ func runDelete(
 	continueOnError bool,
 	registry *bsoncodec.Registry,
 ) (result.Delete, error) {
-	docs := make([]*bson.Document, len(batch.models))
+	docs := make([]bson.Doc, len(batch.models))
 	var i int
 
 	for _, model := range batch.models {
-		var doc *bson.Document
+		var doc bson.Doc
 		var err error
 
 		if dom, ok := model.(DeleteOneModel); ok {
@@ -334,10 +334,10 @@ func runUpdate(
 	continueOnError bool,
 	registry *bsoncodec.Registry,
 ) (result.Update, error) {
-	docs := make([]*bson.Document, len(batch.models))
+	docs := make([]bson.Doc, len(batch.models))
 
 	for i, model := range batch.models {
-		var doc *bson.Document
+		var doc bson.Doc
 		var err error
 
 		if rom, ok := model.(ReplaceOneModel); ok {
@@ -368,7 +368,7 @@ func runUpdate(
 	}
 	if bypassDocValidation != nil {
 		// TODO this is temporary!
-		cmd.Opts = []*bson.Element{bson.EC.Boolean("bypassDocumentValidation", *bypassDocValidation)}
+		cmd.Opts = []bson.Elem{{"bypassDocumentValidation", bson.Boolean(*bypassDocValidation)}}
 		//cmd.Opts = []option.UpdateOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
 	}
 
@@ -550,7 +550,7 @@ func createUpdateDoc(
 	updateModel UpdateModel,
 	multi bool,
 	registry *bsoncodec.Registry,
-) (*bson.Document, error) {
+) (bson.Doc, error) {
 	f, err := interfaceToDocument(filter, registry)
 	if err != nil {
 		return nil, err
@@ -561,26 +561,26 @@ func createUpdateDoc(
 		return nil, err
 	}
 
-	doc := bson.NewDocument(
-		bson.EC.SubDocument("q", f),
-		bson.EC.SubDocument("u", u),
-		bson.EC.Boolean("multi", multi),
-	)
+	doc := bson.Doc{
+		{"q", bson.Document(f)},
+		{"u", bson.Document(u)},
+		{"multi", bson.Boolean(multi)},
+	}
 
 	if arrayFiltersSet {
 		arr, err := arrayFilters.ToArray()
 		if err != nil {
 			return nil, err
 		}
-		doc.Append(bson.EC.Array("arrayFilters", arr))
+		doc = append(doc, bson.Elem{"arrayFilters", bson.Array(arr)})
 	}
 
 	if updateModel.Collation != nil {
-		doc.Append(bson.EC.SubDocument("collation", updateModel.Collation.ToDocument()))
+		doc = append(doc, bson.Elem{"collation", bson.Document(updateModel.Collation.ToDocument())})
 	}
 
 	if updateModel.UpsertSet {
-		doc.Append(bson.EC.Boolean("upsert", updateModel.Upsert))
+		doc = append(doc, bson.Elem{"upsert", bson.Boolean(updateModel.Upsert)})
 	}
 
 	return doc, nil
@@ -591,7 +591,7 @@ func createDeleteDoc(
 	collation *options.Collation,
 	many bool,
 	registry *bsoncodec.Registry,
-) (*bson.Document, error) {
+) (bson.Doc, error) {
 	f, err := interfaceToDocument(filter, registry)
 	if err != nil {
 		return nil, err
@@ -602,13 +602,13 @@ func createDeleteDoc(
 		limit = 0
 	}
 
-	doc := bson.NewDocument(
-		bson.EC.SubDocument("q", f),
-		bson.EC.Int32("limit", limit),
-	)
+	doc := bson.Doc{
+		{"q", bson.Document(f)},
+		{"limit", bson.Int32(limit)},
+	}
 
 	if collation != nil {
-		doc.Append(bson.EC.SubDocument("collation", collation.ToDocument()))
+		doc = append(doc, bson.Elem{"collation", bson.Document(collation.ToDocument())})
 	}
 
 	return doc, nil

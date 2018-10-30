@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,7 @@ var sessionOpts = &ClientOptions{
 	CausalConsistency: &consistent,
 }
 
-func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.Timestamp) {
+func compareOperationTimes(t *testing.T, expected *primitive.Timestamp, actual *primitive.Timestamp) {
 	if expected.T != actual.T {
 		t.Fatalf("T value mismatch; expected %d got %d", expected.T, actual.T)
 	}
@@ -31,21 +32,21 @@ func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.
 }
 
 func TestClientSession(t *testing.T) {
-	var clusterTime1 = bson.NewDocument(bson.EC.SubDocument("$clusterTime",
-		bson.NewDocument(bson.EC.Timestamp("clusterTime", 10, 5))))
-	var clusterTime2 = bson.NewDocument(bson.EC.SubDocument("$clusterTime",
-		bson.NewDocument(bson.EC.Timestamp("clusterTime", 5, 5))))
-	var clusterTime3 = bson.NewDocument(bson.EC.SubDocument("$clusterTime",
-		bson.NewDocument(bson.EC.Timestamp("clusterTime", 5, 0))))
+	var clusterTime1 = bson.Doc{{"$clusterTime",
+		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(10, 5)}})}}
+	var clusterTime2 = bson.Doc{{"$clusterTime",
+		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(5, 5)}})}}
+	var clusterTime3 = bson.Doc{{"$clusterTime",
+		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(5, 0)}})}}
 
 	t.Run("TestMaxClusterTime", func(t *testing.T) {
 		maxTime := MaxClusterTime(clusterTime1, clusterTime2)
-		if maxTime != clusterTime1 {
+		if !maxTime.Equal(clusterTime1) {
 			t.Errorf("Wrong max time")
 		}
 
 		maxTime = MaxClusterTime(clusterTime3, clusterTime2)
-		if maxTime != clusterTime2 {
+		if !maxTime.Equal(clusterTime2) {
 			t.Errorf("Wrong max time")
 		}
 	})
@@ -56,17 +57,17 @@ func TestClientSession(t *testing.T) {
 		require.Nil(t, err, "Unexpected error")
 		err = sess.AdvanceClusterTime(clusterTime2)
 		require.Nil(t, err, "Unexpected error")
-		if sess.ClusterTime != clusterTime2 {
+		if !sess.ClusterTime.Equal(clusterTime2) {
 			t.Errorf("Session cluster time incorrect, expected %v, received %v", clusterTime2, sess.ClusterTime)
 		}
 		err = sess.AdvanceClusterTime(clusterTime3)
 		require.Nil(t, err, "Unexpected error")
-		if sess.ClusterTime != clusterTime2 {
+		if !sess.ClusterTime.Equal(clusterTime2) {
 			t.Errorf("Session cluster time incorrect, expected %v, received %v", clusterTime2, sess.ClusterTime)
 		}
 		err = sess.AdvanceClusterTime(clusterTime1)
 		require.Nil(t, err, "Unexpected error")
-		if sess.ClusterTime != clusterTime1 {
+		if !sess.ClusterTime.Equal(clusterTime1) {
 			t.Errorf("Session cluster time incorrect, expected %v, received %v", clusterTime1, sess.ClusterTime)
 		}
 		sess.EndSession()
@@ -86,7 +87,7 @@ func TestClientSession(t *testing.T) {
 		sess, err := NewClientSession(&Pool{}, id, Explicit, sessionOpts)
 		require.Nil(t, err, "Unexpected error")
 
-		optime1 := &bson.Timestamp{
+		optime1 := &primitive.Timestamp{
 			T: 1,
 			I: 0,
 		}
@@ -94,7 +95,7 @@ func TestClientSession(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error updating first operation time: %s", err)
 		compareOperationTimes(t, optime1, sess.OperationTime)
 
-		optime2 := &bson.Timestamp{
+		optime2 := &primitive.Timestamp{
 			T: 2,
 			I: 0,
 		}
@@ -102,7 +103,7 @@ func TestClientSession(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error updating second operation time: %s", err)
 		compareOperationTimes(t, optime2, sess.OperationTime)
 
-		optime3 := &bson.Timestamp{
+		optime3 := &primitive.Timestamp{
 			T: 2,
 			I: 1,
 		}
@@ -110,7 +111,7 @@ func TestClientSession(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error updating third operation time: %s", err)
 		compareOperationTimes(t, optime3, sess.OperationTime)
 
-		err = sess.AdvanceOperationTime(&bson.Timestamp{
+		err = sess.AdvanceOperationTime(&primitive.Timestamp{
 			T: 1,
 			I: 10,
 		})

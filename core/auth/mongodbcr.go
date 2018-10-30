@@ -56,7 +56,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Serv
 		db = defaultAuthDB
 	}
 
-	cmd := command.Read{DB: db, Command: bson.NewDocument(bson.EC.Int32("getnonce", 1))}
+	cmd := command.Read{DB: db, Command: bson.Doc{{"getnonce", bson.Int32(1)}}}
 	ssdesc := description.SelectedServer{Server: desc}
 	rdr, err := cmd.RoundTrip(ctx, ssdesc, rw)
 	if err != nil {
@@ -74,12 +74,12 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Serv
 
 	cmd = command.Read{
 		DB: db,
-		Command: bson.NewDocument(
-			bson.EC.Int32("authenticate", 1),
-			bson.EC.String("user", a.Username),
-			bson.EC.String("nonce", getNonceResult.Nonce),
-			bson.EC.String("key", a.createKey(getNonceResult.Nonce)),
-		),
+		Command: bson.Doc{
+			{"authenticate", bson.Int32(1)},
+			{"user", bson.String(a.Username)},
+			{"nonce", bson.String(getNonceResult.Nonce)},
+			{"key", bson.String(a.createKey(getNonceResult.Nonce))},
+		},
 	}
 	_, err = cmd.RoundTrip(ctx, ssdesc, rw)
 	if err != nil {

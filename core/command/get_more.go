@@ -21,7 +21,7 @@ import (
 type GetMore struct {
 	ID      int64
 	NS      Namespace
-	Opts    []*bson.Element
+	Opts    []bson.Elem
 	Clock   *session.ClusterClock
 	Session *session.Client
 
@@ -40,17 +40,17 @@ func (gm *GetMore) Encode(desc description.SelectedServer) (wiremessage.WireMess
 }
 
 func (gm *GetMore) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.NewDocument(
-		bson.EC.Int64("getMore", gm.ID),
-		bson.EC.String("collection", gm.NS.Collection),
-	)
+	cmd := bson.Doc{
+		{"getMore", bson.Int64(gm.ID)},
+		{"collection", bson.String(gm.NS.Collection)},
+	}
 
 	for _, opt := range gm.Opts {
-		switch opt.Key() {
+		switch opt.Key {
 		case "maxAwaitTimeMS":
-			cmd.Append(bson.EC.Int64("maxTimeMS", opt.Value().Int64()))
+			cmd = append(cmd, bson.Elem{"maxTimeMs", opt.Value})
 		default:
-			cmd.Append(opt)
+			cmd = append(cmd, opt)
 		}
 	}
 

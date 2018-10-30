@@ -63,11 +63,11 @@ func TestCompression(t *testing.T) {
 	collOne := testutil.ColName(t)
 
 	testutil.DropCollection(t, testutil.DBName(t), collOne)
-	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bson.NewDocument(bson.EC.String("name", "compression_test")))
+	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bson.Doc{{"name", bson.String("compression_test")}})
 
 	cmd := &command.Read{
 		DB:      testutil.DBName(t),
-		Command: bson.NewDocument(bson.EC.Int32("serverStatus", 1)),
+		Command: bson.Doc{{"serverStatus", bson.Int32(1)}},
 	}
 
 	ctx := context.Background()
@@ -77,7 +77,7 @@ func TestCompression(t *testing.T) {
 	rdr, err := cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
 	noerr(t, err)
 
-	result, err := bson.ReadDocument(rdr)
+	result, err := bson.ReadDoc(rdr)
 	noerr(t, err)
 
 	serverVersion, err := result.LookupErr("version")
@@ -92,10 +92,10 @@ func TestCompression(t *testing.T) {
 
 	require.Equal(t, networkVal.Type(), bson.TypeEmbeddedDocument)
 
-	compressionVal, err := networkVal.MutableDocument().LookupErr("compression")
+	compressionVal, err := networkVal.Document().LookupErr("compression")
 	noerr(t, err)
 
-	snappy, err := compressionVal.MutableDocument().LookupErr("snappy")
+	snappy, err := compressionVal.Document().LookupErr("snappy")
 	noerr(t, err)
 
 	compressorKey := "compressor"
@@ -103,10 +103,10 @@ func TestCompression(t *testing.T) {
 	if compareTo36 < 0 {
 		compressorKey = "compressed"
 	}
-	compressor, err := snappy.MutableDocument().LookupErr(compressorKey)
+	compressor, err := snappy.Document().LookupErr(compressorKey)
 	noerr(t, err)
 
-	bytesIn, err := compressor.MutableDocument().LookupErr("bytesIn")
+	bytesIn, err := compressor.Document().LookupErr("bytesIn")
 	noerr(t, err)
 
 	require.True(t, bytesIn.IsNumber())

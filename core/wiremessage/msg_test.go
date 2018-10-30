@@ -13,7 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 )
 
-var doc = bson.NewDocument(bson.EC.Int32("x", 5))
+var doc = bson.Doc{{"x", bson.Int32(5)}}
 
 func oneSection(t *testing.T) []Section {
 	rdr, err := doc.MarshalBSON()

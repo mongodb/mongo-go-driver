@@ -54,17 +54,18 @@ func TestChangeStream_firstStage(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
 	require.NoError(t, err)
 
-	elem, err := changes.(*changeStream).pipeline.Lookup(0)
-	require.NoError(t, err)
+	require.NotEqual(t, len(changes.(*changeStream).pipeline), 0)
 
-	doc := elem.MutableDocument()
-	require.Equal(t, 1, doc.Len())
+	elem := changes.(*changeStream).pipeline[0]
+
+	doc := elem.Document()
+	require.Equal(t, 1, len(doc))
 
 	_, err = doc.LookupErr("$changeStream")
 	require.NoError(t, err)
@@ -86,7 +87,7 @@ func TestChangeStream_noCustomStandaloneError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	_, err = coll.Watch(context.Background(), nil)
@@ -111,28 +112,28 @@ func TestChangeStream_trackResumeToken(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("y", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.Doc{{"y", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
 	require.NoError(t, err)
 
 	for i := 1; i <= 4; i++ {
-		_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Interface("x", i)))
+		_, err = coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(int32(i))}})
 		require.NoError(t, err)
 	}
 
 	for i := 1; i <= 4; i++ {
 		getNextChange(changes)
-		var doc *bson.Document
+		var doc bson.Doc
 		err := changes.Decode(&doc)
 		require.NoError(t, err)
 
 		id, err := doc.LookupErr("_id")
 		require.NoError(t, err)
 
-		if !cmp.Equal(id.MutableDocument(), changes.(*changeStream).resumeToken) {
-			t.Errorf("Resume tokens do not match. got %v; want %v", id.MutableDocument(), changes.(*changeStream).resumeToken)
+		if !cmp.Equal(id.Document(), changes.(*changeStream).resumeToken) {
+			t.Errorf("Resume tokens do not match. got %v; want %v", id.Document(), changes.(*changeStream).resumeToken)
 		}
 	}
 }
@@ -152,22 +153,20 @@ func TestChangeStream_errorMissingResponseToken(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("y", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.Doc{{"y", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	// Project out the response token
-	changes, err := coll.Watch(context.Background(), []*bson.Document{
-		bson.NewDocument(
-			bson.EC.SubDocumentFromElements("$project",
-				bson.EC.Int32("_id", 0))),
+	changes, err := coll.Watch(context.Background(), []bson.Doc{
+		{{"$project", bson.Document(bson.Doc{{"_id", bson.Int32(0)}})}},
 	})
 	require.NoError(t, err)
 
-	_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
+	_, err = coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	getNextChange(changes)
-	require.Error(t, changes.Decode(bson.NewDocument()))
+	require.Error(t, changes.Decode(&bson.Doc{}))
 }
 
 func TestChangeStream_resumableError(t *testing.T) {
@@ -188,7 +187,7 @@ func TestChangeStream_resumableError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("y", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.Doc{{"y", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
@@ -210,7 +209,7 @@ func TestChangeStream_resumableError(t *testing.T) {
 	hasResume := false
 
 	for _, opt := range changes.(*changeStream).options {
-		if opt.Key() == "resumeAfter" {
+		if opt.Key == "resumeAfter" {
 			hasResume = true
 			break
 		}
@@ -235,7 +234,7 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("y", 1)))
+	_, err := coll.InsertOne(context.Background(), bson.Doc{{"y", bson.Int32(1)}})
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
@@ -260,11 +259,11 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	// insert a document after blocking call to getNextChange below
 	go func() {
 		time.Sleep(time.Millisecond * 500)
-		_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 1)))
+		_, err = coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(1)}})
 		require.NoError(t, err)
 	}()
 
 	getNextChange(changes)
-	var doc *bson.Document
+	var doc bson.Doc
 	require.NoError(t, changes.Decode(&doc))
 }

@@ -48,11 +48,11 @@ func bsonDocumentDecodingLazy(ctx context.Context, tm TimerManager, iters int, s
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		out, err := bson.ReadDocument(raw)
+		out, err := bson.ReadDoc(raw)
 		if err != nil {
 			return err
 		}
-		if out.Len() == 0 {
+		if len(out) == 0 {
 			return errors.New("marshaling error")
 		}
 	}
@@ -73,16 +73,12 @@ func bsonDocumentDecoding(ctx context.Context, tm TimerManager, iters, numKeys i
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		out, err := bson.ReadDocument(raw)
+		out, err := bson.ReadDoc(raw)
 		if err != nil {
 			return err
 		}
 
-		keys, err := out.Keys(true)
-		if err != nil {
-			return err
-		}
-		if len(keys) != numKeys {
+		if len(out) != numKeys {
 			return errors.New("document parsing error")
 		}
 	}

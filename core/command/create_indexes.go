@@ -22,8 +22,8 @@ import (
 // The createIndexes command creates indexes for a namespace.
 type CreateIndexes struct {
 	NS           Namespace
-	Indexes      *bson.Array
-	Opts         []*bson.Element
+	Indexes      bson.Arr
+	Opts         []bson.Elem
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -43,11 +43,11 @@ func (ci *CreateIndexes) Encode(desc description.SelectedServer) (wiremessage.Wi
 }
 
 func (ci *CreateIndexes) encode(desc description.SelectedServer) (*Write, error) {
-	cmd := bson.NewDocument(
-		bson.EC.String("createIndexes", ci.NS.Collection),
-		bson.EC.Array("indexes", ci.Indexes),
-	)
-	cmd.Append(ci.Opts...)
+	cmd := bson.Doc{
+		{"createIndexes", bson.String(ci.NS.Collection)},
+		{"indexes", bson.Array(ci.Indexes)},
+	}
+	cmd = append(cmd, ci.Opts...)
 
 	return &Write{
 		Clock:        ci.Clock,

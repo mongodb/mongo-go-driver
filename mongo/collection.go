@@ -225,10 +225,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		return nil, err
 	}
 
-	insertedID, err := ensureID(doc)
-	if err != nil {
-		return nil, err
-	}
+	doc, insertedID := ensureID(doc)
 
 	sess := sessionFromContext(ctx)
 
@@ -244,7 +241,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	oldns := coll.namespace()
 	cmd := command.Insert{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs:         []*bson.Document{doc},
+		Docs:         []bson.Doc{doc},
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
@@ -293,17 +290,14 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	result := make([]interface{}, len(documents))
-	docs := make([]*bson.Document, len(documents))
+	docs := make([]bson.Doc, len(documents))
 
 	for i, doc := range documents {
 		bdoc, err := transformDocument(coll.registry, doc)
 		if err != nil {
 			return nil, err
 		}
-		insertedID, err := ensureID(bdoc)
-		if err != nil {
-			return nil, err
-		}
+		bdoc, insertedID := ensureID(bdoc)
 
 		docs[i] = bdoc
 		result[i] = insertedID
@@ -386,10 +380,11 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	if err != nil {
 		return nil, err
 	}
-	deleteDocs := []*bson.Document{
-		bson.NewDocument(
-			bson.EC.SubDocument("q", f),
-			bson.EC.Int32("limit", 1)),
+	deleteDocs := []bson.Doc{
+		{
+			{"q", bson.Document(f)},
+			{"limit", bson.Int32(1)},
+		},
 	}
 
 	sess := sessionFromContext(ctx)
@@ -448,7 +443,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	if err != nil {
 		return nil, err
 	}
-	deleteDocs := []*bson.Document{bson.NewDocument(bson.EC.SubDocument("q", f), bson.EC.Int32("limit", 0))}
+	deleteDocs := []bson.Doc{{{"q", bson.Document(f)}, {"limit", bson.Int32(0)}}}
 
 	sess := sessionFromContext(ctx)
 
@@ -489,19 +484,19 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
-	update *bson.Document, sess *session.Client, opts ...*options.UpdateOptions) (*UpdateResult, error) {
+	update bson.Doc, sess *session.Client, opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
 	// TODO: should session be taken from ctx or left as argument?
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	updateDocs := []*bson.Document{
-		bson.NewDocument(
-			bson.EC.SubDocument("q", filter),
-			bson.EC.SubDocument("u", update),
-			bson.EC.Boolean("multi", false),
-		),
+	updateDocs := []bson.Doc{
+		{
+			{"q", bson.Document(filter)},
+			{"u", bson.Document(update)},
+			{"multi", bson.Boolean(false)},
+		},
 	}
 
 	wc := coll.writeConcern
@@ -611,12 +606,12 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		return nil, err
 	}
 
-	updateDocs := []*bson.Document{
-		bson.NewDocument(
-			bson.EC.SubDocument("q", f),
-			bson.EC.SubDocument("u", u),
-			bson.EC.Boolean("multi", true),
-		),
+	updateDocs := []bson.Doc{
+		{
+			{"q", bson.Document(f)},
+			{"u", bson.Document(u)},
+			{"multi", bson.Boolean(true)},
+		},
 	}
 
 	sess := sessionFromContext(ctx)
@@ -692,7 +687,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	if elem, ok := r.ElementAtOK(0); ok && strings.HasPrefix(elem.Key(), "$") {
+	if len(r) > 0 && strings.HasPrefix(r[0].Key, "$") {
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
 	}
 
@@ -903,7 +898,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	oldns := coll.namespace()
 	cmd := command.Count{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:       bson.NewDocument(),
+		Query:       bson.Doc{},
 		ReadPref:    coll.readPreference,
 		ReadConcern: rc,
 		Session:     sess,
@@ -940,7 +935,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		ctx = context.Background()
 	}
 
-	var f *bson.Document
+	var f bson.Doc
 	var err error
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
@@ -1000,7 +995,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	var f *bson.Document
+	var f bson.Doc
 	var err error
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
@@ -1056,7 +1051,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	var f *bson.Document
+	var f bson.Doc
 	var err error
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
@@ -1142,7 +1137,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
-	var f *bson.Document
+	var f bson.Doc
 	var err error
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
@@ -1215,7 +1210,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		return &DocumentResult{err: err}
 	}
 
-	if elem, ok := r.ElementAtOK(0); ok && strings.HasPrefix(elem.Key(), "$") {
+	if len(r) > 0 && strings.HasPrefix(r[0].Key, "$") {
 		return &DocumentResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
 	}
 
@@ -1284,7 +1279,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &DocumentResult{err: err}
 	}
 
-	if elem, ok := u.ElementAtOK(0); !ok || !strings.HasPrefix(elem.Key(), "$") {
+	if len(u) > 0 && !strings.HasPrefix(u[0].Key, "$") {
 		return &DocumentResult{err: errors.New("update document must contain key beginning with '$")}
 	}
 

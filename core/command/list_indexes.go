@@ -8,6 +8,7 @@ package command
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -20,8 +21,8 @@ import (
 type ListIndexes struct {
 	Clock      *session.ClusterClock
 	NS         Namespace
-	CursorOpts []*bson.Element
-	Opts       []*bson.Element
+	CursorOpts []bson.Elem
+	Opts       []bson.Elem
 	Session    *session.Client
 
 	result Cursor
@@ -38,8 +39,8 @@ func (li *ListIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 }
 
 func (li *ListIndexes) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.NewDocument(bson.EC.String("listIndexes", li.NS.Collection))
-	cmd.Append(li.Opts...)
+	cmd := bson.Doc{{"listIndexes", bson.String(li.NS.Collection)}}
+	cmd = append(cmd, li.Opts...)
 
 	return &Read{
 		Clock:   li.Clock,

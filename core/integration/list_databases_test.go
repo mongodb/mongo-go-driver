@@ -32,7 +32,7 @@ func TestListDatabases(t *testing.T) {
 
 	wc := writeconcern.New(writeconcern.WMajority())
 	testutil.AutoDropCollection(t)
-	testutil.AutoInsertDocs(t, wc, bson.NewDocument(bson.EC.Int32("_id", 1)))
+	testutil.AutoInsertDocs(t, wc, bson.Doc{{"_id", bson.Int32(1)}})
 
 	res, err := (&command.ListDatabases{}).RoundTrip(context.Background(), server.SelectedDescription(), conn)
 	noerr(t, err)

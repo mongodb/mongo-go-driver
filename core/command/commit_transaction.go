@@ -30,7 +30,7 @@ func (ct *CommitTransaction) Encode(desc description.SelectedServer) (wiremessag
 }
 
 func (ct *CommitTransaction) encode(desc description.SelectedServer) *Write {
-	cmd := bson.NewDocument(bson.EC.Int32("commitTransaction", 1))
+	cmd := bson.Doc{{"commitTransaction", bson.Int32(1)}}
 	return &Write{
 		DB:           "admin",
 		Command:      cmd,

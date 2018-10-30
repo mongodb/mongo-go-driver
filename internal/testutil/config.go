@@ -109,7 +109,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 
 		_, err = (&command.Write{
 			DB:      dbName,
-			Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
+			Command: bson.Doc{{"dropDatabase", bson.Int32(1)}},
 		}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 
 		require.NoError(t, err)
@@ -153,7 +153,7 @@ func GlobalMonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topol
 
 			_, err = (&command.Write{
 				DB:      DBName(t),
-				Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
+				Command: bson.Doc{{"dropDatabase", bson.Int32(1)}},
 			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 
 			require.NoError(t, err)
@@ -185,7 +185,7 @@ func Topology(t *testing.T) *topology.Topology {
 
 			_, err = (&command.Write{
 				DB:      DBName(t),
-				Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
+				Command: bson.Doc{{"dropDatabase", bson.Int32(1)}},
 			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 			require.NoError(t, err)
 		}

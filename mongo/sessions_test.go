@@ -56,37 +56,23 @@ type CollFunction struct {
 }
 
 var ctx = context.Background()
-var emptyDoc = bson.NewDocument()
-var updateDoc = bson.NewDocument(
-	bson.EC.SubDocument("$inc", bson.NewDocument(
-		bson.EC.Int32("x", 1),
-	)),
-)
-var doc = bson.NewDocument(
-	bson.EC.Int32("x", 1),
-)
-var doc2 = bson.NewDocument(
-	bson.EC.Int32("y", 1),
-)
+var emptyDoc = bson.Doc{}
+var updateDoc = bson.Doc{{"$inc", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}}
+var doc = bson.Doc{{"x", bson.Int32(1)}}
+var doc2 = bson.Doc{{"y", bson.Int32(1)}}
 
 var fooIndex = IndexModel{
-	Keys: bson.NewDocument(
-		bson.EC.Int32("foo", -1),
-	),
+	Keys:    bson.Doc{{"foo", bson.Int32(-1)}},
 	Options: NewIndexOptionsBuilder().Name("fooIndex").Build(),
 }
 
 var barIndex = IndexModel{
-	Keys: bson.NewDocument(
-		bson.EC.Int32("bar", -1),
-	),
+	Keys:    bson.Doc{{"bar", bson.Int32(-1)}},
 	Options: NewIndexOptionsBuilder().Name("barIndex").Build(),
 }
 
 var bazIndex = IndexModel{
-	Keys: bson.NewDocument(
-		bson.EC.Int32("baz", -1),
-	),
+	Keys:    bson.Doc{{"baz", bson.Int32(-1)}},
 	Options: NewIndexOptionsBuilder().Name("bazIndex").Build(),
 }
 
@@ -144,7 +130,7 @@ func createFuncMap(t *testing.T, dbName string, collName string, monitored bool)
 	return client, db, coll, functions
 }
 
-func getClusterTime(clusterTime *bson.Document) (uint32, uint32) {
+func getClusterTime(clusterTime bson.Doc) (uint32, uint32) {
 	if clusterTime == nil {
 		fmt.Println("is nil")
 		return 0, 0
@@ -156,7 +142,7 @@ func getClusterTime(clusterTime *bson.Document) (uint32, uint32) {
 		return 0, 0
 	}
 
-	timestampVal, err := clusterTimeVal.MutableDocument().LookupErr("clusterTime")
+	timestampVal, err := clusterTimeVal.Document().LookupErr("clusterTime")
 	if err != nil {
 		fmt.Println("could not find clusterTime")
 		return 0, 0
@@ -224,7 +210,7 @@ func createMonitoredTopology(t *testing.T, clock *session.ClusterClock, monitor 
 
 	_, err = (&command.Write{
 		DB:      testutil.DBName(t),
-		Command: bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
+		Command: bson.Doc{{"dropDatabase", bson.Int32(1)}},
 	}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 	if err != nil {
 		t.Fatal(err)
@@ -251,7 +237,7 @@ func createSessionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor) 
 	return c
 }
 
-func sessionIDsEqual(t *testing.T, sessionID1 *bson.Document, sessionID2 *bson.Document) bool {
+func sessionIDsEqual(t *testing.T, sessionID1 bson.Doc, sessionID2 bson.Doc) bool {
 	firstID, err := sessionID1.LookupErr("id")
 	testhelpers.RequireNil(t, err, "error extracting ID 1: %s", err)
 
@@ -289,10 +275,10 @@ func getReturnError(returnVals []reflect.Value) error {
 	}
 }
 
-func getSessionUUID(t *testing.T, cmd *bson.Document) []byte {
+func getSessionUUID(t *testing.T, cmd bson.Doc) []byte {
 	lsid, err := cmd.LookupErr("lsid")
 	testhelpers.RequireNil(t, err, "key lsid not found in command")
-	sessID, err := lsid.MutableDocument().LookupErr("id")
+	sessID, err := lsid.Document().LookupErr("id")
 	testhelpers.RequireNil(t, err, "key id not found in lsid doc")
 
 	_, data := sessID.Binary()
@@ -388,7 +374,7 @@ func TestSessions(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error dropping database: %s", err)
 
 		coll := db.Collection("SessionsTestClusterTimeColl")
-		serverStatusDoc := bson.NewDocument(bson.EC.Int32("serverStatus", 1))
+		serverStatusDoc := bson.Doc{{"serverStatus", bson.Int32(1)}}
 
 		functions := []struct {
 			name    string
@@ -434,8 +420,8 @@ func TestSessions(t *testing.T) {
 				nextCtVal, err := sessionStarted.Command.LookupErr("$clusterTime")
 				testhelpers.RequireNil(t, err, "key $clusterTime not found in first command for %s", tc.name)
 
-				epoch1, ord1 := getClusterTime(bson.NewDocument(bson.EC.SubDocument("$clusterTime", replyCtVal.MutableDocument())))
-				epoch2, ord2 := getClusterTime(bson.NewDocument(bson.EC.SubDocument("$clusterTime", nextCtVal.MutableDocument())))
+				epoch1, ord1 := getClusterTime(bson.Doc{{"$clusterTime", bson.Document(replyCtVal.Document())}})
+				epoch2, ord2 := getClusterTime(bson.Doc{{"$clusterTime", bson.Document(nextCtVal.Document())}})
 
 				if epoch1 == 0 {
 					t.Fatal("epoch1 is 0")
@@ -484,12 +470,12 @@ func TestSessions(t *testing.T) {
 				// can't insert same document again
 				if tc.name == "InsertOne" {
 					tc.f = func(mctx SessionContext) error {
-						_, err := tc.coll.InsertOne(mctx, bson.NewDocument(bson.EC.Int32("InsertOneNewDoc", 1)))
+						_, err := tc.coll.InsertOne(mctx, bson.Doc{{"InsertOneNewDoc", bson.Int32(1)}})
 						return err
 					}
 				} else if tc.name == "InsertMany" {
 					tc.f = func(mctx SessionContext) error {
-						_, err := tc.coll.InsertMany(mctx, []interface{}{bson.NewDocument(bson.EC.Int32("InsertManyNewDoc", 2))})
+						_, err := tc.coll.InsertMany(mctx, []interface{}{bson.Doc{{"InsertManyNewDoc", bson.Int32(2)}}})
 						return err
 					}
 				} else if tc.name == "DropOneIndex" {
@@ -573,9 +559,9 @@ func TestSessions(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error dropping database: %s", err)
 		coll := db.Collection("ImplicitSessionReturnedColl")
 
-		_, err = coll.InsertOne(ctx, bson.NewDocument(bson.EC.Int32("x", 1)))
+		_, err = coll.InsertOne(ctx, bson.Doc{{"x", bson.Int32(1)}})
 		testhelpers.RequireNil(t, err, "error running insert: %s", err)
-		_, err = coll.InsertOne(ctx, bson.NewDocument(bson.EC.Int32("y", 2)))
+		_, err = coll.InsertOne(ctx, bson.Doc{{"y", bson.Int32(2)}})
 		testhelpers.RequireNil(t, err, "error running insert: %s", err)
 
 		cur, err := coll.Find(ctx, emptyDoc) // should use implicit session returned by InsertOne commands
@@ -614,11 +600,11 @@ func TestSessions(t *testing.T) {
 		coll := db.Collection("ImplicitSessionReturnedGMColl")
 
 		docs := []interface{}{
-			bson.NewDocument(bson.EC.Int32("a", 1)),
-			bson.NewDocument(bson.EC.Int32("a", 2)),
-			bson.NewDocument(bson.EC.Int32("a", 3)),
-			bson.NewDocument(bson.EC.Int32("a", 4)),
-			bson.NewDocument(bson.EC.Int32("a", 5)),
+			bson.Doc{{"a", bson.Int32(1)}},
+			bson.Doc{{"a", bson.Int32(2)}},
+			bson.Doc{{"a", bson.Int32(3)}},
+			bson.Doc{{"a", bson.Int32(4)}},
+			bson.Doc{{"a", bson.Int32(5)}},
 		}
 		_, err = coll.InsertMany(ctx, docs) // pool should have 1 session
 		require.Nil(t, err, "Error on insert")
@@ -652,9 +638,9 @@ func TestSessions(t *testing.T) {
 		coll := db.Collection("TestFindAndGetMoreSessionIDsColl",
 			options.Collection().SetWriteConcern(wcMajority).SetReadConcern(readconcern.Majority()))
 		docs := []interface{}{
-			bson.NewDocument(bson.EC.Int32("a", 1)),
-			bson.NewDocument(bson.EC.Int32("a", 2)),
-			bson.NewDocument(bson.EC.Int32("a", 3)),
+			bson.Doc{{"a", bson.Int32(1)}},
+			bson.Doc{{"a", bson.Int32(2)}},
+			bson.Doc{{"a", bson.Int32(3)}},
 		}
 
 		for i, doc := range docs {

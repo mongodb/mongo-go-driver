@@ -24,8 +24,8 @@ type Update struct {
 	ContinueOnError bool
 	Clock           *session.ClusterClock
 	NS              Namespace
-	Docs            []*bson.Document
-	Opts            []*bson.Element
+	Docs            []bson.Doc
+	Opts            []bson.Elem
 	WriteConcern    *writeconcern.WriteConcern
 	Session         *session.Client
 
@@ -62,20 +62,20 @@ func (u *Update) encode(desc description.SelectedServer) error {
 	return nil
 }
 
-func (u *Update) encodeBatch(docs []*bson.Document, desc description.SelectedServer) (*WriteBatch, error) {
-	copyDocs := make([]*bson.Document, 0, len(docs)) // copy of all the documents
+func (u *Update) encodeBatch(docs []bson.Doc, desc description.SelectedServer) (*WriteBatch, error) {
+	copyDocs := make([]bson.Doc, 0, len(docs)) // copy of all the documents
 	for _, doc := range docs {
 		newDoc := doc.Copy()
 		copyDocs = append(copyDocs, newDoc)
 	}
 
-	var options []*bson.Element
+	var options []bson.Elem
 	for _, opt := range u.Opts {
-		switch opt.Key() {
+		switch opt.Key {
 		case "upsert", "collation", "arrayFilters":
 			// options that are encoded on each individual document
-			for _, doc := range copyDocs {
-				doc.Append(opt)
+			for idx := range copyDocs {
+				copyDocs[idx] = append(copyDocs[idx], opt)
 			}
 		default:
 			options = append(options, opt)

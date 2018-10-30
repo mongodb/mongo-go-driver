@@ -7,8 +7,9 @@
 package options
 
 import (
-	"github.com/mongodb/mongo-go-driver/bson"
 	"time"
+
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // ChangeStreamOptions represents all possible options to a change stream
@@ -17,7 +18,7 @@ type ChangeStreamOptions struct {
 	Collation    *Collation     // Specifies a collation
 	FullDocument *FullDocument  // When set to ‘updateLookup’, the change notification for partial updates will include both a delta describing the changes to the document, as well as a copy of the entire document that was changed from some time after the change occurred.
 	MaxAwaitTime *time.Duration // The maximum amount of time for the server to wait on new documents to satisfy a change stream query
-	ResumeAfter  *bson.Document // Specifies the logical starting point for the new change stream
+	ResumeAfter  bson.Doc       // Specifies the logical starting point for the new change stream
 }
 
 // ChangeStream returns a pointer to a new ChangeStreamOptions
@@ -54,7 +55,7 @@ func (cso *ChangeStreamOptions) SetMaxAwaitTime(d time.Duration) *ChangeStreamOp
 }
 
 // SetResumeAfter specifies the logical starting point for the new change stream
-func (cso *ChangeStreamOptions) SetResumeAfter(d *bson.Document) *ChangeStreamOptions {
+func (cso *ChangeStreamOptions) SetResumeAfter(d bson.Doc) *ChangeStreamOptions {
 	cso.ResumeAfter = d
 	return cso
 }

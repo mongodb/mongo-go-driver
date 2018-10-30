@@ -8,6 +8,7 @@ package command
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
@@ -22,9 +23,9 @@ import (
 // The aggregate command performs an aggregation.
 type Aggregate struct {
 	NS           Namespace
-	Pipeline     *bson.Array
-	CursorOpts   []*bson.Element
-	Opts         []*bson.Element
+	Pipeline     bson.Arr
+	CursorOpts   []bson.Elem
+	Opts         []bson.Elem
 	ReadPref     *readpref.ReadPref
 	WriteConcern *writeconcern.WriteConcern
 	ReadConcern  *readconcern.ReadConcern
@@ -50,23 +51,25 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 		return nil, err
 	}
 
-	command := bson.NewDocument()
-	command.Append(bson.EC.String("aggregate", a.NS.Collection), bson.EC.Array("pipeline", a.Pipeline))
+	command := bson.Doc{
+		{"aggregate", bson.String(a.NS.Collection)},
+		{"pipeline", bson.Array(a.Pipeline)},
+	}
 
-	cursor := bson.NewDocument()
-	command.Append(bson.EC.SubDocument("cursor", cursor))
+	cursor := bson.Doc{}
 
 	for _, opt := range a.Opts {
-		switch opt.Key() {
+		switch opt.Key {
 		case "batchSize":
-			if opt.Value().Int32() == 0 && a.HasDollarOut() {
+			if opt.Value.Int32() == 0 && a.HasDollarOut() {
 				continue
 			}
-			cursor.Append(opt)
+			cursor = append(cursor, opt)
 		default:
-			command.Append(opt)
+			command = append(command, opt)
 		}
 	}
+	command = append(command, bson.Elem{"cursor", bson.Document(cursor)})
 
 	// add write concern because it won't be added by the Read command's Encode()
 	if a.WriteConcern != nil {
@@ -75,7 +78,7 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 			return nil, err
 		}
 
-		command.Append(element)
+		command = append(command, element)
 	}
 
 	return &Read{
@@ -93,24 +96,17 @@ func (a *Aggregate) HasDollarOut() bool {
 	if a.Pipeline == nil {
 		return false
 	}
-	if a.Pipeline.Len() == 0 {
+	if len(a.Pipeline) == 0 {
 		return false
 	}
 
-	val, err := a.Pipeline.Lookup(uint(a.Pipeline.Len() - 1))
-	if err != nil {
-		return false
-	}
+	val := a.Pipeline[len(a.Pipeline)-1]
 
-	doc, ok := val.MutableDocumentOK()
-	if !ok || doc.Len() != 1 {
+	doc, ok := val.DocumentOK()
+	if !ok || len(doc) != 1 {
 		return false
 	}
-	elem, ok := doc.ElementAtOK(0)
-	if !ok {
-		return false
-	}
-	return elem.Key() == "$out"
+	return doc[0].Key == "$out"
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

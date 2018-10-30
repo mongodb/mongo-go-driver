@@ -8,16 +8,18 @@ package dispatch
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/options"
+
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
-	"time"
 )
 
 // Aggregate handles the full cycle dispatch and execution of an aggregate command against the provided
@@ -75,32 +77,33 @@ func Aggregate(
 	aggOpts := options.MergeAggregateOptions(opts...)
 
 	if aggOpts.AllowDiskUse != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("allowDiskUse", *aggOpts.AllowDiskUse))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"allowDiskUse", bson.Boolean(*aggOpts.AllowDiskUse)})
 	}
 	if aggOpts.BatchSize != nil {
-		elem := bson.EC.Int32("batchSize", *aggOpts.BatchSize)
+		elem := bson.Elem{"batchSize", bson.Int32(*aggOpts.BatchSize)}
 		cmd.Opts = append(cmd.Opts, elem)
 		cmd.CursorOpts = append(cmd.CursorOpts, elem)
 	}
 	if aggOpts.BypassDocumentValidation != nil && desc.WireVersion.Includes(4) {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("bypassDocumentValidation", *aggOpts.BypassDocumentValidation))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"bypassDocumentValidation", bson.Boolean(*aggOpts.BypassDocumentValidation)})
 	}
 	if aggOpts.Collation != nil {
 		if desc.WireVersion.Max < 5 {
 			return nil, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.EC.SubDocument("collation", aggOpts.Collation.ToDocument()))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(aggOpts.Collation.ToDocument())})
 	}
 	if aggOpts.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Int64("maxTimeMS", int64(*aggOpts.MaxTime/time.Millisecond)))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*aggOpts.MaxTime / time.Millisecond))})
 	}
 	if aggOpts.MaxAwaitTime != nil {
 		// specified as maxTimeMS on getMore commands
-		cmd.CursorOpts = append(cmd.CursorOpts, bson.EC.Int64("maxTimeMS",
-			int64(*aggOpts.MaxAwaitTime/time.Millisecond)))
+		cmd.CursorOpts = append(cmd.CursorOpts, bson.Elem{
+			"maxTimeMS", bson.Int64(int64(*aggOpts.MaxAwaitTime / time.Millisecond)),
+		})
 	}
 	if aggOpts.Comment != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.String("comment", *aggOpts.Comment))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"comment", bson.String(*aggOpts.Comment)})
 	}
 	if aggOpts.Hint != nil {
 		hintElem, err := interfaceToElement("hint", aggOpts.Hint, registry)

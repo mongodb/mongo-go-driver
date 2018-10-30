@@ -19,7 +19,7 @@ var rander = rand.Reader
 
 // Server is an open session with the server.
 type Server struct {
-	SessionID *bson.Document
+	SessionID bson.Doc
 	TxnNumber int64
 	LastUsed  time.Time
 }
@@ -46,9 +46,7 @@ func newServerSession() (*Server, error) {
 		return nil, err
 	}
 
-	idDoc := bson.NewDocument(
-		bson.EC.BinaryWithSubtype("id", id[:], UUIDSubtype),
-	)
+	idDoc := bson.Doc{{"id", bson.Binary(UUIDSubtype, id[:])}}
 
 	return &Server{
 		SessionID: idDoc,

@@ -22,7 +22,7 @@ import (
 //
 // Since IsMaster can only be run on a connection, there is no Dispatch method.
 type IsMaster struct {
-	Client             *bson.Document
+	Client             bson.Doc
 	Compressors        []string
 	SaslSupportedMechs string
 
@@ -32,21 +32,21 @@ type IsMaster struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (im *IsMaster) Encode() (wiremessage.WireMessage, error) {
-	cmd := bson.NewDocument(bson.EC.Int32("isMaster", 1))
+	cmd := bson.Doc{{"isMaster", bson.Int32(1)}}
 	if im.Client != nil {
-		cmd.Append(bson.EC.SubDocument("client", im.Client))
+		cmd = append(cmd, bson.Elem{"client", bson.Document(im.Client)})
 	}
 	if im.SaslSupportedMechs != "" {
-		cmd.Append(bson.EC.String("saslSupportedMechs", im.SaslSupportedMechs))
+		cmd = append(cmd, bson.Elem{"saslSupportedMechs", bson.String(im.SaslSupportedMechs)})
 	}
 
 	// always send compressors even if empty slice
-	array := bson.NewArray()
+	array := bson.Arr{}
 	for _, compressor := range im.Compressors {
-		array.Append(bson.VC.String(compressor))
+		array = append(array, bson.String(compressor))
 	}
 
-	cmd.Append(bson.EC.Array("compression", array))
+	cmd = append(cmd, bson.Elem{"compression", bson.Array(array)})
 
 	rdr, err := cmd.MarshalBSON()
 	if err != nil {
@@ -83,7 +83,7 @@ func (im *IsMaster) Decode(wm wiremessage.WireMessage) *IsMaster {
 
 	// Reconstructs the $clusterTime doc after decode
 	if im.res.ClusterTime != nil {
-		im.res.ClusterTime = bson.NewDocument(bson.EC.SubDocument("$clusterTime", im.res.ClusterTime))
+		im.res.ClusterTime = bson.Doc{{"$clusterTime", bson.Document(im.res.ClusterTime)}}
 	}
 	return im
 }

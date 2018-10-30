@@ -41,9 +41,7 @@ func (dc *DropCollection) Encode(desc description.SelectedServer) (wiremessage.W
 }
 
 func (dc *DropCollection) encode(desc description.SelectedServer) (*Write, error) {
-	cmd := bson.NewDocument(
-		bson.EC.String("drop", dc.Collection),
-	)
+	cmd := bson.Doc{{"drop", bson.String(dc.Collection)}}
 
 	return &Write{
 		Clock:        dc.Clock,

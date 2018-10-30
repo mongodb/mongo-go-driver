@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
@@ -31,11 +32,9 @@ var ccMonitor = &event.CommandMonitor{
 	},
 }
 
-var startingDoc = bson.NewDocument(
-	bson.EC.Int32("hello", 5),
-)
+var startingDoc = bson.Doc{{"hello", bson.Int32(5)}}
 
-func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.Timestamp) {
+func compareOperationTimes(t *testing.T, expected *primitive.Timestamp, actual *primitive.Timestamp) {
 	if expected.T != actual.T {
 		t.Fatalf("T value mismatch; expected %d got %d", expected.T, actual.T)
 	}
@@ -45,11 +44,11 @@ func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.
 	}
 }
 
-func checkOperationTime(t *testing.T, cmd *bson.Document, shouldInclude bool) {
+func checkOperationTime(t *testing.T, cmd bson.Doc, shouldInclude bool) {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key read concern not found")
 
-	_, err = rc.MutableDocument().LookupErr("afterClusterTime")
+	_, err = rc.Document().LookupErr("afterClusterTime")
 	if shouldInclude {
 		testhelpers.RequireNil(t, err, "afterClusterTime not found")
 	} else {
@@ -57,15 +56,15 @@ func checkOperationTime(t *testing.T, cmd *bson.Document, shouldInclude bool) {
 	}
 }
 
-func getOperationTime(t *testing.T, cmd *bson.Document) *bson.Timestamp {
+func getOperationTime(t *testing.T, cmd bson.Doc) *primitive.Timestamp {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key read concern not found")
 
-	ct, err := rc.MutableDocument().LookupErr("afterClusterTime")
+	ct, err := rc.Document().LookupErr("afterClusterTime")
 	testhelpers.RequireNil(t, err, "key afterClusterTime not found")
 
 	timeT, timeI := ct.Timestamp()
-	return &bson.Timestamp{
+	return &primitive.Timestamp{
 		T: timeT,
 		I: timeI,
 	}
@@ -94,11 +93,11 @@ func createReadFuncMap(t *testing.T, dbName string, collName string) (*Client, *
 	return client, db, coll, functions
 }
 
-func checkReadConcern(t *testing.T, cmd *bson.Document, levelIncluded bool, expectedLevel string, optimeIncluded bool, expectedTime *bson.Timestamp) {
+func checkReadConcern(t *testing.T, cmd bson.Doc, levelIncluded bool, expectedLevel string, optimeIncluded bool, expectedTime *primitive.Timestamp) {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key readConcern not found")
 
-	rcDoc := rc.MutableDocument()
+	rcDoc := rc.Document()
 	levelVal, err := rcDoc.LookupErr("level")
 	if levelIncluded {
 		testhelpers.RequireNil(t, err, "key level not found")
@@ -113,7 +112,7 @@ func checkReadConcern(t *testing.T, cmd *bson.Document, levelIncluded bool, expe
 	if optimeIncluded {
 		testhelpers.RequireNil(t, err, "key afterClusterTime not found")
 		ctT, ctI := ct.Timestamp()
-		compareOperationTimes(t, expectedTime, &bson.Timestamp{ctT, ctI})
+		compareOperationTimes(t, expectedTime, &primitive.Timestamp{ctT, ctI})
 	} else {
 		testhelpers.RequireNotNil(t, err, "key afterClusterTime found")
 	}
@@ -243,7 +242,7 @@ func TestCausalConsistency(t *testing.T) {
 		serverT, serverI := ccSucceeded.Reply.Lookup("operationTime").Timestamp()
 
 		testhelpers.RequireNotNil(t, sess.OperationTime(), "operation time nil after first command")
-		compareOperationTimes(t, &bson.Timestamp{serverT, serverI}, sess.OperationTime())
+		compareOperationTimes(t, &primitive.Timestamp{serverT, serverI}, sess.OperationTime())
 	})
 
 	t.Run("TestOperationTimeSent", func(t *testing.T) {

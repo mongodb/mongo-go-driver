@@ -29,13 +29,13 @@ type MongoDBX509Authenticator struct {
 
 // Auth implements the Authenticator interface.
 func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
-	authRequestDoc := bson.NewDocument(
-		bson.EC.Int32("authenticate", 1),
-		bson.EC.String("mechanism", MongoDBX509),
-	)
+	authRequestDoc := bson.Doc{
+		{"authenticate", bson.Int32(1)},
+		{"mechanism", bson.String(MongoDBX509)},
+	}
 
 	if desc.WireVersion.Max < 5 {
-		authRequestDoc.Append(bson.EC.String("user", a.User))
+		authRequestDoc = append(authRequestDoc, bson.Elem{"user", bson.String(a.User)})
 	}
 
 	authCmd := command.Read{DB: "$external", Command: authRequestDoc}

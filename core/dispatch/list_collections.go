@@ -57,7 +57,7 @@ func ListCollections(
 
 	lc := options.MergeListCollectionsOptions(opts...)
 	if lc.NameOnly != nil {
-		cmd.Opts = append(cmd.Opts, bson.EC.Boolean("nameOnly", *lc.NameOnly))
+		cmd.Opts = append(cmd.Opts, bson.Elem{"nameOnly", bson.Boolean(*lc.NameOnly)})
 	}
 
 	return cmd.RoundTrip(ctx, ss.Description(), ss, conn)

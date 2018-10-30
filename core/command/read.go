@@ -22,7 +22,7 @@ import (
 // Read represents a generic database read command.
 type Read struct {
 	DB          string
-	Command     *bson.Document
+	Command     bson.Doc
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -32,43 +32,43 @@ type Read struct {
 	err    error
 }
 
-func (r *Read) createReadPref(kind description.ServerKind) *bson.Document {
+func (r *Read) createReadPref(kind description.ServerKind) bson.Doc {
 	if r.ReadPref == nil {
 		return nil
 	}
 
-	doc := bson.NewDocument()
+	doc := bson.Doc{}
 
 	switch r.ReadPref.Mode() {
 	case readpref.PrimaryMode:
-		doc.Append(bson.EC.String("mode", "primary"))
+		doc = append(doc, bson.Elem{"mode", bson.String("primary")})
 	case readpref.PrimaryPreferredMode:
-		doc.Append(bson.EC.String("mode", "primaryPreferred"))
+		doc = append(doc, bson.Elem{"mode", bson.String("primaryPreferred")})
 	case readpref.SecondaryPreferredMode:
-		doc.Append(bson.EC.String("mode", "secondaryPreferred"))
+		doc = append(doc, bson.Elem{"mode", bson.String("secondaryPreferred")})
 	case readpref.SecondaryMode:
-		doc.Append(bson.EC.String("mode", "secondary"))
+		doc = append(doc, bson.Elem{"mode", bson.String("secondary")})
 	case readpref.NearestMode:
-		doc.Append(bson.EC.String("mode", "nearest"))
+		doc = append(doc, bson.Elem{"mode", bson.String("nearest")})
 	}
 
-	sets := make([]*bson.Value, 0, len(r.ReadPref.TagSets()))
+	sets := make([]bson.Val, 0, len(r.ReadPref.TagSets()))
 	for _, ts := range r.ReadPref.TagSets() {
 		if len(ts) == 0 {
 			continue
 		}
-		set := bson.NewDocument()
+		set := bson.Doc{}
 		for _, t := range ts {
-			set.Append(bson.EC.String(t.Name, t.Value))
+			set = append(set, bson.Elem{t.Name, bson.String(t.Value)})
 		}
-		sets = append(sets, bson.VC.Document(set))
+		sets = append(sets, bson.Document(set))
 	}
 	if len(sets) > 0 {
-		doc.Append(bson.EC.ArrayFromElements("tags", sets...))
+		doc = append(doc, bson.Elem{"tags", bson.Array(sets)})
 	}
 
 	if d, ok := r.ReadPref.MaxStaleness(); ok {
-		doc.Append(bson.EC.Int32("maxStalenessSeconds", int32(d.Seconds())))
+		doc = append(doc, bson.Elem{"maxStalenessSeconds", bson.Int32(int32(d.Seconds()))})
 	}
 
 	return doc
@@ -83,14 +83,19 @@ func (r *Read) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, q
 		return query, nil
 	}
 
-	return bson.NewDocument(
-		bson.EC.SubDocumentFromReader("$query", query),
-		bson.EC.SubDocument("$readPreference", doc),
-	).MarshalBSON()
+	qdoc := bson.Doc{}
+	err := bson.Unmarshal(query, &qdoc)
+	if err != nil {
+		return query, err
+	}
+	return bson.Doc{
+		{"$query", bson.Document(qdoc)},
+		{"$readPreference", bson.Document(doc)},
+	}.MarshalBSON()
 }
 
 // Encode r as OP_MSG
-func (r *Read) encodeOpMsg(desc description.SelectedServer, cmd *bson.Document) (wiremessage.WireMessage, error) {
+func (r *Read) encodeOpMsg(desc description.SelectedServer, cmd bson.Doc) (wiremessage.WireMessage, error) {
 	msg := wiremessage.Msg{
 		MsgHeader: wiremessage.Header{RequestID: wiremessage.NextRequestID()},
 		Sections:  make([]wiremessage.Section, 0),
@@ -147,7 +152,7 @@ func (r *Read) queryNeedsReadPref(kind description.ServerKind) bool {
 }
 
 // Encode c as OP_QUERY
-func (r *Read) encodeOpQuery(desc description.SelectedServer, cmd *bson.Document) (wiremessage.WireMessage, error) {
+func (r *Read) encodeOpQuery(desc description.SelectedServer, cmd bson.Doc) (wiremessage.WireMessage, error) {
 	rdr, err := marshalCommand(cmd)
 	if err != nil {
 		return nil, err
@@ -193,20 +198,17 @@ func (r *Read) decodeOpReply(wm wiremessage.WireMessage) {
 // Encode will encode this command into a wire message for the given server description.
 func (r *Read) Encode(desc description.SelectedServer) (wiremessage.WireMessage, error) {
 	cmd := r.Command.Copy()
-	err := addReadConcern(cmd, desc, r.ReadConcern, r.Session)
+	cmd, err := addReadConcern(cmd, desc, r.ReadConcern, r.Session)
 	if err != nil {
 		return nil, err
 	}
 
-	err = addSessionFields(cmd, desc, r.Session)
+	cmd, err = addSessionFields(cmd, desc, r.Session)
 	if err != nil {
 		return nil, err
 	}
 
-	err = addClusterTime(cmd, desc, r.Session, r.Clock)
-	if err != nil {
-		return nil, nil
-	}
+	cmd = addClusterTime(cmd, desc, r.Session, r.Clock)
 
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
 		return r.encodeOpQuery(desc, cmd)

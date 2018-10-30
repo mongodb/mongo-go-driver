@@ -11,6 +11,7 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
@@ -23,8 +24,8 @@ import (
 // The count command counts how many documents in a collection match the given query.
 type Count struct {
 	NS          Namespace
-	Query       *bson.Document
-	Opts        []*bson.Element
+	Query       bson.Doc
+	Opts        []bson.Elem
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -49,8 +50,8 @@ func (c *Count) encode(desc description.SelectedServer) (*Read, error) {
 		return nil, err
 	}
 
-	command := bson.NewDocument(bson.EC.String("count", c.NS.Collection), bson.EC.SubDocument("query", c.Query))
-	command.Append(c.Opts...)
+	command := bson.Doc{{"count", bson.String(c.NS.Collection)}, {"query", bson.Document(c.Query)}}
+	command = append(command, c.Opts...)
 
 	return &Read{
 		Clock:       c.Clock,
@@ -77,7 +78,7 @@ func (c *Count) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 func (c *Count) decode(desc description.SelectedServer, rdr bson.Raw) *Count {
 	val, err := rdr.LookupErr("n")
 	switch {
-	case err == bson.ErrElementNotFound:
+	case err == bsoncore.ErrElementNotFound:
 		c.err = errors.New("invalid response from server, no 'n' field")
 		return c
 	case err != nil:

@@ -57,7 +57,7 @@ func main() {
 	}
 
 	id, _ := uuid.New()
-	cmd := command.Read{DB: dbname, Command: bson.NewDocument(bson.EC.String("count", *col))}
+	cmd := command.Read{DB: dbname, Command: bson.Doc{{"count", bson.String(*col)}}}
 	rdr, err := dispatch.Read(
 		ctx, cmd, t,
 		description.WriteSelector(),
@@ -68,13 +68,13 @@ func main() {
 		log.Fatalf("failed executing count command on %s.%s: %v", dbname, *col, err)
 	}
 
-	doc := bson.NewDocument()
+	doc := bson.Doc{}
 	err = doc.UnmarshalBSON(rdr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	result, err := doc.ToExtJSONErr(true)
+	result, err := bson.MarshalExtJSON(doc, true, false)
 	if err != nil {
 		log.Fatalf("failed to convert BSON to extended JSON: %s", err)
 	}

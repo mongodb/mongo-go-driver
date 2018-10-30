@@ -29,12 +29,12 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- internal.MakeReply(t, bson.NewDocument(
-		bson.EC.Int32("ok", 1),
-		bson.EC.Int32("conversationId", 1),
-		bson.EC.Binary("payload", []byte{}),
-		bson.EC.Int32("code", 143),
-		bson.EC.Boolean("done", true)),
+	resps <- internal.MakeReply(t, bson.Doc{
+		{"ok", bson.Int32(1)},
+		{"conversationId", bson.Int32(1)},
+		{"payload", bson.Binary(0x00, []byte{})},
+		{"code", bson.Int32(143)},
+		{"done", bson.Boolean(true)}},
 	)
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
@@ -63,17 +63,17 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 2)
-	resps <- internal.MakeReply(t, bson.NewDocument(
-		bson.EC.Int32("ok", 1),
-		bson.EC.Int32("conversationId", 1),
-		bson.EC.Binary("payload", []byte{}),
-		bson.EC.Boolean("done", false)),
+	resps <- internal.MakeReply(t, bson.Doc{
+		{"ok", bson.Int32(1)},
+		{"conversationId", bson.Int32(1)},
+		{"payload", bson.Binary(0x00, []byte{})},
+		{"done", bson.Boolean(false)}},
 	)
-	resps <- internal.MakeReply(t, bson.NewDocument(
-		bson.EC.Int32("ok", 1),
-		bson.EC.Int32("conversationId", 1),
-		bson.EC.Binary("payload", []byte{}),
-		bson.EC.Boolean("done", true)),
+	resps <- internal.MakeReply(t, bson.Doc{
+		{"ok", bson.Int32(1)},
+		{"conversationId", bson.Int32(1)},
+		{"payload", bson.Binary(0x00, []byte{})},
+		{"done", bson.Boolean(true)}},
 	)
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
@@ -102,11 +102,11 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- internal.MakeReply(t, bson.NewDocument(
-		bson.EC.Int32("ok", 1),
-		bson.EC.Int32("conversationId", 1),
-		bson.EC.Binary("payload", []byte{}),
-		bson.EC.Boolean("done", true)),
+	resps <- internal.MakeReply(t, bson.Doc{
+		{"ok", bson.Int32(1)},
+		{"conversationId", bson.Int32(1)},
+		{"payload", bson.Binary(0x00, []byte{})},
+		{"done", bson.Boolean(true)}},
 	)
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
@@ -125,10 +125,10 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
-	expectedCmd := bson.NewDocument(
-		bson.EC.Int32("saslStart", 1),
-		bson.EC.String("mechanism", "PLAIN"),
-		bson.EC.Binary("payload", payload),
-	)
+	expectedCmd := bson.Doc{
+		{"saslStart", bson.Int32(1)},
+		{"mechanism", bson.String("PLAIN")},
+		{"payload", bson.Binary(0x00, payload)},
+	}
 	compareResponses(t, <-c.Written, expectedCmd, "$external")
 }

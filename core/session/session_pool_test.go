@@ -35,11 +35,11 @@ func TestSessionPool(t *testing.T) {
 		nextSess, err := p.GetSession()
 		testhelpers.RequireNil(t, err, "error getting session %s", err)
 
-		if sess.SessionID != secondID {
+		if !sess.SessionID.Equal(secondID) {
 			t.Errorf("first sesssion ID mismatch. got %s expected %s", sess.SessionID, secondID)
 		}
 
-		if nextSess.SessionID != firstID {
+		if !nextSess.SessionID.Equal(firstID) {
 			t.Errorf("second sesssion ID mismatch. got %s expected %s", nextSess.SessionID, firstID)
 		}
 	})
@@ -64,7 +64,7 @@ func TestSessionPool(t *testing.T) {
 		sess, err := p.GetSession()
 		testhelpers.RequireNil(t, err, "error getting session %s", err)
 
-		if sess.SessionID == firstID || sess.SessionID == secondID {
+		if sess.SessionID.Equal(firstID) || sess.SessionID.Equal(secondID) {
 			t.Errorf("Expired sessions not removed!")
 		}
 	})
