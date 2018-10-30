@@ -64,7 +64,7 @@ type Client struct {
 	ClientID       uuid.UUID
 	ClusterTime    *bson.Document
 	Consistent     bool // causal consistency
-	OperationTime  *bson.Timestamp
+	OperationTime  *bson.TimestampPrimitive
 	SessionType    Type
 	Terminated     bool
 	RetryingCommit bool
@@ -166,7 +166,7 @@ func (c *Client) AdvanceClusterTime(clusterTime *bson.Document) error {
 }
 
 // AdvanceOperationTime updates the session's operation time.
-func (c *Client) AdvanceOperationTime(opTime *bson.Timestamp) error {
+func (c *Client) AdvanceOperationTime(opTime *bson.TimestampPrimitive) error {
 	if c.Terminated {
 		return ErrSessionEnded
 	}
