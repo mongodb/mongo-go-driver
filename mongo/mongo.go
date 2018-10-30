@@ -65,7 +65,7 @@ func (me MarshalError) Error() string {
 // 			{"$match": bson.D{{"totalPop", bson.D{"$gte", 10*1000*1000}}}},
 // 		}}
 //
-type Pipeline []D
+type Pipeline []bson.D
 
 func transformDocument(registry *bsoncodec.Registry, val interface{}) (*bson.Document, error) {
 	if registry == nil {
