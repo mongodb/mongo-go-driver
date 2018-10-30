@@ -802,6 +802,9 @@ func (d *Document) ToExtJSONErr(canonical bool) (string, error) {
 	return ToExtJSON(canonical, b)
 }
 
+// embed implements the Embeddable interface.
+func (d *Document) embed() {}
+
 // Keys represents the keys of a BSON document.
 type Keys []Key
 

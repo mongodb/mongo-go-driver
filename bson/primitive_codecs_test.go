@@ -65,15 +65,15 @@ func compareErrors(err1, err2 error) bool {
 func TestDefaultValueEncoders(t *testing.T) {
 	var pc PrimitiveCodecs
 
-	var pjs = new(JavaScriptCode)
-	*pjs = JavaScriptCode("var hello = 'world';")
-	var psymbol = new(Symbol)
-	*psymbol = Symbol("foobarbaz")
+	var pjs = new(JavaScriptCodePrimitive)
+	*pjs = JavaScriptCodePrimitive("var hello = 'world';")
+	var psymbol = new(SymbolPrimitive)
+	*psymbol = SymbolPrimitive("foobarbaz")
 
 	var wrong = func(string, string) string { return "wrong" }
 
-	pdatetime := new(DateTime)
-	*pdatetime = DateTime(1234567890)
+	pdatetime := new(DateTimePrimitive)
+	*pdatetime = DateTimePrimitive(1234567890)
 
 	type subtest struct {
 		name   string
@@ -101,11 +101,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "JavaScriptEncodeValue",
-						Types:    []interface{}{JavaScriptCode(""), (*JavaScriptCode)(nil)},
+						Types:    []interface{}{JavaScriptCodePrimitive(""), (*JavaScriptCodePrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"JavaScript", JavaScriptCode("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
+				{"JavaScript", JavaScriptCodePrimitive("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
 				{"*JavaScript", pjs, nil, nil, bsonrwtest.WriteJavascript, nil},
 			},
 		},
@@ -121,11 +121,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "SymbolEncodeValue",
-						Types:    []interface{}{Symbol(""), (*Symbol)(nil)},
+						Types:    []interface{}{SymbolPrimitive(""), (*SymbolPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"Symbol", Symbol("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
+				{"Symbol", SymbolPrimitive("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
 				{"*Symbol", psymbol, nil, nil, bsonrwtest.WriteJavascript, nil},
 			},
 		},
@@ -141,12 +141,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "BinaryEncodeValue",
-						Types:    []interface{}{Binary{}, (*Binary)(nil)},
+						Types:    []interface{}{BinaryPrimitive{}, (*BinaryPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"Binary/success", Binary{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
-				{"*Binary/success", &Binary{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
+				{"Binary/success", BinaryPrimitive{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
+				{"*Binary/success", &BinaryPrimitive{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
 			},
 		},
 		{
@@ -161,12 +161,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "UndefinedEncodeValue",
-						Types:    []interface{}{Undefinedv2{}, (*Undefinedv2)(nil)},
+						Types:    []interface{}{UndefinedPrimitive{}, (*UndefinedPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"Undefined/success", Undefinedv2{}, nil, nil, bsonrwtest.WriteUndefined, nil},
-				{"*Undefined/success", &Undefinedv2{}, nil, nil, bsonrwtest.WriteUndefined, nil},
+				{"Undefined/success", UndefinedPrimitive{}, nil, nil, bsonrwtest.WriteUndefined, nil},
+				{"*Undefined/success", &UndefinedPrimitive{}, nil, nil, bsonrwtest.WriteUndefined, nil},
 			},
 		},
 		{
@@ -181,11 +181,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "DateTimeEncodeValue",
-						Types:    []interface{}{DateTime(0), (*DateTime)(nil)},
+						Types:    []interface{}{DateTimePrimitive(0), (*DateTimePrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"DateTime/success", DateTime(1234567890), nil, nil, bsonrwtest.WriteDateTime, nil},
+				{"DateTime/success", DateTimePrimitive(1234567890), nil, nil, bsonrwtest.WriteDateTime, nil},
 				{"*DateTime/success", pdatetime, nil, nil, bsonrwtest.WriteDateTime, nil},
 			},
 		},
@@ -201,12 +201,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "NullEncodeValue",
-						Types:    []interface{}{Nullv2{}, (*Nullv2)(nil)},
+						Types:    []interface{}{NullPrimitive{}, (*NullPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"Null/success", Nullv2{}, nil, nil, bsonrwtest.WriteNull, nil},
-				{"*Null/success", &Nullv2{}, nil, nil, bsonrwtest.WriteNull, nil},
+				{"Null/success", NullPrimitive{}, nil, nil, bsonrwtest.WriteNull, nil},
+				{"*Null/success", &NullPrimitive{}, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -221,12 +221,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "RegexEncodeValue",
-						Types:    []interface{}{Regex{}, (*Regex)(nil)},
+						Types:    []interface{}{RegexPrimitive{}, (*RegexPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"Regex/success", Regex{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
-				{"*Regex/success", &Regex{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
+				{"Regex/success", RegexPrimitive{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
+				{"*Regex/success", &RegexPrimitive{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
 			},
 		},
 		{
@@ -241,13 +241,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "DBPointerEncodeValue",
-						Types:    []interface{}{DBPointer{}, (*DBPointer)(nil)},
+						Types:    []interface{}{DBPointerPrimitive{}, (*DBPointerPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
 				{
 					"DBPointer/success",
-					DBPointer{
+					DBPointerPrimitive{
 						DB:      "foobar",
 						Pointer: objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					},
@@ -255,7 +255,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"*DBPointer/success",
-					&DBPointer{
+					&DBPointerPrimitive{
 						DB:      "foobar",
 						Pointer: objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					},
@@ -275,13 +275,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "CodeWithScopeEncodeValue",
-						Types:    []interface{}{CodeWithScope{}, (*CodeWithScope)(nil)},
+						Types:    []interface{}{CodeWithScopePrimitive{}, (*CodeWithScopePrimitive)(nil)},
 						Received: wrong,
 					},
 				},
 				{
 					"WriteCodeWithScope error",
-					CodeWithScope{},
+					CodeWithScopePrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("wcws error"), ErrAfter: bsonrwtest.WriteCodeWithScope},
 					bsonrwtest.WriteCodeWithScope,
@@ -289,7 +289,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"CodeWithScope/success",
-					CodeWithScope{
+					CodeWithScopePrimitive{
 						Code:  "var hello = 'world';",
 						Scope: NewDocument(),
 					},
@@ -297,7 +297,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"*CodeWithScope/success",
-					&CodeWithScope{
+					&CodeWithScopePrimitive{
 						Code:  "var hello = 'world';",
 						Scope: NewDocument(),
 					},
@@ -317,12 +317,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "TimestampEncodeValue",
-						Types:    []interface{}{Timestamp{}, (*Timestamp)(nil)},
+						Types:    []interface{}{TimestampPrimitive{}, (*TimestampPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"Timestamp/success", Timestamp{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
-				{"*Timestamp/success", &Timestamp{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
+				{"Timestamp/success", TimestampPrimitive{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
+				{"*Timestamp/success", &TimestampPrimitive{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
 			},
 		},
 		{
@@ -337,12 +337,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "MinKeyEncodeValue",
-						Types:    []interface{}{MinKeyv2{}, (*MinKeyv2)(nil)},
+						Types:    []interface{}{MinKeyPrimitive{}, (*MinKeyPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"MinKey/success", MinKeyv2{}, nil, nil, bsonrwtest.WriteMinKey, nil},
-				{"*MinKey/success", &MinKeyv2{}, nil, nil, bsonrwtest.WriteMinKey, nil},
+				{"MinKey/success", MinKeyPrimitive{}, nil, nil, bsonrwtest.WriteMinKey, nil},
+				{"*MinKey/success", &MinKeyPrimitive{}, nil, nil, bsonrwtest.WriteMinKey, nil},
 			},
 		},
 		{
@@ -357,12 +357,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "MaxKeyEncodeValue",
-						Types:    []interface{}{MaxKeyv2{}, (*MaxKeyv2)(nil)},
+						Types:    []interface{}{MaxKeyPrimitive{}, (*MaxKeyPrimitive)(nil)},
 						Received: wrong,
 					},
 				},
-				{"MaxKey/success", MaxKeyv2{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
-				{"*MaxKey/success", &MaxKeyv2{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
+				{"MaxKey/success", MaxKeyPrimitive{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
+				{"*MaxKey/success", &MaxKeyPrimitive{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
 			},
 		},
 		{
@@ -1181,10 +1181,10 @@ func TestDefaultValueEncoders(t *testing.T) {
 func TestDefaultValueDecoders(t *testing.T) {
 	var pc PrimitiveCodecs
 
-	var pjs = new(JavaScriptCode)
-	*pjs = JavaScriptCode("var hello = 'world';")
-	var psymbol = new(Symbol)
-	*psymbol = Symbol("foobarbaz")
+	var pjs = new(JavaScriptCodePrimitive)
+	*pjs = JavaScriptCodePrimitive("var hello = 'world';")
+	var psymbol = new(SymbolPrimitive)
+	*psymbol = SymbolPrimitive("foobarbaz")
 
 	var wrong = func(string, string) string { return "wrong" }
 
@@ -1214,11 +1214,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Return: ""},
 					bsonrwtest.ReadJavascript,
-					bsoncodec.ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []interface{}{(*JavaScriptCode)(nil), (**JavaScriptCode)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []interface{}{(*JavaScriptCodePrimitive)(nil), (**JavaScriptCodePrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not Javascript",
-					JavaScriptCode(""),
+					JavaScriptCodePrimitive(""),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1226,7 +1226,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadJavascript Error",
-					JavaScriptCode(""),
+					JavaScriptCodePrimitive(""),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Err: errors.New("rjs error"), ErrAfter: bsonrwtest.ReadJavascript},
 					bsonrwtest.ReadJavascript,
@@ -1234,7 +1234,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"JavaScriptCode/success",
-					JavaScriptCode("var hello = 'world';"),
+					JavaScriptCodePrimitive("var hello = 'world';"),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Return: "var hello = 'world';"},
 					bsonrwtest.ReadJavascript,
@@ -1260,11 +1260,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: ""},
 					bsonrwtest.ReadSymbol,
-					bsoncodec.ValueDecoderError{Name: "SymbolDecodeValue", Types: []interface{}{(*Symbol)(nil), (**Symbol)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "SymbolDecodeValue", Types: []interface{}{(*SymbolPrimitive)(nil), (**SymbolPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not Symbol",
-					Symbol(""),
+					SymbolPrimitive(""),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1272,7 +1272,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadSymbol Error",
-					Symbol(""),
+					SymbolPrimitive(""),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Err: errors.New("rjs error"), ErrAfter: bsonrwtest.ReadSymbol},
 					bsonrwtest.ReadSymbol,
@@ -1280,7 +1280,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"Symbol/success",
-					Symbol("var hello = 'world';"),
+					SymbolPrimitive("var hello = 'world';"),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: "var hello = 'world';"},
 					bsonrwtest.ReadSymbol,
@@ -1312,11 +1312,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 						},
 					},
 					bsonrwtest.ReadBinary,
-					bsoncodec.ValueDecoderError{Name: "BinaryDecodeValue", Types: []interface{}{(*Binary)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "BinaryDecodeValue", Types: []interface{}{(*BinaryPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not binary",
-					Binary{},
+					BinaryPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1324,7 +1324,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadBinary Error",
-					Binary{},
+					BinaryPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Binary, Err: errors.New("rb error"), ErrAfter: bsonrwtest.ReadBinary},
 					bsonrwtest.ReadBinary,
@@ -1332,7 +1332,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"Binary/success",
-					Binary{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF},
+					BinaryPrimitive{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF},
 					nil,
 					&bsonrwtest.ValueReaderWriter{
 						BSONType: bsontype.Binary,
@@ -1346,7 +1346,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"*Binary/success",
-					&Binary{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF},
+					&BinaryPrimitive{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF},
 					nil,
 					&bsonrwtest.ValueReaderWriter{
 						BSONType: bsontype.Binary,
@@ -1370,11 +1370,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Undefined},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "UndefinedDecodeValue", Types: []interface{}{(*Undefinedv2)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "UndefinedDecodeValue", Types: []interface{}{(*UndefinedPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not undefined",
-					Undefinedv2{},
+					UndefinedPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1382,7 +1382,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadUndefined Error",
-					Undefinedv2{},
+					UndefinedPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Undefined, Err: errors.New("ru error"), ErrAfter: bsonrwtest.ReadUndefined},
 					bsonrwtest.ReadUndefined,
@@ -1390,7 +1390,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadUndefined/success",
-					Undefinedv2{},
+					UndefinedPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Undefined},
 					bsonrwtest.ReadUndefined,
@@ -1408,11 +1408,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "DateTimeDecodeValue", Types: []interface{}{(*DateTime)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "DateTimeDecodeValue", Types: []interface{}{(*DateTimePrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not datetime",
-					DateTime(0),
+					DateTimePrimitive(0),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1420,7 +1420,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadDateTime Error",
-					DateTime(0),
+					DateTimePrimitive(0),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Err: errors.New("rdt error"), ErrAfter: bsonrwtest.ReadDateTime},
 					bsonrwtest.ReadDateTime,
@@ -1428,7 +1428,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"success",
-					DateTime(1234567890),
+					DateTimePrimitive(1234567890),
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(1234567890)},
 					bsonrwtest.ReadDateTime,
@@ -1446,11 +1446,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "NullDecodeValue", Types: []interface{}{(*Nullv2)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "NullDecodeValue", Types: []interface{}{(*NullPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not null",
-					Nullv2{},
+					NullPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1458,7 +1458,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadNull Error",
-					Nullv2{},
+					NullPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null, Err: errors.New("rn error"), ErrAfter: bsonrwtest.ReadNull},
 					bsonrwtest.ReadNull,
@@ -1466,7 +1466,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"success",
-					Nullv2{},
+					NullPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
 					bsonrwtest.ReadNull,
@@ -1484,11 +1484,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Regex},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "RegexDecodeValue", Types: []interface{}{(*Regex)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "RegexDecodeValue", Types: []interface{}{(*RegexPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not regex",
-					Regex{},
+					RegexPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1496,7 +1496,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadRegex Error",
-					Regex{},
+					RegexPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Regex, Err: errors.New("rr error"), ErrAfter: bsonrwtest.ReadRegex},
 					bsonrwtest.ReadRegex,
@@ -1504,7 +1504,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"success",
-					Regex{Pattern: "foo", Options: "bar"},
+					RegexPrimitive{Pattern: "foo", Options: "bar"},
 					nil,
 					&bsonrwtest.ValueReaderWriter{
 						BSONType: bsontype.Regex,
@@ -1528,11 +1528,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DBPointer},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "DBPointerDecodeValue", Types: []interface{}{(*DBPointer)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "DBPointerDecodeValue", Types: []interface{}{(*DBPointerPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not dbpointer",
-					DBPointer{},
+					DBPointerPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1540,7 +1540,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadDBPointer Error",
-					DBPointer{},
+					DBPointerPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DBPointer, Err: errors.New("rdbp error"), ErrAfter: bsonrwtest.ReadDBPointer},
 					bsonrwtest.ReadDBPointer,
@@ -1548,7 +1548,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"success",
-					DBPointer{
+					DBPointerPrimitive{
 						DB:      "foobar",
 						Pointer: objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					},
@@ -1579,13 +1579,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueDecoderError{
 						Name:     "CodeWithScopeDecodeValue",
-						Types:    []interface{}{(*CodeWithScope)(nil)},
+						Types:    []interface{}{(*CodeWithScopePrimitive)(nil)},
 						Received: &wrong,
 					},
 				},
 				{
 					"type not codewithscope",
-					CodeWithScope{},
+					CodeWithScopePrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1593,7 +1593,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadCodeWithScope Error",
-					CodeWithScope{},
+					CodeWithScopePrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.CodeWithScope, Err: errors.New("rcws error"), ErrAfter: bsonrwtest.ReadCodeWithScope},
 					bsonrwtest.ReadCodeWithScope,
@@ -1601,7 +1601,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"decodeDocument Error",
-					CodeWithScope{
+					CodeWithScopePrimitive{
 						Code:  "var hello = 'world';",
 						Scope: NewDocument(EC.Null("foo")),
 					},
@@ -1622,11 +1622,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Timestamp},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "TimestampDecodeValue", Types: []interface{}{(*Timestamp)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "TimestampDecodeValue", Types: []interface{}{(*TimestampPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not timestamp",
-					Timestamp{},
+					TimestampPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1634,7 +1634,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadTimestamp Error",
-					Timestamp{},
+					TimestampPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Timestamp, Err: errors.New("rt error"), ErrAfter: bsonrwtest.ReadTimestamp},
 					bsonrwtest.ReadTimestamp,
@@ -1642,7 +1642,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"success",
-					Timestamp{T: 12345, I: 67890},
+					TimestampPrimitive{T: 12345, I: 67890},
 					nil,
 					&bsonrwtest.ValueReaderWriter{
 						BSONType: bsontype.Timestamp,
@@ -1666,11 +1666,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MinKey},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "MinKeyDecodeValue", Types: []interface{}{(*MinKeyv2)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "MinKeyDecodeValue", Types: []interface{}{(*MinKeyPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not null",
-					MinKeyv2{},
+					MinKeyPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1678,7 +1678,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadMinKey Error",
-					MinKeyv2{},
+					MinKeyPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MinKey, Err: errors.New("rn error"), ErrAfter: bsonrwtest.ReadMinKey},
 					bsonrwtest.ReadMinKey,
@@ -1686,7 +1686,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"success",
-					MinKeyv2{},
+					MinKeyPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MinKey},
 					bsonrwtest.ReadMinKey,
@@ -1704,11 +1704,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MaxKey},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "MaxKeyDecodeValue", Types: []interface{}{(*MaxKeyv2)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "MaxKeyDecodeValue", Types: []interface{}{(*MaxKeyPrimitive)(nil)}, Received: &wrong},
 				},
 				{
 					"type not null",
-					MaxKeyv2{},
+					MaxKeyPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
@@ -1716,7 +1716,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"ReadMaxKey Error",
-					MaxKeyv2{},
+					MaxKeyPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MaxKey, Err: errors.New("rn error"), ErrAfter: bsonrwtest.ReadMaxKey},
 					bsonrwtest.ReadMaxKey,
@@ -1724,7 +1724,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"success",
-					MaxKeyv2{},
+					MaxKeyPrimitive{},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MaxKey},
 					bsonrwtest.ReadMaxKey,
@@ -1956,11 +1956,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 		_, vr, err := dr.ReadElement()
 		noerr(t, err)
 
-		want := CodeWithScope{
+		want := CodeWithScopePrimitive{
 			Code:  "var hello = 'world';",
 			Scope: NewDocument(EC.Null("bar")),
 		}
-		var got CodeWithScope
+		var got CodeWithScopePrimitive
 		err = pc.CodeWithScopeDecodeValue(dc, vr, &got)
 		noerr(t, err)
 
@@ -2676,12 +2676,12 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"Binary - Binary",
-					Binary{Subtype: 0xFF, Data: []byte{0x01, 0x02, 0x03}},
+					BinaryPrimitive{Subtype: 0xFF, Data: []byte{0x01, 0x02, 0x03}},
 					bsontype.Binary,
 				},
 				{
 					"Undefined - Undefined",
-					Undefinedv2{},
+					UndefinedPrimitive{},
 					bsontype.Undefined,
 				},
 				{
@@ -2696,22 +2696,22 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"DateTime - DateTime",
-					DateTime(1234567890),
+					DateTimePrimitive(1234567890),
 					bsontype.DateTime,
 				},
 				{
 					"Null - Null",
-					Nullv2{},
+					NullPrimitive{},
 					bsontype.Null,
 				},
 				{
 					"Regex - Regex",
-					Regex{Pattern: "foo", Options: "bar"},
+					RegexPrimitive{Pattern: "foo", Options: "bar"},
 					bsontype.Regex,
 				},
 				{
 					"DBPointer - DBPointer",
-					DBPointer{
+					DBPointerPrimitive{
 						DB:      "foobar",
 						Pointer: objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					},
@@ -2719,17 +2719,17 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"JavaScript - JavaScriptCode",
-					JavaScriptCode("var foo = 'bar';"),
+					JavaScriptCodePrimitive("var foo = 'bar';"),
 					bsontype.JavaScript,
 				},
 				{
 					"Symbol - Symbol",
-					Symbol("foobarbazlolz"),
+					SymbolPrimitive("foobarbazlolz"),
 					bsontype.Symbol,
 				},
 				{
 					"CodeWithScope - CodeWithScope",
-					CodeWithScope{
+					CodeWithScopePrimitive{
 						Code:  "var foo = 'bar';",
 						Scope: NewDocument(EC.Double("foo", 3.14159)),
 					},
@@ -2747,7 +2747,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"Timestamp - Timestamp",
-					Timestamp{T: 12345, I: 67890},
+					TimestampPrimitive{T: 12345, I: 67890},
 					bsontype.Timestamp,
 				},
 				{
@@ -2757,12 +2757,12 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"MinKey - MinKey",
-					MinKeyv2{},
+					MinKeyPrimitive{},
 					bsontype.MinKey,
 				},
 				{
 					"MaxKey - MaxKey",
-					MaxKeyv2{},
+					MaxKeyPrimitive{},
 					bsontype.MaxKey,
 				},
 			}
