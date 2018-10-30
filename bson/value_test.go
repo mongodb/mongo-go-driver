@@ -8,7 +8,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-func TestValue(t *testing.T) {
+func TestValueOLD(t *testing.T) {
 	t.Run("panic", func(t *testing.T) {
 		handle := func() {
 			if got := recover(); got != ErrUninitializedElement {

@@ -35,7 +35,7 @@ var startingDoc = bson.NewDocument(
 	bson.EC.Int32("hello", 5),
 )
 
-func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.Timestamp) {
+func compareOperationTimes(t *testing.T, expected *bson.TimestampPrimitive, actual *bson.TimestampPrimitive) {
 	if expected.T != actual.T {
 		t.Fatalf("T value mismatch; expected %d got %d", expected.T, actual.T)
 	}
@@ -57,7 +57,7 @@ func checkOperationTime(t *testing.T, cmd *bson.Document, shouldInclude bool) {
 	}
 }
 
-func getOperationTime(t *testing.T, cmd *bson.Document) *bson.Timestamp {
+func getOperationTime(t *testing.T, cmd *bson.Document) *bson.TimestampPrimitive {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key read concern not found")
 
@@ -65,7 +65,7 @@ func getOperationTime(t *testing.T, cmd *bson.Document) *bson.Timestamp {
 	testhelpers.RequireNil(t, err, "key afterClusterTime not found")
 
 	timeT, timeI := ct.Timestamp()
-	return &bson.Timestamp{
+	return &bson.TimestampPrimitive{
 		T: timeT,
 		I: timeI,
 	}
@@ -94,7 +94,7 @@ func createReadFuncMap(t *testing.T, dbName string, collName string) (*Client, *
 	return client, db, coll, functions
 }
 
-func checkReadConcern(t *testing.T, cmd *bson.Document, levelIncluded bool, expectedLevel string, optimeIncluded bool, expectedTime *bson.Timestamp) {
+func checkReadConcern(t *testing.T, cmd *bson.Document, levelIncluded bool, expectedLevel string, optimeIncluded bool, expectedTime *bson.TimestampPrimitive) {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key readConcern not found")
 
@@ -113,7 +113,7 @@ func checkReadConcern(t *testing.T, cmd *bson.Document, levelIncluded bool, expe
 	if optimeIncluded {
 		testhelpers.RequireNil(t, err, "key afterClusterTime not found")
 		ctT, ctI := ct.Timestamp()
-		compareOperationTimes(t, expectedTime, &bson.Timestamp{ctT, ctI})
+		compareOperationTimes(t, expectedTime, &bson.TimestampPrimitive{ctT, ctI})
 	} else {
 		testhelpers.RequireNotNil(t, err, "key afterClusterTime found")
 	}
@@ -243,7 +243,7 @@ func TestCausalConsistency(t *testing.T) {
 		serverT, serverI := ccSucceeded.Reply.Lookup("operationTime").Timestamp()
 
 		testhelpers.RequireNotNil(t, sess.OperationTime(), "operation time nil after first command")
-		compareOperationTimes(t, &bson.Timestamp{serverT, serverI}, sess.OperationTime())
+		compareOperationTimes(t, &bson.TimestampPrimitive{serverT, serverI}, sess.OperationTime())
 	})
 
 	t.Run("TestOperationTimeSent", func(t *testing.T) {
