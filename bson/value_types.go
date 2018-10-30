@@ -7,82 +7,99 @@
 package bson
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
-// Binary represents a BSON binary value.
-type Binary struct {
+// BinaryPrimitive represents a BSON binary value.
+type BinaryPrimitive struct {
 	Subtype byte
 	Data    []byte
 }
 
-// Undefined represents the BSON undefined value.
-var Undefined struct{}
+// Equal compaes bp to bp2 and returns true is the are equal.
+func (bp BinaryPrimitive) Equal(bp2 BinaryPrimitive) bool {
+	if bp.Subtype != bp2.Subtype {
+		return false
+	}
+	return bytes.Equal(bp.Data, bp2.Data)
+}
 
-// Undefinedv2 represents the BSON undefined value type.
-type Undefinedv2 struct{}
+// UndefinedPrimitive represents the BSON undefined value type.
+type UndefinedPrimitive struct{}
 
-// DateTime represents the BSON datetime value.
-type DateTime int64
+// DateTimePrimitive represents the BSON datetime value.
+type DateTimePrimitive int64
 
-// Null represents the BSON null value.
-var Null struct{}
+// NullPrimitive repreesnts the BSON null value.
+type NullPrimitive struct{}
 
-// Nullv2 repreesnts the BSON null value.
-type Nullv2 struct{}
-
-// Regex represents a BSON regex value.
-type Regex struct {
+// RegexPrimitive represents a BSON regex value.
+type RegexPrimitive struct {
 	Pattern string
 	Options string
 }
 
-func (r Regex) String() string {
-	return fmt.Sprintf(`{"pattern": "%s", "options": "%s"}`, r.Pattern, r.Options)
+func (rp RegexPrimitive) String() string {
+	return fmt.Sprintf(`{"pattern": "%s", "options": "%s"}`, rp.Pattern, rp.Options)
 }
 
-// DBPointer represents a BSON dbpointer value.
-type DBPointer struct {
+// Equal compaes rp to rp2 and returns true is the are equal.
+func (rp RegexPrimitive) Equal(rp2 RegexPrimitive) bool {
+	return rp.Pattern == rp2.Pattern && rp.Options == rp.Options
+}
+
+// DBPointerPrimitive represents a BSON dbpointer value.
+type DBPointerPrimitive struct {
 	DB      string
 	Pointer objectid.ObjectID
 }
 
-func (d DBPointer) String() string {
+func (d DBPointerPrimitive) String() string {
 	return fmt.Sprintf(`{"db": "%s", "pointer": "%s"}`, d.DB, d.Pointer)
 }
 
-// JavaScriptCode represents a BSON JavaScript code value.
-type JavaScriptCode string
+// Equal compaes d to d2 and returns true is the are equal.
+func (d DBPointerPrimitive) Equal(d2 DBPointerPrimitive) bool {
+	return d.DB == d2.DB && bytes.Equal(d.Pointer[:], d2.Pointer[:])
+}
 
-// Symbol represents a BSON symbol value.
-type Symbol string
+// JavaScriptCodePrimitive represents a BSON JavaScript code value.
+type JavaScriptCodePrimitive string
 
-// CodeWithScope represents a BSON JavaScript code with scope value.
-type CodeWithScope struct {
+// SymbolPrimitive represents a BSON symbol value.
+type SymbolPrimitive string
+
+// CodeWithScopePrimitive represents a BSON JavaScript code with scope value.
+type CodeWithScopePrimitive struct {
 	Code  string
 	Scope *Document
 }
 
-func (cws CodeWithScope) String() string {
+func (cws CodeWithScopePrimitive) String() string {
 	return fmt.Sprintf(`{"code": "%s", "scope": %s}`, cws.Code, cws.Scope)
 }
 
-// Timestamp represents a BSON timestamp value.
-type Timestamp struct {
+// Equal compaes cws to cws2 and returns true is the are equal.
+func (cws CodeWithScopePrimitive) Equal(cws2 CodeWithScopePrimitive) bool {
+	return cws.Code == cws2.Code && cws.Scope.Equal(cws2.Scope)
+}
+
+// TimestampPrimitive represents a BSON timestamp value.
+type TimestampPrimitive struct {
 	T uint32
 	I uint32
 }
 
-// MinKey represents the BSON maxkey value.
-var MinKey struct{}
+// Equal compaes tp to tp2 and returns true is the are equal.
+func (tp TimestampPrimitive) Equal(tp2 TimestampPrimitive) bool {
+	return tp.T == tp2.T && tp.I == tp2.I
+}
 
-// MaxKey represents the BSON minkey value.
-var MaxKey struct{}
+// MinKeyPrimitive represents the BSON minkey value.
+type MinKeyPrimitive struct{}
 
-// MinKeyv2 represents the BSON minkey value.
-type MinKeyv2 struct{}
-
-// MaxKeyv2 represents the BSON maxkey value.
-type MaxKeyv2 struct{}
+// MaxKeyPrimitive represents the BSON maxkey value.
+type MaxKeyPrimitive struct{}

@@ -90,6 +90,8 @@ var ErrStringLargerThanContainer = errors.New("string size is larger than the Ja
 var ErrInvalidElement = errors.New("invalid Element")
 
 // ElementTypeError specifies that a method to obtain a BSON value an incorrect type was called on a bson.Value.
+//
+// TODO: rename this ValueTypeError.
 type ElementTypeError struct {
 	Method string
 	Type   bsontype.Type
