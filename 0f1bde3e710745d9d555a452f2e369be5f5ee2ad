@@ -22,6 +22,30 @@
       "revId": "0f1bde3e710745d9d555a452f2e369be5f5ee2ad",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bad472ab_dc1b5150",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 504,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2018-10-30T21:19:53Z",
+      "side": 1,
+      "message": "target points to the value we\u0027re decoding into, so that needs to point to an existing pointer, but *target can be nil",
+      "parentUuid": "edc80299_29d64a31",
+      "range": {
+        "startLine": 504,
+        "startChar": 69,
+        "endLine": 504,
+        "endChar": 82
+      },
+      "revId": "0f1bde3e710745d9d555a452f2e369be5f5ee2ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
