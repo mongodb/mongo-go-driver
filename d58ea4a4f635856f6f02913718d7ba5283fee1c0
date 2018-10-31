@@ -120,6 +120,30 @@
     },
     {
       "key": {
+        "uuid": "e6da107e_9aa2b746",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-31T15:39:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "63cc2afb_b5e8896d",
+      "range": {
+        "startLine": 36,
+        "startChar": 73,
+        "endLine": 36,
+        "endChar": 81
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7af21195_be175269",
         "filename": "core/command/command.go",
         "patchSetId": 7
@@ -155,6 +179,30 @@
       "side": 1,
       "message": "The latest patch has a separate cursor opts slice on the command itself, so I got rid of this function.",
       "parentUuid": "7af21195_be175269",
+      "range": {
+        "startLine": 38,
+        "startChar": 49,
+        "endLine": 38,
+        "endChar": 59
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c42b915f_719be9a3",
+        "filename": "core/command/command.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-31T15:39:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4e9529e2_311bbeef",
       "range": {
         "startLine": 38,
         "startChar": 49,
@@ -411,6 +459,30 @@
       "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a4df7d71_a540c08d",
+        "filename": "core/session/client_session.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-31T15:39:59Z",
+      "side": 1,
+      "message": "Ah, I forgot about that use case. Changed this to variadic in the latest patch.",
+      "parentUuid": "39924bc1_8f4c9cc4",
+      "range": {
+        "startLine": 142,
+        "startChar": 72,
+        "endLine": 142,
+        "endChar": 91
+      },
+      "revId": "d58ea4a4f635856f6f02913718d7ba5283fee1c0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
