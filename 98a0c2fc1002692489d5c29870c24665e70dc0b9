@@ -22,6 +22,30 @@
       "revId": "98a0c2fc1002692489d5c29870c24665e70dc0b9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cf203de1_bed97df0",
+        "filename": "core/session/options.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-10-31T20:06:49Z",
+      "side": 1,
+      "message": "I always forget capitalized functions are exported. Will keep this in mind for future things. Fixed in the latest patch.",
+      "parentUuid": "26a55deb_675fbbaa",
+      "range": {
+        "startLine": 31,
+        "startChar": 5,
+        "endLine": 31,
+        "endChar": 23
+      },
+      "revId": "98a0c2fc1002692489d5c29870c24665e70dc0b9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
