@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c7a426c6_8991aad9",
+        "filename": "bson/constructorv2.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-01T20:38:44Z",
+      "side": 1,
+      "message": "I know we had talked about this, but is is weird for two reasons. \n\n(1) it doesn\u0027t apply for when I\u0027m trying to just turn a document into a top-level value... i.e. I\u0027m not going to be embedding it.\n\n(2) it\u0027s different than everything else. How am I supposed to know which types are allowed to be \"embedded\".\n\nWhat if instead we have a \"ValueFrom\" (or something to that affect) method or something that handles everything including documents, arrays, as well as ones we do have methods for like booleans and integers. If it\u0027s an unknown struct, use the default registry (might want to allow them to pass a registry as well... probably another function).",
+      "revId": "4f2c86be820d35f5f612e84c768a409900497e48",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f567cb0a_20ed1198",
+        "filename": "bson/constructorv2.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-01T20:38:44Z",
+      "side": 1,
+      "message": "There is only one minkey... do we need to take a primitive? Same with maxkey.",
+      "revId": "4f2c86be820d35f5f612e84c768a409900497e48",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
