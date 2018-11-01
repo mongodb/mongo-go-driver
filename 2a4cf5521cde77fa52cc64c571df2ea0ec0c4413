@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8c9b479f_7b3b7620",
+        "filename": "mongo/database.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-01T19:27:51Z",
+      "side": 1,
+      "message": "The server selection specification requires that RunCommand defaults to primary read preference.  It shouldn\u0027t inherit from the db.\n\n\"The generic command method has a default read preference of mode \u0027primary\u0027. The generic command method MUST ignore any default read preference from client, database\"",
+      "range": {
+        "startLine": 117,
+        "startChar": 1,
+        "endLine": 117,
+        "endChar": 2
+      },
+      "revId": "2a4cf5521cde77fa52cc64c571df2ea0ec0c4413",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dfaac90f_306f69bb",
+        "filename": "mongo/database.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-01T19:27:51Z",
+      "side": 1,
+      "message": "It\u0027s not worth it to optimize by using db.readSelector if the read preferences happen to match.  Clearer instead to  just remove this line and the if statement below it and always initialize readSelect with a new selector.",
+      "range": {
+        "startLine": 121,
+        "startChar": 1,
+        "endLine": 121,
+        "endChar": 11
+      },
+      "revId": "2a4cf5521cde77fa52cc64c571df2ea0ec0c4413",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
