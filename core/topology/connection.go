@@ -53,8 +53,8 @@ func (sc *sconn) processErr(err error) {
 	if cerr, ok := err.(command.Error); ok && (isRecoveringError(cerr) || isNotMasterError(cerr)) {
 		desc := sc.s.Description()
 		desc.Kind = description.Unknown
-
-		// updates description to unknown and clears the connection pool
+		desc.LastError = err
+		// updates description to unknown
 		sc.s.updateDescription(desc, false)
 	}
 
@@ -70,7 +70,11 @@ func (sc *sconn) processErr(err error) {
 		return
 	}
 
-	_ = sc.s.Drain()
+	desc := sc.s.Description()
+	desc.Kind = description.Unknown
+	desc.LastError = err
+	// updates description to unknown
+	sc.s.updateDescription(desc, false)
 }
 
 func isRecoveringError(err command.Error) bool {
