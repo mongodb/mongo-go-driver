@@ -8,6 +8,7 @@ package topology
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/core/address"
@@ -19,14 +20,19 @@ import (
 
 type pool struct {
 	connectionError bool
-	drainCalled     bool
+	drainCalled     atomic.Value
+	networkError    bool
+	desc            *description.Server
 }
 
 func (p *pool) Get(ctx context.Context) (connection.Connection, *description.Server, error) {
 	if p.connectionError {
-		return nil, nil, &auth.Error{}
+		return nil, p.desc, &auth.Error{}
 	}
-	return nil, nil, nil
+	if p.networkError {
+		return nil, p.desc, &connection.NetworkError{}
+	}
+	return nil, p.desc, nil
 }
 
 func (p *pool) Connect(ctx context.Context) error {
@@ -38,14 +44,17 @@ func (p *pool) Disconnect(ctx context.Context) error {
 }
 
 func (p *pool) Drain() error {
-	p.drainCalled = true
+	p.drainCalled.Store(true)
 	return nil
 }
 
-func NewPool(connectionError bool) (connection.Pool, error) {
+func NewPool(connectionError bool, networkError bool, desc *description.Server) (connection.Pool, error) {
 	p := &pool{
 		connectionError: connectionError,
+		networkError:    networkError,
+		desc:            desc,
 	}
+	p.drainCalled.Store(false)
 	return p, nil
 }
 
@@ -53,9 +62,13 @@ func TestSever(t *testing.T) {
 	var serverTestTable = []struct {
 		name            string
 		connectionError bool
+		networkError    bool
+		hasDesc         bool
 	}{
-		{"auth_error", true},
-		{"auth_no_error", false},
+		{"auth_error", true, false, false},
+		{"no_error", false, false, false},
+		{"network_error_no_desc", false, true, false},
+		{"network_error_desc", false, true, true},
 	}
 
 	for _, tt := range serverTestTable {
@@ -63,18 +76,29 @@ func TestSever(t *testing.T) {
 			s, err := NewServer(address.Address("localhost"))
 			require.NoError(t, err)
 
-			s.pool, err = NewPool(tt.connectionError)
+			var desc *description.Server
+			descript := s.Description()
+			if tt.hasDesc {
+				desc = &descript
+				require.Nil(t, desc.LastError)
+			}
+			s.pool, err = NewPool(tt.connectionError, tt.networkError, desc)
 			s.connectionstate = connected
 
 			_, err = s.Connection(context.Background())
 
-			if tt.connectionError {
+			if tt.connectionError || tt.networkError {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 			}
 
-			require.Equal(t, s.pool.(*pool).drainCalled, tt.connectionError)
+			if tt.hasDesc {
+				require.Equal(t, desc.Kind, (description.ServerKind)(description.Unknown))
+				require.NotNil(t, desc.LastError)
+			}
+			drained := s.pool.(*pool).drainCalled.Load().(bool)
+			require.Equal(t, drained, tt.connectionError || tt.networkError)
 		})
 	}
 }

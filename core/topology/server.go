@@ -182,6 +182,16 @@ func (s *Server) Connection(ctx context.Context) (connection.Connection, error) 
 			// authentication error --> drain connection
 			_ = s.pool.Drain()
 		}
+		if _, ok := err.(*connection.NetworkError); ok {
+			// update description to unknown and clears the connection pool
+			if desc != nil {
+				desc.Kind = description.Unknown
+				desc.LastError = err
+				s.updateDescription(*desc, false)
+			} else {
+				_ = s.pool.Drain()
+			}
+		}
 		return nil, err
 	}
 	if desc != nil {
