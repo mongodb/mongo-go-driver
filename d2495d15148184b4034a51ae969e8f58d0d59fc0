@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "81356453_574b230c",
+        "filename": "bson/arrayv2.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-02T22:50:16Z",
+      "side": 1,
+      "message": "Forgot to delete it from the type declaration. It\u0027s gone now.",
+      "parentUuid": "3f527bd3_8476b395",
+      "revId": "d2495d15148184b4034a51ae969e8f58d0d59fc0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6966c4fa_2f79bc3e",
         "filename": "bson/value_types.go",
         "patchSetId": 5
@@ -30,6 +48,30 @@
       "writtenOn": "2018-11-02T22:13:41Z",
       "side": 1,
       "message": "Primitive is a misleading suffix.  What is primitive about it?\n\nCalling this BsonBinary isn\u0027t great because then it\u0027s bson.BsonBinary.  But I like it better than BinaryPrimitive.\n\nWe could rename the constructors... Something like AsBinary, so this can remain as just Binary.\n\nWhat other alternatives could we consider?",
+      "range": {
+        "startLine": 17,
+        "startChar": 0,
+        "endLine": 17,
+        "endChar": 4
+      },
+      "revId": "d2495d15148184b4034a51ae969e8f58d0d59fc0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "545002e2_c346bed1",
+        "filename": "bson/value_types.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-02T22:50:16Z",
+      "side": 1,
+      "message": "Primitive isn\u0027t great. There really isn\u0027t a good name for these types. I would like to keep the constructors as short as possible and unfortunately they are not actually short in practice for any types that need a *Primitive. I think we should take some time to brainstorm this and figure out a better API here. Ideally one that would allow us to easily create the primitive and then construct a Value from that primitive.",
+      "parentUuid": "6966c4fa_2f79bc3e",
       "range": {
         "startLine": 17,
         "startChar": 0,
