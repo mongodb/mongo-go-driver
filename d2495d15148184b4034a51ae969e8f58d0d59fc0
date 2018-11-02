@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3f527bd3_8476b395",
+        "filename": "bson/arrayv2.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-02T21:16:42Z",
+      "side": 1,
+      "message": "I thought we were doing away with this field.",
+      "revId": "d2495d15148184b4034a51ae969e8f58d0d59fc0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
