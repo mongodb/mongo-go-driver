@@ -69,14 +69,6 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDefaultDecoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser})
 }
 
-// isKind checks valus if it's kind or pointer of kind
-func isKind(val reflect.Value, kind reflect.Kind) bool {
-	if val.Type().Kind() == reflect.Ptr {
-		return val.Type().Elem().Kind() == kind
-	}
-	return val.Type().Kind() == kind
-}
-
 // getValue check if value is a pointer and return final value to
 func getValue(val reflect.Value) reflect.Value {
 	if val.Kind() == reflect.Ptr {
@@ -88,7 +80,7 @@ func getValue(val reflect.Value) reflect.Value {
 	return val
 }
 
-// getValueKind get values's kind or it's element's kind
+// getValueKind get value's kind or it's element's kind
 func getValueKind(val reflect.Value) reflect.Kind {
 	if val.Kind() == reflect.Ptr {
 		return val.Type().Elem().Kind()
@@ -168,7 +160,7 @@ func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw
 	}
 	val = val.Elem()
 
-	if !isKind(val, reflect.Bool) {
+	if getValueKind(val) != reflect.Bool {
 		return ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{bool(true), new(bool)}, Received: i}
 	}
 	readValue()
@@ -727,7 +719,7 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.
 	}
 	val = val.Elem()
 
-	if !isKind(val, reflect.String) {
+	if getValueKind(val) != reflect.String {
 		return ValueDecoderError{
 			Name:     "StringDecodeValue",
 			Types:    []interface{}{(*string)(nil), (**string)(nil)},
