@@ -81,6 +81,30 @@
       "revId": "d2495d15148184b4034a51ae969e8f58d0d59fc0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2f4ba235_e9e359d6",
+        "filename": "bson/value_types.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-05T20:50:17Z",
+      "side": 1,
+      "message": "I like the new approach of a \"primitive\" package.  Nice work.",
+      "parentUuid": "545002e2_c346bed1",
+      "range": {
+        "startLine": 17,
+        "startChar": 0,
+        "endLine": 17,
+        "endChar": 4
+      },
+      "revId": "d2495d15148184b4034a51ae969e8f58d0d59fc0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
