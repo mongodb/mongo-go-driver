@@ -90,7 +90,7 @@ func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
 func (c *Client) Connect(ctx context.Context) error {
 	err := c.topology.Connect(ctx)
 	if err != nil {
-		return err
+		return replaceTopologyErr(err)
 	}
 
 	return nil
@@ -107,7 +107,7 @@ func (c *Client) Connect(ctx context.Context) error {
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
 	c.endSessions(ctx)
-	return c.topology.Disconnect(ctx)
+	return replaceTopologyErr(c.topology.Disconnect(ctx))
 }
 
 // Ping verifies that the client can connect to the topology.
@@ -123,13 +123,13 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	}
 
 	_, err := c.topology.SelectServer(ctx, description.ReadPrefSelector(rp))
-	return err
+	return replaceTopologyErr(err)
 }
 
 // StartSession starts a new session.
 func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
 	if c.topology.SessionPool == nil {
-		return nil, topology.ErrTopologyClosed
+		return nil, ErrClientDisconnected
 	}
 
 	sopts := options.MergeSessionOptions(opts...)
@@ -153,7 +153,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 
 	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, coreOpts)
 	if err != nil {
-		return nil, err
+		return nil, replaceTopologyErr(err)
 	}
 
 	sess.RetryWrite = c.retryWrites
@@ -200,7 +200,7 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 	)
 	topo, err := topology.New(topts...)
 	if err != nil {
-		return nil, err
+		return nil, replaceTopologyErr(err)
 	}
 	client.topology = topo
 	client.clock = &session.ClusterClock{}
@@ -360,7 +360,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		opts...,
 	)
 	if err != nil {
-		return ListDatabasesResult{}, err
+		return ListDatabasesResult{}, replaceTopologyErr(err)
 	}
 
 	return (ListDatabasesResult{}).fromResult(res), nil

@@ -191,7 +191,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 			}
 		}
 
-		return &BulkWriteResult{}, err
+		return &BulkWriteResult{}, replaceTopologyErr(err)
 	}
 
 	return &BulkWriteResult{
@@ -345,7 +345,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	case command.ErrUnacknowledgedWrite:
 		return &InsertManyResult{InsertedIDs: result}, ErrUnacknowledgedWrite
 	default:
-		return nil, err
+		return nil, replaceTopologyErr(err)
 	}
 	if len(res.WriteErrors) > 0 || res.WriteConcernError != nil {
 		bwErrors := make([]BulkWriteError, 0, len(res.WriteErrors))
@@ -528,7 +528,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		opts...,
 	)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
-		return nil, err
+		return nil, replaceTopologyErr(err)
 	}
 
 	res := &UpdateResult{
@@ -650,7 +650,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		opts...,
 	)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
-		return nil, err
+		return nil, replaceTopologyErr(err)
 	}
 	res := &UpdateResult{
 		MatchedCount:  r.MatchedCount,
@@ -765,7 +765,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		Clock:        coll.client.clock,
 	}
 
-	return dispatch.Aggregate(
+	cursor, err := dispatch.Aggregate(
 		ctx, cmd,
 		coll.client.topology,
 		coll.readSelector,
@@ -775,6 +775,8 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		coll.registry,
 		aggOpts,
 	)
+
+	return cursor, replaceTopologyErr(err)
 }
 
 // Count gets the number of documents matching the filter. A user can supply a
@@ -817,7 +819,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		Clock:       coll.client.clock,
 	}
 
-	return dispatch.Count(
+	count, err := dispatch.Count(
 		ctx, cmd,
 		coll.client.topology,
 		coll.readSelector,
@@ -826,6 +828,8 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 		coll.registry,
 		opts...,
 	)
+
+	return count, replaceTopologyErr(err)
 }
 
 // CountDocuments gets the number of documents matching the filter. A user can supply a
@@ -869,7 +873,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		Clock:       coll.client.clock,
 	}
 
-	return dispatch.CountDocuments(
+	count, err := dispatch.CountDocuments(
 		ctx, cmd,
 		coll.client.topology,
 		coll.readSelector,
@@ -878,6 +882,8 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		coll.registry,
 		countOpts,
 	)
+
+	return count, replaceTopologyErr(err)
 }
 
 // EstimatedDocumentCount gets an estimate of the count of documents in a collection using collection metadata.
@@ -915,7 +921,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		countOpts = countOpts.SetMaxTime(*opts[len(opts)-1].MaxTime)
 	}
 
-	return dispatch.Count(
+	count, err := dispatch.Count(
 		ctx, cmd,
 		coll.client.topology,
 		coll.readSelector,
@@ -924,6 +930,8 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		coll.registry,
 		countOpts,
 	)
+
+	return count, replaceTopologyErr(err)
 }
 
 // Distinct finds the distinct values for a specified field across a single
@@ -981,7 +989,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		opts...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, replaceTopologyErr(err)
 	}
 
 	return res.Values, nil
@@ -1031,7 +1039,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Clock:       coll.client.clock,
 	}
 
-	return dispatch.Find(
+	cursor, err := dispatch.Find(
 		ctx, cmd,
 		coll.client.topology,
 		coll.readSelector,
@@ -1040,6 +1048,8 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		coll.registry,
 		opts...,
 	)
+
+	return cursor, replaceTopologyErr(err)
 }
 
 // FindOne returns up to one document that matches the model. A user can
@@ -1120,7 +1130,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		findOpts...,
 	)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &DocumentResult{err: replaceTopologyErr(err)}
 	}
 
 	return &DocumentResult{cur: cursor, reg: coll.registry}
@@ -1183,7 +1193,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		opts...,
 	)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &DocumentResult{err: replaceTopologyErr(err)}
 	}
 
 	return &DocumentResult{rdr: res.Value, reg: coll.registry}
@@ -1252,7 +1262,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		opts...,
 	)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &DocumentResult{err: replaceTopologyErr(err)}
 	}
 
 	return &DocumentResult{rdr: res.Value, reg: coll.registry}
@@ -1321,7 +1331,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		opts...,
 	)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &DocumentResult{err: replaceTopologyErr(err)}
 	}
 
 	return &DocumentResult{rdr: res.Value, reg: coll.registry}
@@ -1373,7 +1383,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 		coll.client.topology.SessionPool,
 	)
 	if err != nil && !command.IsNotFound(err) {
-		return err
+		return replaceTopologyErr(err)
 	}
 	return nil
 }
