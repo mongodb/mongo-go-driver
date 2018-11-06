@@ -192,6 +192,32 @@ func TestClient_X509Auth(t *testing.T) {
 	t.Error("unable to find authenticated user")
 }
 
+func TestClient_ReplaceTopologyError(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	cs := testutil.ConnString(t)
+	c, err := NewClient(cs.String())
+	require.NoError(t, err)
+	require.NotNil(t, c)
+
+	_, err = c.StartSession()
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = c.ListDatabases(ctx, nil)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	err = c.Ping(ctx, nil)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	err = c.Disconnect(ctx)
+	require.Equal(t, err, ErrClientDisconnected)
+
+}
+
 func TestClient_ListDatabases_noFilter(t *testing.T) {
 	t.Parallel()
 

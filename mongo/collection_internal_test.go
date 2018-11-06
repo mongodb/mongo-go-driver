@@ -150,6 +150,89 @@ func TestCollection_InheritOptions(t *testing.T) {
 	}
 }
 
+func TestCollection_ReplaceTopologyError(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	cs := testutil.ConnString(t)
+	c, err := NewClient(cs.String())
+	require.NoError(t, err)
+	require.NotNil(t, c)
+
+	db := c.Database("TestCollection")
+	coll := db.Collection("ReplaceTopologyError")
+
+	doc1 := bson.NewDocument(bson.EC.Int32("x", 1))
+	doc2 := bson.NewDocument(bson.EC.Int32("x", 6))
+	docs := []interface{}{doc1, doc2}
+	update := bson.NewDocument(
+		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
+
+	_, err = coll.InsertOne(context.Background(), doc1)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.InsertMany(context.Background(), docs)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.DeleteOne(context.Background(), doc1)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.DeleteMany(context.Background(), doc1)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.UpdateOne(context.Background(), doc1, update)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.UpdateMany(context.Background(), doc1, update)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.ReplaceOne(context.Background(), doc1, doc2)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	pipeline := bson.NewArray(
+		bson.VC.DocumentFromElements(
+			bson.EC.SubDocumentFromElements(
+				"$match",
+				bson.EC.SubDocumentFromElements(
+					"x",
+					bson.EC.Int32("$gte", 2),
+				),
+			),
+		))
+	_, err = coll.Aggregate(context.Background(), pipeline, options.Aggregate())
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.Count(context.Background(), nil)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.CountDocuments(context.Background(), nil)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.EstimatedDocumentCount(context.Background())
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.Distinct(context.Background(), "x", nil)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = coll.Find(context.Background(), doc1)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	result := coll.FindOne(context.Background(), doc1)
+	require.Equal(t, result.err, ErrClientDisconnected)
+
+	result = coll.FindOneAndDelete(context.Background(), doc1)
+	require.Equal(t, result.err, ErrClientDisconnected)
+
+	result = coll.FindOneAndReplace(context.Background(), doc1, doc2)
+	require.Equal(t, result.err, ErrClientDisconnected)
+
+	result = coll.FindOneAndUpdate(context.Background(), doc1, update)
+	require.Equal(t, result.err, ErrClientDisconnected)
+}
+
 func TestCollection_namespace(t *testing.T) {
 	t.Parallel()
 
