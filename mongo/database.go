@@ -117,7 +117,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	if err != nil {
 		return nil, err
 	}
-	return dispatch.Read(ctx,
+	result, err := dispatch.Read(ctx,
 		command.Read{
 			DB:       db.Name(),
 			Command:  runCmdDoc,
@@ -130,6 +130,8 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		db.client.id,
 		db.client.topology.SessionPool,
 	)
+
+	return result, replaceTopologyErr(err)
 }
 
 // Drop drops this database from mongodb.
@@ -158,7 +160,7 @@ func (db *Database) Drop(ctx context.Context) error {
 		db.client.topology.SessionPool,
 	)
 	if err != nil && !command.IsNotFound(err) {
-		return err
+		return replaceTopologyErr(err)
 	}
 	return nil
 }
@@ -201,7 +203,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		opts...,
 	)
 	if err != nil && !command.IsNotFound(err) {
-		return nil, err
+		return nil, replaceTopologyErr(err)
 	}
 
 	return cursor, nil

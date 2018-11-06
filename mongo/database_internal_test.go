@@ -103,6 +103,30 @@ func TestDatabase_InheritOptions(t *testing.T) {
 	}
 }
 
+func TestDatabase_ReplaceTopologyError(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+
+	cs := testutil.ConnString(t)
+	c, err := NewClient(cs.String())
+	require.NoError(t, err)
+	require.NotNil(t, c)
+
+	db := c.Database("TestDatabase_ReplaceTopologyError")
+
+	_, err = db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("ismaster", 1)))
+	require.Equal(t, err, ErrClientDisconnected)
+
+	err = db.Drop(ctx)
+	require.Equal(t, err, ErrClientDisconnected)
+
+	_, err = db.ListCollections(ctx, nil)
+	require.Equal(t, err, ErrClientDisconnected)
+}
+
 func TestDatabase_RunCommand(t *testing.T) {
 	t.Parallel()
 
