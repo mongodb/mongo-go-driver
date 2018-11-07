@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c40380ca_9cc71fe8",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-07T15:43:16Z",
+      "side": 1,
+      "message": "Perhaps\n\n// updates description to Unknown\n\nThis wording makes it seem like there should be another line of code here (the one that is currently commented out)",
+      "range": {
+        "startLine": 76,
+        "startChar": 4,
+        "endLine": 76,
+        "endChar": 11
+      },
+      "revId": "0762139c4d82612513e5fbe6cdd5b8a6a44ccc0a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "96663778_c2f003b7",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-07T15:43:16Z",
+      "side": 1,
+      "message": "Remove this line",
+      "range": {
+        "startLine": 78,
+        "startChar": 0,
+        "endLine": 78,
+        "endChar": 1
+      },
+      "revId": "0762139c4d82612513e5fbe6cdd5b8a6a44ccc0a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
