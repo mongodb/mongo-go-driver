@@ -1,0 +1,28 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d5784726_9d207da3",
+        "filename": "core/topology/connection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2018-11-07T16:07:30Z",
+      "side": 1,
+      "message": "The call to updateDescription does drain the pool when desc.Kind is set to Unknown",
+      "parentUuid": "c40380ca_9cc71fe8",
+      "range": {
+        "startLine": 76,
+        "startChar": 4,
+        "endLine": 76,
+        "endChar": 11
+      },
+      "revId": "5a289b57b03519537a138ba981ba14006ad1341a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
