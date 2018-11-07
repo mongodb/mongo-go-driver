@@ -46,6 +46,30 @@
       "revId": "0f1bde3e710745d9d555a452f2e369be5f5ee2ad",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2f86e633_ccaa3b8d",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 504,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-07T20:07:49Z",
+      "side": 1,
+      "message": "Right, but I think we should handle that in this block. If we don\u0027t we\u0027ll drop out of this if and the user will get a \"cannot decode Null into a *url.URL\", which isn\u0027t correct, we need to tell them we\u0027ve received a nil pointer.",
+      "parentUuid": "bad472ab_dc1b5150",
+      "range": {
+        "startLine": 504,
+        "startChar": 69,
+        "endLine": 504,
+        "endChar": 82
+      },
+      "revId": "0f1bde3e710745d9d555a452f2e369be5f5ee2ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
