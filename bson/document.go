@@ -758,6 +758,11 @@ func (d *Document) Equal(d2 *Document) bool {
 
 // String implements the fmt.Stringer interface.
 func (d *Document) String() string {
+	return d.ToExtJSON(true)
+}
+
+// DebugString returns a more verbose string representation of this document.
+func (d *Document) DebugString() string {
 	if d == nil {
 		return "<nil>"
 	}
@@ -768,7 +773,7 @@ func (d *Document) String() string {
 		if idx > 0 {
 			buf.Write([]byte(", "))
 		}
-		fmt.Fprintf(&buf, "%s", elem)
+		fmt.Fprintf(&buf, "%s", elem.DebugString())
 	}
 	buf.WriteByte('}')
 

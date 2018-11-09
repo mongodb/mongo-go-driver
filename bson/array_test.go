@@ -270,6 +270,14 @@ func TestArray(t *testing.T) {
 			})
 		}
 	})
+	t.Run("DebugString", func(t *testing.T) {
+		doc := NewArray(VC.String("foo"), VC.String("bar"), VC.Int32(1))
+		want := `bson.Array[bson.Element{[string]"": "foo"}, bson.Element{[string]"": "bar"}, bson.Element{[32-bit integer]"": 1}]`
+		got := doc.DebugString()
+		if got != want {
+			t.Errorf("Did not receive expected result. got %s; want %s", got, want)
+		}
+	})
 }
 
 type testArrayPrependAppendGenerator struct{}

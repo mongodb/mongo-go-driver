@@ -981,6 +981,19 @@ func TestDocument(t *testing.T) {
 			}
 		})
 	})
+	t.Run("DebugString", func(t *testing.T) {
+		doc := NewDocument(
+			EC.String("foo", "bar"),
+			EC.SubDocumentFromElements("fooer",
+				EC.SubDocumentFromElements("barer", EC.Int32("ok", 1)),
+			),
+		)
+		want := `bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Document{bson.Element{[embedded document]"barer": bson.Document{bson.Element{[32-bit integer]"ok": 1}}}}}}`
+		got := doc.DebugString()
+		if got != want {
+			t.Errorf("Did not receive expected result. got %s; want %s", got, want)
+		}
+	})
 }
 
 func testDocumentKeys(t *testing.T) {

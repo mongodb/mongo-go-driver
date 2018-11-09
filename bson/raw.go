@@ -89,6 +89,9 @@ func (r Raw) IndexErr(index uint) (RawElement, error) {
 // String implements the fmt.Stringer interface.
 func (r Raw) String() string { return bsoncore.Document(r).String() }
 
+// DebugString returns a more verbose string representation of this document.
+func (r Raw) DebugString() string { return bsoncore.Document(r).DebugString() }
+
 // readi32 is a helper function for reading an int32 from slice of bytes.
 func readi32(b []byte) int32 {
 	_ = b[3] // bounds check hint to compiler; see golang.org/issue/14808
