@@ -354,9 +354,21 @@ func (e *Element) MarshalBSON() ([]byte, error) {
 
 // String implements the fmt.Stringer interface.
 func (e *Element) String() string {
+	doc := NewDocument(e)
+	return doc.String()
+}
+
+// DebugString returns a more verbose string representation of this element.
+func (e *Element) DebugString() string {
 	val := e.Value().Interface()
 	if s, ok := val.(string); ok && e.Value().Type() == TypeString {
 		val = strconv.Quote(s)
+	}
+	if d, ok := val.(*Document); ok {
+		val = d.DebugString()
+	}
+	if a, ok := val.(*Array); ok {
+		val = a.DebugString()
 	}
 	return fmt.Sprintf(`bson.Element{[%s]"%s": %v}`, e.Value().Type(), e.Key(), val)
 }

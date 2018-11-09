@@ -49,6 +49,29 @@ func ToExtJSON(canonical bool, bson []byte) (string, error) {
 	return w.String(), nil
 }
 
+// ToExtJSONArray converts a BSON byte slice for an array into an extended JSON string.  If
+// canonical is true, it will output canonical extended JSON. Otherwise, it will output relaxed
+// extended JSON.
+func ToExtJSONArray(canonical bool, bson []byte) (string, error) {
+	p, err := parser.NewBSONParser(bytes.NewReader(bson))
+	if err != nil {
+		return "", err
+	}
+
+	doc, err := p.ParseDocument()
+	if err != nil {
+		return "", err
+	}
+
+	w := &extJSONWriter{bytes.NewBuffer([]byte{}), canonical}
+	err = w.writeArray(doc)
+	if err != nil {
+		return "", err
+	}
+
+	return w.String(), nil
+}
+
 func (w *extJSONWriter) writeStringLiteral(s string) error {
 	s = `"` + s + `"`
 	_, err := w.Write([]byte(s))

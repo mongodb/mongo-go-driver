@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -342,6 +343,14 @@ func TestRaw(t *testing.T) {
 				require.Equal(t, err, tc.err)
 				require.True(t, bytes.Equal(tc.bsonReader, reader))
 			})
+		}
+	})
+	t.Run("DebugString", func(t *testing.T) {
+		rdr := Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0}
+		want := `{bson.Element{[null]"x": null} bson.Element{[null]"y": null} bson.Element{[null]"z": null} }`
+		got := rdr.DebugString()
+		if !strings.Contains(got, want) {
+			t.Errorf("Did not receive expected result. got %s; should contain %s", got, want)
 		}
 	})
 }

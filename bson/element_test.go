@@ -2608,12 +2608,33 @@ func testValidateValue(t *testing.T) {
 						EC.SubDocumentFromElements("barer", EC.Int32("ok", 1)),
 					),
 				),
-				`bson.Document{bson.Element{[string]"foo": "bar"}, bson.Element{[embedded document]"fooer": bson.Document{bson.Element{[embedded document]"barer": bson.Document{bson.Element{[32-bit integer]"ok": 1}}}}}}`,
+				`{"foo":"bar","fooer":{"barer":{"ok":{"$numberInt":"1"}}}}`,
+			},
+			{
+				"nested document with array",
+				NewDocument(
+					EC.String("foo", "bar"),
+					EC.ArrayFromElements("fooer", VC.String("barer"), VC.Int32(1)),
+				),
+				`{"foo":"bar","fooer":["barer",{"$numberInt":"1"}]}`,
 			},
 			{
 				"nested reader",
 				rdr,
 				`{"foo": "bar","fooer": {"barer": {"ok": {"$numberInt":"1"}}}}`,
+			},
+			{
+				"array",
+				NewArray(
+					VC.String("foo"),
+					VC.Int32(32),
+				),
+				`["foo",{"$numberInt":"32"}]`,
+			},
+			{
+				"element",
+				EC.String("foo", "bar"),
+				`{"foo":"bar"}`,
 			},
 		}
 

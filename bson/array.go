@@ -246,13 +246,27 @@ func (a *Array) WriteTo(w io.Writer) (int64, error) {
 
 // String implements the fmt.Stringer interface.
 func (a *Array) String() string {
+	b, err := a.MarshalBSON()
+	if err != nil {
+		return ""
+	}
+
+	s, err := ToExtJSONArray(true, b)
+	if err != nil {
+		return ""
+	}
+	return s
+}
+
+// DebugString returns a more verbose string representation of this array.
+func (a *Array) DebugString() string {
 	var buf bytes.Buffer
 	buf.Write([]byte("bson.Array["))
 	for idx, elem := range a.doc.elems {
 		if idx > 0 {
 			buf.Write([]byte(", "))
 		}
-		fmt.Fprintf(&buf, "%s", elem)
+		fmt.Fprintf(&buf, "%s", elem.DebugString())
 	}
 	buf.WriteByte(']')
 
