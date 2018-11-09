@@ -447,6 +447,7 @@ func TestExtJSONParserAllTypes(t *testing.T) {
 			, "Code"				: { "$code": "function() {}" }
 			, "CodeWithEmptyScope"	: { "$code": "function() {}", "$scope": {} }
 			, "CodeWithScope"		: { "$code": "function() {}", "$scope": { "x": 1 } }
+			, "EmptySubdocument"    : {}
 			, "Subdocument"			: { "foo": "bar", "baz": { "$numberInt": "42" } }
 			, "Array"				: [{"$numberInt": "1"}, {"$numberLong": "2"}, {"$numberDouble": "3"}, 4, 5.0]
 			, "Timestamp"			: { "$timestamp": { "t": 42, "i": 1 } }
@@ -542,6 +543,13 @@ func TestExtJSONParserAllTypes(t *testing.T) {
 				ktvs: []ejpKeyTypValTriple{
 					{"x", bsontype.Int32, &extJSONValue{t: bsontype.Int32, v: int32(1)}},
 				},
+			},
+		},
+		{
+			f: expectSubDocument, p: ejp,
+			k: "EmptySubdocument", t: bsontype.EmbeddedDocument,
+			v: ejpSubDocumentTestValue{
+				ktvs: []ejpKeyTypValTriple{},
 			},
 		},
 		{
