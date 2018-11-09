@@ -64,6 +64,8 @@ type extJSONParser struct {
 	canonical bool
 	depth     int
 	maxDepth  int
+
+	emptyObject bool
 }
 
 // newExtJSONParser returns a new extended JSON parser, ready to to begin
@@ -107,6 +109,7 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 		switch ejp.s {
 		case jpsSawEndObject: // empty embedded document
 			t = bsontype.EmbeddedDocument
+			ejp.emptyObject = true
 		case jpsInvalidState:
 			err = ejp.err
 		case jpsSawKey:
@@ -143,6 +146,11 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 
 // readKey parses the next key and its type and returns them
 func (ejp *extJSONParser) readKey() (string, bsontype.Type, error) {
+	if ejp.emptyObject {
+		ejp.emptyObject = false
+		return "", 0, ErrEOD
+	}
+
 	// advance to key (or return with error)
 	switch ejp.s {
 	case jpsStartState:
