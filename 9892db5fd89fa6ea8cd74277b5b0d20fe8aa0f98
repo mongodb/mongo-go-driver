@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "85d9a025_ffa54242",
+        "filename": "bson/constructor.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-09T00:11:22Z",
+      "side": 1,
+      "message": "As discussed offline, this has been removed in the newest design iteration.",
+      "parentUuid": "44ade129_0890afcd",
+      "revId": "9892db5fd89fa6ea8cd74277b5b0d20fe8aa0f98",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6f093940_75d7505f",
         "filename": "bson/value.go",
         "patchSetId": 9
