@@ -92,13 +92,22 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i int
 		if iz, ok := encoder.(CodecZeroer); ok {
 			iszero = iz.IsTypeZero
 		}
-		if (rv.Kind() == reflect.Ptr || desc.omitEmpty) && iszero(rv.Interface()) {
+
+		if desc.omitEmpty && iszero(rv.Interface()) {
 			continue
 		}
 
 		vw2, err := dw.WriteDocumentElement(desc.name)
 		if err != nil {
 			return err
+		}
+		// a BSON null should be inserted when a nil ppinter is encountered.
+		if rv.Kind() == reflect.Ptr && rv.IsNil() {
+			err = vw2.WriteNull()
+			if err != nil {
+				return err
+			}
+			continue
 		}
 
 		ectx := EncodeContext{Registry: r.Registry, MinSize: desc.minSize}

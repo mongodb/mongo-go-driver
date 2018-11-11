@@ -767,6 +767,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AE testValueMarshaler
 					AF Proxy
 					AG testProxy
+					AH *string
 				}{
 					A: true,
 					B: 123,
@@ -794,6 +795,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AE: testValueMarshaler{t: bsontype.String, buf: bsoncore.AppendString(nil, "hello, world")},
 					AF: testProxy{ret: struct{ Hello string }{Hello: "world!"}},
 					AG: testProxy{ret: struct{ Pi float64 }{Pi: 3.14159}},
+					AH: nil,
 				},
 				buildDocument(func(doc []byte) []byte {
 					doc = bsoncore.AppendBooleanElement(doc, "a", true)
@@ -820,6 +822,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					doc = bsoncore.AppendStringElement(doc, "ae", "hello, world")
 					doc = bsoncore.AppendDocumentElement(doc, "af", buildDocument(bsoncore.AppendStringElement(nil, "hello", "world!")))
 					doc = bsoncore.AppendDocumentElement(doc, "ag", buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)))
+					doc = bsoncore.AppendNullElement(doc, "ah")
 					return doc
 				}(nil)),
 				nil,
