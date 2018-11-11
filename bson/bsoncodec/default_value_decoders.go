@@ -112,11 +112,9 @@ func checkTypeError(vr bsonrw.ValueReader, requiredType ...bsontype.Type) error 
 
 // BooleanDecodeValue is the ValueDecoderFunc for bool types.
 func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	var (
-		err    error
-		b      bool
-		isNull bool
-	)
+	var err error
+	var b bool
+	var isNull bool
 	readValue := func() {
 		switch vr.Type() {
 		case bsontype.Boolean:
@@ -177,11 +175,10 @@ func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw
 
 // IntDecodeValue is the ValueDecoderFunc for int types.
 func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	var (
-		i64    int64
-		err    error
-		isNull = false
-	)
+	var i64 int64
+	var err error
+	var isNull = false
+
 	switch vr.Type() {
 	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
@@ -368,11 +365,10 @@ func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.Value
 
 // UintDecodeValue is the ValueDecoderFunc for uint types.
 func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	var (
-		i64    int64
-		err    error
-		isNull = false
-	)
+	var i64 int64
+	var err error
+	var isNull = false
+
 	switch vr.Type() {
 	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
@@ -569,11 +565,10 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 
 // FloatDecodeValue is the ValueDecoderFunc for float types.
 func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	var (
-		f      float64
-		err    error
-		isNull = false
-	)
+	var f float64
+	var err error
+	var isNull = false
+
 	switch vr.Type() {
 	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
@@ -671,11 +666,10 @@ func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.Val
 
 // StringDecodeValue is the ValueDecoderFunc for string types.
 func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	var (
-		str    string
-		err    error
-		isNull = false
-	)
+	var str string
+	var err error
+	var isNull = false
+
 	switch vr.Type() {
 	// TODO(GODRIVER-577): Handle JavaScript and Symbol BSON types when allowed.
 	case bsontype.String:
@@ -736,12 +730,10 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.
 
 // ObjectIDDecodeValue is the ValueDecoderFunc for objectid.ObjectID.
 func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	var (
-		isNull = false
-		oid    objectid.ObjectID
-		err    error
-		set    func()
-	)
+	var isNull = false
+	var oid objectid.ObjectID
+	var err error
+	var set func()
 
 	switch target := i.(type) {
 	case *objectid.ObjectID:
@@ -787,12 +779,10 @@ func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.
 
 // Decimal128DecodeValue is the ValueDecoderFunc for decimal.Decimal128.
 func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	var (
-		d128   decimal.Decimal128
-		err    error
-		isNull = false
-		set    func()
-	)
+	var d128 decimal.Decimal128
+	var err error
+	var isNull = false
+	var set func()
 
 	if i == nil {
 		return ValueDecoderError{Name: "Decimal128DecodeValue", Types: []interface{}{(*decimal.Decimal128)(nil), (**decimal.Decimal128)(nil)}, Received: i}
