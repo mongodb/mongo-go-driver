@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Upsert contains the information for a single upsert.
@@ -29,7 +30,7 @@ type Insert struct {
 
 // StartSession is a result from a StartSession command.
 type StartSession struct {
-	ID bson.Doc `bson:"id"`
+	ID bsonx.Doc `bson:"id"`
 }
 
 // EndSessions is a result from an EndSessions command.
@@ -94,7 +95,7 @@ type ListDatabases struct {
 type IsMaster struct {
 	Arbiters                     []string          `bson:"arbiters,omitempty"`
 	ArbiterOnly                  bool              `bson:"arbiterOnly,omitempty"`
-	ClusterTime                  bson.Doc          `bson:"$clusterTime,omitempty"`
+	ClusterTime                  bsonx.Doc         `bson:"$clusterTime,omitempty"`
 	Compression                  []string          `bson:"compression,omitempty"`
 	ElectionID                   objectid.ObjectID `bson:"electionId,omitempty"`
 	Hidden                       bool              `bson:"hidden,omitempty"`

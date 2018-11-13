@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ListCollections handles the full cycle dispatch and execution of a listCollections command against the provided
@@ -57,7 +58,7 @@ func ListCollections(
 
 	lc := options.MergeListCollectionsOptions(opts...)
 	if lc.NameOnly != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"nameOnly", bson.Boolean(*lc.NameOnly)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"nameOnly", bson.Boolean(*lc.NameOnly)})
 	}
 
 	return cmd.RoundTrip(ctx, ss.Description(), ss, conn)

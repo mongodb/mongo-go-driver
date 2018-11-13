@@ -10,15 +10,16 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestClusterClock(t *testing.T) {
-	var clusterTime1 = bson.Doc{{"$clusterTime",
-		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(10, 5)}})}}
-	var clusterTime2 = bson.Doc{{"$clusterTime",
-		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(5, 5)}})}}
-	var clusterTime3 = bson.Doc{{"$clusterTime",
-		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(5, 0)}})}}
+	var clusterTime1 = bsonx.Doc{{"$clusterTime",
+		bsonx.Document(bsonx.Doc{{"clusterTime", bson.Timestamp(10, 5)}})}}
+	var clusterTime2 = bsonx.Doc{{"$clusterTime",
+		bsonx.Document(bsonx.Doc{{"clusterTime", bson.Timestamp(5, 5)}})}}
+	var clusterTime3 = bsonx.Doc{{"$clusterTime",
+		bsonx.Document(bsonx.Doc{{"clusterTime", bson.Timestamp(5, 0)}})}}
 
 	t.Run("ClusterTime", func(t *testing.T) {
 		clock := ClusterClock{}

@@ -8,6 +8,7 @@ package bson
 
 import (
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 type marshalingTestCase struct {
@@ -24,6 +25,6 @@ var marshalingTestCases = []marshalingTestCase{
 		struct {
 			Foo bool
 		}{Foo: true},
-		docToBytes(Doc{{"foo", Boolean(true)}}),
+		docToBytes(bsonx.Doc{{"foo", Boolean(true)}}),
 	},
 }

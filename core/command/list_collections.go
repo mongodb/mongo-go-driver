@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ListCollections represents the listCollections command.
@@ -22,9 +23,9 @@ import (
 type ListCollections struct {
 	Clock      *session.ClusterClock
 	DB         string
-	Filter     bson.Doc
-	CursorOpts []bson.Elem
-	Opts       []bson.Elem
+	Filter     bsonx.Doc
+	CursorOpts []bsonx.Elem
+	Opts       []bsonx.Elem
 	ReadPref   *readpref.ReadPref
 	Session    *session.Client
 
@@ -42,10 +43,10 @@ func (lc *ListCollections) Encode(desc description.SelectedServer) (wiremessage.
 }
 
 func (lc *ListCollections) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.Doc{{"listCollections", bson.Int32(1)}}
+	cmd := bsonx.Doc{{"listCollections", bson.Int32(1)}}
 
 	if lc.Filter != nil {
-		cmd = append(cmd, bson.Elem{"filter", bson.Document(lc.Filter)})
+		cmd = append(cmd, bsonx.Elem{"filter", bsonx.Document(lc.Filter)})
 	}
 	cmd = append(cmd, lc.Opts...)
 

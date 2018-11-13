@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Implements the connection.Connection interface by reading and writing wire messages
@@ -61,7 +62,7 @@ func (c *ChannelConn) ID() string {
 }
 
 // Create a OP_REPLY wiremessage from a BSON document
-func MakeReply(t *testing.T, doc bson.Doc) wiremessage.WireMessage {
+func MakeReply(t *testing.T, doc bsonx.Doc) wiremessage.WireMessage {
 	rdr, err := doc.MarshalBSON()
 	if err != nil {
 		t.Fatalf("Could not create document: %v", err)

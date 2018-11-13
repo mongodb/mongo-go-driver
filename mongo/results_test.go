@@ -10,13 +10,14 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDeleteResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
-	doc := bson.Doc{
+	doc := bsonx.Doc{
 		{"n", bson.Int64(2)},
 		{"ok", bson.Int64(1)},
 	}
@@ -37,7 +38,7 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 	buf, err := bson.Marshal(result)
 	require.Nil(t, err)
 
-	doc, err := bson.ReadDoc(buf)
+	doc, err := bsonx.ReadDoc(buf)
 	require.Nil(t, err)
 
 	require.Equal(t, len(doc), 1)
@@ -50,11 +51,11 @@ func TestDeleteResult_marshalFrom(t *testing.T) {
 func TestUpdateOneResult_unmarshalInto(t *testing.T) {
 	t.Parallel()
 
-	doc := bson.Doc{
+	doc := bsonx.Doc{
 		{"n", bson.Int32(1)},
 		{"nModified", bson.Int32(2)},
-		{"upserted", bson.Array(bson.Arr{
-			bson.Document(bson.Doc{
+		{"upserted", bsonx.Array(bsonx.Arr{
+			bsonx.Document(bsonx.Doc{
 				{"index", bson.Int32(0)},
 				{"_id", bson.Int32(3)},
 			}),

@@ -10,7 +10,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func bsonDocumentEncoding(ctx context.Context, tm TimerManager, iters int, source string) error {
@@ -48,7 +48,7 @@ func bsonDocumentDecodingLazy(ctx context.Context, tm TimerManager, iters int, s
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		out, err := bson.ReadDoc(raw)
+		out, err := bsonx.ReadDoc(raw)
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func bsonDocumentDecoding(ctx context.Context, tm TimerManager, iters, numKeys i
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		out, err := bson.ReadDoc(raw)
+		out, err := bsonx.ReadDoc(raw)
 		if err != nil {
 			return err
 		}

@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/pretty"
 )
@@ -161,20 +162,20 @@ func normalizeRelaxedDouble(t *testing.T, key string, rEJ string) string {
 }
 
 // bsonToNative decodes the BSON bytes (b) into a native Document
-func bsonToNative(t *testing.T, b []byte, bType, testDesc string) Doc {
-	var doc Doc
-	err := pc.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
+func bsonToNative(t *testing.T, b []byte, bType, testDesc string) bsonx.Doc {
+	var doc bsonx.Doc
+	err := pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
 	expectNoError(t, err, fmt.Sprintf("%s: decoding %s BSON", testDesc, bType))
 	return doc
 }
 
 // nativeToBSON encodes the native Document (doc) into canonical BSON and compares it to the expected
 // canonical BSON (cB)
-func nativeToBSON(t *testing.T, cB []byte, doc Doc, testDesc, bType, docSrcDesc string) {
+func nativeToBSON(t *testing.T, cB []byte, doc bsonx.Doc, testDesc, bType, docSrcDesc string) {
 	actualB := new(bytes.Buffer)
 	vw, err := bsonrw.NewBSONValueWriter(actualB)
 	expectNoError(t, err, fmt.Sprintf("%s: creating ValueWriter", testDesc))
-	err = pc.DocumentEncodeValue(ec, vw, doc)
+	err = pc.x.DocumentEncodeValue(ec, vw, doc)
 	expectNoError(t, err, fmt.Sprintf("%s: encoding %s BSON", testDesc, bType))
 
 	if diff := cmp.Diff(cB, actualB.Bytes()); diff != "" {
@@ -185,15 +186,15 @@ func nativeToBSON(t *testing.T, cB []byte, doc Doc, testDesc, bType, docSrcDesc 
 }
 
 // jsonToNative decodes the extended JSON string (ej) into a native Document
-func jsonToNative(t *testing.T, ej, ejType, testDesc string) Doc {
-	var doc Doc
+func jsonToNative(t *testing.T, ej, ejType, testDesc string) bsonx.Doc {
+	var doc bsonx.Doc
 	err := UnmarshalExtJSON([]byte(ej), ejType != "relaxed", &doc)
 	expectNoError(t, err, fmt.Sprintf("%s: decoding %s extended JSON", testDesc, ejType))
 	return doc
 }
 
 // nativeToJSON encodes the native Document (doc) into an extended JSON string
-func nativeToJSON(t *testing.T, ej string, doc Doc, testDesc, ejType, ejShortName, docSrcDesc string) {
+func nativeToJSON(t *testing.T, ej string, doc bsonx.Doc, testDesc, ejType, ejShortName, docSrcDesc string) {
 	actualEJ, err := MarshalExtJSON(doc, ejType != "relaxed", true)
 	expectNoError(t, err, fmt.Sprintf("%s: encoding %s extended JSON", testDesc, ejType))
 
@@ -298,8 +299,8 @@ func runTest(t *testing.T, file string) {
 			b, err := hex.DecodeString(d.Bson)
 			expectNoError(t, err, d.Description)
 
-			var doc Doc
-			err = pc.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
+			var doc bsonx.Doc
+			err = pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
 			expectError(t, err, fmt.Sprintf("%s: expected decode error", d.Description))
 		}
 
@@ -316,7 +317,7 @@ func runTest(t *testing.T, file string) {
 
 			switch test.BsonType {
 			case "0x00":
-				var doc Doc
+				var doc bsonx.Doc
 				err := UnmarshalExtJSON([]byte(s), true, &doc)
 				expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
 			case "0x13":

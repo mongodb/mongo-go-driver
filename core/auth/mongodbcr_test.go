@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/internal"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
@@ -29,12 +30,12 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 2)
-	resps <- internal.MakeReply(t, bson.Doc{
+	resps <- internal.MakeReply(t, bsonx.Doc{
 		{"ok", bson.Int32(1)},
 		{"nonce", bson.String("2375531c32080ae8")},
 	})
 
-	resps <- internal.MakeReply(t, bson.Doc{{"ok", bson.Int32(0)}})
+	resps <- internal.MakeReply(t, bsonx.Doc{{"ok", bson.Int32(0)}})
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
 
@@ -64,12 +65,12 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 
 	resps := make(chan wiremessage.WireMessage, 2)
 
-	resps <- internal.MakeReply(t, bson.Doc{
+	resps <- internal.MakeReply(t, bsonx.Doc{
 		{"ok", bson.Int32(1)},
 		{"nonce", bson.String("2375531c32080ae8")},
 	})
 
-	resps <- internal.MakeReply(t, bson.Doc{{"ok", bson.Int32(1)}})
+	resps <- internal.MakeReply(t, bsonx.Doc{{"ok", bson.Int32(1)}})
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
 
@@ -86,10 +87,10 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		t.Fatalf("expected 2 messages to be sent but had %d", len(c.Written))
 	}
 
-	want := bson.Doc{{"getnonce", bson.Int32(1)}}
+	want := bsonx.Doc{{"getnonce", bson.Int32(1)}}
 	compareResponses(t, <-c.Written, want, "source")
 
-	expectedAuthenticateDoc := bson.Doc{
+	expectedAuthenticateDoc := bsonx.Doc{
 		{"authenticate", bson.Int32(1)},
 		{"user", bson.String("user")},
 		{"nonce", bson.String("2375531c32080ae8")},

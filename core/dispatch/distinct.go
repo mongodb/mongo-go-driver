@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -63,7 +64,7 @@ func Distinct(
 	distinctOpts := options.MergeDistinctOptions(opts...)
 
 	if distinctOpts.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{
 			"maxTimeMS", bson.Int64(int64(time.Duration(*distinctOpts.MaxTime) / time.Millisecond)),
 		})
 	}
@@ -71,7 +72,7 @@ func Distinct(
 		if desc.WireVersion.Max < 5 {
 			return result.Distinct{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(distinctOpts.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(distinctOpts.Collation.ToDocument())})
 	}
 
 	return cmd.RoundTrip(ctx, desc, conn)

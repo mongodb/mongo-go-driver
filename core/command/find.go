@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Find represents the find command.
@@ -22,9 +23,9 @@ import (
 // The find command finds documents within a collection that match a filter.
 type Find struct {
 	NS          Namespace
-	Filter      bson.Doc
-	CursorOpts  []bson.Elem
-	Opts        []bson.Elem
+	Filter      bsonx.Doc
+	CursorOpts  []bsonx.Elem
+	Opts        []bsonx.Elem
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -49,10 +50,10 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 		return nil, err
 	}
 
-	command := bson.Doc{{"find", bson.String(f.NS.Collection)}}
+	command := bsonx.Doc{{"find", bson.String(f.NS.Collection)}}
 
 	if f.Filter != nil {
-		command = append(command, bson.Elem{"filter", bson.Document(f.Filter)})
+		command = append(command, bsonx.Elem{"filter", bsonx.Document(f.Filter)})
 	}
 
 	command = append(command, f.Opts...)

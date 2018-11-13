@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // GetMore represents the getMore command.
@@ -21,7 +22,7 @@ import (
 type GetMore struct {
 	ID      int64
 	NS      Namespace
-	Opts    []bson.Elem
+	Opts    []bsonx.Elem
 	Clock   *session.ClusterClock
 	Session *session.Client
 
@@ -40,7 +41,7 @@ func (gm *GetMore) Encode(desc description.SelectedServer) (wiremessage.WireMess
 }
 
 func (gm *GetMore) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.Doc{
+	cmd := bsonx.Doc{
 		{"getMore", bson.Int64(gm.ID)},
 		{"collection", bson.String(gm.NS.Collection)},
 	}
@@ -48,7 +49,7 @@ func (gm *GetMore) encode(desc description.SelectedServer) (*Read, error) {
 	for _, opt := range gm.Opts {
 		switch opt.Key {
 		case "maxAwaitTimeMS":
-			cmd = append(cmd, bson.Elem{"maxTimeMs", opt.Value})
+			cmd = append(cmd, bsonx.Elem{"maxTimeMs", opt.Value})
 		default:
 			cmd = append(cmd, opt)
 		}

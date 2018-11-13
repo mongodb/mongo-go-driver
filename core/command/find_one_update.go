@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // FindOneAndUpdate represents the findOneAndUpdate operation.
@@ -22,9 +23,9 @@ import (
 // The findOneAndUpdate command modifies and returns a single document.
 type FindOneAndUpdate struct {
 	NS           Namespace
-	Query        bson.Doc
-	Update       bson.Doc
-	Opts         []bson.Elem
+	Query        bsonx.Doc
+	Update       bsonx.Doc
+	Opts         []bsonx.Elem
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -48,10 +49,10 @@ func (f *FindOneAndUpdate) encode(desc description.SelectedServer) (*Write, erro
 		return nil, err
 	}
 
-	command := bson.Doc{
+	command := bsonx.Doc{
 		{"findAndModify", bson.String(f.NS.Collection)},
-		{"query", bson.Document(f.Query)},
-		{"update", bson.Document(f.Update)},
+		{"query", bsonx.Document(f.Query)},
+		{"update", bsonx.Document(f.Update)},
 	}
 	command = append(command, f.Opts...)
 

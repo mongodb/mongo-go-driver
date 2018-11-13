@@ -10,6 +10,7 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Msg represents the OP_MSG message of the MongoDB wire protocol.
@@ -169,27 +170,27 @@ func (m *Msg) UnmarshalWireMessage(b []byte) error {
 }
 
 // GetMainDocument returns the document containing the message to send.
-func (m *Msg) GetMainDocument() (bson.Doc, error) {
-	return bson.ReadDoc(m.Sections[0].(SectionBody).Document)
+func (m *Msg) GetMainDocument() (bsonx.Doc, error) {
+	return bsonx.ReadDoc(m.Sections[0].(SectionBody).Document)
 }
 
 // GetSequenceArray returns this message's document sequence as a BSON array along with the array identifier.
 // If this message has no associated document sequence, a nil array is returned.
-func (m *Msg) GetSequenceArray() (bson.Arr, string, error) {
+func (m *Msg) GetSequenceArray() (bsonx.Arr, string, error) {
 	if len(m.Sections) == 1 {
 		return nil, "", nil
 	}
 
-	arr := bson.Arr{}
+	arr := bsonx.Arr{}
 	sds := m.Sections[1].(SectionDocumentSequence)
 
 	for _, rdr := range sds.Documents {
-		doc, err := bson.ReadDoc([]byte(rdr))
+		doc, err := bsonx.ReadDoc([]byte(rdr))
 		if err != nil {
 			return nil, "", err
 		}
 
-		arr = append(arr, bson.Document(doc))
+		arr = append(arr, bsonx.Document(doc))
 	}
 
 	return arr, sds.Identifier, nil

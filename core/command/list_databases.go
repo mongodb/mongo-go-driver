@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ListDatabases represents the listDatabases command.
@@ -21,8 +22,8 @@ import (
 // The listDatabases command lists the databases in a MongoDB deployment.
 type ListDatabases struct {
 	Clock   *session.ClusterClock
-	Filter  bson.Doc
-	Opts    []bson.Elem
+	Filter  bsonx.Doc
+	Opts    []bsonx.Elem
 	Session *session.Client
 
 	result result.ListDatabases
@@ -39,10 +40,10 @@ func (ld *ListDatabases) Encode(desc description.SelectedServer) (wiremessage.Wi
 }
 
 func (ld *ListDatabases) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.Doc{{"listDatabases", bson.Int32(1)}}
+	cmd := bsonx.Doc{{"listDatabases", bson.Int32(1)}}
 
 	if ld.Filter != nil {
-		cmd = append(cmd, bson.Elem{"filter", bson.Document(ld.Filter)})
+		cmd = append(cmd, bsonx.Elem{"filter", bsonx.Document(ld.Filter)})
 	}
 	cmd = append(cmd, ld.Opts...)
 
