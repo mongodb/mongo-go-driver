@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 )
 
 func noerr(t *testing.T, err error) {

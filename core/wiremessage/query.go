@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // Query represents the OP_QUERY message of the MongoDB wire protocol.

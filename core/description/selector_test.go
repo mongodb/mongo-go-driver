@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/core/address"
-	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/tag"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/stretchr/testify/require"
 )
 
