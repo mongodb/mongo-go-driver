@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/stretchr/testify/require"
@@ -69,6 +70,44 @@ func TestChangeStream_firstStage(t *testing.T) {
 
 	_, err = doc.LookupErr("$changeStream")
 	require.NoError(t, err)
+}
+
+func TestChangeStream_replaceRoot(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+	skipIfBelow36(t)
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	coll := createTestCollection(t, nil, nil)
+
+	// Ensure the database is created.
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(7)}})
+	require.NoError(t, err)
+
+	pipeline := make(bsonx.Arr, 0)
+	pipeline = append(pipeline,
+		bsonx.Document(bsonx.Doc{{"$replaceRoot",
+			bsonx.Document(bsonx.Doc{{"newRoot",
+				bsonx.Document(bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}, {"x", bsonx.Int32(1)}})}}),
+		}}))
+	changes, err := coll.Watch(context.Background(), pipeline)
+	require.NoError(t, err)
+
+	_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(4)}})
+	require.NoError(t, err)
+
+	getNextChange(changes)
+	var doc *bsonx.Doc
+
+	//Ensure the cursor returns an error when the resume token is changed.
+	err = changes.Decode(&doc)
+	require.Equal(t, err, ErrMissingResumeToken)
 }
 
 func TestChangeStream_noCustomStandaloneError(t *testing.T) {
