@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/stretchr/testify/require"
 )
@@ -68,6 +69,49 @@ func TestChangeStream_firstStage(t *testing.T) {
 
 	_, err = doc.LookupErr("$changeStream")
 	require.NoError(t, err)
+}
+
+func TestChangeStream_replaceRoot(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+	skipIfBelow36(t)
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	coll := createTestCollection(t, nil, nil)
+
+	// Ensure the database is created.
+	_, err := coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Int32("x", 7)))
+	require.NoError(t, err)
+
+	pipeline := bson.NewArray(
+		bson.VC.DocumentFromElements(
+			bson.EC.SubDocumentFromElements(
+				"$replaceRoot",
+				bson.EC.SubDocumentFromElements(
+					"newRoot",
+					bson.EC.ObjectID("_id", objectid.New()),
+					bson.EC.Int32("x", 1),
+				),
+			),
+		))
+	changes, err := coll.Watch(context.Background(), pipeline)
+	require.NoError(t, err)
+
+	_, err = coll.InsertOne(context.Background(), bson.NewDocument(bson.EC.Interface("x", 4)))
+	require.NoError(t, err)
+
+	getNextChange(changes)
+	var doc *bson.Document
+
+	//Ensure the cursor returns an error when the resume token is changed.
+	err = changes.Decode(&doc)
+	require.Equal(t, err, ErrMissingResumeToken)
 }
 
 func TestChangeStream_noCustomStandaloneError(t *testing.T) {
