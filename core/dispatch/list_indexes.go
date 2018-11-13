@@ -11,13 +11,13 @@ import (
 
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ListIndexes handles the full cycle dispatch and execution of a listIndexes command against the provided
@@ -45,12 +45,12 @@ func ListIndexes(
 
 	lio := options.MergeListIndexesOptions(opts...)
 	if lio.BatchSize != nil {
-		elem := bson.Elem{"batchSize", bson.Int32(*lio.BatchSize)}
+		elem := bsonx.Elem{"batchSize", bsonx.Int32(*lio.BatchSize)}
 		cmd.Opts = append(cmd.Opts, elem)
 		cmd.CursorOpts = append(cmd.CursorOpts, elem)
 	}
 	if lio.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*lio.MaxTime / time.Millisecond))})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"maxTimeMS", bsonx.Int64(int64(*lio.MaxTime / time.Millisecond))})
 	}
 
 	// If no explicit session and deployment supports sessions, start implicit session.

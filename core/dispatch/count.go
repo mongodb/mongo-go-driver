@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
@@ -64,21 +64,21 @@ func Count(
 	countOpts := options.MergeCountOptions(opts...)
 
 	if countOpts.Limit != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"limit", bson.Int64(*countOpts.Limit)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"limit", bsonx.Int64(*countOpts.Limit)})
 	}
 	if countOpts.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{
-			"maxTimeMS", bson.Int64(int64(time.Duration(*countOpts.MaxTime) / time.Millisecond)),
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{
+			"maxTimeMS", bsonx.Int64(int64(time.Duration(*countOpts.MaxTime) / time.Millisecond)),
 		})
 	}
 	if countOpts.Skip != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"skip", bson.Int64(*countOpts.Skip)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"skip", bsonx.Int64(*countOpts.Skip)})
 	}
 	if countOpts.Collation != nil {
 		if desc.WireVersion.Max < 5 {
 			return 0, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(countOpts.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(countOpts.Collation.ToDocument())})
 	}
 	if countOpts.Hint != nil {
 		hintElem, err := interfaceToElement("hint", countOpts.Hint, registry)

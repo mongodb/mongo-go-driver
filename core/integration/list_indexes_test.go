@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestCommandListIndexes(t *testing.T) {
@@ -34,7 +35,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bson.Doc
+		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
 			err = cursor.Decode(&next)
@@ -63,7 +64,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bson.Doc
+		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
 			err = cursor.Decode(&next)
@@ -98,7 +99,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bson.Doc
+		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
 			next = next[:0]
@@ -135,14 +136,14 @@ func TestCommandListIndexes(t *testing.T) {
 		testutil.AutoCreateIndexes(t, []string{"c"})
 
 		ns := command.NewNamespace(dbName, testutil.ColName(t))
-		opts := []bson.Elem{
-			{"batchSize", bson.Int32(1)},
+		opts := []bsonx.Elem{
+			{"batchSize", bsonx.Int32(1)},
 		}
 		cursor, err := (&command.ListIndexes{NS: ns, Opts: opts}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bson.Doc
+		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
 			next = next[:0]

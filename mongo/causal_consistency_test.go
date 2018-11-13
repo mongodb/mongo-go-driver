@@ -11,13 +11,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 var ccStarted *event.CommandStartedEvent
@@ -32,7 +32,7 @@ var ccMonitor = &event.CommandMonitor{
 	},
 }
 
-var startingDoc = bson.Doc{{"hello", bson.Int32(5)}}
+var startingDoc = bsonx.Doc{{"hello", bsonx.Int32(5)}}
 
 func compareOperationTimes(t *testing.T, expected *primitive.Timestamp, actual *primitive.Timestamp) {
 	if expected.T != actual.T {
@@ -44,7 +44,7 @@ func compareOperationTimes(t *testing.T, expected *primitive.Timestamp, actual *
 	}
 }
 
-func checkOperationTime(t *testing.T, cmd bson.Doc, shouldInclude bool) {
+func checkOperationTime(t *testing.T, cmd bsonx.Doc, shouldInclude bool) {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key read concern not found")
 
@@ -56,7 +56,7 @@ func checkOperationTime(t *testing.T, cmd bson.Doc, shouldInclude bool) {
 	}
 }
 
-func getOperationTime(t *testing.T, cmd bson.Doc) *primitive.Timestamp {
+func getOperationTime(t *testing.T, cmd bsonx.Doc) *primitive.Timestamp {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key read concern not found")
 
@@ -93,7 +93,7 @@ func createReadFuncMap(t *testing.T, dbName string, collName string) (*Client, *
 	return client, db, coll, functions
 }
 
-func checkReadConcern(t *testing.T, cmd bson.Doc, levelIncluded bool, expectedLevel string, optimeIncluded bool, expectedTime *primitive.Timestamp) {
+func checkReadConcern(t *testing.T, cmd bsonx.Doc, levelIncluded bool, expectedLevel string, optimeIncluded bool, expectedTime *primitive.Timestamp) {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key readConcern not found")
 

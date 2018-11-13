@@ -10,11 +10,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestListDatabases(t *testing.T) {
@@ -32,7 +32,7 @@ func TestListDatabases(t *testing.T) {
 
 	wc := writeconcern.New(writeconcern.WMajority())
 	testutil.AutoDropCollection(t)
-	testutil.AutoInsertDocs(t, wc, bson.Doc{{"_id", bson.Int32(1)}})
+	testutil.AutoInsertDocs(t, wc, bsonx.Doc{{"_id", bsonx.Int32(1)}})
 
 	res, err := (&command.ListDatabases{}).RoundTrip(context.Background(), server.SelectedDescription(), conn)
 	noerr(t, err)

@@ -15,13 +15,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -109,7 +109,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 
 		_, err = (&command.Write{
 			DB:      dbName,
-			Command: bson.Doc{{"dropDatabase", bson.Int32(1)}},
+			Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}},
 		}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 
 		require.NoError(t, err)
@@ -153,7 +153,7 @@ func GlobalMonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topol
 
 			_, err = (&command.Write{
 				DB:      DBName(t),
-				Command: bson.Doc{{"dropDatabase", bson.Int32(1)}},
+				Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}},
 			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 
 			require.NoError(t, err)
@@ -185,7 +185,7 @@ func Topology(t *testing.T) *topology.Topology {
 
 			_, err = (&command.Write{
 				DB:      DBName(t),
-				Command: bson.Doc{{"dropDatabase", bson.Int32(1)}},
+				Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}},
 			}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 			require.NoError(t, err)
 		}

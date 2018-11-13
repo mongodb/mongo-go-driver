@@ -10,10 +10,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
-var doc = bson.Doc{{"x", bson.Int32(5)}}
+var doc = bsonx.Doc{{"x", bsonx.Int32(5)}}
 
 func oneSection(t *testing.T) []Section {
 	rdr, err := doc.MarshalBSON()

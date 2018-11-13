@@ -4,53 +4,24 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package bson
+package bsonx
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
-// ErrNilDocument indicates that an operation was attempted on a nil *bson.Document.
-var ErrNilDocument = errors.New("document is nil")
+// MDoc is an unordered, type safe, concise BSON document representation. This type should not be
+// used if you require ordering of values or duplicate keys.
+type MDoc map[string]Val
 
-// KeyNotFound is an error type returned from the Lookup methods on Document. This type contains
-// information about which key was not found and if it was actually not found or if a component of
-// the key except the last was not a document nor array.
-type KeyNotFound struct {
-	Key   []string      // The keys that were searched for.
-	Depth uint          // Which key either was not found or was an incorrect type.
-	Type  bsontype.Type // The type of the key that was found but was an incorrect type.
-}
-
-func (knf KeyNotFound) Error() string {
-	depth := knf.Depth
-	if depth >= uint(len(knf.Key)) {
-		depth = uint(len(knf.Key)) - 1
-	}
-
-	if len(knf.Key) == 0 {
-		return "no keys were provided for lookup"
-	}
-
-	if knf.Type != bsontype.Type(0) {
-		return fmt.Sprintf(`key "%s" was found but was not valid to traverse BSON type %s`, knf.Key[depth], knf.Type)
-	}
-
-	return fmt.Sprintf(`key "%s" was not found`, knf.Key[depth])
-}
-
-// Doc is a type safe, concise BSON document representation.
-type Doc []Elem
-
-// ReadDoc will create a Document using the provided slice of bytes. If the
+// ReadMDoc will create a Doc using the provided slice of bytes. If the
 // slice of bytes is not a valid BSON document, this method will return an error.
-func ReadDoc(b []byte) (Doc, error) {
-	doc := make(Doc, 0)
+func ReadMDoc(b []byte) (MDoc, error) {
+	doc := make(MDoc, 0)
 	err := doc.UnmarshalBSON(b)
 	if err != nil {
 		return nil, err
@@ -59,52 +30,12 @@ func ReadDoc(b []byte) (Doc, error) {
 }
 
 // Copy makes a shallow copy of this document.
-func (d Doc) Copy() Doc {
-	d2 := make(Doc, len(d))
-	copy(d2, d)
+func (d MDoc) Copy() MDoc {
+	d2 := make(MDoc, len(d))
+	for k, v := range d {
+		d2[k] = v
+	}
 	return d2
-}
-
-// Append adds an element to the end of the document, creating it from the key and value provided.
-func (d Doc) Append(key string, val Val) Doc {
-	return append(d, Elem{Key: key, Value: val})
-}
-
-// Prepend adds an element to the beginning of the document, creating it from the key and value provided.
-func (d Doc) Prepend(key string, val Val) Doc {
-	// TODO: should we just modify d itself instead of doing an alloc here?
-	return append(Doc{{Key: key, Value: val}}, d...)
-}
-
-// Set replaces an element of a document. If an element with a matching key is
-// found, the element will be replaced with the one provided. If the document
-// does not have an element with that key, the element is appended to the
-// document instead.
-func (d Doc) Set(key string, val Val) Doc {
-	idx := d.indexOf(key)
-	if idx == -1 {
-		return append(d, Elem{Key: key, Value: val})
-	}
-	d[idx] = Elem{Key: key, Value: val}
-	return d
-}
-
-func (d Doc) indexOf(key string) int {
-	for i, e := range d {
-		if e.Key == key {
-			return i
-		}
-	}
-	return -1
-}
-
-// Delete removes the element with key if it exists and returns the updated Doc.
-func (d Doc) Delete(key string) Doc {
-	idx := d.indexOf(key)
-	if idx == -1 {
-		return d
-	}
-	return append(d[:idx], d[idx+1:]...)
 }
 
 // Lookup searches the document and potentially subdocuments or arrays for the
@@ -112,14 +43,14 @@ func (d Doc) Delete(key string) Doc {
 //
 // This method will return an empty Value if they key does not exist. To know if they key actually
 // exists, use LookupErr.
-func (d Doc) Lookup(key ...string) Val {
+func (d MDoc) Lookup(key ...string) Val {
 	val, _ := d.LookupErr(key...)
 	return val
 }
 
 // LookupErr searches the document and potentially subdocuments or arrays for the
 // provided key. Each key provided to this method represents a layer of depth.
-func (d Doc) LookupErr(key ...string) (Val, error) {
+func (d MDoc) LookupErr(key ...string) (Val, error) {
 	elem, err := d.LookupElementErr(key...)
 	return elem.Value, err
 }
@@ -129,14 +60,14 @@ func (d Doc) LookupErr(key ...string) (Val, error) {
 //
 // This method will return an empty Element if they key does not exist. To know if they key actually
 // exists, use LookupElementErr.
-func (d Doc) LookupElement(key ...string) Elem {
+func (d MDoc) LookupElement(key ...string) Elem {
 	elem, _ := d.LookupElementErr(key...)
 	return elem
 }
 
 // LookupElementErr searches the document and potentially subdocuments for the
 // provided key. Each key provided to this method represents a layer of depth.
-func (d Doc) LookupElementErr(key ...string) (Elem, error) {
+func (d MDoc) LookupElementErr(key ...string) (Elem, error) {
 	// KeyNotFound operates by being created where the error happens and then the depth is
 	// incremented by 1 as each function unwinds. Whenever this function returns, it also assigns
 	// the Key slice to the key slice it has. This ensures that the proper depth is identified and
@@ -147,26 +78,25 @@ func (d Doc) LookupElementErr(key ...string) (Elem, error) {
 
 	var elem Elem
 	var err error
-	idx := d.indexOf(key[0])
-	if idx == -1 {
+	val, ok := d[key[0]]
+	if !ok {
 		return Elem{}, KeyNotFound{Key: key}
 	}
 
-	elem = d[idx]
 	if len(key) == 1 {
-		return elem, nil
+		return Elem{Key: key[0], Value: val}, nil
 	}
 
-	switch elem.Value.Type() {
+	switch val.Type() {
 	case bsontype.EmbeddedDocument:
-		switch tt := elem.Value.primitive.(type) {
+		switch tt := val.primitive.(type) {
 		case Doc:
 			elem, err = tt.LookupElementErr(key[1:]...)
 		case MDoc:
 			elem, err = tt.LookupElementErr(key[1:]...)
 		}
 	default:
-		return Elem{}, KeyNotFound{Type: elem.Value.Type()}
+		return Elem{}, KeyNotFound{Type: val.Type()}
 	}
 	switch tt := err.(type) {
 	case KeyNotFound:
@@ -183,7 +113,7 @@ func (d Doc) LookupElementErr(key ...string) (Elem, error) {
 // MarshalBSONValue implements the bsoncodec.ValueMarshaler interface.
 //
 // This method will never return an error.
-func (d Doc) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (d MDoc) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	if d == nil {
 		// TODO: Should we do this?
 		return bsontype.Null, nil, nil
@@ -195,17 +125,17 @@ func (d Doc) MarshalBSONValue() (bsontype.Type, []byte, error) {
 // MarshalBSON implements the Marshaler interface.
 //
 // This method will never return an error.
-func (d Doc) MarshalBSON() ([]byte, error) { return d.AppendMarshalBSON(nil) }
+func (d MDoc) MarshalBSON() ([]byte, error) { return d.AppendMarshalBSON(nil) }
 
 // AppendMarshalBSON marshals Doc to BSON bytes, appending to dst.
 //
 // This method will never return an error.
-func (d Doc) AppendMarshalBSON(dst []byte) ([]byte, error) {
+func (d MDoc) AppendMarshalBSON(dst []byte) ([]byte, error) {
 	idx, dst := bsoncore.ReserveLength(dst)
-	for _, elem := range d {
-		t, data, _ := elem.Value.MarshalBSONValue() // Value.MarshalBSONValue never returns an error.
+	for k, v := range d {
+		t, data, _ := v.MarshalBSONValue() // Value.MarshalBSONValue never returns an error.
 		dst = append(dst, byte(t))
-		dst = append(dst, elem.Key...)
+		dst = append(dst, k...)
 		dst = append(dst, 0x00)
 		dst = append(dst, data...)
 	}
@@ -215,49 +145,53 @@ func (d Doc) AppendMarshalBSON(dst []byte) ([]byte, error) {
 }
 
 // UnmarshalBSON implements the Unmarshaler interface.
-func (d *Doc) UnmarshalBSON(b []byte) error {
+func (d *MDoc) UnmarshalBSON(b []byte) error {
 	if d == nil {
 		return ErrNilDocument
 	}
 
-	if err := Raw(b).Validate(); err != nil {
+	if err := bsoncore.Document(b).Validate(); err != nil {
 		return err
 	}
 
-	elems, err := Raw(b).Elements()
+	elems, err := bsoncore.Document(b).Elements()
 	if err != nil {
 		return err
 	}
 	var val Val
 	for _, elem := range elems {
 		rawv := elem.Value()
-		err = val.UnmarshalBSONValue(rawv.Type, rawv.Value)
+		err = val.UnmarshalBSONValue(rawv.Type, rawv.Data)
 		if err != nil {
 			return err
 		}
-		*d = d.Append(elem.Key(), val)
+		(*d)[elem.Key()] = val
 	}
 	return nil
 }
 
 // Equal compares this document to another, returning true if they are equal.
-func (d Doc) Equal(id IDoc) bool {
+func (d MDoc) Equal(id IDoc) bool {
 	switch tt := id.(type) {
-	case Doc:
+	case MDoc:
 		d2 := tt
 		if len(d) != len(d2) {
 			return false
 		}
-		for idx := range d {
-			if !d[idx].Equal(d2[idx]) {
+		for key, value := range d {
+			value2, ok := d2[key]
+			if !ok {
+				return false
+			}
+			if !value.Equal(value2) {
 				return false
 			}
 		}
-	case MDoc:
+	case Doc:
 		unique := make(map[string]struct{}, 0)
-		for _, elem := range d {
+		for _, elem := range tt {
 			unique[elem.Key] = struct{}{}
-			val, ok := tt[elem.Key]
+			val, ok := d[elem.Key]
 			if !ok {
 				return false
 			}
@@ -265,7 +199,7 @@ func (d Doc) Equal(id IDoc) bool {
 				return false
 			}
 		}
-		if len(unique) != len(tt) {
+		if len(unique) != len(d) {
 			return false
 		}
 	case nil:
@@ -278,18 +212,20 @@ func (d Doc) Equal(id IDoc) bool {
 }
 
 // String implements the fmt.Stringer interface.
-func (d Doc) String() string {
+func (d MDoc) String() string {
 	var buf bytes.Buffer
 	buf.Write([]byte("bson.Document{"))
-	for idx, elem := range d {
-		if idx > 0 {
+	first := true
+	for key, value := range d {
+		if !first {
 			buf.Write([]byte(", "))
 		}
-		fmt.Fprintf(&buf, "%v", elem)
+		fmt.Fprintf(&buf, "%v", Elem{Key: key, Value: value})
+		first = false
 	}
 	buf.WriteByte('}')
 
 	return buf.String()
 }
 
-func (Doc) idoc() {}
+func (MDoc) idoc() {}

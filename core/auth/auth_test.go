@@ -11,9 +11,9 @@ import (
 
 	"reflect"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	. "github.com/mongodb/mongo-go-driver/core/auth"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +47,7 @@ func TestCreateAuthenticator(t *testing.T) {
 	}
 }
 
-func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload bson.Doc, dbName string) {
+func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload bsonx.Doc, dbName string) {
 	switch converted := wm.(type) {
 	case wiremessage.Query:
 		payloadBytes, err := expectedPayload.MarshalBSON()
@@ -56,7 +56,7 @@ func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload 
 		}
 		require.True(t, reflect.DeepEqual([]byte(converted.Query), payloadBytes))
 	case wiremessage.Msg:
-		msgPayload := append(expectedPayload, bson.Elem{"$db", bson.String(dbName)})
+		msgPayload := append(expectedPayload, bsonx.Elem{"$db", bsonx.String(dbName)})
 		payloadBytes, err := msgPayload.MarshalBSON()
 		if err != nil {
 			t.Fatalf("couldn't marshal msg bson: %v", err)

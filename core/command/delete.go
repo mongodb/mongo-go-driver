@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Delete represents the delete command.
@@ -24,8 +25,8 @@ import (
 type Delete struct {
 	ContinueOnError bool
 	NS              Namespace
-	Deletes         []bson.Doc
-	Opts            []bson.Elem
+	Deletes         []bsonx.Doc
+	Opts            []bsonx.Elem
 	WriteConcern    *writeconcern.WriteConcern
 	Clock           *session.ClusterClock
 	Session         *session.Client
@@ -63,13 +64,13 @@ func (d *Delete) encode(desc description.SelectedServer) error {
 	return nil
 }
 
-func (d *Delete) encodeBatch(docs []bson.Doc, desc description.SelectedServer) (*WriteBatch, error) {
-	copyDocs := make([]bson.Doc, 0, len(docs))
+func (d *Delete) encodeBatch(docs []bsonx.Doc, desc description.SelectedServer) (*WriteBatch, error) {
+	copyDocs := make([]bsonx.Doc, 0, len(docs))
 	for _, doc := range docs {
 		copyDocs = append(copyDocs, doc.Copy())
 	}
 
-	var options []bson.Elem
+	var options []bsonx.Elem
 	for _, opt := range d.Opts {
 		if opt.Key == "collation" {
 			for idx := range copyDocs {

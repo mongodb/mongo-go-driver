@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Reply represents the OP_REPLY message of the MongoDB wire protocol.
@@ -117,8 +118,8 @@ func (r *Reply) UnmarshalWireMessage(b []byte) error {
 }
 
 // GetMainDocument returns the main BSON document for this reply.
-func (r *Reply) GetMainDocument() (bson.Doc, error) {
-	return bson.ReadDoc([]byte(r.Documents[0]))
+func (r *Reply) GetMainDocument() (bsonx.Doc, error) {
+	return bsonx.ReadDoc([]byte(r.Documents[0]))
 }
 
 // ReplyFlag represents the flags of an OP_REPLY message.

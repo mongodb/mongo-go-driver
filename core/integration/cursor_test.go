@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,17 +26,17 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	noerr(t, err)
 
 	// create capped collection
-	createCmd := bson.Doc{
-		{"create", bson.String(testutil.ColName(t))},
-		{"capped", bson.Boolean(true)},
-		{"size", bson.Int32(1000)}}
+	createCmd := bsonx.Doc{
+		{"create", bsonx.String(testutil.ColName(t))},
+		{"capped", bsonx.Boolean(true)},
+		{"size", bsonx.Int32(1000)}}
 	_, err = testutil.RunCommand(t, server.Server, dbName, createCmd)
 
 	conn, err := server.Connection(context.Background())
 	noerr(t, err)
 
 	// Insert a document
-	d := bson.Doc{{"_id", bson.Int32(1)}, {"ts", bson.Timestamp(5, 0)}}
+	d := bsonx.Doc{{"_id", bsonx.Int32(1)}, {"ts", bsonx.Timestamp(5, 0)}}
 	wc := writeconcern.New(writeconcern.WMajority())
 	testutil.AutoInsertDocs(t, wc, d)
 
@@ -45,12 +46,12 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	// find that document, setting cursor type to TAILABLEAWAIT
 	cursor, err := (&command.Find{
 		NS:     command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
-		Filter: bson.Doc{{"ts", bson.Document(bson.Doc{{"$gte", bson.Timestamp(5, 0)}})}},
-		Opts: []bson.Elem{
-			{"limit", bson.Int64(0)},
-			{"batchSize", bson.Int32(1)},
-			{"tailable", bson.Boolean(true)},
-			{"awaitData", bson.Boolean(true)},
+		Filter: bsonx.Doc{{"ts", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Timestamp(5, 0)}})}},
+		Opts: []bsonx.Elem{
+			{"limit", bsonx.Int64(0)},
+			{"batchSize", bsonx.Int32(1)},
+			{"tailable", bsonx.Boolean(true)},
+			{"awaitData", bsonx.Boolean(true)},
 		},
 	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 	noerr(t, err)
@@ -68,7 +69,7 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	}
 
 	// insert another document in 500 MS
-	d = bson.Doc{{"_id", bson.Int32(2)}, {"ts", bson.Timestamp(6, 0)}}
+	d = bsonx.Doc{{"_id", bsonx.Int32(2)}, {"ts", bsonx.Timestamp(6, 0)}}
 
 	rdr, err = d.MarshalBSON()
 	noerr(t, err)

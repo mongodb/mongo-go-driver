@@ -9,10 +9,10 @@ package session
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,12 +32,12 @@ func compareOperationTimes(t *testing.T, expected *primitive.Timestamp, actual *
 }
 
 func TestClientSession(t *testing.T) {
-	var clusterTime1 = bson.Doc{{"$clusterTime",
-		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(10, 5)}})}}
-	var clusterTime2 = bson.Doc{{"$clusterTime",
-		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(5, 5)}})}}
-	var clusterTime3 = bson.Doc{{"$clusterTime",
-		bson.Document(bson.Doc{{"clusterTime", bson.Timestamp(5, 0)}})}}
+	var clusterTime1 = bsonx.Doc{{"$clusterTime",
+		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(10, 5)}})}}
+	var clusterTime2 = bsonx.Doc{{"$clusterTime",
+		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(5, 5)}})}}
+	var clusterTime3 = bsonx.Doc{{"$clusterTime",
+		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(5, 0)}})}}
 
 	t.Run("TestMaxClusterTime", func(t *testing.T) {
 		maxTime := MaxClusterTime(clusterTime1, clusterTime2)

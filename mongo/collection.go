@@ -11,7 +11,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -21,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Collection performs operations on a given collection.
@@ -208,11 +208,11 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 // a custom context to this method, or nil to default to context.Background().
 //
 // This method uses TransformDocument to turn the document parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // document.
 //
 // TODO(skriptble): Determine if we should unwrap the value for the
-// InsertOneResult or just return the bson.Element or a bson.Value.
+// InsertOneResult or just return the bsonx.Element or a bsonx.Value.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
 
@@ -241,7 +241,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	oldns := coll.namespace()
 	cmd := command.Insert{
 		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs:         []bson.Doc{doc},
+		Docs:         []bsonx.Doc{doc},
 		WriteConcern: wc,
 		Session:      sess,
 		Clock:        coll.client.clock,
@@ -280,7 +280,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // operation will fail.
 //
 // This method uses TransformDocument to turn the documents parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // documents.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	opts ...*options.InsertManyOptions) (*InsertManyResult, error) {
@@ -290,7 +290,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	result := make([]interface{}, len(documents))
-	docs := make([]bson.Doc, len(documents))
+	docs := make([]bsonx.Doc, len(documents))
 
 	for i, doc := range documents {
 		bdoc, err := transformDocument(coll.registry, doc)
@@ -367,7 +367,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 // a custom context to this method, or nil to default to context.Background().
 //
 // This method uses TransformDocument to turn the filter parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	opts ...*options.DeleteOptions) (*DeleteResult, error) {
@@ -380,10 +380,10 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	if err != nil {
 		return nil, err
 	}
-	deleteDocs := []bson.Doc{
+	deleteDocs := []bsonx.Doc{
 		{
-			{"q", bson.Document(f)},
-			{"limit", bson.Int32(1)},
+			{"q", bsonx.Document(f)},
+			{"limit", bsonx.Int32(1)},
 		},
 	}
 
@@ -430,7 +430,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 // context.Background().
 //
 // This method uses TransformDocument to turn the filter parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	opts ...*options.DeleteOptions) (*DeleteResult, error) {
@@ -443,7 +443,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	if err != nil {
 		return nil, err
 	}
-	deleteDocs := []bson.Doc{{{"q", bson.Document(f)}, {"limit", bson.Int32(0)}}}
+	deleteDocs := []bsonx.Doc{{{"q", bsonx.Document(f)}, {"limit", bsonx.Int32(0)}}}
 
 	sess := sessionFromContext(ctx)
 
@@ -484,18 +484,18 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
-	update bson.Doc, sess *session.Client, opts ...*options.UpdateOptions) (*UpdateResult, error) {
+	update bsonx.Doc, sess *session.Client, opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
 	// TODO: should session be taken from ctx or left as argument?
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	updateDocs := []bson.Doc{
+	updateDocs := []bsonx.Doc{
 		{
-			{"q", bson.Document(filter)},
-			{"u", bson.Document(update)},
-			{"multi", bson.Boolean(false)},
+			{"q", bsonx.Document(filter)},
+			{"u", bsonx.Document(update)},
+			{"multi", bsonx.Boolean(false)},
 		},
 	}
 
@@ -546,7 +546,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 // custom context to this method, or nil to default to context.Background().
 //
 // This method uses TransformDocument to turn the filter and update parameter
-// into a *bson.Document. See TransformDocument for the list of valid types for
+// into a *bsonx.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
 	opts ...*options.UpdateOptions) (*UpdateResult, error) {
@@ -583,7 +583,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // a custom context to this method, or nil to default to context.Background().
 //
 // This method uses TransformDocument to turn the filter and update parameter
-// into a *bson.Document. See TransformDocument for the list of valid types for
+// into a *bsonx.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
 	opts ...*options.UpdateOptions) (*UpdateResult, error) {
@@ -606,11 +606,11 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		return nil, err
 	}
 
-	updateDocs := []bson.Doc{
+	updateDocs := []bsonx.Doc{
 		{
-			{"q", bson.Document(f)},
-			{"u", bson.Document(u)},
-			{"multi", bson.Boolean(true)},
+			{"q", bsonx.Document(f)},
+			{"u", bsonx.Document(u)},
+			{"multi", bsonx.Boolean(true)},
 		},
 	}
 
@@ -668,7 +668,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 // a custom context to this method, or nil to default to context.Background().
 //
 // This method uses TransformDocument to turn the filter and replacement
-// parameter into a *bson.Document. See TransformDocument for the list of
+// parameter into a *bsonx.Document. See TransformDocument for the list of
 // valid types for filter and replacement.
 func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...*options.ReplaceOptions) (*UpdateResult, error) {
@@ -716,7 +716,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 // See https://docs.mongodb.com/manual/aggregation/.
 //
 // This method uses TransformDocument to turn the pipeline parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // pipeline.
 func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	opts ...*options.AggregateOptions) (Cursor, error) {
@@ -776,7 +776,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 // custom context to this method, or nil to default to context.Background().
 //
 // This method uses TransformDocument to turn the filter parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Count(ctx context.Context, filter interface{},
 	opts ...*options.CountOptions) (int64, error) {
@@ -898,7 +898,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	oldns := coll.namespace()
 	cmd := command.Count{
 		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:       bson.Doc{},
+		Query:       bsonx.Doc{},
 		ReadPref:    coll.readPreference,
 		ReadConcern: rc,
 		Session:     sess,
@@ -926,7 +926,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 // default to context.Background().
 //
 // This method uses TransformDocument to turn the filter parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
 	opts ...*options.DistinctOptions) ([]interface{}, error) {
@@ -935,7 +935,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		ctx = context.Background()
 	}
 
-	var f bson.Doc
+	var f bsonx.Doc
 	var err error
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
@@ -986,7 +986,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // method.
 //
 // This method uses TransformDocument to turn the filter parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
 	opts ...*options.FindOptions) (Cursor, error) {
@@ -995,7 +995,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	var f bson.Doc
+	var f bsonx.Doc
 	var err error
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
@@ -1042,7 +1042,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 // context.Background().
 //
 // This method uses TransformDocument to turn the filter parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	opts ...*options.FindOneOptions) *DocumentResult {
@@ -1051,7 +1051,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	var f bson.Doc
+	var f bsonx.Doc
 	var err error
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
@@ -1128,7 +1128,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 // context.Background().
 //
 // This method uses TransformDocument to turn the filter parameter into a
-// *bson.Document. See TransformDocument for the list of valid types for
+// *bsonx.Document. See TransformDocument for the list of valid types for
 // filter.
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
 	opts ...*options.FindOneAndDeleteOptions) *DocumentResult {
@@ -1137,7 +1137,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
-	var f bson.Doc
+	var f bsonx.Doc
 	var err error
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
@@ -1191,7 +1191,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 // context.Background().
 //
 // This method uses TransformDocument to turn the filter and replacement
-// parameter into a *bson.Document. See TransformDocument for the list of
+// parameter into a *bsonx.Document. See TransformDocument for the list of
 // valid types for filter and replacement.
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *DocumentResult {
@@ -1260,7 +1260,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 // context.Background().
 //
 // This method uses TransformDocument to turn the filter and update parameter
-// into a *bson.Document. See TransformDocument for the list of valid types for
+// into a *bsonx.Document. See TransformDocument for the list of valid types for
 // filter and update.
 func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
 	update interface{}, opts ...*options.FindOneAndUpdateOptions) *DocumentResult {
