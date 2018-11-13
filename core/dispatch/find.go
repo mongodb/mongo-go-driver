@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Find handles the full cycle dispatch and execution of a find command against the provided
@@ -77,7 +78,7 @@ func Find(
 		if desc.WireVersion.Max < 5 {
 			return nil, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(fo.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bsonx.Document(fo.Collation.ToDocument())})
 	}
 	if fo.Comment != nil {
 		cmd.Opts = append(cmd.Opts, bson.Elem{"comment", bson.String(*fo.Comment)})

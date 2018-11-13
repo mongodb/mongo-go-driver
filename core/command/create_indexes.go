@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // CreateIndexes represents the createIndexes command.
@@ -22,7 +23,7 @@ import (
 // The createIndexes command creates indexes for a namespace.
 type CreateIndexes struct {
 	NS           Namespace
-	Indexes      bson.Arr
+	Indexes      bsonx.Arr
 	Opts         []bson.Elem
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
@@ -43,9 +44,9 @@ func (ci *CreateIndexes) Encode(desc description.SelectedServer) (wiremessage.Wi
 }
 
 func (ci *CreateIndexes) encode(desc description.SelectedServer) (*Write, error) {
-	cmd := bson.Doc{
+	cmd := bsonx.Doc{
 		{"createIndexes", bson.String(ci.NS.Collection)},
-		{"indexes", bson.Array(ci.Indexes)},
+		{"indexes", bsonx.Array(ci.Indexes)},
 	}
 	cmd = append(cmd, ci.Opts...)
 

@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"time"
 
@@ -91,7 +92,7 @@ func Aggregate(
 		if desc.WireVersion.Max < 5 {
 			return nil, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(aggOpts.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bsonx.Document(aggOpts.Collation.ToDocument())})
 	}
 	if aggOpts.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*aggOpts.MaxTime / time.Millisecond))})

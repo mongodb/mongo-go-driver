@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw/bsonrwtest"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestBasicEncode(t *testing.T) {
@@ -128,7 +129,7 @@ type testMarshaler struct {
 
 func (tm testMarshaler) MarshalBSON() ([]byte, error) { return tm.buf, tm.err }
 
-func docToBytes(d Doc) []byte {
+func docToBytes(d bsonx.Doc) []byte {
 	b, err := d.MarshalBSON()
 	if err != nil {
 		panic(err)
@@ -136,7 +137,7 @@ func docToBytes(d Doc) []byte {
 	return b
 }
 
-func arrToBytes(a Arr) []byte {
+func arrToBytes(a bsonx.Arr) []byte {
 	_, b, err := a.MarshalBSONValue()
 	if err != nil {
 		panic(err)

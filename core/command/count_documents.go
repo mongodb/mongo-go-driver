@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // CountDocuments represents the CountDocuments command.
@@ -23,7 +24,7 @@ import (
 // The countDocuments command counts how many documents in a collection match the given query.
 type CountDocuments struct {
 	NS          Namespace
-	Pipeline    bson.Arr
+	Pipeline    bsonx.Arr
 	Opts        []bson.Elem
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
@@ -39,9 +40,9 @@ func (c *CountDocuments) Encode(desc description.SelectedServer) (wiremessage.Wi
 	if err := c.NS.Validate(); err != nil {
 		return nil, err
 	}
-	command := bson.Doc{{"aggregate", bson.String(c.NS.Collection)}, {"pipeline", bson.Array(c.Pipeline)}}
+	command := bsonx.Doc{{"aggregate", bson.String(c.NS.Collection)}, {"pipeline", bsonx.Array(c.Pipeline)}}
 
-	command = append(command, bson.Elem{"cursor", bson.Document(bson.Doc{})})
+	command = append(command, bson.Elem{"cursor", bsonx.Document(bsonx.Doc{})})
 	command = append(command, c.Opts...)
 
 	return (&Read{DB: c.NS.DB, ReadPref: c.ReadPref, Command: command}).Encode(desc)
@@ -61,7 +62,7 @@ func (c *CountDocuments) Decode(ctx context.Context, desc description.SelectedSe
 		return c
 	}
 
-	var doc bson.Doc
+	var doc bsonx.Doc
 	if cur.Next(ctx) {
 		err = cur.Decode(&doc)
 		if err != nil {
@@ -70,7 +71,7 @@ func (c *CountDocuments) Decode(ctx context.Context, desc description.SelectedSe
 		}
 		val, err := doc.LookupErr("n")
 		switch err.(type) {
-		case bson.KeyNotFound:
+		case bsonx.KeyNotFound:
 			c.err = errors.New("Invalid response from server, no 'n' field")
 			return c
 		case nil:

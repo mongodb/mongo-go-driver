@@ -25,9 +25,10 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
-func bytesFromDoc(doc Doc) []byte {
+func bytesFromDoc(doc bsonx.Doc) []byte {
 	b, err := doc.MarshalBSON()
 	if err != nil {
 		panic(fmt.Errorf("Couldn't marshal BSON document: %v", err))
@@ -35,8 +36,8 @@ func bytesFromDoc(doc Doc) []byte {
 	return b
 }
 
-func compareValues(v1, v2 Val) bool    { return v1.Equal(v2) }
-func compareElements(e1, e2 Elem) bool { return e1.Equal(e2) }
+func compareValues(v1, v2 bsonx.Val) bool    { return v1.Equal(v2) }
+func compareElements(e1, e2 bsonx.Elem) bool { return e1.Equal(e2) }
 
 func compareDecimal128(d1, d2 decimal.Decimal128) bool {
 	d1H, d1L := d1.GetBytes()
@@ -93,9 +94,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 	var ptimestampNil *primitive.Timestamp
 	var pminkeyNil *primitive.MinKey
 	var pmaxkeyNil *primitive.MaxKey
-	var pvalueNil *Val
-	var psliceNil *[]Elem
-	var parrayNil *Arr
+	var pvalueNil *bsonx.Val
+	var psliceNil *[]bsonx.Elem
+	var parrayNil *bsonx.Arr
 	var prawNil *RawValue
 	var pdNil *D
 
@@ -322,7 +323,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					"CodeWithScope/success",
 					primitive.CodeWithScope{
 						Code:  "var hello = 'world';",
-						Scope: Doc{},
+						Scope: bsonx.Doc{},
 					},
 					nil, nil, bsonrwtest.WriteDocumentEnd, nil,
 				},
@@ -330,7 +331,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					"*CodeWithScope/success",
 					&primitive.CodeWithScope{
 						Code:  "var hello = 'world';",
-						Scope: Doc{},
+						Scope: bsonx.Doc{},
 					},
 					nil, nil, bsonrwtest.WriteDocumentEnd, nil,
 				},
@@ -437,7 +438,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ValueEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.ValueEncodeValue),
+			bsoncodec.ValueEncoderFunc(pc.x.ValueEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -445,9 +446,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{Name: "ValueEncodeValue", Types: []interface{}{Val{}, (*Val)(nil)}, Received: wrong},
+					bsoncodec.ValueEncoderError{Name: "ValueEncodeValue", Types: []interface{}{bsonx.Val{}, (*bsonx.Val)(nil)}, Received: wrong},
 				},
-				{"empty value", Val{}, nil, nil, bsonrwtest.WriteNull, nil},
+				{"empty value", bsonx.Val{}, nil, nil, bsonrwtest.WriteNull, nil},
 				{
 					"success",
 					Null(),
@@ -489,7 +490,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"WriteDocumentElement Error",
-					Raw(bytesFromDoc(Doc{{"foo", Null()}})),
+					Raw(bytesFromDoc(bsonx.Doc{{"foo", Null()}})),
 					nil,
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("wde error"), ErrAfter: bsonrwtest.WriteDocumentElement},
 					bsonrwtest.WriteDocumentElement,
@@ -497,7 +498,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"encodeValue error",
-					Raw(bytesFromDoc(Doc{{"foo", Null()}})),
+					Raw(bytesFromDoc(bsonx.Doc{{"foo", Null()}})),
 					nil,
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("ev error"), ErrAfter: bsonrwtest.WriteNull},
 					bsonrwtest.WriteNull,
@@ -543,7 +544,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ArrayEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.ArrayEncodeValue),
+			bsoncodec.ValueEncoderFunc(pc.x.ArrayEncodeValue),
 			[]subtest{
 				{"*Array/nil/success", parrayNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
@@ -579,8 +580,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("DocumentEncodeValue", func(t *testing.T) {
 		t.Run("ValueEncoderError", func(t *testing.T) {
 			val := bool(true)
-			want := bsoncodec.ValueEncoderError{Name: "DocumentEncodeValue", Types: []interface{}{(Doc)(nil), (*Doc)(nil)}, Received: val}
-			got := (PrimitiveCodecs{}).DocumentEncodeValue(bsoncodec.EncodeContext{}, nil, val)
+			want := bsoncodec.ValueEncoderError{Name: "DocumentEncodeValue", Types: []interface{}{(bsonx.Doc)(nil), (*bsonx.Doc)(nil)}, Received: val}
+			got := (PrimitiveCodecs{}).x.DocumentEncodeValue(bsoncodec.EncodeContext{}, nil, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -592,7 +593,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				Err:      want,
 				ErrAfter: bsonrwtest.WriteDocument,
 			}
-			got := (PrimitiveCodecs{}).DocumentEncodeValue(bsoncodec.EncodeContext{}, llvrw, Doc{})
+			got := (PrimitiveCodecs{}).x.DocumentEncodeValue(bsoncodec.EncodeContext{}, llvrw, bsonx.Doc{})
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -605,129 +606,129 @@ func TestDefaultValueEncoders(t *testing.T) {
 				name  string
 				ec    bsoncodec.EncodeContext
 				llvrw *bsonrwtest.ValueReaderWriter
-				doc   Doc
+				doc   bsonx.Doc
 				err   error
 			}{
 				{
 					"WriteDocumentElement",
 					ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: errors.New("wde error"), ErrAfter: bsonrwtest.WriteDocumentElement},
-					Doc{{"foo", Null()}},
+					bsonx.Doc{{"foo", Null()}},
 					errors.New("wde error"),
 				},
 				{
 					"WriteDouble", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteDouble},
-					Doc{{"foo", Double(3.14159)}}, err,
+					bsonx.Doc{{"foo", Double(3.14159)}}, err,
 				},
 				{
 					"WriteString", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteString},
-					Doc{{"foo", String("bar")}}, err,
+					bsonx.Doc{{"foo", String("bar")}}, err,
 				},
 				{
 					"WriteDocument (Lookup)", bsoncodec.EncodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{T: t},
-					Doc{{"foo", Document(Doc{{"bar", Null()}})}},
+					bsonx.Doc{{"foo", Document(bsonx.Doc{{"bar", Null()}})}},
 					bsoncodec.ErrNoEncoder{Type: tDocument},
 				},
 				{
 					"WriteArray (Lookup)", bsoncodec.EncodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{T: t},
-					Doc{{"foo", Array(Arr{Null()})}},
+					bsonx.Doc{{"foo", Array(bsonx.Arr{Null()})}},
 					bsoncodec.ErrNoEncoder{Type: tArray},
 				},
 				{
 					"WriteBinary", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteBinaryWithSubtype},
-					Doc{{"foo", Binary(0xFF, []byte{0x01, 0x02, 0x03})}}, err,
+					bsonx.Doc{{"foo", Binary(0xFF, []byte{0x01, 0x02, 0x03})}}, err,
 				},
 				{
 					"WriteUndefined", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteUndefined},
-					Doc{{"foo", Undefined()}}, err,
+					bsonx.Doc{{"foo", Undefined()}}, err,
 				},
 				{
 					"WriteObjectID", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteObjectID},
-					Doc{{"foo", ObjectID(oid)}}, err,
+					bsonx.Doc{{"foo", ObjectID(oid)}}, err,
 				},
 				{
 					"WriteBoolean", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteBoolean},
-					Doc{{"foo", Boolean(true)}}, err,
+					bsonx.Doc{{"foo", Boolean(true)}}, err,
 				},
 				{
 					"WriteDateTime", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteDateTime},
-					Doc{{"foo", DateTime(1234567890)}}, err,
+					bsonx.Doc{{"foo", DateTime(1234567890)}}, err,
 				},
 				{
 					"WriteNull", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteNull},
-					Doc{{"foo", Null()}}, err,
+					bsonx.Doc{{"foo", Null()}}, err,
 				},
 				{
 					"WriteRegex", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteRegex},
-					Doc{{"foo", Regex("bar", "baz")}}, err,
+					bsonx.Doc{{"foo", Regex("bar", "baz")}}, err,
 				},
 				{
 					"WriteDBPointer", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteDBPointer},
-					Doc{{"foo", DBPointer("bar", oid)}}, err,
+					bsonx.Doc{{"foo", DBPointer("bar", oid)}}, err,
 				},
 				{
 					"WriteJavascript", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteJavascript},
-					Doc{{"foo", JavaScript("var hello = 'world';")}}, err,
+					bsonx.Doc{{"foo", JavaScript("var hello = 'world';")}}, err,
 				},
 				{
 					"WriteSymbol", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteSymbol},
-					Doc{{"foo", Symbol("symbolbaz")}}, err,
+					bsonx.Doc{{"foo", Symbol("symbolbaz")}}, err,
 				},
 				{
 					"WriteCodeWithScope (Lookup)", bsoncodec.EncodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteCodeWithScope},
-					Doc{{"foo", CodeWithScope("var hello = 'world';", Doc{}.Append("bar", Null()))}},
+					bsonx.Doc{{"foo", CodeWithScope("var hello = 'world';", bsonx.Doc{}.Append("bar", Null()))}},
 					err,
 				},
 				{
 					"WriteInt32", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteInt32},
-					Doc{{"foo", Int32(12345)}}, err,
+					bsonx.Doc{{"foo", Int32(12345)}}, err,
 				},
 				{
 					"WriteInt64", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteInt64},
-					Doc{{"foo", Int64(1234567890)}}, err,
+					bsonx.Doc{{"foo", Int64(1234567890)}}, err,
 				},
 				{
 					"WriteTimestamp", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteTimestamp},
-					Doc{{"foo", Timestamp(10, 20)}}, err,
+					bsonx.Doc{{"foo", Timestamp(10, 20)}}, err,
 				},
 				{
 					"WriteDecimal128", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteDecimal128},
-					Doc{{"foo", Decimal128(decimal.NewDecimal128(10, 20))}}, err,
+					bsonx.Doc{{"foo", Decimal128(decimal.NewDecimal128(10, 20))}}, err,
 				},
 				{
 					"WriteMinKey", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteMinKey},
-					Doc{{"foo", MinKey()}}, err,
+					bsonx.Doc{{"foo", MinKey()}}, err,
 				},
 				{
 					"WriteMaxKey", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteMaxKey},
-					Doc{{"foo", MaxKey()}}, err,
+					bsonx.Doc{{"foo", MaxKey()}}, err,
 				},
 			}
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					err := (PrimitiveCodecs{}).DocumentEncodeValue(tc.ec, tc.llvrw, tc.doc)
+					err := (PrimitiveCodecs{}).x.DocumentEncodeValue(tc.ec, tc.llvrw, tc.doc)
 					if !compareErrors(err, tc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 					}
@@ -738,26 +739,26 @@ func TestDefaultValueEncoders(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			oid := objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 			d128 := decimal.NewDecimal128(10, 20)
-			want := Doc{
+			want := bsonx.Doc{
 				{"a", Double(3.14159)}, {"b", String("foo")},
-				{"c", Document(Doc{{"aa", Null()}})}, {"d", Array(Arr{Null()})},
+				{"c", Document(bsonx.Doc{{"aa", Null()}})}, {"d", Array(bsonx.Arr{Null()})},
 				{"e", Binary(0xFF, []byte{0x01, 0x02, 0x03})}, {"f", Undefined()},
 				{"g", ObjectID(oid)}, {"h", Boolean(true)},
 				{"i", DateTime(1234567890)}, {"j", Null()},
 				{"k", Regex("foo", "abr")},
 				{"l", DBPointer("foobar", oid)}, {"m", JavaScript("var hello = 'world';")},
 				{"n", Symbol("bazqux")},
-				{"o", CodeWithScope("var hello = 'world';", Doc{{"ab", Null()}})},
+				{"o", CodeWithScope("var hello = 'world';", bsonx.Doc{{"ab", Null()}})},
 				{"p", Int32(12345)},
 				{"q", Timestamp(10, 20)}, {"r", Int64(1234567890)}, {"s", Decimal128(d128)}, {"t", MinKey()}, {"u", MaxKey()},
 			}
-			got := Doc{}
+			got := bsonx.Doc{}
 			slc := make(bsonrw.SliceWriter, 0, 128)
 			vw, err := bsonrw.NewBSONValueWriter(&slc)
 			noerr(t, err)
 
 			ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-			err = (PrimitiveCodecs{}).DocumentEncodeValue(ec, vw, want)
+			err = (PrimitiveCodecs{}).x.DocumentEncodeValue(ec, vw, want)
 			noerr(t, err)
 			got, err = ReadDoc(slc)
 			noerr(t, err)
@@ -771,8 +772,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("ArrayEncodeValue", func(t *testing.T) {
 		t.Run("CodecEncodeError", func(t *testing.T) {
 			val := bool(true)
-			want := bsoncodec.ValueEncoderError{Name: "ArrayEncodeValue", Types: []interface{}{(Arr)(nil), (*Arr)(nil)}, Received: val}
-			got := (PrimitiveCodecs{}).ArrayEncodeValue(bsoncodec.EncodeContext{}, nil, val)
+			want := bsoncodec.ValueEncoderError{Name: "ArrayEncodeValue", Types: []interface{}{(bsonx.Arr)(nil), (*bsonx.Arr)(nil)}, Received: val}
+			got := (PrimitiveCodecs{}).x.ArrayEncodeValue(bsoncodec.EncodeContext{}, nil, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -784,7 +785,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				Err:      want,
 				ErrAfter: bsonrwtest.WriteArray,
 			}
-			got := (PrimitiveCodecs{}).ArrayEncodeValue(bsoncodec.EncodeContext{}, llvrw, make(Arr, 0))
+			got := (PrimitiveCodecs{}).x.ArrayEncodeValue(bsoncodec.EncodeContext{}, llvrw, make(bsonx.Arr, 0))
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -797,129 +798,129 @@ func TestDefaultValueEncoders(t *testing.T) {
 				name  string
 				ec    bsoncodec.EncodeContext
 				llvrw *bsonrwtest.ValueReaderWriter
-				arr   Arr
+				arr   bsonx.Arr
 				err   error
 			}{
 				{
 					"WriteDocumentElement",
 					ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: errors.New("wde error"), ErrAfter: bsonrwtest.WriteArrayElement},
-					Arr{Null()},
+					bsonx.Arr{Null()},
 					errors.New("wde error"),
 				},
 				{
 					"WriteDouble", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteDouble},
-					Arr{Double(3.14159)}, err,
+					bsonx.Arr{Double(3.14159)}, err,
 				},
 				{
 					"WriteString", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteString},
-					Arr{String("bar")}, err,
+					bsonx.Arr{String("bar")}, err,
 				},
 				{
 					"WriteDocument (Lookup)", bsoncodec.EncodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{T: t},
-					Arr{Document(Doc{{"bar", Null()}})},
+					bsonx.Arr{Document(bsonx.Doc{{"bar", Null()}})},
 					bsoncodec.ErrNoEncoder{Type: tDocument},
 				},
 				{
 					"WriteArray (Lookup)", bsoncodec.EncodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{T: t},
-					Arr{Array(Arr{Null()})},
+					bsonx.Arr{Array(bsonx.Arr{Null()})},
 					bsoncodec.ErrNoEncoder{Type: tArray},
 				},
 				{
 					"WriteBinary", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteBinaryWithSubtype},
-					Arr{Binary(0xFF, []byte{0x01, 0x02, 0x03})}, err,
+					bsonx.Arr{Binary(0xFF, []byte{0x01, 0x02, 0x03})}, err,
 				},
 				{
 					"WriteUndefined", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteUndefined},
-					Arr{Undefined()}, err,
+					bsonx.Arr{Undefined()}, err,
 				},
 				{
 					"WriteObjectID", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteObjectID},
-					Arr{ObjectID(oid)}, err,
+					bsonx.Arr{ObjectID(oid)}, err,
 				},
 				{
 					"WriteBoolean", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteBoolean},
-					Arr{Boolean(true)}, err,
+					bsonx.Arr{Boolean(true)}, err,
 				},
 				{
 					"WriteDateTime", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteDateTime},
-					Arr{DateTime(1234567890)}, err,
+					bsonx.Arr{DateTime(1234567890)}, err,
 				},
 				{
 					"WriteNull", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteNull},
-					Arr{Null()}, err,
+					bsonx.Arr{Null()}, err,
 				},
 				{
 					"WriteRegex", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteRegex},
-					Arr{Regex("bar", "baz")}, err,
+					bsonx.Arr{Regex("bar", "baz")}, err,
 				},
 				{
 					"WriteDBPointer", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteDBPointer},
-					Arr{DBPointer("bar", oid)}, err,
+					bsonx.Arr{DBPointer("bar", oid)}, err,
 				},
 				{
 					"WriteJavascript", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteJavascript},
-					Arr{JavaScript("var hello = 'world';")}, err,
+					bsonx.Arr{JavaScript("var hello = 'world';")}, err,
 				},
 				{
 					"WriteSymbol", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteSymbol},
-					Arr{Symbol("symbolbaz")}, err,
+					bsonx.Arr{Symbol("symbolbaz")}, err,
 				},
 				{
 					"WriteCodeWithScope (Lookup)", bsoncodec.EncodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()},
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteCodeWithScope},
-					Arr{CodeWithScope("var hello = 'world';", Doc{{"bar", Null()}})},
+					bsonx.Arr{CodeWithScope("var hello = 'world';", bsonx.Doc{{"bar", Null()}})},
 					err,
 				},
 				{
 					"WriteInt32", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteInt32},
-					Arr{Int32(12345)}, err,
+					bsonx.Arr{Int32(12345)}, err,
 				},
 				{
 					"WriteInt64", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteInt64},
-					Arr{Int64(1234567890)}, err,
+					bsonx.Arr{Int64(1234567890)}, err,
 				},
 				{
 					"WriteTimestamp", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteTimestamp},
-					Arr{Timestamp(10, 20)}, err,
+					bsonx.Arr{Timestamp(10, 20)}, err,
 				},
 				{
 					"WriteDecimal128", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteDecimal128},
-					Arr{Decimal128(decimal.NewDecimal128(10, 20))}, err,
+					bsonx.Arr{Decimal128(decimal.NewDecimal128(10, 20))}, err,
 				},
 				{
 					"WriteMinKey", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteMinKey},
-					Arr{MinKey()}, err,
+					bsonx.Arr{MinKey()}, err,
 				},
 				{
 					"WriteMaxKey", ec,
 					&bsonrwtest.ValueReaderWriter{T: t, Err: err, ErrAfter: bsonrwtest.WriteMaxKey},
-					Arr{MaxKey()}, err,
+					bsonx.Arr{MaxKey()}, err,
 				},
 			}
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					err := (PrimitiveCodecs{}).ArrayEncodeValue(tc.ec, tc.llvrw, tc.arr)
+					err := (PrimitiveCodecs{}).x.ArrayEncodeValue(tc.ec, tc.llvrw, tc.arr)
 					if !compareErrors(err, tc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 					}
@@ -930,13 +931,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			oid := objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 			d128 := decimal.NewDecimal128(10, 20)
-			want := Arr{
-				Double(3.14159), String("foo"), Document(Doc{{"aa", Null()}}),
-				Array(Arr{Null()}),
+			want := bsonx.Arr{
+				Double(3.14159), String("foo"), Document(bsonx.Doc{{"aa", Null()}}),
+				Array(bsonx.Arr{Null()}),
 				Binary(0xFF, []byte{0x01, 0x02, 0x03}), Undefined(),
 				ObjectID(oid), Boolean(true), DateTime(1234567890), Null(), Regex("foo", "abr"),
 				DBPointer("foobar", oid), JavaScript("var hello = 'world';"), Symbol("bazqux"),
-				CodeWithScope("var hello = 'world';", Doc{{"ab", Null()}}), Int32(12345),
+				CodeWithScope("var hello = 'world';", bsonx.Doc{{"ab", Null()}}), Int32(12345),
 				Timestamp(10, 20), Int64(1234567890), Decimal128(d128), MinKey(), MaxKey(),
 			}
 
@@ -951,7 +952,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			vr, err := dr.WriteDocumentElement("foo")
 			noerr(t, err)
 
-			err = (PrimitiveCodecs{}).ArrayEncodeValue(ec, vr, want)
+			err = (PrimitiveCodecs{}).x.ArrayEncodeValue(ec, vr, want)
 			noerr(t, err)
 
 			err = dr.WriteDocumentEnd()
@@ -962,7 +963,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			rgot := val.Array()
 			doc, err := ReadDoc(rgot)
 			noerr(t, err)
-			got := make(Arr, 0)
+			got := make(bsonx.Arr, 0)
 			for _, elem := range doc {
 				got = append(got, elem.Value)
 			}
@@ -1012,7 +1013,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					L struct {
 						M string
 					}
-					O  Doc
+					O  bsonx.Doc
 					P  Raw
 					Q  objectid.ObjectID
 					T  []struct{}
@@ -1044,7 +1045,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					}{
 						M: "foobar",
 					},
-					O:  Doc{{"countdown", Int64(9876543210)}},
+					O:  bsonx.Doc{{"countdown", Int64(9876543210)}},
 					P:  Raw{0x05, 0x00, 0x00, 0x00, 0x00},
 					Q:  oid,
 					T:  nil,
@@ -1061,7 +1062,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AI: &D{{"pi", 3.14159}},
 					AJ: nil,
 				},
-				docToBytes(Doc{
+				docToBytes(bsonx.Doc{
 					{"a", Boolean(true)},
 					{"b", Int32(123)},
 					{"c", Int64(456)},
@@ -1069,12 +1070,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					{"e", Int64(101112)},
 					{"f", Double(3.14159)},
 					{"g", String("Hello, world")},
-					{"h", Document(Doc{{"foo", String("bar")}})},
+					{"h", Document(bsonx.Doc{{"foo", String("bar")}})},
 					{"i", Binary(0x00, []byte{0x01, 0x02, 0x03})},
-					{"k", Array(Arr{String("baz"), String("qux")})},
-					{"l", Document(Doc{{"m", String("foobar")}})},
-					{"o", Document(Doc{{"countdown", Int64(9876543210)}})},
-					{"p", Document(Doc{})},
+					{"k", Array(bsonx.Arr{String("baz"), String("qux")})},
+					{"l", Document(bsonx.Doc{{"m", String("foobar")}})},
+					{"o", Document(bsonx.Doc{{"countdown", Int64(9876543210)}})},
+					{"p", Document(bsonx.Doc{})},
 					{"q", ObjectID(oid)},
 					{"t", Null()},
 					{"y", Int64(5)},
@@ -1086,8 +1087,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					{"ae", String("hello, world")},
 					{"af", String("hello, raw value")},
 					{"ag", Double(3.14159)},
-					{"ah", Document(Doc{{"foo", String("bar")}})},
-					{"ai", Document(Doc{{"pi", Double(3.14159)}})},
+					{"ah", Document(bsonx.Doc{{"foo", String("bar")}})},
+					{"ai", Document(bsonx.Doc{{"pi", Double(3.14159)}})},
 					{"aj", Null()},
 				}),
 				nil,
@@ -1110,7 +1111,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					}
 					N  [][]string
 					O  []Elem
-					P  []Doc
+					P  []bsonx.Doc
 					Q  []Raw
 					R  []objectid.ObjectID
 					T  []struct{}
@@ -1145,7 +1146,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					},
 					N:  [][]string{{"foo", "bar"}},
 					O:  []Elem{{"N", Null()}},
-					P:  []Doc{{{"countdown", Int64(9876543210)}}},
+					P:  []bsonx.Doc{{{"countdown", Int64(9876543210)}}},
 					Q:  []Raw{{0x05, 0x00, 0x00, 0x00, 0x00}},
 					R:  oids,
 					T:  nil,
@@ -1164,38 +1165,38 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AF: []D{{{"foo", "bar"}}, {{"hello", "world"}, {"number", 12345}}},
 					AG: []*D{{{"pi", 3.14159}}, nil},
 				},
-				docToBytes(Doc{
-					{"a", Array(Arr{Boolean(true)})},
-					{"b", Array(Arr{Int32(123)})},
-					{"c", Array(Arr{Int64(456)})},
-					{"d", Array(Arr{Int32(789)})},
-					{"e", Array(Arr{Int64(101112)})},
-					{"f", Array(Arr{Double(3.14159)})},
-					{"g", Array(Arr{String("Hello, world")})},
-					{"h", Array(Arr{Document(Doc{{"foo", String("bar")}})})},
-					{"i", Array(Arr{Binary(0x00, []byte{0x01, 0x02, 0x03})})},
-					{"k", Array(Arr{Array(Arr{String("baz"), String("qux")})})},
-					{"l", Array(Arr{Document(Doc{{"m", String("foobar")}})})},
-					{"n", Array(Arr{Array(Arr{String("foo"), String("bar")})})},
-					{"o", Document(Doc{{"N", Null()}})},
-					{"p", Array(Arr{Document(Doc{{"countdown", Int64(9876543210)}})})},
-					{"q", Array(Arr{Document(Doc{})})},
-					{"r", Array(Arr{ObjectID(oids[0]), ObjectID(oids[1]), ObjectID(oids[2])})},
+				docToBytes(bsonx.Doc{
+					{"a", Array(bsonx.Arr{Boolean(true)})},
+					{"b", Array(bsonx.Arr{Int32(123)})},
+					{"c", Array(bsonx.Arr{Int64(456)})},
+					{"d", Array(bsonx.Arr{Int32(789)})},
+					{"e", Array(bsonx.Arr{Int64(101112)})},
+					{"f", Array(bsonx.Arr{Double(3.14159)})},
+					{"g", Array(bsonx.Arr{String("Hello, world")})},
+					{"h", Array(bsonx.Arr{Document(bsonx.Doc{{"foo", String("bar")}})})},
+					{"i", Array(bsonx.Arr{Binary(0x00, []byte{0x01, 0x02, 0x03})})},
+					{"k", Array(bsonx.Arr{Array(bsonx.Arr{String("baz"), String("qux")})})},
+					{"l", Array(bsonx.Arr{Document(bsonx.Doc{{"m", String("foobar")}})})},
+					{"n", Array(bsonx.Arr{Array(bsonx.Arr{String("foo"), String("bar")})})},
+					{"o", Document(bsonx.Doc{{"N", Null()}})},
+					{"p", Array(bsonx.Arr{Document(bsonx.Doc{{"countdown", Int64(9876543210)}})})},
+					{"q", Array(bsonx.Arr{Document(bsonx.Doc{})})},
+					{"r", Array(bsonx.Arr{ObjectID(oids[0]), ObjectID(oids[1]), ObjectID(oids[2])})},
 					{"t", Null()},
 					{"w", Null()},
-					{"x", Array(Arr{})},
-					{"y", Array(Arr{Document(Doc{})})},
-					{"z", Array(Arr{DateTime(now.UnixNano() / int64(time.Millisecond)), DateTime(now.UnixNano() / int64(time.Millisecond))})},
-					{"aa", Array(Arr{Int64(5), Double(10.10)})},
-					{"ab", Array(Arr{String(murl.String())})},
-					{"ac", Array(Arr{Decimal128(decimal128)})},
-					{"ad", Array(Arr{DateTime(now.UnixNano() / int64(time.Millisecond)), DateTime(now.UnixNano() / int64(time.Millisecond))})},
-					{"ae", Array(Arr{String("hello"), String("world")})},
-					{"af", Array(Arr{
-						Document(Doc{{"foo", String("bar")}}),
-						Document(Doc{{"hello", String("world")}, {"number", Int64(12345)}})},
+					{"x", Array(bsonx.Arr{})},
+					{"y", Array(bsonx.Arr{Document(bsonx.Doc{})})},
+					{"z", Array(bsonx.Arr{DateTime(now.UnixNano() / int64(time.Millisecond)), DateTime(now.UnixNano() / int64(time.Millisecond))})},
+					{"aa", Array(bsonx.Arr{Int64(5), Double(10.10)})},
+					{"ab", Array(bsonx.Arr{String(murl.String())})},
+					{"ac", Array(bsonx.Arr{Decimal128(decimal128)})},
+					{"ad", Array(bsonx.Arr{DateTime(now.UnixNano() / int64(time.Millisecond)), DateTime(now.UnixNano() / int64(time.Millisecond))})},
+					{"ae", Array(bsonx.Arr{String("hello"), String("world")})},
+					{"af", Array(bsonx.Arr{
+						Document(bsonx.Doc{{"foo", String("bar")}}),
+						Document(bsonx.Doc{{"hello", String("world")}, {"number", Int64(12345)}})},
 					)},
-					{"ag", Array(Arr{Document(Doc{{"pi", Double(3.14159)}}), Null()})},
+					{"ag", Array(bsonx.Arr{Document(bsonx.Doc{{"pi", Double(3.14159)}}), Null()})},
 				}),
 				nil,
 			},
@@ -1647,7 +1648,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"decodeDocument Error",
 					primitive.CodeWithScope{
 						Code:  "var hello = 'world';",
-						Scope: Doc{{"foo", Null()}},
+						Scope: bsonx.Doc{{"foo", Null()}},
 					},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.CodeWithScope, Err: errors.New("dd error"), ErrAfter: bsonrwtest.ReadElement},
@@ -1836,7 +1837,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"ValueDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.ValueDecodeValue),
+			bsoncodec.ValueDecoderFunc(pc.x.ValueDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1844,9 +1845,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "ValueDecodeValue", Types: []interface{}{(*Val)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "ValueDecodeValue", Types: []interface{}{(*bsonx.Val)(nil)}, Received: &wrong},
 				},
-				{"invalid value", (*Val)(nil), nil, nil, bsonrwtest.Nothing, errors.New("ValueDecodeValue can only be used to decode non-nil *Value")},
+				{"invalid value", (*bsonx.Val)(nil), nil, nil, bsonrwtest.Nothing, errors.New("ValueDecodeValue can only be used to decode non-nil *Value")},
 				{
 					"success",
 					Double(3.14159),
@@ -1992,7 +1993,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 	t.Run("CodeWithScopeCodec/DecodeValue/success", func(t *testing.T) {
 		dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
-		b, err := Doc{{"foo", CodeWithScope("var hello = 'world';", Doc{{"bar", Null()}})}}.MarshalBSON()
+		b, err := bsonx.Doc{{"foo", CodeWithScope("var hello = 'world';", bsonx.Doc{{"bar", Null()}})}}.MarshalBSON()
 		noerr(t, err)
 		dvr := bsonrw.NewBSONDocumentReader(b)
 		dr, err := dvr.ReadDocument()
@@ -2002,7 +2003,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		want := primitive.CodeWithScope{
 			Code:  "var hello = 'world';",
-			Scope: Doc{{"bar", Null()}},
+			Scope: bsonx.Doc{{"bar", Null()}},
 		}
 		var got primitive.CodeWithScope
 		err = pc.CodeWithScopeDecodeValue(dc, vr, &got)
@@ -2015,8 +2016,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 	t.Run("DocumentDecodeValue", func(t *testing.T) {
 		t.Run("CodecDecodeError", func(t *testing.T) {
 			val := bool(true)
-			want := bsoncodec.ValueDecoderError{Name: "DocumentDecodeValue", Types: []interface{}{(*Doc)(nil)}, Received: val}
-			got := pc.DocumentDecodeValue(bsoncodec.DecodeContext{}, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument}, val)
+			want := bsoncodec.ValueDecoderError{Name: "DocumentDecodeValue", Types: []interface{}{(*bsonx.Doc)(nil)}, Received: val}
+			got := pc.x.DocumentDecodeValue(bsoncodec.DecodeContext{}, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument}, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -2029,7 +2030,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				ErrAfter: bsonrwtest.ReadDocument,
 				BSONType: bsontype.EmbeddedDocument,
 			}
-			got := pc.DocumentDecodeValue(bsoncodec.DecodeContext{}, llvrw, new(Doc))
+			got := pc.x.DocumentDecodeValue(bsoncodec.DecodeContext{}, llvrw, new(bsonx.Doc))
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -2077,7 +2078,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					err := pc.decodeDocument(tc.dc, tc.llvrw, new(Doc))
+					err := pc.x.DecodeDocument(tc.dc, tc.llvrw, new(bsonx.Doc))
 					if !compareErrors(err, tc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 					}
@@ -2088,25 +2089,25 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			oid := objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 			d128 := decimal.NewDecimal128(10, 20)
-			want := Doc{
+			want := bsonx.Doc{
 				{"a", Double(3.14159)}, {"b", String("foo")},
-				{"c", Document(Doc{{"aa", Null()}})},
-				{"d", Array(Arr{Null()})},
+				{"c", Document(bsonx.Doc{{"aa", Null()}})},
+				{"d", Array(bsonx.Arr{Null()})},
 				{"e", Binary(0xFF, []byte{0x01, 0x02, 0x03})}, {"f", Undefined()},
 				{"g", ObjectID(oid)}, {"h", Boolean(true)},
 				{"i", DateTime(1234567890)}, {"j", Null()}, {"k", Regex("foo", "bar")},
 				{"l", DBPointer("foobar", oid)}, {"m", JavaScript("var hello = 'world';")},
 				{"n", Symbol("bazqux")},
-				{"o", CodeWithScope("var hello = 'world';", Doc{{"ab", Null()}})},
+				{"o", CodeWithScope("var hello = 'world';", bsonx.Doc{{"ab", Null()}})},
 				{"p", Int32(12345)},
 				{"q", Timestamp(10, 20)}, {"r", Int64(1234567890)},
 				{"s", Decimal128(d128)}, {"t", MinKey()}, {"u", MaxKey()},
 			}
-			var got Doc
+			var got bsonx.Doc
 			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
 			b, err := want.MarshalBSON()
 			noerr(t, err)
-			err = pc.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &got)
+			err = pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &got)
 			noerr(t, err)
 			if !got.Equal(want) {
 				t.Error("Documents do not match")
@@ -2117,8 +2118,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 	t.Run("ArrayDecodeValue", func(t *testing.T) {
 		t.Run("CodecDecodeError", func(t *testing.T) {
 			val := bool(true)
-			want := bsoncodec.ValueDecoderError{Name: "ArrayDecodeValue", Types: []interface{}{(*Arr)(nil)}, Received: val}
-			got := pc.ArrayDecodeValue(bsoncodec.DecodeContext{}, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Array}, val)
+			want := bsoncodec.ValueDecoderError{Name: "ArrayDecodeValue", Types: []interface{}{(*bsonx.Arr)(nil)}, Received: val}
+			got := pc.x.ArrayDecodeValue(bsoncodec.DecodeContext{}, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Array}, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -2131,7 +2132,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				ErrAfter: bsonrwtest.ReadArray,
 				BSONType: bsontype.Array,
 			}
-			got := pc.ArrayDecodeValue(bsoncodec.DecodeContext{}, llvrw, new(Arr))
+			got := pc.x.ArrayDecodeValue(bsoncodec.DecodeContext{}, llvrw, new(bsonx.Arr))
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -2179,7 +2180,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					err := pc.ArrayDecodeValue(tc.dc, tc.llvrw, new(Arr))
+					err := pc.x.ArrayDecodeValue(tc.dc, tc.llvrw, new(bsonx.Arr))
 					if !compareErrors(err, tc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 					}
@@ -2190,18 +2191,18 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			oid := objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 			d128 := decimal.NewDecimal128(10, 20)
-			want := Arr{
-				Double(3.14159), String("foo"), Document(Doc{{"aa", Null()}}),
-				Array(Arr{Null()}),
+			want := bsonx.Arr{
+				Double(3.14159), String("foo"), Document(bsonx.Doc{{"aa", Null()}}),
+				Array(bsonx.Arr{Null()}),
 				Binary(0xFF, []byte{0x01, 0x02, 0x03}), Undefined(),
 				ObjectID(oid), Boolean(true), DateTime(1234567890), Null(), Regex("foo", "bar"),
 				DBPointer("foobar", oid), JavaScript("var hello = 'world';"), Symbol("bazqux"),
-				CodeWithScope("var hello = 'world';", Doc{{"ab", Null()}}), Int32(12345),
+				CodeWithScope("var hello = 'world';", bsonx.Doc{{"ab", Null()}}), Int32(12345),
 				Timestamp(10, 20), Int64(1234567890), Decimal128(d128), MinKey(), MaxKey(),
 			}
 			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
 
-			b, err := Doc{{"", Array(want)}}.MarshalBSON()
+			b, err := bsonx.Doc{{"", Array(want)}}.MarshalBSON()
 			noerr(t, err)
 			dvr := bsonrw.NewBSONDocumentReader(b)
 			dr, err := dvr.ReadDocument()
@@ -2209,8 +2210,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 			_, vr, err := dr.ReadElement()
 			noerr(t, err)
 
-			var got Arr
-			err = pc.ArrayDecodeValue(dc, vr, &got)
+			var got bsonx.Arr
+			err = pc.x.ArrayDecodeValue(dc, vr, &got)
 			noerr(t, err)
 			if !got.Equal(want) {
 				t.Error("Documents do not match")
@@ -2256,67 +2257,67 @@ func TestDefaultValueDecoders(t *testing.T) {
 			{
 				"map[string]objectid.ObjectID",
 				map[string]objectid.ObjectID{"foo": oid},
-				docToBytes(Doc{{"foo", ObjectID(oid)}}),
+				docToBytes(bsonx.Doc{{"foo", ObjectID(oid)}}),
 				nil,
 			},
 			{
 				"map[string][]Element",
 				map[string][]Elem{"Z": {{"A", Int32(1)}, {"B", Int32(2)}, {"EC", Int32(3)}}},
-				docToBytes(Doc{{"Z", Document(Doc{{"A", Int32(1)}, {"B", Int32(2)}, {"EC", Int32(3)}})}}),
+				docToBytes(bsonx.Doc{{"Z", Document(bsonx.Doc{{"A", Int32(1)}, {"B", Int32(2)}, {"EC", Int32(3)}})}}),
 				nil,
 			},
 			{
 				"map[string][]Value",
-				map[string][]Val{"Z": {Int32(1), Int32(2), Int32(3)}},
-				docToBytes(Doc{{"Z", Array(Arr{Int32(1), Int32(2), Int32(3)})}}),
+				map[string][]bsonx.Val{"Z": {Int32(1), Int32(2), Int32(3)}},
+				docToBytes(bsonx.Doc{{"Z", Array(bsonx.Arr{Int32(1), Int32(2), Int32(3)})}}),
 				nil,
 			},
 			{
 				"map[string]*Document",
-				map[string]Doc{"Z": {{"foo", Null()}}},
-				docToBytes(Doc{{"Z", Document(Doc{{"foo", Null()}})}}),
+				map[string]bsonx.Doc{"Z": {{"foo", Null()}}},
+				docToBytes(bsonx.Doc{{"Z", Document(bsonx.Doc{{"foo", Null()}})}}),
 				nil,
 			},
 			{
 				"map[string]Reader",
 				map[string]Raw{"Z": {0x05, 0x00, 0x00, 0x00, 0x00}},
-				docToBytes(Doc{{"Z", Document(rawToDoc(Raw{0x05, 0x00, 0x00, 0x00, 0x00}))}}),
+				docToBytes(bsonx.Doc{{"Z", Document(rawToDoc(Raw{0x05, 0x00, 0x00, 0x00, 0x00}))}}),
 				nil,
 			},
 			{
 				"map[string][]int32",
 				map[string][]int32{"Z": {1, 2, 3}},
-				docToBytes(Doc{{"Z", Array(Arr{Int32(1), Int32(2), Int32(3)})}}),
+				docToBytes(bsonx.Doc{{"Z", Array(bsonx.Arr{Int32(1), Int32(2), Int32(3)})}}),
 				nil,
 			},
 			{
 				"map[string][]objectid.ObjectID",
 				map[string][]objectid.ObjectID{"Z": oids},
-				docToBytes(Doc{{"Z", Array(Arr{ObjectID(oids[0]), ObjectID(oids[1]), ObjectID(oids[2])})}}),
+				docToBytes(bsonx.Doc{{"Z", Array(bsonx.Arr{ObjectID(oids[0]), ObjectID(oids[1]), ObjectID(oids[2])})}}),
 				nil,
 			},
 			{
 				"map[string][]json.Number(int64)",
 				map[string][]json.Number{"Z": {json.Number("5"), json.Number("10")}},
-				docToBytes(Doc{{"Z", Array(Arr{Int64(5), Int64(10)})}}),
+				docToBytes(bsonx.Doc{{"Z", Array(bsonx.Arr{Int64(5), Int64(10)})}}),
 				nil,
 			},
 			{
 				"map[string][]json.Number(float64)",
 				map[string][]json.Number{"Z": {json.Number("5"), json.Number("10.1")}},
-				docToBytes(Doc{{"Z", Array(Arr{Int64(5), Double(10.1)})}}),
+				docToBytes(bsonx.Doc{{"Z", Array(bsonx.Arr{Int64(5), Double(10.1)})}}),
 				nil,
 			},
 			{
 				"map[string][]*url.URL",
 				map[string][]*url.URL{"Z": {murl}},
-				docToBytes(Doc{{"Z", Array(Arr{String(murl.String())})}}),
+				docToBytes(bsonx.Doc{{"Z", Array(bsonx.Arr{String(murl.String())})}}),
 				nil,
 			},
 			{
 				"map[string][]decimal.Decimal128",
 				map[string][]decimal.Decimal128{"Z": {decimal128}},
-				docToBytes(Doc{{"Z", Array(Arr{Decimal128(decimal128)})}}),
+				docToBytes(bsonx.Doc{{"Z", Array(bsonx.Arr{Decimal128(decimal128)})}}),
 				nil,
 			},
 			{
@@ -2326,7 +2327,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}{
 					A: "",
 				},
-				docToBytes(Doc{}),
+				docToBytes(bsonx.Doc{}),
 				nil,
 			},
 			{
@@ -2336,7 +2337,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}{
 					A: "",
 				},
-				docToBytes(Doc{}),
+				docToBytes(bsonx.Doc{}),
 				nil,
 			},
 			{
@@ -2346,13 +2347,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}{
 					A: time.Time{},
 				},
-				docToBytes(Doc{}),
+				docToBytes(bsonx.Doc{}),
 				nil,
 			},
 			{
 				"no private fields",
 				noPrivateFields{a: "should be empty"},
-				docToBytes(Doc{}),
+				docToBytes(bsonx.Doc{}),
 				nil,
 			},
 			{
@@ -2362,7 +2363,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}{
 					A: 12345,
 				},
-				docToBytes(Doc{{"a", Int32(12345)}}),
+				docToBytes(bsonx.Doc{{"a", Int32(12345)}}),
 				nil,
 			},
 			{
@@ -2378,7 +2379,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						A: 12345,
 					},
 				},
-				docToBytes(Doc{{"a", Int32(12345)}}),
+				docToBytes(bsonx.Doc{{"a", Int32(12345)}}),
 				nil,
 			},
 			{
@@ -2388,7 +2389,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}{
 					Foo: map[string]string{"foo": "bar"},
 				},
-				docToBytes(Doc{{"foo", String("bar")}}),
+				docToBytes(bsonx.Doc{{"foo", String("bar")}}),
 				nil,
 			},
 			{
@@ -2398,7 +2399,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}{
 					A: "bar",
 				},
-				docToBytes(Doc{{"foo", String("bar")}}),
+				docToBytes(bsonx.Doc{{"foo", String("bar")}}),
 				nil,
 			},
 			{
@@ -2408,7 +2409,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}{
 					A: "bar",
 				},
-				docToBytes(Doc{{"foo", String("bar")}}),
+				docToBytes(bsonx.Doc{{"foo", String("bar")}}),
 				nil,
 			},
 			{
@@ -2420,7 +2421,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					A:   "bar",
 					Foo: zeroTest{true},
 				},
-				docToBytes(Doc{{"a", String("bar")}}),
+				docToBytes(bsonx.Doc{{"a", String("bar")}}),
 				nil,
 			},
 			{
@@ -2439,7 +2440,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					L struct {
 						M string
 					}
-					O  Doc
+					O  bsonx.Doc
 					P  Raw
 					Q  objectid.ObjectID
 					T  []struct{}
@@ -2471,7 +2472,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					}{
 						M: "foobar",
 					},
-					O:  Doc{{"countdown", Int64(9876543210)}},
+					O:  bsonx.Doc{{"countdown", Int64(9876543210)}},
 					P:  Raw{0x05, 0x00, 0x00, 0x00, 0x00},
 					Q:  oid,
 					T:  nil,
@@ -2488,7 +2489,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AI: &D{{"pi", 3.14159}},
 					AJ: nil,
 				},
-				docToBytes(Doc{
+				docToBytes(bsonx.Doc{
 					{"a", Boolean(true)},
 					{"b", Int32(123)},
 					{"c", Int64(456)},
@@ -2496,12 +2497,12 @@ func TestDefaultValueDecoders(t *testing.T) {
 					{"e", Int64(101112)},
 					{"f", Double(3.14159)},
 					{"g", String("Hello, world")},
-					{"h", Document(Doc{{"foo", String("bar")}})},
+					{"h", Document(bsonx.Doc{{"foo", String("bar")}})},
 					{"i", Binary(0x00, []byte{0x01, 0x02, 0x03})},
-					{"k", Array(Arr{String("baz"), String("qux")})},
-					{"l", Document(Doc{{"m", String("foobar")}})},
-					{"o", Document(Doc{{"countdown", Int64(9876543210)}})},
-					{"p", Document(Doc{})},
+					{"k", Array(bsonx.Arr{String("baz"), String("qux")})},
+					{"l", Document(bsonx.Doc{{"m", String("foobar")}})},
+					{"o", Document(bsonx.Doc{{"countdown", Int64(9876543210)}})},
+					{"p", Document(bsonx.Doc{})},
 					{"q", ObjectID(oid)},
 					{"t", Null()},
 					{"y", Int64(5)},
@@ -2513,8 +2514,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 					{"ae", String("hello, world!")},
 					{"af", Double(3.14159)},
 					{"ag", Binary(0xFF, []byte{0x01, 0x02, 0x03})},
-					{"ah", Document(Doc{{"foo", String("bar")}})},
-					{"ai", Document(Doc{{"pi", Double(3.14159)}})},
+					{"ah", Document(bsonx.Doc{{"foo", String("bar")}})},
+					{"ai", Document(bsonx.Doc{{"pi", Double(3.14159)}})},
 					{"aj", Null()},
 				}),
 				nil,
@@ -2537,7 +2538,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					}
 					N  [][]string
 					O  []Elem
-					P  []Doc
+					P  []bsonx.Doc
 					Q  []Raw
 					R  []objectid.ObjectID
 					T  []struct{}
@@ -2572,7 +2573,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					},
 					N:  [][]string{{"foo", "bar"}},
 					O:  []Elem{{"N", Null()}},
-					P:  []Doc{{{"countdown", Int64(9876543210)}}},
+					P:  []bsonx.Doc{{{"countdown", Int64(9876543210)}}},
 					Q:  []Raw{{0x05, 0x00, 0x00, 0x00, 0x00}},
 					R:  oids,
 					T:  nil,
@@ -2591,38 +2592,38 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AF: []D{{{"foo", "bar"}}, {{"hello", "world"}, {"number", int64(12345)}}},
 					AG: []*D{{{"pi", 3.14159}}, nil},
 				},
-				docToBytes(Doc{
-					{"a", Array(Arr{Boolean(true)})},
-					{"b", Array(Arr{Int32(123)})},
-					{"c", Array(Arr{Int64(456)})},
-					{"d", Array(Arr{Int32(789)})},
-					{"e", Array(Arr{Int64(101112)})},
-					{"f", Array(Arr{Double(3.14159)})},
-					{"g", Array(Arr{String("Hello, world")})},
-					{"h", Array(Arr{Document(Doc{{"foo", String("bar")}})})},
-					{"i", Array(Arr{Binary(0x00, []byte{0x01, 0x02, 0x03})})},
-					{"k", Array(Arr{Array(Arr{String("baz"), String("qux")})})},
-					{"l", Array(Arr{Document(Doc{{"m", String("foobar")}})})},
-					{"n", Array(Arr{Array(Arr{String("foo"), String("bar")})})},
-					{"o", Document(Doc{{"N", Null()}})},
-					{"p", Array(Arr{Document(Doc{{"countdown", Int64(9876543210)}})})},
-					{"q", Array(Arr{Document(Doc{})})},
-					{"r", Array(Arr{ObjectID(oids[0]), ObjectID(oids[1]), ObjectID(oids[2])})},
+				docToBytes(bsonx.Doc{
+					{"a", Array(bsonx.Arr{Boolean(true)})},
+					{"b", Array(bsonx.Arr{Int32(123)})},
+					{"c", Array(bsonx.Arr{Int64(456)})},
+					{"d", Array(bsonx.Arr{Int32(789)})},
+					{"e", Array(bsonx.Arr{Int64(101112)})},
+					{"f", Array(bsonx.Arr{Double(3.14159)})},
+					{"g", Array(bsonx.Arr{String("Hello, world")})},
+					{"h", Array(bsonx.Arr{Document(bsonx.Doc{{"foo", String("bar")}})})},
+					{"i", Array(bsonx.Arr{Binary(0x00, []byte{0x01, 0x02, 0x03})})},
+					{"k", Array(bsonx.Arr{Array(bsonx.Arr{String("baz"), String("qux")})})},
+					{"l", Array(bsonx.Arr{Document(bsonx.Doc{{"m", String("foobar")}})})},
+					{"n", Array(bsonx.Arr{Array(bsonx.Arr{String("foo"), String("bar")})})},
+					{"o", Document(bsonx.Doc{{"N", Null()}})},
+					{"p", Array(bsonx.Arr{Document(bsonx.Doc{{"countdown", Int64(9876543210)}})})},
+					{"q", Array(bsonx.Arr{Document(bsonx.Doc{})})},
+					{"r", Array(bsonx.Arr{ObjectID(oids[0]), ObjectID(oids[1]), ObjectID(oids[2])})},
 					{"t", Null()},
 					{"w", Null()},
-					{"x", Array(Arr{})},
-					{"y", Array(Arr{Document(Doc{})})},
-					{"z", Array(Arr{DateTime(now.UnixNano() / int64(time.Millisecond)), DateTime(now.UnixNano() / int64(time.Millisecond))})},
-					{"aa", Array(Arr{Int64(5), Double(10.10)})},
-					{"ab", Array(Arr{String(murl.String())})},
-					{"ac", Array(Arr{Decimal128(decimal128)})},
-					{"ad", Array(Arr{DateTime(now.UnixNano() / int64(time.Millisecond)), DateTime(now.UnixNano() / int64(time.Millisecond))})},
-					{"ae", Array(Arr{String("hello"), String("world")})},
-					{"af", Array(Arr{
-						Document(Doc{{"foo", String("bar")}}),
-						Document(Doc{{"hello", String("world")}, {"number", Int64(12345)}}),
+					{"x", Array(bsonx.Arr{})},
+					{"y", Array(bsonx.Arr{Document(bsonx.Doc{})})},
+					{"z", Array(bsonx.Arr{DateTime(now.UnixNano() / int64(time.Millisecond)), DateTime(now.UnixNano() / int64(time.Millisecond))})},
+					{"aa", Array(bsonx.Arr{Int64(5), Double(10.10)})},
+					{"ab", Array(bsonx.Arr{String(murl.String())})},
+					{"ac", Array(bsonx.Arr{Decimal128(decimal128)})},
+					{"ad", Array(bsonx.Arr{DateTime(now.UnixNano() / int64(time.Millisecond)), DateTime(now.UnixNano() / int64(time.Millisecond))})},
+					{"ae", Array(bsonx.Arr{String("hello"), String("world")})},
+					{"af", Array(bsonx.Arr{
+						Document(bsonx.Doc{{"foo", String("bar")}}),
+						Document(bsonx.Doc{{"hello", String("world")}, {"number", Int64(12345)}}),
 					})},
-					{"ag", Array(Arr{Document(Doc{{"pi", Double(3.14159)}}), Null()})},
+					{"ag", Array(bsonx.Arr{Document(bsonx.Doc{{"pi", Double(3.14159)}}), Null()})},
 				}),
 				nil,
 			},
@@ -2674,12 +2675,12 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"Embedded Document - *Document",
-					Doc{{"foo", Null()}},
+					bsonx.Doc{{"foo", Null()}},
 					bsontype.EmbeddedDocument,
 				},
 				{
 					"Array - Arr",
-					Arr{Double(3.14159)},
+					bsonx.Arr{Double(3.14159)},
 					bsontype.Array,
 				},
 				{
@@ -2739,7 +2740,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"CodeWithScope - CodeWithScope",
 					primitive.CodeWithScope{
 						Code:  "var foo = 'bar';",
-						Scope: Doc{{"foo", Double(3.14159)}},
+						Scope: bsonx.Doc{{"foo", Double(3.14159)}},
 					},
 					bsontype.CodeWithScope,
 				},
@@ -2920,24 +2921,24 @@ func (llc *llCodec) DecodeValue(_ bsoncodec.DecodeContext, _ bsonrw.ValueReader,
 
 	switch val.Type() {
 	case tDocument:
-		decodeval, ok := llc.decodeval.(Doc)
+		decodeval, ok := llc.decodeval.(bsonx.Doc)
 		if !ok {
 			llc.t.Errorf("decodeval must be a *Document if the i is a *Document. decodeval %T", llc.decodeval)
 			return nil
 		}
 
-		doc := i.(Doc)
+		doc := i.(bsonx.Doc)
 		doc = doc[:0]
 		doc = append(doc, decodeval...)
 		return nil
 	case tArray:
-		decodeval, ok := llc.decodeval.(Arr)
+		decodeval, ok := llc.decodeval.(bsonx.Arr)
 		if !ok {
 			llc.t.Errorf("decodeval must be a *Array if the i is a *Array. decodeval %T", llc.decodeval)
 			return nil
 		}
 
-		arr := i.(Arr)
+		arr := i.(bsonx.Arr)
 		arr = arr[:0]
 		arr = append(arr, decodeval...)
 		return nil
@@ -2952,7 +2953,7 @@ func (llc *llCodec) DecodeValue(_ bsoncodec.DecodeContext, _ bsonrw.ValueReader,
 	return nil
 }
 
-func rawToDoc(raw Raw) Doc {
+func rawToDoc(raw Raw) bsonx.Doc {
 	doc, err := ReadDoc(raw)
 	if err != nil {
 		panic(err)

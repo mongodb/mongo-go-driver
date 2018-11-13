@@ -6,17 +6,20 @@
 
 package mongo
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import (
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
+)
 
 // IndexOptionsBuilder constructs a BSON document for index options
 type IndexOptionsBuilder struct {
-	document bson.Doc
+	document bsonx.Doc
 }
 
 // NewIndexOptionsBuilder creates a new instance of IndexOptionsBuilder
 func NewIndexOptionsBuilder() *IndexOptionsBuilder {
 	var b IndexOptionsBuilder
-	b.document = bson.Doc{}
+	b.document = bsonx.Doc{}
 	return &b
 }
 
@@ -45,8 +48,8 @@ func (iob *IndexOptionsBuilder) Sparse(sparse bool) *IndexOptionsBuilder {
 }
 
 // StorageEngine sets the storageEngine option
-func (iob *IndexOptionsBuilder) StorageEngine(storageEngine bson.Doc) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bson.Elem{"storageEngine", bson.Document(storageEngine)})
+func (iob *IndexOptionsBuilder) StorageEngine(storageEngine bsonx.Doc) *IndexOptionsBuilder {
+	iob.document = append(iob.document, bson.Elem{"storageEngine", bsonx.Document(storageEngine)})
 	return iob
 }
 
@@ -81,8 +84,8 @@ func (iob *IndexOptionsBuilder) TextVersion(textVersion int32) *IndexOptionsBuil
 }
 
 // Weights sets the weights option
-func (iob *IndexOptionsBuilder) Weights(weights bson.Doc) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bson.Elem{"weights", bson.Document(weights)})
+func (iob *IndexOptionsBuilder) Weights(weights bsonx.Doc) *IndexOptionsBuilder {
+	iob.document = append(iob.document, bson.Elem{"weights", bsonx.Document(weights)})
 	return iob
 }
 
@@ -117,18 +120,18 @@ func (iob *IndexOptionsBuilder) BucketSize(bucketSize int32) *IndexOptionsBuilde
 }
 
 // PartialFilterExpression sets the partialFilterExpression option
-func (iob *IndexOptionsBuilder) PartialFilterExpression(partialFilterExpression bson.Doc) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bson.Elem{"partialFilterExpression", bson.Document(partialFilterExpression)})
+func (iob *IndexOptionsBuilder) PartialFilterExpression(partialFilterExpression bsonx.Doc) *IndexOptionsBuilder {
+	iob.document = append(iob.document, bson.Elem{"partialFilterExpression", bsonx.Document(partialFilterExpression)})
 	return iob
 }
 
 // Collation sets the collation option
-func (iob *IndexOptionsBuilder) Collation(collation bson.Doc) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bson.Elem{"collation", bson.Document(collation)})
+func (iob *IndexOptionsBuilder) Collation(collation bsonx.Doc) *IndexOptionsBuilder {
+	iob.document = append(iob.document, bson.Elem{"collation", bsonx.Document(collation)})
 	return iob
 }
 
 // Build returns the BSON document from the builder
-func (iob *IndexOptionsBuilder) Build() bson.Doc {
+func (iob *IndexOptionsBuilder) Build() bsonx.Doc {
 	return iob.document
 }

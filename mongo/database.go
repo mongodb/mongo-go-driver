@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Database performs operations on a given database.
@@ -175,7 +176,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, err
 	}
 
-	var filterDoc bson.Doc
+	var filterDoc bsonx.Doc
 	if filter != nil {
 		filterDoc, err = transformDocument(db.registry, filter)
 		if err != nil {

@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // FindOneAndReplace handles the full cycle dispatch and execution of a FindOneAndReplace command against the provided
@@ -59,7 +60,7 @@ func FindOneAndReplace(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.FindAndModify{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(ro.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bsonx.Document(ro.Collation.ToDocument())})
 	}
 	if ro.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*ro.MaxTime / time.Millisecond))})

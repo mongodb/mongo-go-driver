@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // GetMore represents the getMore command.
@@ -40,7 +41,7 @@ func (gm *GetMore) Encode(desc description.SelectedServer) (wiremessage.WireMess
 }
 
 func (gm *GetMore) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.Doc{
+	cmd := bsonx.Doc{
 		{"getMore", bson.Int64(gm.ID)},
 		{"collection", bson.String(gm.NS.Collection)},
 	}

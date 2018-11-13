@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // UploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
@@ -138,7 +139,7 @@ func (us *UploadStream) Abort() error {
 		defer cancel()
 	}
 
-	_, err := us.chunksColl.DeleteMany(ctx, bson.Doc{{"files_id", bson.ObjectID(us.FileID)}})
+	_, err := us.chunksColl.DeleteMany(ctx, bsonx.Doc{{"files_id", bson.ObjectID(us.FileID)}})
 	if err != nil {
 		return err
 	}
@@ -160,7 +161,7 @@ func (us *UploadStream) uploadChunks(ctx context.Context) error {
 			chunkData = us.buffer[i : i+int(us.chunkSize)]
 		}
 
-		docs[us.chunkIndex] = bson.Doc{
+		docs[us.chunkIndex] = bsonx.Doc{
 			{"_id", bson.ObjectID(objectid.New())},
 			{"files_id", bson.ObjectID(us.FileID)},
 			{"n", bson.Int32(int32(us.chunkIndex))},
@@ -180,7 +181,7 @@ func (us *UploadStream) uploadChunks(ctx context.Context) error {
 }
 
 func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
-	doc := bson.Doc{
+	doc := bsonx.Doc{
 		{"_id", bson.ObjectID(us.FileID)},
 		{"length", bson.Int64(us.fileLen)},
 		{"chunkSize", bson.Int32(us.chunkSize)},
@@ -189,7 +190,7 @@ func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
 	}
 
 	if us.metadata != nil {
-		doc = append(doc, bson.Elem{"metadata", bson.Document(us.metadata)})
+		doc = append(doc, bson.Elem{"metadata", bsonx.Document(us.metadata)})
 	}
 
 	_, err := us.filesColl.InsertOne(ctx, doc)

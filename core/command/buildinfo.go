@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // BuildInfo represents the buildInfo command.
@@ -27,7 +28,7 @@ type BuildInfo struct {
 // Encode will encode this command into a wire message for the given server description.
 func (bi *BuildInfo) Encode() (wiremessage.WireMessage, error) {
 	// This can probably just be a global variable that we reuse.
-	cmd := bson.Doc{{"buildInfo", bson.Int32(1)}}
+	cmd := bsonx.Doc{{"buildInfo", bson.Int32(1)}}
 	rdr, err := cmd.MarshalBSON()
 	if err != nil {
 		return nil, err
