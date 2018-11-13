@@ -9,8 +9,8 @@ package dispatch
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -53,7 +53,7 @@ func Delete(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.Delete{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(deleteOpts.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(deleteOpts.Collation.ToDocument())})
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

@@ -22,6 +22,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // TODO: add sessions options
@@ -55,7 +56,7 @@ type Bucket struct {
 // Upload contains options to upload a file to a bucket.
 type Upload struct {
 	chunkSize int32
-	metadata  bson.Doc
+	metadata  bsonx.Doc
 }
 
 // NewBucket creates a GridFS bucket.
@@ -176,7 +177,7 @@ func (b *Bucket) UploadFromStreamWithID(fileID objectid.ObjectID, filename strin
 
 // OpenDownloadStream creates a stream from which the contents of the file can be read.
 func (b *Bucket) OpenDownloadStream(fileID objectid.ObjectID) (*DownloadStream, error) {
-	return b.openDownloadStream(bson.Doc{
+	return b.openDownloadStream(bsonx.Doc{
 		{"_id", bson.ObjectID(fileID)},
 	})
 }
@@ -207,9 +208,9 @@ func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...*options.Name
 		numSkip = (-1 * numSkip) - 1
 	}
 
-	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bson.Doc{{"uploadDate", bson.Int32(sortOrder)}})
+	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bsonx.Doc{{"uploadDate", bson.Int32(sortOrder)}})
 
-	return b.openDownloadStream(bson.Doc{{"filename", bson.String(filename)}}, findOpts)
+	return b.openDownloadStream(bsonx.Doc{{"filename", bson.String(filename)}}, findOpts)
 }
 
 // DownloadToStreamByName downloads the file with the given name to the given io.Writer.
@@ -231,7 +232,7 @@ func (b *Bucket) Delete(fileID objectid.ObjectID) error {
 		defer cancel()
 	}
 
-	res, err := b.filesColl.DeleteOne(ctx, bson.Doc{{"_id", bson.ObjectID(fileID)}})
+	res, err := b.filesColl.DeleteOne(ctx, bsonx.Doc{{"_id", bson.ObjectID(fileID)}})
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
 	}
@@ -282,8 +283,8 @@ func (b *Bucket) Rename(fileID objectid.ObjectID, newFilename string) error {
 	}
 
 	res, err := b.filesColl.UpdateOne(ctx,
-		bson.Doc{{"_id", bson.ObjectID(fileID)}},
-		bson.Doc{{"$set", bson.Document(bson.Doc{{"filename", bson.String(newFilename)}})}},
+		bsonx.Doc{{"_id", bson.ObjectID(fileID)}},
+		bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"filename", bson.String(newFilename)}})}},
 	)
 	if err != nil {
 		return err
@@ -373,7 +374,7 @@ func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, 
 }
 
 func (b *Bucket) deleteChunks(ctx context.Context, fileID objectid.ObjectID) error {
-	_, err := b.chunksColl.DeleteMany(ctx, bson.Doc{{"files_id", bson.ObjectID(fileID)}})
+	_, err := b.chunksColl.DeleteMany(ctx, bsonx.Doc{{"files_id", bson.ObjectID(fileID)}})
 	return err
 }
 
@@ -393,8 +394,8 @@ func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*opti
 
 func (b *Bucket) findChunks(ctx context.Context, fileID objectid.ObjectID) (mongo.Cursor, error) {
 	chunksCursor, err := b.chunksColl.Find(ctx,
-		bson.Doc{{"files_id", bson.ObjectID(fileID)}},
-		options.Find().SetSort(bson.Doc{{"n", bson.Int32(1)}})) // sort by chunk index
+		bsonx.Doc{{"files_id", bson.ObjectID(fileID)}},
+		options.Find().SetSort(bsonx.Doc{{"n", bson.Int32(1)}})) // sort by chunk index
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +454,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 		return err
 	}
 
-	docRes := cloned.FindOne(ctx, bson.Doc{}, options.FindOne().SetProjection(bson.Doc{{"_id", bson.Int32(1)}}))
+	docRes := cloned.FindOne(ctx, bsonx.Doc{}, options.FindOne().SetProjection(bsonx.Doc{{"_id", bson.Int32(1)}}))
 
 	err = docRes.Decode(nil)
 	if err == mongo.ErrNoDocuments {
@@ -461,14 +462,14 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 		chunksIv := b.chunksColl.Indexes()
 
 		filesModel := mongo.IndexModel{
-			Keys: bson.Doc{
+			Keys: bsonx.Doc{
 				{"filename", bson.Int32(1)},
 				{"uploadDate", bson.Int32(1)},
 			},
 		}
 
 		chunksModel := mongo.IndexModel{
-			Keys: bson.Doc{
+			Keys: bsonx.Doc{
 				{"files_id", bson.Int32(1)},
 				{"n", bson.Int32(1)},
 			},

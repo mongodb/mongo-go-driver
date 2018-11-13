@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,11 +64,11 @@ func TestCompression(t *testing.T) {
 	collOne := testutil.ColName(t)
 
 	testutil.DropCollection(t, testutil.DBName(t), collOne)
-	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bson.Doc{{"name", bson.String("compression_test")}})
+	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bsonx.Doc{{"name", bson.String("compression_test")}})
 
 	cmd := &command.Read{
 		DB:      testutil.DBName(t),
-		Command: bson.Doc{{"serverStatus", bson.Int32(1)}},
+		Command: bsonx.Doc{{"serverStatus", bson.Int32(1)}},
 	}
 
 	ctx := context.Background()

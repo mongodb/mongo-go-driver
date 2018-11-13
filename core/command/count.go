@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Count represents the count command.
@@ -24,8 +25,8 @@ import (
 // The count command counts how many documents in a collection match the given query.
 type Count struct {
 	NS          Namespace
-	Query       bson.Doc
-	Opts        []bson.Elem
+	Query       bsonx.Doc
+	Opts        []bsonx.Elem
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -50,7 +51,7 @@ func (c *Count) encode(desc description.SelectedServer) (*Read, error) {
 		return nil, err
 	}
 
-	command := bson.Doc{{"count", bson.String(c.NS.Collection)}, {"query", bson.Document(c.Query)}}
+	command := bsonx.Doc{{"count", bson.String(c.NS.Collection)}, {"query", bsonx.Document(c.Query)}}
 	command = append(command, c.Opts...)
 
 	return &Read{

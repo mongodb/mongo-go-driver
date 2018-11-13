@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/internal"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -106,14 +107,14 @@ func createDefaultConnectedServer(t *testing.T, willErr bool) *Server {
 	return s
 }
 
-func createOKBatchReplyDoc(id int64, batchDocs bson.Arr) bson.Doc {
-	return bson.Doc{
+func createOKBatchReplyDoc(id int64, batchDocs bsonx.Arr) bsonx.Doc {
+	return bsonx.Doc{
 		{"ok", bson.Int32(1)},
 		{
 			"cursor",
-			bson.Document(bson.Doc{
+			bsonx.Document(bsonx.Doc{
 				{"id", bson.Int64(id)},
-				{"nextBatch", bson.Array(batchDocs)},
+				{"nextBatch", bsonx.Array(batchDocs)},
 			}),
 		}}
 }
@@ -163,7 +164,7 @@ func (*mockConnection) WriteWireMessage(ctx context.Context, wm wiremessage.Wire
 func (m *mockConnection) ReadWireMessage(ctx context.Context) (wiremessage.WireMessage, error) {
 	if m.writes < 4 {
 		// write empty batch
-		d := createOKBatchReplyDoc(2, bson.Arr{})
+		d := createOKBatchReplyDoc(2, bsonx.Arr{})
 
 		return internal.MakeReply(m.t, d), nil
 	} else if m.willErr {
@@ -171,7 +172,7 @@ func (m *mockConnection) ReadWireMessage(ctx context.Context) (wiremessage.WireM
 		return nil, errors.New("intentional mock error")
 	} else {
 		// write non-empty batch
-		d := createOKBatchReplyDoc(2, bson.Arr{bson.String("a")})
+		d := createOKBatchReplyDoc(2, bsonx.Arr{bson.String("a")})
 
 		return internal.MakeReply(m.t, d), nil
 	}

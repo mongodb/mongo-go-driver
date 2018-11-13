@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 
@@ -76,9 +77,9 @@ func main() {
 
 func prep(ctx context.Context, c *topology.Topology) error {
 
-	var docs = make([]bson.Doc, 0, 1000)
+	var docs = make([]bsonx.Doc, 0, 1000)
 	for i := 0; i < 1000; i++ {
-		docs = append(docs, bson.Doc{{"_id", bson.Int32(int32(i))}})
+		docs = append(docs, bsonx.Doc{{"_id", bson.Int32(int32(i))}})
 	}
 
 	ns := command.ParseNamespace(*ns)
@@ -94,8 +95,8 @@ func prep(ctx context.Context, c *topology.Topology) error {
 	}
 	defer conn.Close()
 
-	deletes := []bson.Doc{{
-		{"q", bson.Document(bson.Doc{})},
+	deletes := []bsonx.Doc{{
+		{"q", bsonx.Document(bsonx.Doc{})},
 		{"limit", bson.Int32(0)},
 	}}
 	_, err = (&command.Delete{WriteConcern: nil, NS: ns, Deletes: deletes}).RoundTrip(ctx, s.Description(), conn)
@@ -126,7 +127,7 @@ func work(ctx context.Context, idx int, c *topology.Topology) {
 
 			limit := r.Intn(999) + 1
 
-			pipeline := bson.Arr{bson.Document(bson.Doc{{"$limit", bson.Int32(int32(limit))}})}
+			pipeline := bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bson.Int32(int32(limit))}})}
 
 			id, _ := uuid.New()
 			aggOpts := options.Aggregate().SetBatchSize(200)

@@ -31,6 +31,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -152,7 +153,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bson.Doc{
+				_, _ = dbAdmin.RunCommand(ctx, bsonx.Doc{
 					{"configureFailPoint", bson.String(test.FailPoint.ConfigureFailPoint)},
 					{"mode", bson.String("off")},
 				})
@@ -171,7 +172,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 		_, err = db.RunCommand(
 			context.Background(),
-			bson.Doc{{"create", bson.String(collName)}},
+			bsonx.Doc{{"create", bson.String(collName)}},
 		)
 		require.NoError(t, err)
 
@@ -274,10 +275,10 @@ func killSessions(t *testing.T, client *Client) {
 	s, err := client.topology.SelectServer(ctx, description.WriteSelector())
 	require.NoError(t, err)
 
-	vals := make(bson.Arr, 0, 0)
+	vals := make(bsonx.Arr, 0, 0)
 	cmd := command.Write{
 		DB:      "admin",
-		Command: bson.Doc{{"killAllSessions", bson.Array(vals)}},
+		Command: bsonx.Doc{{"killAllSessions", bsonx.Array(vals)}},
 	}
 	conn, err := s.Connection(ctx)
 	require.NoError(t, err)
@@ -306,8 +307,8 @@ func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonit
 	return c
 }
 
-func createFailPointDoc(t *testing.T, failPoint *failPoint) bson.Doc {
-	failDoc := bson.Doc{{"configureFailPoint", bson.String(failPoint.ConfigureFailPoint)}}
+func createFailPointDoc(t *testing.T, failPoint *failPoint) bsonx.Doc {
+	failDoc := bsonx.Doc{{"configureFailPoint", bson.String(failPoint.ConfigureFailPoint)}}
 
 	modeBytes, err := failPoint.Mode.MarshalJSON()
 	require.NoError(t, err)
@@ -318,40 +319,40 @@ func createFailPointDoc(t *testing.T, failPoint *failPoint) bson.Doc {
 	}
 	err = json.Unmarshal(modeBytes, &modeStruct)
 	if err != nil {
-		failDoc = append(failDoc, bson.Elem{"mode", bson.String("alwaysOn")})
+		failDoc = append(failDoc, bsonx.Elem{"mode", bson.String("alwaysOn")})
 	} else {
-		modeDoc := bson.Doc{}
+		modeDoc := bsonx.Doc{}
 		if modeStruct.Times != 0 {
-			modeDoc = append(modeDoc, bson.Elem{"times", bson.Int32(modeStruct.Times)})
+			modeDoc = append(modeDoc, bsonx.Elem{"times", bson.Int32(modeStruct.Times)})
 		}
 		if modeStruct.Skip != 0 {
-			modeDoc = append(modeDoc, bson.Elem{"skip", bson.Int32(modeStruct.Skip)})
+			modeDoc = append(modeDoc, bsonx.Elem{"skip", bson.Int32(modeStruct.Skip)})
 		}
-		failDoc = append(failDoc, bson.Elem{"mode", bson.Document(modeDoc)})
+		failDoc = append(failDoc, bsonx.Elem{"mode", bsonx.Document(modeDoc)})
 	}
 
 	if failPoint.Data != nil {
-		dataDoc := bson.Doc{}
+		dataDoc := bsonx.Doc{}
 
 		if failPoint.Data.FailCommands != nil {
-			failCommandElems := make(bson.Arr, len(failPoint.Data.FailCommands))
+			failCommandElems := make(bsonx.Arr, len(failPoint.Data.FailCommands))
 			for i, str := range failPoint.Data.FailCommands {
 				failCommandElems[i] = bson.String(str)
 			}
-			dataDoc = append(dataDoc, bson.Elem{"failCommands", bson.Array(failCommandElems)})
+			dataDoc = append(dataDoc, bsonx.Elem{"failCommands", bsonx.Array(failCommandElems)})
 		}
 
 		if failPoint.Data.CloseConnection {
-			dataDoc = append(dataDoc, bson.Elem{"closeConnection", bson.Boolean(failPoint.Data.CloseConnection)})
+			dataDoc = append(dataDoc, bsonx.Elem{"closeConnection", bson.Boolean(failPoint.Data.CloseConnection)})
 		}
 
 		if failPoint.Data.ErrorCode != 0 {
-			dataDoc = append(dataDoc, bson.Elem{"errorCode", bson.Int32(failPoint.Data.ErrorCode)})
+			dataDoc = append(dataDoc, bsonx.Elem{"errorCode", bson.Int32(failPoint.Data.ErrorCode)})
 		}
 
 		if failPoint.Data.WriteConcernError != nil {
 			dataDoc = append(dataDoc,
-				bson.Elem{"writeConcernError", bson.Document(bson.Doc{
+				bsonx.Elem{"writeConcernError", bsonx.Document(bsonx.Doc{
 					{"code", bson.Int32(failPoint.Data.WriteConcernError.Code)},
 					{"errmsg", bson.String(failPoint.Data.WriteConcernError.Errmsg)},
 				})},
@@ -359,10 +360,10 @@ func createFailPointDoc(t *testing.T, failPoint *failPoint) bson.Doc {
 		}
 
 		if failPoint.Data.FailBeforeCommitExceptionCode != 0 {
-			dataDoc = append(dataDoc, bson.Elem{"failBeforeCommitExceptionCode", bson.Int32(failPoint.Data.FailBeforeCommitExceptionCode)})
+			dataDoc = append(dataDoc, bsonx.Elem{"failBeforeCommitExceptionCode", bson.Int32(failPoint.Data.FailBeforeCommitExceptionCode)})
 		}
 
-		failDoc = append(failDoc, bson.Elem{"data", bson.Document(dataDoc)})
+		failDoc = append(failDoc, bsonx.Elem{"data", bsonx.Document(dataDoc)})
 	}
 
 	return failDoc
@@ -554,7 +555,7 @@ func getErrorFromResult(t *testing.T, result json.RawMessage) *transError {
 	return &expected
 }
 
-func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bson.Doc, id1 bson.Doc) {
+func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bsonx.Doc, id1 bsonx.Doc) {
 	for _, expectation := range expectations {
 		var evt *event.CommandStartedEvent
 		select {
@@ -569,7 +570,7 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bson.
 		jsonBytes, err := expectation.CommandStartedEvent.Command.MarshalJSON()
 		require.NoError(t, err)
 
-		expected := bson.Doc{}
+		expected := bsonx.Doc{}
 		err = bson.UnmarshalExtJSON(jsonBytes, true, &expected)
 		require.NoError(t, err)
 
@@ -582,7 +583,7 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bson.
 
 			// Keys that may be nil
 			if val.Type() == bson.TypeNull {
-				require.Equal(t, actual.LookupElement(key), bson.Elem{}, "Expected %s to be nil", key)
+				require.Equal(t, actual.LookupElement(key), bsonx.Elem{}, "Expected %s to be nil", key)
 				continue
 			} else if key == "ordered" {
 				// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for some of these cases (e.g. insertOne)

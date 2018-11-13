@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // AbortTransaction represents the abortTransaction() command
@@ -30,7 +31,7 @@ func (at *AbortTransaction) Encode(desc description.SelectedServer) (wiremessage
 }
 
 func (at *AbortTransaction) encode(desc description.SelectedServer) *Write {
-	cmd := bson.Doc{{"abortTransaction", bson.Int32(1)}}
+	cmd := bsonx.Doc{{"abortTransaction", bson.Int32(1)}}
 	return &Write{
 		DB:           "admin",
 		Command:      cmd,

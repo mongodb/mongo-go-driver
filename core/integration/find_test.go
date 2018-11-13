@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,7 +50,7 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	noerr(t, err)
 
 	// create capped collection
-	createCmd := bson.Doc{
+	createCmd := bsonx.Doc{
 		{"create", bson.String(colName)},
 		{"capped", bson.Boolean(true)},
 		{"size", bson.Int32(1000)}}
@@ -57,14 +58,14 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	noerr(t, err)
 
 	// insert some documents
-	insertCmd := bson.Doc{
+	insertCmd := bsonx.Doc{
 		{"insert", bson.String(colName)},
-		{"documents", bson.Array(bson.Arr{
-			bson.Document(bson.Doc{{"_id", bson.Int32(1)}}),
-			bson.Document(bson.Doc{{"_id", bson.Int32(2)}}),
-			bson.Document(bson.Doc{{"_id", bson.Int32(3)}}),
-			bson.Document(bson.Doc{{"_id", bson.Int32(4)}}),
-			bson.Document(bson.Doc{{"_id", bson.Int32(5)}})})}}
+		{"documents", bsonx.Array(bsonx.Arr{
+			bsonx.Document(bsonx.Doc{{"_id", bson.Int32(1)}}),
+			bsonx.Document(bsonx.Doc{{"_id", bson.Int32(2)}}),
+			bsonx.Document(bsonx.Doc{{"_id", bson.Int32(3)}}),
+			bsonx.Document(bsonx.Doc{{"_id", bson.Int32(4)}}),
+			bsonx.Document(bsonx.Doc{{"_id", bson.Int32(5)}})})}}
 	_, err = testutil.RunCommand(t, server.Server, dbName, insertCmd)
 
 	conn, err := server.Connection(context.Background())
@@ -73,13 +74,13 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	// find those documents, setting cursor type to TAILABLEAWAIT
 	cursor, err := (&command.Find{
 		NS:     command.Namespace{DB: dbName, Collection: colName},
-		Filter: bson.Doc{{"_id", bson.Document(bson.Doc{{"$gte", bson.Int32(1)}})}},
-		Opts: []bson.Elem{
+		Filter: bsonx.Doc{{"_id", bsonx.Document(bsonx.Doc{{"$gte", bson.Int32(1)}})}},
+		Opts: []bsonx.Elem{
 			{"batchSize", bson.Int32(3)},
 			{"tailable", bson.Boolean(true)},
 			{"awaitData", bson.Boolean(true)},
 		},
-		CursorOpts: []bson.Elem{
+		CursorOpts: []bsonx.Elem{
 			{"batchSize", bson.Int32(3)},
 			{"maxTimeMS", bson.Int64(250)},
 		},
@@ -108,7 +109,7 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 			assert.Equal(t, 3, int(started.Command.Lookup("batchSize").Int32()))
 			assert.True(t, started.Command.Lookup("tailable").Boolean())
 			assert.True(t, started.Command.Lookup("awaitData").Boolean())
-			assert.Equal(t, started.Command.Lookup("maxAwaitTimeMS"), bson.Val{},
+			assert.Equal(t, started.Command.Lookup("maxAwaitTimeMS"), bsonx.Val{},
 				"Should not have sent maxAwaitTimeMS in find command")
 		case "getMore":
 			assert.Equal(t, 3, int(started.Command.Lookup("batchSize").Int32()))

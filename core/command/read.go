@@ -17,12 +17,13 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Read represents a generic database read command.
 type Read struct {
 	DB          string
-	Command     bson.Doc
+	Command     bsonx.Doc
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
 	Clock       *session.ClusterClock
@@ -32,43 +33,43 @@ type Read struct {
 	err    error
 }
 
-func (r *Read) createReadPref(kind description.ServerKind) bson.Doc {
+func (r *Read) createReadPref(kind description.ServerKind) bsonx.Doc {
 	if r.ReadPref == nil {
 		return nil
 	}
 
-	doc := bson.Doc{}
+	doc := bsonx.Doc{}
 
 	switch r.ReadPref.Mode() {
 	case readpref.PrimaryMode:
-		doc = append(doc, bson.Elem{"mode", bson.String("primary")})
+		doc = append(doc, bsonx.Elem{"mode", bson.String("primary")})
 	case readpref.PrimaryPreferredMode:
-		doc = append(doc, bson.Elem{"mode", bson.String("primaryPreferred")})
+		doc = append(doc, bsonx.Elem{"mode", bson.String("primaryPreferred")})
 	case readpref.SecondaryPreferredMode:
-		doc = append(doc, bson.Elem{"mode", bson.String("secondaryPreferred")})
+		doc = append(doc, bsonx.Elem{"mode", bson.String("secondaryPreferred")})
 	case readpref.SecondaryMode:
-		doc = append(doc, bson.Elem{"mode", bson.String("secondary")})
+		doc = append(doc, bsonx.Elem{"mode", bson.String("secondary")})
 	case readpref.NearestMode:
-		doc = append(doc, bson.Elem{"mode", bson.String("nearest")})
+		doc = append(doc, bsonx.Elem{"mode", bson.String("nearest")})
 	}
 
-	sets := make([]bson.Val, 0, len(r.ReadPref.TagSets()))
+	sets := make([]bsonx.Val, 0, len(r.ReadPref.TagSets()))
 	for _, ts := range r.ReadPref.TagSets() {
 		if len(ts) == 0 {
 			continue
 		}
-		set := bson.Doc{}
+		set := bsonx.Doc{}
 		for _, t := range ts {
-			set = append(set, bson.Elem{t.Name, bson.String(t.Value)})
+			set = append(set, bsonx.Elem{t.Name, bson.String(t.Value)})
 		}
-		sets = append(sets, bson.Document(set))
+		sets = append(sets, bsonx.Document(set))
 	}
 	if len(sets) > 0 {
-		doc = append(doc, bson.Elem{"tags", bson.Array(sets)})
+		doc = append(doc, bsonx.Elem{"tags", bsonx.Array(sets)})
 	}
 
 	if d, ok := r.ReadPref.MaxStaleness(); ok {
-		doc = append(doc, bson.Elem{"maxStalenessSeconds", bson.Int32(int32(d.Seconds()))})
+		doc = append(doc, bsonx.Elem{"maxStalenessSeconds", bson.Int32(int32(d.Seconds()))})
 	}
 
 	return doc
@@ -83,19 +84,19 @@ func (r *Read) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, q
 		return query, nil
 	}
 
-	qdoc := bson.Doc{}
+	qdoc := bsonx.Doc{}
 	err := bson.Unmarshal(query, &qdoc)
 	if err != nil {
 		return query, err
 	}
-	return bson.Doc{
-		{"$query", bson.Document(qdoc)},
-		{"$readPreference", bson.Document(doc)},
+	return bsonx.Doc{
+		{"$query", bsonx.Document(qdoc)},
+		{"$readPreference", bsonx.Document(doc)},
 	}.MarshalBSON()
 }
 
 // Encode r as OP_MSG
-func (r *Read) encodeOpMsg(desc description.SelectedServer, cmd bson.Doc) (wiremessage.WireMessage, error) {
+func (r *Read) encodeOpMsg(desc description.SelectedServer, cmd bsonx.Doc) (wiremessage.WireMessage, error) {
 	msg := wiremessage.Msg{
 		MsgHeader: wiremessage.Header{RequestID: wiremessage.NextRequestID()},
 		Sections:  make([]wiremessage.Section, 0),
@@ -152,7 +153,7 @@ func (r *Read) queryNeedsReadPref(kind description.ServerKind) bool {
 }
 
 // Encode c as OP_QUERY
-func (r *Read) encodeOpQuery(desc description.SelectedServer, cmd bson.Doc) (wiremessage.WireMessage, error) {
+func (r *Read) encodeOpQuery(desc description.SelectedServer, cmd bsonx.Doc) (wiremessage.WireMessage, error) {
 	rdr, err := marshalCommand(cmd)
 	if err != nil {
 		return nil, err
