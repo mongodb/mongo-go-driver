@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -105,7 +106,7 @@ func TestMarshal_roundtripFromBytes(t *testing.T) {
 		0x0,
 	}
 
-	var doc Doc
+	var doc bsonx.Doc
 	require.NoError(t, Unmarshal(before, &doc))
 
 	after, err := Marshal(doc)
@@ -115,16 +116,16 @@ func TestMarshal_roundtripFromBytes(t *testing.T) {
 }
 
 func TestMarshal_roundtripFromDoc(t *testing.T) {
-	before := Doc{
+	before := bsonx.Doc{
 		{"foo", String("bar")},
 		{"baz", Int32(-27)},
-		{"bing", Array(Arr{Null(), Regex("word", "i")})},
+		{"bing", Array(bsonx.Arr{Null(), Regex("word", "i")})},
 	}
 
 	b, err := Marshal(before)
 	require.NoError(t, err)
 
-	var after Doc
+	var after bsonx.Doc
 	require.NoError(t, Unmarshal(b, &after))
 
 	require.True(t, before.Equal(after))

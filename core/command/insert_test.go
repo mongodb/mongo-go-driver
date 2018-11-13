@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/description"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func TestInsertCommandSplitting(t *testing.T) {
 	t.Run("split_smoke_test", func(t *testing.T) {
 		i := &Insert{}
 		for n := 0; n < 100; n++ {
-			i.Docs = append(i.Docs, bson.Doc{{"a", bson.Int32(int32(n))}})
+			i.Docs = append(i.Docs, bsonx.Doc{{"a", bson.Int32(int32(n))}})
 		}
 
 		batches, err := splitBatches(i.Docs, 10, kilobyte) // 1kb
@@ -44,7 +45,7 @@ func TestInsertCommandSplitting(t *testing.T) {
 	t.Run("split_with_small_target_Size", func(t *testing.T) {
 		i := &Insert{}
 		for n := 0; n < 100; n++ {
-			i.Docs = append(i.Docs, bson.Doc{{"a", bson.Int32(int32(n))}})
+			i.Docs = append(i.Docs, bsonx.Doc{{"a", bson.Int32(int32(n))}})
 		}
 
 		batches, err := splitBatches(i.Docs, 100, 32) // 32 bytes?
@@ -64,7 +65,7 @@ func TestInsertCommandSplitting(t *testing.T) {
 	t.Run("invalid_max_counts", func(t *testing.T) {
 		i := &Insert{}
 		for n := 0; n < 100; n++ {
-			i.Docs = append(i.Docs, bson.Doc{{"a", bson.Int32(int32(n))}})
+			i.Docs = append(i.Docs, bsonx.Doc{{"a", bson.Int32(int32(n))}})
 		}
 
 		for _, ct := range []int{-1, 0, -1000} {
@@ -86,7 +87,7 @@ func TestInsertCommandSplitting(t *testing.T) {
 	})
 	t.Run("document_larger_than_max_size", func(t *testing.T) {
 		i := &Insert{}
-		i.Docs = append(i.Docs, bson.Doc{{"a", bson.String("bcdefghijklmnopqrstuvwxyz")}})
+		i.Docs = append(i.Docs, bsonx.Doc{{"a", bson.String("bcdefghijklmnopqrstuvwxyz")}})
 		_, err := splitBatches(i.Docs, 100, 5)
 		if err != ErrDocumentTooLarge {
 			t.Errorf("Expected a too large error. got %v; want %v", err, ErrDocumentTooLarge)

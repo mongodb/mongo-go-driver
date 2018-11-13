@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // KillCursors represents the killCursors command.
@@ -42,9 +43,9 @@ func (kc *KillCursors) encode(desc description.SelectedServer) (*Read, error) {
 	for _, id := range kc.IDs {
 		idVals = append(idVals, bson.Int64(id))
 	}
-	cmd := bson.Doc{
+	cmd := bsonx.Doc{
 		{"killCursors", bson.String(kc.NS.Collection)},
-		{"cursors", bson.Array(idVals)},
+		{"cursors", bsonx.Array(idVals)},
 	}
 
 	return &Read{

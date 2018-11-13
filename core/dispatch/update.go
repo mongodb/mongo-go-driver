@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -58,7 +59,7 @@ func Update(
 		if err != nil {
 			return result.Update{}, err
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"arrayFilters", bson.Array(arr)})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"arrayFilters", bsonx.Array(arr)})
 	}
 	if updateOpts.BypassDocumentValidation != nil && ss.Description().WireVersion.Includes(4) {
 		cmd.Opts = append(cmd.Opts, bson.Elem{"bypassDocumentValidation", bson.Boolean(*updateOpts.BypassDocumentValidation)})
@@ -67,7 +68,7 @@ func Update(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.Update{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(updateOpts.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bsonx.Document(updateOpts.Collation.ToDocument())})
 	}
 	if updateOpts.Upsert != nil {
 		cmd.Opts = append(cmd.Opts, bson.Elem{"upsert", bson.Boolean(*updateOpts.Upsert)})

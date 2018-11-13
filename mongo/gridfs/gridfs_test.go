@@ -26,6 +26,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 type testFile struct {
@@ -71,7 +72,7 @@ const gridFsTestDir = "../../data/gridfs"
 const downloadBufferSize = 100
 
 var ctx = context.Background()
-var emptyDoc = bson.Doc{}
+var emptyDoc = bsonx.Doc{}
 var client *mongo.Client
 var db *mongo.Database
 var chunks, files, expectedChunks, expectedFiles *mongo.Collection
@@ -89,7 +90,7 @@ func loadInitialFiles(t *testing.T, data dataSection) int32 {
 	for _, v := range data.Files {
 		docBytes, err := v.MarshalJSON()
 		testhelpers.RequireNil(t, err, "error converting raw message to bytes: %s", err)
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		err = bson.UnmarshalExtJSON(docBytes, false, &doc)
 		//fmt.Println(doc.LookupElement("_id"))
 		testhelpers.RequireNil(t, err, "error creating file document: %s", err)
@@ -107,7 +108,7 @@ func loadInitialFiles(t *testing.T, data dataSection) int32 {
 	for _, v := range data.Chunks {
 		docBytes, err := v.MarshalJSON()
 		testhelpers.RequireNil(t, err, "error converting raw message to bytes: %s", err)
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		err = bson.UnmarshalExtJSON(docBytes, false, &doc)
 		testhelpers.RequireNil(t, err, "error creating file document: %s", err)
 
@@ -266,7 +267,7 @@ func compareValues(expected bson.Val, actual bson.Val) bool {
 	return true // shouldn't get here
 }
 
-func compareGfsDoc(t *testing.T, expected bson.Doc, actual bson.Doc, filesID objectid.ObjectID) {
+func compareGfsDoc(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, filesID objectid.ObjectID) {
 	for _, elem := range expected {
 		key := elem.Key
 
@@ -323,8 +324,8 @@ func compareChunks(t *testing.T, filesID objectid.ObjectID) {
 			t.Fatalf("chunks has fewer documents than expectedChunks")
 		}
 
-		var actualChunk bson.Doc
-		var expectedChunk bson.Doc
+		var actualChunk bsonx.Doc
+		var expectedChunk bsonx.Doc
 
 		err = actualCursor.Decode(&actualChunk)
 		testhelpers.RequireNil(t, err, "error decoding actual chunk: %s", err)
@@ -347,8 +348,8 @@ func compareFiles(t *testing.T) {
 			t.Fatalf("files has fewer documents than expectedFiles")
 		}
 
-		var actualFile bson.Doc
-		var expectedFile bson.Doc
+		var actualFile bsonx.Doc
+		var expectedFile bsonx.Doc
 
 		err = actualCursor.Decode(&actualFile)
 		testhelpers.RequireNil(t, err, "error decoding actual file: %s", err)
@@ -365,11 +366,11 @@ func convertHexToBytes(t *testing.T, hexStr string) []byte {
 	return hexBytes
 }
 
-func msgToDoc(t *testing.T, msg json.RawMessage) bson.Doc {
+func msgToDoc(t *testing.T, msg json.RawMessage) bsonx.Doc {
 	rawBytes, err := msg.MarshalJSON()
 	testhelpers.RequireNil(t, err, "error marshalling message: %s", err)
 
-	doc := bson.Doc{}
+	doc := bsonx.Doc{}
 	err = bson.UnmarshalExtJSON(rawBytes, true, &doc)
 	testhelpers.RequireNil(t, err, "error creating BSON doc: %s", err)
 
@@ -423,7 +424,7 @@ func runUploadAssert(t *testing.T, test test, fileID objectid.ObjectID) {
 	}
 }
 
-func parseUploadOptions(args bson.Doc) *options.UploadOptions {
+func parseUploadOptions(args bsonx.Doc) *options.UploadOptions {
 	opts := options.GridFSUpload()
 
 	if optionsVal, err := args.LookupErr("options"); err == nil {
@@ -478,7 +479,7 @@ func runUploadTest(t *testing.T, test test, bucket *Bucket) {
 }
 
 // run a series of delete operations that are already BSON documents
-func runDeletes(t *testing.T, deletes bson.Arr, coll *mongo.Collection) {
+func runDeletes(t *testing.T, deletes bsonx.Arr, coll *mongo.Collection) {
 	for _, val := range deletes {
 		doc := val.Document() // has q and limit
 		filter := doc.Lookup("q").Document()
@@ -489,7 +490,7 @@ func runDeletes(t *testing.T, deletes bson.Arr, coll *mongo.Collection) {
 }
 
 // run a series of updates that are already BSON documents
-func runUpdates(t *testing.T, updates bson.Arr, coll *mongo.Collection) {
+func runUpdates(t *testing.T, updates bsonx.Arr, coll *mongo.Collection) {
 	for _, val := range updates {
 		updateDoc := val.Document()
 		filter := updateDoc.Lookup("q").Document()
@@ -499,7 +500,7 @@ func runUpdates(t *testing.T, updates bson.Arr, coll *mongo.Collection) {
 		if hexStr, err := update.LookupErr("$set", "data", "$hex"); err == nil {
 			hexBytes := convertHexToBytes(t, hexStr.StringValue())
 			update = update.Delete("$set")
-			update = append(update, bson.Elem{"$set", bson.Document(bson.Doc{
+			update = append(update, bson.Elem{"$set", bsonx.Document(bsonx.Doc{
 				{"data", bson.Binary(0x00, hexBytes)},
 			})})
 			testhelpers.RequireNil(t, err, "error concatenating data bytes to update: %s", err)
@@ -513,7 +514,7 @@ func runUpdates(t *testing.T, updates bson.Arr, coll *mongo.Collection) {
 func compareDownloadAssertResult(t *testing.T, assert assertSection, copied int64) {
 	assertResult, err := assert.Result.MarshalJSON() // json.RawMessage
 	testhelpers.RequireNil(t, err, "error marshalling assert result: %s", err)
-	assertDoc := bson.Doc{}
+	assertDoc := bsonx.Doc{}
 	err = bson.UnmarshalExtJSON(assertResult, true, &assertDoc)
 	testhelpers.RequireNil(t, err, "error constructing result doc: %s", err)
 
@@ -601,7 +602,7 @@ func runArrangeSection(t *testing.T, test test, coll *mongo.Collection) {
 		msgBytes, err := msg.MarshalJSON()
 		testhelpers.RequireNil(t, err, "error marshalling arrange data for test %s: %s", t.Name(), err)
 
-		msgDoc := bson.Doc{}
+		msgDoc := bsonx.Doc{}
 		err = bson.UnmarshalExtJSON(msgBytes, true, &msgDoc)
 		testhelpers.RequireNil(t, err, "error creating arrange data doc for test %s: %s", t.Name(), err)
 
@@ -632,7 +633,7 @@ func runDownloadToStreamTest(t *testing.T, test test, bucket *Bucket) {
 	compareDownloadToStreamAssert(t, test.Assert, n, err)
 }
 
-func parseDownloadByNameOpts(t *testing.T, args bson.Doc) *options.NameOptions {
+func parseDownloadByNameOpts(t *testing.T, args bsonx.Doc) *options.NameOptions {
 	opts := options.GridFSName()
 
 	if optsVal, err := args.LookupErr("options"); err == nil {
@@ -682,10 +683,10 @@ func runDeleteTest(t *testing.T, test test, bucket *Bucket) {
 
 	if len(test.Assert.Data) != 0 {
 		for _, data := range test.Assert.Data {
-			deletes := bson.Arr{}
+			deletes := bsonx.Arr{}
 
 			for _, deleteMsg := range data.Deletes {
-				deletes = append(deletes, bson.Document(msgToDoc(t, deleteMsg)))
+				deletes = append(deletes, bsonx.Document(msgToDoc(t, deleteMsg)))
 			}
 
 			runDeletes(t, deletes, expectedFiles)

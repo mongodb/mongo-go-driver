@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 const (
@@ -49,7 +50,7 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 	}
 	defer db.Client().Disconnect(ctx)
 
-	cmd := bson.Doc{{"ismaster", bson.Boolean(true)}}
+	cmd := bsonx.Doc{{"ismaster", bson.Boolean(true)}}
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
@@ -100,7 +101,7 @@ func SingleFindOneByID(ctx context.Context, tm TimerManager, iters int) error {
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		res := coll.FindOne(ctx, bson.Doc{{"_id", bson.Int32(int32(i))}})
+		res := coll.FindOne(ctx, bsonx.Doc{{"_id", bson.Int32(int32(i))}})
 		if res == nil {
 			return errors.New("find one query produced nil result")
 		}
@@ -135,7 +136,7 @@ func singleInsertCase(ctx context.Context, tm TimerManager, iters int, data stri
 		return err
 	}
 
-	_, err = db.RunCommand(ctx, bson.Doc{{"create", bson.String("corpus")}})
+	_, err = db.RunCommand(ctx, bsonx.Doc{{"create", bson.String("corpus")}})
 	if err != nil {
 		return err
 	}

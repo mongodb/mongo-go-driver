@@ -6,7 +6,10 @@
 
 package readconcern
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import (
+	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
+)
 
 // ReadConcern for replica sets and replica set shards determines which data to return from a query.
 type ReadConcern struct {
@@ -64,11 +67,11 @@ func New(options ...Option) *ReadConcern {
 
 // MarshalBSONElement implements the bson.ElementMarshaler interface.
 func (rc *ReadConcern) MarshalBSONElement() (bson.Elem, error) {
-	doc := bson.Doc{}
+	doc := bsonx.Doc{}
 
 	if len(rc.level) > 0 {
 		doc = doc.Append("level", bson.String(rc.level))
 	}
 
-	return bson.Elem{"readConcern", bson.Document(doc)}, nil
+	return bson.Elem{"readConcern", bsonx.Document(doc)}, nil
 }

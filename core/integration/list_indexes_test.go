@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestCommandListIndexes(t *testing.T) {
@@ -34,7 +35,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bson.Doc
+		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
 			err = cursor.Decode(&next)
@@ -63,7 +64,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bson.Doc
+		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
 			err = cursor.Decode(&next)
@@ -98,7 +99,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bson.Doc
+		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
 			next = next[:0]
@@ -142,7 +143,7 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bson.Doc
+		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
 			next = next[:0]

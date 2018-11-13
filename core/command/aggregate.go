@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Aggregate represents the aggregate command.
@@ -23,7 +24,7 @@ import (
 // The aggregate command performs an aggregation.
 type Aggregate struct {
 	NS           Namespace
-	Pipeline     bson.Arr
+	Pipeline     bsonx.Arr
 	CursorOpts   []bson.Elem
 	Opts         []bson.Elem
 	ReadPref     *readpref.ReadPref
@@ -51,12 +52,12 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 		return nil, err
 	}
 
-	command := bson.Doc{
+	command := bsonx.Doc{
 		{"aggregate", bson.String(a.NS.Collection)},
-		{"pipeline", bson.Array(a.Pipeline)},
+		{"pipeline", bsonx.Array(a.Pipeline)},
 	}
 
-	cursor := bson.Doc{}
+	cursor := bsonx.Doc{}
 
 	for _, opt := range a.Opts {
 		switch opt.Key {
@@ -69,7 +70,7 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 			command = append(command, opt)
 		}
 	}
-	command = append(command, bson.Elem{"cursor", bson.Document(cursor)})
+	command = append(command, bson.Elem{"cursor", bsonx.Document(cursor)})
 
 	// add write concern because it won't be added by the Read command's Encode()
 	if a.WriteConcern != nil {

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"bytes"
 	"fmt"
@@ -57,7 +58,7 @@ func createMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client 
 	}
 }
 
-func skipCmTest(t *testing.T, testCase bson.Doc, serverVersion string) bool {
+func skipCmTest(t *testing.T, testCase bsonx.Doc, serverVersion string) bool {
 	minVersionVal, err := testCase.LookupErr("ignore_if_server_version_less_than")
 	if err == nil {
 		if compareVersions(t, minVersionVal.StringValue(), serverVersion) > 0 {
@@ -89,7 +90,7 @@ func drainChannels() {
 	}
 }
 
-func insertDocuments(docsArray bson.Arr, coll *Collection, opts ...*options.InsertManyOptions) error {
+func insertDocuments(docsArray bsonx.Arr, coll *Collection, opts ...*options.InsertManyOptions) error {
 	docs := make([]interface{}, 0, len(docsArray))
 	for _, val := range docsArray {
 		docs = append(docs, val.Document())
@@ -110,7 +111,7 @@ func runCmTestFile(t *testing.T, filepath string) {
 	content, err := ioutil.ReadFile(filepath)
 	testhelpers.RequireNil(t, err, "error reading JSON file: %s", err)
 
-	doc := bson.Doc{}
+	doc := bsonx.Doc{}
 	err = bson.UnmarshalExtJSON(content, true, &doc)
 	testhelpers.RequireNil(t, err, "error converting JSON to BSON: %s", err)
 
@@ -152,7 +153,7 @@ func runCmTestFile(t *testing.T, filepath string) {
 
 		_, err = db.RunCommand(
 			context.Background(),
-			bson.Doc{{"drop", bson.String(collName)}},
+			bsonx.Doc{{"drop", bson.String(collName)}},
 		)
 
 		coll := db.Collection(collName)
@@ -188,7 +189,7 @@ func runCmTestFile(t *testing.T, filepath string) {
 	}
 }
 
-func checkActualHelper(t *testing.T, expected bson.Doc, actual bson.Doc, nested bool) {
+func checkActualHelper(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, nested bool) {
 	for _, elem := range actual {
 		key := elem.Key
 
@@ -212,12 +213,12 @@ func checkActualHelper(t *testing.T, expected bson.Doc, actual bson.Doc, nested 
 	}
 }
 
-func checkActualFields(t *testing.T, expected bson.Doc, actual bson.Doc) {
+func checkActualFields(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
 	// check that the command sent has no extra fields in nested subdocuments
 	checkActualHelper(t, expected, actual, false)
 }
 
-func compareWriteError(t *testing.T, expected bson.Doc, actual bson.Doc) {
+func compareWriteError(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
 	expectedIndex := expected.Lookup("index").Int32()
 	actualIndex := actual.Lookup("index").Int32()
 
@@ -251,7 +252,7 @@ func compareWriteError(t *testing.T, expected bson.Doc, actual bson.Doc) {
 	}
 }
 
-func compareWriteErrors(t *testing.T, expected bson.Arr, actual bson.Arr) {
+func compareWriteErrors(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
 	if len(expected) != len(actual) {
 		t.Errorf("writeErrors length mismatch. expected %d got %d", len(expected), len(actual))
 		t.FailNow()
@@ -264,7 +265,7 @@ func compareWriteErrors(t *testing.T, expected bson.Arr, actual bson.Arr) {
 	}
 }
 
-func compareBatches(t *testing.T, expected bson.Arr, actual bson.Arr) {
+func compareBatches(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
 	if len(expected) != len(actual) {
 		t.Errorf("batch length mismatch. expected %d got %d", len(expected), len(actual))
 		t.FailNow()
@@ -281,7 +282,7 @@ func compareBatches(t *testing.T, expected bson.Arr, actual bson.Arr) {
 	}
 }
 
-func compareCursors(t *testing.T, expected bson.Doc, actual bson.Doc) {
+func compareCursors(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
 	expectedID := expected.Lookup("id").Int64()
 	actualID := actual.Lookup("id").Int64()
 
@@ -318,7 +319,7 @@ func compareCursors(t *testing.T, expected bson.Doc, actual bson.Doc) {
 	compareBatches(t, expectedBatch, actualBatch)
 }
 
-func compareUpserted(t *testing.T, expected bson.Arr, actual bson.Arr) {
+func compareUpserted(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
 	if len(expected) != len(actual) {
 		t.Errorf("length mismatch. expected %d got %d", len(expected), len(actual))
 	}
@@ -328,7 +329,7 @@ func compareUpserted(t *testing.T, expected bson.Arr, actual bson.Arr) {
 	}
 }
 
-func compareReply(t *testing.T, succeeded *event.CommandSucceededEvent, reply bson.Doc) {
+func compareReply(t *testing.T, succeeded *event.CommandSucceededEvent, reply bsonx.Doc) {
 	for _, elem := range reply {
 		switch elem.Key {
 		case "ok":
@@ -438,7 +439,7 @@ func compareValues(expected bson.Val, actual bson.Val) bool {
 	return true
 }
 
-func compareDocs(t *testing.T, expected bson.Doc, actual bson.Doc) {
+func compareDocs(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
 	// this is necessary even though Equal() exists for documents because types not match between commands and the BSON
 	// documents given in test cases. for example, all numbers in the test case JSON are parsed as int64, but many nubmers
 	// sent over the wire are type int32
@@ -468,7 +469,7 @@ func compareDocs(t *testing.T, expected bson.Doc, actual bson.Doc) {
 	}
 }
 
-func compareStartedEvent(t *testing.T, expected bson.Doc) {
+func compareStartedEvent(t *testing.T, expected bsonx.Doc) {
 	// rules for command comparison (from spec):
 	// 1. the actual command can have extra fields not specified in the test case, but only as top level fields
 	// these fields cannot be in nested subdocuments
@@ -500,7 +501,7 @@ func compareStartedEvent(t *testing.T, expected bson.Doc) {
 
 	expectedCmd := expected.Lookup("command").Document()
 	var identifier string
-	var expectedPayload bson.Arr
+	var expectedPayload bsonx.Arr
 
 	for _, elem := range expectedCmd {
 		key := elem.Key
@@ -574,7 +575,7 @@ func compareStartedEvent(t *testing.T, expected bson.Doc) {
 	checkActualFields(t, expectedCmd, started.Command)
 }
 
-func compareSuccessEvent(t *testing.T, expected bson.Doc) {
+func compareSuccessEvent(t *testing.T, expected bsonx.Doc) {
 	if len(succeededChan) == 0 {
 		t.Errorf("no success event waiting")
 		t.FailNow()
@@ -595,7 +596,7 @@ func compareSuccessEvent(t *testing.T, expected bson.Doc) {
 	compareReply(t, succeeded, expected.Lookup("reply").Document())
 }
 
-func compareFailureEvent(t *testing.T, expected bson.Doc) {
+func compareFailureEvent(t *testing.T, expected bsonx.Doc) {
 	if len(failedChan) == 0 {
 		t.Errorf("no failure event waiting")
 		t.FailNow()
@@ -610,7 +611,7 @@ func compareFailureEvent(t *testing.T, expected bson.Doc) {
 	}
 }
 
-func compareExpectations(t *testing.T, testCase bson.Doc) {
+func compareExpectations(t *testing.T, testCase bsonx.Doc) {
 	expectations := testCase.Lookup("expectations").Array()
 
 	for _, val := range expectations {
@@ -630,7 +631,7 @@ func compareExpectations(t *testing.T, testCase bson.Doc) {
 	}
 }
 
-func cmFindOptions(arguments bson.Doc) *options.FindOptions {
+func cmFindOptions(arguments bsonx.Doc) *options.FindOptions {
 	opts := options.Find()
 
 	if sort, err := arguments.LookupErr("sort"); err == nil {
@@ -684,7 +685,7 @@ func cmFindOptions(arguments bson.Doc) *options.FindOptions {
 	return opts
 }
 
-func getRp(rpDoc bson.Doc) *readpref.ReadPref {
+func getRp(rpDoc bsonx.Doc) *readpref.ReadPref {
 	rpMode := rpDoc.Lookup("mode").StringValue()
 	switch rpMode {
 	case "primary":
@@ -700,7 +701,7 @@ func getRp(rpDoc bson.Doc) *readpref.ReadPref {
 	return nil
 }
 
-func cmInsertManyTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmInsertManyTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	t.Logf("RUNNING %s\n", testCase.Lookup("description").StringValue())
 	args := operation.Lookup("arguments").Document()
 	opts := options.InsertMany()
@@ -722,7 +723,7 @@ func cmInsertManyTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll 
 	compareExpectations(t, testCase)
 }
 
-func cmFindTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmFindTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	arguments := operation.Lookup("arguments").Document()
 	filter := arguments.Lookup("filter").Document()
 	opts := cmFindOptions(arguments)
@@ -743,7 +744,7 @@ func cmFindTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Colle
 	compareExpectations(t, testCase)
 }
 
-func cmDeleteManyTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmDeleteManyTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	args := operation.Lookup("arguments").Document()
 	filter := args.Lookup("filter").Document()
 
@@ -751,7 +752,7 @@ func cmDeleteManyTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll 
 	compareExpectations(t, testCase)
 }
 
-func cmDeleteOneTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmDeleteOneTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	args := operation.Lookup("arguments").Document()
 	filter := args.Lookup("filter").Document()
 
@@ -759,14 +760,14 @@ func cmDeleteOneTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *
 	compareExpectations(t, testCase)
 }
 
-func cmInsertOneTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmInsertOneTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	// ignore errors because write errors constitute a successful command
 	_, _ = coll.InsertOne(context.Background(),
 		operation.Lookup("arguments").Document().Lookup("document").Document())
 	compareExpectations(t, testCase)
 }
 
-func getUpdateParams(args bson.Doc) (bson.Doc, bson.Doc, []*options.UpdateOptions) {
+func getUpdateParams(args bsonx.Doc) (bsonx.Doc, bsonx.Doc, []*options.UpdateOptions) {
 	filter := args.Lookup("filter").Document()
 	update := args.Lookup("update").Document()
 
@@ -778,26 +779,26 @@ func getUpdateParams(args bson.Doc) (bson.Doc, bson.Doc, []*options.UpdateOption
 	return filter, update, opts
 }
 
-func runUpdateOne(args bson.Doc, coll *Collection, updateOpts ...*options.UpdateOptions) {
+func runUpdateOne(args bsonx.Doc, coll *Collection, updateOpts ...*options.UpdateOptions) {
 	filter, update, opts := getUpdateParams(args)
 	opts = append(opts, updateOpts...)
 	_, _ = coll.UpdateOne(context.Background(), filter, update, opts...)
 }
 
-func cmUpdateOneTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmUpdateOneTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	args := operation.Lookup("arguments").Document()
 	runUpdateOne(args, coll)
 	compareExpectations(t, testCase)
 }
 
-func cmUpdateManyTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmUpdateManyTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	args := operation.Lookup("arguments").Document()
 	filter, update, opts := getUpdateParams(args)
 	_, _ = coll.UpdateMany(context.Background(), filter, update, opts...)
 	compareExpectations(t, testCase)
 }
 
-func cmCountTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmCountTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	filter := operation.Lookup("arguments").Document().Lookup("filter").Document()
 
 	oldRp := coll.readPreference
@@ -811,7 +812,7 @@ func cmCountTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Coll
 	compareExpectations(t, testCase)
 }
 
-func cmBulkWriteTest(t *testing.T, testCase bson.Doc, operation bson.Doc, coll *Collection) {
+func cmBulkWriteTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
 	outerArguments := operation.Lookup("arguments").Document()
 
 	var wc *writeconcern.WriteConcern

@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	. "github.com/mongodb/mongo-go-driver/core/auth"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +48,7 @@ func TestCreateAuthenticator(t *testing.T) {
 	}
 }
 
-func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload bson.Doc, dbName string) {
+func compareResponses(t *testing.T, wm wiremessage.WireMessage, expectedPayload bsonx.Doc, dbName string) {
 	switch converted := wm.(type) {
 	case wiremessage.Query:
 		payloadBytes, err := expectedPayload.MarshalBSON()

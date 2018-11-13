@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // FindOneAndUpdate handles the full cycle dispatch and execution of a FindOneAndUpdate command against the provided
@@ -58,7 +59,7 @@ func FindOneAndUpdate(
 			return result.FindAndModify{}, err
 		}
 
-		cmd.Opts = append(cmd.Opts, bson.Elem{"arrayFilters", bson.Array(arr)})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"arrayFilters", bsonx.Array(arr)})
 	}
 	if uo.BypassDocumentValidation != nil {
 		cmd.Opts = append(cmd.Opts, bson.Elem{"bypassDocumentValidation", bson.Boolean(*uo.BypassDocumentValidation)})
@@ -67,7 +68,7 @@ func FindOneAndUpdate(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.FindAndModify{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(uo.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bsonx.Document(uo.Collation.ToDocument())})
 	}
 	if uo.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*uo.MaxTime / time.Millisecond))})

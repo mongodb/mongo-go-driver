@@ -31,6 +31,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -214,7 +215,7 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bson.Doc{
+				_, _ = dbAdmin.RunCommand(ctx, bsonx.Doc{
 					{"configureFailPoint", bson.String(test.FailPoint.ConfigureFailPoint)},
 					{"mode", bson.String("off")},
 				})

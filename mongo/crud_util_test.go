@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -512,7 +513,7 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 }
 
 func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Raw, error) {
-	var cmd bson.Doc
+	var cmd bsonx.Doc
 	opts := options.RunCmd()
 	for name, opt := range argmap {
 		switch name {
@@ -620,7 +621,7 @@ func verifyCursorResult(t *testing.T, cur Cursor, result json.RawMessage) {
 		require.NotNil(t, cur)
 		require.True(t, cur.Next(context.Background()))
 
-		var actual bson.Doc
+		var actual bsonx.Doc
 		require.NoError(t, cur.Decode(&actual))
 
 		compareDocs(t, expected, actual)
@@ -634,7 +635,7 @@ func verifyDocumentResult(t *testing.T, res *DocumentResult, result json.RawMess
 	jsonBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
 
-	var actual bson.Doc
+	var actual bsonx.Doc
 	err = res.Decode(&actual)
 	if err == ErrNoDocuments {
 		var expected map[string]interface{}
@@ -647,7 +648,7 @@ func verifyDocumentResult(t *testing.T, res *DocumentResult, result json.RawMess
 
 	require.NoError(t, err)
 
-	doc := bson.Doc{}
+	doc := bsonx.Doc{}
 	err = bson.UnmarshalExtJSON(jsonBytes, true, &doc)
 	require.NoError(t, err)
 
@@ -717,7 +718,7 @@ func verifyRunCommandResult(t *testing.T, res bson.Raw, result json.RawMessage) 
 	jsonBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
 
-	expected := bson.Doc{}
+	expected := bsonx.Doc{}
 	err = bson.UnmarshalExtJSON(jsonBytes, true, &expected)
 	require.NoError(t, err)
 
@@ -783,7 +784,7 @@ func compareElements(t *testing.T, expected bson.Elem, actual bson.Elem) {
 	}
 }
 
-func compareArrays(t *testing.T, expected bson.Arr, actual bson.Arr) {
+func compareArrays(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
 	if len(expected) != len(actual) {
 		t.Errorf("array length mismatch. expected %d got %d", len(expected), len(actual))
 		t.FailNow()
@@ -876,15 +877,15 @@ func newCollationFromMap(m map[string]interface{}) *options.Collation {
 	return &collation
 }
 
-func docSliceFromRaw(t *testing.T, raw json.RawMessage) []bson.Doc {
+func docSliceFromRaw(t *testing.T, raw json.RawMessage) []bsonx.Doc {
 	jsonBytes, err := raw.MarshalJSON()
 	require.NoError(t, err)
 
-	array := bson.Arr{}
+	array := bsonx.Arr{}
 	err = bson.UnmarshalExtJSON(jsonBytes, true, &array)
 	require.NoError(t, err)
 
-	docs := make([]bson.Doc, 0)
+	docs := make([]bsonx.Doc, 0)
 
 	for _, val := range array {
 		docs = append(docs, val.Document())
@@ -893,7 +894,7 @@ func docSliceFromRaw(t *testing.T, raw json.RawMessage) []bson.Doc {
 	return docs
 }
 
-func docSliceToInterfaceSlice(docs []bson.Doc) []interface{} {
+func docSliceToInterfaceSlice(docs []bsonx.Doc) []interface{} {
 	out := make([]interface{}, 0, len(docs))
 
 	for _, doc := range docs {
