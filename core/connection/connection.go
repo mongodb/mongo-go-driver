@@ -31,10 +31,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 var globalClientConnectionID uint64
-var emptyDoc = bson.Doc{}
+var emptyDoc = bsonx.Doc{}
 
 func nextClientConnectionID() uint64 {
 	return atomic.AddUint64(&globalClientConnectionID, 1)
@@ -368,7 +369,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		ConnectionID: c.id,
 	}
 
-	var cmd bson.Doc
+	var cmd bsonx.Doc
 	var err error
 
 	var acknowledged bool
@@ -435,7 +436,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 
 		c.cmdMonitor.Succeeded(ctx, &event.CommandSucceededEvent{
 			CommandFinishedEvent: finishedEvent,
-			Reply:                bson.Doc{{"ok", bson.Int32(1)}},
+			Reply:                bsonx.Doc{{"ok", bson.Int32(1)}},
 		})
 
 		return nil
@@ -445,7 +446,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 	return nil
 }
 
-func processReply(reply bson.Doc) (bool, string) {
+func processReply(reply bsonx.Doc) (bool, string) {
 	var success bool
 	var errmsg string
 	var errCode int32
@@ -491,7 +492,7 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 		return nil
 	}
 
-	var reply bson.Doc
+	var reply bsonx.Doc
 	var requestID int64
 	var err error
 

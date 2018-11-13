@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
@@ -53,7 +54,7 @@ type MarshalError struct {
 
 // Error implements the error interface.
 func (me MarshalError) Error() string {
-	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
+	return fmt.Sprintf("cannot transform type %s to a *bsonx.Document", reflect.TypeOf(me.Value))
 }
 
 // Pipeline is a type that makes creating aggregation pipelines easier. It is a
@@ -68,14 +69,14 @@ func (me MarshalError) Error() string {
 //
 type Pipeline []bson.D
 
-func transformDocument(registry *bsoncodec.Registry, val interface{}) (bson.Doc, error) {
+func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc, error) {
 	if registry == nil {
 		registry = bson.NewRegistryBuilder().Build()
 	}
 	if val == nil {
-		return bson.Doc{}, nil
+		return bsonx.Doc{}, nil
 	}
-	if doc, ok := val.(bson.Doc); ok {
+	if doc, ok := val.(bsonx.Doc); ok {
 		return doc.Copy(), nil
 	}
 	if bs, ok := val.([]byte); ok {
@@ -92,7 +93,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (bson.Doc,
 	return bson.ReadDoc(b)
 }
 
-func ensureID(d bson.Doc) (bson.Doc, interface{}) {
+func ensureID(d bsonx.Doc) (bsonx.Doc, interface{}) {
 	var id interface{}
 
 	elem, err := d.LookupElementErr("_id")
@@ -107,7 +108,7 @@ func ensureID(d bson.Doc) (bson.Doc, interface{}) {
 	return d, id
 }
 
-func ensureDollarKey(doc bson.Doc) error {
+func ensureDollarKey(doc bsonx.Doc) error {
 	if len(doc) > 0 && !strings.HasPrefix(doc[0].Key, "$") {
 		return errors.New("update document must contain key beginning with '$'")
 	}
@@ -123,16 +124,16 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 			if err != nil {
 				return nil, err
 			}
-			pipelineArr = append(pipelineArr, bson.Document(doc))
+			pipelineArr = append(pipelineArr, bsonx.Document(doc))
 		}
 	case bson.Arr:
 		pipelineArr = make(bson.Arr, len(t))
 		copy(pipelineArr, t)
-	case []bson.Doc:
+	case []bsonx.Doc:
 		pipelineArr = bson.Arr{}
 
 		for _, doc := range t {
-			pipelineArr = append(pipelineArr, bson.Document(doc))
+			pipelineArr = append(pipelineArr, bsonx.Document(doc))
 		}
 	case []interface{}:
 		pipelineArr = bson.Arr{}
@@ -143,7 +144,7 @@ func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface
 				return nil, err
 			}
 
-			pipelineArr = append(pipelineArr, bson.Document(doc))
+			pipelineArr = append(pipelineArr, bsonx.Document(doc))
 		}
 	default:
 		p, err := transformDocument(registry, pipeline)
@@ -167,21 +168,21 @@ func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interf
 	if err != nil {
 		return nil, err
 	}
-	pipeline = append(pipeline, bson.Document(bson.Doc{{"$match", bson.Document(filterDoc)}}))
+	pipeline = append(pipeline, bsonx.Document(bsonx.Doc{{"$match", bsonx.Document(filterDoc)}}))
 
 	if opts != nil {
 		if opts.Skip != nil {
-			pipeline = append(pipeline, bson.Document(bson.Doc{{"$skip", bson.Int64(*opts.Skip)}}))
+			pipeline = append(pipeline, bsonx.Document(bsonx.Doc{{"$skip", bson.Int64(*opts.Skip)}}))
 		}
 		if opts.Limit != nil {
-			pipeline = append(pipeline, bson.Document(bson.Doc{{"$limit", bson.Int64(*opts.Limit)}}))
+			pipeline = append(pipeline, bsonx.Document(bsonx.Doc{{"$limit", bson.Int64(*opts.Limit)}}))
 		}
 	}
 
-	pipeline = append(pipeline, bson.Document(bson.Doc{
-		{"$group", bson.Document(bson.Doc{
+	pipeline = append(pipeline, bsonx.Document(bsonx.Doc{
+		{"$group", bsonx.Document(bsonx.Doc{
 			{"_id", bson.Null()},
-			{"n", bson.Document(bson.Doc{{"$sum", bson.Int32(1)}})},
+			{"n", bsonx.Document(bsonx.Doc{{"$sum", bson.Int32(1)}})},
 		})},
 	},
 	))

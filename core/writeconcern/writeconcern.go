@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ErrInconsistent indicates that an inconsistent write concern was specified.
@@ -90,7 +91,7 @@ func (wc *WriteConcern) MarshalBSONElement() (bson.Elem, error) {
 		return bson.Elem{}, ErrInconsistent
 	}
 
-	elems := bson.Doc{}
+	elems := bsonx.Doc{}
 
 	if wc.w != nil {
 		switch t := wc.w.(type) {
@@ -117,7 +118,7 @@ func (wc *WriteConcern) MarshalBSONElement() (bson.Elem, error) {
 		elems = append(elems, bson.Elem{"wtimeout", bson.Int64(int64(wc.wTimeout / time.Millisecond))})
 	}
 
-	return bson.Elem{"writeConcern", bson.Document(elems)}, nil
+	return bson.Elem{"writeConcern", bsonx.Document(elems)}, nil
 }
 
 // AcknowledgedElement returns true if a BSON element for a write concern represents an acknowledged write concern.

@@ -10,6 +10,7 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Msg represents the OP_MSG message of the MongoDB wire protocol.
@@ -169,7 +170,7 @@ func (m *Msg) UnmarshalWireMessage(b []byte) error {
 }
 
 // GetMainDocument returns the document containing the message to send.
-func (m *Msg) GetMainDocument() (bson.Doc, error) {
+func (m *Msg) GetMainDocument() (bsonx.Doc, error) {
 	return bson.ReadDoc(m.Sections[0].(SectionBody).Document)
 }
 
@@ -189,7 +190,7 @@ func (m *Msg) GetSequenceArray() (bson.Arr, string, error) {
 			return nil, "", err
 		}
 
-		arr = append(arr, bson.Document(doc))
+		arr = append(arr, bsonx.Document(doc))
 	}
 
 	return arr, sds.Identifier, nil

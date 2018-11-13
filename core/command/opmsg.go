@@ -9,10 +9,11 @@ package command
 import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Raw, error) {
-	var mainDoc bson.Doc
+	var mainDoc bsonx.Doc
 
 	for _, section := range msg.Sections {
 		switch converted := section.(type) {
@@ -24,13 +25,13 @@ func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Raw, error) {
 		case wiremessage.SectionDocumentSequence:
 			arr := bson.Arr{}
 			for _, doc := range converted.Documents {
-				newDoc := bson.Doc{}
+				newDoc := bsonx.Doc{}
 				err := newDoc.UnmarshalBSON(doc)
 				if err != nil {
 					return nil, err
 				}
 
-				arr = append(arr, bson.Document(newDoc))
+				arr = append(arr, bsonx.Document(newDoc))
 			}
 
 			mainDoc = append(mainDoc, bson.Elem{converted.Identifier, bson.Array(arr)})

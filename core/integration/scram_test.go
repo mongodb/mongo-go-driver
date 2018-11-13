@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 type scramTestCase struct {
@@ -59,7 +60,7 @@ func TestSCRAM(t *testing.T) {
 	wc := writeconcern.New(writeconcern.WMajority())
 	collOne := testutil.ColName(t)
 	testutil.DropCollection(t, testutil.DBName(t), collOne)
-	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bson.Doc{{"name", bson.String("scram_test")}})
+	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bsonx.Doc{{"name", bson.String("scram_test")}})
 
 	// Test step 1: Create users for test cases
 	err = createScramUsers(t, server.Server, testUsers)
@@ -140,7 +141,7 @@ func runScramAuthTest(t *testing.T, cs connstring.ConnString) error {
 	ss, err := topology.SelectServer(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
-	cmd := bson.Doc{{"dbstats", bson.Int32(1)}}
+	cmd := bsonx.Doc{{"dbstats", bson.Int32(1)}}
 	_, err = testutil.RunCommand(t, ss.Server, testutil.DBName(t), cmd)
 	return err
 }
@@ -152,12 +153,12 @@ func createScramUsers(t *testing.T, s *topology.Server, cases []scramTestCase) e
 		for _, v := range c.mechanisms {
 			mechsAsBSON = append(mechsAsBSON, bson.String(v))
 		}
-		newUserCmd := bson.Doc{
+		newUserCmd := bsonx.Doc{
 			{"createUser", bson.String(c.username)},
 			{"pwd", bson.String(c.password)},
 			{"roles", bson.Array(bson.Arr{
-				bson.Document(
-					bson.Doc{
+				bsonx.Document(
+					bsonx.Doc{
 						{"role", bson.String("readWrite")},
 						{"db", bson.String(db)},
 					},

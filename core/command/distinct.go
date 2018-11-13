@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Distinct represents the disctinct command.
@@ -25,7 +26,7 @@ import (
 type Distinct struct {
 	NS          Namespace
 	Field       string
-	Query       bson.Doc
+	Query       bsonx.Doc
 	Opts        []bson.Elem
 	ReadPref    *readpref.ReadPref
 	ReadConcern *readconcern.ReadConcern
@@ -52,10 +53,10 @@ func (d *Distinct) encode(desc description.SelectedServer) (*Read, error) {
 		return nil, err
 	}
 
-	command := bson.Doc{{"distinct", bson.String(d.NS.Collection)}, {"key", bson.String(d.Field)}}
+	command := bsonx.Doc{{"distinct", bson.String(d.NS.Collection)}, {"key", bson.String(d.Field)}}
 
 	if d.Query != nil {
-		command = append(command, bson.Elem{"query", bson.Document(d.Query)})
+		command = append(command, bson.Elem{"query", bsonx.Document(d.Query)})
 	}
 
 	command = append(command, d.Opts...)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Collation allows users to specify language-specific rules for string comparison, such as
@@ -27,9 +28,9 @@ type Collation struct {
 	Backwards       bool   `bson:",omitempty"` // Causes secondary differences to be considered in reverse order, as it is done in the French language
 }
 
-// ToDocument converts the Collation to a *bson.Document
-func (co *Collation) ToDocument() bson.Doc {
-	doc := bson.Doc{}
+// ToDocument converts the Collation to a *bsonx.Document
+func (co *Collation) ToDocument() bsonx.Doc {
+	doc := bsonx.Doc{}
 	if co.Locale != "" {
 		doc = append(doc, bson.Elem{"locale", bson.String(co.Locale)})
 	}
@@ -102,7 +103,7 @@ type ArrayFilters struct {
 }
 
 func (af *ArrayFilters) ToArray() (bson.Arr, error) {
-	docs := make([]bson.Doc, 0, len(af.Filters))
+	docs := make([]bsonx.Doc, 0, len(af.Filters))
 	for _, f := range af.Filters {
 		d, err := transformDocument(af.Registry, f)
 		if err != nil {
@@ -113,7 +114,7 @@ func (af *ArrayFilters) ToArray() (bson.Arr, error) {
 
 	arr := bson.Arr{}
 	for _, doc := range docs {
-		arr = append(arr, bson.Document(doc))
+		arr = append(arr, bsonx.Document(doc))
 	}
 
 	return arr, nil
@@ -128,14 +129,14 @@ type MarshalError struct {
 
 // Error implements the error interface.
 func (me MarshalError) Error() string {
-	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
+	return fmt.Sprintf("cannot transform type %s to a *bsonx.Document", reflect.TypeOf(me.Value))
 }
 
 var defaultRegistry = bson.DefaultRegistry
 
-func transformDocument(registry *bsoncodec.Registry, val interface{}) (bson.Doc, error) {
+func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc, error) {
 	if val == nil {
-		return bson.Doc{}, nil
+		return bsonx.Doc{}, nil
 	}
 	reg := defaultRegistry
 	if registry != nil {

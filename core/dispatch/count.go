@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
@@ -78,7 +79,7 @@ func Count(
 		if desc.WireVersion.Max < 5 {
 			return 0, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(countOpts.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bsonx.Document(countOpts.Collation.ToDocument())})
 	}
 	if countOpts.Hint != nil {
 		hintElem, err := interfaceToElement("hint", countOpts.Hint, registry)

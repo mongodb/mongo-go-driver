@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -67,7 +68,7 @@ func Update(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.Update{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(updateOpts.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bsonx.Document(updateOpts.Collation.ToDocument())})
 	}
 	if updateOpts.Upsert != nil {
 		cmd.Opts = append(cmd.Opts, bson.Elem{"upsert", bson.Boolean(*updateOpts.Upsert)})

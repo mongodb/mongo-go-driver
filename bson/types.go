@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // These constants uniquely refer to each BSON type.
@@ -46,7 +47,7 @@ var tBool = reflect.TypeOf(false)
 var tCodeWithScope = reflect.TypeOf(primitive.CodeWithScope{})
 var tDBPointer = reflect.TypeOf(primitive.DBPointer{})
 var tDecimal = reflect.TypeOf(decimal.Decimal128{})
-var tDocument = reflect.TypeOf((Doc)(nil))
+var tDocument = reflect.TypeOf((bsonx.Doc)(nil))
 var tMDoc = reflect.TypeOf((MDoc)(nil))
 var tD = reflect.TypeOf(D{})
 var tElementSlice = reflect.TypeOf(([]Elem)(nil))

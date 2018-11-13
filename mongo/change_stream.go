@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ErrMissingResumeToken indicates that a change stream notification from the server did not
@@ -27,7 +28,7 @@ type changeStream struct {
 	cursor      Cursor
 	session     *session.Client
 	clock       *session.ClusterClock
-	resumeToken bson.Doc
+	resumeToken bsonx.Doc
 	err         error
 }
 
@@ -50,7 +51,7 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		return nil, err
 	}
 
-	changeStreamOptions := make(bson.Doc, 0)
+	changeStreamOptions := make(bsonx.Doc, 0)
 	aggOpts := options.Aggregate()
 
 	if csOpts.BatchSize != nil {
@@ -58,7 +59,7 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 	}
 	if csOpts.Collation != nil {
 		changeStreamOptions = append(changeStreamOptions, bson.Elem{
-			"collation", bson.Document(csOpts.Collation.ToDocument()),
+			"collation", bsonx.Document(csOpts.Collation.ToDocument()),
 		})
 	}
 	if csOpts.FullDocument != nil {
@@ -70,12 +71,12 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		aggOpts.MaxAwaitTime = csOpts.MaxAwaitTime
 	}
 	if csOpts.ResumeAfter != nil {
-		changeStreamOptions = append(changeStreamOptions, bson.Elem{"resumeAfter", bson.Document(csOpts.ResumeAfter)})
+		changeStreamOptions = append(changeStreamOptions, bson.Elem{"resumeAfter", bsonx.Document(csOpts.ResumeAfter)})
 	}
 
 	pipelineArr = append(pipelineArr, bson.Val{})
 	copy(pipelineArr[1:], pipelineArr)
-	pipelineArr[0] = bson.Document(bson.Doc{{"$changeStream", bson.Document(changeStreamOptions)}})
+	pipelineArr[0] = bsonx.Document(bsonx.Doc{{"$changeStream", bsonx.Document(changeStreamOptions)}})
 
 	cursor, err := coll.Aggregate(ctx, pipelineArr, aggOpts)
 	if err != nil {
@@ -119,14 +120,14 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 
 	for i, opt := range cs.options {
 		if opt.Key == "resumeAfter" {
-			cs.options[i] = bson.Elem{"resumeAfter", bson.Document(cs.resumeToken)}
+			cs.options[i] = bson.Elem{"resumeAfter", bsonx.Document(cs.resumeToken)}
 			found = true
 			break
 		}
 	}
 
 	if !found && cs.resumeToken != nil {
-		cs.options = append(cs.options, bson.Elem{"resumeAfter", bson.Document(cs.resumeToken)})
+		cs.options = append(cs.options, bson.Elem{"resumeAfter", bsonx.Document(cs.resumeToken)})
 	}
 
 	oldns := cs.coll.namespace()
@@ -150,7 +151,7 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 
 	_, _ = killCursors.RoundTrip(ctx, ss.Description(), conn)
 
-	cs.pipeline[0] = bson.Document(bson.Doc{{"$changeStream", bson.Document(bson.Doc(cs.options))}})
+	cs.pipeline[0] = bsonx.Document(bsonx.Doc{{"$changeStream", bsonx.Document(bsonx.Doc(cs.options))}})
 
 	oldns = cs.coll.namespace()
 	aggCmd := command.Aggregate{

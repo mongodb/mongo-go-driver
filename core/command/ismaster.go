@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // IsMaster represents the isMaster command.
@@ -22,7 +23,7 @@ import (
 //
 // Since IsMaster can only be run on a connection, there is no Dispatch method.
 type IsMaster struct {
-	Client             bson.Doc
+	Client             bsonx.Doc
 	Compressors        []string
 	SaslSupportedMechs string
 
@@ -32,9 +33,9 @@ type IsMaster struct {
 
 // Encode will encode this command into a wire message for the given server description.
 func (im *IsMaster) Encode() (wiremessage.WireMessage, error) {
-	cmd := bson.Doc{{"isMaster", bson.Int32(1)}}
+	cmd := bsonx.Doc{{"isMaster", bson.Int32(1)}}
 	if im.Client != nil {
-		cmd = append(cmd, bson.Elem{"client", bson.Document(im.Client)})
+		cmd = append(cmd, bson.Elem{"client", bsonx.Document(im.Client)})
 	}
 	if im.SaslSupportedMechs != "" {
 		cmd = append(cmd, bson.Elem{"saslSupportedMechs", bson.String(im.SaslSupportedMechs)})
@@ -83,7 +84,7 @@ func (im *IsMaster) Decode(wm wiremessage.WireMessage) *IsMaster {
 
 	// Reconstructs the $clusterTime doc after decode
 	if im.res.ClusterTime != nil {
-		im.res.ClusterTime = bson.Doc{{"$clusterTime", bson.Document(im.res.ClusterTime)}}
+		im.res.ClusterTime = bsonx.Doc{{"$clusterTime", bsonx.Document(im.res.ClusterTime)}}
 	}
 	return im
 }

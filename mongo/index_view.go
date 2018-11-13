@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/dispatch"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ErrInvalidIndexValue indicates that the index Keys document has a value that isn't either a number or a string.
@@ -35,8 +36,8 @@ type IndexView struct {
 
 // IndexModel contains information about an index.
 type IndexModel struct {
-	Keys    bson.Doc
-	Options bson.Doc
+	Keys    bsonx.Doc
+	Options bsonx.Doc
 }
 
 // List returns a cursor iterating over all the indexes in the collection.
@@ -92,13 +93,13 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 		names = append(names, name)
 
-		index := bson.Doc{{"key", bson.Document(model.Keys)}}
+		index := bsonx.Doc{{"key", bsonx.Document(model.Keys)}}
 		if model.Options != nil {
 			index = append(index, model.Options...)
 		}
 		index = index.Set("name", bson.String(name))
 
-		indexes = append(indexes, bson.Document(index))
+		indexes = append(indexes, bsonx.Document(index))
 	}
 
 	sess := sessionFromContext(ctx)
@@ -191,7 +192,7 @@ func getOrGenerateIndexName(model IndexModel) (string, error) {
 		nameVal, err := model.Options.LookupErr("name")
 
 		switch err.(type) {
-		case bson.KeyNotFound:
+		case bsonx.KeyNotFound:
 			break
 		case nil:
 			if nameVal.Type() != bson.TypeString {

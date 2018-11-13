@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package bson
+package bsonx
 
 import (
 	"bytes"
@@ -105,11 +105,11 @@ func (v Val) String() string {
 // primitive.* instance.
 func (v Val) Interface() interface{} {
 	switch v.Type() {
-	case TypeDouble:
+	case bsontype.Double:
 		return v.Double()
-	case TypeString:
+	case bsontype.String:
 		return v.StringValue()
-	case TypeEmbeddedDocument:
+	case bsontype.EmbeddedDocument:
 		switch v.primitive.(type) {
 		case Doc:
 			return v.primitive.(Doc)
@@ -118,42 +118,42 @@ func (v Val) Interface() interface{} {
 		default:
 			return primitive.Null{}
 		}
-	case TypeArray:
+	case bsontype.Array:
 		return v.Array()
-	case TypeBinary:
+	case bsontype.Binary:
 		return v.primitive.(primitive.Binary)
-	case TypeUndefined:
+	case bsontype.Undefined:
 		return primitive.Undefined{}
-	case TypeObjectID:
+	case bsontype.ObjectID:
 		return v.ObjectID()
-	case TypeBoolean:
+	case bsontype.Boolean:
 		return v.Boolean()
-	case TypeDateTime:
+	case bsontype.DateTime:
 		return v.DateTime()
-	case TypeNull:
+	case bsontype.Null:
 		return primitive.Null{}
-	case TypeRegex:
+	case bsontype.Regex:
 		return v.primitive.(primitive.Regex)
-	case TypeDBPointer:
+	case bsontype.DBPointer:
 		return v.primitive.(primitive.DBPointer)
-	case TypeJavaScript:
+	case bsontype.JavaScript:
 		return v.JavaScript()
-	case TypeSymbol:
+	case bsontype.Symbol:
 		return v.Symbol()
-	case TypeCodeWithScope:
+	case bsontype.CodeWithScope:
 		return v.primitive.(primitive.CodeWithScope)
-	case TypeInt32:
+	case bsontype.Int32:
 		return v.Int32()
-	case TypeTimestamp:
+	case bsontype.Timestamp:
 		t, i := v.Timestamp()
 		return primitive.Timestamp{T: t, I: i}
-	case TypeInt64:
+	case bsontype.Int64:
 		return v.Int64()
-	case TypeDecimal128:
+	case bsontype.Decimal128:
 		return v.Decimal128()
-	case TypeMinKey:
+	case bsontype.MinKey:
 		return primitive.MinKey{}
-	case TypeMaxKey:
+	case bsontype.MaxKey:
 		return primitive.MaxKey{}
 	default:
 		return primitive.Null{}
@@ -165,56 +165,56 @@ func (v Val) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	t := v.Type()
 	var data []byte
 	switch v.Type() {
-	case TypeDouble:
+	case bsontype.Double:
 		data = bsoncore.AppendDouble(data, v.Double())
-	case TypeString:
+	case bsontype.String:
 		data = bsoncore.AppendString(data, v.String())
-	case TypeEmbeddedDocument:
+	case bsontype.EmbeddedDocument:
 		switch v.primitive.(type) {
 		case Doc:
 			t, data, _ = v.primitive.(Doc).MarshalBSONValue() // Doc.MarshalBSONValue never returns an error.
 		case MDoc:
 			t, data, _ = v.primitive.(MDoc).MarshalBSONValue() // MDoc.MarshalBSONValue never returns an error.
 		}
-	case TypeArray:
+	case bsontype.Array:
 		t, data, _ = v.Array().MarshalBSONValue() // Arr.MarshalBSON never returns an error.
-	case TypeBinary:
+	case bsontype.Binary:
 		subtype, bindata := v.Binary()
 		data = bsoncore.AppendBinary(data, subtype, bindata)
-	case TypeUndefined:
-	case TypeObjectID:
+	case bsontype.Undefined:
+	case bsontype.ObjectID:
 		data = bsoncore.AppendObjectID(data, v.ObjectID())
-	case TypeBoolean:
+	case bsontype.Boolean:
 		data = bsoncore.AppendBoolean(data, v.Boolean())
-	case TypeDateTime:
+	case bsontype.DateTime:
 		data = bsoncore.AppendDateTime(data, int64(v.DateTime()))
-	case TypeNull:
-	case TypeRegex:
+	case bsontype.Null:
+	case bsontype.Regex:
 		pattern, options := v.Regex()
 		data = bsoncore.AppendRegex(data, pattern, options)
-	case TypeDBPointer:
+	case bsontype.DBPointer:
 		ns, ptr := v.DBPointer()
 		data = bsoncore.AppendDBPointer(data, ns, ptr)
-	case TypeJavaScript:
+	case bsontype.JavaScript:
 		data = bsoncore.AppendJavaScript(data, string(v.JavaScript()))
-	case TypeSymbol:
+	case bsontype.Symbol:
 		data = bsoncore.AppendSymbol(data, string(v.Symbol()))
-	case TypeCodeWithScope:
+	case bsontype.CodeWithScope:
 		code, doc := v.CodeWithScope()
 		var scope []byte
 		scope, _ = doc.MarshalBSON() // Doc.MarshalBSON never returns an error.
 		data = bsoncore.AppendCodeWithScope(data, code, scope)
-	case TypeInt32:
+	case bsontype.Int32:
 		data = bsoncore.AppendInt32(data, v.Int32())
-	case TypeTimestamp:
+	case bsontype.Timestamp:
 		t, i := v.Timestamp()
 		data = bsoncore.AppendTimestamp(data, t, i)
-	case TypeInt64:
+	case bsontype.Int64:
 		data = bsoncore.AppendInt64(data, v.Int64())
-	case TypeDecimal128:
+	case bsontype.Decimal128:
 		data = bsoncore.AppendDecimal128(data, v.Decimal128())
-	case TypeMinKey:
-	case TypeMaxKey:
+	case bsontype.MinKey:
+	case bsontype.MaxKey:
 	default:
 		panic(fmt.Errorf("invalid BSON type %v", t))
 	}
@@ -231,90 +231,90 @@ func (v *Val) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
 	var ok = true
 	var rem []byte
 	switch t {
-	case TypeDouble:
+	case bsontype.Double:
 		var f64 float64
 		f64, rem, ok = bsoncore.ReadDouble(data)
 		*v = Double(f64)
-	case TypeString:
+	case bsontype.String:
 		var str string
 		str, rem, ok = bsoncore.ReadString(data)
 		*v = String(str)
-	case TypeEmbeddedDocument:
+	case bsontype.EmbeddedDocument:
 		var raw []byte
 		var doc Doc
 		raw, rem, ok = bsoncore.ReadDocument(data)
 		doc, err = ReadDoc(raw)
 		*v = Document(doc)
-	case TypeArray:
+	case bsontype.Array:
 		var raw []byte
 		arr := make(Arr, 0)
 		raw, rem, ok = bsoncore.ReadArray(data)
 		err = arr.UnmarshalBSONValue(t, raw)
 		*v = Array(arr)
-	case TypeBinary:
+	case bsontype.Binary:
 		var subtype byte
 		var bindata []byte
 		subtype, bindata, rem, ok = bsoncore.ReadBinary(data)
 		*v = Binary(subtype, bindata)
-	case TypeUndefined:
+	case bsontype.Undefined:
 		*v = Undefined()
-	case TypeObjectID:
+	case bsontype.ObjectID:
 		var oid objectid.ObjectID
 		oid, rem, ok = bsoncore.ReadObjectID(data)
 		*v = ObjectID(oid)
-	case TypeBoolean:
+	case bsontype.Boolean:
 		var b bool
 		b, rem, ok = bsoncore.ReadBoolean(data)
 		*v = Boolean(b)
-	case TypeDateTime:
+	case bsontype.DateTime:
 		var dt int64
 		dt, rem, ok = bsoncore.ReadDateTime(data)
 		*v = DateTime(dt)
-	case TypeNull:
+	case bsontype.Null:
 		*v = Null()
-	case TypeRegex:
+	case bsontype.Regex:
 		var pattern, options string
 		pattern, options, rem, ok = bsoncore.ReadRegex(data)
 		*v = Regex(pattern, options)
-	case TypeDBPointer:
+	case bsontype.DBPointer:
 		var ns string
 		var ptr objectid.ObjectID
 		ns, ptr, rem, ok = bsoncore.ReadDBPointer(data)
 		*v = DBPointer(ns, ptr)
-	case TypeJavaScript:
+	case bsontype.JavaScript:
 		var js string
 		js, rem, ok = bsoncore.ReadJavaScript(data)
 		*v = JavaScript(js)
-	case TypeSymbol:
+	case bsontype.Symbol:
 		var symbol string
 		symbol, rem, ok = bsoncore.ReadSymbol(data)
 		*v = Symbol(symbol)
-	case TypeCodeWithScope:
+	case bsontype.CodeWithScope:
 		var raw []byte
 		var code string
 		var scope Doc
 		code, raw, rem, ok = bsoncore.ReadCodeWithScope(data)
 		scope, err = ReadDoc(raw)
 		*v = CodeWithScope(code, scope)
-	case TypeInt32:
+	case bsontype.Int32:
 		var i32 int32
 		i32, rem, ok = bsoncore.ReadInt32(data)
 		*v = Int32(i32)
-	case TypeTimestamp:
+	case bsontype.Timestamp:
 		var i, t uint32
 		t, i, rem, ok = bsoncore.ReadTimestamp(data)
 		*v = Timestamp(t, i)
-	case TypeInt64:
+	case bsontype.Int64:
 		var i64 int64
 		i64, rem, ok = bsoncore.ReadInt64(data)
 		*v = Int64(i64)
-	case TypeDecimal128:
+	case bsontype.Decimal128:
 		var d128 decimal.Decimal128
 		d128, rem, ok = bsoncore.ReadDecimal128(data)
 		*v = Decimal128(d128)
-	case TypeMinKey:
+	case bsontype.MinKey:
 		*v = MinKey()
-	case TypeMaxKey:
+	case bsontype.MaxKey:
 		*v = MaxKey()
 	default:
 		err = fmt.Errorf("invalid BSON type %v", t)
@@ -338,7 +338,7 @@ func (v Val) Type() bsontype.Type {
 // IsNumber returns true if the type of v is a numberic BSON type.
 func (v Val) IsNumber() bool {
 	switch v.Type() {
-	case TypeDouble, TypeInt32, TypeInt64, TypeDecimal128:
+	case bsontype.Double, bsontype.Int32, bsontype.Int64, bsontype.Decimal128:
 		return true
 	default:
 		return false
@@ -356,7 +356,7 @@ func (v Val) Double() float64 {
 
 // DoubleOK is the same as Double, but returns a boolean instead of panicking.
 func (v Val) DoubleOK() (float64, bool) {
-	if v.t != TypeDouble {
+	if v.t != bsontype.Double {
 		return 0, false
 	}
 	return math.Float64frombits(binary.LittleEndian.Uint64(v.bootstrap[0:8])), true
@@ -820,45 +820,45 @@ func (v Val) Equal(v2 Val) bool {
 	}
 
 	switch v.Type() {
-	case TypeDouble, TypeDateTime, TypeTimestamp, TypeInt64:
+	case bsontype.Double, bsontype.DateTime, bsontype.Timestamp, bsontype.Int64:
 		return bytes.Equal(v.bootstrap[0:8], v2.bootstrap[0:8])
-	case TypeString:
+	case bsontype.String:
 		return v.string() == v2.string()
-	case TypeEmbeddedDocument:
+	case bsontype.EmbeddedDocument:
 		return v.equalDocs(v2)
-	case TypeArray:
+	case bsontype.Array:
 		return v.Array().Equal(v2.Array())
-	case TypeBinary:
+	case bsontype.Binary:
 		return v.primitive.(primitive.Binary).Equal(v2.primitive.(primitive.Binary))
-	case TypeUndefined:
+	case bsontype.Undefined:
 		return true
-	case TypeObjectID:
+	case bsontype.ObjectID:
 		return bytes.Equal(v.bootstrap[0:12], v2.bootstrap[0:12])
-	case TypeBoolean:
+	case bsontype.Boolean:
 		return v.bootstrap[0] == v2.bootstrap[0]
-	case TypeNull:
+	case bsontype.Null:
 		return true
-	case TypeRegex:
+	case bsontype.Regex:
 		return v.primitive.(primitive.Regex).Equal(v2.primitive.(primitive.Regex))
-	case TypeDBPointer:
+	case bsontype.DBPointer:
 		return v.primitive.(primitive.DBPointer).Equal(v2.primitive.(primitive.DBPointer))
-	case TypeJavaScript:
+	case bsontype.JavaScript:
 		return v.JavaScript() == v2.JavaScript()
-	case TypeSymbol:
+	case bsontype.Symbol:
 		return v.Symbol() == v2.Symbol()
-	case TypeCodeWithScope:
+	case bsontype.CodeWithScope:
 		code1, scope1 := v.primitive.(primitive.CodeWithScope).Code, v.primitive.(primitive.CodeWithScope).Scope
 		code2, scope2 := v2.primitive.(primitive.CodeWithScope).Code, v2.primitive.(primitive.CodeWithScope).Scope
 		return code1 == code2 && v.equalInterfaceDocs(scope1, scope2)
-	case TypeInt32:
+	case bsontype.Int32:
 		return v.Int32() == v2.Int32()
-	case TypeDecimal128:
+	case bsontype.Decimal128:
 		h, l := v.Decimal128().GetBytes()
 		h2, l2 := v2.Decimal128().GetBytes()
 		return h == h2 && l == l2
-	case TypeMinKey:
+	case bsontype.MinKey:
 		return true
-	case TypeMaxKey:
+	case bsontype.MaxKey:
 		return true
 	default:
 		return false

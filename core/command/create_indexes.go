@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // CreateIndexes represents the createIndexes command.
@@ -43,7 +44,7 @@ func (ci *CreateIndexes) Encode(desc description.SelectedServer) (wiremessage.Wi
 }
 
 func (ci *CreateIndexes) encode(desc description.SelectedServer) (*Write, error) {
-	cmd := bson.Doc{
+	cmd := bsonx.Doc{
 		{"createIndexes", bson.String(ci.NS.Collection)},
 		{"indexes", bson.Array(ci.Indexes)},
 	}

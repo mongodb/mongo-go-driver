@@ -18,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/internal"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestPlainAuthenticator_Fails(t *testing.T) {
@@ -29,7 +30,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- internal.MakeReply(t, bson.Doc{
+	resps <- internal.MakeReply(t, bsonx.Doc{
 		{"ok", bson.Int32(1)},
 		{"conversationId", bson.Int32(1)},
 		{"payload", bson.Binary(0x00, []byte{})},
@@ -63,13 +64,13 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 2)
-	resps <- internal.MakeReply(t, bson.Doc{
+	resps <- internal.MakeReply(t, bsonx.Doc{
 		{"ok", bson.Int32(1)},
 		{"conversationId", bson.Int32(1)},
 		{"payload", bson.Binary(0x00, []byte{})},
 		{"done", bson.Boolean(false)}},
 	)
-	resps <- internal.MakeReply(t, bson.Doc{
+	resps <- internal.MakeReply(t, bsonx.Doc{
 		{"ok", bson.Int32(1)},
 		{"conversationId", bson.Int32(1)},
 		{"payload", bson.Binary(0x00, []byte{})},
@@ -102,7 +103,7 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- internal.MakeReply(t, bson.Doc{
+	resps <- internal.MakeReply(t, bsonx.Doc{
 		{"ok", bson.Int32(1)},
 		{"conversationId", bson.Int32(1)},
 		{"payload", bson.Binary(0x00, []byte{})},
@@ -125,7 +126,7 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
-	expectedCmd := bson.Doc{
+	expectedCmd := bsonx.Doc{
 		{"saslStart", bson.Int32(1)},
 		{"mechanism", bson.String("PLAIN")},
 		{"payload", bson.Binary(0x00, payload)},

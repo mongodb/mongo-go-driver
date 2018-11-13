@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // DropIndexes represents the dropIndexes command.
@@ -42,7 +43,7 @@ func (di *DropIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 }
 
 func (di *DropIndexes) encode(desc description.SelectedServer) (*Write, error) {
-	cmd := bson.Doc{
+	cmd := bsonx.Doc{
 		{"dropIndexes", bson.String(di.NS.Collection)},
 		{"index", bson.String(di.Index)},
 	}

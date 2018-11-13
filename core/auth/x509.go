@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // MongoDBX509 is the mechanism name for MongoDBX509.
@@ -29,7 +30,7 @@ type MongoDBX509Authenticator struct {
 
 // Auth implements the Authenticator interface.
 func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
-	authRequestDoc := bson.Doc{
+	authRequestDoc := bsonx.Doc{
 		{"authenticate", bson.Int32(1)},
 		{"mechanism", bson.String(MongoDBX509)},
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ListIndexes represents the listIndexes command.
@@ -39,7 +40,7 @@ func (li *ListIndexes) Encode(desc description.SelectedServer) (wiremessage.Wire
 }
 
 func (li *ListIndexes) encode(desc description.SelectedServer) (*Read, error) {
-	cmd := bson.Doc{{"listIndexes", bson.String(li.NS.Collection)}}
+	cmd := bsonx.Doc{{"listIndexes", bson.String(li.NS.Collection)}}
 	cmd = append(cmd, li.Opts...)
 
 	return &Read{

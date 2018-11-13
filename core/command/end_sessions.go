@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // must be sent to admin db
@@ -24,7 +25,7 @@ import (
 // EndSessions represents an endSessions command.
 type EndSessions struct {
 	Clock      *session.ClusterClock
-	SessionIDs []bson.Doc
+	SessionIDs []bsonx.Doc
 
 	results []result.EndSessions
 	errors  []error
@@ -33,14 +34,14 @@ type EndSessions struct {
 // BatchSize is the max number of sessions to be included in 1 endSessions command.
 const BatchSize = 10000
 
-func (es *EndSessions) split() [][]bson.Doc {
-	batches := [][]bson.Doc{}
+func (es *EndSessions) split() [][]bsonx.Doc {
+	batches := [][]bsonx.Doc{}
 	docIndex := 0
 	totalNumDocs := len(es.SessionIDs)
 
 createBatches:
 	for {
-		batch := []bson.Doc{}
+		batch := []bsonx.Doc{}
 
 		for i := 0; i < BatchSize; i++ {
 			if docIndex == totalNumDocs {
@@ -57,13 +58,13 @@ createBatches:
 	return batches
 }
 
-func (es *EndSessions) encodeBatch(batch []bson.Doc, desc description.SelectedServer) *Write {
+func (es *EndSessions) encodeBatch(batch []bsonx.Doc, desc description.SelectedServer) *Write {
 	vals := make(bson.Arr, 0, len(batch))
 	for _, doc := range batch {
-		vals = append(vals, bson.Document(doc))
+		vals = append(vals, bsonx.Document(doc))
 	}
 
-	cmd := bson.Doc{{"endSessions", bson.Array(vals)}}
+	cmd := bsonx.Doc{{"endSessions", bson.Array(vals)}}
 
 	return &Write{
 		Clock:   es.Clock,

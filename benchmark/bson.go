@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 const (
@@ -24,12 +25,12 @@ const (
 
 // utility functions for the bson benchmarks
 
-func loadSourceDocument(pathParts ...string) (bson.Doc, error) {
+func loadSourceDocument(pathParts ...string) (bsonx.Doc, error) {
 	data, err := ioutil.ReadFile(filepath.Join(pathParts...))
 	if err != nil {
 		return nil, err
 	}
-	doc := bson.Doc{}
+	doc := bsonx.Doc{}
 	err = bson.UnmarshalExtJSON(data, true, &doc)
 	if err != nil {
 		return nil, err

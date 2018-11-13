@@ -23,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,7 +46,7 @@ func TestCommandAggregate(t *testing.T) {
 		noerr(t, err)
 		conn, err := server.Connection(context.Background())
 		noerr(t, err)
-		ds := []bson.Doc{
+		ds := []bsonx.Doc{
 			{{"_id", bson.Int32(1)}},
 			{{"_id", bson.Int32(2)}},
 			{{"_id", bson.Int32(3)}},
@@ -64,12 +65,12 @@ func TestCommandAggregate(t *testing.T) {
 		cursor, err := (&command.Aggregate{
 			NS: command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bson.Arr{
-				bson.Document(bson.Doc{
-					{"$match", bson.Document(bson.Doc{
-						{"_id", bson.Document(bson.Doc{{"$gt", bson.Int32(2)}})},
+				bsonx.Document(bsonx.Doc{
+					{"$match", bsonx.Document(bsonx.Doc{
+						{"_id", bsonx.Document(bsonx.Doc{{"$gt", bson.Int32(2)}})},
 					})}},
 				),
-				bson.Document(bson.Doc{{"$sort", bson.Document(bson.Doc{{"_id", bson.Int32(-1)}})}}),
+				bsonx.Document(bsonx.Doc{{"$sort", bsonx.Document(bsonx.Doc{{"_id", bson.Int32(-1)}})}}),
 			},
 			Opts: []bson.Elem{{"batchSize", bson.Int32(2)}},
 		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
@@ -97,7 +98,7 @@ func TestCommandAggregate(t *testing.T) {
 		noerr(t, err)
 		conn, err := server.Connection(context.Background())
 		noerr(t, err)
-		ds := []bson.Doc{
+		ds := []bsonx.Doc{
 			{{"_id", bson.Int32(1)}},
 			{{"_id", bson.Int32(2)}},
 		}
@@ -129,7 +130,7 @@ func TestCommandAggregate(t *testing.T) {
 
 		_, err = (&command.Write{
 			DB: "admin",
-			Command: bson.Doc{
+			Command: bsonx.Doc{
 				{"configureFailPoint", bson.String("maxTimeAlwaysTimeOut")},
 				{"mode", bson.String("alwaysOn")},
 			},
@@ -147,7 +148,7 @@ func TestCommandAggregate(t *testing.T) {
 
 		_, err = (&command.Write{
 			DB: "admin",
-			Command: bson.Doc{
+			Command: bsonx.Doc{
 				{"configureFailPoint", bson.String("maxTimeAlwaysTimeOut")},
 				{"mode", bson.String("off")},
 			},
@@ -169,7 +170,7 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	server, err := testutil.MonitoredTopology(t, dbName, monitor).SelectServer(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
-	versionCmd := bson.Doc{{"serverStatus", bson.Int32(1)}}
+	versionCmd := bsonx.Doc{{"serverStatus", bson.Int32(1)}}
 	serverStatus, err := testutil.RunCommand(t, server.Server, dbName, versionCmd)
 	version, err := serverStatus.LookupErr("version")
 
@@ -178,7 +179,7 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	}
 
 	// create capped collection
-	createCmd := bson.Doc{
+	createCmd := bsonx.Doc{
 		{"create", bson.String(colName)},
 		{"capped", bson.Boolean(true)},
 		{"size", bson.Int32(1000)}}
@@ -192,11 +193,11 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	cursor, err := (&command.Aggregate{
 		NS: command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 		Pipeline: bson.Arr{
-			bson.Document(bson.Doc{
-				{"$changeStream", bson.Document(bson.Doc{})}}),
-			bson.Document(bson.Doc{
-				{"$match", bson.Document(bson.Doc{
-					{"fullDocument._id", bson.Document(bson.Doc{{"$gte", bson.Int32(1)}})},
+			bsonx.Document(bsonx.Doc{
+				{"$changeStream", bsonx.Document(bsonx.Doc{})}}),
+			bsonx.Document(bsonx.Doc{
+				{"$match", bsonx.Document(bsonx.Doc{
+					{"fullDocument._id", bsonx.Document(bsonx.Doc{{"$gte", bson.Int32(1)}})},
 				})}})},
 		Opts: []bson.Elem{{"batchSize", bson.Int32(2)}},
 		CursorOpts: []bson.Elem{
@@ -207,12 +208,12 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	noerr(t, err)
 
 	// insert some documents
-	insertCmd := bson.Doc{
+	insertCmd := bsonx.Doc{
 		{"insert", bson.String(colName)},
 		{"documents", bson.Array(bson.Arr{
-			bson.Document(bson.Doc{{"_id", bson.Int32(1)}}),
-			bson.Document(bson.Doc{{"_id", bson.Int32(2)}}),
-			bson.Document(bson.Doc{{"_id", bson.Int32(3)}})})}}
+			bsonx.Document(bsonx.Doc{{"_id", bson.Int32(1)}}),
+			bsonx.Document(bsonx.Doc{{"_id", bson.Int32(2)}}),
+			bsonx.Document(bsonx.Doc{{"_id", bson.Int32(3)}})})}}
 	_, err = testutil.RunCommand(t, server.Server, dbName, insertCmd)
 
 	// wait a bit between insert and getMore commands

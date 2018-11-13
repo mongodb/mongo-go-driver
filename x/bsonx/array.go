@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package bson
+package bsonx
 
 import (
 	"bytes"
@@ -64,7 +64,7 @@ func (a *Arr) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
 	}
 	*a = (*a)[:0]
 
-	elements, err := Raw(data).Elements()
+	elements, err := bsoncore.Document(data).Elements()
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (a *Arr) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
 	for _, elem := range elements {
 		var val Val
 		rawval := elem.Value()
-		err = val.UnmarshalBSONValue(rawval.Type, rawval.Value)
+		err = val.UnmarshalBSONValue(rawval.Type, rawval.Data)
 		if err != nil {
 			return err
 		}

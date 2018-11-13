@@ -12,31 +12,32 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestTransformDocument(t *testing.T) {
 	testCases := []struct {
 		name     string
 		document interface{}
-		want     bson.Doc
+		want     bsonx.Doc
 		err      error
 	}{
 		{
 			"bson.Marshaler",
-			bMarsh{bson.Doc{{"foo", bson.String("bar")}}},
-			bson.Doc{{"foo", bson.String("bar")}},
+			bMarsh{bsonx.Doc{{"foo", bson.String("bar")}}},
+			bsonx.Doc{{"foo", bson.String("bar")}},
 			nil,
 		},
 		{
 			"reflection",
 			reflectStruct{Foo: "bar"},
-			bson.Doc{{"foo", bson.String("bar")}},
+			bsonx.Doc{{"foo", bson.String("bar")}},
 			nil,
 		},
 		{
 			"reflection pointer",
 			&reflectStruct{Foo: "bar"},
-			bson.Doc{{"foo", bson.String("bar")}},
+			bsonx.Doc{{"foo", bson.String("bar")}},
 			nil,
 		},
 		{
@@ -80,7 +81,7 @@ func compareErrors(err1, err2 error) bool {
 var _ bson.Marshaler = bMarsh{}
 
 type bMarsh struct {
-	bson.Doc
+	bsonx.Doc
 }
 
 func (b bMarsh) MarshalBSON() ([]byte, error) {

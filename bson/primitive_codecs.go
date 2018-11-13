@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 var primitiveCodecs PrimitiveCodecs
@@ -419,9 +420,9 @@ func (PrimitiveCodecs) DBPointerDecodeValue(dc bsoncodec.DecodeContext, vr bsonr
 
 // DocumentEncodeValue is the ValueEncoderFunc for *Document.
 func (pc PrimitiveCodecs) DocumentEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	doc, ok := i.(Doc)
+	doc, ok := i.(bsonx.Doc)
 	if !ok {
-		return bsoncodec.ValueEncoderError{Name: "DocumentEncodeValue", Types: []interface{}{(Doc)(nil), (*Doc)(nil)}, Received: i}
+		return bsoncodec.ValueEncoderError{Name: "DocumentEncodeValue", Types: []interface{}{(bsonx.Doc)(nil), (*bsonx.Doc)(nil)}, Received: i}
 	}
 
 	if doc == nil {
@@ -488,7 +489,7 @@ func (pc PrimitiveCodecs) CodeWithScopeDecodeValue(dc bsoncodec.DecodeContext, v
 		return err
 	}
 
-	var scope Doc
+	var scope bsonx.Doc
 	err = pc.decodeDocument(dc, dr, &scope)
 	if err != nil {
 		return err
@@ -758,7 +759,7 @@ func (pc PrimitiveCodecs) ElementSliceEncodeValue(ec bsoncodec.EncodeContext, vw
 		}
 	}
 
-	return pc.DocumentEncodeValue(ec, vw, Doc(slce))
+	return pc.DocumentEncodeValue(ec, vw, bsonx.Doc(slce))
 }
 
 // ElementSliceDecodeValue is the ValueDecoderFunc for []*Element.
@@ -797,9 +798,9 @@ func (pc PrimitiveCodecs) ElementSliceDecodeValue(dc bsoncodec.DecodeContext, vr
 
 // DocumentDecodeValue is the ValueDecoderFunc for *Document.
 func (pc PrimitiveCodecs) DocumentDecodeValue(dctx bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	doc, ok := i.(*Doc)
+	doc, ok := i.(*bsonx.Doc)
 	if !ok {
-		return bsoncodec.ValueDecoderError{Name: "DocumentDecodeValue", Types: []interface{}{(*Doc)(nil)}, Received: i}
+		return bsoncodec.ValueDecoderError{Name: "DocumentDecodeValue", Types: []interface{}{(*bsonx.Doc)(nil)}, Received: i}
 	}
 
 	if doc == nil {
@@ -919,9 +920,9 @@ func (PrimitiveCodecs) EmptyInterfaceDecodeValue(dc bsoncodec.DecodeContext, vr 
 		rtype = tString
 		fn = func() { *target = *(val.(*string)) }
 	case bsontype.EmbeddedDocument:
-		val = new(Doc)
+		val = new(bsonx.Doc)
 		rtype = tDocument
-		fn = func() { *target = *val.(*Doc) }
+		fn = func() { *target = *val.(*bsonx.Doc) }
 	case bsontype.Array:
 		val = new(Arr)
 		rtype = tArray
@@ -1117,7 +1118,7 @@ func (pc PrimitiveCodecs) DDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.Val
 // encodeDocument is a separate function that we use because CodeWithScope
 // returns us a DocumentWriter and we need to do the same logic that we would do
 // for a document but cannot use a Codec.
-func (pc PrimitiveCodecs) encodeDocument(ec bsoncodec.EncodeContext, dw bsonrw.DocumentWriter, doc Doc) error {
+func (pc PrimitiveCodecs) encodeDocument(ec bsoncodec.EncodeContext, dw bsonrw.DocumentWriter, doc bsonx.Doc) error {
 	for _, elem := range doc {
 		dvw, err := dw.WriteDocumentElement(elem.Key)
 		if err != nil {
@@ -1172,7 +1173,7 @@ func (pc PrimitiveCodecs) elementDecodeValue(dc bsoncodec.DecodeContext, vr bson
 		}
 		val = String(str)
 	case bsontype.EmbeddedDocument:
-		var embeddedDoc Doc
+		var embeddedDoc bsonx.Doc
 		err := pc.DocumentDecodeValue(dc, vr, &embeddedDoc)
 		if err != nil {
 			return err
@@ -1250,7 +1251,7 @@ func (pc PrimitiveCodecs) elementDecodeValue(dc bsoncodec.DecodeContext, vr bson
 		if err != nil {
 			return err
 		}
-		var doc Doc
+		var doc bsonx.Doc
 		err = pc.decodeDocument(dc, scope, &doc)
 		if err != nil {
 			return err
@@ -1300,9 +1301,9 @@ func (pc PrimitiveCodecs) elementDecodeValue(dc bsoncodec.DecodeContext, vr bson
 	return nil
 }
 
-func (pc PrimitiveCodecs) decodeDocument(dctx bsoncodec.DecodeContext, dr bsonrw.DocumentReader, pdoc *Doc) error {
+func (pc PrimitiveCodecs) decodeDocument(dctx bsoncodec.DecodeContext, dr bsonrw.DocumentReader, pdoc *bsonx.Doc) error {
 	if *pdoc == nil {
-		*pdoc = make(Doc, 0)
+		*pdoc = make(bsonx.Doc, 0)
 	}
 	*pdoc = (*pdoc)[:0]
 	for {
@@ -1414,7 +1415,7 @@ func (pc PrimitiveCodecs) valueDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw
 		}
 		*val = String(str)
 	case bsontype.EmbeddedDocument:
-		var embeddedDoc Doc
+		var embeddedDoc bsonx.Doc
 		err := pc.DocumentDecodeValue(dc, vr, &embeddedDoc)
 		if err != nil {
 			return err
@@ -1492,7 +1493,7 @@ func (pc PrimitiveCodecs) valueDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw
 		if err != nil {
 			return err
 		}
-		var scopeDoc Doc
+		var scopeDoc bsonx.Doc
 		err = pc.decodeDocument(dc, scope, &scopeDoc)
 		if err != nil {
 			return err
