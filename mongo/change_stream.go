@@ -192,7 +192,22 @@ func (cs *changeStream) DecodeBytes() (bson.Raw, error) {
 		return nil, ErrMissingResumeToken
 	}
 
-	cs.resumeToken, err = bson.ReadDocument(id.Document())
+	var idDoc bson.Raw
+	idDoc, ok := id.DocumentOK()
+	if !ok {
+		idAsID, ok := id.ObjectIDOK()
+		if !ok {
+			_ = cs.Close(context.Background())
+			return nil, ErrMissingResumeToken
+		}
+		idDoc, err = bson.NewDocument(bson.EC.ObjectID("_id", idAsID)).MarshalBSON()
+		if err != nil {
+			_ = cs.Close(context.Background())
+			return nil, ErrMissingResumeToken
+		}
+	}
+
+	cs.resumeToken, err = bson.ReadDocument(idDoc)
 	if err != nil {
 		_ = cs.Close(context.Background())
 		return nil, ErrMissingResumeToken
