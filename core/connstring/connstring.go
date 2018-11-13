@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
-	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 )
 
 // Parse parses the provided uri and returns a URI object.
