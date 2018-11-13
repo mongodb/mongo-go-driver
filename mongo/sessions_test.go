@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"strings"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
@@ -32,6 +31,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,23 +56,23 @@ type CollFunction struct {
 }
 
 var ctx = context.Background()
-var emptyDoc = bson.Doc{}
-var updateDoc = bson.Doc{{"$inc", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}}
-var doc = bson.Doc{{"x", bson.Int32(1)}}
-var doc2 = bson.Doc{{"y", bson.Int32(1)}}
+var emptyDoc = bsonx.Doc{}
+var updateDoc = bsonx.Doc{{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}}
+var doc = bsonx.Doc{{"x", bsonx.Int32(1)}}
+var doc2 = bsonx.Doc{{"y", bsonx.Int32(1)}}
 
 var fooIndex = IndexModel{
-	Keys:    bson.Doc{{"foo", bson.Int32(-1)}},
+	Keys:    bsonx.Doc{{"foo", bsonx.Int32(-1)}},
 	Options: NewIndexOptionsBuilder().Name("fooIndex").Build(),
 }
 
 var barIndex = IndexModel{
-	Keys:    bson.Doc{{"bar", bson.Int32(-1)}},
+	Keys:    bsonx.Doc{{"bar", bsonx.Int32(-1)}},
 	Options: NewIndexOptionsBuilder().Name("barIndex").Build(),
 }
 
 var bazIndex = IndexModel{
-	Keys:    bson.Doc{{"baz", bson.Int32(-1)}},
+	Keys:    bsonx.Doc{{"baz", bsonx.Int32(-1)}},
 	Options: NewIndexOptionsBuilder().Name("bazIndex").Build(),
 }
 
@@ -130,7 +130,7 @@ func createFuncMap(t *testing.T, dbName string, collName string, monitored bool)
 	return client, db, coll, functions
 }
 
-func getClusterTime(clusterTime bson.Doc) (uint32, uint32) {
+func getClusterTime(clusterTime bsonx.Doc) (uint32, uint32) {
 	if clusterTime == nil {
 		fmt.Println("is nil")
 		return 0, 0
@@ -210,7 +210,7 @@ func createMonitoredTopology(t *testing.T, clock *session.ClusterClock, monitor 
 
 	_, err = (&command.Write{
 		DB:      testutil.DBName(t),
-		Command: bson.Doc{{"dropDatabase", bson.Int32(1)}},
+		Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}},
 	}).RoundTrip(context.Background(), s.SelectedDescription(), c)
 	if err != nil {
 		t.Fatal(err)
@@ -237,7 +237,7 @@ func createSessionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor) 
 	return c
 }
 
-func sessionIDsEqual(t *testing.T, sessionID1 bson.Doc, sessionID2 bson.Doc) bool {
+func sessionIDsEqual(t *testing.T, sessionID1 bsonx.Doc, sessionID2 bsonx.Doc) bool {
 	firstID, err := sessionID1.LookupErr("id")
 	testhelpers.RequireNil(t, err, "error extracting ID 1: %s", err)
 
@@ -275,7 +275,7 @@ func getReturnError(returnVals []reflect.Value) error {
 	}
 }
 
-func getSessionUUID(t *testing.T, cmd bson.Doc) []byte {
+func getSessionUUID(t *testing.T, cmd bsonx.Doc) []byte {
 	lsid, err := cmd.LookupErr("lsid")
 	testhelpers.RequireNil(t, err, "key lsid not found in command")
 	sessID, err := lsid.Document().LookupErr("id")
@@ -374,7 +374,7 @@ func TestSessions(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error dropping database: %s", err)
 
 		coll := db.Collection("SessionsTestClusterTimeColl")
-		serverStatusDoc := bson.Doc{{"serverStatus", bson.Int32(1)}}
+		serverStatusDoc := bsonx.Doc{{"serverStatus", bsonx.Int32(1)}}
 
 		functions := []struct {
 			name    string
@@ -420,8 +420,8 @@ func TestSessions(t *testing.T) {
 				nextCtVal, err := sessionStarted.Command.LookupErr("$clusterTime")
 				testhelpers.RequireNil(t, err, "key $clusterTime not found in first command for %s", tc.name)
 
-				epoch1, ord1 := getClusterTime(bson.Doc{{"$clusterTime", bson.Document(replyCtVal.Document())}})
-				epoch2, ord2 := getClusterTime(bson.Doc{{"$clusterTime", bson.Document(nextCtVal.Document())}})
+				epoch1, ord1 := getClusterTime(bsonx.Doc{{"$clusterTime", bsonx.Document(replyCtVal.Document())}})
+				epoch2, ord2 := getClusterTime(bsonx.Doc{{"$clusterTime", bsonx.Document(nextCtVal.Document())}})
 
 				if epoch1 == 0 {
 					t.Fatal("epoch1 is 0")
@@ -470,12 +470,12 @@ func TestSessions(t *testing.T) {
 				// can't insert same document again
 				if tc.name == "InsertOne" {
 					tc.f = func(mctx SessionContext) error {
-						_, err := tc.coll.InsertOne(mctx, bson.Doc{{"InsertOneNewDoc", bson.Int32(1)}})
+						_, err := tc.coll.InsertOne(mctx, bsonx.Doc{{"InsertOneNewDoc", bsonx.Int32(1)}})
 						return err
 					}
 				} else if tc.name == "InsertMany" {
 					tc.f = func(mctx SessionContext) error {
-						_, err := tc.coll.InsertMany(mctx, []interface{}{bson.Doc{{"InsertManyNewDoc", bson.Int32(2)}}})
+						_, err := tc.coll.InsertMany(mctx, []interface{}{bsonx.Doc{{"InsertManyNewDoc", bsonx.Int32(2)}}})
 						return err
 					}
 				} else if tc.name == "DropOneIndex" {
@@ -559,9 +559,9 @@ func TestSessions(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error dropping database: %s", err)
 		coll := db.Collection("ImplicitSessionReturnedColl")
 
-		_, err = coll.InsertOne(ctx, bson.Doc{{"x", bson.Int32(1)}})
+		_, err = coll.InsertOne(ctx, bsonx.Doc{{"x", bsonx.Int32(1)}})
 		testhelpers.RequireNil(t, err, "error running insert: %s", err)
-		_, err = coll.InsertOne(ctx, bson.Doc{{"y", bson.Int32(2)}})
+		_, err = coll.InsertOne(ctx, bsonx.Doc{{"y", bsonx.Int32(2)}})
 		testhelpers.RequireNil(t, err, "error running insert: %s", err)
 
 		cur, err := coll.Find(ctx, emptyDoc) // should use implicit session returned by InsertOne commands
@@ -600,11 +600,11 @@ func TestSessions(t *testing.T) {
 		coll := db.Collection("ImplicitSessionReturnedGMColl")
 
 		docs := []interface{}{
-			bson.Doc{{"a", bson.Int32(1)}},
-			bson.Doc{{"a", bson.Int32(2)}},
-			bson.Doc{{"a", bson.Int32(3)}},
-			bson.Doc{{"a", bson.Int32(4)}},
-			bson.Doc{{"a", bson.Int32(5)}},
+			bsonx.Doc{{"a", bsonx.Int32(1)}},
+			bsonx.Doc{{"a", bsonx.Int32(2)}},
+			bsonx.Doc{{"a", bsonx.Int32(3)}},
+			bsonx.Doc{{"a", bsonx.Int32(4)}},
+			bsonx.Doc{{"a", bsonx.Int32(5)}},
 		}
 		_, err = coll.InsertMany(ctx, docs) // pool should have 1 session
 		require.Nil(t, err, "Error on insert")
@@ -638,9 +638,9 @@ func TestSessions(t *testing.T) {
 		coll := db.Collection("TestFindAndGetMoreSessionIDsColl",
 			options.Collection().SetWriteConcern(wcMajority).SetReadConcern(readconcern.Majority()))
 		docs := []interface{}{
-			bson.Doc{{"a", bson.Int32(1)}},
-			bson.Doc{{"a", bson.Int32(2)}},
-			bson.Doc{{"a", bson.Int32(3)}},
+			bsonx.Doc{{"a", bsonx.Int32(1)}},
+			bsonx.Doc{{"a", bsonx.Int32(2)}},
+			bsonx.Doc{{"a", bsonx.Int32(3)}},
 		}
 
 		for i, doc := range docs {

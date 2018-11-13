@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Cursor instances iterate a stream of documents. Each document is
@@ -60,7 +61,7 @@ type Cursor interface {
 
 // CursorBuilder is a type that can build a Cursor.
 type CursorBuilder interface {
-	BuildCursor(bson.Raw, *session.Client, *session.ClusterClock, ...bson.Elem) (Cursor, error)
+	BuildCursor(bson.Raw, *session.Client, *session.ClusterClock, ...bsonx.Elem) (Cursor, error)
 }
 
 type emptyCursor struct{}

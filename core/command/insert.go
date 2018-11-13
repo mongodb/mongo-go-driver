@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // this is the amount of reserved buffer space in a message that the
@@ -31,8 +32,8 @@ type Insert struct {
 	ContinueOnError bool
 	Clock           *session.ClusterClock
 	NS              Namespace
-	Docs            []bson.Doc
-	Opts            []bson.Elem
+	Docs            []bsonx.Doc
+	Opts            []bsonx.Elem
 	WriteConcern    *writeconcern.WriteConcern
 	Session         *session.Client
 
@@ -51,7 +52,7 @@ func (i *Insert) Encode(desc description.SelectedServer) ([]wiremessage.WireMess
 	return batchesToWireMessage(i.batches, desc)
 }
 
-func (i *Insert) encodeBatch(docs []bson.Doc, desc description.SelectedServer) (*WriteBatch, error) {
+func (i *Insert) encodeBatch(docs []bsonx.Doc, desc description.SelectedServer) (*WriteBatch, error) {
 	command, err := encodeBatch(docs, i.Opts, InsertCommand, i.NS.Collection)
 	if err != nil {
 		return nil, err

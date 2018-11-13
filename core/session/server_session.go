@@ -11,15 +11,15 @@ import (
 
 	"crypto/rand"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 var rander = rand.Reader
 
 // Server is an open session with the server.
 type Server struct {
-	SessionID bson.Doc
+	SessionID bsonx.Doc
 	TxnNumber int64
 	LastUsed  time.Time
 }
@@ -46,7 +46,7 @@ func newServerSession() (*Server, error) {
 		return nil, err
 	}
 
-	idDoc := bson.Doc{{"id", bson.Binary(UUIDSubtype, id[:])}}
+	idDoc := bsonx.Doc{{"id", bsonx.Binary(UUIDSubtype, id[:])}}
 
 	return &Server{
 		SessionID: idDoc,

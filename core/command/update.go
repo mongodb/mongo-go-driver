@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Update represents the update command.
@@ -24,8 +25,8 @@ type Update struct {
 	ContinueOnError bool
 	Clock           *session.ClusterClock
 	NS              Namespace
-	Docs            []bson.Doc
-	Opts            []bson.Elem
+	Docs            []bsonx.Doc
+	Opts            []bsonx.Elem
 	WriteConcern    *writeconcern.WriteConcern
 	Session         *session.Client
 
@@ -62,14 +63,14 @@ func (u *Update) encode(desc description.SelectedServer) error {
 	return nil
 }
 
-func (u *Update) encodeBatch(docs []bson.Doc, desc description.SelectedServer) (*WriteBatch, error) {
-	copyDocs := make([]bson.Doc, 0, len(docs)) // copy of all the documents
+func (u *Update) encodeBatch(docs []bsonx.Doc, desc description.SelectedServer) (*WriteBatch, error) {
+	copyDocs := make([]bsonx.Doc, 0, len(docs)) // copy of all the documents
 	for _, doc := range docs {
 		newDoc := doc.Copy()
 		copyDocs = append(copyDocs, newDoc)
 	}
 
-	var options []bson.Elem
+	var options []bsonx.Elem
 	for _, opt := range u.Opts {
 		switch opt.Key {
 		case "upsert", "collation", "arrayFilters":

@@ -9,7 +9,6 @@ package dispatch
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/result"
@@ -17,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ListDatabases handles the full cycle dispatch and execution of a listDatabases command against the provided
@@ -53,7 +53,7 @@ func ListDatabases(
 
 	ld := options.MergeListDatabasesOptions(opts...)
 	if ld.NameOnly != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"nameOnly", bson.Boolean(*ld.NameOnly)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"nameOnly", bsonx.Boolean(*ld.NameOnly)})
 	}
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)

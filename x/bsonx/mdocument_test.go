@@ -1,4 +1,4 @@
-package bson
+package bsonx
 
 import (
 	"reflect"

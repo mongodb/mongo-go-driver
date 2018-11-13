@@ -9,8 +9,8 @@ package dispatch
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -51,10 +51,10 @@ func Insert(
 	insertOpts := options.MergeInsertManyOptions(opts...)
 
 	if insertOpts.BypassDocumentValidation != nil && ss.Description().WireVersion.Includes(4) {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"bypassDocumentValidation", bson.Boolean(*insertOpts.BypassDocumentValidation)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*insertOpts.BypassDocumentValidation)})
 	}
 	if insertOpts.Ordered != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"ordered", bson.Boolean(*insertOpts.Ordered)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"ordered", bsonx.Boolean(*insertOpts.Ordered)})
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled

@@ -17,13 +17,14 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Write represents a generic write database command.
 // This can be used to send arbitrary write commands to the database.
 type Write struct {
 	DB           string
-	Command      bson.Doc
+	Command      bsonx.Doc
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -33,8 +34,8 @@ type Write struct {
 }
 
 // Encode c as OP_MSG
-func (w *Write) encodeOpMsg(desc description.SelectedServer, cmd bson.Doc) (wiremessage.WireMessage, error) {
-	var arr bson.Arr
+func (w *Write) encodeOpMsg(desc description.SelectedServer, cmd bsonx.Doc) (wiremessage.WireMessage, error) {
+	var arr bsonx.Arr
 	var identifier string
 
 	cmd, arr, identifier = opmsgRemoveArray(cmd)
@@ -74,7 +75,7 @@ func (w *Write) encodeOpMsg(desc description.SelectedServer, cmd bson.Doc) (wire
 }
 
 // Encode w as OP_QUERY
-func (w *Write) encodeOpQuery(desc description.SelectedServer, cmd bson.Doc) (wiremessage.WireMessage, error) {
+func (w *Write) encodeOpQuery(desc description.SelectedServer, cmd bsonx.Doc) (wiremessage.WireMessage, error) {
 	rdr, err := marshalCommand(cmd)
 	if err != nil {
 		return nil, err
@@ -151,7 +152,7 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 	}
 
 	if w.Session != nil && w.Session.RetryWrite {
-		cmd = append(cmd, bson.Elem{"txnNumber", bson.Int64(w.Session.TxnNumber)})
+		cmd = append(cmd, bsonx.Elem{"txnNumber", bsonx.Int64(w.Session.TxnNumber)})
 	}
 
 	cmd = addClusterTime(cmd, desc, w.Session, w.Clock)

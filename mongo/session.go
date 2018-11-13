@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
@@ -18,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ErrWrongClient is returned when a user attempts to pass in a session created by a different client than
@@ -48,8 +48,8 @@ type Session interface {
 	StartTransaction(...*options.TransactionOptions) error
 	AbortTransaction(context.Context) error
 	CommitTransaction(context.Context) error
-	ClusterTime() bson.Doc
-	AdvanceClusterTime(bson.Doc) error
+	ClusterTime() bsonx.Doc
+	AdvanceClusterTime(bsonx.Doc) error
 	OperationTime() *primitive.Timestamp
 	AdvanceOperationTime(*primitive.Timestamp) error
 	session()
@@ -143,11 +143,11 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	return err
 }
 
-func (s *sessionImpl) ClusterTime() bson.Doc {
+func (s *sessionImpl) ClusterTime() bsonx.Doc {
 	return s.Client.ClusterTime
 }
 
-func (s *sessionImpl) AdvanceClusterTime(d bson.Doc) error {
+func (s *sessionImpl) AdvanceClusterTime(d bsonx.Doc) error {
 	return s.Client.AdvanceClusterTime(d)
 }
 

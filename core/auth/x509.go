@@ -9,10 +9,10 @@ package auth
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // MongoDBX509 is the mechanism name for MongoDBX509.
@@ -29,13 +29,13 @@ type MongoDBX509Authenticator struct {
 
 // Auth implements the Authenticator interface.
 func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
-	authRequestDoc := bson.Doc{
-		{"authenticate", bson.Int32(1)},
-		{"mechanism", bson.String(MongoDBX509)},
+	authRequestDoc := bsonx.Doc{
+		{"authenticate", bsonx.Int32(1)},
+		{"mechanism", bsonx.String(MongoDBX509)},
 	}
 
 	if desc.WireVersion.Max < 5 {
-		authRequestDoc = append(authRequestDoc, bson.Elem{"user", bson.String(a.User)})
+		authRequestDoc = append(authRequestDoc, bsonx.Elem{"user", bsonx.String(a.User)})
 	}
 
 	authCmd := command.Read{DB: "$external", Command: authRequestDoc}

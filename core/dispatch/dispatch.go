@@ -11,6 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ErrCollation is caused if a collation is given for an invalid server version.
@@ -19,9 +20,9 @@ var ErrCollation = errors.New("collation cannot be set for server versions < 3.4
 // ErrArrayFilters is caused if array filters are given for an invalid server version.
 var ErrArrayFilters = errors.New("array filters cannot be set for server versions < 3.6")
 
-func interfaceToDocument(val interface{}, registry *bsoncodec.Registry) (bson.Doc, error) {
+func interfaceToDocument(val interface{}, registry *bsoncodec.Registry) (bsonx.Doc, error) {
 	if val == nil {
-		return bson.Doc{}, nil
+		return bsonx.Doc{}, nil
 	}
 
 	if registry == nil {
@@ -39,21 +40,21 @@ func interfaceToDocument(val interface{}, registry *bsoncodec.Registry) (bson.Do
 	if err != nil {
 		return nil, err
 	}
-	return bson.ReadDoc(b)
+	return bsonx.ReadDoc(b)
 }
 
-func interfaceToElement(key string, i interface{}, registry *bsoncodec.Registry) (bson.Elem, error) {
+func interfaceToElement(key string, i interface{}, registry *bsoncodec.Registry) (bsonx.Elem, error) {
 	switch conv := i.(type) {
 	case string:
-		return bson.Elem{key, bson.String(conv)}, nil
-	case bson.Doc:
-		return bson.Elem{key, bson.Document(conv)}, nil
+		return bsonx.Elem{key, bsonx.String(conv)}, nil
+	case bsonx.Doc:
+		return bsonx.Elem{key, bsonx.Document(conv)}, nil
 	default:
 		doc, err := interfaceToDocument(i, registry)
 		if err != nil {
-			return bson.Elem{}, err
+			return bsonx.Elem{}, err
 		}
 
-		return bson.Elem{key, bson.Document(doc)}, nil
+		return bsonx.Elem{key, bsonx.Document(doc)}, nil
 	}
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,7 +27,7 @@ func noerr(t *testing.T, err error) {
 
 func requireErrEqual(t *testing.T, err1 error, err2 error) { require.True(t, compareErrors(err1, err2)) }
 
-func elementSliceEqual(t *testing.T, e1 []Elem, e2 []Elem) {
+func elementSliceEqual(t *testing.T, e1 []bsonx.Elem, e2 []bsonx.Elem) {
 	require.Equal(t, len(e1), len(e2))
 
 	for i := range e1 {

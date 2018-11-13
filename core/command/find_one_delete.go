@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // FindOneAndDelete represents the findOneAndDelete operation.
@@ -22,8 +23,8 @@ import (
 // The findOneAndDelete command deletes a single document that matches a query and returns it.
 type FindOneAndDelete struct {
 	NS           Namespace
-	Query        bson.Doc
-	Opts         []bson.Elem
+	Query        bsonx.Doc
+	Opts         []bsonx.Elem
 	WriteConcern *writeconcern.WriteConcern
 	Clock        *session.ClusterClock
 	Session      *session.Client
@@ -47,10 +48,10 @@ func (f *FindOneAndDelete) encode(desc description.SelectedServer) (*Write, erro
 		return nil, err
 	}
 
-	command := bson.Doc{
-		{"findAndModify", bson.String(f.NS.Collection)},
-		{"query", bson.Document(f.Query)},
-		{"remove", bson.Boolean(true)},
+	command := bsonx.Doc{
+		{"findAndModify", bsonx.String(f.NS.Collection)},
+		{"query", bsonx.Document(f.Query)},
+		{"remove", bsonx.Boolean(true)},
 	}
 	command = append(command, f.Opts...)
 

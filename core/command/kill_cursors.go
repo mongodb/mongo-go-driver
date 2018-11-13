@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // KillCursors represents the killCursors command.
@@ -38,13 +39,13 @@ func (kc *KillCursors) Encode(desc description.SelectedServer) (wiremessage.Wire
 }
 
 func (kc *KillCursors) encode(desc description.SelectedServer) (*Read, error) {
-	idVals := make([]bson.Val, 0, len(kc.IDs))
+	idVals := make([]bsonx.Val, 0, len(kc.IDs))
 	for _, id := range kc.IDs {
-		idVals = append(idVals, bson.Int64(id))
+		idVals = append(idVals, bsonx.Int64(id))
 	}
-	cmd := bson.Doc{
-		{"killCursors", bson.String(kc.NS.Collection)},
-		{"cursors", bson.Array(idVals)},
+	cmd := bsonx.Doc{
+		{"killCursors", bsonx.String(kc.NS.Collection)},
+		{"cursors", bsonx.Array(idVals)},
 	}
 
 	return &Read{
