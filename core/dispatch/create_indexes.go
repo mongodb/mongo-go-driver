@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // CreateIndexes handles the full cycle dispatch and execution of a createIndexes
@@ -46,7 +47,7 @@ func CreateIndexes(
 
 	cio := options.MergeCreateIndexesOptions(opts...)
 	if cio.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*cio.MaxTime / time.Millisecond))})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"maxTimeMS", bsonx.Int64(int64(*cio.MaxTime / time.Millisecond))})
 	}
 
 	// If no explicit session and deployment supports sessions, start implicit session.

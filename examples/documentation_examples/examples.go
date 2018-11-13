@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +45,7 @@ func stringSliceEquals(s1 []string, s2 []string) bool {
 	return true
 }
 
-func containsKey(doc bson.Doc, key ...string) bool {
+func containsKey(doc bsonx.Doc, key ...string) bool {
 	_, err := doc.LookupErr(key...)
 	if err != nil {
 		return false
@@ -105,8 +106,8 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 			context.Background(),
 			[]interface{}{
 				bson.D{
-					{"item", bson.String("journal")},
-					{"qty", bson.Int32(25)},
+					{"item", bsonx.String("journal")},
+					{"qty", bsonx.Int32(25)},
 					{"tags", bson.A{"blank", "red"}},
 					{"size", bson.D{
 						{"h", 14},
@@ -115,8 +116,8 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 					}},
 				},
 				bson.D{
-					{"item", bson.String("mat")},
-					{"qty", bson.Int32(25)},
+					{"item", bsonx.String("mat")},
+					{"qty", bsonx.Int32(25)},
 					{"tags", bson.A{"gray"}},
 					{"size", bson.D{
 						{"h", 27.9},
@@ -1112,7 +1113,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1150,7 +1151,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1187,7 +1188,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1225,7 +1226,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1266,7 +1267,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1309,7 +1310,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1363,7 +1364,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1540,7 +1541,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1597,7 +1598,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1654,7 +1655,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bson.Doc{}
+		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
 			err := cursor.Decode(doc)
@@ -1783,7 +1784,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 56
 
-		result, err := coll.DeleteMany(context.Background(), bson.Doc{})
+		result, err := coll.DeleteMany(context.Background(), bsonx.Doc{})
 
 		// End Example 56
 

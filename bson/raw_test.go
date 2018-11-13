@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -346,10 +347,10 @@ func TestRaw(t *testing.T) {
 	})
 }
 
-func readerElementEqual(e1, e2 Elem) bool { return e1.Equal(e2) }
+func readerElementEqual(e1, e2 bsonx.Elem) bool { return e1.Equal(e2) }
 
-func readerElementComparer(e1, e2 Elem) bool { return e1.Equal(e2) }
+func readerElementComparer(e1, e2 bsonx.Elem) bool { return e1.Equal(e2) }
 
-func fromElement(e Elem) Elem {
+func fromElement(e bsonx.Elem) bsonx.Elem {
 	return e
 }

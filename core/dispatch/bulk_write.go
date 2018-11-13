@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // BulkWriteError is an error from one operation in a bulk write.
@@ -203,7 +204,7 @@ func runInsert(
 	continueOnError bool,
 	registry *bsoncodec.Registry,
 ) (result.Insert, error) {
-	docs := make([]bson.Doc, len(batch.models))
+	docs := make([]bsonx.Doc, len(batch.models))
 	var i int
 	for _, model := range batch.models {
 		converted := model.(InsertOneModel)
@@ -226,7 +227,7 @@ func runInsert(
 	}
 
 	if bypassDocValidation != nil {
-		cmd.Opts = []bson.Elem{{"bypassDocumentValidation", bson.Boolean(*bypassDocValidation)}}
+		cmd.Opts = []bsonx.Elem{{"bypassDocumentValidation", bsonx.Boolean(*bypassDocValidation)}}
 	}
 
 	if !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) || !retryWrite || !batch.canRetry {
@@ -266,11 +267,11 @@ func runDelete(
 	continueOnError bool,
 	registry *bsoncodec.Registry,
 ) (result.Delete, error) {
-	docs := make([]bson.Doc, len(batch.models))
+	docs := make([]bsonx.Doc, len(batch.models))
 	var i int
 
 	for _, model := range batch.models {
-		var doc bson.Doc
+		var doc bsonx.Doc
 		var err error
 
 		if dom, ok := model.(DeleteOneModel); ok {
@@ -334,10 +335,10 @@ func runUpdate(
 	continueOnError bool,
 	registry *bsoncodec.Registry,
 ) (result.Update, error) {
-	docs := make([]bson.Doc, len(batch.models))
+	docs := make([]bsonx.Doc, len(batch.models))
 
 	for i, model := range batch.models {
-		var doc bson.Doc
+		var doc bsonx.Doc
 		var err error
 
 		if rom, ok := model.(ReplaceOneModel); ok {
@@ -368,7 +369,7 @@ func runUpdate(
 	}
 	if bypassDocValidation != nil {
 		// TODO this is temporary!
-		cmd.Opts = []bson.Elem{{"bypassDocumentValidation", bson.Boolean(*bypassDocValidation)}}
+		cmd.Opts = []bsonx.Elem{{"bypassDocumentValidation", bsonx.Boolean(*bypassDocValidation)}}
 		//cmd.Opts = []option.UpdateOptioner{option.OptBypassDocumentValidation(bypassDocValidation)}
 	}
 
@@ -550,7 +551,7 @@ func createUpdateDoc(
 	updateModel UpdateModel,
 	multi bool,
 	registry *bsoncodec.Registry,
-) (bson.Doc, error) {
+) (bsonx.Doc, error) {
 	f, err := interfaceToDocument(filter, registry)
 	if err != nil {
 		return nil, err
@@ -561,10 +562,10 @@ func createUpdateDoc(
 		return nil, err
 	}
 
-	doc := bson.Doc{
-		{"q", bson.Document(f)},
-		{"u", bson.Document(u)},
-		{"multi", bson.Boolean(multi)},
+	doc := bsonx.Doc{
+		{"q", bsonx.Document(f)},
+		{"u", bsonx.Document(u)},
+		{"multi", bsonx.Boolean(multi)},
 	}
 
 	if arrayFiltersSet {
@@ -572,15 +573,15 @@ func createUpdateDoc(
 		if err != nil {
 			return nil, err
 		}
-		doc = append(doc, bson.Elem{"arrayFilters", bson.Array(arr)})
+		doc = append(doc, bsonx.Elem{"arrayFilters", bsonx.Array(arr)})
 	}
 
 	if updateModel.Collation != nil {
-		doc = append(doc, bson.Elem{"collation", bson.Document(updateModel.Collation.ToDocument())})
+		doc = append(doc, bsonx.Elem{"collation", bsonx.Document(updateModel.Collation.ToDocument())})
 	}
 
 	if updateModel.UpsertSet {
-		doc = append(doc, bson.Elem{"upsert", bson.Boolean(updateModel.Upsert)})
+		doc = append(doc, bsonx.Elem{"upsert", bsonx.Boolean(updateModel.Upsert)})
 	}
 
 	return doc, nil
@@ -591,7 +592,7 @@ func createDeleteDoc(
 	collation *options.Collation,
 	many bool,
 	registry *bsoncodec.Registry,
-) (bson.Doc, error) {
+) (bsonx.Doc, error) {
 	f, err := interfaceToDocument(filter, registry)
 	if err != nil {
 		return nil, err
@@ -602,13 +603,13 @@ func createDeleteDoc(
 		limit = 0
 	}
 
-	doc := bson.Doc{
-		{"q", bson.Document(f)},
-		{"limit", bson.Int32(limit)},
+	doc := bsonx.Doc{
+		{"q", bsonx.Document(f)},
+		{"limit", bsonx.Int32(limit)},
 	}
 
 	if collation != nil {
-		doc = append(doc, bson.Elem{"collation", bson.Document(collation.ToDocument())})
+		doc = append(doc, bsonx.Elem{"collation", bsonx.Document(collation.ToDocument())})
 	}
 
 	return doc, nil

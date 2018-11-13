@@ -20,6 +20,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -107,7 +108,7 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	result, err := db.RunCommand(context.Background(), bson.Doc{{"ismaster", bson.Int32(1)}})
+	result, err := db.RunCommand(context.Background(), bsonx.Doc{{"ismaster", bsonx.Int32(1)}})
 	require.NoError(t, err)
 
 	isMaster, err := result.LookupErr("ismaster")
@@ -145,10 +146,10 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 
 	_, err = db.RunCommand(
 		context.Background(),
-		bson.Doc{
-			{"create", bson.String(cappedName)},
-			{"capped", bson.Boolean(true)},
-			{"size", bson.Int32(64 * 1024)},
+		bsonx.Doc{
+			{"create", bsonx.String(cappedName)},
+			{"capped", bsonx.Boolean(true)},
+			{"size", bsonx.Int32(64 * 1024)},
 		},
 	)
 	if err != nil {
@@ -157,8 +158,8 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 	cappedColl := db.Collection(cappedName)
 
 	id := objectid.New()
-	want := bson.Elem{"_id", bson.ObjectID(id)}
-	doc := bson.Doc{want, {"x", bson.Int32(1)}}
+	want := bsonx.Elem{"_id", bsonx.ObjectID(id)}
+	doc := bsonx.Doc{want, {"x", bsonx.Int32(1)}}
 
 	_, err = uncappedColl.InsertOne(context.Background(), doc)
 	if err != nil {
@@ -180,7 +181,7 @@ func verifyListCollections(cursor Cursor, uncappedName string, cappedName string
 	var cappedFound bool
 
 	for cursor.Next(context.Background()) {
-		next := bson.Doc{}
+		next := bsonx.Doc{}
 		err = cursor.Decode(next)
 		if err != nil {
 			return err
@@ -237,9 +238,9 @@ func listCollectionsTest(db *Database, cappedOnly bool) error {
 		return err
 	}
 
-	var filter bson.Doc
+	var filter bsonx.Doc
 	if cappedOnly {
-		filter = bson.Doc{{"options.capped", bson.Boolean(true)}}
+		filter = bsonx.Doc{{"options.capped", bsonx.Boolean(true)}}
 	}
 
 	for i := 0; i < 10; i++ {

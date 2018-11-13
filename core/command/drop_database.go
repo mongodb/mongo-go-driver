@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // DropDatabase represents the DropDatabase command.
@@ -40,7 +41,7 @@ func (dd *DropDatabase) Encode(desc description.SelectedServer) (wiremessage.Wir
 }
 
 func (dd *DropDatabase) encode(desc description.SelectedServer) (*Write, error) {
-	cmd := bson.Doc{{"dropDatabase", bson.Int32(1)}}
+	cmd := bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}}
 
 	return &Write{
 		Clock:        dd.Clock,

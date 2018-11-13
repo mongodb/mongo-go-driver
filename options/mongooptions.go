@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Collation allows users to specify language-specific rules for string comparison, such as
@@ -27,32 +28,32 @@ type Collation struct {
 	Backwards       bool   `bson:",omitempty"` // Causes secondary differences to be considered in reverse order, as it is done in the French language
 }
 
-// ToDocument converts the Collation to a *bson.Document
-func (co *Collation) ToDocument() bson.Doc {
-	doc := bson.Doc{}
+// ToDocument converts the Collation to a *bsonx.Document
+func (co *Collation) ToDocument() bsonx.Doc {
+	doc := bsonx.Doc{}
 	if co.Locale != "" {
-		doc = append(doc, bson.Elem{"locale", bson.String(co.Locale)})
+		doc = append(doc, bsonx.Elem{"locale", bsonx.String(co.Locale)})
 	}
 	if co.CaseLevel {
-		doc = append(doc, bson.Elem{"caseLevel", bson.Boolean(true)})
+		doc = append(doc, bsonx.Elem{"caseLevel", bsonx.Boolean(true)})
 	}
 	if co.CaseFirst != "" {
-		doc = append(doc, bson.Elem{"caseFirst", bson.String(co.CaseFirst)})
+		doc = append(doc, bsonx.Elem{"caseFirst", bsonx.String(co.CaseFirst)})
 	}
 	if co.Strength != 0 {
-		doc = append(doc, bson.Elem{"strength", bson.Int32(int32(co.Strength))})
+		doc = append(doc, bsonx.Elem{"strength", bsonx.Int32(int32(co.Strength))})
 	}
 	if co.NumericOrdering {
-		doc = append(doc, bson.Elem{"numericOrdering", bson.Boolean(true)})
+		doc = append(doc, bsonx.Elem{"numericOrdering", bsonx.Boolean(true)})
 	}
 	if co.Alternate != "" {
-		doc = append(doc, bson.Elem{"alternate", bson.String(co.Alternate)})
+		doc = append(doc, bsonx.Elem{"alternate", bsonx.String(co.Alternate)})
 	}
 	if co.MaxVariable != "" {
-		doc = append(doc, bson.Elem{"maxVariable", bson.String(co.MaxVariable)})
+		doc = append(doc, bsonx.Elem{"maxVariable", bsonx.String(co.MaxVariable)})
 	}
 	if co.Backwards {
-		doc = append(doc, bson.Elem{"backwards", bson.Boolean(true)})
+		doc = append(doc, bsonx.Elem{"backwards", bsonx.Boolean(true)})
 	}
 	return doc
 }
@@ -101,8 +102,8 @@ type ArrayFilters struct {
 	Filters  []interface{}       // The filters to apply
 }
 
-func (af *ArrayFilters) ToArray() (bson.Arr, error) {
-	docs := make([]bson.Doc, 0, len(af.Filters))
+func (af *ArrayFilters) ToArray() (bsonx.Arr, error) {
+	docs := make([]bsonx.Doc, 0, len(af.Filters))
 	for _, f := range af.Filters {
 		d, err := transformDocument(af.Registry, f)
 		if err != nil {
@@ -111,9 +112,9 @@ func (af *ArrayFilters) ToArray() (bson.Arr, error) {
 		docs = append(docs, d)
 	}
 
-	arr := bson.Arr{}
+	arr := bsonx.Arr{}
 	for _, doc := range docs {
-		arr = append(arr, bson.Document(doc))
+		arr = append(arr, bsonx.Document(doc))
 	}
 
 	return arr, nil
@@ -128,14 +129,14 @@ type MarshalError struct {
 
 // Error implements the error interface.
 func (me MarshalError) Error() string {
-	return fmt.Sprintf("cannot transform type %s to a *bson.Document", reflect.TypeOf(me.Value))
+	return fmt.Sprintf("cannot transform type %s to a *bsonx.Document", reflect.TypeOf(me.Value))
 }
 
 var defaultRegistry = bson.DefaultRegistry
 
-func transformDocument(registry *bsoncodec.Registry, val interface{}) (bson.Doc, error) {
+func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc, error) {
 	if val == nil {
-		return bson.Doc{}, nil
+		return bsonx.Doc{}, nil
 	}
 	reg := defaultRegistry
 	if registry != nil {
@@ -153,5 +154,5 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (bson.Doc,
 	if err != nil {
 		return nil, MarshalError{Value: val, Err: err}
 	}
-	return bson.ReadDoc(b)
+	return bsonx.ReadDoc(b)
 }

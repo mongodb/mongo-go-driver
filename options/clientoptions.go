@@ -8,6 +8,9 @@ package options
 
 import (
 	"context"
+	"net"
+	"time"
+
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/connection"
 	"github.com/mongodb/mongo-go-driver/core/connstring"
@@ -16,8 +19,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
-	"net"
-	"time"
 )
 
 // ContextDialer makes new network connections

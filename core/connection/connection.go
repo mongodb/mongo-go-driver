@@ -31,10 +31,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/event"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 var globalClientConnectionID uint64
-var emptyDoc = bson.Doc{}
+var emptyDoc = bsonx.Doc{}
 
 func nextClientConnectionID() uint64 {
 	return atomic.AddUint64(&globalClientConnectionID, 1)
@@ -368,13 +369,13 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		ConnectionID: c.id,
 	}
 
-	var cmd bson.Doc
+	var cmd bsonx.Doc
 	var err error
 
 	var acknowledged bool
 	switch converted := wm.(type) {
 	case wiremessage.Query:
-		cmd, err = bson.ReadDoc([]byte(converted.Query))
+		cmd, err = bsonx.ReadDoc([]byte(converted.Query))
 		if err != nil {
 			return err
 		}
@@ -400,7 +401,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		}
 		if arr != nil {
 			cmd = cmd.Copy() // make copy to avoid changing original command
-			cmd = append(cmd, bson.Elem{identifier, bson.Array(arr)})
+			cmd = append(cmd, bsonx.Elem{identifier, bsonx.Array(arr)})
 		}
 
 		dbVal, err := cmd.LookupErr("$db")
@@ -435,7 +436,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 
 		c.cmdMonitor.Succeeded(ctx, &event.CommandSucceededEvent{
 			CommandFinishedEvent: finishedEvent,
-			Reply:                bson.Doc{{"ok", bson.Int32(1)}},
+			Reply:                bsonx.Doc{{"ok", bsonx.Int32(1)}},
 		})
 
 		return nil
@@ -445,7 +446,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 	return nil
 }
 
-func processReply(reply bson.Doc) (bool, string) {
+func processReply(reply bsonx.Doc) (bool, string) {
 	var success bool
 	var errmsg string
 	var errCode int32
@@ -491,7 +492,7 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 		return nil
 	}
 
-	var reply bson.Doc
+	var reply bsonx.Doc
 	var requestID int64
 	var err error
 
@@ -541,7 +542,7 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 			}
 			if arr != nil {
 				reply = reply.Copy() // make copy to avoid changing original command
-				reply = append(reply, bson.Elem{identifier, bson.Array(arr)})
+				reply = append(reply, bsonx.Elem{identifier, bsonx.Array(arr)})
 			}
 		}
 

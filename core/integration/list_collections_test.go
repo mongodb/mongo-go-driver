@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/description"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestCommandListCollections(t *testing.T) {
@@ -65,15 +66,15 @@ func TestCommandListCollections(t *testing.T) {
 		testutil.DropCollection(t, testutil.DBName(t), collOne)
 		testutil.DropCollection(t, testutil.DBName(t), collTwo)
 		testutil.DropCollection(t, testutil.DBName(t), collThree)
-		testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bson.Doc{{"_id", bson.Int32(1)}})
-		testutil.InsertDocs(t, testutil.DBName(t), collTwo, wc, bson.Doc{{"_id", bson.Int32(2)}})
-		testutil.InsertDocs(t, testutil.DBName(t), collThree, wc, bson.Doc{{"_id", bson.Int32(3)}})
+		testutil.InsertDocs(t, testutil.DBName(t), collOne, wc, bsonx.Doc{{"_id", bsonx.Int32(1)}})
+		testutil.InsertDocs(t, testutil.DBName(t), collTwo, wc, bsonx.Doc{{"_id", bsonx.Int32(2)}})
+		testutil.InsertDocs(t, testutil.DBName(t), collThree, wc, bsonx.Doc{{"_id", bsonx.Int32(3)}})
 
 		cursor, err := (&command.ListCollections{DB: dbName}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		noerr(t, err)
 
 		names := map[string]bool{}
-		next := bson.Doc{}
+		next := bsonx.Doc{}
 
 		for cursor.Next(context.Background()) {
 			next = next[:0]

@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +55,7 @@ func TestChangeStream_firstStage(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(1)}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
@@ -87,7 +88,7 @@ func TestChangeStream_noCustomStandaloneError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(1)}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
 	require.NoError(t, err)
 
 	_, err = coll.Watch(context.Background(), nil)
@@ -112,20 +113,20 @@ func TestChangeStream_trackResumeToken(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"y", bson.Int32(1)}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"y", bsonx.Int32(1)}})
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
 	require.NoError(t, err)
 
 	for i := 1; i <= 4; i++ {
-		_, err = coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(int32(i))}})
+		_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(int32(i))}})
 		require.NoError(t, err)
 	}
 
 	for i := 1; i <= 4; i++ {
 		getNextChange(changes)
-		var doc bson.Doc
+		var doc bsonx.Doc
 		err := changes.Decode(&doc)
 		require.NoError(t, err)
 
@@ -153,20 +154,20 @@ func TestChangeStream_errorMissingResponseToken(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"y", bson.Int32(1)}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"y", bsonx.Int32(1)}})
 	require.NoError(t, err)
 
 	// Project out the response token
-	changes, err := coll.Watch(context.Background(), []bson.Doc{
-		{{"$project", bson.Document(bson.Doc{{"_id", bson.Int32(0)}})}},
+	changes, err := coll.Watch(context.Background(), []bsonx.Doc{
+		{{"$project", bsonx.Document(bsonx.Doc{{"_id", bsonx.Int32(0)}})}},
 	})
 	require.NoError(t, err)
 
-	_, err = coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(1)}})
+	_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
 	require.NoError(t, err)
 
 	getNextChange(changes)
-	require.Error(t, changes.Decode(&bson.Doc{}))
+	require.Error(t, changes.Decode(&bsonx.Doc{}))
 }
 
 func TestChangeStream_resumableError(t *testing.T) {
@@ -187,7 +188,7 @@ func TestChangeStream_resumableError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"y", bson.Int32(1)}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"y", bsonx.Int32(1)}})
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
@@ -234,7 +235,7 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	// Ensure the database is created.
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"y", bson.Int32(1)}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"y", bsonx.Int32(1)}})
 	require.NoError(t, err)
 
 	changes, err := coll.Watch(context.Background(), nil)
@@ -259,11 +260,11 @@ func TestChangeStream_resumeAfterKillCursors(t *testing.T) {
 	// insert a document after blocking call to getNextChange below
 	go func() {
 		time.Sleep(time.Millisecond * 500)
-		_, err = coll.InsertOne(context.Background(), bson.Doc{{"x", bson.Int32(1)}})
+		_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
 		require.NoError(t, err)
 	}()
 
 	getNextChange(changes)
-	var doc bson.Doc
+	var doc bsonx.Doc
 	require.NoError(t, changes.Decode(&doc))
 }

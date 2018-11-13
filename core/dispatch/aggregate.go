@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"time"
 
@@ -77,33 +78,33 @@ func Aggregate(
 	aggOpts := options.MergeAggregateOptions(opts...)
 
 	if aggOpts.AllowDiskUse != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"allowDiskUse", bson.Boolean(*aggOpts.AllowDiskUse)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"allowDiskUse", bsonx.Boolean(*aggOpts.AllowDiskUse)})
 	}
 	if aggOpts.BatchSize != nil {
-		elem := bson.Elem{"batchSize", bson.Int32(*aggOpts.BatchSize)}
+		elem := bsonx.Elem{"batchSize", bsonx.Int32(*aggOpts.BatchSize)}
 		cmd.Opts = append(cmd.Opts, elem)
 		cmd.CursorOpts = append(cmd.CursorOpts, elem)
 	}
 	if aggOpts.BypassDocumentValidation != nil && desc.WireVersion.Includes(4) {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"bypassDocumentValidation", bson.Boolean(*aggOpts.BypassDocumentValidation)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*aggOpts.BypassDocumentValidation)})
 	}
 	if aggOpts.Collation != nil {
 		if desc.WireVersion.Max < 5 {
 			return nil, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(aggOpts.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(aggOpts.Collation.ToDocument())})
 	}
 	if aggOpts.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*aggOpts.MaxTime / time.Millisecond))})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"maxTimeMS", bsonx.Int64(int64(*aggOpts.MaxTime / time.Millisecond))})
 	}
 	if aggOpts.MaxAwaitTime != nil {
 		// specified as maxTimeMS on getMore commands
-		cmd.CursorOpts = append(cmd.CursorOpts, bson.Elem{
-			"maxTimeMS", bson.Int64(int64(*aggOpts.MaxAwaitTime / time.Millisecond)),
+		cmd.CursorOpts = append(cmd.CursorOpts, bsonx.Elem{
+			"maxTimeMS", bsonx.Int64(int64(*aggOpts.MaxAwaitTime / time.Millisecond)),
 		})
 	}
 	if aggOpts.Comment != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"comment", bson.String(*aggOpts.Comment)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"comment", bsonx.String(*aggOpts.Comment)})
 	}
 	if aggOpts.Hint != nil {
 		hintElem, err := interfaceToElement("hint", aggOpts.Hint, registry)

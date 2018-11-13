@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,11 +35,11 @@ func TestCommand(t *testing.T) {
 	noerr(t, err)
 
 	ctx := context.Background()
-	var result bson.Doc
+	var result bsonx.Doc
 
 	cmd := &command.Read{
 		DB:      "admin",
-		Command: bson.Doc{{"getnonce", bson.Int32(1)}},
+		Command: bsonx.Doc{{"getnonce", bsonx.Int32(1)}},
 	}
 	rw, err := server.Connection(ctx)
 	noerr(t, err)
@@ -46,7 +47,7 @@ func TestCommand(t *testing.T) {
 	rdr, err := cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
 	noerr(t, err)
 
-	result, err = bson.ReadDoc(rdr)
+	result, err = bsonx.ReadDoc(rdr)
 	noerr(t, err)
 
 	val, err := result.LookupErr("ok")
@@ -64,14 +65,14 @@ func TestCommand(t *testing.T) {
 	require.NotEqual(t, "", val.StringValue(), "MongoDB returned empty nonce")
 
 	result = result[:0]
-	cmd.Command = bson.Doc{{"ping", bson.Int32(1)}}
+	cmd.Command = bsonx.Doc{{"ping", bsonx.Int32(1)}}
 
 	rw, err = server.Connection(ctx)
 	noerr(t, err)
 	rdr, err = cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
 	noerr(t, err)
 
-	result, err = bson.ReadDoc(rdr)
+	result, err = bsonx.ReadDoc(rdr)
 	require.NoError(t, err)
 
 	val, err = result.LookupErr("ok")
@@ -92,7 +93,7 @@ func TestWriteCommands(t *testing.T) {
 			cmd := &command.Insert{
 				WriteConcern: nil,
 				NS:           command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
-				Docs:         []bson.Doc{{{"_id", bson.String("helloworld")}}},
+				Docs:         []bsonx.Doc{{{"_id", bsonx.String("helloworld")}}},
 			}
 			_, err = cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
 			noerr(t, err)

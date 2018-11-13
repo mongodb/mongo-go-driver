@@ -19,6 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Find handles the full cycle dispatch and execution of a find command against the provided
@@ -62,32 +63,32 @@ func Find(
 
 	fo := options.MergeFindOptions(opts...)
 	if fo.AllowPartialResults != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"allowPartialResults", bson.Boolean(*fo.AllowPartialResults)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"allowPartialResults", bsonx.Boolean(*fo.AllowPartialResults)})
 	}
 	if fo.BatchSize != nil {
-		elem := bson.Elem{"batchSize", bson.Int32(*fo.BatchSize)}
+		elem := bsonx.Elem{"batchSize", bsonx.Int32(*fo.BatchSize)}
 		cmd.Opts = append(cmd.Opts, elem)
 		cmd.CursorOpts = append(cmd.CursorOpts, elem)
 
 		if fo.Limit != nil && *fo.BatchSize != 0 && *fo.Limit <= int64(*fo.BatchSize) {
-			cmd.Opts = append(cmd.Opts, bson.Elem{"singleBatch", bson.Boolean(true)})
+			cmd.Opts = append(cmd.Opts, bsonx.Elem{"singleBatch", bsonx.Boolean(true)})
 		}
 	}
 	if fo.Collation != nil {
 		if desc.WireVersion.Max < 5 {
 			return nil, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bson.Elem{"collation", bson.Document(fo.Collation.ToDocument())})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(fo.Collation.ToDocument())})
 	}
 	if fo.Comment != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"comment", bson.String(*fo.Comment)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"comment", bsonx.String(*fo.Comment)})
 	}
 	if fo.CursorType != nil {
 		switch *fo.CursorType {
 		case options.Tailable:
-			cmd.Opts = append(cmd.Opts, bson.Elem{"tailable", bson.Boolean(true)})
+			cmd.Opts = append(cmd.Opts, bsonx.Elem{"tailable", bsonx.Boolean(true)})
 		case options.TailableAwait:
-			cmd.Opts = append(cmd.Opts, bson.Elem{"tailable", bson.Boolean(true)}, bson.Elem{"awaitData", bson.Boolean(true)})
+			cmd.Opts = append(cmd.Opts, bsonx.Elem{"tailable", bsonx.Boolean(true)}, bsonx.Elem{"awaitData", bsonx.Boolean(true)})
 		}
 	}
 	if fo.Hint != nil {
@@ -99,7 +100,7 @@ func Find(
 		cmd.Opts = append(cmd.Opts, hintElem)
 	}
 	if fo.Limit != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"limit", bson.Int64(*fo.Limit)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"limit", bsonx.Int64(*fo.Limit)})
 	}
 	if fo.Max != nil {
 		maxElem, err := interfaceToElement("max", fo.Max, registry)
@@ -111,10 +112,10 @@ func Find(
 	}
 	if fo.MaxAwaitTime != nil {
 		// Specified as maxTimeMS on the in the getMore command and not given in initial find command.
-		cmd.CursorOpts = append(cmd.CursorOpts, bson.Elem{"maxTimeMS", bson.Int64(int64(*fo.MaxAwaitTime / time.Millisecond))})
+		cmd.CursorOpts = append(cmd.CursorOpts, bsonx.Elem{"maxTimeMS", bsonx.Int64(int64(*fo.MaxAwaitTime / time.Millisecond))})
 	}
 	if fo.MaxTime != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"maxTimeMS", bson.Int64(int64(*fo.MaxTime / time.Millisecond))})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"maxTimeMS", bsonx.Int64(int64(*fo.MaxTime / time.Millisecond))})
 	}
 	if fo.Min != nil {
 		minElem, err := interfaceToElement("min", fo.Min, registry)
@@ -125,10 +126,10 @@ func Find(
 		cmd.Opts = append(cmd.Opts, minElem)
 	}
 	if fo.NoCursorTimeout != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"noCursorTimeout", bson.Boolean(*fo.NoCursorTimeout)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"noCursorTimeout", bsonx.Boolean(*fo.NoCursorTimeout)})
 	}
 	if fo.OplogReplay != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"oplogReplay", bson.Boolean(*fo.OplogReplay)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"oplogReplay", bsonx.Boolean(*fo.OplogReplay)})
 	}
 	if fo.Projection != nil {
 		projElem, err := interfaceToElement("projection", fo.Projection, registry)
@@ -139,16 +140,16 @@ func Find(
 		cmd.Opts = append(cmd.Opts, projElem)
 	}
 	if fo.ReturnKey != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"returnKey", bson.Boolean(*fo.ReturnKey)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"returnKey", bsonx.Boolean(*fo.ReturnKey)})
 	}
 	if fo.ShowRecordID != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"showRecordId", bson.Boolean(*fo.ShowRecordID)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"showRecordId", bsonx.Boolean(*fo.ShowRecordID)})
 	}
 	if fo.Skip != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"skip", bson.Int64(*fo.Skip)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"skip", bsonx.Int64(*fo.Skip)})
 	}
 	if fo.Snapshot != nil {
-		cmd.Opts = append(cmd.Opts, bson.Elem{"snapshot", bson.Boolean(*fo.Snapshot)})
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"snapshot", bsonx.Boolean(*fo.Snapshot)})
 	}
 	if fo.Sort != nil {
 		sortElem, err := interfaceToElement("sort", fo.Sort, registry)

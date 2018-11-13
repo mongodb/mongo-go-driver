@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
@@ -47,11 +48,11 @@ func skipIfBelow34(t *testing.T, db *Database) {
 }
 
 func initCollection(t *testing.T, coll *Collection) {
-	doc1 := bson.Doc{{"x", bson.Int32(1)}}
-	doc2 := bson.Doc{{"x", bson.Int32(2)}}
-	doc3 := bson.Doc{{"x", bson.Int32(3)}}
-	doc4 := bson.Doc{{"x", bson.Int32(4)}}
-	doc5 := bson.Doc{{"x", bson.Int32(5)}}
+	doc1 := bsonx.Doc{{"x", bsonx.Int32(1)}}
+	doc2 := bsonx.Doc{{"x", bsonx.Int32(2)}}
+	doc3 := bsonx.Doc{{"x", bsonx.Int32(3)}}
+	doc4 := bsonx.Doc{{"x", bsonx.Int32(4)}}
+	doc5 := bsonx.Doc{{"x", bsonx.Int32(5)}}
 
 	var err error
 
@@ -194,8 +195,8 @@ func TestCollection_InsertOne(t *testing.T) {
 	t.Parallel()
 
 	id := objectid.New()
-	want := bson.Elem{"_id", bson.ObjectID(id)}
-	doc := bson.Doc{want, {"x", bson.Int32(1)}}
+	want := bsonx.Elem{"_id", bsonx.ObjectID(id)}
+	doc := bsonx.Doc{want, {"x", bsonx.Int32(1)}}
 	coll := createTestCollection(t, nil, nil)
 
 	result, err := coll.InsertOne(context.Background(), doc)
@@ -214,7 +215,7 @@ func TestCollection_InsertOne_WriteError(t *testing.T) {
 	t.Parallel()
 
 	want := WriteError{Code: 11000}
-	doc := bson.Doc{{"_id", bson.ObjectID(objectid.New())}}
+	doc := bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}}
 	coll := createTestCollection(t, nil, nil)
 
 	_, err := coll.InsertOne(context.Background(), doc)
@@ -244,7 +245,7 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 	}
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
-	doc := bson.Doc{{"_id", bson.ObjectID(objectid.New())}}
+	doc := bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
 
@@ -269,12 +270,12 @@ func TestCollection_InsertMany(t *testing.T) {
 
 	t.Parallel()
 
-	want1 := bson.Elem{"_id", bson.Int32(11)}
-	want2 := bson.Elem{"_id", bson.Int32(12)}
+	want1 := bsonx.Elem{"_id", bsonx.Int32(11)}
+	want2 := bsonx.Elem{"_id", bsonx.Int32(12)}
 	docs := []interface{}{
-		bson.Doc{want1},
-		bson.Doc{{"x", bson.Int32(6)}},
-		bson.Doc{want2},
+		bsonx.Doc{want1},
+		bsonx.Doc{{"x", bsonx.Int32(6)}},
+		bsonx.Doc{want2},
 	}
 	coll := createTestCollection(t, nil, nil)
 
@@ -314,10 +315,10 @@ func TestCollection_InsertMany_Batches(t *testing.T) {
 	total := uint32(0)
 	expectedDocSize := uint32(26)
 	for i := 0; i < numDocs; i++ {
-		d := bson.Doc{
-			{"a", bson.Int32(int32(i))},
-			{"b", bson.Int32(int32(i * 2))},
-			{"c", bson.Int32(int32(i * 3))},
+		d := bsonx.Doc{
+			{"a", bsonx.Int32(int32(i))},
+			{"b", bsonx.Int32(int32(i * 2))},
+			{"c", bsonx.Int32(int32(i * 3))},
 		}
 		b, _ := d.MarshalBSON()
 		require.Equal(t, int(expectedDocSize), len(b), "len=%d expected=%d", len(b), expectedDocSize)
@@ -344,9 +345,9 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 
 	want := WriteError{Code: 11000}
 	docs := []interface{}{
-		bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
-		bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
-		bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
 	}
 	coll := createTestCollection(t, nil, nil)
 
@@ -397,9 +398,9 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 		}
 
 		docs = []interface{}{
-			bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
-			bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
-			bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
+			bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+			bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+			bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
 		}
 
 		copyColl, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(42))))
@@ -433,9 +434,9 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	docs := []interface{}{
-		bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
-		bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
-		bson.Doc{{"_id", bson.ObjectID(objectid.New())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
 	}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
@@ -465,7 +466,7 @@ func TestCollection_DeleteOne_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(1)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	result, err := coll.DeleteOne(context.Background(), filter)
 	require.Nil(t, err)
 	require.NotNil(t, result)
@@ -483,7 +484,7 @@ func TestCollection_DeleteOne_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(0)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(0)}}
 	result, err := coll.DeleteOne(context.Background(), filter)
 	require.Nil(t, err)
 	require.Equal(t, result.DeletedCount, int64(0))
@@ -501,7 +502,7 @@ func TestCollection_DeleteOne_notFound_withOption(t *testing.T) {
 	skipIfBelow34(t, coll.db)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(0)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(0)}}
 
 	result, err := coll.DeleteOne(context.Background(), filter,
 		options.Delete().SetCollation(&options.Collation{Locale: "en_US"}))
@@ -518,14 +519,14 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 	t.Parallel()
 
 	want := WriteError{Code: 20}
-	filter := bson.Doc{{"x", bson.Int32(1)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	db := createTestDatabase(t, nil)
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.Doc{
-			{"create", bson.String(testutil.ColName(t))},
-			{"capped", bson.Boolean(true)},
-			{"size", bson.Int32(64 * 1024)},
+		bsonx.Doc{
+			{"create", bsonx.String(testutil.ColName(t))},
+			{"capped", bsonx.Boolean(true)},
+			{"size", bsonx.Int32(64 * 1024)},
 		},
 	)
 	require.NoError(t, err)
@@ -556,7 +557,7 @@ func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
 	}
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
-	filter := bson.Doc{{"x", bson.Int32(1)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
 
@@ -584,7 +585,7 @@ func TestCollection_DeleteMany_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$gte", bson.Int32(3)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Int32(3)}})}}
 
 	result, err := coll.DeleteMany(context.Background(), filter)
 	require.Nil(t, err)
@@ -602,7 +603,7 @@ func TestCollection_DeleteMany_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$lt", bson.Int32(1)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$lt", bsonx.Int32(1)}})}}
 
 	result, err := coll.DeleteMany(context.Background(), filter)
 	require.Nil(t, err)
@@ -621,7 +622,7 @@ func TestCollection_DeleteMany_notFound_withOption(t *testing.T) {
 	skipIfBelow34(t, coll.db)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$lt", bson.Int32(1)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$lt", bsonx.Int32(1)}})}}
 
 	result, err := coll.DeleteMany(context.Background(), filter,
 		options.Delete().SetCollation(&options.Collation{Locale: "en_US"}))
@@ -638,14 +639,14 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 	t.Parallel()
 
 	want := WriteError{Code: 20}
-	filter := bson.Doc{{"x", bson.Int32(1)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	db := createTestDatabase(t, nil)
 	_, err := db.RunCommand(
 		context.Background(),
-		bson.Doc{
-			{"create", bson.String(testutil.ColName(t))},
-			{"capped", bson.Boolean(true)},
-			{"size", bson.Int32(64 * 1024)},
+		bsonx.Doc{
+			{"create", bsonx.String(testutil.ColName(t))},
+			{"capped", bsonx.Boolean(true)},
+			{"size", bsonx.Int32(64 * 1024)},
 		},
 	)
 	require.NoError(t, err)
@@ -676,7 +677,7 @@ func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
 	}
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
-	filter := bson.Doc{{"x", bson.Int32(1)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
 
@@ -704,8 +705,8 @@ func TestCollection_UpdateOne_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(1)}}
-	update := bson.Doc{{"$inc", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
+	update := bsonx.Doc{{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}}
 
 	result, err := coll.UpdateOne(context.Background(), filter, update)
 	require.Nil(t, err)
@@ -726,8 +727,8 @@ func TestCollection_UpdateOne_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(0)}}
-	update := bson.Doc{{"$inc", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(0)}}
+	update := bsonx.Doc{{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}}
 
 	result, err := coll.UpdateOne(context.Background(), filter, update)
 	require.Nil(t, err)
@@ -747,8 +748,8 @@ func TestCollection_UpdateOne_upsert(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(0)}}
-	update := bson.Doc{{"$inc", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(0)}}
+	update := bsonx.Doc{{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}}
 
 	result, err := coll.UpdateOne(context.Background(), filter, update, options.Update().SetUpsert(true))
 	require.Nil(t, err)
@@ -766,11 +767,11 @@ func TestCollection_UpdateOne_WriteError(t *testing.T) {
 	t.Parallel()
 
 	want := WriteError{Code: 66}
-	filter := bson.Doc{{"_id", bson.String("foo")}}
-	update := bson.Doc{{"$set", bson.Document(bson.Doc{{"_id", bson.Double(3.14159)}})}}
+	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"_id", bsonx.Double(3.14159)}})}}
 	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"_id", bson.String("foo")}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"_id", bsonx.String("foo")}})
 	require.NoError(t, err)
 
 	_, err = coll.UpdateOne(context.Background(), filter, update)
@@ -798,8 +799,8 @@ func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
 	}
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
-	filter := bson.Doc{{"_id", bson.String("foo")}}
-	update := bson.Doc{{"$set", bson.Document(bson.Doc{{"pi", bson.Double(3.14159)}})}}
+	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"pi", bsonx.Double(3.14159)}})}}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
 
@@ -827,9 +828,9 @@ func TestCollection_UpdateMany_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$gte", bson.Int32(3)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Int32(3)}})}}
 
-	update := bson.Doc{{"$inc", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}}
+	update := bsonx.Doc{{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}}
 
 	result, err := coll.UpdateMany(context.Background(), filter, update)
 	require.Nil(t, err)
@@ -849,9 +850,9 @@ func TestCollection_UpdateMany_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$lt", bson.Int32(1)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$lt", bsonx.Int32(1)}})}}
 
-	update := bson.Doc{{"$inc", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}}
+	update := bsonx.Doc{{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}}
 
 	result, err := coll.UpdateMany(context.Background(), filter, update)
 	require.Nil(t, err)
@@ -871,9 +872,9 @@ func TestCollection_UpdateMany_upsert(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$lt", bson.Int32(1)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$lt", bsonx.Int32(1)}})}}
 
-	update := bson.Doc{{"$inc", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}}
+	update := bsonx.Doc{{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}}
 
 	result, err := coll.UpdateMany(context.Background(), filter, update, options.Update().SetUpsert(true))
 	require.Nil(t, err)
@@ -891,11 +892,11 @@ func TestCollection_UpdateMany_WriteError(t *testing.T) {
 	t.Parallel()
 
 	want := WriteError{Code: 66}
-	filter := bson.Doc{{"_id", bson.String("foo")}}
-	update := bson.Doc{{"$set", bson.Document(bson.Doc{{"_id", bson.Double(3.14159)}})}}
+	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"_id", bsonx.Double(3.14159)}})}}
 	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"_id", bson.String("foo")}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"_id", bsonx.String("foo")}})
 	require.NoError(t, err)
 
 	_, err = coll.UpdateMany(context.Background(), filter, update)
@@ -923,8 +924,8 @@ func TestCollection_UpdateMany_WriteConcernError(t *testing.T) {
 	}
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
-	filter := bson.Doc{{"_id", bson.String("foo")}}
-	update := bson.Doc{{"$set", bson.Document(bson.Doc{{"pi", bson.Double(3.14159)}})}}
+	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"pi", bsonx.Double(3.14159)}})}}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
 
@@ -952,8 +953,8 @@ func TestCollection_ReplaceOne_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(1)}}
-	replacement := bson.Doc{{"y", bson.Int32(1)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
+	replacement := bsonx.Doc{{"y", bsonx.Int32(1)}}
 
 	result, err := coll.ReplaceOne(context.Background(), filter, replacement)
 	require.Nil(t, err)
@@ -974,8 +975,8 @@ func TestCollection_ReplaceOne_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(0)}}
-	replacement := bson.Doc{{"y", bson.Int32(1)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(0)}}
+	replacement := bsonx.Doc{{"y", bsonx.Int32(1)}}
 
 	result, err := coll.ReplaceOne(context.Background(), filter, replacement)
 	require.Nil(t, err)
@@ -995,8 +996,8 @@ func TestCollection_ReplaceOne_upsert(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(0)}}
-	replacement := bson.Doc{{"y", bson.Int32(1)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(0)}}
+	replacement := bsonx.Doc{{"y", bsonx.Int32(1)}}
 
 	result, err := coll.ReplaceOne(context.Background(), filter, replacement, options.Replace().SetUpsert(true))
 	require.Nil(t, err)
@@ -1013,11 +1014,11 @@ func TestCollection_ReplaceOne_WriteError(t *testing.T) {
 
 	t.Parallel()
 
-	filter := bson.Doc{{"_id", bson.String("foo")}}
-	replacement := bson.Doc{{"_id", bson.Double(3.14159)}}
+	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
+	replacement := bsonx.Doc{{"_id", bsonx.Double(3.14159)}}
 	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.InsertOne(context.Background(), bson.Doc{{"_id", bson.String("foo")}})
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"_id", bsonx.String("foo")}})
 	require.NoError(t, err)
 
 	_, err = coll.ReplaceOne(context.Background(), filter, replacement)
@@ -1049,8 +1050,8 @@ func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
 	}
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
-	filter := bson.Doc{{"_id", bson.String("foo")}}
-	update := bson.Doc{{"pi", bson.Double(3.14159)}}
+	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
+	update := bsonx.Doc{{"pi", bsonx.Double(3.14159)}}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
 
@@ -1078,21 +1079,21 @@ func TestCollection_Aggregate(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	pipeline := bson.Arr{
-		bson.Document(
-			bson.Doc{{"$match", bson.Document(bson.Doc{{"x", bson.Document(bson.Doc{{"$gte", bson.Int32(2)}})}})}},
+	pipeline := bsonx.Arr{
+		bsonx.Document(
+			bsonx.Doc{{"$match", bsonx.Document(bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Int32(2)}})}})}},
 		),
-		bson.Document(
-			bson.Doc{{
+		bsonx.Document(
+			bsonx.Doc{{
 				"$project",
-				bson.Document(bson.Doc{
-					{"_id", bson.Int32(0)},
-					{"x", bson.Int32(1)},
+				bsonx.Document(bsonx.Doc{
+					{"_id", bsonx.Int32(0)},
+					{"x", bsonx.Int32(1)},
 				}),
 			}},
 		),
-		bson.Document(
-			bson.Doc{{"$sort", bson.Document(bson.Doc{{"x", bson.Int32(1)}})}},
+		bsonx.Document(
+			bsonx.Doc{{"$sort", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})}},
 		)}
 
 	//cursor, err := coll.Aggregate(context.Background(), pipeline, aggregateopt.BundleAggregate())
@@ -1100,7 +1101,7 @@ func TestCollection_Aggregate(t *testing.T) {
 	require.Nil(t, err)
 
 	for i := 2; i < 5; i++ {
-		var doc bson.Doc
+		var doc bsonx.Doc
 		cursor.Next(context.Background())
 		err = cursor.Decode(&doc)
 		require.NoError(t, err)
@@ -1124,7 +1125,7 @@ func testAggregateWithOptions(t *testing.T, createIndex bool, opts *options.Aggr
 	if createIndex {
 		indexView := coll.Indexes()
 		_, err := indexView.CreateOne(context.Background(), IndexModel{
-			Keys: bson.Doc{{"x", bson.Int32(1)}},
+			Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
 		})
 
 		if err != nil {
@@ -1144,7 +1145,7 @@ func testAggregateWithOptions(t *testing.T, createIndex bool, opts *options.Aggr
 	}
 
 	for i := 2; i < 5; i++ {
-		var doc bson.Doc
+		var doc bsonx.Doc
 		cursor.Next(context.Background())
 		err = cursor.Decode(&doc)
 		if err != nil {
@@ -1182,7 +1183,7 @@ func TestCollection_Aggregate_IndexHint(t *testing.T) {
 	t.Parallel()
 
 	//hint := aggregateopt.Hint(bson.NewDocument(bson.EC.Int32("x", 1)))
-	aggOpts := options.Aggregate().SetHint(bson.Doc{{"x", bson.Int32(1)}})
+	aggOpts := options.Aggregate().SetHint(bsonx.Doc{{"x", bsonx.Int32(1)}})
 
 	err := testAggregateWithOptions(t, true, aggOpts)
 	require.NoError(t, err)
@@ -1226,7 +1227,7 @@ func TestCollection_Count_withFilter(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$gt", bson.Int32(2)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$gt", bsonx.Int32(2)}})}}
 
 	count, err := coll.Count(context.Background(), filter)
 	require.Nil(t, err)
@@ -1272,7 +1273,7 @@ func TestCollection_CountDocuments_withFilter(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$gt", bson.Int32(2)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$gt", bsonx.Int32(2)}})}}
 
 	count, err := coll.CountDocuments(context.Background(), filter)
 	require.Nil(t, err)
@@ -1366,7 +1367,7 @@ func TestCollection_Distinct_withFilter(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Document(bson.Doc{{"$gt", bson.Int32(2)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$gt", bsonx.Int32(2)}})}}
 
 	results, err := coll.Distinct(context.Background(), "x", filter)
 	require.Nil(t, err)
@@ -1401,7 +1402,7 @@ func TestCollection_Find_found(t *testing.T) {
 
 	cursor, err := coll.Find(context.Background(),
 		nil,
-		options.Find().SetSort(bson.Doc{{"x", bson.Int32(1)}}),
+		options.Find().SetSort(bsonx.Doc{{"x", bsonx.Int32(1)}}),
 	)
 	require.Nil(t, err)
 
@@ -1437,7 +1438,7 @@ func TestCollection_Find_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	cursor, err := coll.Find(context.Background(), bson.Doc{{"x", bson.Int32(6)}})
+	cursor, err := coll.Find(context.Background(), bsonx.Doc{{"x", bsonx.Int32(6)}})
 	require.Nil(t, err)
 
 	require.False(t, cursor.Next(context.Background()))
@@ -1453,8 +1454,8 @@ func TestCollection_FindOne_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(1)}}
-	var result bson.Doc
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
+	var result bsonx.Doc
 	err := coll.FindOne(context.Background(),
 		filter,
 	).Decode(&result)
@@ -1484,8 +1485,8 @@ func TestCollection_FindOne_found_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(1)}}
-	var result bson.Doc
+	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
+	var result bsonx.Doc
 	err := coll.FindOne(context.Background(),
 		filter,
 		options.FindOne().SetComment("here's a query for ya"),
@@ -1515,7 +1516,7 @@ func TestCollection_FindOne_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(6)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 	err := coll.FindOne(context.Background(), filter).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
 }
@@ -1530,9 +1531,9 @@ func TestCollection_FindOneAndDelete_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(3)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
 
-	var result bson.Doc
+	var result bsonx.Doc
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(&result)
 	require.NoError(t, err)
 
@@ -1552,7 +1553,7 @@ func TestCollection_FindOneAndDelete_found_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(3)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
 
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
 	require.NoError(t, err)
@@ -1568,7 +1569,7 @@ func TestCollection_FindOneAndDelete_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(6)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -1584,7 +1585,7 @@ func TestCollection_FindOneAndDelete_notFound_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(6)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
 
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
 	require.Equal(t, ErrNoDocuments, err)
@@ -1600,10 +1601,10 @@ func TestCollection_FindOneAndReplace_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(3)}}
-	replacement := bson.Doc{{"y", bson.Int32(3)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
+	replacement := bsonx.Doc{{"y", bsonx.Int32(3)}}
 
-	var result bson.Doc
+	var result bsonx.Doc
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(&result)
 	require.NoError(t, err)
 
@@ -1623,8 +1624,8 @@ func TestCollection_FindOneAndReplace_found_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(3)}}
-	replacement := bson.Doc{{"y", bson.Int32(3)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
+	replacement := bsonx.Doc{{"y", bsonx.Int32(3)}}
 
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
 	require.NoError(t, err)
@@ -1640,8 +1641,8 @@ func TestCollection_FindOneAndReplace_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(6)}}
-	replacement := bson.Doc{{"y", bson.Int32(6)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
+	replacement := bsonx.Doc{{"y", bsonx.Int32(6)}}
 
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -1657,8 +1658,8 @@ func TestCollection_FindOneAndReplace_notFound_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(6)}}
-	replacement := bson.Doc{{"y", bson.Int32(6)}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
+	replacement := bsonx.Doc{{"y", bsonx.Int32(6)}}
 
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -1674,10 +1675,10 @@ func TestCollection_FindOneAndUpdate_found(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(3)}}
-	update := bson.Doc{{"$set", bson.Document(bson.Doc{{"x", bson.Int32(6)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(6)}})}}
 
-	var result bson.Doc
+	var result bsonx.Doc
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(&result)
 	require.NoError(t, err)
 
@@ -1697,8 +1698,8 @@ func TestCollection_FindOneAndUpdate_found_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(3)}}
-	update := bson.Doc{{"$set", bson.Document(bson.Doc{{"x", bson.Int32(6)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(6)}})}}
 
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
 	require.NoError(t, err)
@@ -1714,8 +1715,8 @@ func TestCollection_FindOneAndUpdate_notFound(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(6)}}
-	update := bson.Doc{{"$set", bson.Document(bson.Doc{{"x", bson.Int32(6)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(6)}})}}
 
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
@@ -1731,8 +1732,8 @@ func TestCollection_FindOneAndUpdate_notFound_ignoreResult(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	filter := bson.Doc{{"x", bson.Int32(6)}}
-	update := bson.Doc{{"$set", bson.Document(bson.Doc{{"x", bson.Int32(6)}})}}
+	filter := bsonx.Doc{{"x", bsonx.Int32(6)}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(6)}})}}
 
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)

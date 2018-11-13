@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"fmt"
 
@@ -88,7 +89,7 @@ func compareVersions(t *testing.T, v1 string, v2 string) int {
 func getServerVersion(db *Database) (string, error) {
 	serverStatus, err := db.RunCommand(
 		context.Background(),
-		bson.Doc{{"serverStatus", bson.Int32(1)}},
+		bsonx.Doc{{"serverStatus", bsonx.Int32(1)}},
 	)
 	if err != nil {
 		return "", err
@@ -132,13 +133,13 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 
 		_, _ = db.RunCommand(
 			context.Background(),
-			bson.Doc{{"drop", bson.String(collName)}},
+			bsonx.Doc{{"drop", bsonx.String(collName)}},
 		)
 
 		if test.Outcome.Collection != nil && len(test.Outcome.Collection.Name) > 0 {
 			_, _ = db.RunCommand(
 				context.Background(),
-				bson.Doc{{"drop", bson.String(test.Outcome.Collection.Name)}},
+				bsonx.Doc{{"drop", bsonx.String(test.Outcome.Collection.Name)}},
 			)
 		}
 
@@ -373,7 +374,7 @@ func bulkWriteTest(t *testing.T, coll *Collection, test *testCase) {
 		if err != nil {
 			t.Fatalf("error marshalling options: %s", err)
 		}
-		optsDoc, err := bson.ReadDoc(optsBytes)
+		optsDoc, err := bsonx.ReadDoc(optsBytes)
 		if err != nil {
 			t.Fatalf("error creating options doc: %s", err)
 		}

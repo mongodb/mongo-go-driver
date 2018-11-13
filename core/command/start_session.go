@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/core/result"
 	"github.com/mongodb/mongo-go-driver/core/session"
 	"github.com/mongodb/mongo-go-driver/core/wiremessage"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // StartSession represents a startSession command
@@ -30,7 +31,7 @@ func (ss *StartSession) Encode(desc description.SelectedServer) (wiremessage.Wir
 }
 
 func (ss *StartSession) encode(desc description.SelectedServer) *Write {
-	cmd := bson.Doc{{"startSession", bson.Int32(1)}}
+	cmd := bsonx.Doc{{"startSession", bsonx.Int32(1)}}
 	return &Write{
 		Clock:   ss.Clock,
 		DB:      "admin",

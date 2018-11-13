@@ -31,6 +31,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -141,7 +142,7 @@ func TestTxnNumberIncluded(t *testing.T) {
 			if tc.includesTxn {
 				require.NotNil(t, evt.Command.Lookup("txnNumber"))
 			} else {
-				require.Equal(t, evt.Command.Lookup("txnNumber"), bson.Val{})
+				require.Equal(t, evt.Command.Lookup("txnNumber"), bsonx.Val{})
 			}
 		})
 	}
@@ -214,9 +215,9 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bson.Doc{
-					{"configureFailPoint", bson.String(test.FailPoint.ConfigureFailPoint)},
-					{"mode", bson.String("off")},
+				_, _ = dbAdmin.RunCommand(ctx, bsonx.Doc{
+					{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
+					{"mode", bsonx.String("off")},
 				})
 			}()
 		}
