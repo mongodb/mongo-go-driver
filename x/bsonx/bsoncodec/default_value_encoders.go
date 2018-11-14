@@ -15,9 +15,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsonrw"
 )
 
 var defaultValueEncoders DefaultValueEncoders

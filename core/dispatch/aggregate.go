@@ -9,9 +9,9 @@ package dispatch
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncodec"
 
 	"time"
 

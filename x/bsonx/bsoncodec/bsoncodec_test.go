@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsonrw"
 )
 
 func noerr(t *testing.T, err error) {

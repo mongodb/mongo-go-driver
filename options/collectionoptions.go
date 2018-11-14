@@ -7,10 +7,10 @@
 package options
 
 import (
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/core/readconcern"
 	"github.com/mongodb/mongo-go-driver/core/readpref"
 	"github.com/mongodb/mongo-go-driver/core/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncodec"
 )
 
 // CollectionOptions represent all possible options to configure a Collection.

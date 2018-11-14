@@ -20,9 +20,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsonrw"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/pretty"
 )
