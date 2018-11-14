@@ -5,37 +5,38 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // Package bson is a library for reading, writing, and manipulating BSON. The
-// library has three types for representing BSON.
+// library has two families of types for representing BSON.
 //
-// The Reader type is used to validate and retrieve elements from a byte slice.
-// If you are not manipulating the underlying document and just want to validate
-// or ensure the document has certain keys, this is the type you should use.
+// The Raw family of types is used to validate and retrieve elements from a slice of bytes. This
+// type is most useful when you want do lookups on BSON bytes without unmarshaling it into another
+// type.
 //
-// The Document type is a more generic type that can do all the read actions the
-// Reader can do and allows for manipulation of documents. The main usecase for
-// this type is reading some BSON and then adding, changing, or removing
-// elements or to build a document that will need to be manipulated later. If
-// the document can be created in a single pass without the need to do any
-// lookups, the Builder type is might be more appropriate.
+// Example:
+// 		var raw bson.Raw = ... // bytes from somewhere
+// 		err := raw.Validate()
+// 		if err != nil { return err }
+// 		val := raw.Lookup("foo")
+// 		i32, ok := val.Int32OK()
+// 		// do something with i32...
 //
-// The Builder type (in the "bson/builder" package) is used to create a BSON
-// document. The type only allows the iterative building of a document, so there
-// is no way to verify the contents outside of writing the document. If you have
-// a Builder and need to conditionally add a field, you can write the document
-// to a byte slice and use the Reader type to lookup the desired document, but
-// in this case you should probably use a Document instead.
+// The D family of types is used to build concise representations of BSON using native Go types.
+// These types do not support automatic lookup.
 //
-// The Element type represents a BSON element and the Value type represents an
-// individual value for a BSON element.
+// Example:
+// 		bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
 //
-// The Encoder and Decoder types can be used to marshal a type to an io.Writer
-// or to unmarshal into a type from an io.Reader. These types will use
-// reflection and evaluate struct tags unless the provided types implements the
-// Marshaler or Unmarshaler interfaces. The Builder and Reader types can be used
-// to implement these interfaces for types.
 //
-// The DocumentEncoder type can be used to encode a type to a Document instead
-// of an io.Writer. This is useful if some additional manipulation is required
-// after encoding a document. This type supports the same encoding behavior as
-// the Encoder type.
+// Marshaling and Unmarshaling are handled with the Marshal and Unmarshal family of functions. If
+// you need to write or read BSON from a non-slice source, an Encoder or Decoder can be used with a
+// bsonrw.ValueWriter or bsonrw.ValueReader.
+//
+// Example:
+// 		b, err := bson.Marshal(bson.D{{"foo", "bar"}})
+// 		if err != nil { return err }
+// 		var fooer struct {
+// 			Foo string
+// 		}
+// 		err = bson.Unmarshal(b, &fooer)
+// 		if err != nil { return err }
+// 		// do something with fooer...
 package bson
