@@ -4,8 +4,10 @@ MONGO_PKGS = $(shell ./etc/find_pkgs.sh ./mongo)
 MONGO_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./mongo _test)
 CORE_PKGS = $(shell ./etc/find_pkgs.sh ./core)
 CORE_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./core _test)
-PKGS = $(BSON_PKGS) $(MONGO_PKGS) $(CORE_PKGS)
-TEST_PKGS = $(BSON_TEST_PKGS) $(MONGO_TEST_PKGS) $(CORE_TEST_PKGS)
+UNSTABLE_PKGS = $(shell ./etc/find_pkgs.sh ./x)
+UNSTABLE_TEST_PKGS = $(shell ./etc/find_pkgs.sh ./x _test)
+PKGS = $(BSON_PKGS) $(MONGO_PKGS) $(CORE_PKGS) $(UNSTABLE_PKGS)
+TEST_PKGS = $(BSON_TEST_PKGS) $(MONGO_TEST_PKGS) $(CORE_TEST_PKGS) $(UNSTABLE_TEST_PKGS)
 
 TEST_TIMEOUT = 600
 

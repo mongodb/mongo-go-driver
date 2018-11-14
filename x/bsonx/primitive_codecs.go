@@ -14,6 +14,8 @@ var tDocument = reflect.TypeOf((Doc)(nil))
 var tMDoc = reflect.TypeOf((MDoc)(nil))
 var tArray = reflect.TypeOf((Arr)(nil))
 
+// PrimitiveCodecs is a namespace for all of the default bsoncodec.Codecs for the primitive types
+// defined in this package.
 type PrimitiveCodecs struct{}
 
 // DocumentEncodeValue is the ValueEncoderFunc for *Document.
@@ -246,6 +248,7 @@ func (pc PrimitiveCodecs) encodeDocument(ec bsoncodec.EncodeContext, dw bsonrw.D
 	return dw.WriteDocumentEnd()
 }
 
+// DecodeDocument haves decoding into a Doc from a bsonrw.DocumentReader.
 func (pc PrimitiveCodecs) DecodeDocument(dctx bsoncodec.DecodeContext, dr bsonrw.DocumentReader, pdoc *Doc) error {
 	return pc.decodeDocument(dctx, dr, pdoc)
 }
