@@ -16,6 +16,24 @@
       "revId": "021b88b4593ca282c4103b5a5a1b91d9a882f40b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4a121430_793c06a5",
+        "filename": "bson/registry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-14T21:04:25Z",
+      "side": 1,
+      "message": "We could remove this, but it\u0027ll make it a lot harder for users to get a useful default registry. We can move this function to x/bsonx, but we\u0027d need to reverse the dependencies, and it\u0027ll complicate things. We could remove this function and add some instructions in the docs for how to build one.",
+      "parentUuid": "e6f71703_d10e011c",
+      "revId": "021b88b4593ca282c4103b5a5a1b91d9a882f40b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
