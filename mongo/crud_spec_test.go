@@ -87,10 +87,11 @@ func compareVersions(t *testing.T, v1 string, v2 string) int {
 }
 
 func getServerVersion(db *Database) (string, error) {
-	serverStatus, err := db.RunCommand(
+	var serverStatus bsonx.Doc
+	err := db.RunCommand(
 		context.Background(),
 		bsonx.Doc{{"serverStatus", bsonx.Int32(1)}},
-	)
+	).Decode(&serverStatus)
 	if err != nil {
 		return "", err
 	}
@@ -131,13 +132,13 @@ func runCRUDTestFile(t *testing.T, filepath string, db *Database) {
 	for _, test := range testfile.Tests {
 		collName := sanitizeCollectionName("crud-spec-tests", test.Description)
 
-		_, _ = db.RunCommand(
+		_ = db.RunCommand(
 			context.Background(),
 			bsonx.Doc{{"drop", bsonx.String(collName)}},
 		)
 
 		if test.Outcome.Collection != nil && len(test.Outcome.Collection.Name) > 0 {
-			_, _ = db.RunCommand(
+			_ = db.RunCommand(
 				context.Background(),
 				bsonx.Doc{{"drop", bsonx.String(test.Outcome.Collection.Name)}},
 			)
@@ -459,7 +460,7 @@ func findOneAndDeleteTest(t *testing.T, coll *Collection, test *testCase) {
 	t.Run(test.Description, func(t *testing.T) {
 		actualResult := executeFindOneAndDelete(nil, coll, test.Operation.Arguments)
 
-		verifyDocumentResult(t, actualResult, test.Outcome.Result)
+		verifySingleResult(t, actualResult, test.Outcome.Result)
 
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
@@ -469,7 +470,7 @@ func findOneAndReplaceTest(t *testing.T, coll *Collection, test *testCase) {
 	t.Run(test.Description, func(t *testing.T) {
 		actualResult := executeFindOneAndReplace(nil, coll, test.Operation.Arguments)
 
-		verifyDocumentResult(t, actualResult, test.Outcome.Result)
+		verifySingleResult(t, actualResult, test.Outcome.Result)
 
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})
@@ -478,7 +479,7 @@ func findOneAndReplaceTest(t *testing.T, coll *Collection, test *testCase) {
 func findOneAndUpdateTest(t *testing.T, coll *Collection, test *testCase) {
 	t.Run(test.Description, func(t *testing.T) {
 		actualResult := executeFindOneAndUpdate(nil, coll, test.Operation.Arguments)
-		verifyDocumentResult(t, actualResult, test.Outcome.Result)
+		verifySingleResult(t, actualResult, test.Outcome.Result)
 
 		verifyCollectionContents(t, coll, test.Outcome.Collection.Data)
 	})

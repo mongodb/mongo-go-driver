@@ -9,7 +9,6 @@ package mongo
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
@@ -90,7 +89,7 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 
 // RunCommand runs a command on the database. A user can supply a custom
 // context to this method, or nil to default to context.Background().
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (bson.Raw, error) {
+func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -115,9 +114,10 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 
 	runCmdDoc, err := transformDocument(db.registry, runCommand)
 	if err != nil {
-		return nil, err
+		return &SingleResult{err: err}
 	}
-	result, err := driver.Read(ctx,
+
+	doc, err := driver.Read(ctx,
 		command.Read{
 			DB:       db.Name(),
 			Command:  runCmdDoc,
@@ -131,7 +131,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		db.client.topology.SessionPool,
 	)
 
-	return result, replaceTopologyErr(err)
+	return &SingleResult{err: replaceTopologyErr(err), rdr: doc}
 }
 
 // Drop drops this database from mongodb.

@@ -983,7 +983,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 
 // FindOne returns up to one document that matches the model.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...*options.FindOneOptions) *DocumentResult {
+	opts ...*options.FindOneOptions) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -994,7 +994,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
 		if err != nil {
-			return &DocumentResult{err: err}
+			return &SingleResult{err: err}
 		}
 	}
 
@@ -1002,7 +1002,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 
 	err = coll.client.ValidSession(sess)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &SingleResult{err: err}
 	}
 
 	rc := coll.readConcern
@@ -1053,16 +1053,16 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		findOpts...,
 	)
 	if err != nil {
-		return &DocumentResult{err: replaceTopologyErr(err)}
+		return &SingleResult{err: replaceTopologyErr(err)}
 	}
 
-	return &DocumentResult{cur: cursor, reg: coll.registry}
+	return &SingleResult{cur: cursor, reg: coll.registry}
 }
 
 // FindOneAndDelete find a single document and deletes it, returning the
 // original in result.
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
-	opts ...*options.FindOneAndDeleteOptions) *DocumentResult {
+	opts ...*options.FindOneAndDeleteOptions) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1073,7 +1073,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	if filter != nil {
 		f, err = transformDocument(coll.registry, filter)
 		if err != nil {
-			return &DocumentResult{err: err}
+			return &SingleResult{err: err}
 		}
 	}
 
@@ -1081,7 +1081,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 
 	err = coll.client.ValidSession(sess)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &SingleResult{err: err}
 	}
 
 	oldns := coll.namespace()
@@ -1109,16 +1109,16 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		opts...,
 	)
 	if err != nil {
-		return &DocumentResult{err: replaceTopologyErr(err)}
+		return &SingleResult{err: replaceTopologyErr(err)}
 	}
 
-	return &DocumentResult{rdr: res.Value, reg: coll.registry}
+	return &SingleResult{rdr: res.Value, reg: coll.registry}
 }
 
 // FindOneAndReplace finds a single document and replaces it, returning either
 // the original or the replaced document.
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *DocumentResult {
+	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1126,23 +1126,23 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 
 	f, err := transformDocument(coll.registry, filter)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &SingleResult{err: err}
 	}
 
 	r, err := transformDocument(coll.registry, replacement)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &SingleResult{err: err}
 	}
 
 	if len(r) > 0 && strings.HasPrefix(r[0].Key, "$") {
-		return &DocumentResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
+		return &SingleResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
 	}
 
 	sess := sessionFromContext(ctx)
 
 	err = coll.client.ValidSession(sess)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &SingleResult{err: err}
 	}
 
 	wc := coll.writeConcern
@@ -1171,16 +1171,16 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		opts...,
 	)
 	if err != nil {
-		return &DocumentResult{err: replaceTopologyErr(err)}
+		return &SingleResult{err: replaceTopologyErr(err)}
 	}
 
-	return &DocumentResult{rdr: res.Value, reg: coll.registry}
+	return &SingleResult{rdr: res.Value, reg: coll.registry}
 }
 
 // FindOneAndUpdate finds a single document and updates it, returning either
 // the original or the updated.
 func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
-	update interface{}, opts ...*options.FindOneAndUpdateOptions) *DocumentResult {
+	update interface{}, opts ...*options.FindOneAndUpdateOptions) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1188,23 +1188,23 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 
 	f, err := transformDocument(coll.registry, filter)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &SingleResult{err: err}
 	}
 
 	u, err := transformDocument(coll.registry, update)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &SingleResult{err: err}
 	}
 
 	if len(u) > 0 && !strings.HasPrefix(u[0].Key, "$") {
-		return &DocumentResult{err: errors.New("update document must contain key beginning with '$")}
+		return &SingleResult{err: errors.New("update document must contain key beginning with '$")}
 	}
 
 	sess := sessionFromContext(ctx)
 
 	err = coll.client.ValidSession(sess)
 	if err != nil {
-		return &DocumentResult{err: err}
+		return &SingleResult{err: err}
 	}
 
 	wc := coll.writeConcern
@@ -1233,10 +1233,10 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		opts...,
 	)
 	if err != nil {
-		return &DocumentResult{err: replaceTopologyErr(err)}
+		return &SingleResult{err: replaceTopologyErr(err)}
 	}
 
-	return &DocumentResult{rdr: res.Value, reg: coll.registry}
+	return &SingleResult{rdr: res.Value, reg: coll.registry}
 }
 
 // Watch returns a change stream cursor used to receive notifications of changes to the collection.
