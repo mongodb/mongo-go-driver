@@ -10,8 +10,8 @@ import (
 	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // unmarshalFindAndModifyResult turns the provided bson.Reader into a findAndModify result.
