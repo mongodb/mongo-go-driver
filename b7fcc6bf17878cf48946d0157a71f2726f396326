@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "41198ae2_9f2cbd51",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-14T18:28:46Z",
+      "side": 1,
+      "message": "A resume token will never be an ObjectID, so if it isn\u0027t a document, we should just return an error.",
+      "range": {
+        "startLine": 198,
+        "startChar": 2,
+        "endLine": 198,
+        "endChar": 31
+      },
+      "revId": "b7fcc6bf17878cf48946d0157a71f2726f396326",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "781b6d50_e2a6a7e9",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-14T18:28:46Z",
+      "side": 1,
+      "message": "We actually shouldn\u0027t allowed to do this as changing or replacing the resume token should result in an error. This example should cause the cursor to return an error.",
+      "range": {
+        "startLine": 95,
+        "startChar": 4,
+        "endLine": 95,
+        "endChar": 19
+      },
+      "revId": "b7fcc6bf17878cf48946d0157a71f2726f396326",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
