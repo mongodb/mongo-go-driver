@@ -41,10 +41,10 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 
 	dbName := hex.EncodeToString(randomBytes)
 
-	_, err = db.RunCommand(
+	err = db.RunCommand(
 		context.Background(),
 		bsonx.Doc{{"create", bsonx.String(dbName)}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	return dbName, db.Collection(dbName)

@@ -455,7 +455,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 
 	docRes := cloned.FindOne(ctx, bsonx.Doc{}, options.FindOne().SetProjection(bsonx.Doc{{"_id", bsonx.Int32(1)}}))
 
-	err = docRes.Decode(nil)
+	err = docRes.Error()
 	if err == mongo.ErrNoDocuments {
 		filesIv := b.filesColl.Indexes()
 		chunksIv := b.chunksColl.Indexes()

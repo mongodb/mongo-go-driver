@@ -15,13 +15,13 @@ import (
 )
 
 // ErrNoDocuments is returned by Decode when an operation that returns a
-// DocumentResult doesn't return any documents.
+// SingleResult doesn't return any documents.
 var ErrNoDocuments = errors.New("mongo: no documents in result")
 
-// DocumentResult represents a single document returned from an operation. If
-// the operation returned an error, the Err method of DocumentResult will
+// SingleResult represents a single document returned from an operation. If
+// the operation returned an error, the Err method of SingleResult will
 // return that error.
-type DocumentResult struct {
+type SingleResult struct {
 	err error
 	cur Cursor
 	rdr bson.Raw
@@ -29,22 +29,22 @@ type DocumentResult struct {
 }
 
 // Decode will attempt to decode the first document into v. If there was an
-// error from the operation that created this DocumentResult then the error
+// error from the operation that created this SingleResult then the error
 // will be returned. If there were no returned documents, ErrNoDocuments is
 // returned.
-func (dr *DocumentResult) Decode(v interface{}) error {
+func (sr *SingleResult) Decode(v interface{}) error {
 	switch {
-	case dr.err != nil:
-		return dr.err
-	case dr.rdr != nil:
+	case sr.err != nil:
+		return sr.err
+	case sr.rdr != nil:
 		if v == nil {
 			return nil
 		}
-		return bson.UnmarshalWithRegistry(dr.reg, dr.rdr, v)
-	case dr.cur != nil:
-		defer dr.cur.Close(context.TODO())
-		if !dr.cur.Next(context.TODO()) {
-			if err := dr.cur.Err(); err != nil {
+		return bson.UnmarshalWithRegistry(sr.reg, sr.rdr, v)
+	case sr.cur != nil:
+		defer sr.cur.Close(context.TODO())
+		if !sr.cur.Next(context.TODO()) {
+			if err := sr.cur.Err(); err != nil {
 				return err
 			}
 			return ErrNoDocuments
@@ -52,8 +52,12 @@ func (dr *DocumentResult) Decode(v interface{}) error {
 		if v == nil {
 			return nil
 		}
-		return dr.cur.Decode(v)
+		return sr.cur.Decode(v)
 	}
 
 	return ErrNoDocuments
+}
+
+func (sr *SingleResult) Error() error {
+	return sr.err
 }

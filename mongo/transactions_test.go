@@ -148,12 +148,12 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		// configure failpoint if specified
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
-			_, err := dbAdmin.RunCommand(ctx, doc)
+			err := dbAdmin.RunCommand(ctx, doc).Error()
 			require.NoError(t, err)
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bsonx.Doc{
+				_ = dbAdmin.RunCommand(ctx, bsonx.Doc{
 					{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
 					{"mode", bsonx.String("off")},
 				})
@@ -170,10 +170,10 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		err := db.Drop(ctx)
 		require.NoError(t, err)
 
-		_, err = db.RunCommand(
+		err = db.RunCommand(
 			context.Background(),
 			bsonx.Doc{{"create", bsonx.String(collName)}},
-		)
+		).Error()
 		require.NoError(t, err)
 
 		// insert data if present
@@ -419,19 +419,19 @@ func executeCollectionOperation(t *testing.T, op *transOperation, sess *sessionI
 	case "findOneAndDelete":
 		res := executeFindOneAndDelete(sess, coll, op.ArgMap)
 		if !resultHasError(t, op.Result) {
-			verifyDocumentResult(t, res, op.Result)
+			verifySingleResult(t, res, op.Result)
 		}
 		return res.err
 	case "findOneAndUpdate":
 		res := executeFindOneAndUpdate(sess, coll, op.ArgMap)
 		if !resultHasError(t, op.Result) {
-			verifyDocumentResult(t, res, op.Result)
+			verifySingleResult(t, res, op.Result)
 		}
 		return res.err
 	case "findOneAndReplace":
 		res := executeFindOneAndReplace(sess, coll, op.ArgMap)
 		if !resultHasError(t, op.Result) {
-			verifyDocumentResult(t, res, op.Result)
+			verifySingleResult(t, res, op.Result)
 		}
 		return res.err
 	case "deleteOne":
@@ -480,8 +480,13 @@ func executeCollectionOperation(t *testing.T, op *transOperation, sess *sessionI
 func executeDatabaseOperation(t *testing.T, op *transOperation, sess *sessionImpl, db *Database) error {
 	switch op.Name {
 	case "runCommand":
-		res, err := executeRunCommand(sess, db, op.ArgMap, op.Arguments)
+		var result bsonx.Doc
+		err := executeRunCommand(sess, db, op.ArgMap, op.Arguments).Decode(&result)
 		if !resultHasError(t, op.Result) {
+			res, err := result.MarshalBSON()
+			if err != nil {
+				return err
+			}
 			verifyRunCommandResult(t, res, op.Result)
 		}
 		return err

@@ -609,14 +609,14 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 	want := WriteError{Code: 20}
 	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	db := createTestDatabase(t, nil)
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bsonx.Doc{
 			{"create", bsonx.String(testutil.ColName(t))},
 			{"capped", bsonx.Boolean(true)},
 			{"size", bsonx.Int32(64 * 1024)},
 		},
-	)
+	).Error()
 	require.NoError(t, err)
 	coll := db.Collection(testutil.ColName(t))
 
@@ -729,14 +729,14 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 	want := WriteError{Code: 20}
 	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	db := createTestDatabase(t, nil)
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bsonx.Doc{
 			{"create", bsonx.String(testutil.ColName(t))},
 			{"capped", bsonx.Boolean(true)},
 			{"size", bsonx.Int32(64 * 1024)},
 		},
-	)
+	).Error()
 	require.NoError(t, err)
 	coll := db.Collection(testutil.ColName(t))
 
@@ -1643,7 +1643,7 @@ func TestCollection_FindOneAndDelete_found_ignoreResult(t *testing.T) {
 
 	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
 
-	err := coll.FindOneAndDelete(context.Background(), filter).Decode(nil)
+	err := coll.FindOneAndDelete(context.Background(), filter).Error()
 	require.NoError(t, err)
 }
 
@@ -1715,7 +1715,7 @@ func TestCollection_FindOneAndReplace_found_ignoreResult(t *testing.T) {
 	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
 	replacement := bsonx.Doc{{"y", bsonx.Int32(3)}}
 
-	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
+	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Error()
 	require.NoError(t, err)
 }
 
@@ -1789,7 +1789,7 @@ func TestCollection_FindOneAndUpdate_found_ignoreResult(t *testing.T) {
 	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
 	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(6)}})}}
 
-	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
+	err := coll.FindOneAndUpdate(context.Background(), filter, update).Error()
 	require.NoError(t, err)
 }
 

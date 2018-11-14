@@ -40,7 +40,7 @@
 //        log.Fatal(err)
 //    }
 //
-// Methods that only return a single document will return a *DocumentResult, which works
+// Methods that only return a single document will return a *SingleResult, which works
 // like a *sql.Row:
 //
 //    result := bson.NewDocument()

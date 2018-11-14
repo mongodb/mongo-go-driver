@@ -54,10 +54,10 @@ func containsKey(doc bsonx.Doc, key ...string) bool {
 }
 
 func InsertExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -145,10 +145,10 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -315,10 +315,10 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -478,10 +478,10 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryArraysExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -666,10 +666,10 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -897,10 +897,10 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -977,10 +977,10 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 }
 
 func ProjectionExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -1099,7 +1099,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			{"item", 1},
 			{"status", 1},
 		}
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1137,7 +1136,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			{"status", 1},
 			{"_id", 0},
 		}
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1174,7 +1172,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			{"status", 0},
 			{"instock", 0},
 		}
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1212,7 +1209,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			{"status", 1},
 			{"size.uom", 1},
 		}
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1253,7 +1249,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		projection := bson.D{
 			{"size.uom", 0},
 		}
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1296,7 +1291,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			{"status", 1},
 			{"instock.qty", 1},
 		}
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1350,7 +1344,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 				{"$slice", -1},
 			}},
 		}
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1386,10 +1379,10 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 }
 
 func UpdateExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -1677,10 +1670,10 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 }
 
 func DeleteExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.D{{"dropDatabase", 1}},
-	)
+	).Error()
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")

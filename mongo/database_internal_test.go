@@ -117,7 +117,7 @@ func TestDatabase_ReplaceTopologyError(t *testing.T) {
 
 	db := c.Database("TestDatabase_ReplaceTopologyError")
 
-	_, err = db.RunCommand(context.Background(), bsonx.Doc{{"ismaster", bsonx.Int32(1)}})
+	err = db.RunCommand(context.Background(), bsonx.Doc{{"ismaster", bsonx.Int32(1)}}).Error()
 	require.Equal(t, err, ErrClientDisconnected)
 
 	err = db.Drop(ctx)
@@ -132,17 +132,18 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	result, err := db.RunCommand(context.Background(), bsonx.Doc{{"ismaster", bsonx.Int32(1)}})
+	var result bsonx.Doc
+	err := db.RunCommand(context.Background(), bsonx.Doc{{"ismaster", bsonx.Int32(1)}}).Decode(&result)
 	require.NoError(t, err)
 
 	isMaster, err := result.LookupErr("ismaster")
 	require.NoError(t, err)
-	require.Equal(t, isMaster.Type, bson.TypeBoolean)
+	require.Equal(t, isMaster.Type(), bson.TypeBoolean)
 	require.Equal(t, isMaster.Boolean(), true)
 
 	ok, err := result.LookupErr("ok")
 	require.NoError(t, err)
-	require.Equal(t, ok.Type, bson.TypeDouble)
+	require.Equal(t, ok.Type(), bson.TypeDouble)
 	require.Equal(t, ok.Double(), 1.0)
 }
 
@@ -168,14 +169,14 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 	uncappedName, cappedName = "listcoll_uncapped", "listcoll_capped"
 	uncappedColl := db.Collection(uncappedName)
 
-	_, err = db.RunCommand(
+	err = db.RunCommand(
 		context.Background(),
 		bsonx.Doc{
 			{"create", bsonx.String(cappedName)},
 			{"capped", bsonx.Boolean(true)},
 			{"size", bsonx.Int32(64 * 1024)},
 		},
-	)
+	).Error()
 	if err != nil {
 		return "", "", err
 	}

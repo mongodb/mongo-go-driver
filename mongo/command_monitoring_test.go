@@ -151,10 +151,10 @@ func runCmTestFile(t *testing.T, filepath string) {
 			}
 		}
 
-		_, err = db.RunCommand(
+		err = db.RunCommand(
 			context.Background(),
 			bsonx.Doc{{"drop", bsonx.String(collName)}},
-		)
+		).Error()
 
 		coll := db.Collection(collName)
 		err = insertDocuments(doc.Lookup("data").Array(), coll)

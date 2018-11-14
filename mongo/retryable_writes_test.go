@@ -210,12 +210,12 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 		// configure failpoint if needed
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
-			_, err := dbAdmin.RunCommand(ctx, doc)
+			err := dbAdmin.RunCommand(ctx, doc).Error()
 			require.NoError(t, err)
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bsonx.Doc{
+				_ = dbAdmin.RunCommand(ctx, bsonx.Doc{
 					{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
 					{"mode", bsonx.String("off")},
 				})
@@ -303,7 +303,7 @@ func executeRetryOperation(t *testing.T, op *retryOperation, outcome *retryOutco
 			require.Error(t, res.err)
 		} else {
 			require.NoError(t, res.err)
-			verifyDocumentResult(t, res, outcome.Result)
+			verifySingleResult(t, res, outcome.Result)
 		}
 	case "findOneAndDelete":
 		res := executeFindOneAndDelete(nil, coll, op.Arguments)
@@ -314,7 +314,7 @@ func executeRetryOperation(t *testing.T, op *retryOperation, outcome *retryOutco
 			require.Error(t, res.err)
 		} else {
 			require.NoError(t, res.err)
-			verifyDocumentResult(t, res, outcome.Result)
+			verifySingleResult(t, res, outcome.Result)
 		}
 	case "findOneAndReplace":
 		res := executeFindOneAndReplace(nil, coll, op.Arguments)
@@ -325,7 +325,7 @@ func executeRetryOperation(t *testing.T, op *retryOperation, outcome *retryOutco
 			require.Error(t, res.err)
 		} else {
 			require.NoError(t, res.err)
-			verifyDocumentResult(t, res, outcome.Result)
+			verifySingleResult(t, res, outcome.Result)
 		}
 	case "bulkWrite":
 		// TODO reenable when bulk writes implemented
