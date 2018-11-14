@@ -25,7 +25,8 @@ var decPool = sync.Pool{
 	},
 }
 
-// A Decoder reads and decodes BSON documents from a stream.
+// A Decoder reads and decodes BSON documents from a stream. It reads from a bsonrw.ValueReader as
+// the source of BSON data.
 type Decoder struct {
 	r  *bsoncodec.Registry
 	vr bsonrw.ValueReader

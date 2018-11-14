@@ -18,7 +18,8 @@ var ErrNilReader = errors.New("nil reader")
 var errValidateDone = errors.New("validation loop complete")
 
 // Raw is a wrapper around a byte slice. It will interpret the slice as a
-// BSON document. This type is a wrapper around a bsoncore.Document.
+// BSON document. This type is a wrapper around a bsoncore.Document. Errors returned from the
+// methods on this type and associated types come from the bsoncore package.
 type Raw []byte
 
 // NewFromIOReader reads in a document from the given io.Reader and constructs a Raw from
@@ -36,11 +37,6 @@ func (r Raw) Validate() (err error) { return bsoncore.Document(r).Validate() }
 // there are multiple keys provided, this method will recurse down, as long as
 // the top and intermediate nodes are either documents or arrays. If any key
 // except for the last is not a document or an array, an error will be returned.
-//
-// TODO(skriptble): Implement better error messages.
-//
-// TODO(skriptble): Determine if this should return an error on empty key and
-// key not found.
 func (r Raw) Lookup(key ...string) RawValue {
 	return convertFromCoreValue(bsoncore.Document(r).Lookup(key...))
 }

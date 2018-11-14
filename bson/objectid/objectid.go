@@ -7,6 +7,8 @@
 // Based on gopkg.in/mgo.v2/bson by Gustavo Niemeyer
 // See THIRD-PARTY-NOTICES for original license terms.
 
+// Package objectid contains an implementation of a BSON objectID type functions to create
+// objectIDs.
 package objectid
 
 import (

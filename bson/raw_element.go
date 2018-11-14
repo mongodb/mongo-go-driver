@@ -10,17 +10,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
-// MalformedElementError represents a class of errors that RawElement methods return.
-type MalformedElementError string
-
-func (mee MalformedElementError) Error() string { return string(mee) }
-
-// ErrElementMissingKey is returned when a RawElement is missing a key.
-const ErrElementMissingKey MalformedElementError = "element is missing key"
-
-// ErrElementMissingType is returned when a RawElement is missing a type.
-const ErrElementMissingType MalformedElementError = "element is missing type"
-
 // RawElement represents a BSON element in byte form. This type provides a simple way to
 // transform a slice of bytes into a BSON element and extract information from it.
 //
