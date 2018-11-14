@@ -7,6 +7,7 @@
 // Based on gopkg.in/mgo.v2/bson by Gustavo Niemeyer
 // See THIRD-PARTY-NOTICES for original license terms.
 
+// Package decimal implements a Decimal128 type.
 package decimal
 
 import (

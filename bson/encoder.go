@@ -24,7 +24,8 @@ var encPool = sync.Pool{
 	},
 }
 
-// An Encoder writes a serialization format to an output stream.
+// An Encoder writes a serialization format to an output stream. It writes to a bsonrw.ValueWriter
+// as the destination of BSON data.
 type Encoder struct {
 	r  *bsoncodec.Registry
 	vw bsonrw.ValueWriter
