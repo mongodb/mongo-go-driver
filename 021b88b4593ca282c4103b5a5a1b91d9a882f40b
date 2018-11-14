@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e6f71703_d10e011c",
+        "filename": "bson/registry.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-14T20:32:55Z",
+      "side": 1,
+      "message": "How can bsoncodec be under \"x\", but this stable package expose something from \"x\"? It effectively forces users to use \"x\".",
+      "revId": "021b88b4593ca282c4103b5a5a1b91d9a882f40b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
