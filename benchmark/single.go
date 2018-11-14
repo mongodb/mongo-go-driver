@@ -53,11 +53,13 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		out, err := db.RunCommand(ctx, cmd)
+		var doc bson.Document
+		err := db.RunCommand(ctx, cmd).Decode(&doc)
 		if err != nil {
 			return err
 		}
 		// read the document and then throw it away to prevent
+		out, err := doc.MarshalBSON()
 		if len(out) == 0 {
 			return errors.New("output of ismaster is empty")
 		}
@@ -135,7 +137,7 @@ func singleInsertCase(ctx context.Context, tm TimerManager, iters int, data stri
 		return err
 	}
 
-	_, err = db.RunCommand(ctx, bson.NewDocument(bson.EC.String("create", "corpus")))
+	err = db.RunCommand(ctx, bson.NewDocument(bson.EC.String("create", "corpus"))).Decode(nil)
 	if err != nil {
 		return err
 	}

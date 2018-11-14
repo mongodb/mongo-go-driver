@@ -89,7 +89,7 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 
 // RunCommand runs a command on the database. A user can supply a custom
 // context to this method, or nil to default to context.Background().
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (bson.Raw, error) {
+func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *DocumentResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -114,9 +114,9 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 
 	runCmdDoc, err := transformDocument(db.registry, runCommand)
 	if err != nil {
-		return nil, err
+		return &DocumentResult{err: err}
 	}
-	return dispatch.Read(ctx,
+	doc, err := dispatch.Read(ctx,
 		command.Read{
 			DB:       db.Name(),
 			Command:  runCmdDoc,
@@ -129,6 +129,8 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		db.client.id,
 		db.client.topology.SessionPool,
 	)
+
+	return &DocumentResult{err: err, rdr: doc}
 }
 
 // Drop drops this database from mongodb.

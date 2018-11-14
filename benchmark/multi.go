@@ -108,7 +108,7 @@ func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data strin
 		return err
 	}
 
-	_, err = db.RunCommand(ctx, bson.NewDocument(bson.EC.String("create", "corpus")))
+	err = db.RunCommand(ctx, bson.NewDocument(bson.EC.String("create", "corpus"))).Decode(nil)
 	if err != nil {
 		return err
 	}

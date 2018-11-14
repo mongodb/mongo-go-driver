@@ -54,10 +54,10 @@ func containsKey(keys bson.Keys, key string, prefix []string) bool {
 }
 
 func InsertExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -155,10 +155,10 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -345,10 +345,10 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -509,10 +509,10 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryArraysExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -736,10 +736,10 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -967,10 +967,10 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 }
 
 func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -1047,10 +1047,10 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 }
 
 func ProjectionExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -1170,7 +1170,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.EC.Int32("item", 1),
 			bson.EC.Int32("status", 1),
 		)
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1211,7 +1210,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("_id", 0),
 		)
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1251,7 +1249,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.EC.Int32("status", 0),
 			bson.EC.Int32("instock", 0),
 		)
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1292,7 +1289,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("size.uom", 1),
 		)
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1336,7 +1332,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		projection := bson.NewDocument(
 			bson.EC.Int32("size.uom", 0),
 		)
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1382,7 +1377,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			bson.EC.Int32("status", 1),
 			bson.EC.Int32("instock.qty", 1),
 		)
-		require.NoError(t, err)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1442,8 +1436,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 				bson.EC.Int32("$slice", -1),
 			),
 		)
-		require.NoError(t, err)
-
 		cursor, err := coll.Find(
 			context.Background(),
 			bson.NewDocument(
@@ -1481,10 +1473,10 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 }
 
 func UpdateExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")
@@ -1780,10 +1772,10 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 }
 
 func DeleteExamples(t *testing.T, db *mongo.Database) {
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(bson.EC.Int32("dropDatabase", 1)),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	coll := db.Collection("inventory")

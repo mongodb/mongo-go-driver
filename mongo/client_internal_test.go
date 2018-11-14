@@ -87,18 +87,19 @@ func TestClient_TLSConnection(t *testing.T) {
 	c := createTestClient(t)
 	db := c.Database("test")
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("serverStatus", 1)))
+	var result bson.Document
+	err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("serverStatus", 1))).Decode(&result)
 	require.NoError(t, err)
 
 	security, err := result.LookupErr("security")
 	require.Nil(t, err)
 
-	require.Equal(t, security.Type, bson.TypeEmbeddedDocument)
+	require.Equal(t, security.Type(), bson.TypeEmbeddedDocument)
 
-	_, found := security.Document().LookupErr("SSLServerSubjectName")
+	_, found := security.RawDocument().LookupErr("SSLServerSubjectName")
 	require.Nil(t, found)
 
-	_, found = security.Document().LookupErr("SSLServerHasCertificateAuthority")
+	_, found = security.RawDocument().LookupErr("SSLServerHasCertificateAuthority")
 	require.Nil(t, found)
 
 }
@@ -122,14 +123,14 @@ func TestClient_X509Auth(t *testing.T) {
 	db := c.Database("$external")
 
 	// We don't care if the user doesn't already exist.
-	_, _ = db.RunCommand(
+	_ = db.RunCommand(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.String("dropUser", user),
 		),
 	)
 
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.String("createUser", user),
@@ -140,7 +141,7 @@ func TestClient_X509Auth(t *testing.T) {
 				),
 			),
 		),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 
 	basePath := path.Join("..", "data", "certificates")
@@ -158,12 +159,17 @@ func TestClient_X509Auth(t *testing.T) {
 	require.NoError(t, err)
 
 	db = authClient.Database("test")
-	rdr, err := db.RunCommand(
+	var doc bson.Document
+	err = db.RunCommand(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.Int32("connectionStatus", 1),
 		),
-	)
+	).Decode(&doc)
+	require.NoError(t, err)
+
+	var rdr bson.Raw
+	rdr, err = doc.MarshalBSON()
 	require.NoError(t, err)
 
 	users, err := rdr.LookupErr("authInfo", "authenticatedUsers")
