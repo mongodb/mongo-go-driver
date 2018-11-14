@@ -18,7 +18,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw/bsonrwtest"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
@@ -26,6 +25,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func bytesFromDoc(doc bsonx.Doc) []byte {

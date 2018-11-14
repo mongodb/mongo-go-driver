@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncore"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func TestRawValue(t *testing.T) {
