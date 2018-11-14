@@ -146,12 +146,12 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		// configure failpoint if specified
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
-			_, err := dbAdmin.RunCommand(ctx, doc)
+			err := dbAdmin.RunCommand(ctx, doc).Decode(nil)
 			require.NoError(t, err)
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bson.NewDocument(
+				_ = dbAdmin.RunCommand(ctx, bson.NewDocument(
 					bson.EC.String("configureFailPoint", test.FailPoint.ConfigureFailPoint),
 					bson.EC.String("mode", "off"),
 				))
@@ -168,12 +168,12 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		err := db.Drop(ctx)
 		require.NoError(t, err)
 
-		_, err = db.RunCommand(
+		err = db.RunCommand(
 			context.Background(),
 			bson.NewDocument(
 				bson.EC.String("create", collName),
 			),
-		)
+		).Decode(nil)
 		require.NoError(t, err)
 
 		// insert data if present
@@ -486,8 +486,13 @@ func executeCollectionOperation(t *testing.T, op *transOperation, sess *sessionI
 func executeDatabaseOperation(t *testing.T, op *transOperation, sess *sessionImpl, db *Database) error {
 	switch op.Name {
 	case "runCommand":
-		res, err := executeRunCommand(sess, db, op.ArgMap, op.Arguments)
+		var result bson.Document
+		err := executeRunCommand(sess, db, op.ArgMap, op.Arguments).Decode(&result)
 		if !resultHasError(t, op.Result) {
+			res, err := result.MarshalBSON()
+			if err != nil {
+				return err
+			}
 			verifyRunCommandResult(t, res, op.Result)
 		}
 		return err

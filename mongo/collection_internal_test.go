@@ -520,14 +520,14 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 	want := WriteError{Code: 20}
 	filter := bson.NewDocument(bson.EC.Int32("x", 1))
 	db := createTestDatabase(t, nil)
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.String("create", testutil.ColName(t)),
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
 		),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 	coll := db.Collection(testutil.ColName(t))
 
@@ -643,14 +643,14 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 	want := WriteError{Code: 20}
 	filter := bson.NewDocument(bson.EC.Int32("x", 1))
 	db := createTestDatabase(t, nil)
-	_, err := db.RunCommand(
+	err := db.RunCommand(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.String("create", testutil.ColName(t)),
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
 		),
-	)
+	).Decode(nil)
 	require.NoError(t, err)
 	coll := db.Collection(testutil.ColName(t))
 

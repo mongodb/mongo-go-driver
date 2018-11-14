@@ -53,7 +53,8 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		out, err := db.RunCommand(ctx, cmd)
+		var out bson.Document
+		err := db.RunCommand(ctx, cmd).Decode(&out)
 		if err != nil {
 			return err
 		}

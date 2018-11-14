@@ -511,7 +511,7 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 	return coll.Aggregate(ctx, pipeline, opts)
 }
 
-func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}, args json.RawMessage) (bson.Raw, error) {
+func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}, args json.RawMessage) *DocumentResult {
 	var cmd *bson.Document
 	opts := options.RunCmd()
 	for name, opt := range argmap {
@@ -519,7 +519,7 @@ func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}
 		case "command":
 			argBytes, err := args.MarshalJSON()
 			if err != nil {
-				return nil, err
+				return &DocumentResult{err: err}
 			}
 
 			var argCmdStruct struct {
@@ -527,12 +527,12 @@ func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}
 			}
 			err = json.NewDecoder(bytes.NewBuffer(argBytes)).Decode(&argCmdStruct)
 			if err != nil {
-				return nil, err
+				return &DocumentResult{err: err}
 			}
 
 			err = bson.UnmarshalExtJSON(argCmdStruct.Cmd, true, &cmd)
 			if err != nil {
-				return nil, err
+				return &DocumentResult{err: err}
 			}
 		case "readPreference":
 			opts = opts.SetReadPreference(getReadPref(opt))

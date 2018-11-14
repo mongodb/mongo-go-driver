@@ -107,17 +107,18 @@ func TestDatabase_RunCommand(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	result, err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("ismaster", 1)))
+	var result bson.Document
+	err := db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("ismaster", 1))).Decode(&result)
 	require.NoError(t, err)
 
 	isMaster, err := result.LookupErr("ismaster")
 	require.NoError(t, err)
-	require.Equal(t, isMaster.Type, bson.TypeBoolean)
+	require.Equal(t, isMaster.Type(), bson.TypeBoolean)
 	require.Equal(t, isMaster.Boolean(), true)
 
 	ok, err := result.LookupErr("ok")
 	require.NoError(t, err)
-	require.Equal(t, ok.Type, bson.TypeDouble)
+	require.Equal(t, ok.Type(), bson.TypeDouble)
 	require.Equal(t, ok.Double(), 1.0)
 }
 
@@ -143,14 +144,14 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 	uncappedName, cappedName = "listcoll_uncapped", "listcoll_capped"
 	uncappedColl := db.Collection(uncappedName)
 
-	_, err = db.RunCommand(
+	err = db.RunCommand(
 		context.Background(),
 		bson.NewDocument(
 			bson.EC.String("create", cappedName),
 			bson.EC.Boolean("capped", true),
 			bson.EC.Int32("size", 64*1024),
 		),
-	)
+	).Decode(nil)
 	if err != nil {
 		return "", "", err
 	}

@@ -209,12 +209,12 @@ func runRetryTestCase(t *testing.T, test *retryTestCase, data json.RawMessage, d
 		// configure failpoint if needed
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
-			_, err := dbAdmin.RunCommand(ctx, doc)
+			err := dbAdmin.RunCommand(ctx, doc).Decode(nil)
 			require.NoError(t, err)
 
 			defer func() {
 				// disable failpoint if specified
-				_, _ = dbAdmin.RunCommand(ctx, bson.NewDocument(
+				_ = dbAdmin.RunCommand(ctx, bson.NewDocument(
 					bson.EC.String("configureFailPoint", test.FailPoint.ConfigureFailPoint),
 					bson.EC.String("mode", "off"),
 				))
