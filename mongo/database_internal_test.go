@@ -117,7 +117,7 @@ func TestDatabase_ReplaceTopologyError(t *testing.T) {
 
 	db := c.Database("TestDatabase_ReplaceTopologyError")
 
-	_, err = db.RunCommand(context.Background(), bson.NewDocument(bson.EC.Int32("ismaster", 1)))
+	_, err = db.RunCommand(context.Background(), bsonx.Doc{{"ismaster", bsonx.Int32(1)}})
 	require.Equal(t, err, ErrClientDisconnected)
 
 	err = db.Drop(ctx)

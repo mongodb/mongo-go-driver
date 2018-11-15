@@ -167,11 +167,12 @@ func TestCollection_ReplaceTopologyError(t *testing.T) {
 	db := c.Database("TestCollection")
 	coll := db.Collection("ReplaceTopologyError")
 
-	doc1 := bson.NewDocument(bson.EC.Int32("x", 1))
-	doc2 := bson.NewDocument(bson.EC.Int32("x", 6))
+	doc1 := bsonx.Doc{{"x", bsonx.Int32(1)}}
+	doc2 := bsonx.Doc{{"x", bsonx.Int32(6)}}
 	docs := []interface{}{doc1, doc2}
-	update := bson.NewDocument(
-		bson.EC.SubDocumentFromElements("$inc", bson.EC.Int32("x", 1)))
+	update := bsonx.Doc{
+		{"$inc", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(1)}})},
+	}
 
 	_, err = coll.InsertOne(context.Background(), doc1)
 	require.Equal(t, err, ErrClientDisconnected)
@@ -194,16 +195,20 @@ func TestCollection_ReplaceTopologyError(t *testing.T) {
 	_, err = coll.ReplaceOne(context.Background(), doc1, doc2)
 	require.Equal(t, err, ErrClientDisconnected)
 
-	pipeline := bson.NewArray(
-		bson.VC.DocumentFromElements(
-			bson.EC.SubDocumentFromElements(
-				"$match",
-				bson.EC.SubDocumentFromElements(
-					"x",
-					bson.EC.Int32("$gte", 2),
-				),
-			),
-		))
+	pipeline := bsonx.Arr{
+		bsonx.Document(
+			bsonx.Doc{{"$match", bsonx.Document(bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Int32(2)}})}})}},
+		),
+		bsonx.Document(
+			bsonx.Doc{{
+				"$project",
+				bsonx.Document(bsonx.Doc{
+					{"_id", bsonx.Int32(0)},
+					{"x", bsonx.Int32(1)},
+				}),
+			}},
+		)}
+
 	_, err = coll.Aggregate(context.Background(), pipeline, options.Aggregate())
 	require.Equal(t, err, ErrClientDisconnected)
 
