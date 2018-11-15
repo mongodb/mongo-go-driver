@@ -55,12 +55,10 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 	aggOpts := options.Aggregate()
 
 	if csOpts.BatchSize != nil {
-		changeStreamOptions = append(changeStreamOptions, bsonx.Elem{"batchSize", bsonx.Int32(*csOpts.BatchSize)})
+		aggOpts.BatchSize = csOpts.BatchSize
 	}
 	if csOpts.Collation != nil {
-		changeStreamOptions = append(changeStreamOptions, bsonx.Elem{
-			"collation", bsonx.Document(csOpts.Collation.ToDocument()),
-		})
+		aggOpts.Collation = csOpts.Collation
 	}
 	if csOpts.FullDocument != nil {
 		changeStreamOptions = append(changeStreamOptions, bsonx.Elem{

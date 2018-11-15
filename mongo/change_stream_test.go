@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/core/command"
+	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
@@ -95,6 +96,30 @@ func TestChangeStream_noCustomStandaloneError(t *testing.T) {
 	if _, ok := err.(command.Error); !ok {
 		t.Errorf("Should have returned command error, but got %T", err)
 	}
+}
+
+func TestChangeStream_BatchSizeOption(t *testing.T) {
+	t.Parallel()
+
+	if testing.Short() {
+		t.Skip()
+	}
+	skipIfBelow36(t)
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	coll := createTestCollection(t, nil, nil)
+
+	// Ensure the database is created.
+	_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
+	require.NoError(t, err)
+
+	changeStreamOpts := options.ChangeStream().SetBatchSize(1000).SetCollation(options.Collation{Locale: "en_US"})
+
+	_, err = coll.Watch(context.Background(), nil, changeStreamOpts)
+	require.NoError(t, err)
 }
 
 func TestChangeStream_trackResumeToken(t *testing.T) {
