@@ -22,6 +22,30 @@
       "revId": "d3e7611bd36d4347a6c93033b4847e39ba24d79a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e366cd30_53c5619c",
+        "filename": "bson/extjson_bytes_converter.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2018-11-16T16:02:50Z",
+      "side": 1,
+      "message": "Done. Though MarshalExtJSON returns it formatted as a document instead of an array",
+      "parentUuid": "9b015ab6_adfdf7d1",
+      "range": {
+        "startLine": 55,
+        "startChar": 0,
+        "endLine": 55,
+        "endChar": 19
+      },
+      "revId": "d3e7611bd36d4347a6c93033b4847e39ba24d79a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
