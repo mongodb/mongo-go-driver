@@ -12,12 +12,18 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func initMonitor() (chan *event.CommandStartedEvent, chan *event.CommandSucceededEvent, chan *event.CommandFailedEvent, *event.CommandMonitor) {
@@ -40,12 +46,15 @@ func initMonitor() (chan *event.CommandStartedEvent, chan *event.CommandSucceede
 }
 
 func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
+	skipIfBelow32(t) // maxTimeMS doesn't exist in OP_GET_MORE
+
 	startedChan, succeededChan, failedChan, monitor := initMonitor()
 
 	dbName := fmt.Sprintf("mongo-go-driver-%d-find", os.Getpid())
 	colName := testutil.ColName(t)
 
-	server, err := testutil.MonitoredTopology(t, dbName, monitor).SelectServer(context.Background(), description.WriteSelector())
+	topo := testutil.MonitoredTopology(t, dbName, monitor)
+	server, err := topo.SelectServer(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
 	// create capped collection
@@ -67,24 +76,22 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 			bsonx.Document(bsonx.Doc{{"_id", bsonx.Int32(5)}})})}}
 	_, err = testutil.RunCommand(t, server.Server, dbName, insertCmd)
 
-	conn, err := server.Connection(context.Background())
-	noerr(t, err)
-
 	// find those documents, setting cursor type to TAILABLEAWAIT
-	cursor, err := (&command.Find{
-		NS:     command.Namespace{DB: dbName, Collection: colName},
-		Filter: bsonx.Doc{{"_id", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Int32(1)}})}},
-		Opts: []bsonx.Elem{
-			{"batchSize", bsonx.Int32(3)},
-			{"tailable", bsonx.Boolean(true)},
-			{"awaitData", bsonx.Boolean(true)},
-		},
-		CursorOpts: []bsonx.Elem{
-			{"batchSize", bsonx.Int32(3)},
-			{"maxTimeMS", bsonx.Int64(250)},
-		},
-	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+	clientID, err := uuid.New()
 	noerr(t, err)
+	cursor, err := driver.Find(
+		context.Background(),
+		command.Find{
+			NS:     command.Namespace{DB: dbName, Collection: colName},
+			Filter: bsonx.Doc{{"_id", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Int32(1)}})}},
+		},
+		topo,
+		description.WriteSelector(),
+		clientID,
+		&session.Pool{},
+		bson.DefaultRegistry,
+		options.Find().SetBatchSize(3).SetCursorType(options.TailableAwait).SetMaxAwaitTime(250*time.Millisecond),
+	)
 
 	// exhaust the cursor, triggering getMore commands
 	for i := 0; i < 4; i++ {

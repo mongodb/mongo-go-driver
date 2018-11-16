@@ -103,6 +103,12 @@ func createDefaultConnectedServer(t *testing.T, willErr bool) *Server {
 	if err != nil {
 		assert.Fail(t, "Server creation failed")
 	}
+	desc := description.Server{
+		WireVersion: &description.VersionRange{
+			Max: 6,
+		},
+	}
+	s.desc.Store(desc)
 
 	return s
 }
