@@ -62,6 +62,7 @@ type Cursor interface {
 // CursorBuilder is a type that can build a Cursor.
 type CursorBuilder interface {
 	BuildCursor(bson.Raw, *session.Client, *session.ClusterClock, ...bsonx.Elem) (Cursor, error)
+	BuildLegacyCursor(Namespace, int64, []bson.Raw, int32, int32) (Cursor, error)
 }
 
 type emptyCursor struct{}
