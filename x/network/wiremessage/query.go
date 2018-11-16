@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // Query represents the OP_QUERY message of the MongoDB wire protocol.
@@ -24,6 +25,23 @@ type Query struct {
 	NumberToReturn       int32
 	Query                bson.Raw
 	ReturnFieldsSelector bson.Raw
+
+	SkipSet   bool
+	Limit     *int32
+	BatchSize *int32
+}
+
+var optionsMap = map[string]string{
+	"$orderby":     "sort",
+	"$hint":        "hint",
+	"$comment":     "comment",
+	"$maxScan":     "maxScan",
+	"$max":         "max",
+	"$min":         "min",
+	"$returnKey":   "returnKey",
+	"$showDiskLoc": "showRecordId",
+	"$maxTimeMS":   "maxTimeMS",
+	"$snapshot":    "snapshot",
 }
 
 // MarshalWireMessage implements the Marshaler and WireMessage interfaces.
@@ -148,6 +166,122 @@ func (q *Query) AcknowledgedWrite() bool {
 	}
 
 	return writeconcern.AcknowledgedElementRaw(wcElem)
+}
+
+// Legacy returns true if the query represents a legacy find operation.
+func (q Query) Legacy() bool {
+	return !strings.Contains(q.FullCollectionName, "$cmd")
+}
+
+// DatabaseName returns the database name for the query.
+func (q Query) DatabaseName() string {
+	if q.Legacy() {
+		return strings.Split(q.FullCollectionName, ".")[0]
+	}
+
+	return q.FullCollectionName[:len(q.FullCollectionName)-5] // remove .$cmd
+}
+
+// CollectionName returns the collection name for the query.
+func (q Query) CollectionName() string {
+	parts := strings.Split(q.FullCollectionName, ".")
+	return parts[len(parts)-1]
+}
+
+// CommandDocument creates a BSON document representing this command.
+func (q Query) CommandDocument() (bsonx.Doc, error) {
+	if q.Legacy() {
+		return q.legacyCommandDocument()
+	}
+
+	cmd, err := bsonx.ReadDoc([]byte(q.Query))
+	if err != nil {
+		return nil, err
+	}
+
+	cmdElem := cmd[0]
+	if cmdElem.Key == "$query" {
+		cmd = cmdElem.Value.Document()
+	}
+
+	return cmd, nil
+}
+
+func (q Query) legacyCommandDocument() (bsonx.Doc, error) {
+	doc, err := bsonx.ReadDoc(q.Query)
+	if err != nil {
+		return nil, err
+	}
+
+	parts := strings.Split(q.FullCollectionName, ".")
+	collName := parts[len(parts)-1]
+	doc = append(bsonx.Doc{{"find", bsonx.String(collName)}}, doc...)
+
+	var filter bsonx.Doc
+	var queryIndex int
+	for i, elem := range doc {
+		if newKey, ok := optionsMap[elem.Key]; ok {
+			doc[i].Key = newKey
+			continue
+		}
+
+		if elem.Key == "$query" {
+			filter = elem.Value.Document()
+		} else {
+			// the element is the filter
+			filter = filter.Append(elem.Key, elem.Value)
+		}
+
+		queryIndex = i
+	}
+
+	doc = append(doc[:queryIndex], doc[queryIndex+1:]...) // remove $query
+	if len(filter) != 0 {
+		doc = doc.Append("filter", bsonx.Document(filter))
+	}
+
+	doc, err = q.convertLegacyParams(doc)
+	if err != nil {
+		return nil, err
+	}
+
+	return doc, nil
+}
+
+func (q Query) convertLegacyParams(doc bsonx.Doc) (bsonx.Doc, error) {
+	if q.ReturnFieldsSelector != nil {
+		projDoc, err := bsonx.ReadDoc(q.ReturnFieldsSelector)
+		if err != nil {
+			return nil, err
+		}
+		doc = doc.Append("projection", bsonx.Document(projDoc))
+	}
+	if q.Limit != nil {
+		doc = doc.Append("limit", bsonx.Int32(*q.Limit))
+	}
+	if q.BatchSize != nil {
+		doc = doc.Append("batchSize", bsonx.Int32(*q.BatchSize))
+	}
+	if q.SkipSet {
+		doc = doc.Append("skip", bsonx.Int32(q.NumberToSkip))
+	}
+	if q.Flags&TailableCursor > 0 {
+		doc = doc.Append("tailable", bsonx.Boolean(true))
+	}
+	if q.Flags&OplogReplay > 0 {
+		doc = doc.Append("oplogReplay", bsonx.Boolean(true))
+	}
+	if q.Flags&NoCursorTimeout > 0 {
+		doc = doc.Append("noCursorTimeout", bsonx.Boolean(true))
+	}
+	if q.Flags&AwaitData > 0 {
+		doc = doc.Append("awaitData", bsonx.Boolean(true))
+	}
+	if q.Flags&Partial > 0 {
+		doc = doc.Append("allowPartialResults", bsonx.Boolean(true))
+	}
+
+	return doc, nil
 }
 
 // QueryFlag represents the flags on an OP_QUERY message.

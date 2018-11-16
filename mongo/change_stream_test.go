@@ -87,6 +87,15 @@ func createStream(t *testing.T, client *Client, dbName string, collName string, 
 	return coll, stream
 }
 
+func skipIfBelow32(t *testing.T) {
+	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+	require.NoError(t, err)
+
+	if compareVersions(t, serverVersion, "3.2") < 0 {
+		t.Skip()
+	}
+}
+
 func createCollectionStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
 	client := createTestClient(t)
 	return createStream(t, client, dbName, collName, pipeline)
