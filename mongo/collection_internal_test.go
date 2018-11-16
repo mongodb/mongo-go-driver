@@ -12,7 +12,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"github.com/google/go-cmp/cmp"

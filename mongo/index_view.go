@@ -14,10 +14,10 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/network/command"
 )
 
 // ErrInvalidIndexValue indicates that the index Keys document has a value that isn't either a number or a string.
@@ -55,7 +55,7 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		Clock:   iv.coll.client.clock,
 	}
 
-	return dispatch.ListIndexes(
+	return driver.ListIndexes(
 		ctx, listCmd,
 		iv.coll.client.topology,
 		iv.coll.writeSelector,
@@ -116,7 +116,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		Clock:   iv.coll.client.clock,
 	}
 
-	_, err = dispatch.CreateIndexes(
+	_, err = driver.CreateIndexes(
 		ctx, cmd,
 		iv.coll.client.topology,
 		iv.coll.writeSelector,
@@ -151,7 +151,7 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 		Clock:   iv.coll.client.clock,
 	}
 
-	return dispatch.DropIndexes(
+	return driver.DropIndexes(
 		ctx, cmd,
 		iv.coll.client.topology,
 		iv.coll.writeSelector,
@@ -177,7 +177,7 @@ func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOpt
 		Clock:   iv.coll.client.clock,
 	}
 
-	return dispatch.DropIndexes(
+	return driver.DropIndexes(
 		ctx, cmd,
 		iv.coll.client.topology,
 		iv.coll.writeSelector,

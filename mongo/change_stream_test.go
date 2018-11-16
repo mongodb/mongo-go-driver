@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/core/command"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/stretchr/testify/require"
 )
 

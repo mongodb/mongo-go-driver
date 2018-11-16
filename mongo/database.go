@@ -11,14 +11,14 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/dispatch"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
 
 // Database performs operations on a given database.
@@ -117,7 +117,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	if err != nil {
 		return nil, err
 	}
-	result, err := dispatch.Read(ctx,
+	result, err := driver.Read(ctx,
 		command.Read{
 			DB:       db.Name(),
 			Command:  runCmdDoc,
@@ -152,7 +152,7 @@ func (db *Database) Drop(ctx context.Context) error {
 		Session: sess,
 		Clock:   db.client.clock,
 	}
-	_, err = dispatch.DropDatabase(
+	_, err = driver.DropDatabase(
 		ctx, cmd,
 		db.client.topology,
 		db.writeSelector,
@@ -194,7 +194,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		Clock:    db.client.clock,
 	}
 
-	cursor, err := dispatch.ListCollections(
+	cursor, err := driver.ListCollections(
 		ctx, cmd,
 		db.client.topology,
 		db.readSelector,

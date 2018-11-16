@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/wiremessage"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 )
 
 // Implements the connection.Connection interface by reading and writing wire messages

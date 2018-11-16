@@ -12,15 +12,15 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/session"
-	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/uuid"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
+	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,7 +40,7 @@ func AutoCreateIndexes(t *testing.T, keys []string) {
 		Indexes: bsonx.Arr{bsonx.Document(indexes)},
 	}
 	id, _ := uuid.New()
-	_, err := dispatch.CreateIndexes(
+	_, err := driver.CreateIndexes(
 		context.Background(),
 		cmd,
 		Topology(t),
@@ -60,7 +60,7 @@ func AutoDropCollection(t *testing.T) {
 func DropCollection(t *testing.T, dbname, colname string) {
 	cmd := command.Write{DB: dbname, Command: bsonx.Doc{{"drop", bsonx.String(colname)}}}
 	id, _ := uuid.New()
-	_, err := dispatch.Write(
+	_, err := driver.Write(
 		context.Background(),
 		cmd,
 		Topology(t),
@@ -76,7 +76,7 @@ func DropCollection(t *testing.T, dbname, colname string) {
 func autoDropDB(t *testing.T, topo *topology.Topology) {
 	cmd := command.Write{DB: DBName(t), Command: bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}}}
 	id, _ := uuid.New()
-	_, err := dispatch.Write(
+	_, err := driver.Write(
 		context.Background(),
 		cmd,
 		topo,
@@ -98,7 +98,7 @@ func InsertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern
 
 	topo := Topology(t)
 	id, _ := uuid.New()
-	_, err := dispatch.Insert(
+	_, err := driver.Insert(
 		context.Background(),
 		cmd,
 		topo,
