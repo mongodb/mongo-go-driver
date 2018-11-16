@@ -14,8 +14,12 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/stretchr/testify/assert"
@@ -32,9 +36,6 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 		{"size", bsonx.Int32(1000)}}
 	_, err = testutil.RunCommand(t, server.Server, dbName, createCmd)
 
-	conn, err := server.Connection(context.Background())
-	noerr(t, err)
-
 	// Insert a document
 	d := bsonx.Doc{{"_id", bsonx.Int32(1)}, {"ts", bsonx.Timestamp(5, 0)}}
 	wc := writeconcern.New(writeconcern.WMajority())
@@ -43,17 +44,22 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	rdr, err := d.MarshalBSON()
 	noerr(t, err)
 
-	// find that document, setting cursor type to TAILABLEAWAIT
-	cursor, err := (&command.Find{
-		NS:     command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
-		Filter: bsonx.Doc{{"ts", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Timestamp(5, 0)}})}},
-		Opts: []bsonx.Elem{
-			{"limit", bsonx.Int64(0)},
-			{"batchSize", bsonx.Int32(1)},
-			{"tailable", bsonx.Boolean(true)},
-			{"awaitData", bsonx.Boolean(true)},
+	clientID, err := uuid.New()
+	noerr(t, err)
+
+	cursor, err := driver.Find(
+		context.Background(),
+		command.Find{
+			NS:     command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
+			Filter: bsonx.Doc{{"ts", bsonx.Document(bsonx.Doc{{"$gte", bsonx.Timestamp(5, 0)}})}},
 		},
-	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		testutil.Topology(t),
+		description.WriteSelector(),
+		clientID,
+		&session.Pool{},
+		bson.DefaultRegistry,
+		options.Find().SetCursorType(options.TailableAwait),
+	)
 	noerr(t, err)
 
 	// assert that there is a document returned

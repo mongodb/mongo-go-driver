@@ -24,7 +24,10 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"time"
 )
+
+var impossibleWriteConcern = writeconcern.New(writeconcern.W(50), writeconcern.WTimeout(time.Second))
 
 func createTestCollection(t *testing.T, dbName *string, collName *string, opts ...*options.CollectionOptions) *Collection {
 	if collName == nil {
@@ -332,23 +335,13 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 		t.Skip()
 	}
 
-	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	doc := bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}}
-	coll := createTestCollection(t, nil, nil,
-		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
+	coll := createTestCollection(t, nil, nil, options.Collection().SetWriteConcern(impossibleWriteConcern))
 
 	_, err := coll.InsertOne(context.Background(), doc)
-	got, ok := err.(WriteConcernError)
-	if !ok {
+	if _, ok := err.(WriteConcernError); !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
-	if got.Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
-	}
-	if got.Message != want.Message {
-		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
-	}
-
 }
 
 func TestCollection_InsertMany(t *testing.T) {
@@ -491,7 +484,7 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 			bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
 		}
 
-		copyColl, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(42))))
+		copyColl, err := coll.Clone(options.Collection().SetWriteConcern(impossibleWriteConcern))
 		if err != nil {
 			t.Errorf("err copying collection: %s", err)
 		}
@@ -520,14 +513,13 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 		t.Skip()
 	}
 
-	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	docs := []interface{}{
 		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
 		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
 		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
 	}
 	coll := createTestCollection(t, nil, nil,
-		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
+		options.Collection().SetWriteConcern(impossibleWriteConcern))
 
 	_, err := coll.InsertMany(context.Background(), docs)
 	got, ok := err.(BulkWriteException)
@@ -535,13 +527,9 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 		t.Errorf("Did not receive correct type of error. got %T; want %T\nError message: %s", err, BulkWriteException{}, err)
 		t.Errorf("got error message %v", err)
 	}
-	if got.WriteConcernError.Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteConcernError.Code, want.Code)
+	if got.WriteConcernError == nil {
+		t.Errorf("write concern error was nil")
 	}
-	if got.WriteConcernError.Message != want.Message {
-		t.Errorf("Did not receive the correct error message. got %s; want %s", got.WriteConcernError.Message, want.Message)
-	}
-
 }
 
 func TestCollection_DeleteOne_found(t *testing.T) {
@@ -606,7 +594,6 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 
 	t.Parallel()
 
-	want := WriteError{Code: 20}
 	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	db := createTestDatabase(t, nil)
 	err := db.RunCommand(
@@ -629,10 +616,10 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
 		t.FailNow()
 	}
-	if got[0].Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
+	// 2.6 returns 10101 instead of 20
+	if got[0].Code != 20 && got[0].Code != 10101 {
+		t.Errorf("Did not receive the correct error code. got %d; want 20 or 10101", got[0].Code)
 	}
-
 }
 
 func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
@@ -644,23 +631,24 @@ func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
 		t.Skip()
 	}
 
-	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
-	coll := createTestCollection(t, nil, nil,
-		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
+	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.DeleteOne(context.Background(), filter)
-	got, ok := err.(WriteConcernError)
+	// 2.6 server returns right away if the document doesn't exist
+	_, err := coll.InsertOne(ctx, filter)
+	if err != nil {
+		t.Fatalf("error inserting doc: %s", err)
+	}
+
+	cloned, err := coll.Clone(options.Collection().SetWriteConcern(impossibleWriteConcern))
+	if err != nil {
+		t.Fatalf("error cloning collection: %s", err)
+	}
+	_, err = cloned.DeleteOne(context.Background(), filter)
+	_, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
-	if got.Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
-	}
-	if got.Message != want.Message {
-		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
-	}
-
 }
 
 func TestCollection_DeleteMany_found(t *testing.T) {
@@ -726,7 +714,6 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 
 	t.Parallel()
 
-	want := WriteError{Code: 20}
 	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
 	db := createTestDatabase(t, nil)
 	err := db.RunCommand(
@@ -749,10 +736,10 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
 		t.FailNow()
 	}
-	if got[0].Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
+	// 2.6 returns 10101 instead of 20
+	if got[0].Code != 20 && got[0].Code != 10101 {
+		t.Errorf("Did not receive the correct error code. got %d; want 20 or 10101", got[0].Code)
 	}
-
 }
 
 func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
@@ -764,23 +751,25 @@ func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
 		t.Skip()
 	}
 
-	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	filter := bsonx.Doc{{"x", bsonx.Int32(1)}}
-	coll := createTestCollection(t, nil, nil,
-		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
+	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.DeleteMany(context.Background(), filter)
-	got, ok := err.(WriteConcernError)
+	// 2.6 server returns right away if the document doesn't exist
+	_, err := coll.InsertOne(ctx, filter)
+	if err != nil {
+		t.Fatalf("error inserting document: %s", err)
+	}
+
+	cloned, err := coll.Clone(options.Collection().SetWriteConcern(impossibleWriteConcern))
+	if err != nil {
+		t.Fatalf("error cloning collection: %s", err)
+	}
+
+	_, err = cloned.DeleteMany(context.Background(), filter)
+	_, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
-	if got.Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
-	}
-	if got.Message != want.Message {
-		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
-	}
-
 }
 
 func TestCollection_UpdateOne_found(t *testing.T) {
@@ -886,24 +875,25 @@ func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
 		t.Skip()
 	}
 
-	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
 	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"pi", bsonx.Double(3.14159)}})}}
-	coll := createTestCollection(t, nil, nil,
-		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
+	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.UpdateOne(context.Background(), filter, update)
-	got, ok := err.(WriteConcernError)
+	// 2.6 server returns right away if the document doesn't exist
+	_, err := coll.InsertOne(ctx, filter)
+	if err != nil {
+		t.Fatalf("error inserting document: %s", err)
+	}
+
+	cloned, err := coll.Clone(options.Collection().SetWriteConcern(impossibleWriteConcern))
+	if err != nil {
+		t.Fatalf("error cloning collection: %s", err)
+	}
+	_, err = cloned.UpdateOne(context.Background(), filter, update)
+	_, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
-	if got.Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
-	}
-	if got.Message != want.Message {
-		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
-	}
-
 }
 
 func TestCollection_UpdateMany_found(t *testing.T) {
@@ -1011,24 +1001,25 @@ func TestCollection_UpdateMany_WriteConcernError(t *testing.T) {
 		t.Skip()
 	}
 
-	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
 	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"pi", bsonx.Double(3.14159)}})}}
-	coll := createTestCollection(t, nil, nil,
-		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
+	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.UpdateMany(context.Background(), filter, update)
-	got, ok := err.(WriteConcernError)
+	// 2.6 server returns right away if the document doesn't exist
+	_, err := coll.InsertOne(ctx, filter)
+	if err != nil {
+		t.Fatalf("error inserting document: %s", err)
+	}
+
+	cloned, err := coll.Clone(options.Collection().SetWriteConcern(impossibleWriteConcern))
+	if err != nil {
+		t.Fatalf("error cloning collection: %s", err)
+	}
+	_, err = cloned.UpdateMany(context.Background(), filter, update)
+	_, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
-	if got.Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
-	}
-	if got.Message != want.Message {
-		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
-	}
-
 }
 
 func TestCollection_ReplaceOne_found(t *testing.T) {
@@ -1137,24 +1128,25 @@ func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
 		t.Skip()
 	}
 
-	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
 	update := bsonx.Doc{{"pi", bsonx.Double(3.14159)}}
-	coll := createTestCollection(t, nil, nil,
-		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
+	coll := createTestCollection(t, nil, nil)
 
-	_, err := coll.ReplaceOne(context.Background(), filter, update)
-	got, ok := err.(WriteConcernError)
+	// 2.6 server returns right away if the document doesn't exist
+	_, err := coll.InsertOne(ctx, filter)
+	if err != nil {
+		t.Fatalf("error inserting document: %s", err)
+	}
+
+	cloned, err := coll.Clone(options.Collection().SetWriteConcern(impossibleWriteConcern))
+	if err != nil {
+		t.Fatalf("error cloning collection: %s", err)
+	}
+	_, err = cloned.ReplaceOne(context.Background(), filter, update)
+	_, ok := err.(WriteConcernError)
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
-	if got.Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got.Code, want.Code)
-	}
-	if got.Message != want.Message {
-		t.Errorf("Did not receive the correct error message. got %s; want %s", got.Message, want.Message)
-	}
-
 }
 
 func TestCollection_Aggregate(t *testing.T) {
