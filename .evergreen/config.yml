@@ -387,7 +387,7 @@ tasks:
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
     - name: test-standalone-auth-ssl
-      tags: ["test", "standalone"]
+      tags: ["test", "standalone", "authssl"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -401,7 +401,7 @@ tasks:
             SSL: "ssl"
 
     - name: test-standalone-auth-ssl-compression
-      tags: ["test", "standalone"]
+      tags: ["test", "standalone", "authssl", "compression"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -430,7 +430,7 @@ tasks:
             SSL: "nossl"
 
     - name: test-replicaset-noauth-nossl-compression
-      tags: ["test", "replicaset"]
+      tags: ["test", "replicaset", "compression"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -445,7 +445,7 @@ tasks:
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
     - name: test-replicaset-auth-ssl
-      tags: ["test", "replicaset"]
+      tags: ["test", "replicaset", "authssl"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -459,7 +459,7 @@ tasks:
             SSL: "ssl"
 
     - name: test-replicaset-auth-ssl-compression
-      tags: ["test", "replicaset"]
+      tags: ["test", "replicaset", "authssl", "compression"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -488,7 +488,7 @@ tasks:
             SSL: "nossl"
 
     - name: test-sharded-noauth-nossl-compression
-      tags: ["test", "sharded"]
+      tags: ["test", "sharded", "compression"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -503,7 +503,7 @@ tasks:
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
     - name: test-sharded-auth-ssl
-      tags: ["test", "sharded"]
+      tags: ["test", "sharded", "authssl"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -517,7 +517,7 @@ tasks:
             SSL: "ssl"
 
     - name: test-sharded-auth-ssl-compression
-      tags: ["test", "sharded"]
+      tags: ["test", "sharded", "authssl", "compression"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -613,12 +613,31 @@ axes:
         display_name: "3.2"
         variables:
            VERSION: "3.2"
+      - id: "3.0"
+        display_name: "3.0"
+        variables:
+          VERSION: "3.0"
+      - id: "2.6"
+        display_name: "2.6"
+        variables:
+          VERSION: "2.6"
       - id: "latest"
         display_name: "latest"
         variables:
            VERSION: "latest"
 
-  - id: os
+  # OSes that support versions of MongoDB >= 2.6 with SSL.
+  - id: os-ssl-legacy
+    display_name: OS
+    values:
+      - id: "ubuntu1404-go-1-11"
+        display_name: "Ubuntu 14.04"
+        run_on: ubuntu1404-test
+        variables:
+          GO_DIST: "/opt/golang/go1.11"
+
+  # OSes that require >= 3.2 for SSL
+  - id: os-ssl-32
     display_name: OS
     values:
       - id: "windows-64-go-1-11"
@@ -668,14 +687,26 @@ buildvariants:
   tasks:
     - name: ".compile-check"
 
-- matrix_name: "tests"
-  matrix_spec: { version: "*", os: "*" }
-  display_name: "${version} ${os}"
+- matrix_name: "tests-legacy-auth-ssl"
+  matrix_spec: { version: ["2.6", "3.0"], os-ssl-legacy: "*" }
+  display_name: "${version} ${os-ssl-legacy}"
   tasks:
-     - name: ".test !.enterprise-auth"
+    - name: ".test !.enterprise-auth !.compression"
+
+- matrix_name: "tests-legacy-noauth-nossl"
+  matrix_spec: { version: ["2.6", "3.0"], os-ssl-32: "*" }
+  display_name: "${version} ${os-ssl-32}"
+  tasks:
+    - name: ".test !.authssl !.enterprise-auth !.compression"
+
+- matrix_name: "tests-nonlegacy-servers"
+  matrix_spec: { version: ["3.2", "3.4", "3.6", "4.0", "latest"], os-ssl-32: "*" }
+  display_name: "${version} ${os-ssl-32}"
+  tasks:
+    - name: ".test !.enterprise-auth"
 
 - matrix_name: "enterprise-auth-tests"
-  matrix_spec: { os: "*" }
-  display_name: "Enterprise Auth - ${os}"
+  matrix_spec: { os-ssl-32: "*" }
+  display_name: "Enterprise Auth - ${os-ssl-32}"
   tasks:
      - name: ".test .enterprise-auth"

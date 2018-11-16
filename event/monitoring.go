@@ -17,13 +17,17 @@ import (
 type CommandMetadata struct {
 	Name string
 	Time time.Time
+	Legacy bool
+	FullCollectionName string
 }
 
 // CreateMetadata creates metadata for a command.
-func CreateMetadata(name string) *CommandMetadata {
+func CreateMetadata(name string, legacy bool, fullCollName string) *CommandMetadata {
 	return &CommandMetadata{
 		Name: name,
 		Time: time.Now(),
+		Legacy: legacy,
+		FullCollectionName: fullCollName,
 	}
 }
 

@@ -36,6 +36,8 @@ var (
 	TransientTransactionError = "TransientTransactionError"
 	// NetworkError is an error label for network errors.
 	NetworkError = "NetworkError"
+	// ReplyDocumentMismatch is an error label for OP_QUERY field mismatch errors.
+	ReplyDocumentMismatch = "malformed OP_REPLY: NumberReturned does not match number of documents returned"
 )
 
 var retryableCodes = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001}
@@ -134,5 +136,6 @@ func IsWriteConcernErrorRetryable(wce *result.WriteConcernError) bool {
 // IsNotFound indicates if the error is from a namespace not being found.
 func IsNotFound(err error) bool {
 	e, ok := err.(Error)
-	return ok && (e.Code == 26)
+	// need message check because legacy servers don't include the error code
+	return ok && (e.Code == 26 || e.Message == "ns not found")
 }
