@@ -138,11 +138,8 @@ func runTest(t *testing.T, filename string, test *testCase) {
 		// for options that are present.
 		var ok bool
 
-		_, ok = test.Options["maxconnsperhost"]
-		require.Equal(t, ok, cs.MaxConnsPerHostSet)
-
-		_, ok = test.Options["maxidleconnsperhost"]
-		require.Equal(t, ok, cs.MaxIdleConnsPerHostSet)
+		_, ok = test.Options["maxpoolsize"]
+		require.Equal(t, ok, cs.MaxPoolSizeSet)
 
 		require.Equal(t, test.Auth != nil && test.Auth.Password != nil, cs.PasswordSet)
 	})

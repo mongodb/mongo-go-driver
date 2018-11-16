@@ -89,16 +89,9 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			connOpts = append(connOpts, connection.WithIdleTimeout(func(time.Duration) time.Duration { return cs.MaxConnIdleTime }))
 		}
 
-		if cs.MaxConnLifeTime > 0 {
-			connOpts = append(connOpts, connection.WithIdleTimeout(func(time.Duration) time.Duration { return cs.MaxConnLifeTime }))
-		}
-
-		if cs.MaxConnsPerHostSet {
-			c.serverOpts = append(c.serverOpts, WithMaxConnections(func(uint16) uint16 { return cs.MaxConnsPerHost }))
-		}
-
-		if cs.MaxIdleConnsPerHostSet {
-			c.serverOpts = append(c.serverOpts, WithMaxIdleConnections(func(uint16) uint16 { return cs.MaxIdleConnsPerHost }))
+		if cs.MaxPoolSizeSet {
+			c.serverOpts = append(c.serverOpts, WithMaxConnections(func(uint16) uint16 { return cs.MaxPoolSize }))
+			c.serverOpts = append(c.serverOpts, WithMaxIdleConnections(func(uint16) uint16 { return cs.MaxPoolSize }))
 		}
 
 		if cs.ReplicaSet != "" {
