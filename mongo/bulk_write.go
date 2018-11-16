@@ -7,18 +7,18 @@
 package mongo
 
 import (
-	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 )
 
 // WriteModel is the interface satisfied by all models for bulk writes.
 type WriteModel interface {
-	convertModel() dispatch.WriteModel
+	convertModel() driver.WriteModel
 }
 
 // InsertOneModel is the write model for insert operations.
 type InsertOneModel struct {
-	dispatch.InsertOneModel
+	driver.InsertOneModel
 }
 
 // NewInsertOneModel creates a new InsertOneModel.
@@ -32,13 +32,13 @@ func (iom *InsertOneModel) Document(doc interface{}) *InsertOneModel {
 	return iom
 }
 
-func (iom *InsertOneModel) convertModel() dispatch.WriteModel {
+func (iom *InsertOneModel) convertModel() driver.WriteModel {
 	return iom.InsertOneModel
 }
 
 // DeleteOneModel is the write model for delete operations.
 type DeleteOneModel struct {
-	dispatch.DeleteOneModel
+	driver.DeleteOneModel
 }
 
 // NewDeleteOneModel creates a new DeleteOneModel.
@@ -58,13 +58,13 @@ func (dom *DeleteOneModel) Collation(collation *options.Collation) *DeleteOneMod
 	return dom
 }
 
-func (dom *DeleteOneModel) convertModel() dispatch.WriteModel {
+func (dom *DeleteOneModel) convertModel() driver.WriteModel {
 	return dom.DeleteOneModel
 }
 
 // DeleteManyModel is the write model for deleteMany operations.
 type DeleteManyModel struct {
-	dispatch.DeleteManyModel
+	driver.DeleteManyModel
 }
 
 // NewDeleteManyModel creates a new DeleteManyModel.
@@ -84,13 +84,13 @@ func (dmm *DeleteManyModel) Collation(collation *options.Collation) *DeleteManyM
 	return dmm
 }
 
-func (dmm *DeleteManyModel) convertModel() dispatch.WriteModel {
+func (dmm *DeleteManyModel) convertModel() driver.WriteModel {
 	return dmm.DeleteManyModel
 }
 
 // ReplaceOneModel is the write model for replace operations.
 type ReplaceOneModel struct {
-	dispatch.ReplaceOneModel
+	driver.ReplaceOneModel
 }
 
 // NewReplaceOneModel creates a new ReplaceOneModel.
@@ -123,13 +123,13 @@ func (rom *ReplaceOneModel) Upsert(upsert bool) *ReplaceOneModel {
 	return rom
 }
 
-func (rom *ReplaceOneModel) convertModel() dispatch.WriteModel {
+func (rom *ReplaceOneModel) convertModel() driver.WriteModel {
 	return rom.ReplaceOneModel
 }
 
 // UpdateOneModel is the write model for update operations.
 type UpdateOneModel struct {
-	dispatch.UpdateOneModel
+	driver.UpdateOneModel
 }
 
 // NewUpdateOneModel creates a new UpdateOneModel.
@@ -169,13 +169,13 @@ func (uom *UpdateOneModel) Upsert(upsert bool) *UpdateOneModel {
 	return uom
 }
 
-func (uom *UpdateOneModel) convertModel() dispatch.WriteModel {
+func (uom *UpdateOneModel) convertModel() driver.WriteModel {
 	return uom.UpdateOneModel
 }
 
 // UpdateManyModel is the write model for updateMany operations.
 type UpdateManyModel struct {
-	dispatch.UpdateManyModel
+	driver.UpdateManyModel
 }
 
 // NewUpdateManyModel creates a new UpdateManyModel.
@@ -215,23 +215,23 @@ func (umm *UpdateManyModel) Upsert(upsert bool) *UpdateManyModel {
 	return umm
 }
 
-func (umm *UpdateManyModel) convertModel() dispatch.WriteModel {
+func (umm *UpdateManyModel) convertModel() driver.WriteModel {
 	return umm.UpdateManyModel
 }
 
-func dispatchToMongoModel(model dispatch.WriteModel) WriteModel {
+func dispatchToMongoModel(model driver.WriteModel) WriteModel {
 	switch conv := model.(type) {
-	case dispatch.InsertOneModel:
+	case driver.InsertOneModel:
 		return &InsertOneModel{conv}
-	case dispatch.DeleteOneModel:
+	case driver.DeleteOneModel:
 		return &DeleteOneModel{conv}
-	case dispatch.DeleteManyModel:
+	case driver.DeleteManyModel:
 		return &DeleteManyModel{conv}
-	case dispatch.ReplaceOneModel:
+	case driver.ReplaceOneModel:
 		return &ReplaceOneModel{conv}
-	case dispatch.UpdateOneModel:
+	case driver.UpdateOneModel:
 		return &UpdateOneModel{conv}
-	case dispatch.UpdateManyModel:
+	case driver.UpdateManyModel:
 		return &UpdateManyModel{conv}
 	}
 

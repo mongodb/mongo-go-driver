@@ -14,15 +14,15 @@ import (
 
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/core/connstring"
-	"github.com/mongodb/mongo-go-driver/core/tag"
-	"github.com/mongodb/mongo-go-driver/core/topology"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/tag"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
+	"github.com/mongodb/mongo-go-driver/x/network/connstring"
 	"github.com/stretchr/testify/require"
 )
 

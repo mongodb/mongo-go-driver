@@ -17,7 +17,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
 	"fmt"

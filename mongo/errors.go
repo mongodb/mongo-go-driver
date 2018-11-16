@@ -12,10 +12,10 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/result"
-	"github.com/mongodb/mongo-go-driver/core/topology"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
+	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/result"
 )
 
 // ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
@@ -78,7 +78,7 @@ type WriteConcernError struct {
 
 func (wce WriteConcernError) Error() string { return wce.Message }
 
-func convertBulkWriteErrors(errors []dispatch.BulkWriteError) []BulkWriteError {
+func convertBulkWriteErrors(errors []driver.BulkWriteError) []BulkWriteError {
 	bwErrors := make([]BulkWriteError, 0, len(errors))
 	for _, err := range errors {
 		bwErrors = append(bwErrors, BulkWriteError{

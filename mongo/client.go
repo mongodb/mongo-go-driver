@@ -12,18 +12,18 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/connstring"
-	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/dispatch"
-	"github.com/mongodb/mongo-go-driver/core/session"
-	"github.com/mongodb/mongo-go-driver/core/tag"
-	"github.com/mongodb/mongo-go-driver/core/topology"
-	"github.com/mongodb/mongo-go-driver/core/uuid"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/options"
+	"github.com/mongodb/mongo-go-driver/tag"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
+	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/connstring"
+	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -173,7 +173,7 @@ func (c *Client) endSessions(ctx context.Context) {
 		SessionIDs: c.topology.SessionPool.IDSlice(),
 	}
 
-	_, _ = dispatch.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
+	_, _ = driver.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
 }
 
 func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Client, error) {
@@ -354,7 +354,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		Clock:   c.clock,
 	}
 
-	res, err := dispatch.ListDatabases(
+	res, err := driver.ListDatabases(
 		ctx, cmd,
 		c.topology,
 		description.ReadPrefSelector(readpref.Primary()),

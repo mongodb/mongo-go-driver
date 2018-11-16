@@ -21,17 +21,17 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/core/command"
-	"github.com/mongodb/mongo-go-driver/core/description"
-	"github.com/mongodb/mongo-go-driver/core/event"
-	"github.com/mongodb/mongo-go-driver/core/session"
+	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/stretchr/testify/require"
 )
 
