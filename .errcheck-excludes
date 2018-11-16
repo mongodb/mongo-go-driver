@@ -1,9 +1,9 @@
-(*github.com/mongodb/mongo-go-driver/core/connection.connection).Close
-(github.com/mongodb/mongo-go-driver/core/connection.Connection).Close
-(*github.com/mongodb/mongo-go-driver/core/topology.Subscription).Unsubscribe
-(*github.com/mongodb/mongo-go-driver/core/topology.Server).Close
-(*github.com/mongodb/mongo-go-driver/core/connection.pool).closeConnection
-(github.com/mongodb/mongo-go-driver/core/wiremessage.ReadWriteCloser).Close
+(*github.com/mongodb/mongo-go-driver/x/network/connection.connection).Close
+(github.com/mongodb/mongo-go-driver/x/network/connection.Connection).Close
+(*github.com/mongodb/mongo-go-driver/x/mongo/driver/topology.Subscription).Unsubscribe
+(*github.com/mongodb/mongo-go-driver/x/mongo/driver/topology.Server).Close
+(*github.com/mongodb/mongo-go-driver/x/network/connection.pool).closeConnection
+(github.com/mongodb/mongo-go-driver/x/network/wiremessage.ReadWriteCloser).Close
 (github.com/mongodb/mongo-go-driver/mongo.Cursor).Close
 (net.Conn).Close
 encoding/pem.Encode

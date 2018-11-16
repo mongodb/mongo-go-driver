@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/core/result"
+	"github.com/mongodb/mongo-go-driver/x/network/result"
 )
 
 // BulkWriteResult holds the result of a bulk write operation.
