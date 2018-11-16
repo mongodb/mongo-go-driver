@@ -328,6 +328,8 @@ func testCheckedOut(t *testing.T, client *Client, expected int) {
 }
 
 func TestSessions(t *testing.T) {
+	skipIfBelow36(t)
+
 	t.Run("TestPoolLifo", func(t *testing.T) {
 		skipIfBelow36(t) // otherwise no session timeout is given and sessions auto expire
 
