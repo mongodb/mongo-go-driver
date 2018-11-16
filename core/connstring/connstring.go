@@ -53,11 +53,8 @@ type ConnString struct {
 	LocalThresholdSet                  bool
 	MaxConnIdleTime                    time.Duration
 	MaxConnIdleTimeSet                 bool
-	MaxConnLifeTime                    time.Duration
-	MaxConnsPerHost                    uint16
-	MaxConnsPerHostSet                 bool
-	MaxIdleConnsPerHost                uint16
-	MaxIdleConnsPerHostSet             bool
+	MaxPoolSize                        uint16
+	MaxPoolSizeSet                     bool
 	Password                           string
 	PasswordSet                        bool
 	ReadConcernLevel                   string
@@ -529,20 +526,6 @@ func (p *parser) addOption(pair string) error {
 		}
 		p.LocalThreshold = time.Duration(n) * time.Millisecond
 		p.LocalThresholdSet = true
-	case "maxconnsperhost":
-		n, err := strconv.Atoi(value)
-		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
-		}
-		p.MaxConnsPerHost = uint16(n)
-		p.MaxConnsPerHostSet = true
-	case "maxidleconnsperhost":
-		n, err := strconv.Atoi(value)
-		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
-		}
-		p.MaxIdleConnsPerHost = uint16(n)
-		p.MaxIdleConnsPerHostSet = true
 	case "maxidletimems":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
@@ -550,21 +533,13 @@ func (p *parser) addOption(pair string) error {
 		}
 		p.MaxConnIdleTime = time.Duration(n) * time.Millisecond
 		p.MaxConnIdleTimeSet = true
-	case "maxlifetimems":
-		n, err := strconv.Atoi(value)
-		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %s: %s", key, value)
-		}
-		p.MaxConnLifeTime = time.Duration(n) * time.Millisecond
 	case "maxpoolsize":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
-		p.MaxConnsPerHost = uint16(n)
-		p.MaxConnsPerHostSet = true
-		p.MaxIdleConnsPerHost = uint16(n)
-		p.MaxIdleConnsPerHostSet = true
+		p.MaxPoolSize = uint16(n)
+		p.MaxPoolSizeSet = true
 	case "readconcernlevel":
 		p.ReadConcernLevel = value
 	case "readpreference":
