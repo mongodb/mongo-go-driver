@@ -127,7 +127,13 @@ func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rd
 	labels, err := getErrorLabels(&rdr)
 	a.err = err
 
-	res, err := cb.BuildCursor(rdr, a.Session, a.Clock, a.CursorOpts...)
+	var res Cursor
+	if desc.WireVersion.Max >= 4 {
+		res, err = cb.BuildCursor(rdr, a.Session, a.Clock, a.CursorOpts...)
+	} else {
+		res, err = buildLegacyCursor(cb, rdr, getBatchSize(a.CursorOpts))
+	}
+
 	a.result = res
 	if err != nil {
 		a.err = Error{Message: err.Error(), Labels: labels}

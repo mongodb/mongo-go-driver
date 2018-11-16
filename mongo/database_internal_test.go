@@ -284,6 +284,9 @@ func listCollectionsTest(db *Database, cappedOnly bool) error {
 }
 
 func TestDatabase_ListCollections(t *testing.T) {
+	// TODO(GODRIVER-492) - implement legacy list collections
+	skipIfBelow32(t)
+
 	rpPrimary := readpref.Primary()
 	rpSecondary := readpref.Secondary()
 
