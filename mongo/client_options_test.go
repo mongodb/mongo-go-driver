@@ -98,8 +98,8 @@ func TestClientOptions_chainAll(t *testing.T) {
 	}).SetConnectTimeout(500 * time.Millisecond).SetHeartbeatInterval(15 * time.Second).SetHosts([]string{
 		"mongodb://localhost:27018",
 		"mongodb://localhost:27019",
-	}).SetLocalThreshold(time.Second).SetMaxConnIdleTime(30 * time.Second).SetMaxConnsPerHost(150).
-		SetMaxIdleConnsPerHost(20).SetReadConcern(rc).SetReadPreference(rp).SetReplicaSet("foo").
+	}).SetLocalThreshold(time.Second).SetMaxConnIdleTime(30 * time.Second).SetMaxPoolSize(150).
+		SetReadConcern(rc).SetReadPreference(rp).SetReplicaSet("foo").
 		SetRetryWrites(retryWrites).SetServerSelectionTimeout(time.Second).
 		SetSingle(false).SetSocketTimeout(2 * time.Second).SetSSL(&options.SSLOpt{
 		Enabled:                      true,
@@ -130,10 +130,8 @@ func TestClientOptions_chainAll(t *testing.T) {
 			LocalThreshold:                     time.Second,
 			MaxConnIdleTime:                    30 * time.Second,
 			MaxConnIdleTimeSet:                 true,
-			MaxConnsPerHost:                    150,
-			MaxConnsPerHostSet:                 true,
-			MaxIdleConnsPerHost:                20,
-			MaxIdleConnsPerHostSet:             true,
+			MaxPoolSize:                        150,
+			MaxPoolSizeSet:                     true,
 			ReplicaSet:                         "foo",
 			ServerSelectionTimeoutSet:          true,
 			ServerSelectionTimeout:             time.Second,

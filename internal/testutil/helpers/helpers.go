@@ -108,14 +108,9 @@ func VerifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map
 			require.Equal(t, value, cs.J)
 		case "maxidletimems":
 			require.Equal(t, value, cs.MaxConnIdleTime)
-		case "maxconnlifetimems":
-			require.Equal(t, value, cs.MaxConnLifeTime)
-		case "maxconnsperhost":
-			require.True(t, cs.MaxIdleConnsPerHostSet)
-			require.Equal(t, value, cs.MaxIdleConnsPerHost)
-		case "maxidleconnsperhost":
-			require.True(t, cs.MaxIdleConnsPerHostSet)
-			require.Equal(t, value, cs.MaxIdleConnsPerHost)
+		case "maxpoolsize":
+			require.True(t, cs.MaxPoolSizeSet)
+			require.Equal(t, value, cs.MaxPoolSize)
 		case "readpreference":
 			require.Equal(t, value, cs.ReadPreference)
 		case "readpreferencetags":

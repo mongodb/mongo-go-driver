@@ -194,19 +194,10 @@ func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
 	return c
 }
 
-// SetMaxConnsPerHost specifies the max size of a server's connection pool.
-func (c *ClientOptions) SetMaxConnsPerHost(u uint16) *ClientOptions {
-	c.ConnString.MaxConnsPerHost = u
-	c.ConnString.MaxConnsPerHostSet = true
-
-	return c
-}
-
-// SetMaxIdleConnsPerHost specifies the number of connections in a server's connection pool that can
-// be idle at any given time.
-func (c *ClientOptions) SetMaxIdleConnsPerHost(u uint16) *ClientOptions {
-	c.ConnString.MaxIdleConnsPerHost = u
-	c.ConnString.MaxIdleConnsPerHostSet = true
+// SetMaxPoolSize specifies the max size of a server's connection pool.
+func (c *ClientOptions) SetMaxPoolSize(u uint16) *ClientOptions {
+	c.ConnString.MaxPoolSize = u
+	c.ConnString.MaxPoolSizeSet = true
 
 	return c
 }
@@ -353,13 +344,9 @@ func MergeClientOptions(cs connstring.ConnString, opts ...*ClientOptions) *Clien
 			c.ConnString.MaxConnIdleTimeSet = true
 			c.ConnString.MaxConnIdleTime = opt.ConnString.MaxConnIdleTime
 		}
-		if opt.ConnString.MaxConnsPerHostSet {
-			c.ConnString.MaxConnsPerHostSet = true
-			c.ConnString.MaxConnsPerHost = opt.ConnString.MaxConnsPerHost
-		}
-		if opt.ConnString.MaxIdleConnsPerHostSet {
-			c.ConnString.MaxIdleConnsPerHostSet = true
-			c.ConnString.MaxIdleConnsPerHost = opt.ConnString.MaxIdleConnsPerHost
+		if opt.ConnString.MaxPoolSizeSet {
+			c.ConnString.MaxPoolSizeSet = true
+			c.ConnString.MaxPoolSize = opt.ConnString.MaxPoolSize
 		}
 		if opt.ReadConcern != nil {
 			c.ReadConcern = opt.ReadConcern
