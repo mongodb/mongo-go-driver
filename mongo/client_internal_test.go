@@ -41,6 +41,15 @@ func createTestClient(t *testing.T) *Client {
 	}
 }
 
+func skipIfBelow30(t *testing.T) {
+	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+	require.NoError(t, err)
+
+	if compareVersions(t, serverVersion, "3.0") < 0 {
+		t.Skip()
+	}
+}
+
 func TestNewClient(t *testing.T) {
 	t.Parallel()
 
@@ -73,6 +82,7 @@ func TestClientOptions(t *testing.T) {
 }
 
 func TestClient_TLSConnection(t *testing.T) {
+	skipIfBelow30(t) // 3.0 doesn't return a security field in the serverStatus response
 	t.Parallel()
 
 	if testing.Short() {

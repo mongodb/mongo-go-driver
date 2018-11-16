@@ -92,6 +92,8 @@ func (c *Count) decode(desc description.SelectedServer, rdr bson.Raw) *Count {
 		c.result = int64(val.Int32())
 	case bson.TypeInt64:
 		c.result = val.Int64()
+	case bson.TypeDouble:
+		c.result = int64(val.Double())
 	default:
 		c.err = errors.New("invalid response from server, value field is not a number")
 	}
