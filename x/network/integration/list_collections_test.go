@@ -18,6 +18,16 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
 
+func skipIfBelow32(t *testing.T) {
+	server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	if err != nil {
+		t.Fatalf("error selecting server: %s", err)
+	}
+	if server.Description().WireVersion.Max < 4 {
+		t.Skip("skipping for legacy servers")
+	}
+}
+
 func TestCommandListCollections(t *testing.T) {
 	noerr := func(t *testing.T, err error) {
 		// t.Helper()
@@ -26,6 +36,9 @@ func TestCommandListCollections(t *testing.T) {
 			t.FailNow()
 		}
 	}
+	// TODO(GODRIVER-492) don't skip once legacy collection enumeration is implemented
+	skipIfBelow32(t)
+
 	t.Run("InvalidDatabaseName", func(t *testing.T) {
 		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
 		noerr(t, err)

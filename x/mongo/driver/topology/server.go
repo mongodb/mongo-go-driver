@@ -450,6 +450,11 @@ func (s *Server) BuildCursor(result bson.Raw, clientSession *session.Client, clo
 	return newCursor(result, clientSession, clock, s, opts...)
 }
 
+// BuildLegacyCursor implements the command.CursorBuilder interface for the Server type.
+func (s *Server) BuildLegacyCursor(ns command.Namespace, cursorID int64, batch []bson.Raw, limit int32, batchSize int32) (command.Cursor, error) {
+	return newLegacyCursor(ns, cursorID, batch, limit, batchSize, s)
+}
+
 // ServerSubscription represents a subscription to the description.Server updates for
 // a specific server.
 type ServerSubscription struct {

@@ -62,6 +62,7 @@ func (ao *AggregateOptions) SetMaxTime(d time.Duration) *AggregateOptions {
 
 // SetMaxAwaitTime specifies the maximum amount of time for the server to
 // wait on new documents to satisfy a tailable cursor query
+// For servers < 3.2, this option is ignored
 func (ao *AggregateOptions) SetMaxAwaitTime(d time.Duration) *AggregateOptions {
 	ao.MaxAwaitTime = &d
 	return ao

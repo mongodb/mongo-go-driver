@@ -25,6 +25,9 @@ func TestCommandListIndexes(t *testing.T) {
 			t.FailNow()
 		}
 	}
+	// TODO(GODRIVER-279) don't skip once legacy index enumeration implemented
+	skipIfBelow32(t)
+
 	t.Run("InvalidDatabaseName", func(t *testing.T) {
 		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
 		noerr(t, err)
