@@ -300,6 +300,7 @@ func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
 }
 
 // SetMaxAwaitTime specifies the max amount of time for the server to wait on new documents.
+// For server versions < 3.2, this option is ignored.
 func (f *FindOneOptions) SetMaxAwaitTime(d time.Duration) *FindOneOptions {
 	f.MaxAwaitTime = &d
 	return f

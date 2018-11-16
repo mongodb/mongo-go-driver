@@ -9,6 +9,7 @@ package command
 import (
 	"context"
 
+	"fmt"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
@@ -123,11 +124,91 @@ func (a *Aggregate) Decode(desc description.SelectedServer, cb CursorBuilder, wm
 	return a.decode(desc, cb, rdr)
 }
 
+// get the firstBatch, cursor ID, and namespace from a bson.Raw
+func getCursorValues(result bson.Raw) ([]bson.RawValue, Namespace, int64, error) {
+	cur, err := result.LookupErr("cursor")
+	if err != nil {
+		return nil, Namespace{}, 0, err
+	}
+	if cur.Type != bson.TypeEmbeddedDocument {
+		return nil, Namespace{}, 0, fmt.Errorf("cursor should be an embedded document but it is a BSON %s", cur.Type)
+	}
+
+	elems, err := cur.Document().Elements()
+	if err != nil {
+		return nil, Namespace{}, 0, err
+	}
+
+	var ok bool
+	var arr bson.Raw
+	var namespace Namespace
+	var cursorID int64
+
+	for _, elem := range elems {
+		switch elem.Key() {
+		case "firstBatch":
+			arr, ok = elem.Value().ArrayOK()
+			if !ok {
+				return nil, Namespace{}, 0, fmt.Errorf("firstBatch should be an array but it is a BSON %s", elem.Value().Type)
+			}
+			//c.batch, err = arr.Values()
+			if err != nil {
+				return nil, Namespace{}, 0, err
+			}
+		case "ns":
+			if elem.Value().Type != bson.TypeString {
+				return nil, Namespace{}, 0, fmt.Errorf("namespace should be a string but it is a BSON %s", elem.Value().Type)
+			}
+			namespace = ParseNamespace(elem.Value().StringValue())
+			err = namespace.Validate()
+			if err != nil {
+				return nil, Namespace{}, 0, err
+			}
+		case "id":
+			cursorID, ok = elem.Value().Int64OK()
+			if !ok {
+				return nil, Namespace{}, 0, fmt.Errorf("id should be an int64 but it is a BSON %s", elem.Value().Type)
+			}
+		}
+	}
+
+	vals, err := arr.Values()
+	if err != nil {
+		return nil, Namespace{}, 0, err
+	}
+
+	return vals, namespace, cursorID, nil
+}
+
+func (a *Aggregate) buildCursor(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) (Cursor, error) {
+	if desc.WireVersion.Max >= 4 {
+		return cb.BuildCursor(rdr, a.Session, a.Clock, a.CursorOpts...)
+	}
+
+	firstBatchVals, ns, cursorID, err := getCursorValues(rdr)
+	if err != nil {
+		return nil, err
+	}
+
+	batchRaw := make([]bson.Raw, len(firstBatchVals))
+	for i, val := range firstBatchVals {
+		batchRaw[i] = val.Value
+	}
+
+	var batchSize int32
+	for _, opt := range a.CursorOpts {
+		if opt.Key == "batchSize" {
+			batchSize = opt.Value.Int32()
+		}
+	}
+	return cb.BuildLegacyCursor(ns, cursorID, batchRaw, 0, batchSize)
+}
+
 func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *Aggregate {
 	labels, err := getErrorLabels(&rdr)
 	a.err = err
 
-	res, err := cb.BuildCursor(rdr, a.Session, a.Clock, a.CursorOpts...)
+	res, err := a.buildCursor(desc, cb, rdr)
 	a.result = res
 	if err != nil {
 		a.err = Error{Message: err.Error(), Labels: labels}
