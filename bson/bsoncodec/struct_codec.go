@@ -231,6 +231,10 @@ func (sc *StructCodec) isZero(i interface{}) bool {
 		return true
 	}
 
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return true
+	}
+
 	if z, ok := v.Interface().(Zeroer); ok {
 		return z.IsZero()
 	}
