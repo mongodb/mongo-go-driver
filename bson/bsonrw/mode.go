@@ -6,7 +6,9 @@
 
 package bsonrw
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type mode int
 
@@ -49,17 +51,32 @@ func (m mode) String() string {
 // TransitionError is an error returned when an invalid progressing a
 // ValueReader or ValueWriter state machine occurs.
 type TransitionError struct {
+	name        string
 	parent      mode
 	current     mode
 	destination mode
+	modes       []mode
 }
 
 func (te TransitionError) Error() string {
+	errString := fmt.Sprintf("%s can only", te.name)
 	if te.destination == mode(0) {
-		return fmt.Sprintf("invalid state transition: cannot read/write value while in %s", te.current)
+		errString = fmt.Sprintf("%s read/write from", errString)
+	} else {
+		errString = fmt.Sprintf("%s transition to %s from", errString, te.destination)
 	}
-	if te.parent == mode(0) {
-		return fmt.Sprintf("invalid state transition: %s -> %s", te.current, te.destination)
+	for ind, m := range te.modes {
+		if ind != 0 && len(te.modes) > 2 {
+			errString = fmt.Sprintf("%s,", errString)
+		}
+		if ind == len(te.modes)-1 && len(te.modes) > 1 {
+			errString = fmt.Sprintf("%s or", errString)
+		}
+		errString = fmt.Sprintf("%s %s", errString, m)
 	}
-	return fmt.Sprintf("invalid state transition: %s -> %s; parent %s", te.current, te.destination, te.parent)
+	errString = fmt.Sprintf("%s but is in %s", errString, te.current)
+	if te.parent != mode(0) {
+		errString = fmt.Sprintf("%s with parent %s", errString, te.parent)
+	}
+	return errString
 }
