@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9445ff52_85907ef9",
+        "filename": "mongo/database.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-19T22:58:08Z",
+      "side": 1,
+      "message": "Let\u0027s rename DocumentResult to SingleResult, since we don\u0027t know what we\u0027ll be getting back from RunCommand.",
+      "range": {
+        "startLine": 92,
+        "startChar": 109,
+        "endLine": 92,
+        "endChar": 123
+      },
+      "revId": "3682160bc653a0c91b3a27ac8f510d3e84ce5732",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
