@@ -217,10 +217,12 @@ func (vr *valueReader) pop() {
 	}
 }
 
-func (vr *valueReader) invalidTransitionErr(destination mode) error {
+func (vr *valueReader) invalidTransitionErr(destination mode, name string, modes []mode) error {
 	te := TransitionError{
+		name:        name,
 		current:     vr.stack[vr.frame].mode,
 		destination: destination,
+		modes:       modes,
 	}
 	if vr.frame != 0 {
 		te.parent = vr.stack[vr.frame-1].mode
@@ -243,7 +245,7 @@ func (vr *valueReader) ensureElementValue(t bsontype.Type, destination mode) err
 			return vr.typeError(t)
 		}
 	default:
-		return vr.invalidTransitionErr(destination)
+		return vr.invalidTransitionErr(destination, "ensureElementValue", []mode{mElement, mValue})
 	}
 
 	return nil
@@ -303,7 +305,7 @@ func (vr *valueReader) ReadValueBytes(dst []byte) (bsontype.Type, []byte, error)
 	switch vr.stack[vr.frame].mode {
 	case mElement, mValue:
 	default:
-		return bsontype.Type(0), nil, vr.invalidTransitionErr(0)
+		return bsontype.Type(0), nil, vr.invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
 	}
 
 	length, err := vr.nextElementLength()
@@ -321,7 +323,7 @@ func (vr *valueReader) Skip() error {
 	switch vr.stack[vr.frame].mode {
 	case mElement, mValue:
 	default:
-		return vr.invalidTransitionErr(0)
+		return vr.invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
 	}
 
 	length, err := vr.nextElementLength()
@@ -414,7 +416,7 @@ func (vr *valueReader) ReadDocument() (DocumentReader, error) {
 			return nil, vr.typeError(bsontype.EmbeddedDocument)
 		}
 	default:
-		return nil, vr.invalidTransitionErr(mDocument)
+		return nil, vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
 	}
 
 	err := vr.pushDocument()
@@ -667,7 +669,7 @@ func (vr *valueReader) ReadElement() (string, ValueReader, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel, mDocument, mCodeWithScope:
 	default:
-		return "", nil, vr.invalidTransitionErr(mElement)
+		return "", nil, vr.invalidTransitionErr(mElement, "ReadElement", []mode{mTopLevel, mDocument, mCodeWithScope})
 	}
 
 	t, err := vr.readByte()
@@ -697,7 +699,7 @@ func (vr *valueReader) ReadValue() (ValueReader, error) {
 	switch vr.stack[vr.frame].mode {
 	case mArray:
 	default:
-		return nil, vr.invalidTransitionErr(mValue)
+		return nil, vr.invalidTransitionErr(mValue, "ReadValue", []mode{mArray})
 	}
 
 	t, err := vr.readByte()
