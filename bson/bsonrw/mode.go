@@ -6,7 +6,9 @@
 
 package bsonrw
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type mode int
 
@@ -46,20 +48,61 @@ func (m mode) String() string {
 	return str
 }
 
+func (m mode) TypeString() string {
+	var str string
+
+	switch m {
+	case mTopLevel:
+		str = "TopLevel"
+	case mDocument:
+		str = "Document"
+	case mArray:
+		str = "Array"
+	case mValue:
+		str = "Value"
+	case mElement:
+		str = "Element"
+	case mCodeWithScope:
+		str = "CodeWithScope"
+	case mSpacer:
+		str = "CodeWithScopeSpacer"
+	default:
+		str = "Unknown"
+	}
+
+	return str
+}
+
 // TransitionError is an error returned when an invalid progressing a
 // ValueReader or ValueWriter state machine occurs.
+// If read is false, the error is for writing
 type TransitionError struct {
+	name        string
 	parent      mode
 	current     mode
 	destination mode
+	modes       []mode
+	action      string
 }
 
 func (te TransitionError) Error() string {
-	if te.destination == mode(0) {
-		return fmt.Sprintf("invalid state transition: cannot read/write value while in %s", te.current)
+	errString := fmt.Sprintf("%s can only %s", te.name, te.action)
+	if te.destination != mode(0) {
+		errString = fmt.Sprintf("%s a %s", errString, te.destination.TypeString())
 	}
-	if te.parent == mode(0) {
-		return fmt.Sprintf("invalid state transition: %s -> %s", te.current, te.destination)
+	errString = fmt.Sprintf("%s while positioned on a", errString)
+	for ind, m := range te.modes {
+		if ind != 0 && len(te.modes) > 2 {
+			errString = fmt.Sprintf("%s,", errString)
+		}
+		if ind == len(te.modes)-1 && len(te.modes) > 1 {
+			errString = fmt.Sprintf("%s or", errString)
+		}
+		errString = fmt.Sprintf("%s %s", errString, m.TypeString())
 	}
-	return fmt.Sprintf("invalid state transition: %s -> %s; parent %s", te.current, te.destination, te.parent)
+	errString = fmt.Sprintf("%s but is positioned on a %s", errString, te.current.TypeString())
+	if te.parent != mode(0) {
+		errString = fmt.Sprintf("%s with parent %s", errString, te.parent.TypeString())
+	}
+	return errString
 }
