@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"math"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
@@ -209,7 +210,12 @@ func TestValueWriter(t *testing.T) {
 				vw = newValueWriter(ioutil.Discard)
 				results := fn.Call(params)
 				got := results[0].Interface().(error)
-				want := TransitionError{current: mTopLevel}
+				fnName := tc.name
+				if strings.Contains(fnName, "WriteBinary") {
+					fnName = "WriteBinaryWithSubtype"
+				}
+				want := TransitionError{current: mTopLevel, name: fnName, modes: []mode{mElement, mValue},
+					action: "write"}
 				if !compareErrors(got, want) {
 					t.Errorf("Errors do not match. got %v; want %v", got, want)
 				}
@@ -220,7 +226,8 @@ func TestValueWriter(t *testing.T) {
 	t.Run("WriteArray", func(t *testing.T) {
 		vw := newValueWriter(ioutil.Discard)
 		vw.push(mArray)
-		want := TransitionError{current: mArray, destination: mArray, parent: mTopLevel}
+		want := TransitionError{current: mArray, destination: mArray, parent: mTopLevel,
+			name: "WriteArray", modes: []mode{mElement, mValue}, action: "write"}
 		_, got := vw.WriteArray()
 		if !compareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -229,7 +236,8 @@ func TestValueWriter(t *testing.T) {
 	t.Run("WriteCodeWithScope", func(t *testing.T) {
 		vw := newValueWriter(ioutil.Discard)
 		vw.push(mArray)
-		want := TransitionError{current: mArray, destination: mCodeWithScope, parent: mTopLevel}
+		want := TransitionError{current: mArray, destination: mCodeWithScope, parent: mTopLevel,
+			name: "WriteCodeWithScope", modes: []mode{mElement, mValue}, action: "write"}
 		_, got := vw.WriteCodeWithScope("")
 		if !compareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -238,7 +246,8 @@ func TestValueWriter(t *testing.T) {
 	t.Run("WriteDocument", func(t *testing.T) {
 		vw := newValueWriter(ioutil.Discard)
 		vw.push(mArray)
-		want := TransitionError{current: mArray, destination: mDocument, parent: mTopLevel}
+		want := TransitionError{current: mArray, destination: mDocument, parent: mTopLevel,
+			name: "WriteDocument", modes: []mode{mElement, mValue, mTopLevel}, action: "write"}
 		_, got := vw.WriteDocument()
 		if !compareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -247,7 +256,12 @@ func TestValueWriter(t *testing.T) {
 	t.Run("WriteDocumentElement", func(t *testing.T) {
 		vw := newValueWriter(ioutil.Discard)
 		vw.push(mElement)
-		want := TransitionError{current: mElement, destination: mElement, parent: mTopLevel}
+		want := TransitionError{current: mElement,
+			destination: mElement,
+			parent:      mTopLevel,
+			name:        "WriteDocumentElement",
+			modes:       []mode{mTopLevel, mDocument},
+			action:      "write"}
 		_, got := vw.WriteDocumentElement("")
 		if !compareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -280,7 +294,12 @@ func TestValueWriter(t *testing.T) {
 	t.Run("WriteArrayElement", func(t *testing.T) {
 		vw := newValueWriter(ioutil.Discard)
 		vw.push(mElement)
-		want := TransitionError{current: mElement, destination: mValue, parent: mTopLevel}
+		want := TransitionError{current: mElement,
+			destination: mValue,
+			parent:      mTopLevel,
+			name:        "WriteArrayElement",
+			modes:       []mode{mArray},
+			action:      "write"}
 		_, got := vw.WriteArrayElement()
 		if !compareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
@@ -308,7 +327,8 @@ func TestValueWriter(t *testing.T) {
 	t.Run("WriteBytes", func(t *testing.T) {
 		t.Run("writeElementHeader error", func(t *testing.T) {
 			vw := newValueWriterFromSlice(nil)
-			want := TransitionError{current: mTopLevel, destination: mode(0)}
+			want := TransitionError{current: mTopLevel, destination: mode(0),
+				name: "WriteValueBytes", modes: []mode{mElement, mValue}, action: "write"}
 			got := vw.WriteValueBytes(bsontype.EmbeddedDocument, nil)
 			if !compareErrors(got, want) {
 				t.Errorf("Did not received expected error. got %v; want %v", got, want)
