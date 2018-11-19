@@ -214,7 +214,7 @@ func TestValueReader(t *testing.T) {
 			}
 
 			vr.stack[1].mode = mArray
-			wanterr = vr.invalidTransitionErr(mDocument)
+			wanterr = vr.invalidTransitionErr(mDocument, "ReadDocument", []mode{mTopLevel, mElement, mValue})
 			_, err = vr.ReadDocument()
 			if err == nil || err.Error() != wanterr.Error() {
 				t.Errorf("Incorrect returned error. got %v; want %v", err, wanterr)
@@ -1434,7 +1434,7 @@ func TestValueReader(t *testing.T) {
 	t.Run("invalid transition", func(t *testing.T) {
 		t.Run("Skip", func(t *testing.T) {
 			vr := &valueReader{stack: []vrState{{mode: mTopLevel}}}
-			wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}}}).invalidTransitionErr(0)
+			wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}}}).invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
 			goterr := vr.Skip()
 			if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
 				t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
@@ -1442,7 +1442,7 @@ func TestValueReader(t *testing.T) {
 		})
 		t.Run("ReadBytes", func(t *testing.T) {
 			vr := &valueReader{stack: []vrState{{mode: mTopLevel}}}
-			wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}}}).invalidTransitionErr(0)
+			wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}}}).invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
 			_, _, goterr := vr.ReadValueBytes(nil)
 			if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
 				t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
