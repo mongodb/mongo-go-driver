@@ -22,6 +22,30 @@
       "revId": "3682160bc653a0c91b3a27ac8f510d3e84ce5732",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3a66c9f3_7bb4c123",
+        "filename": "mongo/database.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2018-11-21T15:24:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9445ff52_85907ef9",
+      "range": {
+        "startLine": 92,
+        "startChar": 109,
+        "endLine": 92,
+        "endChar": 123
+      },
+      "revId": "3682160bc653a0c91b3a27ac8f510d3e84ce5732",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
