@@ -50,7 +50,6 @@
 // 	  	Foo string
 // 	  	Bar int32
 // 	  }{}
-//    result := bson.Raw{}
 //    filter := bson.D{{"hello", "world"}}
 //    err := collection.FindOne(context.Background(), filter).Decode(&result))
 //    if err != nil { return err }
