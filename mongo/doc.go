@@ -31,7 +31,7 @@
 //    if err != nil { log.Fatal(err) }
 //    defer cur.Close(context.Background())
 //    for cur.Next(context.Background()) {
-//       elem := bson.NewDocument()
+//       elem := &bson.D{}
 //       err := cur.Decode(elem)
 //       if err != nil { log.Fatal(err) }
 //       // do something with elem....
@@ -43,8 +43,8 @@
 // Methods that only return a single document will return a *DocumentResult, which works
 // like a *sql.Row:
 //
-//    result := bson.NewDocument()
-//    filter := bson.NewDocument(bson.EC.String("hello", "world"))
+//    result := &bson.D{}
+//    filter := bson.D{{"hello", "world"}}
 //    err := collection.FindOne(context.Background(), filter).Decode(result)
 //    if err != nil { log.Fatal(err) }
 //    // do something with result...
