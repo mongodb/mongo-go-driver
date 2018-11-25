@@ -99,7 +99,7 @@ func (rv RawValue) Double() float64 { return convertToCoreValue(rv).Double() }
 // DoubleOK is the same as Double, but returns a boolean instead of panicking.
 func (rv RawValue) DoubleOK() (float64, bool) { return convertToCoreValue(rv).DoubleOK() }
 
-// StringValue returns the string balue for this element.
+// StringValue returns the string value for this element.
 // It panics if e's BSON type is not bsontype.String.
 //
 // NOTE: This method is called StringValue to avoid a collision with the String method which
