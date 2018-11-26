@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "92db2634_e643d7d9",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-26T17:01:15Z",
+      "side": 1,
+      "message": "This function will need a doc comment and I think we might have to call it Err and not Error or govet will complain that we\u0027re using a commonly used interface method but haven\u0027t actually implemented the interface.",
+      "range": {
+        "startLine": 61,
+        "startChar": 0,
+        "endLine": 61,
+        "endChar": 39
+      },
+      "revId": "fb50bd803061914ec4e3ede66a0f363ae6f64395",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
