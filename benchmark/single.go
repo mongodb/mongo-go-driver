@@ -27,7 +27,7 @@ func getClientDB(ctx context.Context) (*mongo.Database, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := mongo.NewClientFromConnString(cs)
+	client, err := mongo.NewClient(cs.String())
 	if err != nil {
 		return nil, err
 	}

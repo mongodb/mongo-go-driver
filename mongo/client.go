@@ -79,12 +79,6 @@ func NewClientWithOptions(uri string, opts ...*options.ClientOptions) (*Client, 
 	return newClient(cs, opts...)
 }
 
-// NewClientFromConnString creates a new client to connect to a cluster, with configuration
-// specified by the connection string.
-func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
-	return newClient(cs)
-}
-
 // Connect initializes the Client by starting background monitoring goroutines.
 // This method must be called before a Client can be used.
 func (c *Client) Connect(ctx context.Context) error {
