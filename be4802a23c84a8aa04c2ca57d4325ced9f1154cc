@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c82264ea_822e8139",
+        "filename": "bson/bsonrw/mode.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-26T16:31:50Z",
+      "side": 1,
+      "message": "I know it\u0027s adding another field to the struct, but can we have something to indicate whether we are reading from or writing to so this error message reads a little better?",
+      "range": {
+        "startLine": 64,
+        "startChar": 30,
+        "endLine": 64,
+        "endChar": 45
+      },
+      "revId": "be4802a23c84a8aa04c2ca57d4325ced9f1154cc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
