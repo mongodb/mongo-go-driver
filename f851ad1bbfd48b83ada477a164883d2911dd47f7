@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6e0c115c_f9c79694",
+        "filename": "mongo/doc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-26T23:00:47Z",
+      "side": 1,
+      "message": "Why not bson.D for result as well?  Are you trying to show the different options?",
+      "range": {
+        "startLine": 49,
+        "startChar": 20,
+        "endLine": 49,
+        "endChar": 21
+      },
+      "revId": "f851ad1bbfd48b83ada477a164883d2911dd47f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0979319b_f3fa1d8b",
+        "filename": "mongo/doc.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 52,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-26T23:00:47Z",
+      "side": 1,
+      "message": "Why not return err, as above?",
+      "range": {
+        "startLine": 52,
+        "startChar": 22,
+        "endLine": 52,
+        "endChar": 25
+      },
+      "revId": "f851ad1bbfd48b83ada477a164883d2911dd47f7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
