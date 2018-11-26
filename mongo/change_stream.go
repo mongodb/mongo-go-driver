@@ -71,7 +71,11 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		aggOpts.MaxAwaitTime = csOpts.MaxAwaitTime
 	}
 	if csOpts.ResumeAfter != nil {
-		changeStreamOptions = append(changeStreamOptions, bsonx.Elem{"resumeAfter", bsonx.Document(csOpts.ResumeAfter)})
+		rt, err := transformDocument(coll.registry, csOpts.ResumeAfter)
+		if err != nil {
+			return nil, err
+		}
+		changeStreamOptions = append(changeStreamOptions, bsonx.Elem{"resumeAfter", bsonx.Document(rt)})
 	}
 
 	pipelineArr = append(pipelineArr, bsonx.Val{})
