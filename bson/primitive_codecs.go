@@ -39,6 +39,8 @@ func (pc PrimitiveCodecs) RegisterPrimitiveCodecs(rb *bsoncodec.RegistryBuilder)
 		RegisterEncoder(tDocument, bsoncodec.ValueEncoderFunc(pc.x.DocumentEncodeValue)).
 		RegisterEncoder(tArray, bsoncodec.ValueEncoderFunc(pc.x.ArrayEncodeValue)).
 		RegisterEncoder(tValue, bsoncodec.ValueEncoderFunc(pc.x.ValueEncodeValue)).
+		RegisterEncoder(reflect.PtrTo(tJavaScript), bsoncodec.ValueEncoderFunc(pc.JavaScriptEncodeValue)).
+		RegisterEncoder(reflect.PtrTo(tSymbol), bsoncodec.ValueEncoderFunc(pc.SymbolEncodeValue)).
 		RegisterEncoder(reflect.PtrTo(tRawValue), bsoncodec.ValueEncoderFunc(pc.RawValueEncodeValue)).
 		RegisterEncoder(reflect.PtrTo(tElementSlice), bsoncodec.ValueEncoderFunc(pc.x.ElementSliceEncodeValue)).
 		RegisterEncoder(reflect.PtrTo(tBinary), bsoncodec.ValueEncoderFunc(pc.BinaryEncodeValue)).
@@ -56,6 +58,8 @@ func (pc PrimitiveCodecs) RegisterPrimitiveCodecs(rb *bsoncodec.RegistryBuilder)
 		RegisterDecoder(tDocument, bsoncodec.ValueDecoderFunc(pc.x.DocumentDecodeValue)).
 		RegisterDecoder(tArray, bsoncodec.ValueDecoderFunc(pc.x.ArrayDecodeValue)).
 		RegisterDecoder(tValue, bsoncodec.ValueDecoderFunc(pc.x.ValueDecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tJavaScript), bsoncodec.ValueDecoderFunc(pc.JavaScriptDecodeValue)).
+		RegisterDecoder(reflect.PtrTo(tSymbol), bsoncodec.ValueDecoderFunc(pc.SymbolDecodeValue)).
 		RegisterDecoder(reflect.PtrTo(tRawValue), bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue)).
 		RegisterDecoder(reflect.PtrTo(tElementSlice), bsoncodec.ValueDecoderFunc(pc.x.ElementSliceDecodeValue)).
 		RegisterDecoder(reflect.PtrTo(tBinary), bsoncodec.ValueDecoderFunc(pc.BinaryDecodeValue)).
@@ -114,7 +118,7 @@ func (PrimitiveCodecs) SymbolEncodeValue(ectx bsoncodec.EncodeContext, vw bsonrw
 		}
 	}
 
-	return vw.WriteJavascript(string(symbol))
+	return vw.WriteSymbol(string(symbol))
 }
 
 // JavaScriptDecodeValue is the ValueDecoderFunc for the primitive.JavaScript type.
