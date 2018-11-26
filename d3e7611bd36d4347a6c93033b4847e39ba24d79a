@@ -46,6 +46,30 @@
       "revId": "d3e7611bd36d4347a6c93033b4847e39ba24d79a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "43094e5d_d1dce66c",
+        "filename": "bson/extjson_bytes_converter.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-26T17:07:27Z",
+      "side": 1,
+      "message": "Ugh, that\u0027s annoying. Not sure how we can make this work as an extjson array. We can\u0027t use the parser package anymore since that was deleted. Can we use the bsoncodec package here?",
+      "parentUuid": "e366cd30_53c5619c",
+      "range": {
+        "startLine": 55,
+        "startChar": 0,
+        "endLine": 55,
+        "endChar": 19
+      },
+      "revId": "d3e7611bd36d4347a6c93033b4847e39ba24d79a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
