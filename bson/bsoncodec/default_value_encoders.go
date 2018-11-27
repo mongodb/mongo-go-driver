@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
 	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
@@ -41,6 +42,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterEncoder(tJSONNumber, ValueEncoderFunc(dve.JSONNumberEncodeValue)).
 		RegisterEncoder(tURL, ValueEncoderFunc(dve.URLEncodeValue)).
 		RegisterEncoder(tValueMarshaler, ValueEncoderFunc(dve.ValueMarshalerEncodeValue)).
+		RegisterEncoder(tMarshaler, ValueEncoderFunc(dve.MarshalerEncodeValue)).
 		RegisterEncoder(tProxy, ValueEncoderFunc(dve.ProxyEncodeValue)).
 		RegisterDefaultEncoder(reflect.Bool, ValueEncoderFunc(dve.BooleanEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int, ValueEncoderFunc(dve.IntEncodeValue)).
@@ -466,6 +468,24 @@ func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw b
 		return err
 	}
 	return bsonrw.Copier{}.CopyValueFromBytes(vw, t, val)
+}
+
+// MarshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
+func (dve DefaultValueEncoders) MarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
+	vm, ok := i.(Marshaler)
+	if !ok {
+		return ValueEncoderError{
+			Name:     "MarshalerEncodeValue",
+			Types:    []interface{}{(Marshaler)(nil)},
+			Received: i,
+		}
+	}
+
+	val, err := vm.MarshalBSON()
+	if err != nil {
+		return err
+	}
+	return bsonrw.Copier{}.CopyValueFromBytes(vw, bsontype.EmbeddedDocument, val)
 }
 
 // ProxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
