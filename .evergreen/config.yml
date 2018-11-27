@@ -41,6 +41,10 @@ functions:
               export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
            fi;
 
+           # LOCALAPPDATA isn't set for some reason
+           if [ "Windows_NT" = "$OS" ]; then
+               export LOCALAPPDATA=/cygdrive/c/Users/Administrator/AppData/Local
+           fi
            # Get the current unique version of this checkout
            if [ "${is_patch}" = "true" ]; then
               CURRENT_VERSION=$(git describe)-patch-${version_id}
