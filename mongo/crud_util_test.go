@@ -591,7 +591,7 @@ func verifyInsertOneResult(t *testing.T, res *InsertOneResult, result json.RawMe
 
 	if expectedID != nil {
 		require.NotNil(t, res)
-		require.Equal(t, expectedID, res.InsertedID.(bsonx.Elem).Value.Interface())
+		require.Equal(t, expectedID, res.InsertedID)
 	}
 }
 
@@ -605,10 +605,6 @@ func verifyInsertManyResult(t *testing.T, res *InsertManyResult, result json.Raw
 
 	if expected.InsertedIds != nil {
 		replaceFloatsWithInts(expected.InsertedIds)
-
-		for i, elem := range res.InsertedIDs {
-			res.InsertedIDs[i] = elem.(bsonx.Elem).Value.Interface()
-		}
 
 		for _, val := range expected.InsertedIds {
 			require.Contains(t, res.InsertedIDs, val)

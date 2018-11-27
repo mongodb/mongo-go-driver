@@ -283,8 +283,8 @@ func TestCollection_InsertOne(t *testing.T) {
 	t.Parallel()
 
 	id := objectid.New()
-	want := bsonx.Elem{"_id", bsonx.ObjectID(id)}
-	doc := bsonx.Doc{want, {"x", bsonx.Int32(1)}}
+	want := id
+	doc := bsonx.Doc{bsonx.Elem{"_id", bsonx.ObjectID(id)}, {"x", bsonx.Int32(1)}}
 	coll := createTestCollection(t, nil, nil)
 
 	result, err := coll.InsertOne(context.Background(), doc)
@@ -358,12 +358,12 @@ func TestCollection_InsertMany(t *testing.T) {
 
 	t.Parallel()
 
-	want1 := bsonx.Elem{"_id", bsonx.Int32(11)}
-	want2 := bsonx.Elem{"_id", bsonx.Int32(12)}
+	want1 := int32(11)
+	want2 := int32(12)
 	docs := []interface{}{
-		bsonx.Doc{want1},
+		bsonx.Doc{bsonx.Elem{"_id", bsonx.Int32(11)}},
 		bsonx.Doc{{"x", bsonx.Int32(6)}},
-		bsonx.Doc{want2},
+		bsonx.Doc{bsonx.Elem{"_id", bsonx.Int32(12)}},
 	}
 	coll := createTestCollection(t, nil, nil)
 
