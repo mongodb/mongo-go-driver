@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "63c1a532_bcad3cd0",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-11-27T19:16:34Z",
+      "side": 1,
+      "message": "It\u0027s always created as an int64 in upload_stream.go.",
+      "parentUuid": "e66f9bee_aabcde66",
+      "range": {
+        "startLine": 339,
+        "startChar": 24,
+        "endLine": 339,
+        "endChar": 31
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a4bf176c_fff9ac34",
         "filename": "mongo/gridfs/gridfs_test.go",
         "patchSetId": 1
@@ -60,6 +84,30 @@
       "writtenOn": "2018-11-27T17:18:08Z",
       "side": 1,
       "message": "Is the doc.Delete necessary?  When would there be two length fields in the JSON tests?",
+      "range": {
+        "startLine": 99,
+        "startChar": 9,
+        "endLine": 99,
+        "endChar": 12
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed461a14_3b6df74c",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-11-27T19:16:34Z",
+      "side": 1,
+      "message": "It\u0027s not accounting for 2 instances of length. By default, the length field is parsed as int32 but it should be int64. So if there is a length field in the JSON, this deletes it and the next line replaces it with the int64 version.\n\nIf I had the index of the field in the doc, this would be the same as replacing doc[index].Value",
+      "parentUuid": "a4bf176c_fff9ac34",
       "range": {
         "startLine": 99,
         "startChar": 9,
@@ -95,6 +143,30 @@
     },
     {
       "key": {
+        "uuid": "39291add_58c669ef",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-11-27T19:16:34Z",
+      "side": 1,
+      "message": "chunkSize is already in doc. This is getting the value of chunk size so it can be returned to the caller function, which uses it to create a new bucket.",
+      "parentUuid": "2870fb9e_c0120b18",
+      "range": {
+        "startLine": 103,
+        "startChar": 3,
+        "endLine": 103,
+        "endChar": 12
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "45934411_4b19b184",
         "filename": "mongo/gridfs/gridfs_test.go",
         "patchSetId": 1
@@ -106,6 +178,30 @@
       "writtenOn": "2018-11-27T17:18:08Z",
       "side": 1,
       "message": "So tests weren\u0027t failing because they were commented out?",
+      "range": {
+        "startLine": 210,
+        "startChar": 4,
+        "endLine": 210,
+        "endChar": 27
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a8be12df_25451856",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 210,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-11-27T19:16:34Z",
+      "side": 1,
+      "message": "I think it was some combination of this and the fact that the length in the JSON fields wasn\u0027t being converted to int64.",
+      "parentUuid": "45934411_4b19b184",
       "range": {
         "startLine": 210,
         "startChar": 4,
