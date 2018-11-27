@@ -213,12 +213,10 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		ctx = context.Background()
 	}
 
-	doc, err := transformDocument(coll.registry, document)
+	doc, insertedID, err := transformAndEnsureID(coll.registry, document)
 	if err != nil {
 		return nil, err
 	}
-
-	doc, insertedID := ensureID(doc)
 
 	sess := sessionFromContext(ctx)
 
@@ -277,11 +275,10 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	docs := make([]bsonx.Doc, len(documents))
 
 	for i, doc := range documents {
-		bdoc, err := transformDocument(coll.registry, doc)
+		bdoc, insertedID, err := transformAndEnsureID(coll.registry, doc)
 		if err != nil {
 			return nil, err
 		}
-		bdoc, insertedID := ensureID(bdoc)
 
 		docs[i] = bdoc
 		result[i] = insertedID
