@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6c1815a6_29cb26c2",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-27T23:00:19Z",
+      "side": 1,
+      "message": "I think you need to put \"_id\" at the beginning of the document. This isn\u0027t written down anywhere, but is apparently still important according to asya.",
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
