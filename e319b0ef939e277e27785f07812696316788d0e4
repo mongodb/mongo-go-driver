@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e747bee3_6b0bf7d5",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-27T16:56:01Z",
+      "side": 1,
+      "message": "Will this always be an int64 or could it be either an int32 or an int64?",
+      "range": {
+        "startLine": 339,
+        "startChar": 24,
+        "endLine": 339,
+        "endChar": 31
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
