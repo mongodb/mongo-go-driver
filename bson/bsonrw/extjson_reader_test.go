@@ -7,6 +7,9 @@
 package bsonrw
 
 import (
+	"fmt"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -44,4 +47,119 @@ func TestExtJSONReader(t *testing.T) {
 			}
 		})
 	})
+}
+
+func TestReadMultipleTopLevelDocuments(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected [][]byte
+	}{
+		{
+			"single top-level document",
+			"{\"foo\":1}",
+			[][]byte{
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+			},
+		},
+		{
+			"single top-level document with leading and trailing whitespace",
+			"\n\n   {\"foo\":1}   \n",
+			[][]byte{
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+			},
+		},
+		{
+			"two top-level documents",
+			"{\"foo\":1}{\"foo\":2}",
+			[][]byte{
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x02, 0x00, 0x00, 0x00, 0x00},
+			},
+		},
+		{
+			"two top-level documents with leading and trailing whitespace and whitespace separation ",
+			"\n\n  {\"foo\":1}\n{\"foo\":2}\n  ",
+			[][]byte{
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x02, 0x00, 0x00, 0x00, 0x00},
+			},
+		},
+		{
+			"top-level array with single document",
+			"[{\"foo\":1}]",
+			[][]byte{
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+			},
+		},
+		{
+			"top-level array with 2 documents",
+			"[{\"foo\":1},{\"foo\":2}]",
+			[][]byte{
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+				{0x0E, 0x00, 0x00, 0x00, 0x10, 'f', 'o', 'o', 0x00, 0x02, 0x00, 0x00, 0x00, 0x00},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			r := strings.NewReader(tc.input)
+			vr := NewExtJSONValueReader(r, false)
+
+			actual, err := readAllDocuments(vr)
+			if err != nil {
+				t.Fatalf("expected no error, but got %v", err)
+			}
+
+			if diff := cmp.Diff(tc.expected, actual); diff != "" {
+				t.Fatalf("expected does not match actual: %v", diff)
+			}
+		})
+	}
+}
+
+func readAllDocuments(vr ValueReader) ([][]byte, error) {
+	c := NewCopier()
+	var actual [][]byte
+
+	switch vr.Type() {
+	case bsontype.EmbeddedDocument:
+		for {
+			result, err := c.CopyDocumentToBytes(vr)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return nil, err
+			}
+
+			actual = append(actual, result)
+		}
+	case bsontype.Array:
+		ar, err := vr.ReadArray()
+		if err != nil {
+			return nil, err
+		}
+		for {
+			evr, err := ar.ReadValue()
+			if err != nil {
+				if err == ErrEOA {
+					break
+				}
+				return nil, err
+			}
+
+			result, err := c.CopyDocumentToBytes(evr)
+			if err != nil {
+				return nil, err
+			}
+
+			actual = append(actual, result)
+		}
+	default:
+		return nil, fmt.Errorf("expected an array or a document, but got %s", vr.Type())
+	}
+
+	return actual, nil
 }
