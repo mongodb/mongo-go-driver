@@ -92,14 +92,15 @@ func loadInitialFiles(t *testing.T, data dataSection) int32 {
 		testhelpers.RequireNil(t, err, "error converting raw message to bytes: %s", err)
 		doc := bsonx.Doc{}
 		err = bson.UnmarshalExtJSON(docBytes, false, &doc)
-		//fmt.Println(doc.LookupElement("_id"))
 		testhelpers.RequireNil(t, err, "error creating file document: %s", err)
 
-		// convert n from int64 to int32
+		// convert length from int32 to int64
+		if length, err := doc.LookupErr("length"); err == nil {
+			doc = doc.Delete("length")
+			doc = doc.Append("length", bsonx.Int64(int64(length.Int32())))
+		}
 		if cs, err := doc.LookupErr("chunkSize"); err == nil {
-			doc = doc.Delete("chunkSize")
 			chunkSize = cs.Int32()
-			doc = append(doc, bsonx.Elem{"chunkSize", bsonx.Int32(chunkSize)})
 		}
 
 		filesDocs = append(filesDocs, doc)
@@ -129,7 +130,6 @@ func loadInitialFiles(t *testing.T, data dataSection) int32 {
 	}
 
 	if len(filesDocs) > 0 {
-		//fmt.Println(filesDocs)
 		_, err := files.InsertMany(ctx, filesDocs)
 		testhelpers.RequireNil(t, err, "error inserting into files: %s", err)
 		_, err = expectedFiles.InsertMany(ctx, filesDocs)
@@ -208,7 +208,7 @@ func runGridFSTestFile(t *testing.T, filepath string, db *mongo.Database) {
 				runUploadFromStreamTest(t, test, bucket)
 			case "download":
 				runDownloadTest(t, test, bucket)
-				//runDownloadToStreamTest(t, test, bucket)
+				runDownloadToStreamTest(t, test, bucket)
 			case "download_by_name":
 				runDownloadByNameTest(t, test, bucket)
 				runDownloadByNameToStreamTest(t, test, bucket)
