@@ -52,6 +52,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 	now := time.Now().Truncate(time.Millisecond)
 	d128 := decimal.NewDecimal128(12345, 67890)
 	var ptrPtrValueUnmarshaler **testValueUnmarshaler
+	var ptrPtrUnmarshaler **testUnmarshaler
 
 	type subtest struct {
 		name   string
@@ -1099,6 +1100,36 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 			},
 		},
+		{
+			"UnmarshalerDecodeValue",
+			ValueDecoderFunc(dvd.UnmarshalerDecodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					fmt.Errorf("UnmarshalerDecodeValue can only handle types or pointers to types that are a Unmarshaler, got %T", &wrong),
+				},
+				{
+					"Unmarshaler",
+					testUnmarshaler{Val: bsoncore.AppendDouble(nil, 3.14159)},
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)},
+					bsonrwtest.ReadDouble,
+					nil,
+				},
+				{
+					"nil pointer to Unmarshaler",
+					ptrPtrUnmarshaler,
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)},
+					bsonrwtest.Nothing,
+					fmt.Errorf("UnmarshalerDecodeValue can only unmarshal into non-nil Unmarshaler values, got %T", ptrPtrUnmarshaler),
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1698,6 +1729,17 @@ func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t bsontype.Type, val []byte)
 	tvu.t, tvu.val = t, val
 	return tvu.err
 }
+
+type testUnmarshaler struct {
+	Val []byte
+	Err error
+}
+
+func (tvu *testUnmarshaler) UnmarshalBSON(val []byte) error {
+	tvu.Val = val
+	return tvu.Err
+}
+
 func (tvu testValueUnmarshaler) Equal(tvu2 testValueUnmarshaler) bool {
 	return tvu.t == tvu2.t && bytes.Equal(tvu.val, tvu2.val)
 }
