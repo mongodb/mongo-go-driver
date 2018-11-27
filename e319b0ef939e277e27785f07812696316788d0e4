@@ -22,6 +22,99 @@
       "revId": "e319b0ef939e277e27785f07812696316788d0e4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e66f9bee_aabcde66",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-27T17:18:08Z",
+      "side": 1,
+      "message": "According to https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst, it\u0027s an Int64.",
+      "parentUuid": "e747bee3_6b0bf7d5",
+      "range": {
+        "startLine": 339,
+        "startChar": 24,
+        "endLine": 339,
+        "endChar": 31
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a4bf176c_fff9ac34",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-27T17:18:08Z",
+      "side": 1,
+      "message": "Is the doc.Delete necessary?  When would there be two length fields in the JSON tests?",
+      "range": {
+        "startLine": 99,
+        "startChar": 9,
+        "endLine": 99,
+        "endChar": 12
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2870fb9e_c0120b18",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-27T17:18:08Z",
+      "side": 1,
+      "message": "Should this still be appending chunkSize to doc?",
+      "range": {
+        "startLine": 103,
+        "startChar": 3,
+        "endLine": 103,
+        "endChar": 12
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "45934411_4b19b184",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 210,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-27T17:18:08Z",
+      "side": 1,
+      "message": "So tests weren\u0027t failing because they were commented out?",
+      "range": {
+        "startLine": 210,
+        "startChar": 4,
+        "endLine": 210,
+        "endChar": 27
+      },
+      "revId": "e319b0ef939e277e27785f07812696316788d0e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
