@@ -7,6 +7,7 @@
 package bsonrw
 
 import (
+	"io"
 	"strings"
 	"testing"
 
@@ -19,6 +20,7 @@ var (
 	typDiff = specificDiff("type")
 	valDiff = specificDiff("value")
 
+	expectErrEOF = expectSpecificError(io.EOF)
 	expectErrEOD = expectSpecificError(ErrEOD)
 	expectErrEOA = expectSpecificError(ErrEOA)
 )
@@ -694,7 +696,7 @@ func TestExtJSONParserAllTypes(t *testing.T) {
 
 	// expect end of whole document: read EOF
 	k, typ, err = ejp.readKey()
-	readKeyDiff(t, "", k, bsontype.Type(0), typ, err, expectErrEOD, "")
+	readKeyDiff(t, "", k, bsontype.Type(0), typ, err, expectErrEOF, "")
 	if diff := cmp.Diff(jpsDoneState, ejp.s); diff != "" {
 		t.Errorf("expected parser to be in done state but instead is in %v\n", ejp.s)
 		t.FailNow()

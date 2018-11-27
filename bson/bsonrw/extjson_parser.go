@@ -163,10 +163,12 @@ func (ejp *extJSONParser) readKey() (string, bsontype.Type, error) {
 	case jpsSawValue, jpsSawEndObject, jpsSawEndArray:
 		ejp.advanceState()
 		switch ejp.s {
-		case jpsSawComma:
+		case jpsSawBeginObject, jpsSawComma:
 			ejp.advanceState()
-		case jpsSawEndObject, jpsDoneState:
+		case jpsSawEndObject:
 			return "", 0, ErrEOD
+		case jpsDoneState:
+			return "", 0, io.EOF
 		case jpsInvalidState:
 			return "", 0, ejp.err
 		default:
@@ -552,6 +554,12 @@ var jpsValidTransitionTokens = map[jsonParseState]map[jsonTokenType]bool{
 
 func (ejp *extJSONParser) validateToken(jtt jsonTokenType) bool {
 	switch ejp.s {
+	case jpsSawEndObject:
+		// if we are at depth zero and the next token is a '{',
+		// we can consider it valid only if we are not in array mode.
+		if jtt == jttBeginObject && ejp.depth == 0 {
+			return ejp.peekMode() != jpmArrayMode
+		}
 	case jpsSawComma:
 		switch ejp.peekMode() {
 		// the only valid next token after a comma inside a document is a string (a key)
@@ -560,13 +568,10 @@ func (ejp *extJSONParser) validateToken(jtt jsonTokenType) bool {
 		case jpmInvalidMode:
 			return false
 		}
-
-		// fallthrough for commas in arrays
-		fallthrough
-	default:
-		_, ok := jpsValidTransitionTokens[ejp.s][jtt]
-		return ok
 	}
+
+	_, ok := jpsValidTransitionTokens[ejp.s][jtt]
+	return ok
 }
 
 // ensureExtValueType returns true if the current value has the expected
