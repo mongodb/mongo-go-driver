@@ -358,12 +358,12 @@ func TestCollection_InsertMany(t *testing.T) {
 
 	t.Parallel()
 
-	want1 := bsonx.Elem{"_id", bsonx.Int32(11)}
-	want2 := bsonx.Elem{"_id", bsonx.Int32(12)}
+	want1 := int32(11)
+	want2 := int32(12)
 	docs := []interface{}{
-		bsonx.Doc{want1},
+		bsonx.Doc{bsonx.Elem{"_id", bsonx.Int32(11)}},
 		bsonx.Doc{{"x", bsonx.Int32(6)}},
-		bsonx.Doc{want2},
+		bsonx.Doc{bsonx.Elem{"_id", bsonx.Int32(12)}},
 	}
 	coll := createTestCollection(t, nil, nil)
 
