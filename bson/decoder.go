@@ -70,7 +70,7 @@ func (d *Decoder) Decode(val interface{}) error {
 	if err != nil {
 		return err
 	}
-	return decoder.DecodeValue(bsoncodec.DecodeContext{Registry: d.r}, d.vr, val)
+	return decoder.DecodeValueLegacy(bsoncodec.DecodeContext{Registry: d.r}, d.vr, val)
 }
 
 // Reset will reset the state of the decoder, using the same *Registry used in

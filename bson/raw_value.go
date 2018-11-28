@@ -77,7 +77,7 @@ func (rv RawValue) UnmarshalWithRegistry(r *bsoncodec.Registry, val interface{})
 	if err != nil {
 		return err
 	}
-	return dec.DecodeValue(bsoncodec.DecodeContext{Registry: r}, vr, val)
+	return dec.DecodeValueLegacy(bsoncodec.DecodeContext{Registry: r}, vr, val)
 }
 
 func convertFromCoreValue(v bsoncore.Value) RawValue { return RawValue{Type: v.Type, Value: v.Data} }

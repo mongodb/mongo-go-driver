@@ -46,8 +46,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 	type mystring string
 
 	const cansetreflectiontest = "cansetreflectiontest"
+	const cansettest = "cansettest"
 
-	intAllowedDecodeTypes := []interface{}{(*int8)(nil), (*int16)(nil), (*int32)(nil), (*int64)(nil), (*int)(nil)}
 	uintAllowedDecodeTypes := []interface{}{(*uint8)(nil), (*uint16)(nil), (*uint32)(nil), (*uint64)(nil), (*uint)(nil)}
 	now := time.Now().Truncate(time.Millisecond)
 	d128 := decimal.NewDecimal128(12345, 67890)
@@ -67,7 +67,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		vd       ValueDecoder
+		vd       ValueDecoderLegacy
 		subtests []subtest
 	}{
 		{
@@ -80,7 +80,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Boolean},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{bool(true)}, Received: &wrong},
+					ValueDecoderError{Name: "BooleanDecodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"type not boolean",
@@ -115,11 +115,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"can set false",
-					cansetreflectiontest,
+					cansettest,
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Boolean},
 					bsonrwtest.Nothing,
-					errors.New("BooleanDecodeValue can only be used to decode settable (non-nil) values"),
+					ValueDecoderError{Name: "BooleanDecodeValue", Kinds: []reflect.Kind{reflect.Bool}},
 				},
 			},
 		},
@@ -133,7 +133,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)},
 					bsonrwtest.ReadInt32,
-					ValueDecoderError{Name: "IntDecodeValue", Types: intAllowedDecodeTypes, Received: &wrong},
+					ValueDecoderError{
+						Name:     "IntDecodeValue",
+						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Received: reflect.ValueOf(wrong),
+					},
 				},
 				{
 					"type not int32/int64",
@@ -195,27 +199,42 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"int8/fast path - nil", (*int8)(nil), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)}, bsonrwtest.ReadInt32,
-					errors.New("IntDecodeValue can only be used to decode non-nil *int8"),
+					ValueDecoderError{
+						Name:  "IntDecodeValue",
+						Kinds: []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+					},
 				},
 				{
 					"int16/fast path - nil", (*int16)(nil), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)}, bsonrwtest.ReadInt32,
-					errors.New("IntDecodeValue can only be used to decode non-nil *int16"),
+					ValueDecoderError{
+						Name:  "IntDecodeValue",
+						Kinds: []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+					},
 				},
 				{
 					"int32/fast path - nil", (*int32)(nil), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)}, bsonrwtest.ReadInt32,
-					errors.New("IntDecodeValue can only be used to decode non-nil *int32"),
+					ValueDecoderError{
+						Name:  "IntDecodeValue",
+						Kinds: []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+					},
 				},
 				{
 					"int64/fast path - nil", (*int64)(nil), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)}, bsonrwtest.ReadInt32,
-					errors.New("IntDecodeValue can only be used to decode non-nil *int64"),
+					ValueDecoderError{
+						Name:  "IntDecodeValue",
+						Kinds: []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+					},
 				},
 				{
 					"int/fast path - nil", (*int)(nil), nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)}, bsonrwtest.ReadInt32,
-					errors.New("IntDecodeValue can only be used to decode non-nil *int"),
+					ValueDecoderError{
+						Name:  "IntDecodeValue",
+						Kinds: []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+					},
 				},
 				{
 					"int8/fast path - overflow", int8(0), nil,
@@ -304,17 +323,20 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"can set false",
-					cansetreflectiontest,
+					cansettest,
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)},
 					bsonrwtest.Nothing,
-					errors.New("IntDecodeValue can only be used to decode settable (non-nil) values"),
+					ValueDecoderError{
+						Name:  "IntDecodeValue",
+						Kinds: []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+					},
 				},
 			},
 		},
 		{
 			"UintDecodeValue",
-			ValueDecoderFunc(dvd.UintDecodeValue),
+			ValueDecoderLegacyFunc(dvd.UintDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -322,7 +344,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Int32, Return: int32(0)},
 					bsonrwtest.ReadInt32,
-					ValueDecoderError{Name: "UintDecodeValue", Types: uintAllowedDecodeTypes, Received: &wrong},
+					LegacyValueDecoderError{Name: "UintDecodeValue", Types: uintAllowedDecodeTypes, Received: &wrong},
 				},
 				{
 					"type not int32/int64",
@@ -523,7 +545,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"FloatDecodeValue",
-			ValueDecoderFunc(dvd.FloatDecodeValue),
+			ValueDecoderLegacyFunc(dvd.FloatDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -531,7 +553,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(0)},
 					bsonrwtest.ReadDouble,
-					ValueDecoderError{Name: "FloatDecodeValue", Types: []interface{}{(*float32)(nil), (*float64)(nil)}, Received: &wrong},
+					LegacyValueDecoderError{Name: "FloatDecodeValue", Types: []interface{}{(*float32)(nil), (*float64)(nil)}, Received: &wrong},
 				},
 				{
 					"type not double",
@@ -637,7 +659,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"TimeDecodeValue",
-			ValueDecoderFunc(dvd.TimeDecodeValue),
+			ValueDecoderLegacyFunc(dvd.TimeDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -653,7 +675,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(1234567890)},
 					bsonrwtest.ReadDateTime,
-					ValueDecoderError{
+					LegacyValueDecoderError{
 						Name:     "TimeDecodeValue",
 						Types:    []interface{}{(*time.Time)(nil), (**time.Time)(nil)},
 						Received: (*int64)(nil),
@@ -687,7 +709,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"MapDecodeValue",
-			ValueDecoderFunc(dvd.MapDecodeValue),
+			ValueDecoderLegacyFunc(dvd.MapDecodeValue),
 			[]subtest{
 				{
 					"wrong kind",
@@ -741,7 +763,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"SliceDecodeValue",
-			ValueDecoderFunc(dvd.SliceDecodeValue),
+			ValueDecoderLegacyFunc(dvd.SliceDecodeValue),
 			[]subtest{
 				{
 					"wrong kind",
@@ -811,7 +833,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.ObjectID},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []interface{}{(*objectid.ObjectID)(nil)}, Received: &wrong},
+					ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []reflect.Type{tOID}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"type not objectID",
@@ -830,6 +852,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 					errors.New("roid error"),
 				},
 				{
+					"can set false",
+					cansettest,
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.ObjectID, Return: objectid.ObjectID{}},
+					bsonrwtest.Nothing,
+					ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []reflect.Type{tOID}},
+				},
+				{
 					"success",
 					objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					nil,
@@ -844,7 +874,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"Decimal128DecodeValue",
-			ValueDecoderFunc(dvd.Decimal128DecodeValue),
+			ValueDecoderLegacyFunc(dvd.Decimal128DecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -852,7 +882,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Decimal128},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "Decimal128DecodeValue", Types: []interface{}{(*decimal.Decimal128)(nil)}, Received: &wrong},
+					LegacyValueDecoderError{Name: "Decimal128DecodeValue", Types: []interface{}{(*decimal.Decimal128)(nil)}, Received: &wrong},
 				},
 				{
 					"type not decimal128",
@@ -882,7 +912,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"JSONNumberDecodeValue",
-			ValueDecoderFunc(dvd.JSONNumberDecodeValue),
+			ValueDecoderLegacyFunc(dvd.JSONNumberDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -890,7 +920,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.ObjectID},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "JSONNumberDecodeValue", Types: []interface{}{(*json.Number)(nil)}, Received: &wrong},
+					LegacyValueDecoderError{Name: "JSONNumberDecodeValue", Types: []interface{}{(*json.Number)(nil)}, Received: &wrong},
 				},
 				{
 					"type not double/int32/int64",
@@ -952,7 +982,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"URLDecodeValue",
-			ValueDecoderFunc(dvd.URLDecodeValue),
+			ValueDecoderLegacyFunc(dvd.URLDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -968,7 +998,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: string("http://example.com")},
 					bsonrwtest.ReadString,
-					ValueDecoderError{Name: "URLDecodeValue", Types: []interface{}{(*url.URL)(nil), (**url.URL)(nil)}, Received: (*int64)(nil)},
+					LegacyValueDecoderError{Name: "URLDecodeValue", Types: []interface{}{(*url.URL)(nil), (**url.URL)(nil)}, Received: (*int64)(nil)},
 				},
 				{
 					"ReadString error",
@@ -992,7 +1022,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: string("http://example.com")},
 					bsonrwtest.ReadString,
-					ValueDecoderError{Name: "URLDecodeValue", Types: []interface{}{(*url.URL)(nil), (**url.URL)(nil)}, Received: (*url.URL)(nil)},
+					LegacyValueDecoderError{Name: "URLDecodeValue", Types: []interface{}{(*url.URL)(nil), (**url.URL)(nil)}, Received: (*url.URL)(nil)},
 				},
 				{
 					"nil **url.URL",
@@ -1000,7 +1030,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String, Return: string("http://example.com")},
 					bsonrwtest.ReadString,
-					ValueDecoderError{Name: "URLDecodeValue", Types: []interface{}{(*url.URL)(nil), (**url.URL)(nil)}, Received: (**url.URL)(nil)},
+					LegacyValueDecoderError{Name: "URLDecodeValue", Types: []interface{}{(*url.URL)(nil), (**url.URL)(nil)}, Received: (**url.URL)(nil)},
 				},
 				{
 					"url.URL",
@@ -1022,7 +1052,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"ByteSliceDecodeValue",
-			ValueDecoderFunc(dvd.ByteSliceDecodeValue),
+			ValueDecoderLegacyFunc(dvd.ByteSliceDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1038,7 +1068,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Binary, Return: bsoncore.Value{Type: bsontype.Binary}},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "ByteSliceDecodeValue", Types: []interface{}{(*[]byte)(nil)}, Received: (*int64)(nil)},
+					LegacyValueDecoderError{Name: "ByteSliceDecodeValue", Types: []interface{}{(*[]byte)(nil)}, Received: (*int64)(nil)},
 				},
 				{
 					"ReadBinary error",
@@ -1066,7 +1096,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"ValueUnmarshalerDecodeValue",
-			ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue),
+			ValueDecoderLegacyFunc(dvd.ValueUnmarshalerDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1140,21 +1170,39 @@ func TestDefaultValueDecoders(t *testing.T) {
 					llvrw.T = t
 					var got interface{}
 					if rc.val == cansetreflectiontest { // We're doing a CanSet reflection test
-						err := tc.vd.DecodeValue(dc, llvrw, nil)
+						err := tc.vd.DecodeValueLegacy(dc, llvrw, nil)
 						if !compareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 
 						val := reflect.New(reflect.TypeOf(rc.val)).Elem().Interface()
-						err = tc.vd.DecodeValue(dc, llvrw, val)
+						err = tc.vd.DecodeValueLegacy(dc, llvrw, val)
 						if !compareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 						return
 					}
+					if rc.val == cansettest { // We're doing an IsValid and CanSet test
+						wanterr, ok := rc.err.(ValueDecoderError)
+						if !ok {
+							t.Fatalf("Error must be a DecodeValueError, but got a %T", rc.err)
+						}
+
+						err := tc.vd.DecodeValueLegacy(dc, llvrw, nil)
+						wanterr.Received = reflect.ValueOf(nil)
+						if !compareErrors(err, wanterr) {
+							t.Errorf("Errors do not match. got %v; want %v", err, wanterr)
+						}
+
+						err = tc.vd.DecodeValueLegacy(dc, llvrw, int(12345))
+						wanterr.Received = reflect.ValueOf(int(12345))
+						if !compareErrors(err, wanterr) {
+							t.Errorf("Errors do not match. got %v; want %v", err, wanterr)
+						}
+						return
+					}
 					var unwrap bool
-					rtype := reflect.TypeOf(rc.val)
-					if rtype != nil {
+					if rtype := reflect.TypeOf(rc.val); rtype != nil {
 						if rtype.Kind() == reflect.Ptr {
 							if reflect.ValueOf(rc.val).IsNil() {
 								got = rc.val
@@ -1171,7 +1219,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						}
 					}
 					want := rc.val
-					err := tc.vd.DecodeValue(dc, llvrw, got)
+					err := tc.vd.DecodeValueLegacy(dc, llvrw, got)
 					if !compareErrors(err, rc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 					}
@@ -1738,7 +1786,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					noerr(t, err)
 
 					gotVal := reflect.New(reflect.TypeOf(tc.value))
-					err = dec.DecodeValue(DecodeContext{Registry: reg}, vr, gotVal.Interface())
+					err = dec.DecodeValueLegacy(DecodeContext{Registry: reg}, vr, gotVal.Interface())
 					noerr(t, err)
 
 					got := gotVal.Elem().Interface()
