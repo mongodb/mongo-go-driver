@@ -444,6 +444,9 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 
 // EmptyInterfaceEncodeValue is the ValueEncoderFunc for interface{}.
 func (dve DefaultValueEncoders) EmptyInterfaceEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
+	if i == nil {
+		return vw.WriteNull()
+	}
 	encoder, err := ec.LookupEncoder(reflect.TypeOf(i))
 	if err != nil {
 		return err
