@@ -98,3 +98,52 @@ type MinKey struct{}
 
 // MaxKey represents the BSON maxkey value.
 type MaxKey struct{}
+
+// D represents a BSON Document. This type can be used to represent BSON in a concise and readable
+// manner. It should generally be used when serializing to BSON. For deserializing, the Raw or
+// Document types should be used.
+//
+// Example usage:
+//
+// 		bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
+//
+// This type should be used in situations where order matters, such as MongoDB commands. If the
+// order is not important, a map is more comfortable and concise.
+type D []E
+
+// Map creates a map from the elements of the D.
+func (d D) Map() M {
+	m := make(M, len(d))
+	for _, e := range d {
+		m[e.Key] = e.Value
+	}
+	return m
+}
+
+// E represents a BSON element for a D. It is usually used inside a D.
+type E struct {
+	Key   string
+	Value interface{}
+}
+
+// M is an unordered, concise representation of a BSON Document. It should generally be used to
+// serialize BSON when the order of the elements of a BSON document do not matter. If the element
+// order matters, use a D instead.
+//
+// Example usage:
+//
+// 		bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
+//
+// This type is handled in the encoders as a regular map[string]interface{}. The elements will be
+// serialized in an undefined, random order, and the order will be different each time.
+type M map[string]interface{}
+
+// An A represents a BSON array. This type can be used to represent a BSON array in a concise and
+// readable manner. It should generally be used when serializing to BSON. For deserializing, the
+// RawArray or Array types should be used.
+//
+// Example usage:
+//
+// 		bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
+//
+type A []interface{}

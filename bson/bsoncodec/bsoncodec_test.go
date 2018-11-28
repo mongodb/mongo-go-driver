@@ -91,22 +91,16 @@ func (llc *llCodec) EncodeValue(_ EncodeContext, _ bsonrw.ValueWriter, i interfa
 	return nil
 }
 
-func (llc *llCodec) DecodeValue(_ DecodeContext, _ bsonrw.ValueReader, i interface{}) error {
+func (llc *llCodec) DecodeValue(_ DecodeContext, _ bsonrw.ValueReader, val reflect.Value) error {
 	if llc.err != nil {
 		return llc.err
 	}
 
-	val := reflect.ValueOf(i)
-	if val.Type().Kind() != reflect.Ptr {
-		llc.t.Errorf("Value provided to DecodeValue must be a pointer, but got %T", i)
+	if !reflect.TypeOf(llc.decodeval).AssignableTo(val.Type()) {
+		llc.t.Errorf("decodeval must be assignable to val provided to DecodeValue, but is not. decodeval %T; val %T", llc.decodeval, val)
 		return nil
 	}
 
-	if !reflect.TypeOf(llc.decodeval).AssignableTo(val.Type().Elem()) {
-		llc.t.Errorf("decodeval must be assignable to i provided to DecodeValue, but is not. decodeval %T; i %T", llc.decodeval, i)
-		return nil
-	}
-
-	val.Elem().Set(reflect.ValueOf(llc.decodeval))
+	val.Set(reflect.ValueOf(llc.decodeval))
 	return nil
 }

@@ -64,7 +64,7 @@ func (e *Encoder) Encode(val interface{}) error {
 	if err != nil {
 		return err
 	}
-	return encoder.EncodeValue(bsoncodec.EncodeContext{Registry: e.r}, e.vw, val)
+	return encoder.EncodeValue(bsoncodec.EncodeContext{Registry: e.r}, e.vw, reflect.ValueOf(val))
 }
 
 // Reset will reset the state of the encoder, using the same *Registry used in

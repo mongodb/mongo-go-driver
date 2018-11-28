@@ -70,6 +70,7 @@ func compareErrors(err1, err2 error) bool {
 
 func TestDefaultValueEncoders(t *testing.T) {
 	var pc PrimitiveCodecs
+	var pcx bsonx.PrimitiveCodecs
 
 	var pjs = new(primitive.JavaScript)
 	*pjs = primitive.JavaScript("var hello = 'world';")
@@ -80,23 +81,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 	pdatetime := new(primitive.DateTime)
 	*pdatetime = primitive.DateTime(1234567890)
-
-	var pjsNil *primitive.JavaScript
-	var psymbolNil *primitive.Symbol
-	var pbinarynil *primitive.Binary
-	var pundefnil *primitive.Undefined
-	var pdatetimeNil *primitive.DateTime
-	var pregexNil *primitive.Regex
-	var pdbpointerNil *primitive.DBPointer
-	var pcwsNil *primitive.CodeWithScope
-	var ptimestampNil *primitive.Timestamp
-	var pminkeyNil *primitive.MinKey
-	var pmaxkeyNil *primitive.MaxKey
-	var pvalueNil *bsonx.Val
-	var psliceNil *[]bsonx.Elem
-	var parrayNil *bsonx.Arr
-	var prawNil *RawValue
-	var pdNil *D
 
 	type subtest struct {
 		name   string
@@ -113,293 +97,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 		subtests []subtest
 	}{
 		{
-			"JavaScriptEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.JavaScriptEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "JavaScriptEncodeValue",
-						Types:    []interface{}{primitive.JavaScript(""), (*primitive.JavaScript)(nil)},
-						Received: wrong,
-					},
-				},
-				{"JavaScript", primitive.JavaScript("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
-				{"*JavaScript", pjs, nil, nil, bsonrwtest.WriteJavascript, nil},
-				{"*JavaScript/nil", pjsNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"SymbolEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.SymbolEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "SymbolEncodeValue",
-						Types:    []interface{}{primitive.Symbol(""), (*primitive.Symbol)(nil)},
-						Received: wrong,
-					},
-				},
-				{"Symbol", primitive.Symbol("foobar"), nil, nil, bsonrwtest.WriteSymbol, nil},
-				{"*Symbol", psymbol, nil, nil, bsonrwtest.WriteSymbol, nil},
-				{"*Symbol/nil", psymbolNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"BinaryEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.BinaryEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "BinaryEncodeValue",
-						Types:    []interface{}{primitive.Binary{}, (*primitive.Binary)(nil)},
-						Received: wrong,
-					},
-				},
-				{"Binary/success", primitive.Binary{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
-				{"*Binary/success", &primitive.Binary{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
-				{"*Binary/nil/success", pbinarynil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"UndefinedEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.UndefinedEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "UndefinedEncodeValue",
-						Types:    []interface{}{primitive.Undefined{}, (*primitive.Undefined)(nil)},
-						Received: wrong,
-					},
-				},
-				{"Undefined/success", primitive.Undefined{}, nil, nil, bsonrwtest.WriteUndefined, nil},
-				{"*Undefined/success", &primitive.Undefined{}, nil, nil, bsonrwtest.WriteUndefined, nil},
-				{"*Undefined/success", pundefnil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"DateTimeEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.DateTimeEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "DateTimeEncodeValue",
-						Types:    []interface{}{primitive.DateTime(0), (*primitive.DateTime)(nil)},
-						Received: wrong,
-					},
-				},
-				{"DateTime/success", primitive.DateTime(1234567890), nil, nil, bsonrwtest.WriteDateTime, nil},
-				{"*DateTime/success", pdatetime, nil, nil, bsonrwtest.WriteDateTime, nil},
-				{"*DateTime/nil/success", pdatetimeNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"NullEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.NullEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "NullEncodeValue",
-						Types:    []interface{}{primitive.Null{}, (*primitive.Null)(nil)},
-						Received: wrong,
-					},
-				},
-				{"Null/success", primitive.Null{}, nil, nil, bsonrwtest.WriteNull, nil},
-				{"*Null/success", &primitive.Null{}, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"RegexEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.RegexEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "RegexEncodeValue",
-						Types:    []interface{}{primitive.Regex{}, (*primitive.Regex)(nil)},
-						Received: wrong,
-					},
-				},
-				{"Regex/success", primitive.Regex{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
-				{"*Regex/success", &primitive.Regex{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
-				{"*Regex/nil/success", pregexNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"DBPointerEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.DBPointerEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "DBPointerEncodeValue",
-						Types:    []interface{}{primitive.DBPointer{}, (*primitive.DBPointer)(nil)},
-						Received: wrong,
-					},
-				},
-				{
-					"DBPointer/success",
-					primitive.DBPointer{
-						DB:      "foobar",
-						Pointer: primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-					},
-					nil, nil, bsonrwtest.WriteDBPointer, nil,
-				},
-				{
-					"*DBPointer/success",
-					&primitive.DBPointer{
-						DB:      "foobar",
-						Pointer: primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-					},
-					nil, nil, bsonrwtest.WriteDBPointer, nil,
-				},
-				{"*DBPointer/nil/success", pdbpointerNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"CodeWithScopeEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.CodeWithScopeEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "CodeWithScopeEncodeValue",
-						Types:    []interface{}{primitive.CodeWithScope{}, (*primitive.CodeWithScope)(nil)},
-						Received: wrong,
-					},
-				},
-				{
-					"WriteCodeWithScope error",
-					primitive.CodeWithScope{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{Err: errors.New("wcws error"), ErrAfter: bsonrwtest.WriteCodeWithScope},
-					bsonrwtest.WriteCodeWithScope,
-					errors.New("wcws error"),
-				},
-				{
-					"CodeWithScope/success",
-					primitive.CodeWithScope{
-						Code:  "var hello = 'world';",
-						Scope: bsonx.Doc{},
-					},
-					nil, nil, bsonrwtest.WriteDocumentEnd, nil,
-				},
-				{
-					"*CodeWithScope/success",
-					&primitive.CodeWithScope{
-						Code:  "var hello = 'world';",
-						Scope: bsonx.Doc{},
-					},
-					nil, nil, bsonrwtest.WriteDocumentEnd, nil,
-				},
-				{"*CodeWithScope/nil/success", pcwsNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"TimestampEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.TimestampEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "TimestampEncodeValue",
-						Types:    []interface{}{primitive.Timestamp{}, (*primitive.Timestamp)(nil)},
-						Received: wrong,
-					},
-				},
-				{"Timestamp/success", primitive.Timestamp{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
-				{"*Timestamp/success", &primitive.Timestamp{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
-				{"*Timestamp/nil/success", ptimestampNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"MinKeyEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.MinKeyEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "MinKeyEncodeValue",
-						Types:    []interface{}{primitive.MinKey{}, (*primitive.MinKey)(nil)},
-						Received: wrong,
-					},
-				},
-				{"MinKey/success", primitive.MinKey{}, nil, nil, bsonrwtest.WriteMinKey, nil},
-				{"*MinKey/success", &primitive.MinKey{}, nil, nil, bsonrwtest.WriteMinKey, nil},
-				{"*MinKey/nil/success", pminkeyNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"MaxKeyEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.MaxKeyEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:     "MaxKeyEncodeValue",
-						Types:    []interface{}{primitive.MaxKey{}, (*primitive.MaxKey)(nil)},
-						Received: wrong,
-					},
-				},
-				{"MaxKey/success", primitive.MaxKey{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
-				{"*MaxKey/success", &primitive.MaxKey{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
-				{"*MaxKey/nil/success", pmaxkeyNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
 			"RawValueEncodeValue",
 			bsoncodec.ValueEncoderFunc(pc.RawValueEncodeValue),
 			[]subtest{
@@ -411,8 +108,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
 						Name:     "RawValueEncodeValue",
-						Types:    []interface{}{RawValue{}, (*RawValue)(nil)},
-						Received: wrong,
+						Types:    []reflect.Type{tRawValue},
+						Received: reflect.ValueOf(wrong),
 					},
 				},
 				{
@@ -423,20 +120,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.WriteDouble,
 					nil,
 				},
-				{
-					"*RawValue/success",
-					&RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
-					nil,
-					nil,
-					bsonrwtest.WriteDouble,
-					nil,
-				},
-				{"*RawValue/nil/success", prawNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
 			"ValueEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.x.ValueEncodeValue),
+			bsoncodec.ValueEncoderFunc(pcx.ValueEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -444,7 +132,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{Name: "ValueEncodeValue", Types: []interface{}{bsonx.Val{}, (*bsonx.Val)(nil)}, Received: wrong},
+					bsoncodec.ValueEncoderError{Name: "ValueEncodeValue", Types: []reflect.Type{tValue}, Received: reflect.ValueOf(wrong)},
 				},
 				{"empty value", bsonx.Val{}, nil, nil, bsonrwtest.WriteNull, nil},
 				{
@@ -455,7 +143,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.WriteNull,
 					nil,
 				},
-				{"*Value/nil/success", pvalueNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -468,7 +155,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{Name: "RawEncodeValue", Types: []interface{}{Raw{}}, Received: wrong},
+					bsoncodec.ValueEncoderError{Name: "RawEncodeValue", Types: []reflect.Type{tRaw}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"WriteDocument Error",
@@ -513,8 +200,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
-			"DEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.DEncodeValue),
+			"ElementSliceEncodeValue",
+			bsoncodec.ValueEncoderFunc(pcx.ElementSliceEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -523,28 +210,25 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					bsonrwtest.Nothing,
 					bsoncodec.ValueEncoderError{
-						Name:     "DEncodeValue",
-						Types:    []interface{}{D{}, (*D)(nil)},
-						Received: wrong,
+						Name:     "ElementSliceEncodeValue",
+						Types:    []reflect.Type{tElementSlice},
+						Received: reflect.ValueOf(wrong),
 					},
 				},
-				{"D/success", D{{"hello", "world"}}, &bsoncodec.EncodeContext{Registry: DefaultRegistry}, nil, bsonrwtest.WriteDocumentEnd, nil},
-				{"*D/success", &D{{"pi", 3.14159}}, &bsoncodec.EncodeContext{Registry: DefaultRegistry}, nil, bsonrwtest.WriteDocumentEnd, nil},
-				{"*D/nil/success", pdNil, nil, nil, bsonrwtest.WriteNull, nil},
-			},
-		},
-		{
-			"ElementSliceEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.x.ElementSliceEncodeValue),
-			[]subtest{
-				{"*[]*Element/nil/success", psliceNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
 			"ArrayEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.x.ArrayEncodeValue),
+			bsoncodec.ValueEncoderFunc(pcx.ArrayEncodeValue),
 			[]subtest{
-				{"*Array/nil/success", parrayNil, nil, nil, bsonrwtest.WriteNull, nil},
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					bsoncodec.ValueEncoderError{Name: "ArrayEncodeValue", Types: []reflect.Type{tArray}, Received: reflect.ValueOf(wrong)},
+				},
 			},
 		},
 	}
@@ -562,7 +246,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 						llvrw = subtest.llvrw
 					}
 					llvrw.T = t
-					err := tc.ve.EncodeValue(ec, llvrw, subtest.val)
+					err := tc.ve.EncodeValue(ec, llvrw, reflect.ValueOf(subtest.val))
 					if !compareErrors(err, subtest.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
 					}
@@ -577,9 +261,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 	t.Run("DocumentEncodeValue", func(t *testing.T) {
 		t.Run("ValueEncoderError", func(t *testing.T) {
-			val := bool(true)
-			want := bsoncodec.ValueEncoderError{Name: "DocumentEncodeValue", Types: []interface{}{(bsonx.Doc)(nil), (*bsonx.Doc)(nil)}, Received: val}
-			got := (PrimitiveCodecs{}).x.DocumentEncodeValue(bsoncodec.EncodeContext{}, nil, val)
+			val := reflect.ValueOf(bool(true))
+			want := bsoncodec.ValueEncoderError{Name: "DocumentEncodeValue", Types: []reflect.Type{tDocument}, Received: val}
+			got := (bsonx.PrimitiveCodecs{}).DocumentEncodeValue(bsoncodec.EncodeContext{}, nil, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -591,7 +275,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				Err:      want,
 				ErrAfter: bsonrwtest.WriteDocument,
 			}
-			got := (PrimitiveCodecs{}).x.DocumentEncodeValue(bsoncodec.EncodeContext{}, llvrw, bsonx.Doc{})
+			got := (bsonx.PrimitiveCodecs{}).DocumentEncodeValue(bsoncodec.EncodeContext{}, llvrw, reflect.MakeSlice(tDocument, 0, 0))
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -726,7 +410,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					err := (PrimitiveCodecs{}).x.DocumentEncodeValue(tc.ec, tc.llvrw, tc.doc)
+					err := (bsonx.PrimitiveCodecs{}).DocumentEncodeValue(tc.ec, tc.llvrw, reflect.ValueOf(tc.doc))
 					if !compareErrors(err, tc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 					}
@@ -756,7 +440,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			noerr(t, err)
 
 			ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-			err = (PrimitiveCodecs{}).x.DocumentEncodeValue(ec, vw, want)
+			err = (bsonx.PrimitiveCodecs{}).DocumentEncodeValue(ec, vw, reflect.ValueOf(want))
 			noerr(t, err)
 			got, err = bsonx.ReadDoc(slc)
 			noerr(t, err)
@@ -769,9 +453,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 	t.Run("ArrayEncodeValue", func(t *testing.T) {
 		t.Run("CodecEncodeError", func(t *testing.T) {
-			val := bool(true)
-			want := bsoncodec.ValueEncoderError{Name: "ArrayEncodeValue", Types: []interface{}{(bsonx.Arr)(nil), (*bsonx.Arr)(nil)}, Received: val}
-			got := (PrimitiveCodecs{}).x.ArrayEncodeValue(bsoncodec.EncodeContext{}, nil, val)
+			val := reflect.ValueOf(bool(true))
+			want := bsoncodec.ValueEncoderError{Name: "ArrayEncodeValue", Types: []reflect.Type{tArray}, Received: val}
+			got := (bsonx.PrimitiveCodecs{}).ArrayEncodeValue(bsoncodec.EncodeContext{}, nil, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -783,7 +467,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				Err:      want,
 				ErrAfter: bsonrwtest.WriteArray,
 			}
-			got := (PrimitiveCodecs{}).x.ArrayEncodeValue(bsoncodec.EncodeContext{}, llvrw, make(bsonx.Arr, 0))
+			got := (bsonx.PrimitiveCodecs{}).ArrayEncodeValue(bsoncodec.EncodeContext{}, llvrw, reflect.MakeSlice(tArray, 0, 0))
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -918,7 +602,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					err := (PrimitiveCodecs{}).x.ArrayEncodeValue(tc.ec, tc.llvrw, tc.arr)
+					err := (bsonx.PrimitiveCodecs{}).ArrayEncodeValue(tc.ec, tc.llvrw, reflect.ValueOf(tc.arr))
 					if !compareErrors(err, tc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 					}
@@ -950,7 +634,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			vr, err := dr.WriteDocumentElement("foo")
 			noerr(t, err)
 
-			err = (PrimitiveCodecs{}).x.ArrayEncodeValue(ec, vr, want)
+			err = (bsonx.PrimitiveCodecs{}).ArrayEncodeValue(ec, vr, reflect.ValueOf(want))
 			noerr(t, err)
 
 			err = dr.WriteDocumentEnd()
@@ -1235,6 +919,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 func TestDefaultValueDecoders(t *testing.T) {
 	var pc PrimitiveCodecs
+	var pcx bsonx.PrimitiveCodecs
 
 	var pjs = new(primitive.JavaScript)
 	*pjs = primitive.JavaScript("var hello = 'world';")
@@ -1260,534 +945,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 		subtests []subtest
 	}{
 		{
-			"JavaScriptDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.JavaScriptDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Return: ""},
-					bsonrwtest.ReadJavascript,
-					bsoncodec.ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []interface{}{(*primitive.JavaScript)(nil), (**primitive.JavaScript)(nil)}, Received: &wrong},
-				},
-				{
-					"type not Javascript",
-					primitive.JavaScript(""),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a primitive.JavaScript", bsontype.String),
-				},
-				{
-					"ReadJavascript Error",
-					primitive.JavaScript(""),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Err: errors.New("rjs error"), ErrAfter: bsonrwtest.ReadJavascript},
-					bsonrwtest.ReadJavascript,
-					errors.New("rjs error"),
-				},
-				{
-					"JavaScript/success",
-					primitive.JavaScript("var hello = 'world';"),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Return: "var hello = 'world';"},
-					bsonrwtest.ReadJavascript,
-					nil,
-				},
-				{
-					"*JavaScript/success",
-					pjs,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.JavaScript, Return: "var hello = 'world';"},
-					bsonrwtest.ReadJavascript,
-					nil,
-				},
-			},
-		},
-		{
-			"SymbolDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.SymbolDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: ""},
-					bsonrwtest.ReadSymbol,
-					bsoncodec.ValueDecoderError{Name: "SymbolDecodeValue", Types: []interface{}{(*primitive.Symbol)(nil), (**primitive.Symbol)(nil)}, Received: &wrong},
-				},
-				{
-					"type not Symbol",
-					primitive.Symbol(""),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a primitive.Symbol", bsontype.String),
-				},
-				{
-					"ReadSymbol Error",
-					primitive.Symbol(""),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Err: errors.New("rjs error"), ErrAfter: bsonrwtest.ReadSymbol},
-					bsonrwtest.ReadSymbol,
-					errors.New("rjs error"),
-				},
-				{
-					"Symbol/success",
-					primitive.Symbol("var hello = 'world';"),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: "var hello = 'world';"},
-					bsonrwtest.ReadSymbol,
-					nil,
-				},
-				{
-					"*Symbol/success",
-					psymbol,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Symbol, Return: "foobarbaz"},
-					bsonrwtest.ReadSymbol,
-					nil,
-				},
-			},
-		},
-		{
-			"BinaryDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.BinaryDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{
-						BSONType: bsontype.Binary,
-						Return: bsoncore.Value{
-							Type: bsontype.Binary,
-							Data: bsoncore.AppendBinary(nil, 0x00, []byte{0x01, 0x02, 0x3}),
-						},
-					},
-					bsonrwtest.ReadBinary,
-					bsoncodec.ValueDecoderError{Name: "BinaryDecodeValue", Types: []interface{}{(*primitive.Binary)(nil)}, Received: &wrong},
-				},
-				{
-					"type not binary",
-					primitive.Binary{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a Binary", bsontype.String),
-				},
-				{
-					"ReadBinary Error",
-					primitive.Binary{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Binary, Err: errors.New("rb error"), ErrAfter: bsonrwtest.ReadBinary},
-					bsonrwtest.ReadBinary,
-					errors.New("rb error"),
-				},
-				{
-					"Binary/success",
-					primitive.Binary{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF},
-					nil,
-					&bsonrwtest.ValueReaderWriter{
-						BSONType: bsontype.Binary,
-						Return: bsoncore.Value{
-							Type: bsontype.Binary,
-							Data: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03}),
-						},
-					},
-					bsonrwtest.ReadBinary,
-					nil,
-				},
-				{
-					"*Binary/success",
-					&primitive.Binary{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF},
-					nil,
-					&bsonrwtest.ValueReaderWriter{
-						BSONType: bsontype.Binary,
-						Return: bsoncore.Value{
-							Type: bsontype.Binary,
-							Data: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03}),
-						},
-					},
-					bsonrwtest.ReadBinary,
-					nil,
-				},
-			},
-		},
-		{
-			"UndefinedDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.UndefinedDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Undefined},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "UndefinedDecodeValue", Types: []interface{}{(*primitive.Undefined)(nil)}, Received: &wrong},
-				},
-				{
-					"type not undefined",
-					primitive.Undefined{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into an Undefined", bsontype.String),
-				},
-				{
-					"ReadUndefined Error",
-					primitive.Undefined{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Undefined, Err: errors.New("ru error"), ErrAfter: bsonrwtest.ReadUndefined},
-					bsonrwtest.ReadUndefined,
-					errors.New("ru error"),
-				},
-				{
-					"ReadUndefined/success",
-					primitive.Undefined{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Undefined},
-					bsonrwtest.ReadUndefined,
-					nil,
-				},
-			},
-		},
-		{
-			"DateTimeDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.DateTimeDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "DateTimeDecodeValue", Types: []interface{}{(*primitive.DateTime)(nil)}, Received: &wrong},
-				},
-				{
-					"type not datetime",
-					primitive.DateTime(0),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a DateTime", bsontype.String),
-				},
-				{
-					"ReadDateTime Error",
-					primitive.DateTime(0),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Err: errors.New("rdt error"), ErrAfter: bsonrwtest.ReadDateTime},
-					bsonrwtest.ReadDateTime,
-					errors.New("rdt error"),
-				},
-				{
-					"success",
-					primitive.DateTime(1234567890),
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DateTime, Return: int64(1234567890)},
-					bsonrwtest.ReadDateTime,
-					nil,
-				},
-			},
-		},
-		{
-			"NullDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.NullDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "NullDecodeValue", Types: []interface{}{(*primitive.Null)(nil)}, Received: &wrong},
-				},
-				{
-					"type not null",
-					primitive.Null{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a Null", bsontype.String),
-				},
-				{
-					"ReadNull Error",
-					primitive.Null{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null, Err: errors.New("rn error"), ErrAfter: bsonrwtest.ReadNull},
-					bsonrwtest.ReadNull,
-					errors.New("rn error"),
-				},
-				{
-					"success",
-					primitive.Null{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Null},
-					bsonrwtest.ReadNull,
-					nil,
-				},
-			},
-		},
-		{
-			"RegexDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.RegexDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Regex},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "RegexDecodeValue", Types: []interface{}{(*primitive.Regex)(nil)}, Received: &wrong},
-				},
-				{
-					"type not regex",
-					primitive.Regex{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a Regex", bsontype.String),
-				},
-				{
-					"ReadRegex Error",
-					primitive.Regex{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Regex, Err: errors.New("rr error"), ErrAfter: bsonrwtest.ReadRegex},
-					bsonrwtest.ReadRegex,
-					errors.New("rr error"),
-				},
-				{
-					"success",
-					primitive.Regex{Pattern: "foo", Options: "bar"},
-					nil,
-					&bsonrwtest.ValueReaderWriter{
-						BSONType: bsontype.Regex,
-						Return: bsoncore.Value{
-							Type: bsontype.Regex,
-							Data: bsoncore.AppendRegex(nil, "foo", "bar"),
-						},
-					},
-					bsonrwtest.ReadRegex,
-					nil,
-				},
-			},
-		},
-		{
-			"DBPointerDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.DBPointerDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DBPointer},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "DBPointerDecodeValue", Types: []interface{}{(*primitive.DBPointer)(nil)}, Received: &wrong},
-				},
-				{
-					"type not dbpointer",
-					primitive.DBPointer{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a DBPointer", bsontype.String),
-				},
-				{
-					"ReadDBPointer Error",
-					primitive.DBPointer{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.DBPointer, Err: errors.New("rdbp error"), ErrAfter: bsonrwtest.ReadDBPointer},
-					bsonrwtest.ReadDBPointer,
-					errors.New("rdbp error"),
-				},
-				{
-					"success",
-					primitive.DBPointer{
-						DB:      "foobar",
-						Pointer: primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-					},
-					nil,
-					&bsonrwtest.ValueReaderWriter{
-						BSONType: bsontype.DBPointer,
-						Return: bsoncore.Value{
-							Type: bsontype.DBPointer,
-							Data: bsoncore.AppendDBPointer(
-								nil, "foobar", primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-							),
-						},
-					},
-					bsonrwtest.ReadDBPointer,
-					nil,
-				},
-			},
-		},
-		{
-			"CodeWithScopeDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.CodeWithScopeDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.CodeWithScope},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{
-						Name:     "CodeWithScopeDecodeValue",
-						Types:    []interface{}{(*primitive.CodeWithScope)(nil)},
-						Received: &wrong,
-					},
-				},
-				{
-					"type not codewithscope",
-					primitive.CodeWithScope{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a CodeWithScope", bsontype.String),
-				},
-				{
-					"ReadCodeWithScope Error",
-					primitive.CodeWithScope{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.CodeWithScope, Err: errors.New("rcws error"), ErrAfter: bsonrwtest.ReadCodeWithScope},
-					bsonrwtest.ReadCodeWithScope,
-					errors.New("rcws error"),
-				},
-				{
-					"decodeDocument Error",
-					primitive.CodeWithScope{
-						Code:  "var hello = 'world';",
-						Scope: bsonx.Doc{{"foo", bsonx.Null()}},
-					},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.CodeWithScope, Err: errors.New("dd error"), ErrAfter: bsonrwtest.ReadElement},
-					bsonrwtest.ReadElement,
-					errors.New("dd error"),
-				},
-			},
-		},
-		{
-			"TimestampDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.TimestampDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Timestamp},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "TimestampDecodeValue", Types: []interface{}{(*primitive.Timestamp)(nil)}, Received: &wrong},
-				},
-				{
-					"type not timestamp",
-					primitive.Timestamp{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a Timestamp", bsontype.String),
-				},
-				{
-					"ReadTimestamp Error",
-					primitive.Timestamp{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Timestamp, Err: errors.New("rt error"), ErrAfter: bsonrwtest.ReadTimestamp},
-					bsonrwtest.ReadTimestamp,
-					errors.New("rt error"),
-				},
-				{
-					"success",
-					primitive.Timestamp{T: 12345, I: 67890},
-					nil,
-					&bsonrwtest.ValueReaderWriter{
-						BSONType: bsontype.Timestamp,
-						Return: bsoncore.Value{
-							Type: bsontype.Timestamp,
-							Data: bsoncore.AppendTimestamp(nil, 12345, 67890),
-						},
-					},
-					bsonrwtest.ReadTimestamp,
-					nil,
-				},
-			},
-		},
-		{
-			"MinKeyDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.MinKeyDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MinKey},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "MinKeyDecodeValue", Types: []interface{}{(*primitive.MinKey)(nil)}, Received: &wrong},
-				},
-				{
-					"type not null",
-					primitive.MinKey{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a MinKey", bsontype.String),
-				},
-				{
-					"ReadMinKey Error",
-					primitive.MinKey{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MinKey, Err: errors.New("rn error"), ErrAfter: bsonrwtest.ReadMinKey},
-					bsonrwtest.ReadMinKey,
-					errors.New("rn error"),
-				},
-				{
-					"success",
-					primitive.MinKey{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MinKey},
-					bsonrwtest.ReadMinKey,
-					nil,
-				},
-			},
-		},
-		{
-			"MaxKeyDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.MaxKeyDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MaxKey},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "MaxKeyDecodeValue", Types: []interface{}{(*primitive.MaxKey)(nil)}, Received: &wrong},
-				},
-				{
-					"type not null",
-					primitive.MaxKey{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a MaxKey", bsontype.String),
-				},
-				{
-					"ReadMaxKey Error",
-					primitive.MaxKey{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MaxKey, Err: errors.New("rn error"), ErrAfter: bsonrwtest.ReadMaxKey},
-					bsonrwtest.ReadMaxKey,
-					errors.New("rn error"),
-				},
-				{
-					"success",
-					primitive.MaxKey{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.MaxKey},
-					bsonrwtest.ReadMaxKey,
-					nil,
-				},
-			},
-		},
-		{
 			"RawValueDecodeValue",
 			bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue),
 			[]subtest{
@@ -1799,8 +956,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					bsoncodec.ValueDecoderError{
 						Name:     "RawValueDecodeValue",
-						Types:    []interface{}{(*RawValue)(nil), (**RawValue)(nil)},
-						Received: &wrong,
+						Types:    []reflect.Type{tRawValue},
+						Received: reflect.ValueOf(wrong),
 					},
 				},
 				{
@@ -1829,25 +986,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					bsonrwtest.ReadBinary,
 					nil,
 				},
-				{
-					"*RawValue/success",
-					&RawValue{Type: bsontype.Binary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
-					nil,
-					&bsonrwtest.ValueReaderWriter{
-						BSONType: bsontype.Binary,
-						Return: bsoncore.Value{
-							Type: bsontype.Binary,
-							Data: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03}),
-						},
-					},
-					bsonrwtest.ReadBinary,
-					nil,
-				},
 			},
 		},
 		{
 			"ValueDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.x.ValueDecodeValue),
+			bsoncodec.ValueDecoderFunc(pcx.ValueDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1855,9 +998,24 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "ValueDecodeValue", Types: []interface{}{(*bsonx.Val)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{
+						Name:     "ValueDecodeValue",
+						Types:    []reflect.Type{tValue},
+						Received: reflect.ValueOf(wrong),
+					},
 				},
-				{"invalid value", (*bsonx.Val)(nil), nil, nil, bsonrwtest.Nothing, errors.New("ValueDecodeValue can only be used to decode non-nil *Value")},
+				{
+					"invalid value",
+					(*bsonx.Val)(nil),
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					bsoncodec.ValueDecoderError{
+						Name:     "ValueDecodeValue",
+						Types:    []reflect.Type{tValue},
+						Received: reflect.ValueOf((*bsonx.Val)(nil)),
+					},
+				},
 				{
 					"success",
 					bsonx.Double(3.14159),
@@ -1878,7 +1036,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{},
 					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "RawDecodeValue", Types: []interface{}{(*Raw)(nil)}, Received: &wrong},
+					bsoncodec.ValueDecoderError{Name: "RawDecodeValue", Types: []reflect.Type{tRaw}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"*Raw is nil",
@@ -1886,7 +1044,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					errors.New("RawDecodeValue can only be used to decode non-nil *Reader"),
+					bsoncodec.ValueDecoderError{
+						Name:     "RawDecodeValue",
+						Types:    []reflect.Type{tRaw},
+						Received: reflect.ValueOf((*Raw)(nil)),
+					},
 				},
 				{
 					"Copy error",
@@ -1895,44 +1057,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&bsonrwtest.ValueReaderWriter{Err: errors.New("copy error"), ErrAfter: bsonrwtest.ReadDocument},
 					bsonrwtest.ReadDocument,
 					errors.New("copy error"),
-				},
-			},
-		},
-		{
-			"DDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.DDecodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "DDecodeValue", Types: []interface{}{(*D)(nil), (**D)(nil)}, Received: &wrong},
-				},
-				{
-					"type not valid",
-					D{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
-					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a D", bsontype.String),
-				},
-				{
-					"ReadDocument Error",
-					D{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument, Err: errors.New("rd error"), ErrAfter: bsonrwtest.ReadDocument},
-					bsonrwtest.ReadDocument,
-					errors.New("rd error"),
-				},
-				{
-					"ReadElement Error",
-					D{},
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument, Err: errors.New("re error"), ErrAfter: bsonrwtest.ReadElement},
-					bsonrwtest.ReadElement,
-					errors.New("re error"),
 				},
 			},
 		},
@@ -1951,38 +1075,48 @@ func TestDefaultValueDecoders(t *testing.T) {
 						llvrw = rc.llvrw
 					}
 					llvrw.T = t
-					var got interface{}
+					// var got interface{}
 					if rc.val == cansetreflectiontest { // We're doing a CanSet reflection test
-						err := tc.vd.DecodeValue(dc, llvrw, nil)
+						err := tc.vd.DecodeValue(dc, llvrw, reflect.Value{})
 						if !compareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 
-						val := reflect.New(reflect.TypeOf(rc.val)).Elem().Interface()
+						val := reflect.New(reflect.TypeOf(rc.val)).Elem()
 						err = tc.vd.DecodeValue(dc, llvrw, val)
 						if !compareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 						return
 					}
-					var unwrap bool
-					rtype := reflect.TypeOf(rc.val)
-					if rtype.Kind() == reflect.Ptr {
-						if reflect.ValueOf(rc.val).IsNil() {
-							got = rc.val
-						} else {
-							val := reflect.New(rtype).Elem()
-							elem := reflect.New(rtype.Elem())
-							val.Set(elem)
-							got = val.Addr().Interface()
-							unwrap = true
-						}
-					} else {
-						unwrap = true
-						got = reflect.New(reflect.TypeOf(rc.val)).Interface()
+					// var unwrap bool
+					// rtype := reflect.TypeOf(rc.val)
+					// if rtype.Kind() == reflect.Ptr {
+					// 	if reflect.ValueOf(rc.val).IsNil() {
+					// 		got = rc.val
+					// 	} else {
+					// 		val := reflect.New(rtype).Elem()
+					// 		elem := reflect.New(rtype.Elem())
+					// 		val.Set(elem)
+					// 		got = val.Addr().Interface()
+					// 		unwrap = true
+					// 	}
+					// } else {
+					// 	unwrap = true
+					// 	got = reflect.New(reflect.TypeOf(rc.val)).Interface()
+					// }
+					var val reflect.Value
+					if rtype := reflect.TypeOf(rc.val); rtype != nil {
+						val = reflect.New(rtype).Elem()
 					}
 					want := rc.val
-					err := tc.vd.DecodeValue(dc, llvrw, got)
+					defer func() {
+						if err := recover(); err != nil {
+							fmt.Println(t.Name())
+							panic(err)
+						}
+					}()
+					err := tc.vd.DecodeValue(dc, llvrw, val)
 					if !compareErrors(err, rc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 					}
@@ -1990,8 +1124,12 @@ func TestDefaultValueDecoders(t *testing.T) {
 					if !cmp.Equal(invoked, rc.invoke) {
 						t.Errorf("Incorrect method invoked. got %v; want %v", invoked, rc.invoke)
 					}
-					if unwrap {
-						got = reflect.ValueOf(got).Elem().Interface()
+					// if unwrap {
+					// 	got = reflect.ValueOf(got).Elem().Interface()
+					// }
+					var got interface{}
+					if val.IsValid() && val.CanInterface() {
+						got = val.Interface()
 					}
 					if rc.err == nil && !cmp.Equal(got, want, cmp.Comparer(compareValues)) {
 						t.Errorf("Values do not match. got (%T)%v; want (%T)%v", got, got, want, want)
@@ -2001,33 +1139,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 		})
 	}
 
-	t.Run("CodeWithScopeCodec/DecodeValue/success", func(t *testing.T) {
-		dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
-		b, err := bsonx.Doc{{"foo", bsonx.CodeWithScope("var hello = 'world';", bsonx.Doc{{"bar", bsonx.Null()}})}}.MarshalBSON()
-		noerr(t, err)
-		dvr := bsonrw.NewBSONDocumentReader(b)
-		dr, err := dvr.ReadDocument()
-		noerr(t, err)
-		_, vr, err := dr.ReadElement()
-		noerr(t, err)
-
-		want := primitive.CodeWithScope{
-			Code:  "var hello = 'world';",
-			Scope: bsonx.Doc{{"bar", bsonx.Null()}},
-		}
-		var got primitive.CodeWithScope
-		err = pc.CodeWithScopeDecodeValue(dc, vr, &got)
-		noerr(t, err)
-
-		if got.Code != want.Code && !cmp.Equal(got.Scope, want.Scope) {
-			t.Errorf("CodeWithScopes do not match. got %v; want %v", got, want)
-		}
-	})
 	t.Run("DocumentDecodeValue", func(t *testing.T) {
 		t.Run("CodecDecodeError", func(t *testing.T) {
-			val := bool(true)
-			want := bsoncodec.ValueDecoderError{Name: "DocumentDecodeValue", Types: []interface{}{(*bsonx.Doc)(nil)}, Received: val}
-			got := pc.x.DocumentDecodeValue(bsoncodec.DecodeContext{}, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument}, val)
+			val := reflect.New(tBool).Elem()
+			want := bsoncodec.ValueDecoderError{Name: "DocumentDecodeValue", Types: []reflect.Type{tDocument}, Received: val}
+			got := pcx.DocumentDecodeValue(bsoncodec.DecodeContext{}, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument}, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -2040,7 +1156,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				ErrAfter: bsonrwtest.ReadDocument,
 				BSONType: bsontype.EmbeddedDocument,
 			}
-			got := pc.x.DocumentDecodeValue(bsoncodec.DecodeContext{}, llvrw, new(bsonx.Doc))
+			got := pcx.DocumentDecodeValue(bsoncodec.DecodeContext{}, llvrw, reflect.New(reflect.TypeOf(bsonx.Doc{})).Elem())
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -2088,7 +1204,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					err := pc.x.DecodeDocument(tc.dc, tc.llvrw, new(bsonx.Doc))
+					err := pcx.DecodeDocument(tc.dc, tc.llvrw, new(bsonx.Doc))
 					if !compareErrors(err, tc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 					}
@@ -2113,13 +1229,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{"q", bsonx.Timestamp(10, 20)}, {"r", bsonx.Int64(1234567890)},
 				{"s", bsonx.Decimal128(d128)}, {"t", bsonx.MinKey()}, {"u", bsonx.MaxKey()},
 			}
-			var got bsonx.Doc
+			got := reflect.New(reflect.TypeOf(bsonx.Doc{})).Elem()
 			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
 			b, err := want.MarshalBSON()
 			noerr(t, err)
-			err = pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &got)
+			err = pcx.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), got)
 			noerr(t, err)
-			if !got.Equal(want) {
+			if !got.Interface().(bsonx.Doc).Equal(want) {
 				t.Error("Documents do not match")
 				t.Errorf("\ngot :%v\nwant:%v", got, want)
 			}
@@ -2127,9 +1243,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 	})
 	t.Run("ArrayDecodeValue", func(t *testing.T) {
 		t.Run("CodecDecodeError", func(t *testing.T) {
-			val := bool(true)
-			want := bsoncodec.ValueDecoderError{Name: "ArrayDecodeValue", Types: []interface{}{(*bsonx.Arr)(nil)}, Received: val}
-			got := pc.x.ArrayDecodeValue(bsoncodec.DecodeContext{}, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Array}, val)
+			val := reflect.New(tBool).Elem()
+			want := bsoncodec.ValueDecoderError{Name: "ArrayDecodeValue", Types: []reflect.Type{tArray}, Received: val}
+			got := pcx.ArrayDecodeValue(bsoncodec.DecodeContext{}, &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Array}, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -2142,7 +1258,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				ErrAfter: bsonrwtest.ReadArray,
 				BSONType: bsontype.Array,
 			}
-			got := pc.x.ArrayDecodeValue(bsoncodec.DecodeContext{}, llvrw, new(bsonx.Arr))
+			got := pcx.ArrayDecodeValue(bsoncodec.DecodeContext{}, llvrw, reflect.New(tArray).Elem())
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
@@ -2190,7 +1306,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					err := pc.x.ArrayDecodeValue(tc.dc, tc.llvrw, new(bsonx.Arr))
+					err := pcx.ArrayDecodeValue(tc.dc, tc.llvrw, reflect.New(tArray).Elem())
 					if !compareErrors(err, tc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 					}
@@ -2220,9 +1336,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 			_, vr, err := dr.ReadElement()
 			noerr(t, err)
 
-			var got bsonx.Arr
-			err = pc.x.ArrayDecodeValue(dc, vr, &got)
+			val := reflect.New(tArray).Elem()
+			err = pcx.ArrayDecodeValue(dc, vr, val)
 			noerr(t, err)
+			got := val.Interface().(bsonx.Arr)
 			if !got.Equal(want) {
 				t.Error("Documents do not match")
 				t.Errorf("\ngot :%v\nwant:%v", got, want)
@@ -2677,197 +1794,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 			}
 		})
 	})
-
-	t.Run("EmptyInterfaceDecodeValue", func(t *testing.T) {
-		t.Run("DecodeValue", func(t *testing.T) {
-			testCases := []struct {
-				name     string
-				val      interface{}
-				bsontype bsontype.Type
-			}{
-				{
-					"Double - float64",
-					float64(3.14159),
-					bsontype.Double,
-				},
-				{
-					"String - string",
-					string("foo bar baz"),
-					bsontype.String,
-				},
-				{
-					"Embedded Document - *Document",
-					bsonx.Doc{{"foo", bsonx.Null()}},
-					bsontype.EmbeddedDocument,
-				},
-				{
-					"Array - Arr",
-					bsonx.Arr{bsonx.Double(3.14159)},
-					bsontype.Array,
-				},
-				{
-					"Binary - Binary",
-					primitive.Binary{Subtype: 0xFF, Data: []byte{0x01, 0x02, 0x03}},
-					bsontype.Binary,
-				},
-				{
-					"Undefined - Undefined",
-					primitive.Undefined{},
-					bsontype.Undefined,
-				},
-				{
-					"ObjectID - primitive.ObjectID",
-					primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-					bsontype.ObjectID,
-				},
-				{
-					"Boolean - bool",
-					bool(true),
-					bsontype.Boolean,
-				},
-				{
-					"DateTime - DateTime",
-					primitive.DateTime(1234567890),
-					bsontype.DateTime,
-				},
-				{
-					"Null - Null",
-					primitive.Null{},
-					bsontype.Null,
-				},
-				{
-					"Regex - Regex",
-					primitive.Regex{Pattern: "foo", Options: "bar"},
-					bsontype.Regex,
-				},
-				{
-					"DBPointer - DBPointer",
-					primitive.DBPointer{
-						DB:      "foobar",
-						Pointer: primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-					},
-					bsontype.DBPointer,
-				},
-				{
-					"JavaScript - JavaScript",
-					primitive.JavaScript("var foo = 'bar';"),
-					bsontype.JavaScript,
-				},
-				{
-					"Symbol - Symbol",
-					primitive.Symbol("foobarbazlolz"),
-					bsontype.Symbol,
-				},
-				{
-					"CodeWithScope - CodeWithScope",
-					primitive.CodeWithScope{
-						Code:  "var foo = 'bar';",
-						Scope: bsonx.Doc{{"foo", bsonx.Double(3.14159)}},
-					},
-					bsontype.CodeWithScope,
-				},
-				{
-					"Int32 - int32",
-					int32(123456),
-					bsontype.Int32,
-				},
-				{
-					"Int64 - int64",
-					int64(1234567890),
-					bsontype.Int64,
-				},
-				{
-					"Timestamp - Timestamp",
-					primitive.Timestamp{T: 12345, I: 67890},
-					bsontype.Timestamp,
-				},
-				{
-					"Decimal128 - primitive.Decimal128",
-					primitive.NewDecimal128(12345, 67890),
-					bsontype.Decimal128,
-				},
-				{
-					"MinKey - MinKey",
-					primitive.MinKey{},
-					bsontype.MinKey,
-				},
-				{
-					"MaxKey - MaxKey",
-					primitive.MaxKey{},
-					bsontype.MaxKey,
-				},
-			}
-			for _, tc := range testCases {
-				t.Run(tc.name, func(t *testing.T) {
-					llvr := &bsonrwtest.ValueReaderWriter{BSONType: tc.bsontype}
-
-					t.Run("Lookup failure", func(t *testing.T) {
-						val := new(interface{})
-						dc := bsoncodec.DecodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()}
-						want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(tc.val)}
-						got := pc.EmptyInterfaceDecodeValue(dc, llvr, val)
-						if !compareErrors(got, want) {
-							t.Errorf("Errors are not equal. got %v; want %v", got, want)
-						}
-					})
-
-					t.Run("DecodeValue failure", func(t *testing.T) {
-						want := errors.New("DecodeValue failure error")
-						llc := &llCodec{t: t, err: want}
-						dc := bsoncodec.DecodeContext{
-							Registry: bsoncodec.NewRegistryBuilder().RegisterDecoder(reflect.TypeOf(tc.val), llc).Build(),
-						}
-						got := pc.EmptyInterfaceDecodeValue(dc, llvr, new(interface{}))
-						if !compareErrors(got, want) {
-							t.Errorf("Errors are not equal. got %v; want %v", got, want)
-						}
-					})
-
-					t.Run("Success", func(t *testing.T) {
-						want := tc.val
-						llc := &llCodec{t: t, decodeval: tc.val}
-						dc := bsoncodec.DecodeContext{
-							Registry: bsoncodec.NewRegistryBuilder().RegisterDecoder(reflect.TypeOf(tc.val), llc).Build(),
-						}
-						got := new(interface{})
-						err := pc.EmptyInterfaceDecodeValue(dc, llvr, got)
-						noerr(t, err)
-						if !cmp.Equal(*got, want, cmp.Comparer(compareDecimal128)) {
-							t.Errorf("Did not receive expected value. got %v; want %v", *got, want)
-						}
-					})
-				})
-			}
-		})
-
-		t.Run("non-*interface{}", func(t *testing.T) {
-			val := uint64(1234567890)
-			want := fmt.Errorf("EmptyInterfaceDecodeValue can only be used to decode non-nil *interface{} values, provided type if %T", &val)
-			got := pc.EmptyInterfaceDecodeValue(bsoncodec.DecodeContext{}, nil, &val)
-			if !compareErrors(got, want) {
-				t.Errorf("Errors are not equal. got %v; want %v", got, want)
-			}
-		})
-
-		t.Run("nil *interface{}", func(t *testing.T) {
-			var val *interface{}
-			want := fmt.Errorf("EmptyInterfaceDecodeValue can only be used to decode non-nil *interface{} values, provided type if %T", val)
-			got := pc.EmptyInterfaceDecodeValue(bsoncodec.DecodeContext{}, nil, val)
-			if !compareErrors(got, want) {
-				t.Errorf("Errors are not equal. got %v; want %v", got, want)
-			}
-		})
-
-		t.Run("unknown BSON type", func(t *testing.T) {
-			llvr := &bsonrwtest.ValueReaderWriter{BSONType: bsontype.Type(0)}
-			want := fmt.Errorf("Type %s is not a valid BSON type and has no default Go type to decode into", bsontype.Type(0))
-			got := pc.EmptyInterfaceDecodeValue(bsoncodec.DecodeContext{}, llvr, new(interface{}))
-			if !compareErrors(got, want) {
-				t.Errorf("Errors are not equal. got %v; want %v", got, want)
-			}
-		})
-	})
-
 }
 
 type testValueMarshaler struct {
@@ -2930,15 +1856,9 @@ func (llc *llCodec) EncodeValue(_ bsoncodec.EncodeContext, _ bsonrw.ValueWriter,
 	return nil
 }
 
-func (llc *llCodec) DecodeValue(_ bsoncodec.DecodeContext, _ bsonrw.ValueReader, i interface{}) error {
+func (llc *llCodec) DecodeValue(_ bsoncodec.DecodeContext, _ bsonrw.ValueReader, val reflect.Value) error {
 	if llc.err != nil {
 		return llc.err
-	}
-
-	val := reflect.ValueOf(i)
-	if val.Type().Kind() != reflect.Ptr {
-		llc.t.Errorf("Value provided to DecodeValue must be a pointer, but got %T", i)
-		return nil
 	}
 
 	switch val.Type() {
@@ -2949,7 +1869,7 @@ func (llc *llCodec) DecodeValue(_ bsoncodec.DecodeContext, _ bsonrw.ValueReader,
 			return nil
 		}
 
-		doc := i.(bsonx.Doc)
+		doc := val.Interface().(bsonx.Doc)
 		doc = doc[:0]
 		doc = append(doc, decodeval...)
 		return nil
@@ -2960,18 +1880,18 @@ func (llc *llCodec) DecodeValue(_ bsoncodec.DecodeContext, _ bsonrw.ValueReader,
 			return nil
 		}
 
-		arr := i.(bsonx.Arr)
+		arr := val.Interface().(bsonx.Arr)
 		arr = arr[:0]
 		arr = append(arr, decodeval...)
 		return nil
 	}
 
-	if !reflect.TypeOf(llc.decodeval).AssignableTo(val.Type().Elem()) {
-		llc.t.Errorf("decodeval must be assignable to i provided to DecodeValue, but is not. decodeval %T; i %T", llc.decodeval, i)
+	if !reflect.TypeOf(llc.decodeval).AssignableTo(val.Type()) {
+		llc.t.Errorf("decodeval must be assignable to val provided to DecodeValue, but is not. decodeval %T; val %T", llc.decodeval, val)
 		return nil
 	}
 
-	val.Elem().Set(reflect.ValueOf(llc.decodeval))
+	val.Set(reflect.ValueOf(llc.decodeval))
 	return nil
 }
 

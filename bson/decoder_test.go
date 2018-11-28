@@ -22,7 +22,7 @@ import (
 func TestBasicDecode(t *testing.T) {
 	for _, tc := range unmarshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := reflect.New(tc.sType).Interface()
+			got := reflect.New(tc.sType).Elem()
 			vr := bsonrw.NewBSONDocumentReader(tc.data)
 			reg := DefaultRegistry
 			decoder, err := reg.LookupDecoder(reflect.TypeOf(got))
@@ -30,7 +30,7 @@ func TestBasicDecode(t *testing.T) {
 			err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: reg}, vr, got)
 			noerr(t, err)
 
-			if !reflect.DeepEqual(got, tc.want) {
+			if !reflect.DeepEqual(got.Addr().Interface(), tc.want) {
 				t.Errorf("Results do not match. got %+v; want %+v", got, tc.want)
 			}
 		})

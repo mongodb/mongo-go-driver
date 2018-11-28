@@ -13,14 +13,25 @@ import (
 	"math"
 	"net/url"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 var defaultValueEncoders DefaultValueEncoders
+
+var bvwPool = bsonrw.NewBSONValueWriterPool()
+
+var sliceWriterPool = sync.Pool{
+	New: func() interface{} {
+		sw := make(bsonrw.SliceWriter, 0, 0)
+		return &sw
+	},
+}
 
 // DefaultValueEncoders is a namespace type for the default ValueEncoders used
 // when creating a registry.
@@ -35,7 +46,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 	rb.
 		RegisterEncoder(tByteSlice, ValueEncoderFunc(dve.ByteSliceEncodeValue)).
 		RegisterEncoder(tTime, ValueEncoderFunc(dve.TimeEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tEmpty), ValueEncoderFunc(dve.EmptyInterfaceEncodeValue)).
+		RegisterEncoder(tEmpty, ValueEncoderFunc(dve.EmptyInterfaceEncodeValue)).
 		RegisterEncoder(tOID, ValueEncoderFunc(dve.ObjectIDEncodeValue)).
 		RegisterEncoder(tDecimal, ValueEncoderFunc(dve.Decimal128EncodeValue)).
 		RegisterEncoder(tJSONNumber, ValueEncoderFunc(dve.JSONNumberEncodeValue)).
@@ -43,6 +54,19 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterEncoder(tValueMarshaler, ValueEncoderFunc(dve.ValueMarshalerEncodeValue)).
 		RegisterEncoder(tMarshaler, ValueEncoderFunc(dve.MarshalerEncodeValue)).
 		RegisterEncoder(tProxy, ValueEncoderFunc(dve.ProxyEncodeValue)).
+		RegisterEncoder(tJavaScript, ValueEncoderFunc(dve.JavaScriptEncodeValue)).
+		RegisterEncoder(tSymbol, ValueEncoderFunc(dve.SymbolEncodeValue)).
+		RegisterEncoder(tBinary, ValueEncoderFunc(dve.BinaryEncodeValue)).
+		RegisterEncoder(tUndefined, ValueEncoderFunc(dve.UndefinedEncodeValue)).
+		RegisterEncoder(tDateTime, ValueEncoderFunc(dve.DateTimeEncodeValue)).
+		RegisterEncoder(tNull, ValueEncoderFunc(dve.NullEncodeValue)).
+		RegisterEncoder(tRegex, ValueEncoderFunc(dve.RegexEncodeValue)).
+		RegisterEncoder(tDBPointer, ValueEncoderFunc(dve.DBPointerEncodeValue)).
+		RegisterEncoder(tTimestamp, ValueEncoderFunc(dve.TimestampEncodeValue)).
+		RegisterEncoder(tMinKey, ValueEncoderFunc(dve.MinKeyEncodeValue)).
+		RegisterEncoder(tMaxKey, ValueEncoderFunc(dve.MaxKeyEncodeValue)).
+		RegisterEncoder(tCoreDocument, ValueEncoderFunc(dve.CoreDocumentEncodeValue)).
+		RegisterEncoder(tCodeWithScope, ValueEncoderFunc(dve.CodeWithScopeEncodeValue)).
 		RegisterDefaultEncoder(reflect.Bool, ValueEncoderFunc(dve.BooleanEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int, ValueEncoderFunc(dve.IntEncodeValue)).
 		RegisterDefaultEncoder(reflect.Int8, ValueEncoderFunc(dve.IntEncodeValue)).
@@ -56,50 +80,25 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterDefaultEncoder(reflect.Uint64, ValueEncoderFunc(dve.UintEncodeValue)).
 		RegisterDefaultEncoder(reflect.Float32, ValueEncoderFunc(dve.FloatEncodeValue)).
 		RegisterDefaultEncoder(reflect.Float64, ValueEncoderFunc(dve.FloatEncodeValue)).
-		RegisterDefaultEncoder(reflect.Array, ValueEncoderFunc(dve.SliceEncodeValue)).
+		RegisterDefaultEncoder(reflect.Array, ValueEncoderFunc(dve.ArrayEncodeValue)).
 		RegisterDefaultEncoder(reflect.Map, ValueEncoderFunc(dve.MapEncodeValue)).
 		RegisterDefaultEncoder(reflect.Slice, ValueEncoderFunc(dve.SliceEncodeValue)).
 		RegisterDefaultEncoder(reflect.String, ValueEncoderFunc(dve.StringEncodeValue)).
-		RegisterDefaultEncoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser})
+		RegisterDefaultEncoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser}).
+		RegisterDefaultEncoder(reflect.Ptr, NewPointerCodec())
 }
 
 // BooleanEncodeValue is the ValueEncoderFunc for bool types.
-func (dve DefaultValueEncoders) BooleanEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	b, ok := i.(bool)
-	if !ok {
-		if reflect.TypeOf(i).Kind() != reflect.Bool {
-			return ValueEncoderError{Name: "BooleanEncodeValue", Types: []interface{}{bool(true)}, Received: i}
-		}
-
-		b = reflect.ValueOf(i).Bool()
+func (dve DefaultValueEncoders) BooleanEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Kind() != reflect.Bool {
+		return ValueEncoderError{Name: "BooleanEncodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: val}
 	}
-
-	return vw.WriteBoolean(b)
+	return vw.WriteBoolean(val.Bool())
 }
 
 // IntEncodeValue is the ValueEncoderFunc for int types.
-func (dve DefaultValueEncoders) IntEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	switch t := i.(type) {
-	case int8:
-		return vw.WriteInt32(int32(t))
-	case int16:
-		return vw.WriteInt32(int32(t))
-	case int32:
-		return vw.WriteInt32(t)
-	case int64:
-		if ec.MinSize && t <= math.MaxInt32 {
-			return vw.WriteInt32(int32(t))
-		}
-		return vw.WriteInt64(t)
-	case int:
-		if ec.MinSize && t <= math.MaxInt32 {
-			return vw.WriteInt32(int32(t))
-		}
-		return vw.WriteInt64(int64(t))
-	}
-
-	val := reflect.ValueOf(i)
-	switch val.Type().Kind() {
+func (dve DefaultValueEncoders) IntEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	switch val.Kind() {
 	case reflect.Int8, reflect.Int16, reflect.Int32:
 		return vw.WriteInt32(int32(val.Int()))
 	case reflect.Int, reflect.Int64:
@@ -112,43 +111,14 @@ func (dve DefaultValueEncoders) IntEncodeValue(ec EncodeContext, vw bsonrw.Value
 
 	return ValueEncoderError{
 		Name:     "IntEncodeValue",
-		Types:    []interface{}{int8(0), int16(0), int32(0), int64(0), int(0)},
-		Received: i,
+		Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+		Received: val,
 	}
 }
 
 // UintEncodeValue is the ValueEncoderFunc for uint types.
-func (dve DefaultValueEncoders) UintEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	switch t := i.(type) {
-	case uint8:
-		return vw.WriteInt32(int32(t))
-	case uint16:
-		return vw.WriteInt32(int32(t))
-	case uint:
-		if ec.MinSize && t <= math.MaxInt32 {
-			return vw.WriteInt32(int32(t))
-		}
-		if uint64(t) > math.MaxInt64 {
-			return fmt.Errorf("%d overflows int64", t)
-		}
-		return vw.WriteInt64(int64(t))
-	case uint32:
-		if ec.MinSize && t <= math.MaxInt32 {
-			return vw.WriteInt32(int32(t))
-		}
-		return vw.WriteInt64(int64(t))
-	case uint64:
-		if ec.MinSize && t <= math.MaxInt32 {
-			return vw.WriteInt32(int32(t))
-		}
-		if t > math.MaxInt64 {
-			return fmt.Errorf("%d overflows int64", t)
-		}
-		return vw.WriteInt64(int64(t))
-	}
-
-	val := reflect.ValueOf(i)
-	switch val.Type().Kind() {
+func (dve DefaultValueEncoders) UintEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	switch val.Kind() {
 	case reflect.Uint8, reflect.Uint16:
 		return vw.WriteInt32(int32(val.Uint()))
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
@@ -164,43 +134,28 @@ func (dve DefaultValueEncoders) UintEncodeValue(ec EncodeContext, vw bsonrw.Valu
 
 	return ValueEncoderError{
 		Name:     "UintEncodeValue",
-		Types:    []interface{}{uint8(0), uint16(0), uint32(0), uint64(0), uint(0)},
-		Received: i,
+		Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+		Received: val,
 	}
 }
 
 // FloatEncodeValue is the ValueEncoderFunc for float types.
-func (dve DefaultValueEncoders) FloatEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	switch t := i.(type) {
-	case float32:
-		return vw.WriteDouble(float64(t))
-	case float64:
-		return vw.WriteDouble(t)
-	}
-
-	val := reflect.ValueOf(i)
-	switch val.Type().Kind() {
+func (dve DefaultValueEncoders) FloatEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	switch val.Kind() {
 	case reflect.Float32, reflect.Float64:
 		return vw.WriteDouble(val.Float())
 	}
 
-	return ValueEncoderError{Name: "FloatEncodeValue", Types: []interface{}{float32(0), float64(0)}, Received: i}
+	return ValueEncoderError{Name: "FloatEncodeValue", Kinds: []reflect.Kind{reflect.Float32, reflect.Float64}, Received: val}
 }
 
 // StringEncodeValue is the ValueEncoderFunc for string types.
-func (dve DefaultValueEncoders) StringEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	switch t := i.(type) {
-	// TODO(GODRIVER-577): Encode strings to either JavaScript or Symbol.
-	case string:
-		return vw.WriteString(t)
-	}
-
-	val := reflect.ValueOf(i)
-	if val.Type().Kind() != reflect.String {
+func (dve DefaultValueEncoders) StringEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if val.Kind() != reflect.String {
 		return ValueEncoderError{
 			Name:     "StringEncodeValue",
-			Types:    []interface{}{string("")},
-			Received: i,
+			Kinds:    []reflect.Kind{reflect.String},
+			Received: val,
 		}
 	}
 
@@ -208,71 +163,31 @@ func (dve DefaultValueEncoders) StringEncodeValue(ectx EncodeContext, vw bsonrw.
 }
 
 // ObjectIDEncodeValue is the ValueEncoderFunc for primitive.ObjectID.
-func (dve DefaultValueEncoders) ObjectIDEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	var oid primitive.ObjectID
-	switch t := i.(type) {
-	case primitive.ObjectID:
-		oid = t
-	case *primitive.ObjectID:
-		if t == nil {
-			return vw.WriteNull()
-		}
-		oid = *t
-	default:
-		return ValueEncoderError{
-			Name:     "ObjectIDEncodeValue",
-			Types:    []interface{}{primitive.ObjectID{}, (*primitive.ObjectID)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) ObjectIDEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tOID {
+		return ValueEncoderError{Name: "ObjectIDEncodeValue", Types: []reflect.Type{tOID}, Received: val}
 	}
-
-	return vw.WriteObjectID(oid)
+	return vw.WriteObjectID(val.Interface().(primitive.ObjectID))
 }
 
 // Decimal128EncodeValue is the ValueEncoderFunc for primitive.Decimal128.
-func (dve DefaultValueEncoders) Decimal128EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	var d128 primitive.Decimal128
-	switch t := i.(type) {
-	case primitive.Decimal128:
-		d128 = t
-	case *primitive.Decimal128:
-		if t == nil {
-			return vw.WriteNull()
-		}
-		d128 = *t
-	default:
-		return ValueEncoderError{
-			Name:     "Decimal128EncodeValue",
-			Types:    []interface{}{primitive.Decimal128{}, (*primitive.Decimal128)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) Decimal128EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tDecimal {
+		return ValueEncoderError{Name: "Decimal128EncodeValue", Types: []reflect.Type{tDecimal}, Received: val}
 	}
-
-	return vw.WriteDecimal128(d128)
+	return vw.WriteDecimal128(val.Interface().(primitive.Decimal128))
 }
 
 // JSONNumberEncodeValue is the ValueEncoderFunc for json.Number.
-func (dve DefaultValueEncoders) JSONNumberEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	var jsnum json.Number
-	switch t := i.(type) {
-	case json.Number:
-		jsnum = t
-	case *json.Number:
-		if t == nil {
-			return vw.WriteNull()
-		}
-		jsnum = *t
-	default:
-		return ValueEncoderError{
-			Name:     "JSONNumberEncodeValue",
-			Types:    []interface{}{json.Number(""), (*json.Number)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) JSONNumberEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tJSONNumber {
+		return ValueEncoderError{Name: "JSONNumberEncodeValue", Types: []reflect.Type{tJSONNumber}, Received: val}
 	}
+	jsnum := val.Interface().(json.Number)
 
 	// Attempt int first, then float64
 	if i64, err := jsnum.Int64(); err == nil {
-		return dve.IntEncodeValue(ec, vw, i64)
+		return dve.IntEncodeValue(ec, vw, reflect.ValueOf(i64))
 	}
 
 	f64, err := jsnum.Float64()
@@ -280,80 +195,54 @@ func (dve DefaultValueEncoders) JSONNumberEncodeValue(ec EncodeContext, vw bsonr
 		return err
 	}
 
-	return dve.FloatEncodeValue(ec, vw, f64)
+	return dve.FloatEncodeValue(ec, vw, reflect.ValueOf(f64))
 }
 
 // URLEncodeValue is the ValueEncoderFunc for url.URL.
-func (dve DefaultValueEncoders) URLEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	var u *url.URL
-	switch t := i.(type) {
-	case url.URL:
-		u = &t
-	case *url.URL:
-		if t == nil {
-			return vw.WriteNull()
-		}
-		u = t
-	default:
-		return ValueEncoderError{
-			Name:     "URLEncodeValue",
-			Types:    []interface{}{url.URL{}, (*url.URL)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) URLEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tURL {
+		return ValueEncoderError{Name: "URLEncodeValue", Types: []reflect.Type{tURL}, Received: val}
 	}
-
+	u := val.Interface().(url.URL)
 	return vw.WriteString(u.String())
 }
 
 // TimeEncodeValue is the ValueEncoderFunc for time.TIme.
-func (dve DefaultValueEncoders) TimeEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	var tt time.Time
-	switch t := i.(type) {
-	case time.Time:
-		tt = t
-	case *time.Time:
-		if t == nil {
-			return vw.WriteNull()
-		}
-		tt = *t
-	default:
-		return ValueEncoderError{
-			Name:     "TimeEncodeValue",
-			Types:    []interface{}{time.Time{}, (*time.Time)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) TimeEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tTime {
+		return ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: val}
 	}
-
+	tt := val.Interface().(time.Time)
 	return vw.WriteDateTime(tt.Unix()*1000 + int64(tt.Nanosecond()/1e6))
 }
 
 // ByteSliceEncodeValue is the ValueEncoderFunc for []byte.
-func (dve DefaultValueEncoders) ByteSliceEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	var slcb []byte
-	switch t := i.(type) {
-	case []byte:
-		slcb = t
-	case *[]byte:
-		if t == nil {
-			return vw.WriteNull()
-		}
-		slcb = *t
-	default:
-		return ValueEncoderError{
-			Name:     "ByteSliceEncodeValue",
-			Types:    []interface{}{[]byte{}, (*[]byte)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) ByteSliceEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tByteSlice {
+		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
-
-	return vw.WriteBinary(slcb)
+	if val.IsNil() {
+		return vw.WriteNull()
+	}
+	return vw.WriteBinary(val.Interface().([]byte))
 }
 
 // MapEncodeValue is the ValueEncoderFunc for map[string]* types.
-func (dve DefaultValueEncoders) MapEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	val := reflect.ValueOf(i)
-	if val.Kind() != reflect.Map || val.Type().Key().Kind() != reflect.String {
-		return errors.New("MapEncodeValue can only encode maps with string keys")
+func (dve DefaultValueEncoders) MapEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Kind() != reflect.Map || val.Type().Key().Kind() != reflect.String {
+		return ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
+	}
+
+	if val.IsNil() {
+		// If we have a nill map but we can't WriteNull, that means we're probably trying to encode
+		// to a TopLevel document. We can't currently tell if this is what actually happened, but if
+		// there's a deeper underlying problem, the error will also be returned from WriteDocument,
+		// so just continue. The operations on a map reflection value are valid, so we can call
+		// MapKeys within mapEncodeValue without a problem.
+		err := vw.WriteNull()
+		if err == nil {
+			return nil
+		}
 	}
 
 	dw, err := vw.WriteDocument()
@@ -384,7 +273,14 @@ func (dve DefaultValueEncoders) mapEncodeValue(ec EncodeContext, dw bsonrw.Docum
 			return err
 		}
 
-		err = encoder.EncodeValue(ec, vw, val.MapIndex(key).Interface())
+		if enc, ok := encoder.(ValueEncoder); ok {
+			err = enc.EncodeValue(ec, vw, val.MapIndex(key))
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		err = encoder.EncodeValue(ec, vw, val.MapIndex(key))
 		if err != nil {
 			return err
 		}
@@ -393,121 +289,349 @@ func (dve DefaultValueEncoders) mapEncodeValue(ec EncodeContext, dw bsonrw.Docum
 	return dw.WriteDocumentEnd()
 }
 
-// SliceEncodeValue is the ValueEncoderFunc for []* types.
-func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	val := reflect.ValueOf(i)
-	switch val.Kind() {
-	case reflect.Array:
-	case reflect.Slice:
-		if val.IsNil() { // When nil, special case to null
-			return vw.WriteNull()
-		}
-	default:
-		return errors.New("SliceEncodeValue can only encode arrays and slices")
+// ArrayEncodeValue is the ValueEncoderFunc for array types.
+func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Kind() != reflect.Array {
+		return ValueEncoderError{Name: "ArrayEncodeValue", Kinds: []reflect.Kind{reflect.Array}, Received: val}
 	}
 
-	length := val.Len()
+	// If we have a []primitive.E we want to treat it as a document instead of as an array.
+	if val.Type().Elem() == tE {
+		dw, err := vw.WriteDocument()
+		if err != nil {
+			return err
+		}
+
+		for idx := 0; idx < val.Len(); idx++ {
+			e := val.Index(idx).Interface().(primitive.E)
+			vw, err := dw.WriteDocumentElement(e.Key)
+			if err != nil {
+				return err
+			}
+
+			encoder, err := ec.LookupEncoder(reflect.TypeOf(e.Value))
+			if err != nil {
+				return err
+			}
+
+			err = encoder.EncodeValue(ec, vw, reflect.ValueOf(e.Value))
+			if err != nil {
+				return err
+			}
+		}
+
+		return dw.WriteDocumentEnd()
+	}
 
 	aw, err := vw.WriteArray()
 	if err != nil {
 		return err
 	}
 
-	// We do this outside of the loop because an array or a slice can only have
-	// one element type. If it's the empty interface, we'll use the empty
-	// interface codec.
-	var encoder ValueEncoder
-	switch val.Type().Elem() {
-	// case tElement:
-	// 	encoder = ValueEncoderFunc(dve.elementEncodeValue)
-	default:
-		encoder, err = ec.LookupEncoder(val.Type().Elem())
-		if err != nil {
-			return err
-		}
+	encoder, err := ec.LookupEncoder(val.Type().Elem())
+	if err != nil {
+		return err
 	}
-	for idx := 0; idx < length; idx++ {
+
+	for idx := 0; idx < val.Len(); idx++ {
 		vw, err := aw.WriteArrayElement()
 		if err != nil {
 			return err
 		}
 
-		err = encoder.EncodeValue(ec, vw, val.Index(idx).Interface())
+		err = encoder.EncodeValue(ec, vw, val.Index(idx))
 		if err != nil {
 			return err
 		}
 	}
+	return aw.WriteArrayEnd()
+}
 
+// SliceEncodeValue is the ValueEncoderFunc for slice types.
+func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Kind() != reflect.Slice {
+		return ValueEncoderError{Name: "SliceEncodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
+	}
+
+	if val.IsNil() {
+		return vw.WriteNull()
+	}
+
+	// If we have a []primitive.E we want to treat it as a document instead of as an array.
+	if val.Type().ConvertibleTo(tD) {
+		d := val.Convert(tD).Interface().(primitive.D)
+
+		dw, err := vw.WriteDocument()
+		if err != nil {
+			return err
+		}
+
+		for _, e := range d {
+			vw, err := dw.WriteDocumentElement(e.Key)
+			if err != nil {
+				return err
+			}
+
+			encoder, err := ec.LookupEncoder(reflect.TypeOf(e.Value))
+			if err != nil {
+				return err
+			}
+
+			err = encoder.EncodeValue(ec, vw, reflect.ValueOf(e.Value))
+			if err != nil {
+				return err
+			}
+		}
+
+		return dw.WriteDocumentEnd()
+	}
+
+	aw, err := vw.WriteArray()
+	if err != nil {
+		return err
+	}
+
+	encoder, err := ec.LookupEncoder(val.Type().Elem())
+	if err != nil {
+		return err
+	}
+
+	for idx := 0; idx < val.Len(); idx++ {
+		vw, err := aw.WriteArrayElement()
+		if err != nil {
+			return err
+		}
+
+		err = encoder.EncodeValue(ec, vw, val.Index(idx))
+		if err != nil {
+			return err
+		}
+	}
 	return aw.WriteArrayEnd()
 }
 
 // EmptyInterfaceEncodeValue is the ValueEncoderFunc for interface{}.
-func (dve DefaultValueEncoders) EmptyInterfaceEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	if i == nil {
+func (dve DefaultValueEncoders) EmptyInterfaceEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tEmpty {
+		return ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: val}
+	}
+
+	if val.IsNil() {
 		return vw.WriteNull()
 	}
-	encoder, err := ec.LookupEncoder(reflect.TypeOf(i))
+	encoder, err := ec.LookupEncoder(val.Elem().Type())
 	if err != nil {
 		return err
 	}
 
-	return encoder.EncodeValue(ec, vw, i)
+	return encoder.EncodeValue(ec, vw, val.Elem())
 }
 
 // ValueMarshalerEncodeValue is the ValueEncoderFunc for ValueMarshaler implementations.
-func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	vm, ok := i.(ValueMarshaler)
-	if !ok {
-		return ValueEncoderError{
-			Name:     "ValueMarshalerEncodeValue",
-			Types:    []interface{}{(ValueMarshaler)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || !val.Type().Implements(tValueMarshaler) {
+		return ValueEncoderError{Name: "ValueMarshalerEncodeValue", Types: []reflect.Type{tValueMarshaler}, Received: val}
 	}
 
-	t, val, err := vm.MarshalBSONValue()
-	if err != nil {
-		return err
+	fn := val.Convert(tValueMarshaler).MethodByName("MarshalBSONValue")
+	returns := fn.Call(nil)
+	if !returns[2].IsNil() {
+		return returns[2].Interface().(error)
 	}
-	return bsonrw.Copier{}.CopyValueFromBytes(vw, t, val)
+	t, data := returns[0].Interface().(bsontype.Type), returns[1].Interface().([]byte)
+	return bsonrw.Copier{}.CopyValueFromBytes(vw, t, data)
 }
 
 // MarshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
-func (dve DefaultValueEncoders) MarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	vm, ok := i.(Marshaler)
-	if !ok {
-		return ValueEncoderError{
-			Name:     "MarshalerEncodeValue",
-			Types:    []interface{}{(Marshaler)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) MarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || !val.Type().Implements(tMarshaler) {
+		return ValueEncoderError{Name: "MarshalerEncodeValue", Types: []reflect.Type{tMarshaler}, Received: val}
 	}
 
-	val, err := vm.MarshalBSON()
-	if err != nil {
-		return err
+	fn := val.Convert(tMarshaler).MethodByName("MarshalBSON")
+	returns := fn.Call(nil)
+	if !returns[1].IsNil() {
+		return returns[1].Interface().(error)
 	}
-	return bsonrw.Copier{}.CopyValueFromBytes(vw, bsontype.EmbeddedDocument, val)
+	data := returns[0].Interface().([]byte)
+	return bsonrw.Copier{}.CopyValueFromBytes(vw, bsontype.EmbeddedDocument, data)
 }
 
 // ProxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
-func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	proxy, ok := i.(Proxy)
-	if !ok {
-		return ValueEncoderError{
-			Name:     "ProxyEncodeValue",
-			Types:    []interface{}{(Proxy)(nil)},
-			Received: i,
-		}
+func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || !val.Type().Implements(tProxy) {
+		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
 	}
 
-	val, err := proxy.ProxyBSON()
+	fn := val.Convert(tProxy).MethodByName("ProxyBSON")
+	returns := fn.Call(nil)
+	if !returns[1].IsNil() {
+		return returns[1].Interface().(error)
+	}
+	data := returns[0]
+	var encoder ValueEncoder
+	var err error
+	if data.Elem().IsValid() {
+		encoder, err = ec.LookupEncoder(data.Elem().Type())
+	} else {
+		encoder, err = ec.LookupEncoder(nil)
+	}
 	if err != nil {
 		return err
 	}
-	encoder, err := ec.LookupEncoder(reflect.TypeOf(val))
+	return encoder.EncodeValue(ec, vw, data.Elem())
+}
+
+// JavaScriptEncodeValue is the ValueEncoderFunc for the primitive.JavaScript type.
+func (DefaultValueEncoders) JavaScriptEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tJavaScript {
+		return ValueEncoderError{Name: "JavaScriptEncodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
+	}
+
+	return vw.WriteJavascript(val.String())
+}
+
+// SymbolEncodeValue is the ValueEncoderFunc for the primitive.Symbol type.
+func (DefaultValueEncoders) SymbolEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tSymbol {
+		return ValueEncoderError{Name: "SymbolEncodeValue", Types: []reflect.Type{tSymbol}, Received: val}
+	}
+
+	return vw.WriteSymbol(val.String())
+}
+
+// BinaryEncodeValue is the ValueEncoderFunc for Binary.
+func (DefaultValueEncoders) BinaryEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tBinary {
+		return ValueEncoderError{Name: "BinaryEncodeValue", Types: []reflect.Type{tBinary}, Received: val}
+	}
+	b := val.Interface().(primitive.Binary)
+
+	return vw.WriteBinaryWithSubtype(b.Data, b.Subtype)
+}
+
+// UndefinedEncodeValue is the ValueEncoderFunc for Undefined.
+func (DefaultValueEncoders) UndefinedEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tUndefined {
+		return ValueEncoderError{Name: "UndefinedEncodeValue", Types: []reflect.Type{tUndefined}, Received: val}
+	}
+
+	return vw.WriteUndefined()
+}
+
+// DateTimeEncodeValue is the ValueEncoderFunc for DateTime.
+func (DefaultValueEncoders) DateTimeEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tDateTime {
+		return ValueEncoderError{Name: "DateTimeEncodeValue", Types: []reflect.Type{tDateTime}, Received: val}
+	}
+
+	return vw.WriteDateTime(val.Int())
+}
+
+// NullEncodeValue is the ValueEncoderFunc for Null.
+func (DefaultValueEncoders) NullEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tNull {
+		return ValueEncoderError{Name: "NullEncodeValue", Types: []reflect.Type{tNull}, Received: val}
+	}
+
+	return vw.WriteNull()
+}
+
+// RegexEncodeValue is the ValueEncoderFunc for Regex.
+func (DefaultValueEncoders) RegexEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tRegex {
+		return ValueEncoderError{Name: "RegexEncodeValue", Types: []reflect.Type{tRegex}, Received: val}
+	}
+
+	regex := val.Interface().(primitive.Regex)
+
+	return vw.WriteRegex(regex.Pattern, regex.Options)
+}
+
+// DBPointerEncodeValue is the ValueEncoderFunc for DBPointer.
+func (DefaultValueEncoders) DBPointerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tDBPointer {
+		return ValueEncoderError{Name: "DBPointerEncodeValue", Types: []reflect.Type{tDBPointer}, Received: val}
+	}
+
+	dbp := val.Interface().(primitive.DBPointer)
+
+	return vw.WriteDBPointer(dbp.DB, dbp.Pointer)
+}
+
+// TimestampEncodeValue is the ValueEncoderFunc for Timestamp.
+func (DefaultValueEncoders) TimestampEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tTimestamp {
+		return ValueEncoderError{Name: "TimestampEncodeValue", Types: []reflect.Type{tTimestamp}, Received: val}
+	}
+
+	ts := val.Interface().(primitive.Timestamp)
+
+	return vw.WriteTimestamp(ts.T, ts.I)
+}
+
+// MinKeyEncodeValue is the ValueEncoderFunc for MinKey.
+func (DefaultValueEncoders) MinKeyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tMinKey {
+		return ValueEncoderError{Name: "MinKeyEncodeValue", Types: []reflect.Type{tMinKey}, Received: val}
+	}
+
+	return vw.WriteMinKey()
+}
+
+// MaxKeyEncodeValue is the ValueEncoderFunc for MaxKey.
+func (DefaultValueEncoders) MaxKeyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tMaxKey {
+		return ValueEncoderError{Name: "MaxKeyEncodeValue", Types: []reflect.Type{tMaxKey}, Received: val}
+	}
+
+	return vw.WriteMaxKey()
+}
+
+// CoreDocumentEncodeValue is the ValueEncoderFunc for bsoncore.Document.
+func (DefaultValueEncoders) CoreDocumentEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tCoreDocument {
+		return ValueEncoderError{Name: "CoreDocumentEncodeValue", Types: []reflect.Type{tCoreDocument}, Received: val}
+	}
+
+	cdoc := val.Interface().(bsoncore.Document)
+
+	return bsonrw.Copier{}.CopyDocumentFromBytes(vw, cdoc)
+}
+
+// CodeWithScopeEncodeValue is the ValueEncoderFunc for CodeWithScope.
+func (dve DefaultValueEncoders) CodeWithScopeEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	if !val.IsValid() || val.Type() != tCodeWithScope {
+		return ValueEncoderError{Name: "CodeWithScopeEncodeValue", Types: []reflect.Type{tCodeWithScope}, Received: val}
+	}
+
+	cws := val.Interface().(primitive.CodeWithScope)
+
+	dw, err := vw.WriteCodeWithScope(string(cws.Code))
 	if err != nil {
 		return err
 	}
-	return encoder.EncodeValue(ec, vw, val)
+
+	sw := sliceWriterPool.Get().(*bsonrw.SliceWriter)
+	defer sliceWriterPool.Put(sw)
+	*sw = (*sw)[:0]
+
+	scopeVW := bvwPool.Get(sw)
+	defer bvwPool.Put(scopeVW)
+
+	encoder, err := ec.LookupEncoder(reflect.TypeOf(cws.Scope))
+	if err != nil {
+		return err
+	}
+
+	err = encoder.EncodeValue(ec, scopeVW, reflect.ValueOf(cws.Scope))
+	if err != nil {
+		return err
+	}
+
+	err = bsonrw.Copier{}.CopyBytesToDocumentWriter(dw, *sw)
+	if err != nil {
+		return err
+	}
+	return dw.WriteDocumentEnd()
 }
