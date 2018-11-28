@@ -239,6 +239,31 @@ func TestChangeStream(t *testing.T) {
 			t.Errorf("Should have returned command error, but got %T", err)
 		}
 	})
+
+	t.Run("TestNilCursor", func(t *testing.T) {
+		_, stream := createCollectionStream(t, "TestNilCursorDB", "TestNilCursorColl", nil)
+		cs := stream.(*changeStream)
+		cs.cursor = nil
+
+		if id := cs.ID(); id != 0 {
+			t.Fatalf("Wrong ID returned. Expected 0 got %d", id)
+		}
+		if cs.Next(ctx) {
+			t.Fatalf("Next returned true, expected false")
+		}
+		if err := cs.Decode(nil); err != ErrNilCursor {
+			t.Fatalf("Wrong decode err. Expected ErrNilCursor got %s", err)
+		}
+		if _, err := cs.DecodeBytes(); err != ErrNilCursor {
+			t.Fatalf("Wrong decode bytes err. Expected ErrNilCursor got %s", err)
+		}
+		if err := cs.Err(); err != nil {
+			t.Fatalf("Wrong Err error. Expected nil got %s", err)
+		}
+		if err := cs.Close(ctx); err != nil {
+			t.Fatalf("Wrong Close error. Expected nil got %s", err)
+		}
+	})
 }
 
 func TestChangeStream_ReplicaSet(t *testing.T) {
