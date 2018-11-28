@@ -2,6 +2,121 @@
   "comments": [
     {
       "key": {
+        "uuid": "97227d08_fcb46aac",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-28T02:12:53Z",
+      "side": 1,
+      "message": "Ttransform -\u003e Transform",
+      "range": {
+        "startLine": 72,
+        "startChar": 3,
+        "endLine": 72,
+        "endChar": 24
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a2027b72_5b397b0d",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-28T02:12:53Z",
+      "side": 1,
+      "message": "Is there a ticket for this work?  I don\u0027t see anything scheduled for it prior to 1.0.",
+      "range": {
+        "startLine": 73,
+        "startChar": 18,
+        "endLine": 73,
+        "endChar": 19
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fcb7837d_e17d276e",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-28T02:12:53Z",
+      "side": 1,
+      "message": "Does this mean we allow nil to be inserted?  If so, should error instead.",
+      "range": {
+        "startLine": 83,
+        "startChar": 0,
+        "endLine": 83,
+        "endChar": 1
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7b11a2ca_de754582",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-28T02:12:53Z",
+      "side": 1,
+      "message": "Is the TODO for a subsequent patch to this PR?  If not, then open a ticket instead.  Otherwise the TODO never gets scheduled.",
+      "range": {
+        "startLine": 91,
+        "startChar": 2,
+        "endLine": 91,
+        "endChar": 3
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "515de50e_97ad48d6",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-11-28T02:12:53Z",
+      "side": 1,
+      "message": "Why buf[:0]?",
+      "range": {
+        "startLine": 93,
+        "startChar": 0,
+        "endLine": 93,
+        "endChar": 1
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6c1815a6_29cb26c2",
         "filename": "mongo/mongo.go",
         "patchSetId": 1
