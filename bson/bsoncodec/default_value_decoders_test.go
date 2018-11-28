@@ -52,6 +52,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 	d128 := primitive.NewDecimal128(12345, 67890)
 	var ptrPtrValueUnmarshaler **testValueUnmarshaler
 	var ptrPtrUnmarshaler **testUnmarshaler
+	var pbool = func(b bool) *bool { return &b }
+	var pi32 = func(i32 int32) *int32 { return &i32 }
+	var pi64 = func(i64 int64) *int64 { return &i64 }
 
 	type subtest struct {
 		name   string
@@ -1129,6 +1132,27 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 			},
 		},
+		{
+			"PointerCodec.DecodeValue",
+			NewPointerCodec(),
+			[]subtest{
+				{
+					"not valid", nil, nil, nil, bsonrwtest.Nothing,
+					fmt.Errorf("PointerCodec.DecodeValue can only process non-nil pointers to pointers, but got (%T) %v", nil, nil),
+				},
+				{
+					"nil", (*int32)(nil), nil, nil, bsonrwtest.Nothing,
+					fmt.Errorf(
+						"PointerCodec.DecodeValue can only process non-nil pointers to pointers, but got (%T) %v",
+						(*int32)(nil), (*int32)(nil),
+					),
+				},
+				{
+					"No Decoder", &wrong, &DecodeContext{Registry: buildDefaultRegistry()}, nil, bsonrwtest.Nothing,
+					ErrNoDecoder{Type: reflect.TypeOf(wrong)},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1160,19 +1184,21 @@ func TestDefaultValueDecoders(t *testing.T) {
 					}
 					var unwrap bool
 					rtype := reflect.TypeOf(rc.val)
-					if rtype.Kind() == reflect.Ptr {
-						if reflect.ValueOf(rc.val).IsNil() {
-							got = rc.val
+					if rtype != nil {
+						if rtype.Kind() == reflect.Ptr {
+							if reflect.ValueOf(rc.val).IsNil() {
+								got = rc.val
+							} else {
+								val := reflect.New(rtype).Elem()
+								elem := reflect.New(rtype.Elem())
+								val.Set(elem)
+								got = val.Addr().Interface()
+								unwrap = true
+							}
 						} else {
-							val := reflect.New(rtype).Elem()
-							elem := reflect.New(rtype.Elem())
-							val.Set(elem)
-							got = val.Addr().Interface()
 							unwrap = true
+							got = reflect.New(reflect.TypeOf(rc.val)).Interface()
 						}
-					} else {
-						unwrap = true
-						got = reflect.New(reflect.TypeOf(rc.val)).Interface()
 					}
 					want := rc.val
 					err := tc.vd.DecodeValue(dc, llvrw, got)
@@ -1519,6 +1545,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AC primitive.Decimal128
 					AD *time.Time
 					AE *testValueUnmarshaler
+					AF *bool
+					AG *bool
+					AH *int32
+					AI *int64
+					AJ *primitive.ObjectID
+					AK *primitive.ObjectID
+					AL testValueUnmarshaler
 				}{
 					A: true,
 					B: 123,
@@ -1544,6 +1577,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AC: decimal128,
 					AD: &now,
 					AE: &testValueUnmarshaler{t: bsontype.String, val: bsoncore.AppendString(nil, "hello, world!")},
+					AF: func(b bool) *bool { return &b }(true),
+					AG: nil,
+					AH: func(i32 int32) *int32 { return &i32 }(12345),
+					AI: func(i64 int64) *int64 { return &i64 }(1234567890),
+					AJ: &oid,
+					AK: nil,
+					AL: testValueUnmarshaler{t: bsontype.String, val: bsoncore.AppendString(nil, "hello, world!")},
 				},
 				buildDocument(func(doc []byte) []byte {
 					doc = bsoncore.AppendBooleanElement(doc, "a", true)
@@ -1568,6 +1608,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 					doc = bsoncore.AppendDecimal128Element(doc, "ac", decimal128)
 					doc = bsoncore.AppendDateTimeElement(doc, "ad", now.UnixNano()/int64(time.Millisecond))
 					doc = bsoncore.AppendStringElement(doc, "ae", "hello, world!")
+					doc = bsoncore.AppendBooleanElement(doc, "af", true)
+					doc = bsoncore.AppendNullElement(doc, "ag")
+					doc = bsoncore.AppendInt32Element(doc, "ah", 12345)
+					doc = bsoncore.AppendInt32Element(doc, "ai", 1234567890)
+					doc = bsoncore.AppendObjectIDElement(doc, "aj", oid)
+					doc = bsoncore.AppendNullElement(doc, "ak")
+					doc = bsoncore.AppendStringElement(doc, "al", "hello, world!")
 					return doc
 				}(nil)),
 				nil,
@@ -1600,6 +1647,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AC []primitive.Decimal128
 					AD []*time.Time
 					AE []*testValueUnmarshaler
+					AF []*bool
+					AG []*int32
+					AH []*int64
+					AI []*primitive.ObjectID
 				}{
 					A: []bool{true},
 					B: []int32{123},
@@ -1633,6 +1684,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 						{t: bsontype.String, val: bsoncore.AppendString(nil, "hello")},
 						{t: bsontype.String, val: bsoncore.AppendString(nil, "world")},
 					},
+					AF: []*bool{pbool(true), nil},
+					AG: []*int32{pi32(12345), nil},
+					AH: []*int64{pi64(1234567890), nil, pi64(9012345678)},
+					AI: []*primitive.ObjectID{&oid, nil},
 				},
 				buildDocument(func(doc []byte) []byte {
 					doc = appendArrayElement(doc, "a", bsoncore.AppendBooleanElement(nil, "0", true))
@@ -1681,6 +1736,21 @@ func TestDefaultValueDecoders(t *testing.T) {
 					)
 					doc = appendArrayElement(doc, "ae",
 						bsoncore.AppendStringElement(bsoncore.AppendStringElement(nil, "0", "hello"), "1", "world"),
+					)
+					doc = appendArrayElement(doc, "af",
+						bsoncore.AppendNullElement(bsoncore.AppendBooleanElement(nil, "0", true), "1"),
+					)
+					doc = appendArrayElement(doc, "ag",
+						bsoncore.AppendNullElement(bsoncore.AppendInt32Element(nil, "0", 12345), "1"),
+					)
+					doc = appendArrayElement(doc, "ah",
+						bsoncore.AppendInt64Element(
+							bsoncore.AppendNullElement(bsoncore.AppendInt64Element(nil, "0", 1234567890), "1"),
+							"2", 9012345678,
+						),
+					)
+					doc = appendArrayElement(doc, "ai",
+						bsoncore.AppendNullElement(bsoncore.AppendObjectIDElement(nil, "0", oid), "1"),
 					)
 					return doc
 				}(nil)),
