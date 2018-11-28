@@ -35,7 +35,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 	rb.
 		RegisterEncoder(tByteSlice, ValueEncoderFunc(dve.ByteSliceEncodeValue)).
 		RegisterEncoder(tTime, ValueEncoderFunc(dve.TimeEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tEmpty), ValueEncoderFunc(dve.EmptyInterfaceEncodeValue)).
+		RegisterEncoder(tEmpty, ValueEncoderFunc(dve.EmptyInterfaceEncodeValue)).
 		RegisterEncoder(tOID, ValueEncoderFunc(dve.ObjectIDEncodeValue)).
 		RegisterEncoder(tDecimal, ValueEncoderFunc(dve.Decimal128EncodeValue)).
 		RegisterEncoder(tJSONNumber, ValueEncoderFunc(dve.JSONNumberEncodeValue)).
@@ -60,7 +60,8 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterDefaultEncoder(reflect.Map, ValueEncoderFunc(dve.MapEncodeValue)).
 		RegisterDefaultEncoder(reflect.Slice, ValueEncoderFunc(dve.SliceEncodeValue)).
 		RegisterDefaultEncoder(reflect.String, ValueEncoderFunc(dve.StringEncodeValue)).
-		RegisterDefaultEncoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser})
+		RegisterDefaultEncoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser}).
+		RegisterDefaultEncoder(reflect.Ptr, NewPointerCodec())
 }
 
 // BooleanEncodeValue is the ValueEncoderFunc for bool types.

@@ -52,9 +52,9 @@ func TestRegistry(t *testing.T) {
 				t reflect.Type
 				c ValueEncoder
 			}{
-				{reflect.PtrTo(reflect.TypeOf(ft1)), fc3},
-				{reflect.PtrTo(reflect.TypeOf(ft2)), fc2},
-				{reflect.PtrTo(reflect.TypeOf(ft4)), fc4},
+				{reflect.TypeOf(ft1), fc3},
+				{reflect.TypeOf(ft2), fc2},
+				{reflect.TypeOf(ft4), fc4},
 			}
 			got := rb.typeEncoders
 			for _, s := range want {
@@ -166,6 +166,7 @@ func TestRegistry(t *testing.T) {
 			ti2 := reflect.TypeOf((*testInterface2)(nil)).Elem()
 			fc1, fc2, fc4 := fakeCodec{num: 1}, fakeCodec{num: 2}, fakeCodec{num: 4}
 			fsc, fslcc, fmc := new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
+			pc := NewPointerCodec()
 			reg := NewRegistryBuilder().
 				RegisterEncoder(ft1, fc1).
 				RegisterEncoder(ft2, fc2).
@@ -174,6 +175,7 @@ func TestRegistry(t *testing.T) {
 				RegisterDefaultEncoder(reflect.Slice, fslcc).
 				RegisterDefaultEncoder(reflect.Array, fslcc).
 				RegisterDefaultEncoder(reflect.Map, fmc).
+				RegisterDefaultEncoder(reflect.Ptr, pc).
 				RegisterDecoder(ft1, fc1).
 				RegisterDecoder(ft2, fc2).
 				RegisterDecoder(ti2, fc4).
@@ -181,6 +183,7 @@ func TestRegistry(t *testing.T) {
 				RegisterDefaultDecoder(reflect.Slice, fslcc).
 				RegisterDefaultDecoder(reflect.Array, fslcc).
 				RegisterDefaultDecoder(reflect.Map, fmc).
+				RegisterDefaultDecoder(reflect.Ptr, pc).
 				Build()
 
 			testCases := []struct {
@@ -214,7 +217,7 @@ func TestRegistry(t *testing.T) {
 				{
 					"default struct codec (pointer)",
 					reflect.PtrTo(strct),
-					fsc,
+					pc,
 					nil,
 					false,
 				},
@@ -263,20 +266,19 @@ func TestRegistry(t *testing.T) {
 			}
 
 			allowunexported := cmp.AllowUnexported(fakeCodec{}, fakeStructCodec{}, fakeSliceCodec{}, fakeMapCodec{})
+			comparepc := func(pc1, pc2 *PointerCodec) bool { return true }
 			for _, tc := range testCases {
-				t.Run("Encoder", func(t *testing.T) {
-					t.Run(tc.name, func(t *testing.T) {
+				t.Run(tc.name, func(t *testing.T) {
+					t.Run("Encoder", func(t *testing.T) {
 						gotcodec, goterr := reg.LookupEncoder(tc.t)
 						if !cmp.Equal(goterr, tc.wanterr, cmp.Comparer(compareErrors)) {
 							t.Errorf("Errors did not match. got %v; want %v", goterr, tc.wanterr)
 						}
-						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported) {
+						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported, cmp.Comparer(comparepc)) {
 							t.Errorf("Codecs did not match. got %v; want %v", gotcodec, tc.wantcodec)
 						}
 					})
-				})
-				t.Run("Decoder", func(t *testing.T) {
-					t.Run(tc.name, func(t *testing.T) {
+					t.Run("Decoder", func(t *testing.T) {
 						var wanterr error
 						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder{Type: ene.Type}
@@ -287,8 +289,9 @@ func TestRegistry(t *testing.T) {
 						if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
 							t.Errorf("Errors did not match. got %v; want %v", goterr, wanterr)
 						}
-						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported) {
+						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported, cmp.Comparer(comparepc)) {
 							t.Errorf("Codecs did not match. got %v; want %v", gotcodec, tc.wantcodec)
+							t.Errorf("Codecs did not match. got %T; want %T", gotcodec, tc.wantcodec)
 						}
 					})
 				})
