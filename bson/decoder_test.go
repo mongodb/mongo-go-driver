@@ -24,7 +24,7 @@ func TestBasicDecode(t *testing.T) {
 			got := reflect.New(tc.sType).Interface()
 			vr := bsonrw.NewBSONDocumentReader(tc.data)
 			reg := DefaultRegistry
-			decoder, err := reg.LookupDecoder(reflect.TypeOf(got))
+			decoder, err := reg.LookupDecoder(reflect.TypeOf(got).Elem())
 			noerr(t, err)
 			err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: reg}, vr, got)
 			noerr(t, err)
