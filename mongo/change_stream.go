@@ -31,6 +31,9 @@ const errorCursorKilled int32 = 237
 // contain a resume token.
 var ErrMissingResumeToken = errors.New("cannot provide resume functionality when the resume token is missing")
 
+// ErrNilCursor indicates that the cursor for the change stream is nil.
+var ErrNilCursor = errors.New("cursor is nil")
+
 type changeStream struct {
 	cmd      bsonx.Doc // aggregate command to run to create stream and rebuild cursor
 	pipeline bsonx.Arr
@@ -396,10 +399,18 @@ func newClientChangeStream(ctx context.Context, client *Client, pipeline interfa
 }
 
 func (cs *changeStream) ID() int64 {
+	if cs.cursor == nil {
+		return 0
+	}
+
 	return cs.cursor.ID()
 }
 
 func (cs *changeStream) Next(ctx context.Context) bool {
+	if cs.cursor == nil {
+		return false
+	}
+
 	if cs.cursor.Next(ctx) {
 		return true
 	}
@@ -431,6 +442,10 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 }
 
 func (cs *changeStream) Decode(out interface{}) error {
+	if cs.cursor == nil {
+		return ErrNilCursor
+	}
+
 	br, err := cs.DecodeBytes()
 	if err != nil {
 		return err
@@ -440,6 +455,10 @@ func (cs *changeStream) Decode(out interface{}) error {
 }
 
 func (cs *changeStream) DecodeBytes() (bson.Raw, error) {
+	if cs.cursor == nil {
+		return nil, ErrNilCursor
+	}
+
 	br, err := cs.cursor.DecodeBytes()
 	if err != nil {
 		return nil, err
@@ -476,6 +495,10 @@ func (cs *changeStream) Err() error {
 }
 
 func (cs *changeStream) Close(ctx context.Context) error {
+	if cs.cursor == nil {
+		return nil // cursor is already closed
+	}
+
 	return cs.cursor.Close(ctx)
 }
 
