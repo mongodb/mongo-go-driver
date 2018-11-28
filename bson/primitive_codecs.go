@@ -39,42 +39,42 @@ func (pc PrimitiveCodecs) RegisterPrimitiveCodecs(rb *bsoncodec.RegistryBuilder)
 		RegisterEncoder(tDocument, bsoncodec.ValueEncoderFunc(pc.x.DocumentEncodeValue)).
 		RegisterEncoder(tArray, bsoncodec.ValueEncoderFunc(pc.x.ArrayEncodeValue)).
 		RegisterEncoder(tValue, bsoncodec.ValueEncoderFunc(pc.x.ValueEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tJavaScript), bsoncodec.ValueEncoderFunc(pc.JavaScriptEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tSymbol), bsoncodec.ValueEncoderFunc(pc.SymbolEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tRawValue), bsoncodec.ValueEncoderFunc(pc.RawValueEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tElementSlice), bsoncodec.ValueEncoderFunc(pc.x.ElementSliceEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tBinary), bsoncodec.ValueEncoderFunc(pc.BinaryEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tUndefined), bsoncodec.ValueEncoderFunc(pc.UndefinedEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tDateTime), bsoncodec.ValueEncoderFunc(pc.DateTimeEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tNull), bsoncodec.ValueEncoderFunc(pc.NullEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tRegex), bsoncodec.ValueEncoderFunc(pc.RegexEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tDBPointer), bsoncodec.ValueEncoderFunc(pc.DBPointerEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tCodeWithScope), bsoncodec.ValueEncoderFunc(pc.CodeWithScopeEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tTimestamp), bsoncodec.ValueEncoderFunc(pc.TimestampEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tMinKey), bsoncodec.ValueEncoderFunc(pc.MinKeyEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tMaxKey), bsoncodec.ValueEncoderFunc(pc.MaxKeyEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tRaw), bsoncodec.ValueEncoderFunc(pc.RawEncodeValue)).
-		RegisterEncoder(reflect.PtrTo(tD), bsoncodec.ValueEncoderFunc(pc.DEncodeValue)).
+		RegisterEncoder(tJavaScript, bsoncodec.ValueEncoderFunc(pc.JavaScriptEncodeValue)).
+		RegisterEncoder(tSymbol, bsoncodec.ValueEncoderFunc(pc.SymbolEncodeValue)).
+		RegisterEncoder(tRawValue, bsoncodec.ValueEncoderFunc(pc.RawValueEncodeValue)).
+		RegisterEncoder(tElementSlice, bsoncodec.ValueEncoderFunc(pc.x.ElementSliceEncodeValue)).
+		RegisterEncoder(tBinary, bsoncodec.ValueEncoderFunc(pc.BinaryEncodeValue)).
+		RegisterEncoder(tUndefined, bsoncodec.ValueEncoderFunc(pc.UndefinedEncodeValue)).
+		RegisterEncoder(tDateTime, bsoncodec.ValueEncoderFunc(pc.DateTimeEncodeValue)).
+		RegisterEncoder(tNull, bsoncodec.ValueEncoderFunc(pc.NullEncodeValue)).
+		RegisterEncoder(tRegex, bsoncodec.ValueEncoderFunc(pc.RegexEncodeValue)).
+		RegisterEncoder(tDBPointer, bsoncodec.ValueEncoderFunc(pc.DBPointerEncodeValue)).
+		RegisterEncoder(tCodeWithScope, bsoncodec.ValueEncoderFunc(pc.CodeWithScopeEncodeValue)).
+		RegisterEncoder(tTimestamp, bsoncodec.ValueEncoderFunc(pc.TimestampEncodeValue)).
+		RegisterEncoder(tMinKey, bsoncodec.ValueEncoderFunc(pc.MinKeyEncodeValue)).
+		RegisterEncoder(tMaxKey, bsoncodec.ValueEncoderFunc(pc.MaxKeyEncodeValue)).
+		RegisterEncoder(tRaw, bsoncodec.ValueEncoderFunc(pc.RawEncodeValue)).
+		RegisterEncoder(tD, bsoncodec.ValueEncoderFunc(pc.DEncodeValue)).
 		RegisterDecoder(tDocument, bsoncodec.ValueDecoderFunc(pc.x.DocumentDecodeValue)).
 		RegisterDecoder(tArray, bsoncodec.ValueDecoderFunc(pc.x.ArrayDecodeValue)).
 		RegisterDecoder(tValue, bsoncodec.ValueDecoderFunc(pc.x.ValueDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tJavaScript), bsoncodec.ValueDecoderFunc(pc.JavaScriptDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tSymbol), bsoncodec.ValueDecoderFunc(pc.SymbolDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tRawValue), bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tElementSlice), bsoncodec.ValueDecoderFunc(pc.x.ElementSliceDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tBinary), bsoncodec.ValueDecoderFunc(pc.BinaryDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tUndefined), bsoncodec.ValueDecoderFunc(pc.UndefinedDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tDateTime), bsoncodec.ValueDecoderFunc(pc.DateTimeDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tNull), bsoncodec.ValueDecoderFunc(pc.NullDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tRegex), bsoncodec.ValueDecoderFunc(pc.RegexDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tDBPointer), bsoncodec.ValueDecoderFunc(pc.DBPointerDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tCodeWithScope), bsoncodec.ValueDecoderFunc(pc.CodeWithScopeDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tTimestamp), bsoncodec.ValueDecoderFunc(pc.TimestampDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tMinKey), bsoncodec.ValueDecoderFunc(pc.MinKeyDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tMaxKey), bsoncodec.ValueDecoderFunc(pc.MaxKeyDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tRaw), bsoncodec.ValueDecoderFunc(pc.RawDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tEmpty), bsoncodec.ValueDecoderFunc(pc.EmptyInterfaceDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tD), bsoncodec.ValueDecoderFunc(pc.DDecodeValue))
+		RegisterDecoder(tJavaScript, bsoncodec.ValueDecoderFunc(pc.JavaScriptDecodeValue)).
+		RegisterDecoder(tSymbol, bsoncodec.ValueDecoderFunc(pc.SymbolDecodeValue)).
+		RegisterDecoder(tRawValue, bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue)).
+		RegisterDecoder(tElementSlice, bsoncodec.ValueDecoderFunc(pc.x.ElementSliceDecodeValue)).
+		RegisterDecoder(tBinary, bsoncodec.ValueDecoderFunc(pc.BinaryDecodeValue)).
+		RegisterDecoder(tUndefined, bsoncodec.ValueDecoderFunc(pc.UndefinedDecodeValue)).
+		RegisterDecoder(tDateTime, bsoncodec.ValueDecoderFunc(pc.DateTimeDecodeValue)).
+		RegisterDecoder(tNull, bsoncodec.ValueDecoderFunc(pc.NullDecodeValue)).
+		RegisterDecoder(tRegex, bsoncodec.ValueDecoderFunc(pc.RegexDecodeValue)).
+		RegisterDecoder(tDBPointer, bsoncodec.ValueDecoderFunc(pc.DBPointerDecodeValue)).
+		RegisterDecoder(tCodeWithScope, bsoncodec.ValueDecoderFunc(pc.CodeWithScopeDecodeValue)).
+		RegisterDecoder(tTimestamp, bsoncodec.ValueDecoderFunc(pc.TimestampDecodeValue)).
+		RegisterDecoder(tMinKey, bsoncodec.ValueDecoderFunc(pc.MinKeyDecodeValue)).
+		RegisterDecoder(tMaxKey, bsoncodec.ValueDecoderFunc(pc.MaxKeyDecodeValue)).
+		RegisterDecoder(tRaw, bsoncodec.ValueDecoderFunc(pc.RawDecodeValue)).
+		RegisterDecoder(tEmpty, bsoncodec.ValueDecoderFunc(pc.EmptyInterfaceDecodeValue)).
+		RegisterDecoder(tD, bsoncodec.ValueDecoderFunc(pc.DDecodeValue))
 }
 
 // JavaScriptEncodeValue is the ValueEncoderFunc for the primitive.JavaScript type.

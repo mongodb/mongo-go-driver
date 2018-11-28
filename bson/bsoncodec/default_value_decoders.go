@@ -40,13 +40,13 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 	}
 
 	rb.
-		RegisterDecoder(reflect.PtrTo(tByteSlice), ValueDecoderFunc(dvd.ByteSliceDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tTime), ValueDecoderFunc(dvd.TimeDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tEmpty), ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tOID), ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tDecimal), ValueDecoderFunc(dvd.Decimal128DecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tJSONNumber), ValueDecoderFunc(dvd.JSONNumberDecodeValue)).
-		RegisterDecoder(reflect.PtrTo(tURL), ValueDecoderFunc(dvd.URLDecodeValue)).
+		RegisterDecoder(tByteSlice, ValueDecoderFunc(dvd.ByteSliceDecodeValue)).
+		RegisterDecoder(tTime, ValueDecoderFunc(dvd.TimeDecodeValue)).
+		RegisterDecoder(tEmpty, ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue)).
+		RegisterDecoder(tOID, ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
+		RegisterDecoder(tDecimal, ValueDecoderFunc(dvd.Decimal128DecodeValue)).
+		RegisterDecoder(tJSONNumber, ValueDecoderFunc(dvd.JSONNumberDecodeValue)).
+		RegisterDecoder(tURL, ValueDecoderFunc(dvd.URLDecodeValue)).
 		RegisterDecoder(tValueUnmarshaler, ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)).
 		RegisterDefaultDecoder(reflect.Bool, ValueDecoderFunc(dvd.BooleanDecodeValue)).
 		RegisterDefaultDecoder(reflect.Int, ValueDecoderFunc(dvd.IntDecodeValue)).
@@ -65,7 +65,8 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDefaultDecoder(reflect.Map, ValueDecoderFunc(dvd.MapDecodeValue)).
 		RegisterDefaultDecoder(reflect.Slice, ValueDecoderFunc(dvd.SliceDecodeValue)).
 		RegisterDefaultDecoder(reflect.String, ValueDecoderFunc(dvd.StringDecodeValue)).
-		RegisterDefaultDecoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser})
+		RegisterDefaultDecoder(reflect.Struct, &StructCodec{cache: make(map[reflect.Type]*structDescription), parser: DefaultStructTagParser}).
+		RegisterDefaultDecoder(reflect.Ptr, NewPointerCodec())
 }
 
 // BooleanDecodeValue is the ValueDecoderFunc for bool types.

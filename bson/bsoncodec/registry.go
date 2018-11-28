@@ -15,12 +15,18 @@ import (
 // ErrNilType is returned when nil is passed to either LookupEncoder or LookupDecoder.
 var ErrNilType = errors.New("cannot perform an encoder or decoder lookup on <nil>")
 
+// ErrNotPointer is returned when a non-pointer type is provided to LookupDecoder.
+var ErrNotPointer = errors.New("non-pointer provided to LookupDecoder")
+
 // ErrNoEncoder is returned when there wasn't an encoder available for a type.
 type ErrNoEncoder struct {
 	Type reflect.Type
 }
 
 func (ene ErrNoEncoder) Error() string {
+	if ene.Type == nil {
+		return "no encoder found for <nil>"
+	}
 	return "no encoder found for " + ene.Type.String()
 }
 
@@ -98,7 +104,14 @@ func (rb *RegistryBuilder) RegisterCodec(t reflect.Type, codec ValueCodec) *Regi
 }
 
 // RegisterEncoder will register the provided ValueEncoder to the provided type.
+//
+// The type registered will be used directly, so an encoder can be registered for a type and a
+// different encoder can be registered for a pointer to that type.
 func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoder) *RegistryBuilder {
+	if t == tEmpty {
+		rb.typeEncoders[t] = enc
+		return rb
+	}
 	switch t.Kind() {
 	case reflect.Interface:
 		for idx, ir := range rb.interfaceEncoders {
@@ -110,16 +123,20 @@ func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoder) *Re
 
 		rb.interfaceEncoders = append(rb.interfaceEncoders, interfaceValueEncoder{i: t, ve: enc})
 	default:
-		if t.Kind() != reflect.Ptr {
-			t = reflect.PtrTo(t)
-		}
 		rb.typeEncoders[t] = enc
 	}
 	return rb
 }
 
 // RegisterDecoder will register the provided ValueDecoder to the provided type.
+//
+// The type registered will be used directly, so a decoder can be registered for a type and a
+// different decoder can be registered for a pointer to that type.
 func (rb *RegistryBuilder) RegisterDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
+	if t == tEmpty {
+		rb.typeDecoders[t] = dec
+		return rb
+	}
 	switch t.Kind() {
 	case reflect.Interface:
 		for idx, ir := range rb.interfaceDecoders {
@@ -131,9 +148,6 @@ func (rb *RegistryBuilder) RegisterDecoder(t reflect.Type, dec ValueDecoder) *Re
 
 		rb.interfaceDecoders = append(rb.interfaceDecoders, interfaceValueDecoder{i: t, vd: dec})
 	default:
-		if t.Kind() != reflect.Ptr {
-			t = reflect.PtrTo(t)
-		}
 		rb.typeDecoders[t] = dec
 	}
 	return rb
@@ -192,9 +206,6 @@ func (rb *RegistryBuilder) Build() *Registry {
 // which takes precedence over an encoder for the reflect.Kind of the value. If
 // no encoder can be found, an error is returned.
 func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
-	if t == nil {
-		return nil, ErrNilType
-	}
 	encodererr := ErrNoEncoder{Type: t}
 	r.mu.RLock()
 	enc, found := r.lookupTypeEncoder(t)
@@ -209,23 +220,23 @@ func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
 	enc, found = r.lookupInterfaceEncoder(t)
 	if found {
 		r.mu.Lock()
-		if t.Kind() != reflect.Ptr {
-			t = reflect.PtrTo(t)
-		}
 		r.typeEncoders[t] = enc
 		r.mu.Unlock()
 		return enc, nil
 	}
 
-	if t.Kind() == reflect.Map && t.Key().Kind() != reflect.String {
+	if t != nil && t.Kind() == reflect.Map && t.Key().Kind() != reflect.String {
 		r.mu.Lock()
 		r.typeEncoders[t] = nil
 		r.mu.Unlock()
 		return nil, encodererr
 	}
 
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
+	if t == nil {
+		r.mu.Lock()
+		r.typeEncoders[t] = nil
+		r.mu.Unlock()
+		return nil, encodererr
 	}
 
 	enc, found = r.kindEncoders[t.Kind()]
@@ -243,15 +254,14 @@ func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
 }
 
 func (r *Registry) lookupTypeEncoder(t reflect.Type) (ValueEncoder, bool) {
-	if t.Kind() != reflect.Ptr {
-		t = reflect.PtrTo(t)
-	}
-
 	enc, found := r.typeEncoders[t]
 	return enc, found
 }
 
 func (r *Registry) lookupInterfaceEncoder(t reflect.Type) (ValueEncoder, bool) {
+	if t == nil {
+		return nil, false
+	}
 	for _, ienc := range r.interfaceEncoders {
 		if !t.Implements(ienc.i) {
 			continue
@@ -285,9 +295,6 @@ func (r *Registry) LookupDecoder(t reflect.Type) (ValueDecoder, error) {
 	dec, found = r.lookupInterfaceDecoder(t)
 	if found {
 		r.mu.Lock()
-		if t.Kind() != reflect.Ptr {
-			t = reflect.PtrTo(t)
-		}
 		r.typeDecoders[t] = dec
 		r.mu.Unlock()
 		return dec, nil
@@ -298,10 +305,6 @@ func (r *Registry) LookupDecoder(t reflect.Type) (ValueDecoder, error) {
 		r.typeDecoders[t] = nil
 		r.mu.Unlock()
 		return nil, decodererr
-	}
-
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
 	}
 
 	dec, found = r.kindDecoders[t.Kind()]
@@ -319,10 +322,6 @@ func (r *Registry) LookupDecoder(t reflect.Type) (ValueDecoder, error) {
 }
 
 func (r *Registry) lookupTypeDecoder(t reflect.Type) (ValueDecoder, bool) {
-	if t.Kind() != reflect.Ptr {
-		t = reflect.PtrTo(t)
-	}
-
 	dec, found := r.typeDecoders[t]
 	return dec, found
 }
