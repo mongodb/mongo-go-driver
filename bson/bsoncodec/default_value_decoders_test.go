@@ -105,7 +105,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Boolean},
 					bsonrwtest.Nothing,
-					ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{bool(true), boolptr(true)}, Received: &wrong},
+					ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{new(bool), new(*bool)}, Received: &wrong},
 				},
 				{
 					"type not boolean",
@@ -113,7 +113,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
 					bsonrwtest.Nothing,
-					fmt.Errorf("cannot decode %v into a boolean, null", bsontype.String),
+					fmt.Errorf("cannot decode %v into a bool type", bsontype.String),
 				},
 				{
 					"fast path",
@@ -153,14 +153,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Boolean, Return: bool(true), Err: errors.New("ReadBoolean Error"), ErrAfter: bsonrwtest.ReadBoolean},
 					bsonrwtest.ReadBoolean, errors.New("ReadBoolean Error"),
-				},
-				{
-					"can set false",
-					cansetreflectiontest,
-					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Boolean},
-					bsonrwtest.Nothing,
-					errors.New("BooleanDecodeValue can only be used to decode settable (non-nil) values"),
 				},
 			},
 		},

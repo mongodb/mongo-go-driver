@@ -114,63 +114,72 @@ func checkTypeError(vr bsonrw.ValueReader, requiredType ...bsontype.Type) error 
 func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	var err error
 	var b bool
-	var isNull bool
-	readValue := func() {
-		switch vr.Type() {
-		case bsontype.Boolean:
-			b, err = vr.ReadBoolean()
-		case bsontype.Null:
-			isNull = true
-			err = vr.ReadNull()
-		default:
-			err = checkTypeError(vr, bsontype.Boolean, bsontype.Null)
-		}
-	}
 
 	if i == nil {
-		return errors.New("BooleanDecodeValue can only be used to decode settable (non-nil) values")
+		return ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{new(bool), new(*bool)}, Received: i, ReceivedNil: true}
 	}
 
 	switch target := i.(type) {
 	case *bool:
-		readValue()
-		if err != nil {
-			return err
+		if target == nil { // We need to handle typed nil
+			return ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{new(bool), new(*bool)}, Received: i, ReceivedNil: true}
 		}
-		*target = b
+		if vr.Type() != bsontype.Boolean {
+			return fmt.Errorf("cannot decode %v into a bool type", vr.Type())
+		}
+		*target, err = vr.ReadBoolean()
 		return err
 	case **bool:
-		readValue()
-		if err != nil {
+		if target == nil { // We need to handle typed nil
+			return ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{new(bool), new(*bool)}, Received: target, ReceivedNil: true}
+		}
+		switch vr.Type() {
+		case bsontype.Boolean:
+			if *target == nil {
+				*target = new(bool)
+			}
+			**target, err = vr.ReadBoolean()
 			return err
-		}
-		if isNull {
+		case bsontype.Null:
+			err = vr.ReadNull()
 			*target = nil
-		} else {
-			*target = &b
+			return err
+		default:
+			return fmt.Errorf("cannot decode %v into a bool type", vr.Type())
 		}
-		return err
 	}
 
 	val := reflect.ValueOf(i)
 	if !val.IsValid() || val.Kind() != reflect.Ptr || !val.Elem().CanSet() {
-		return errors.New("BooleanDecodeValue can only be used to decode settable (non-nil) values")
+		return ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{new(bool), new(*bool)}, Received: i, ReceivedNil: !val.IsValid()}
 	}
 	val = val.Elem()
 
-	if getValueKind(val) != reflect.Bool {
-		return ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{bool(true), new(bool)}, Received: i}
-	}
-	readValue()
-	if err != nil {
+	switch {
+	case val.Kind() == reflect.Bool:
+		if vr.Type() != bsontype.Boolean {
+			return fmt.Errorf("cannot decode %v into a bool type", vr.Type())
+		}
+		b, err = vr.ReadBoolean()
+		val.SetBool(b)
 		return err
+	case val.Kind() == reflect.Ptr && val.Elem().Kind() == reflect.Bool:
+		switch vr.Type() {
+		case bsontype.Boolean:
+			val = getValue(val)
+			b, err = vr.ReadBoolean()
+			val.SetBool(b)
+			return err
+		case bsontype.Null:
+			err = vr.ReadNull()
+			val.Set(reflect.Zero(val.Type()))
+			return err
+		default:
+			return fmt.Errorf("cannot decode %v into a bool type", vr.Type())
+		}
+	default:
+		return ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{new(bool), new(*bool)}, Received: i}
 	}
-	if isNull && val.Kind() == reflect.Ptr {
-		val.Set(reflect.Zero(val.Type()))
-	} else {
-		getValue(val).SetBool(b)
-	}
-	return err
 }
 
 // IntDecodeValue is the ValueDecoderFunc for int types.
