@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "7b612bb3_982479f4",
+        "filename": "bson/bsonrw/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 166,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-11-28T16:11:36Z",
+      "side": 1,
+      "message": "Ah, I see. Should we add a comment here explaining that as well? Just reading these lines of code, it implies something like: `{ \"a\": 1 {` is okay. Obviously this is not and would be caught by validateToken via advanceState (due to the depth), but a note along the lines of \"allow another key-value pair,OR another top-level object\" could be helpful here.",
+      "parentUuid": "4d62e5e5_4294d170",
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d3213968_c20dc4c1",
         "filename": "bson/bsonrw/extjson_parser.go",
         "patchSetId": 1
@@ -33,6 +51,24 @@
       "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ecc869fc_de904140",
+        "filename": "bson/bsonrw/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-11-28T16:11:36Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d3213968_c20dc4c1",
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
