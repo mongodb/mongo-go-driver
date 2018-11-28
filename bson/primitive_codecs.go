@@ -36,45 +36,45 @@ func (pc PrimitiveCodecs) RegisterPrimitiveCodecs(rb *bsoncodec.RegistryBuilder)
 	}
 
 	rb.
-		RegisterEncoder(tDocument, bsoncodec.ValueEncoderFunc(pc.x.DocumentEncodeValue)).
-		RegisterEncoder(tArray, bsoncodec.ValueEncoderFunc(pc.x.ArrayEncodeValue)).
-		RegisterEncoder(tValue, bsoncodec.ValueEncoderFunc(pc.x.ValueEncodeValue)).
-		RegisterEncoder(tJavaScript, bsoncodec.ValueEncoderFunc(pc.JavaScriptEncodeValue)).
-		RegisterEncoder(tSymbol, bsoncodec.ValueEncoderFunc(pc.SymbolEncodeValue)).
-		RegisterEncoder(tRawValue, bsoncodec.ValueEncoderFunc(pc.RawValueEncodeValue)).
-		RegisterEncoder(tElementSlice, bsoncodec.ValueEncoderFunc(pc.x.ElementSliceEncodeValue)).
-		RegisterEncoder(tBinary, bsoncodec.ValueEncoderFunc(pc.BinaryEncodeValue)).
-		RegisterEncoder(tUndefined, bsoncodec.ValueEncoderFunc(pc.UndefinedEncodeValue)).
-		RegisterEncoder(tDateTime, bsoncodec.ValueEncoderFunc(pc.DateTimeEncodeValue)).
-		RegisterEncoder(tNull, bsoncodec.ValueEncoderFunc(pc.NullEncodeValue)).
-		RegisterEncoder(tRegex, bsoncodec.ValueEncoderFunc(pc.RegexEncodeValue)).
-		RegisterEncoder(tDBPointer, bsoncodec.ValueEncoderFunc(pc.DBPointerEncodeValue)).
-		RegisterEncoder(tCodeWithScope, bsoncodec.ValueEncoderFunc(pc.CodeWithScopeEncodeValue)).
-		RegisterEncoder(tTimestamp, bsoncodec.ValueEncoderFunc(pc.TimestampEncodeValue)).
-		RegisterEncoder(tMinKey, bsoncodec.ValueEncoderFunc(pc.MinKeyEncodeValue)).
-		RegisterEncoder(tMaxKey, bsoncodec.ValueEncoderFunc(pc.MaxKeyEncodeValue)).
-		RegisterEncoder(tRaw, bsoncodec.ValueEncoderFunc(pc.RawEncodeValue)).
-		RegisterEncoder(tD, bsoncodec.ValueEncoderFunc(pc.DEncodeValue)).
-		RegisterDecoder(tDocument, bsoncodec.ValueDecoderFunc(pc.x.DocumentDecodeValue)).
-		RegisterDecoder(tArray, bsoncodec.ValueDecoderFunc(pc.x.ArrayDecodeValue)).
-		RegisterDecoder(tValue, bsoncodec.ValueDecoderFunc(pc.x.ValueDecodeValue)).
-		RegisterDecoder(tJavaScript, bsoncodec.ValueDecoderFunc(pc.JavaScriptDecodeValue)).
-		RegisterDecoder(tSymbol, bsoncodec.ValueDecoderFunc(pc.SymbolDecodeValue)).
-		RegisterDecoder(tRawValue, bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue)).
-		RegisterDecoder(tElementSlice, bsoncodec.ValueDecoderFunc(pc.x.ElementSliceDecodeValue)).
-		RegisterDecoder(tBinary, bsoncodec.ValueDecoderFunc(pc.BinaryDecodeValue)).
-		RegisterDecoder(tUndefined, bsoncodec.ValueDecoderFunc(pc.UndefinedDecodeValue)).
-		RegisterDecoder(tDateTime, bsoncodec.ValueDecoderFunc(pc.DateTimeDecodeValue)).
-		RegisterDecoder(tNull, bsoncodec.ValueDecoderFunc(pc.NullDecodeValue)).
-		RegisterDecoder(tRegex, bsoncodec.ValueDecoderFunc(pc.RegexDecodeValue)).
-		RegisterDecoder(tDBPointer, bsoncodec.ValueDecoderFunc(pc.DBPointerDecodeValue)).
-		RegisterDecoder(tCodeWithScope, bsoncodec.ValueDecoderFunc(pc.CodeWithScopeDecodeValue)).
-		RegisterDecoder(tTimestamp, bsoncodec.ValueDecoderFunc(pc.TimestampDecodeValue)).
-		RegisterDecoder(tMinKey, bsoncodec.ValueDecoderFunc(pc.MinKeyDecodeValue)).
-		RegisterDecoder(tMaxKey, bsoncodec.ValueDecoderFunc(pc.MaxKeyDecodeValue)).
-		RegisterDecoder(tRaw, bsoncodec.ValueDecoderFunc(pc.RawDecodeValue)).
-		RegisterDecoder(tEmpty, bsoncodec.ValueDecoderFunc(pc.EmptyInterfaceDecodeValue)).
-		RegisterDecoder(tD, bsoncodec.ValueDecoderFunc(pc.DDecodeValue))
+		RegisterEncoder(tDocument, bsoncodec.ValueEncoderLegacyFunc(pc.x.DocumentEncodeValue)).
+		RegisterEncoder(tArray, bsoncodec.ValueEncoderLegacyFunc(pc.x.ArrayEncodeValue)).
+		RegisterEncoder(tValue, bsoncodec.ValueEncoderLegacyFunc(pc.x.ValueEncodeValue)).
+		RegisterEncoder(tJavaScript, bsoncodec.ValueEncoderLegacyFunc(pc.JavaScriptEncodeValue)).
+		RegisterEncoder(tSymbol, bsoncodec.ValueEncoderLegacyFunc(pc.SymbolEncodeValue)).
+		RegisterEncoder(tRawValue, bsoncodec.ValueEncoderLegacyFunc(pc.RawValueEncodeValue)).
+		RegisterEncoder(tElementSlice, bsoncodec.ValueEncoderLegacyFunc(pc.x.ElementSliceEncodeValue)).
+		RegisterEncoder(tBinary, bsoncodec.ValueEncoderLegacyFunc(pc.BinaryEncodeValue)).
+		RegisterEncoder(tUndefined, bsoncodec.ValueEncoderLegacyFunc(pc.UndefinedEncodeValue)).
+		RegisterEncoder(tDateTime, bsoncodec.ValueEncoderLegacyFunc(pc.DateTimeEncodeValue)).
+		RegisterEncoder(tNull, bsoncodec.ValueEncoderLegacyFunc(pc.NullEncodeValue)).
+		RegisterEncoder(tRegex, bsoncodec.ValueEncoderLegacyFunc(pc.RegexEncodeValue)).
+		RegisterEncoder(tDBPointer, bsoncodec.ValueEncoderLegacyFunc(pc.DBPointerEncodeValue)).
+		RegisterEncoder(tCodeWithScope, bsoncodec.ValueEncoderLegacyFunc(pc.CodeWithScopeEncodeValue)).
+		RegisterEncoder(tTimestamp, bsoncodec.ValueEncoderLegacyFunc(pc.TimestampEncodeValue)).
+		RegisterEncoder(tMinKey, bsoncodec.ValueEncoderLegacyFunc(pc.MinKeyEncodeValue)).
+		RegisterEncoder(tMaxKey, bsoncodec.ValueEncoderLegacyFunc(pc.MaxKeyEncodeValue)).
+		RegisterEncoder(tRaw, bsoncodec.ValueEncoderLegacyFunc(pc.RawEncodeValue)).
+		RegisterEncoder(tD, bsoncodec.ValueEncoderLegacyFunc(pc.DEncodeValue)).
+		RegisterDecoder(tDocument, bsoncodec.ValueDecoderLegacyFunc(pc.x.DocumentDecodeValue)).
+		RegisterDecoder(tArray, bsoncodec.ValueDecoderLegacyFunc(pc.x.ArrayDecodeValue)).
+		RegisterDecoder(tValue, bsoncodec.ValueDecoderLegacyFunc(pc.x.ValueDecodeValue)).
+		RegisterDecoder(tJavaScript, bsoncodec.ValueDecoderLegacyFunc(pc.JavaScriptDecodeValue)).
+		RegisterDecoder(tSymbol, bsoncodec.ValueDecoderLegacyFunc(pc.SymbolDecodeValue)).
+		RegisterDecoder(tRawValue, bsoncodec.ValueDecoderLegacyFunc(pc.RawValueDecodeValue)).
+		RegisterDecoder(tElementSlice, bsoncodec.ValueDecoderLegacyFunc(pc.x.ElementSliceDecodeValue)).
+		RegisterDecoder(tBinary, bsoncodec.ValueDecoderLegacyFunc(pc.BinaryDecodeValue)).
+		RegisterDecoder(tUndefined, bsoncodec.ValueDecoderLegacyFunc(pc.UndefinedDecodeValue)).
+		RegisterDecoder(tDateTime, bsoncodec.ValueDecoderLegacyFunc(pc.DateTimeDecodeValue)).
+		RegisterDecoder(tNull, bsoncodec.ValueDecoderLegacyFunc(pc.NullDecodeValue)).
+		RegisterDecoder(tRegex, bsoncodec.ValueDecoderLegacyFunc(pc.RegexDecodeValue)).
+		RegisterDecoder(tDBPointer, bsoncodec.ValueDecoderLegacyFunc(pc.DBPointerDecodeValue)).
+		RegisterDecoder(tCodeWithScope, bsoncodec.ValueDecoderLegacyFunc(pc.CodeWithScopeDecodeValue)).
+		RegisterDecoder(tTimestamp, bsoncodec.ValueDecoderLegacyFunc(pc.TimestampDecodeValue)).
+		RegisterDecoder(tMinKey, bsoncodec.ValueDecoderLegacyFunc(pc.MinKeyDecodeValue)).
+		RegisterDecoder(tMaxKey, bsoncodec.ValueDecoderLegacyFunc(pc.MaxKeyDecodeValue)).
+		RegisterDecoder(tRaw, bsoncodec.ValueDecoderLegacyFunc(pc.RawDecodeValue)).
+		RegisterDecoder(tEmpty, bsoncodec.ValueDecoderLegacyFunc(pc.EmptyInterfaceDecodeValue)).
+		RegisterDecoder(tD, bsoncodec.ValueDecoderLegacyFunc(pc.DDecodeValue))
 }
 
 // JavaScriptEncodeValue is the ValueEncoderFunc for the primitive.JavaScript type.
@@ -89,7 +89,7 @@ func (PrimitiveCodecs) JavaScriptEncodeValue(ectx bsoncodec.EncodeContext, vw bs
 		}
 		js = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "JavaScriptEncodeValue",
 			Types:    []interface{}{primitive.JavaScript(""), (*primitive.JavaScript)(nil)},
 			Received: i,
@@ -111,7 +111,7 @@ func (PrimitiveCodecs) SymbolEncodeValue(ectx bsoncodec.EncodeContext, vw bsonrw
 		}
 		symbol = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "SymbolEncodeValue",
 			Types:    []interface{}{primitive.Symbol(""), (*primitive.Symbol)(nil)},
 			Received: i,
@@ -147,7 +147,7 @@ func (PrimitiveCodecs) JavaScriptDecodeValue(dctx bsoncodec.DecodeContext, vr bs
 		return nil
 	}
 
-	return bsoncodec.ValueDecoderError{
+	return bsoncodec.LegacyValueDecoderError{
 		Name:     "JavaScriptDecodeValue",
 		Types:    []interface{}{(*primitive.JavaScript)(nil), (**primitive.JavaScript)(nil)},
 		Received: i,
@@ -180,7 +180,7 @@ func (PrimitiveCodecs) SymbolDecodeValue(dctx bsoncodec.DecodeContext, vr bsonrw
 		return nil
 	}
 
-	return bsoncodec.ValueDecoderError{Name: "SymbolDecodeValue", Types: []interface{}{(*primitive.Symbol)(nil), (**primitive.Symbol)(nil)}, Received: i}
+	return bsoncodec.LegacyValueDecoderError{Name: "SymbolDecodeValue", Types: []interface{}{(*primitive.Symbol)(nil), (**primitive.Symbol)(nil)}, Received: i}
 }
 
 // BinaryEncodeValue is the ValueEncoderFunc for Binary.
@@ -195,7 +195,7 @@ func (PrimitiveCodecs) BinaryEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.V
 		}
 		b = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "BinaryEncodeValue",
 			Types:    []interface{}{primitive.Binary{}, (*primitive.Binary)(nil)},
 			Received: i,
@@ -231,7 +231,7 @@ func (PrimitiveCodecs) BinaryDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.V
 		return nil
 	}
 
-	return bsoncodec.ValueDecoderError{Name: "BinaryDecodeValue", Types: []interface{}{(*primitive.Binary)(nil)}, Received: i}
+	return bsoncodec.LegacyValueDecoderError{Name: "BinaryDecodeValue", Types: []interface{}{(*primitive.Binary)(nil)}, Received: i}
 }
 
 // UndefinedEncodeValue is the ValueEncoderFunc for Undefined.
@@ -243,7 +243,7 @@ func (PrimitiveCodecs) UndefinedEncodeValue(ec bsoncodec.EncodeContext, vw bsonr
 			return vw.WriteNull()
 		}
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "UndefinedEncodeValue",
 			Types:    []interface{}{primitive.Undefined{}, (*primitive.Undefined)(nil)},
 			Received: i,
@@ -261,7 +261,7 @@ func (PrimitiveCodecs) UndefinedDecodeValue(dc bsoncodec.DecodeContext, vr bsonr
 
 	target, ok := i.(*primitive.Undefined)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "UndefinedDecodeValue", Types: []interface{}{(*primitive.Undefined)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "UndefinedDecodeValue", Types: []interface{}{(*primitive.Undefined)(nil)}, Received: i}
 	}
 
 	*target = primitive.Undefined{}
@@ -280,7 +280,7 @@ func (PrimitiveCodecs) DateTimeEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 		}
 		dt = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "DateTimeEncodeValue",
 			Types:    []interface{}{primitive.DateTime(0), (*primitive.DateTime)(nil)},
 			Received: i,
@@ -298,7 +298,7 @@ func (PrimitiveCodecs) DateTimeDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw
 
 	target, ok := i.(*primitive.DateTime)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "DateTimeDecodeValue", Types: []interface{}{(*primitive.DateTime)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "DateTimeDecodeValue", Types: []interface{}{(*primitive.DateTime)(nil)}, Received: i}
 	}
 
 	dt, err := vr.ReadDateTime()
@@ -315,7 +315,7 @@ func (PrimitiveCodecs) NullEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.Val
 	switch i.(type) {
 	case primitive.Null, *primitive.Null:
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "NullEncodeValue",
 			Types:    []interface{}{primitive.Null{}, (*primitive.Null)(nil)},
 			Received: i,
@@ -333,7 +333,7 @@ func (PrimitiveCodecs) NullDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.Val
 
 	target, ok := i.(*primitive.Null)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "NullDecodeValue", Types: []interface{}{(*primitive.Null)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "NullDecodeValue", Types: []interface{}{(*primitive.Null)(nil)}, Received: i}
 	}
 
 	*target = primitive.Null{}
@@ -352,7 +352,7 @@ func (PrimitiveCodecs) RegexEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.Va
 		}
 		regex = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "RegexEncodeValue",
 			Types:    []interface{}{primitive.Regex{}, (*primitive.Regex)(nil)},
 			Received: i,
@@ -370,7 +370,7 @@ func (PrimitiveCodecs) RegexDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.Va
 
 	target, ok := i.(*primitive.Regex)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "RegexDecodeValue", Types: []interface{}{(*primitive.Regex)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "RegexDecodeValue", Types: []interface{}{(*primitive.Regex)(nil)}, Received: i}
 	}
 
 	pattern, options, err := vr.ReadRegex()
@@ -394,7 +394,7 @@ func (PrimitiveCodecs) DBPointerEncodeValue(ec bsoncodec.EncodeContext, vw bsonr
 		}
 		dbp = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "DBPointerEncodeValue",
 			Types:    []interface{}{primitive.DBPointer{}, (*primitive.DBPointer)(nil)},
 			Received: i,
@@ -412,7 +412,7 @@ func (PrimitiveCodecs) DBPointerDecodeValue(dc bsoncodec.DecodeContext, vr bsonr
 
 	target, ok := i.(*primitive.DBPointer)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "DBPointerDecodeValue", Types: []interface{}{(*primitive.DBPointer)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "DBPointerDecodeValue", Types: []interface{}{(*primitive.DBPointer)(nil)}, Received: i}
 	}
 
 	ns, pointer, err := vr.ReadDBPointer()
@@ -436,7 +436,7 @@ func (pc PrimitiveCodecs) CodeWithScopeEncodeValue(ec bsoncodec.EncodeContext, v
 		}
 		cws = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "CodeWithScopeEncodeValue",
 			Types:    []interface{}{primitive.CodeWithScope{}, (*primitive.CodeWithScope)(nil)},
 			Received: i,
@@ -464,7 +464,7 @@ func (pc PrimitiveCodecs) CodeWithScopeDecodeValue(dc bsoncodec.DecodeContext, v
 
 	target, ok := i.(*primitive.CodeWithScope)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{
+		return bsoncodec.LegacyValueDecoderError{
 			Name:     "CodeWithScopeDecodeValue",
 			Types:    []interface{}{(*primitive.CodeWithScope)(nil)},
 			Received: i,
@@ -498,7 +498,7 @@ func (PrimitiveCodecs) TimestampEncodeValue(ec bsoncodec.EncodeContext, vw bsonr
 		}
 		ts = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "TimestampEncodeValue",
 			Types:    []interface{}{primitive.Timestamp{}, (*primitive.Timestamp)(nil)},
 			Received: i,
@@ -516,7 +516,7 @@ func (PrimitiveCodecs) TimestampDecodeValue(dc bsoncodec.DecodeContext, vr bsonr
 
 	target, ok := i.(*primitive.Timestamp)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "TimestampDecodeValue", Types: []interface{}{(*primitive.Timestamp)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "TimestampDecodeValue", Types: []interface{}{(*primitive.Timestamp)(nil)}, Received: i}
 	}
 
 	t, incr, err := vr.ReadTimestamp()
@@ -537,7 +537,7 @@ func (PrimitiveCodecs) MinKeyEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.V
 			return vw.WriteNull()
 		}
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "MinKeyEncodeValue",
 			Types:    []interface{}{primitive.MinKey{}, (*primitive.MinKey)(nil)},
 			Received: i,
@@ -555,7 +555,7 @@ func (PrimitiveCodecs) MinKeyDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.V
 
 	target, ok := i.(*primitive.MinKey)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "MinKeyDecodeValue", Types: []interface{}{(*primitive.MinKey)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "MinKeyDecodeValue", Types: []interface{}{(*primitive.MinKey)(nil)}, Received: i}
 	}
 
 	*target = primitive.MinKey{}
@@ -571,7 +571,7 @@ func (PrimitiveCodecs) MaxKeyEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.V
 			return vw.WriteNull()
 		}
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "MaxKeyEncodeValue",
 			Types:    []interface{}{primitive.MaxKey{}, (*primitive.MaxKey)(nil)},
 			Received: i,
@@ -589,7 +589,7 @@ func (PrimitiveCodecs) MaxKeyDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.V
 
 	target, ok := i.(*primitive.MaxKey)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "MaxKeyDecodeValue", Types: []interface{}{(*primitive.MaxKey)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "MaxKeyDecodeValue", Types: []interface{}{(*primitive.MaxKey)(nil)}, Received: i}
 	}
 
 	*target = primitive.MaxKey{}
@@ -608,7 +608,7 @@ func (PrimitiveCodecs) RawValueEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 		}
 		rawvalue = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "RawValueEncodeValue",
 			Types:    []interface{}{RawValue{}, (*RawValue)(nil)},
 			Received: i,
@@ -622,7 +622,7 @@ func (PrimitiveCodecs) RawValueEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 func (PrimitiveCodecs) RawValueDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	var target *RawValue
 	fail := func() error {
-		return bsoncodec.ValueDecoderError{
+		return bsoncodec.LegacyValueDecoderError{
 			Name:     "RawValueDecodeValue",
 			Types:    []interface{}{(*RawValue)(nil), (**RawValue)(nil)},
 			Received: i,
@@ -659,7 +659,7 @@ func (PrimitiveCodecs) RawValueDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw
 func (PrimitiveCodecs) RawEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	rdr, ok := i.(Raw)
 	if !ok {
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "RawEncodeValue",
 			Types:    []interface{}{Raw{}},
 			Received: i,
@@ -673,7 +673,7 @@ func (PrimitiveCodecs) RawEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.Valu
 func (PrimitiveCodecs) RawDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	rdr, ok := i.(*Raw)
 	if !ok {
-		return bsoncodec.ValueDecoderError{Name: "RawDecodeValue", Types: []interface{}{(*Raw)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "RawDecodeValue", Types: []interface{}{(*Raw)(nil)}, Received: i}
 	}
 
 	if rdr == nil {
@@ -799,7 +799,7 @@ func (PrimitiveCodecs) EmptyInterfaceDecodeValue(dc bsoncodec.DecodeContext, vr 
 	if err != nil {
 		return err
 	}
-	err = decoder.DecodeValue(dc, vr, val)
+	err = decoder.DecodeValueLegacy(dc, vr, val)
 	if err != nil {
 		return err
 	}
@@ -820,7 +820,7 @@ func (pc PrimitiveCodecs) DEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.Val
 		}
 		d = *tt
 	default:
-		return bsoncodec.ValueEncoderError{Name: "DEncodeValue", Types: []interface{}{D{}, (*D)(nil)}, Received: i}
+		return bsoncodec.LegacyValueEncoderError{Name: "DEncodeValue", Types: []interface{}{D{}, (*D)(nil)}, Received: i}
 	}
 
 	dw, err := vw.WriteDocument()
@@ -839,7 +839,7 @@ func (pc PrimitiveCodecs) DEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.Val
 			return err
 		}
 
-		err = encoder.EncodeValue(ec, vw, e.Value)
+		err = encoder.EncodeValueLegacy(ec, vw, e.Value)
 		if err != nil {
 			return err
 		}
@@ -852,7 +852,7 @@ func (pc PrimitiveCodecs) DEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.Val
 func (pc PrimitiveCodecs) DDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	var target *D
 	fail := func() error {
-		return bsoncodec.ValueDecoderError{Name: "DDecodeValue", Types: []interface{}{(*D)(nil), (**D)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "DDecodeValue", Types: []interface{}{(*D)(nil), (**D)(nil)}, Received: i}
 	}
 	switch tt := i.(type) {
 	case *D:

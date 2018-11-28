@@ -19,7 +19,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 var defaultValueDecoders DefaultValueDecoders
@@ -42,7 +41,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 	rb.
 		RegisterDecoder(tByteSlice, ValueDecoderFunc(dvd.ByteSliceDecodeValue)).
 		RegisterDecoder(tTime, ValueDecoderFunc(dvd.TimeDecodeValue)).
-		RegisterDecoder(tEmpty, ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue)).
+		RegisterDecoder(tEmpty, ValueDecoderLegacyFunc(dvd.EmptyInterfaceDecodeValue)).
 		RegisterDecoder(tOID, ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
 		RegisterDecoder(tDecimal, ValueDecoderFunc(dvd.Decimal128DecodeValue)).
 		RegisterDecoder(tJSONNumber, ValueDecoderFunc(dvd.JSONNumberDecodeValue)).
@@ -61,7 +60,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDefaultDecoder(reflect.Uint64, ValueDecoderFunc(dvd.UintDecodeValue)).
 		RegisterDefaultDecoder(reflect.Float32, ValueDecoderFunc(dvd.FloatDecodeValue)).
 		RegisterDefaultDecoder(reflect.Float64, ValueDecoderFunc(dvd.FloatDecodeValue)).
-		RegisterDefaultDecoder(reflect.Array, ValueDecoderFunc(dvd.SliceDecodeValue)).
+		RegisterDefaultDecoder(reflect.Array, ValueDecoderFunc(dvd.ArrayDecodeValue)).
 		RegisterDefaultDecoder(reflect.Map, ValueDecoderFunc(dvd.MapDecodeValue)).
 		RegisterDefaultDecoder(reflect.Slice, ValueDecoderFunc(dvd.SliceDecodeValue)).
 		RegisterDefaultDecoder(reflect.String, ValueDecoderFunc(dvd.StringDecodeValue)).
@@ -70,24 +69,12 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 }
 
 // BooleanDecodeValue is the ValueDecoderFunc for bool types.
-func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.Boolean {
 		return fmt.Errorf("cannot decode %v into a boolean", vr.Type())
 	}
-
-	var err error
-	if target, ok := i.(*bool); ok && target != nil { // if it is nil, we go the slow path.
-		*target, err = vr.ReadBoolean()
-		return err
-	}
-
-	val := reflect.ValueOf(i)
-	if !val.IsValid() || val.Kind() != reflect.Ptr || !val.Elem().CanSet() {
-		return errors.New("BooleanDecodeValue can only be used to decode settable (non-nil) values")
-	}
-	val = val.Elem()
-	if val.Type().Kind() != reflect.Bool {
-		return ValueDecoderError{Name: "BooleanDecodeValue", Types: []interface{}{bool(true)}, Received: i}
+	if !val.IsValid() || !val.CanSet() || val.Kind() != reflect.Bool {
+		return ValueDecoderError{Name: "BooleanDecodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: val}
 	}
 
 	b, err := vr.ReadBoolean()
@@ -96,7 +83,7 @@ func (dvd DefaultValueDecoders) BooleanDecodeValue(dctx DecodeContext, vr bsonrw
 }
 
 // IntDecodeValue is the ValueDecoderFunc for bool types.
-func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	var i64 int64
 	var err error
 	switch vr.Type() {
@@ -127,58 +114,15 @@ func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.Value
 		return fmt.Errorf("cannot decode %v into an integer type", vr.Type())
 	}
 
-	switch target := i.(type) {
-	case *int8:
-		if target == nil {
-			return errors.New("IntDecodeValue can only be used to decode non-nil *int8")
+	if !val.CanSet() {
+		return ValueDecoderError{
+			Name:     "IntDecodeValue",
+			Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+			Received: val,
 		}
-		if i64 < math.MinInt8 || i64 > math.MaxInt8 {
-			return fmt.Errorf("%d overflows int8", i64)
-		}
-		*target = int8(i64)
-		return nil
-	case *int16:
-		if target == nil {
-			return errors.New("IntDecodeValue can only be used to decode non-nil *int16")
-		}
-		if i64 < math.MinInt16 || i64 > math.MaxInt16 {
-			return fmt.Errorf("%d overflows int16", i64)
-		}
-		*target = int16(i64)
-		return nil
-	case *int32:
-		if target == nil {
-			return errors.New("IntDecodeValue can only be used to decode non-nil *int32")
-		}
-		if i64 < math.MinInt32 || i64 > math.MaxInt32 {
-			return fmt.Errorf("%d overflows int32", i64)
-		}
-		*target = int32(i64)
-		return nil
-	case *int64:
-		if target == nil {
-			return errors.New("IntDecodeValue can only be used to decode non-nil *int64")
-		}
-		*target = int64(i64)
-		return nil
-	case *int:
-		if target == nil {
-			return errors.New("IntDecodeValue can only be used to decode non-nil *int")
-		}
-		if int64(int(i64)) != i64 { // Can we fit this inside of an int
-			return fmt.Errorf("%d overflows int", i64)
-		}
-		*target = int(i64)
-		return nil
 	}
 
-	val := reflect.ValueOf(i)
-	if !val.IsValid() || val.Kind() != reflect.Ptr || !val.Elem().CanSet() {
-		return fmt.Errorf("IntDecodeValue can only be used to decode settable (non-nil) values")
-	}
-	val = val.Elem()
-
-	switch val.Type().Kind() {
+	switch val.Kind() {
 	case reflect.Int8:
 		if i64 < math.MinInt8 || i64 > math.MaxInt8 {
 			return fmt.Errorf("%d overflows int8", i64)
@@ -199,8 +143,8 @@ func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.Value
 	default:
 		return ValueDecoderError{
 			Name:     "IntDecodeValue",
-			Types:    []interface{}{(*int8)(nil), (*int16)(nil), (*int32)(nil), (*int64)(nil), (*int)(nil)},
-			Received: i,
+			Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+			Received: val,
 		}
 	}
 
@@ -209,7 +153,7 @@ func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr bsonrw.Value
 }
 
 // UintDecodeValue is the ValueDecoderFunc for uint types.
-func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	var i64 int64
 	var err error
 	switch vr.Type() {
@@ -240,61 +184,15 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 		return fmt.Errorf("cannot decode %v into an integer type", vr.Type())
 	}
 
-	switch target := i.(type) {
-	case *uint8:
-		if target == nil {
-			return errors.New("UintDecodeValue can only be used to decode non-nil *uint8")
+	if !val.CanSet() {
+		return ValueDecoderError{
+			Name:     "UintDecodeValue",
+			Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+			Received: val,
 		}
-		if i64 < 0 || i64 > math.MaxUint8 {
-			return fmt.Errorf("%d overflows uint8", i64)
-		}
-		*target = uint8(i64)
-		return nil
-	case *uint16:
-		if target == nil {
-			return errors.New("UintDecodeValue can only be used to decode non-nil *uint16")
-		}
-		if i64 < 0 || i64 > math.MaxUint16 {
-			return fmt.Errorf("%d overflows uint16", i64)
-		}
-		*target = uint16(i64)
-		return nil
-	case *uint32:
-		if target == nil {
-			return errors.New("UintDecodeValue can only be used to decode non-nil *uint32")
-		}
-		if i64 < 0 || i64 > math.MaxUint32 {
-			return fmt.Errorf("%d overflows uint32", i64)
-		}
-		*target = uint32(i64)
-		return nil
-	case *uint64:
-		if target == nil {
-			return errors.New("UintDecodeValue can only be used to decode non-nil *uint64")
-		}
-		if i64 < 0 {
-			return fmt.Errorf("%d overflows uint64", i64)
-		}
-		*target = uint64(i64)
-		return nil
-	case *uint:
-		if target == nil {
-			return errors.New("UintDecodeValue can only be used to decode non-nil *uint")
-		}
-		if i64 < 0 || int64(uint(i64)) != i64 { // Can we fit this inside of an uint
-			return fmt.Errorf("%d overflows uint", i64)
-		}
-		*target = uint(i64)
-		return nil
 	}
 
-	val := reflect.ValueOf(i)
-	if !val.IsValid() || val.Kind() != reflect.Ptr || !val.Elem().CanSet() {
-		return errors.New("UintDecodeValue can only be used to decode settable (non-nil) values")
-	}
-	val = val.Elem()
-
-	switch val.Type().Kind() {
+	switch val.Kind() {
 	case reflect.Uint8:
 		if i64 < 0 || i64 > math.MaxUint8 {
 			return fmt.Errorf("%d overflows uint8", i64)
@@ -318,8 +216,8 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 	default:
 		return ValueDecoderError{
 			Name:     "UintDecodeValue",
-			Types:    []interface{}{(*uint8)(nil), (*uint16)(nil), (*uint32)(nil), (*uint64)(nil), (*uint)(nil)},
-			Received: i,
+			Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+			Received: val,
 		}
 	}
 
@@ -328,7 +226,7 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 }
 
 // FloatDecodeValue is the ValueDecoderFunc for float types.
-func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	var f float64
 	var err error
 	switch vr.Type() {
@@ -353,38 +251,18 @@ func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.Val
 		return fmt.Errorf("cannot decode %v into a float32 or float64 type", vr.Type())
 	}
 
-	switch target := i.(type) {
-	case *float32:
-		if target == nil {
-			return errors.New("FloatDecodeValue can only be used to decode non-nil *float32")
-		}
-		if !ec.Truncate && float64(float32(f)) != f {
-			return errors.New("FloatDecodeValue can only convert float64 to float32 when truncation is allowed")
-		}
-		*target = float32(f)
-		return nil
-	case *float64:
-		if target == nil {
-			return errors.New("FloatDecodeValue can only be used to decode non-nil *float64")
-		}
-		*target = f
-		return nil
+	if !val.CanSet() {
+		return ValueDecoderError{Name: "FloatDecodeValue", Kinds: []reflect.Kind{reflect.Float32, reflect.Float64}, Received: val}
 	}
 
-	val := reflect.ValueOf(i)
-	if !val.IsValid() || val.Kind() != reflect.Ptr || !val.Elem().CanSet() {
-		return errors.New("FloatDecodeValue can only be used to decode settable (non-nil) values")
-	}
-	val = val.Elem()
-
-	switch val.Type().Kind() {
+	switch val.Kind() {
 	case reflect.Float32:
 		if !ec.Truncate && float64(float32(f)) != f {
 			return errors.New("FloatDecodeValue can only convert float64 to float32 when truncation is allowed")
 		}
 	case reflect.Float64:
 	default:
-		return ValueDecoderError{Name: "FloatDecodeValue", Types: []interface{}{(*float32)(nil), (*float64)(nil)}, Received: i}
+		return ValueDecoderError{Name: "FloatDecodeValue", Kinds: []reflect.Kind{reflect.Float32, reflect.Float64}, Received: val}
 	}
 
 	val.SetFloat(f)
@@ -392,7 +270,7 @@ func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr bsonrw.Val
 }
 
 // StringDecodeValue is the ValueDecoderFunc for string types.
-func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	var str string
 	var err error
 	switch vr.Type() {
@@ -405,28 +283,8 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.
 	default:
 		return fmt.Errorf("cannot decode %v into a string type", vr.Type())
 	}
-
-	switch t := i.(type) {
-	case *string:
-		if t == nil {
-			return errors.New("StringDecodeValue can only be used to decode non-nil *string")
-		}
-		*t = str
-		return nil
-	}
-
-	val := reflect.ValueOf(i)
-	if !val.IsValid() || val.Kind() != reflect.Ptr || !val.Elem().CanSet() {
-		return errors.New("StringDecodeValue can only be used to decode settable (non-nil) values")
-	}
-	val = val.Elem()
-
-	if val.Type().Kind() != reflect.String {
-		return ValueDecoderError{
-			Name:     "StringDecodeValue",
-			Types:    []interface{}{(*string)(nil)},
-			Received: i,
-		}
+	if !val.CanSet() || val.Kind() != reflect.String {
+		return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
 	}
 
 	val.SetString(str)
@@ -434,50 +292,37 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.
 }
 
 // ObjectIDDecodeValue is the ValueDecoderFunc for objectid.ObjectID.
-func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.ObjectID {
 		return fmt.Errorf("cannot decode %v into an ObjectID", vr.Type())
 	}
 
-	target, ok := i.(*objectid.ObjectID)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []interface{}{(*objectid.ObjectID)(nil)}, Received: i}
+	if !val.CanSet() || val.Type() != tOID {
+		return ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []reflect.Type{tOID}, Received: val}
 	}
-
 	oid, err := vr.ReadObjectID()
-	if err != nil {
-		return err
-	}
-
-	*target = oid
-	return nil
+	val.Set(reflect.ValueOf(oid))
+	return err
 }
 
 // Decimal128DecodeValue is the ValueDecoderFunc for decimal.Decimal128.
-func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.Decimal128 {
 		return fmt.Errorf("cannot decode %v into a decimal.Decimal128", vr.Type())
 	}
 
-	target, ok := i.(*decimal.Decimal128)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "Decimal128DecodeValue", Types: []interface{}{(*decimal.Decimal128)(nil)}, Received: i}
+	if !val.CanSet() || val.Type() != tDecimal {
+		return ValueDecoderError{Name: "Decimal128DecodeValue", Types: []reflect.Type{tDecimal}, Received: val}
 	}
-
 	d128, err := vr.ReadDecimal128()
-	if err != nil {
-		return err
-	}
-
-	*target = d128
-	return nil
+	val.Set(reflect.ValueOf(d128))
+	return err
 }
 
 // JSONNumberDecodeValue is the ValueDecoderFunc for json.Number.
-func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	target, ok := i.(*json.Number)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "JSONNumberDecodeValue", Types: []interface{}{(*json.Number)(nil)}, Received: i}
+func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.CanSet() || val.Type() != tJSONNumber {
+		return ValueDecoderError{Name: "JSONNumberDecodeValue", Types: []reflect.Type{tJSONNumber}, Received: val}
 	}
 
 	switch vr.Type() {
@@ -486,19 +331,19 @@ func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr bsonr
 		if err != nil {
 			return err
 		}
-		*target = json.Number(strconv.FormatFloat(f64, 'g', -1, 64))
+		val.Set(reflect.ValueOf(json.Number(strconv.FormatFloat(f64, 'g', -1, 64))))
 	case bsontype.Int32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
 		}
-		*target = json.Number(strconv.FormatInt(int64(i32), 10))
+		val.Set(reflect.ValueOf(json.Number(strconv.FormatInt(int64(i32), 10))))
 	case bsontype.Int64:
 		i64, err := vr.ReadInt64()
 		if err != nil {
 			return err
 		}
-		*target = json.Number(strconv.FormatInt(i64, 10))
+		val.Set(reflect.ValueOf(json.Number(strconv.FormatInt(i64, 10))))
 	default:
 		return fmt.Errorf("cannot decode %v into a json.Number", vr.Type())
 	}
@@ -507,7 +352,7 @@ func (dvd DefaultValueDecoders) JSONNumberDecodeValue(dc DecodeContext, vr bsonr
 }
 
 // URLDecodeValue is the ValueDecoderFunc for url.URL.
-func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.String {
 		return fmt.Errorf("cannot decode %v into a *url.URL", vr.Type())
 	}
@@ -522,28 +367,16 @@ func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr bsonrw.Value
 		return err
 	}
 
-	err = ValueDecoderError{Name: "URLDecodeValue", Types: []interface{}{(*url.URL)(nil), (**url.URL)(nil)}, Received: i}
-
-	// It's valid to use either a *url.URL or a url.URL
-	switch target := i.(type) {
-	case *url.URL:
-		if target == nil {
-			return err
-		}
-		*target = *u
-	case **url.URL:
-		if target == nil {
-			return err
-		}
-		*target = u
-	default:
-		return err
+	if !val.CanSet() || val.Type() != tURL {
+		return ValueDecoderError{Name: "URLDecodeValue", Types: []reflect.Type{tURL}, Received: val}
 	}
+
+	val.Set(reflect.ValueOf(u).Elem())
 	return nil
 }
 
 // TimeDecodeValue is the ValueDecoderFunc for time.Time.
-func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.DateTime {
 		return fmt.Errorf("cannot decode %v into a time.Time", vr.Type())
 	}
@@ -553,37 +386,22 @@ func (dvd DefaultValueDecoders) TimeDecodeValue(dc DecodeContext, vr bsonrw.Valu
 		return err
 	}
 
-	if target, ok := i.(*time.Time); ok && target != nil {
-		*target = time.Unix(dt/1000, dt%1000*1000000)
-		return nil
+	if !val.CanSet() || val.Type() != tTime {
+		return ValueDecoderError{Name: "TimeDecodeValue", Types: []reflect.Type{tTime}, Received: val}
 	}
 
-	if target, ok := i.(**time.Time); ok && target != nil {
-		tt := *target
-		if tt == nil {
-			tt = new(time.Time)
-		}
-		*tt = time.Unix(dt/1000, dt%1000*1000000)
-		*target = tt
-		return nil
-	}
-
-	return ValueDecoderError{
-		Name:     "TimeDecodeValue",
-		Types:    []interface{}{(*time.Time)(nil), (**time.Time)(nil)},
-		Received: i,
-	}
+	val.Set(reflect.ValueOf(time.Unix(dt/1000, dt%1000*1000000)))
+	return nil
 }
 
 // ByteSliceDecodeValue is the ValueDecoderFunc for []byte.
-func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if vr.Type() != bsontype.Binary {
-		return fmt.Errorf("cannot decode %v into a *[]byte", vr.Type())
+		return fmt.Errorf("cannot decode %v into a []byte", vr.Type())
 	}
 
-	target, ok := i.(*[]byte)
-	if !ok || target == nil {
-		return ValueDecoderError{Name: "ByteSliceDecodeValue", Types: []interface{}{(*[]byte)(nil)}, Received: i}
+	if !val.CanSet() || val.Type() != tByteSlice {
+		return ValueDecoderError{Name: "ByteSliceDecodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
 
 	data, subtype, err := vr.ReadBinary()
@@ -594,19 +412,14 @@ func (dvd DefaultValueDecoders) ByteSliceDecodeValue(dc DecodeContext, vr bsonrw
 		return fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 for %s, got %v", bsontype.Binary, subtype)
 	}
 
-	*target = data
+	val.Set(reflect.ValueOf(data))
 	return nil
 }
 
 // MapDecodeValue is the ValueDecoderFunc for map[string]* types.
-func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	val := reflect.ValueOf(i)
-	if !val.IsValid() || val.Kind() != reflect.Ptr || val.IsNil() {
-		return fmt.Errorf("MapDecodeValue can only be used to decode non-nil pointers to map values, got %T", i)
-	}
-
-	if val.Elem().Kind() != reflect.Map || val.Elem().Type().Key().Kind() != reflect.String || !val.Elem().CanSet() {
-		return errors.New("MapDecodeValue can only decode settable maps with string keys")
+func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.CanSet() || val.Kind() != reflect.Map || val.Type().Key().Kind() != reflect.String {
+		return ValueDecoderError{Name: "MapDecodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
 
 	dr, err := vr.ReadDocument()
@@ -614,13 +427,11 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.Value
 		return err
 	}
 
-	if val.Elem().IsNil() {
-		val.Elem().Set(reflect.MakeMap(val.Elem().Type()))
+	if val.IsNil() {
+		val.Set(reflect.MakeMap(val.Type()))
 	}
 
-	mVal := val.Elem()
-
-	eType := mVal.Type().Elem()
+	eType := val.Type().Elem()
 	decoder, err := dc.LookupDecoder(eType)
 	if err != nil {
 		return err
@@ -637,95 +448,104 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.Value
 
 		ptr := reflect.New(eType)
 
-		err = decoder.DecodeValue(dc, vr, ptr.Interface())
+		err = decoder.DecodeValueLegacy(dc, vr, ptr.Interface())
 		if err != nil {
 			return err
 		}
 
-		mVal.SetMapIndex(reflect.ValueOf(key), ptr.Elem())
+		val.SetMapIndex(reflect.ValueOf(key), ptr.Elem())
 	}
-	return err
+	return nil
 }
 
-// SliceDecodeValue is the ValueDecoderFunc for []* types.
-func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	val := reflect.ValueOf(i)
-	if !val.IsValid() || val.Kind() != reflect.Ptr || val.IsNil() {
-		return fmt.Errorf("SliceDecodeValue can only be used to decode non-nil pointers to slice or array values, got %T", i)
+// SliceDecodeValue is the ValueDecoderFunc for array types.
+func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.IsValid() || val.Kind() != reflect.Array {
+		return ValueDecoderError{Name: "ArrayDecodeValue", Kinds: []reflect.Kind{reflect.Array}, Received: val}
 	}
 
-	switch val.Elem().Kind() {
-	case reflect.Slice, reflect.Array:
-		if !val.Elem().CanSet() {
-			return errors.New("SliceDecodeValue can only decode settable slice and array values")
-		}
-	default:
-		return fmt.Errorf("SliceDecodeValue can only decode settable slice and array values, got %T", i)
+	if vr.Type() != bsontype.Array {
+		return fmt.Errorf("cannot decode %v into an array", vr.Type())
 	}
-
-	switch vr.Type() {
-	case bsontype.Array:
-	case bsontype.Null:
-		if val.Elem().Kind() != reflect.Slice {
-			return fmt.Errorf("cannot decode %v into an array", vr.Type())
-		}
-		null := reflect.Zero(val.Elem().Type())
-		val.Elem().Set(null)
-		return vr.ReadNull()
-	default:
-		return fmt.Errorf("cannot decode %v into a slice", vr.Type())
-	}
-
-	eType := val.Type().Elem().Elem()
 
 	ar, err := vr.ReadArray()
 	if err != nil {
 		return err
 	}
 
+	eType := val.Type().Elem()
+
 	elems, err := dvd.decodeDefault(dc, ar, eType)
 	if err != nil {
 		return err
 	}
 
-	switch val.Elem().Kind() {
-	case reflect.Slice:
-		slc := reflect.MakeSlice(val.Elem().Type(), len(elems), len(elems))
+	if len(elems) > val.Len() {
+		return fmt.Errorf("more elements returned in array than can fit inside %s", val.Type())
+	}
 
-		for idx, elem := range elems {
-			slc.Index(idx).Set(elem)
-		}
-
-		val.Elem().Set(slc)
-	case reflect.Array:
-		if len(elems) > val.Elem().Len() {
-			return fmt.Errorf("more elements returned in array than can fit inside %s", val.Elem().Type())
-		}
-
-		for idx, elem := range elems {
-			val.Elem().Index(idx).Set(elem)
-		}
+	for idx, elem := range elems {
+		val.Index(idx).Set(elem)
 	}
 
 	return nil
 }
 
-// ValueUnmarshalerDecodeValue is the ValueDecoderFunc for ValueUnmarshaler implementations.
-func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
-	val := reflect.ValueOf(i)
-	var valueUnmarshaler ValueUnmarshaler
-	if val.Kind() == reflect.Ptr && val.IsNil() {
-		return fmt.Errorf("ValueUnmarshalerDecodeValue can only unmarshal into non-nil ValueUnmarshaler values, got %T", i)
+// SliceDecodeValue is the ValueDecoderFunc for slice types.
+func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.CanSet() || val.Kind() != reflect.Slice {
+		return ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
-	if val.Type().Implements(tValueUnmarshaler) {
-		valueUnmarshaler = val.Interface().(ValueUnmarshaler)
-	} else if val.Type().Kind() == reflect.Ptr && val.Elem().Type().Implements(tValueUnmarshaler) {
-		if val.Elem().Kind() == reflect.Ptr && val.Elem().IsNil() {
-			val.Elem().Set(reflect.New(val.Type().Elem().Elem()))
+
+	switch vr.Type() {
+	case bsontype.Array:
+	case bsontype.Null:
+		val.Set(reflect.Zero(val.Type()))
+		return vr.ReadNull()
+	default:
+		return fmt.Errorf("cannot decode %v into a slice", vr.Type())
+	}
+
+	ar, err := vr.ReadArray()
+	if err != nil {
+		return err
+	}
+
+	eType := val.Type().Elem()
+
+	elems, err := dvd.decodeDefault(dc, ar, eType)
+	if err != nil {
+		return err
+	}
+
+	if val.IsNil() {
+		val.Set(reflect.MakeSlice(val.Type(), 0, len(elems)))
+	}
+
+	val.SetLen(0)
+	val.Set(reflect.Append(val, elems...))
+
+	return nil
+}
+
+// ValueUnmarshalerDecodeValue is the ValueDecoderFunc for ValueUnmarshaler implementations.
+func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.IsValid() || (!val.Type().Implements(tValueUnmarshaler) && !reflect.PtrTo(val.Type()).Implements(tValueUnmarshaler)) {
+		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
+	}
+
+	if val.Kind() == reflect.Ptr && val.IsNil() {
+		if !val.CanSet() {
+			return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 		}
-		valueUnmarshaler = val.Elem().Interface().(ValueUnmarshaler)
-	} else {
-		return fmt.Errorf("ValueUnmarshalerDecodeValue can only handle types or pointers to types that are a ValueUnmarshaler, got %T", i)
+		val.Set(reflect.New(val.Type().Elem()))
+	}
+
+	if !val.Type().Implements(tValueUnmarshaler) {
+		if !val.CanAddr() {
+			return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
+		}
+		val = val.Addr() // If they type doesn't implement the interface, a pointer to it must.
 	}
 
 	t, src, err := bsonrw.Copier{}.CopyValueToBytes(vr)
@@ -733,7 +553,12 @@ func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(dc DecodeContext, vr
 		return err
 	}
 
-	return valueUnmarshaler.UnmarshalBSONValue(t, src)
+	fn := val.Convert(tValueUnmarshaler).MethodByName("UnmarshalBSONValue")
+	errVal := fn.Call([]reflect.Value{reflect.ValueOf(t), reflect.ValueOf(src)})[0]
+	if !errVal.IsNil() {
+		return errVal.Interface().(error)
+	}
+	return nil
 }
 
 // EmptyInterfaceDecodeValue is the ValueDecoderFunc for interface{}.
@@ -784,7 +609,7 @@ func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr b
 	if err != nil {
 		return err
 	}
-	err = decoder.DecodeValue(dc, vr, val)
+	err = decoder.DecodeValueLegacy(dc, vr, val)
 	if err != nil {
 		return err
 	}
@@ -812,7 +637,7 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, ar bsonrw.ArrayR
 
 		ptr := reflect.New(eType)
 
-		err = decoder.DecodeValue(dc, vr, ptr.Interface())
+		err = decoder.DecodeValueLegacy(dc, vr, ptr.Interface())
 		if err != nil {
 			return nil, err
 		}

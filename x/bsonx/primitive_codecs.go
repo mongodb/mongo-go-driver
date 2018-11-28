@@ -28,7 +28,7 @@ type PrimitiveCodecs struct{}
 func (pc PrimitiveCodecs) DocumentEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	doc, ok := i.(Doc)
 	if !ok {
-		return bsoncodec.ValueEncoderError{Name: "DocumentEncodeValue", Types: []interface{}{(Doc)(nil), (*Doc)(nil)}, Received: i}
+		return bsoncodec.LegacyValueEncoderError{Name: "DocumentEncodeValue", Types: []interface{}{(Doc)(nil), (*Doc)(nil)}, Received: i}
 	}
 
 	if doc == nil {
@@ -47,7 +47,7 @@ func (pc PrimitiveCodecs) DocumentEncodeValue(ec bsoncodec.EncodeContext, vw bso
 func (pc PrimitiveCodecs) DocumentDecodeValue(dctx bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	doc, ok := i.(*Doc)
 	if !ok {
-		return bsoncodec.ValueDecoderError{Name: "DocumentDecodeValue", Types: []interface{}{(*Doc)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "DocumentDecodeValue", Types: []interface{}{(*Doc)(nil)}, Received: i}
 	}
 
 	if doc == nil {
@@ -77,7 +77,7 @@ func (pc PrimitiveCodecs) ArrayEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 		}
 		arr = *tt
 	default:
-		return bsoncodec.ValueEncoderError{Name: "ArrayEncodeValue", Types: []interface{}{(Arr)(nil), (*Arr)(nil)}, Received: i}
+		return bsoncodec.LegacyValueEncoderError{Name: "ArrayEncodeValue", Types: []interface{}{(Arr)(nil), (*Arr)(nil)}, Received: i}
 	}
 
 	aw, err := vw.WriteArray()
@@ -105,7 +105,7 @@ func (pc PrimitiveCodecs) ArrayEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 func (pc PrimitiveCodecs) ArrayDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	parr, ok := i.(*Arr)
 	if !ok {
-		return bsoncodec.ValueDecoderError{Name: "ArrayDecodeValue", Types: []interface{}{(*Arr)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "ArrayDecodeValue", Types: []interface{}{(*Arr)(nil)}, Received: i}
 	}
 
 	if parr == nil {
@@ -154,7 +154,7 @@ func (pc PrimitiveCodecs) ElementSliceEncodeValue(ec bsoncodec.EncodeContext, vw
 		}
 		slce = *t
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "ElementSliceEncodeValue",
 			Types:    []interface{}{[]Elem{}, (*[]Elem)(nil)},
 			Received: i,
@@ -191,7 +191,7 @@ func (pc PrimitiveCodecs) ElementSliceDecodeValue(dc bsoncodec.DecodeContext, vr
 
 	target, ok := i.(*[]Elem)
 	if !ok || target == nil {
-		return bsoncodec.ValueDecoderError{Name: "ElementSliceDecodeValue", Types: []interface{}{(*[]Elem)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "ElementSliceDecodeValue", Types: []interface{}{(*[]Elem)(nil)}, Received: i}
 	}
 
 	*target = elems
@@ -210,7 +210,7 @@ func (pc PrimitiveCodecs) ValueEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 		}
 		val = *tt
 	default:
-		return bsoncodec.ValueEncoderError{
+		return bsoncodec.LegacyValueEncoderError{
 			Name:     "ValueEncodeValue",
 			Types:    []interface{}{Val{}, (*Val)(nil)},
 			Received: i,
@@ -224,7 +224,7 @@ func (pc PrimitiveCodecs) ValueEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw
 func (pc PrimitiveCodecs) ValueDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	pval, ok := i.(*Val)
 	if !ok {
-		return bsoncodec.ValueDecoderError{Name: "ValueDecodeValue", Types: []interface{}{(*Val)(nil)}, Received: i}
+		return bsoncodec.LegacyValueDecoderError{Name: "ValueDecodeValue", Types: []interface{}{(*Val)(nil)}, Received: i}
 	}
 
 	if pval == nil {
@@ -438,19 +438,19 @@ func (pc PrimitiveCodecs) encodeValue(ec bsoncodec.EncodeContext, vw bsonrw.Valu
 	case bsontype.String:
 		err = vw.WriteString(val.StringValue())
 	case bsontype.EmbeddedDocument:
-		var encoder bsoncodec.ValueEncoder
+		var encoder bsoncodec.ValueEncoderLegacy
 		encoder, err = ec.LookupEncoder(tDocument)
 		if err != nil {
 			break
 		}
-		err = encoder.EncodeValue(ec, vw, val.Document())
+		err = encoder.EncodeValueLegacy(ec, vw, val.Document())
 	case bsontype.Array:
-		var encoder bsoncodec.ValueEncoder
+		var encoder bsoncodec.ValueEncoderLegacy
 		encoder, err = ec.LookupEncoder(tArray)
 		if err != nil {
 			break
 		}
-		err = encoder.EncodeValue(ec, vw, val.Array())
+		err = encoder.EncodeValueLegacy(ec, vw, val.Array())
 	case bsontype.Binary:
 		// TODO: FIX THIS (╯°□°）╯︵ ┻━┻
 		subtype, data := val.Binary()
