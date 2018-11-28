@@ -15,8 +15,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -372,7 +371,7 @@ func TestValueReader(t *testing.T) {
 			data   []byte
 			offset int64
 			ns     string
-			oid    objectid.ObjectID
+			oid    primitive.ObjectID
 			err    error
 			vType  bsontype.Type
 		}{
@@ -381,7 +380,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{},
 				0,
 				"",
-				objectid.ObjectID{},
+				primitive.ObjectID{},
 				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.DBPointer),
 				bsontype.EmbeddedDocument,
 			},
@@ -390,7 +389,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{},
 				0,
 				"",
-				objectid.ObjectID{},
+				primitive.ObjectID{},
 				io.EOF,
 				bsontype.DBPointer,
 			},
@@ -399,7 +398,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{0x04, 0x00, 0x00, 0x00},
 				0,
 				"",
-				objectid.ObjectID{},
+				primitive.ObjectID{},
 				io.EOF,
 				bsontype.DBPointer,
 			},
@@ -408,7 +407,7 @@ func TestValueReader(t *testing.T) {
 				[]byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
 				0,
 				"",
-				objectid.ObjectID{},
+				primitive.ObjectID{},
 				io.EOF,
 				bsontype.DBPointer,
 			},
@@ -420,7 +419,7 @@ func TestValueReader(t *testing.T) {
 				},
 				0,
 				"foo",
-				objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				nil,
 				bsontype.DBPointer,
 			},
@@ -519,7 +518,7 @@ func TestValueReader(t *testing.T) {
 			name   string
 			data   []byte
 			offset int64
-			dc128  decimal.Decimal128
+			dc128  primitive.Decimal128
 			err    error
 			vType  bsontype.Type
 		}{
@@ -527,7 +526,7 @@ func TestValueReader(t *testing.T) {
 				"incorrect type",
 				[]byte{},
 				0,
-				decimal.Decimal128{},
+				primitive.Decimal128{},
 				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.Decimal128),
 				bsontype.EmbeddedDocument,
 			},
@@ -535,7 +534,7 @@ func TestValueReader(t *testing.T) {
 				"length too short",
 				[]byte{},
 				0,
-				decimal.Decimal128{},
+				primitive.Decimal128{},
 				io.EOF,
 				bsontype.Decimal128,
 			},
@@ -546,7 +545,7 @@ func TestValueReader(t *testing.T) {
 					0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // High
 				},
 				0,
-				decimal.NewDecimal128(65280, 255),
+				primitive.NewDecimal128(65280, 255),
 				nil,
 				bsontype.Decimal128,
 			},
@@ -989,7 +988,7 @@ func TestValueReader(t *testing.T) {
 			name   string
 			data   []byte
 			offset int64
-			oid    objectid.ObjectID
+			oid    primitive.ObjectID
 			err    error
 			vType  bsontype.Type
 		}{
@@ -997,7 +996,7 @@ func TestValueReader(t *testing.T) {
 				"incorrect type",
 				[]byte{},
 				0,
-				objectid.ObjectID{},
+				primitive.ObjectID{},
 				(&valueReader{stack: []vrState{{vType: bsontype.EmbeddedDocument}}, frame: 0}).typeError(bsontype.ObjectID),
 				bsontype.EmbeddedDocument,
 			},
@@ -1005,7 +1004,7 @@ func TestValueReader(t *testing.T) {
 				"not enough bytes for objectID",
 				[]byte{},
 				0,
-				objectid.ObjectID{},
+				primitive.ObjectID{},
 				io.EOF,
 				bsontype.ObjectID,
 			},
@@ -1013,7 +1012,7 @@ func TestValueReader(t *testing.T) {
 				"success",
 				[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				0,
-				objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+				primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				nil,
 				bsontype.ObjectID,
 			},

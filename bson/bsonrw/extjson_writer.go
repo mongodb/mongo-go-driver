@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"io"
 	"math"
 	"sort"
@@ -18,9 +19,6 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
-
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 var ejvwPool = sync.Pool{
@@ -264,7 +262,7 @@ func (ejvw *extJSONValueWriter) WriteCodeWithScope(code string) (DocumentWriter,
 	return ejvw, nil
 }
 
-func (ejvw *extJSONValueWriter) WriteDBPointer(ns string, oid objectid.ObjectID) error {
+func (ejvw *extJSONValueWriter) WriteDBPointer(ns string, oid primitive.ObjectID) error {
 	if err := ejvw.ensureElementValue(mode(0), "WriteDBPointer"); err != nil {
 		return err
 	}
@@ -302,7 +300,7 @@ func (ejvw *extJSONValueWriter) WriteDateTime(dt int64) error {
 	return nil
 }
 
-func (ejvw *extJSONValueWriter) WriteDecimal128(d decimal.Decimal128) error {
+func (ejvw *extJSONValueWriter) WriteDecimal128(d primitive.Decimal128) error {
 	if err := ejvw.ensureElementValue(mode(0), "WriteDecimal128"); err != nil {
 		return err
 	}
@@ -445,7 +443,7 @@ func (ejvw *extJSONValueWriter) WriteNull() error {
 	return nil
 }
 
-func (ejvw *extJSONValueWriter) WriteObjectID(oid objectid.ObjectID) error {
+func (ejvw *extJSONValueWriter) WriteObjectID(oid primitive.ObjectID) error {
 	if err := ejvw.ensureElementValue(mode(0), "WriteObjectID"); err != nil {
 		return err
 	}

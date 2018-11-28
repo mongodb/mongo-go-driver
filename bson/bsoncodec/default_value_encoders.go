@@ -16,8 +16,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 var defaultValueEncoders DefaultValueEncoders
@@ -206,13 +205,13 @@ func (dve DefaultValueEncoders) StringEncodeValue(ectx EncodeContext, vw bsonrw.
 	return vw.WriteString(val.String())
 }
 
-// ObjectIDEncodeValue is the ValueEncoderFunc for objectid.ObjectID.
+// ObjectIDEncodeValue is the ValueEncoderFunc for primitive.ObjectID.
 func (dve DefaultValueEncoders) ObjectIDEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	var oid objectid.ObjectID
+	var oid primitive.ObjectID
 	switch t := i.(type) {
-	case objectid.ObjectID:
+	case primitive.ObjectID:
 		oid = t
-	case *objectid.ObjectID:
+	case *primitive.ObjectID:
 		if t == nil {
 			return vw.WriteNull()
 		}
@@ -220,7 +219,7 @@ func (dve DefaultValueEncoders) ObjectIDEncodeValue(ec EncodeContext, vw bsonrw.
 	default:
 		return ValueEncoderError{
 			Name:     "ObjectIDEncodeValue",
-			Types:    []interface{}{objectid.ObjectID{}, (*objectid.ObjectID)(nil)},
+			Types:    []interface{}{primitive.ObjectID{}, (*primitive.ObjectID)(nil)},
 			Received: i,
 		}
 	}
@@ -228,13 +227,13 @@ func (dve DefaultValueEncoders) ObjectIDEncodeValue(ec EncodeContext, vw bsonrw.
 	return vw.WriteObjectID(oid)
 }
 
-// Decimal128EncodeValue is the ValueEncoderFunc for decimal.Decimal128.
+// Decimal128EncodeValue is the ValueEncoderFunc for primitive.Decimal128.
 func (dve DefaultValueEncoders) Decimal128EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
-	var d128 decimal.Decimal128
+	var d128 primitive.Decimal128
 	switch t := i.(type) {
-	case decimal.Decimal128:
+	case primitive.Decimal128:
 		d128 = t
-	case *decimal.Decimal128:
+	case *primitive.Decimal128:
 		if t == nil {
 			return vw.WriteNull()
 		}
@@ -242,7 +241,7 @@ func (dve DefaultValueEncoders) Decimal128EncodeValue(ec EncodeContext, vw bsonr
 	default:
 		return ValueEncoderError{
 			Name:     "Decimal128EncodeValue",
-			Types:    []interface{}{decimal.Decimal128{}, (*decimal.Decimal128)(nil)},
+			Types:    []interface{}{primitive.Decimal128{}, (*primitive.Decimal128)(nil)},
 			Received: i,
 		}
 	}

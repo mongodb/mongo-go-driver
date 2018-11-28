@@ -11,8 +11,7 @@ import (
 	"io"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -211,7 +210,7 @@ func (c Copier) CopyValue(dst ValueWriter, src ValueReader) error {
 		}
 		err = dst.WriteUndefined()
 	case bsontype.ObjectID:
-		var oid objectid.ObjectID
+		var oid primitive.ObjectID
 		oid, err = src.ReadObjectID()
 		if err != nil {
 			break
@@ -246,7 +245,7 @@ func (c Copier) CopyValue(dst ValueWriter, src ValueReader) error {
 		err = dst.WriteRegex(pattern, options)
 	case bsontype.DBPointer:
 		var ns string
-		var pointer objectid.ObjectID
+		var pointer primitive.ObjectID
 		ns, pointer, err = src.ReadDBPointer()
 		if err != nil {
 			break
@@ -302,7 +301,7 @@ func (c Copier) CopyValue(dst ValueWriter, src ValueReader) error {
 		}
 		err = dst.WriteInt64(i64)
 	case bsontype.Decimal128:
-		var d128 decimal.Decimal128
+		var d128 primitive.Decimal128
 		d128, err = src.ReadDecimal128()
 		if err != nil {
 			break

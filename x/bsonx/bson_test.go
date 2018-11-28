@@ -7,9 +7,8 @@
 package bsonx
 
 import (
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"testing"
-
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
 )
 
 func noerr(t *testing.T, err error) {
@@ -20,7 +19,7 @@ func noerr(t *testing.T, err error) {
 	}
 }
 
-func compareDecimal128(d1, d2 decimal.Decimal128) bool {
+func compareDecimal128(d1, d2 primitive.Decimal128) bool {
 	d1H, d1L := d1.GetBytes()
 	d2H, d2L := d2.GetBytes()
 

@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
@@ -197,7 +197,7 @@ func TestChangeStream(t *testing.T) {
 		pipeline = append(pipeline,
 			bsonx.Document(bsonx.Doc{{"$replaceRoot",
 				bsonx.Document(bsonx.Doc{{"newRoot",
-					bsonx.Document(bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}, {"x", bsonx.Int32(1)}})}}),
+					bsonx.Document(bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}, {"x", bsonx.Int32(1)}})}}),
 			}}))
 		changes, err := coll.Watch(context.Background(), pipeline)
 		require.NoError(t, err)

@@ -8,8 +8,7 @@ package internal
 
 import (
 	"time"
-
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 // IsMasterResult is the result of executing this
@@ -17,7 +16,7 @@ import (
 type IsMasterResult struct {
 	Arbiters            []string          `bson:"arbiters,omitempty"`
 	ArbiterOnly         bool              `bson:"arbiterOnly,omitempty"`
-	ElectionID          objectid.ObjectID `bson:"electionId,omitempty"`
+	ElectionID          primitive.ObjectID `bson:"electionId,omitempty"`
 	Hidden              bool              `bson:"hidden,omitempty"`
 	Hosts               []string          `bson:"hosts,omitempty"`
 	IsMaster            bool              `bson:"ismaster,omitempty"`

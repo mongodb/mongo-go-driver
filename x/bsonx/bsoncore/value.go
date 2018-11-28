@@ -18,8 +18,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 // ElementTypeError specifies that a method to obtain a BSON value an incorrect type was called on a bson.Value.
@@ -403,7 +402,7 @@ func (v Value) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (v Value) ObjectID() objectid.ObjectID {
+func (v Value) ObjectID() primitive.ObjectID {
 	if v.Type != bsontype.ObjectID {
 		panic(ElementTypeError{"bsoncore.Value.ObjectID", v.Type})
 	}
@@ -416,13 +415,13 @@ func (v Value) ObjectID() objectid.ObjectID {
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
-func (v Value) ObjectIDOK() (objectid.ObjectID, bool) {
+func (v Value) ObjectIDOK() (primitive.ObjectID, bool) {
 	if v.Type != bsontype.ObjectID {
-		return objectid.ObjectID{}, false
+		return primitive.ObjectID{}, false
 	}
 	oid, _, ok := ReadObjectID(v.Data)
 	if !ok {
-		return objectid.ObjectID{}, false
+		return primitive.ObjectID{}, false
 	}
 	return oid, true
 }
@@ -533,7 +532,7 @@ func (v Value) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (v Value) DBPointer() (string, objectid.ObjectID) {
+func (v Value) DBPointer() (string, primitive.ObjectID) {
 	if v.Type != bsontype.DBPointer {
 		panic(ElementTypeError{"bsoncore.Value.DBPointer", v.Type})
 	}
@@ -546,13 +545,13 @@ func (v Value) DBPointer() (string, objectid.ObjectID) {
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
 // instead of panicking.
-func (v Value) DBPointerOK() (string, objectid.ObjectID, bool) {
+func (v Value) DBPointerOK() (string, primitive.ObjectID, bool) {
 	if v.Type != bsontype.DBPointer {
-		return "", objectid.ObjectID{}, false
+		return "", primitive.ObjectID{}, false
 	}
 	ns, pointer, _, ok := ReadDBPointer(v.Data)
 	if !ok {
-		return "", objectid.ObjectID{}, false
+		return "", primitive.ObjectID{}, false
 	}
 	return ns, pointer, true
 }
@@ -715,7 +714,7 @@ func (v Value) Int64OK() (int64, bool) {
 
 // Decimal128 returns the decimal the Value represents. It panics if the value is a BSON type other than
 // decimal.
-func (v Value) Decimal128() decimal.Decimal128 {
+func (v Value) Decimal128() primitive.Decimal128 {
 	if v.Type != bsontype.Decimal128 {
 		panic(ElementTypeError{"bsoncore.Value.Decimal128", v.Type})
 	}
@@ -728,13 +727,13 @@ func (v Value) Decimal128() decimal.Decimal128 {
 
 // Decimal128OK is the same as Decimal128, except that it returns a boolean
 // instead of panicking.
-func (v Value) Decimal128OK() (decimal.Decimal128, bool) {
+func (v Value) Decimal128OK() (primitive.Decimal128, bool) {
 	if v.Type != bsontype.Decimal128 {
-		return decimal.Decimal128{}, false
+		return primitive.Decimal128{}, false
 	}
 	d128, _, ok := ReadDecimal128(v.Data)
 	if !ok {
-		return decimal.Decimal128{}, false
+		return primitive.Decimal128{}, false
 	}
 	return d128, true
 }

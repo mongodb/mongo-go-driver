@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
@@ -259,7 +257,7 @@ func (v *Val) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
 	case bsontype.Undefined:
 		*v = Undefined()
 	case bsontype.ObjectID:
-		var oid objectid.ObjectID
+		var oid primitive.ObjectID
 		oid, rem, ok = bsoncore.ReadObjectID(data)
 		*v = ObjectID(oid)
 	case bsontype.Boolean:
@@ -278,7 +276,7 @@ func (v *Val) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
 		*v = Regex(pattern, options)
 	case bsontype.DBPointer:
 		var ns string
-		var ptr objectid.ObjectID
+		var ptr primitive.ObjectID
 		ns, ptr, rem, ok = bsoncore.ReadDBPointer(data)
 		*v = DBPointer(ns, ptr)
 	case bsontype.JavaScript:
@@ -309,7 +307,7 @@ func (v *Val) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
 		i64, rem, ok = bsoncore.ReadInt64(data)
 		*v = Int64(i64)
 	case bsontype.Decimal128:
-		var d128 decimal.Decimal128
+		var d128 primitive.Decimal128
 		d128, rem, ok = bsoncore.ReadDecimal128(data)
 		*v = Decimal128(d128)
 	case bsontype.MinKey:
@@ -501,22 +499,22 @@ func (v Val) UndefinedOK() bool {
 
 // ObjectID returns the BSON ObjectID the Value represents. It panics if the value is a BSON type
 // other than ObjectID.
-func (v Val) ObjectID() objectid.ObjectID {
+func (v Val) ObjectID() primitive.ObjectID {
 	if v.t != bsontype.ObjectID {
 		panic(ElementTypeError{"bson.Value.ObjectID", v.t})
 	}
-	var oid objectid.ObjectID
+	var oid primitive.ObjectID
 	copy(oid[:], v.bootstrap[:12])
 	return oid
 }
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
-func (v Val) ObjectIDOK() (objectid.ObjectID, bool) {
+func (v Val) ObjectIDOK() (primitive.ObjectID, bool) {
 	if v.t != bsontype.ObjectID {
-		return objectid.ObjectID{}, false
+		return primitive.ObjectID{}, false
 	}
-	var oid objectid.ObjectID
+	var oid primitive.ObjectID
 	copy(oid[:], v.bootstrap[:12])
 	return oid, true
 }
@@ -617,7 +615,7 @@ func (v Val) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer the Value represents. It panics if the value is a BSON type
 // other than dbpointer.
-func (v Val) DBPointer() (string, objectid.ObjectID) {
+func (v Val) DBPointer() (string, primitive.ObjectID) {
 	if v.t != bsontype.DBPointer {
 		panic(ElementTypeError{"bson.Value.DBPointer", v.t})
 	}
@@ -627,9 +625,9 @@ func (v Val) DBPointer() (string, objectid.ObjectID) {
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
 // instead of panicking.
-func (v Val) DBPointerOK() (string, objectid.ObjectID, bool) {
+func (v Val) DBPointerOK() (string, primitive.ObjectID, bool) {
 	if v.t != bsontype.DBPointer {
-		return "", objectid.ObjectID{}, false
+		return "", primitive.ObjectID{}, false
 	}
 	dbptr := v.primitive.(primitive.DBPointer)
 	return dbptr.DB, dbptr.Pointer, true
@@ -757,20 +755,20 @@ func (v Val) Int64OK() (int64, bool) {
 
 // Decimal128 returns the BSON decimal128 value the Value represents. It panics if the value is a
 // BSON type other than decimal128.
-func (v Val) Decimal128() decimal.Decimal128 {
+func (v Val) Decimal128() primitive.Decimal128 {
 	if v.t != bsontype.Decimal128 {
 		panic(ElementTypeError{"bson.Value.Decimal128", v.t})
 	}
-	return v.primitive.(decimal.Decimal128)
+	return v.primitive.(primitive.Decimal128)
 }
 
 // Decimal128OK is the same as Decimal128, except that it returns a boolean
 // instead of panicking.
-func (v Val) Decimal128OK() (decimal.Decimal128, bool) {
+func (v Val) Decimal128OK() (primitive.Decimal128, bool) {
 	if v.t != bsontype.Decimal128 {
-		return decimal.Decimal128{}, false
+		return primitive.Decimal128{}, false
 	}
-	return v.primitive.(decimal.Decimal128), true
+	return v.primitive.(primitive.Decimal128), true
 }
 
 // MinKey returns the BSON minkey the Value represents. It panics if the value is a BSON type

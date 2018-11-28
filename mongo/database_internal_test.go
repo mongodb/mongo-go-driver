@@ -14,7 +14,7 @@ import (
 	"os"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
@@ -182,7 +182,7 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 	}
 	cappedColl := db.Collection(cappedName)
 
-	id := objectid.New()
+	id := primitive.NewObjectID()
 	want := bsonx.Elem{"_id", bsonx.ObjectID(id)}
 	doc := bsonx.Doc{want, {"x", bsonx.Int32(1)}}
 

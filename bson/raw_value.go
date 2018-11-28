@@ -15,8 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -144,11 +143,11 @@ func (rv RawValue) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (rv RawValue) ObjectID() objectid.ObjectID { return convertToCoreValue(rv).ObjectID() }
+func (rv RawValue) ObjectID() primitive.ObjectID { return convertToCoreValue(rv).ObjectID() }
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
-func (rv RawValue) ObjectIDOK() (objectid.ObjectID, bool) { return convertToCoreValue(rv).ObjectIDOK() }
+func (rv RawValue) ObjectIDOK() (primitive.ObjectID, bool) { return convertToCoreValue(rv).ObjectIDOK() }
 
 // Boolean returns the boolean value the Value represents. It panics if the
 // value is a BSON type other than boolean.
@@ -186,11 +185,11 @@ func (rv RawValue) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (rv RawValue) DBPointer() (string, objectid.ObjectID) { return convertToCoreValue(rv).DBPointer() }
+func (rv RawValue) DBPointer() (string, primitive.ObjectID) { return convertToCoreValue(rv).DBPointer() }
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
 // instead of panicking.
-func (rv RawValue) DBPointerOK() (string, objectid.ObjectID, bool) {
+func (rv RawValue) DBPointerOK() (string, primitive.ObjectID, bool) {
 	return convertToCoreValue(rv).DBPointerOK()
 }
 
@@ -250,10 +249,10 @@ func (rv RawValue) Int64OK() (int64, bool) { return convertToCoreValue(rv).Int64
 
 // Decimal128 returns the decimal the Value represents. It panics if the value is a BSON type other than
 // decimal.
-func (rv RawValue) Decimal128() decimal.Decimal128 { return convertToCoreValue(rv).Decimal128() }
+func (rv RawValue) Decimal128() primitive.Decimal128 { return convertToCoreValue(rv).Decimal128() }
 
 // Decimal128OK is the same as Decimal128, except that it returns a boolean
 // instead of panicking.
-func (rv RawValue) Decimal128OK() (decimal.Decimal128, bool) {
+func (rv RawValue) Decimal128OK() (primitive.Decimal128, bool) {
 	return convertToCoreValue(rv).Decimal128OK()
 }

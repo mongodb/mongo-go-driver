@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
@@ -282,7 +282,7 @@ func TestCollection_InsertOne(t *testing.T) {
 
 	t.Parallel()
 
-	id := objectid.New()
+	id := primitive.NewObjectID()
 	want := bsonx.Elem{"_id", bsonx.ObjectID(id)}
 	doc := bsonx.Doc{want, {"x", bsonx.Int32(1)}}
 	coll := createTestCollection(t, nil, nil)
@@ -303,7 +303,7 @@ func TestCollection_InsertOne_WriteError(t *testing.T) {
 	t.Parallel()
 
 	want := WriteError{Code: 11000}
-	doc := bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}}
+	doc := bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}}
 	coll := createTestCollection(t, nil, nil)
 
 	_, err := coll.InsertOne(context.Background(), doc)
@@ -333,7 +333,7 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 	}
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
-	doc := bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}}
+	doc := bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))
 
@@ -433,9 +433,9 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 
 	want := WriteError{Code: 11000}
 	docs := []interface{}{
-		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
-		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
-		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
 	}
 	coll := createTestCollection(t, nil, nil)
 
@@ -486,9 +486,9 @@ func TestCollection_InsertMany_ErrorCases(t *testing.T) {
 		}
 
 		docs = []interface{}{
-			bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
-			bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
-			bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+			bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
+			bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
+			bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
 		}
 
 		copyColl, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(42))))
@@ -522,9 +522,9 @@ func TestCollection_InsertMany_WriteConcernError(t *testing.T) {
 
 	want := WriteConcernError{Code: 100, Message: "Not enough data-bearing nodes"}
 	docs := []interface{}{
-		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
-		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
-		bsonx.Doc{{"_id", bsonx.ObjectID(objectid.New())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
+		bsonx.Doc{{"_id", bsonx.ObjectID(primitive.NewObjectID())}},
 	}
 	coll := createTestCollection(t, nil, nil,
 		options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(25))))

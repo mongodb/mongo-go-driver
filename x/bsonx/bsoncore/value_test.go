@@ -13,8 +13,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 func TestValue(t *testing.T) {
@@ -61,7 +60,7 @@ func TestValue(t *testing.T) {
 	})
 
 	now := time.Now().Truncate(time.Millisecond)
-	oid := objectid.New()
+	oid := primitive.NewObjectID()
 
 	testCases := []struct {
 		name     string
@@ -231,24 +230,24 @@ func TestValue(t *testing.T) {
 			nil,
 		},
 		{
-			"ObjectID/Success", Value.ObjectID, Value{Type: bsontype.ObjectID, Data: AppendObjectID(nil, objectid.ObjectID{0x01, 0x02})},
+			"ObjectID/Success", Value.ObjectID, Value{Type: bsontype.ObjectID, Data: AppendObjectID(nil, primitive.ObjectID{0x01, 0x02})},
 			nil,
-			[]interface{}{objectid.ObjectID{0x01, 0x02}},
+			[]interface{}{primitive.ObjectID{0x01, 0x02}},
 		},
 		{
 			"ObjectIDOK/Not ObjectID", Value.ObjectIDOK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{objectid.ObjectID{}, false},
+			[]interface{}{primitive.ObjectID{}, false},
 		},
 		{
 			"ObjectIDOK/Insufficient Bytes", Value.ObjectIDOK, Value{Type: bsontype.ObjectID, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{objectid.ObjectID{}, false},
+			[]interface{}{primitive.ObjectID{}, false},
 		},
 		{
-			"ObjectIDOK/Success", Value.ObjectIDOK, Value{Type: bsontype.ObjectID, Data: AppendObjectID(nil, objectid.ObjectID{0x01, 0x02})},
+			"ObjectIDOK/Success", Value.ObjectIDOK, Value{Type: bsontype.ObjectID, Data: AppendObjectID(nil, primitive.ObjectID{0x01, 0x02})},
 			nil,
-			[]interface{}{objectid.ObjectID{0x01, 0x02}, true},
+			[]interface{}{primitive.ObjectID{0x01, 0x02}, true},
 		},
 		{
 			"Boolean/Not Boolean", Value.Boolean, Value{Type: bsontype.String},
@@ -383,22 +382,22 @@ func TestValue(t *testing.T) {
 		{
 			"DBPointer/Success", Value.DBPointer, Value{Type: bsontype.DBPointer, Data: AppendDBPointer(nil, "foobar", oid)},
 			nil,
-			[]interface{}{string("foobar"), objectid.ObjectID(oid)},
+			[]interface{}{string("foobar"), primitive.ObjectID(oid)},
 		},
 		{
 			"DBPointerOK/Not DBPointer", Value.DBPointerOK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{string(""), objectid.ObjectID{}, false},
+			[]interface{}{string(""), primitive.ObjectID{}, false},
 		},
 		{
 			"DBPointerOK/Insufficient Bytes", Value.DBPointerOK, Value{Type: bsontype.DBPointer, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{string(""), objectid.ObjectID{}, false},
+			[]interface{}{string(""), primitive.ObjectID{}, false},
 		},
 		{
 			"DBPointerOK/Success", Value.DBPointerOK, Value{Type: bsontype.DBPointer, Data: AppendDBPointer(nil, "foobar", oid)},
 			nil,
-			[]interface{}{string("foobar"), objectid.ObjectID(oid), true},
+			[]interface{}{string("foobar"), primitive.ObjectID(oid), true},
 		},
 		{
 			"JavaScript/Not JavaScript", Value.JavaScript, Value{Type: bsontype.String},
@@ -591,24 +590,24 @@ func TestValue(t *testing.T) {
 			nil,
 		},
 		{
-			"Decimal128/Success", Value.Decimal128, Value{Type: bsontype.Decimal128, Data: AppendDecimal128(nil, decimal.NewDecimal128(12345, 67890))},
+			"Decimal128/Success", Value.Decimal128, Value{Type: bsontype.Decimal128, Data: AppendDecimal128(nil, primitive.NewDecimal128(12345, 67890))},
 			nil,
-			[]interface{}{decimal.NewDecimal128(12345, 67890)},
+			[]interface{}{primitive.NewDecimal128(12345, 67890)},
 		},
 		{
 			"Decimal128OK/Not Decimal128", Value.Decimal128OK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{decimal.Decimal128{}, false},
+			[]interface{}{primitive.Decimal128{}, false},
 		},
 		{
 			"Decimal128OK/Insufficient Bytes", Value.Decimal128OK, Value{Type: bsontype.Decimal128, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{decimal.Decimal128{}, false},
+			[]interface{}{primitive.Decimal128{}, false},
 		},
 		{
-			"Decimal128OK/Success", Value.Decimal128OK, Value{Type: bsontype.Decimal128, Data: AppendDecimal128(nil, decimal.NewDecimal128(12345, 67890))},
+			"Decimal128OK/Success", Value.Decimal128OK, Value{Type: bsontype.Decimal128, Data: AppendDecimal128(nil, primitive.NewDecimal128(12345, 67890))},
 			nil,
-			[]interface{}{decimal.NewDecimal128(12345, 67890), true},
+			[]interface{}{primitive.NewDecimal128(12345, 67890), true},
 		},
 	}
 

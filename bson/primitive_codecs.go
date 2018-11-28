@@ -14,8 +14,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
@@ -732,9 +730,9 @@ func (PrimitiveCodecs) EmptyInterfaceDecodeValue(dc bsoncodec.DecodeContext, vr 
 		rtype = tUndefined
 		fn = func() { *target = *(val.(*primitive.Undefined)) }
 	case bsontype.ObjectID:
-		val = new(objectid.ObjectID)
+		val = new(primitive.ObjectID)
 		rtype = tOID
-		fn = func() { *target = *(val.(*objectid.ObjectID)) }
+		fn = func() { *target = *(val.(*primitive.ObjectID)) }
 	case bsontype.Boolean:
 		val = new(bool)
 		rtype = tBool
@@ -780,9 +778,9 @@ func (PrimitiveCodecs) EmptyInterfaceDecodeValue(dc bsoncodec.DecodeContext, vr 
 		rtype = tTimestamp
 		fn = func() { *target = *(val.(*primitive.Timestamp)) }
 	case bsontype.Decimal128:
-		val = new(decimal.Decimal128)
+		val = new(primitive.Decimal128)
 		rtype = tDecimal
-		fn = func() { *target = *(val.(*decimal.Decimal128)) }
+		fn = func() { *target = *(val.(*primitive.Decimal128)) }
 	case bsontype.MinKey:
 		val = new(primitive.MinKey)
 		rtype = tMinKey

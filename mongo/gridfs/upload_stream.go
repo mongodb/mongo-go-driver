@@ -14,7 +14,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
@@ -29,7 +29,7 @@ var ErrStreamClosed = errors.New("stream is closed or aborted")
 // UploadStream is used to upload files in chunks.
 type UploadStream struct {
 	*Upload // chunk size and metadata
-	FileID  objectid.ObjectID
+	FileID  primitive.ObjectID
 
 	chunkIndex    int
 	chunksColl    *mongo.Collection // collection to store file chunks
@@ -43,7 +43,7 @@ type UploadStream struct {
 }
 
 // NewUploadStream creates a new upload stream.
-func newUploadStream(upload *Upload, fileID objectid.ObjectID, filename string, chunks *mongo.Collection, files *mongo.Collection) *UploadStream {
+func newUploadStream(upload *Upload, fileID primitive.ObjectID, filename string, chunks *mongo.Collection, files *mongo.Collection) *UploadStream {
 	return &UploadStream{
 		Upload: upload,
 		FileID: fileID,
@@ -161,7 +161,7 @@ func (us *UploadStream) uploadChunks(ctx context.Context) error {
 		}
 
 		docs[us.chunkIndex] = bsonx.Doc{
-			{"_id", bsonx.ObjectID(objectid.New())},
+			{"_id", bsonx.ObjectID(primitive.NewObjectID())},
 			{"files_id", bsonx.ObjectID(us.FileID)},
 			{"n", bsonx.Int32(int32(us.chunkIndex))},
 			{"data", bsonx.Binary(0x00, chunkData)},

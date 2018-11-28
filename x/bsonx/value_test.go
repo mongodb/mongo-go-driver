@@ -13,8 +13,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
@@ -22,7 +20,7 @@ func TestValue(t *testing.T) {
 	longstr := "foobarbazqux, hello, world!"
 	bytestr14 := "fourteen bytes"
 	bin := primitive.Binary{Subtype: 0xFF, Data: []byte{0x01, 0x02, 0x03}}
-	oid := objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
+	oid := primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 	now := time.Now().Truncate(time.Millisecond)
 	nowdt := now.Unix()*1e3 + int64(now.Nanosecond()/1e6)
 	regex := primitive.Regex{Pattern: "/foobarbaz/", Options: "abr"}
@@ -32,7 +30,7 @@ func TestValue(t *testing.T) {
 	cws := primitive.CodeWithScope{Code: primitive.JavaScript(js), Scope: Doc{}}
 	code, scope := js, Doc{}
 	ts := primitive.Timestamp{I: 12345, T: 67890}
-	d128 := decimal.NewDecimal128(12345, 67890)
+	d128 := primitive.NewDecimal128(12345, 67890)
 
 	t.Parallel()
 	testCases := []struct {
@@ -67,7 +65,7 @@ func TestValue(t *testing.T) {
 		{"IsNumber/Double", Double(0).IsNumber, []interface{}{bool(true)}, nil},
 		{"IsNumber/Int32", Int32(0).IsNumber, []interface{}{bool(true)}, nil},
 		{"IsNumber/Int64", Int64(0).IsNumber, []interface{}{bool(true)}, nil},
-		{"IsNumber/Decimal128", Decimal128(decimal.Decimal128{}).IsNumber, []interface{}{bool(true)}, nil},
+		{"IsNumber/Decimal128", Decimal128(primitive.Decimal128{}).IsNumber, []interface{}{bool(true)}, nil},
 		{"IsNumber/String", String("").IsNumber, []interface{}{bool(false)}, nil},
 		{"Double/panic", String("").Double, nil, ElementTypeError{"bson.Value.Double", bsontype.String}},
 		{"Double/success", Double(3.14159).Double, []interface{}{float64(3.14159)}, nil},
@@ -109,7 +107,7 @@ func TestValue(t *testing.T) {
 		{"UndefinedOK/success", Undefined().UndefinedOK, []interface{}{true}, nil},
 		{"ObjectID/panic", Double(0).ObjectID, nil, ElementTypeError{"bson.Value.ObjectID", bsontype.Double}},
 		{"ObjectID/success", ObjectID(oid).ObjectID, []interface{}{oid}, nil},
-		{"ObjectIDOK/error", Double(0).ObjectIDOK, []interface{}{objectid.ObjectID{}, false}, nil},
+		{"ObjectIDOK/error", Double(0).ObjectIDOK, []interface{}{primitive.ObjectID{}, false}, nil},
 		{"ObjectIDOK/success", ObjectID(oid).ObjectIDOK, []interface{}{oid, true}, nil},
 		{"Boolean/panic", Double(0).Boolean, nil, ElementTypeError{"bson.Value.Boolean", bsontype.Double}},
 		{"Boolean/success", Boolean(true).Boolean, []interface{}{bool(true)}, nil},
@@ -135,7 +133,7 @@ func TestValue(t *testing.T) {
 		{"RegexOK/success", Regex(regex.Pattern, regex.Options).RegexOK, []interface{}{regex.Pattern, regex.Options, true}, nil},
 		{"DBPointer/panic", Double(0).DBPointer, nil, ElementTypeError{"bson.Value.DBPointer", bsontype.Double}},
 		{"DBPointer/success", DBPointer(dbptr.DB, dbptr.Pointer).DBPointer, []interface{}{dbptr.DB, dbptr.Pointer}, nil},
-		{"DBPointerOK/error", Double(0).DBPointerOK, []interface{}{"", objectid.ObjectID{}, false}, nil},
+		{"DBPointerOK/error", Double(0).DBPointerOK, []interface{}{"", primitive.ObjectID{}, false}, nil},
 		{"DBPointerOK/success", DBPointer(dbptr.DB, dbptr.Pointer).DBPointerOK, []interface{}{dbptr.DB, dbptr.Pointer, true}, nil},
 		{"JavaScript/panic", Double(0).JavaScript, nil, ElementTypeError{"bson.Value.JavaScript", bsontype.Double}},
 		{"JavaScript/success", JavaScript(js).JavaScript, []interface{}{js}, nil},
@@ -163,7 +161,7 @@ func TestValue(t *testing.T) {
 		{"Int64OK/success", Int64(9876543210).Int64OK, []interface{}{int64(9876543210), true}, nil},
 		{"Decimal128/panic", Double(0).Decimal128, nil, ElementTypeError{"bson.Value.Decimal128", bsontype.Double}},
 		{"Decimal128/success", Decimal128(d128).Decimal128, []interface{}{d128}, nil},
-		{"Decimal128OK/error", Double(0).Decimal128OK, []interface{}{decimal.Decimal128{}, false}, nil},
+		{"Decimal128OK/error", Double(0).Decimal128OK, []interface{}{primitive.Decimal128{}, false}, nil},
 		{"Decimal128OK/success", Decimal128(d128).Decimal128OK, []interface{}{d128, true}, nil},
 		{"MinKey/panic", Double(0).MinKey, nil, ElementTypeError{"bson.Value.MinKey", bsontype.Double}},
 		{"MinKey/success", MinKey().MinKey, nil, nil},
@@ -232,14 +230,14 @@ func TestValue(t *testing.T) {
 			{"Binary/Not Equal", Binary(bin.Subtype, bin.Data), Binary(0x00, nil), false},
 			{"Undefined/Equal", Undefined(), Undefined(), true},
 			{"ObjectID/Equal", ObjectID(oid), ObjectID(oid), true},
-			{"ObjectID/Not Equal", ObjectID(oid), ObjectID(objectid.ObjectID{}), false},
+			{"ObjectID/Not Equal", ObjectID(oid), ObjectID(primitive.ObjectID{}), false},
 			{"Boolean/Equal", Boolean(true), Boolean(true), true},
 			{"Boolean/Not Equal", Boolean(true), Boolean(false), false},
 			{"Null/Equal", Null(), Null(), true},
 			{"Regex/Equal", Regex(regex.Pattern, regex.Options), Regex(regex.Pattern, regex.Options), true},
 			{"Regex/Not Equal", Regex(regex.Pattern, regex.Options), Regex("", ""), false},
 			{"DBPointer/Equal", DBPointer(dbptr.DB, dbptr.Pointer), DBPointer(dbptr.DB, dbptr.Pointer), true},
-			{"DBPointer/Not Equal", DBPointer(dbptr.DB, dbptr.Pointer), DBPointer("", objectid.ObjectID{}), false},
+			{"DBPointer/Not Equal", DBPointer(dbptr.DB, dbptr.Pointer), DBPointer("", primitive.ObjectID{}), false},
 			{"JavaScript/Equal", JavaScript(js), JavaScript(js), true},
 			{"JavaScript/Not Equal", JavaScript(js), JavaScript(""), false},
 			{"Symbol/Equal", Symbol(symbol), Symbol(symbol), true},
@@ -254,7 +252,7 @@ func TestValue(t *testing.T) {
 			{"Int64/Equal", Int64(1234567890), Int64(1234567890), true},
 			{"Int64/Not Equal", Int64(1234567890), Int64(9876543210), false},
 			{"Decimal128/Equal", Decimal128(d128), Decimal128(d128), true},
-			{"Decimal128/Not Equal", Decimal128(d128), Decimal128(decimal.Decimal128{}), false},
+			{"Decimal128/Not Equal", Decimal128(d128), Decimal128(primitive.Decimal128{}), false},
 			{"MinKey/Equal", MinKey(), MinKey(), true},
 			{"MaxKey/Equal", MaxKey(), MaxKey(), true},
 		}

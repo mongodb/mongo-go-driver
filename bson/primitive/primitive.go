@@ -11,8 +11,6 @@ package primitive
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 )
 
 // Binary represents a BSON binary value.
@@ -56,7 +54,7 @@ func (rp Regex) Equal(rp2 Regex) bool {
 // DBPointer represents a BSON dbpointer value.
 type DBPointer struct {
 	DB      string
-	Pointer objectid.ObjectID
+	Pointer ObjectID
 }
 
 func (d DBPointer) String() string {

@@ -15,8 +15,7 @@ import (
 	"sync"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -316,7 +315,7 @@ func (vw *valueWriter) WriteCodeWithScope(code string) (DocumentWriter, error) {
 	return vw, nil
 }
 
-func (vw *valueWriter) WriteDBPointer(ns string, oid objectid.ObjectID) error {
+func (vw *valueWriter) WriteDBPointer(ns string, oid primitive.ObjectID) error {
 	if err := vw.writeElementHeader(bsontype.DBPointer, mode(0), "WriteDBPointer"); err != nil {
 		return err
 	}
@@ -336,7 +335,7 @@ func (vw *valueWriter) WriteDateTime(dt int64) error {
 	return nil
 }
 
-func (vw *valueWriter) WriteDecimal128(d128 decimal.Decimal128) error {
+func (vw *valueWriter) WriteDecimal128(d128 primitive.Decimal128) error {
 	if err := vw.writeElementHeader(bsontype.Decimal128, mode(0), "WriteDecimal128"); err != nil {
 		return err
 	}
@@ -413,7 +412,7 @@ func (vw *valueWriter) WriteNull() error {
 	return nil
 }
 
-func (vw *valueWriter) WriteObjectID(oid objectid.ObjectID) error {
+func (vw *valueWriter) WriteObjectID(oid primitive.ObjectID) error {
 	if err := vw.writeElementHeader(bsontype.ObjectID, mode(0), "WriteObjectID"); err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package objectid
+package primitive
 
 import (
 	"testing"
@@ -16,30 +16,30 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	// Ensure that objectid.New() doesn't panic.
-	New()
+	// Ensure that objectid.NewObjectID() doesn't panic.
+	NewObjectID()
 }
 
 func TestString(t *testing.T) {
-	id := New()
+	id := NewObjectID()
 	require.Contains(t, id.String(), id.Hex())
 }
 
 func TestFromHex_RoundTrip(t *testing.T) {
-	before := New()
-	after, err := FromHex(before.Hex())
+	before := NewObjectID()
+	after, err := ObjectIDFromHex(before.Hex())
 	require.NoError(t, err)
 
 	require.Equal(t, before, after)
 }
 
 func TestFromHex_InvalidHex(t *testing.T) {
-	_, err := FromHex("this is not a valid hex string!")
+	_, err := ObjectIDFromHex("this is not a valid hex string!")
 	require.Error(t, err)
 }
 
 func TestFromHex_WrongLength(t *testing.T) {
-	_, err := FromHex("deadbeef")
+	_, err := ObjectIDFromHex("deadbeef")
 	require.Equal(t, ErrInvalidHex, err)
 }
 
@@ -67,7 +67,7 @@ func TestTimeStamp(t *testing.T) {
 	}
 
 	for _, testcase := range testCases {
-		id, err := FromHex(testcase.Hex)
+		id, err := ObjectIDFromHex(testcase.Hex)
 		require.NoError(t, err)
 		secs := int64(binary.BigEndian.Uint32(id[0:4]))
 		timestamp := time.Unix(secs, 0).UTC()
@@ -78,6 +78,6 @@ func TestTimeStamp(t *testing.T) {
 
 func TestCounterOverflow(t *testing.T) {
 	objectIDCounter = 0xFFFFFFFF
-	New()
+	NewObjectID()
 	require.Equal(t, uint32(0), objectIDCounter)
 }

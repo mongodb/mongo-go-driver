@@ -10,8 +10,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -149,10 +148,10 @@ func (llvrw *TestValueReaderWriter) ReadCodeWithScope() (code string, dr Documen
 	return "", llvrw, nil
 }
 
-func (llvrw *TestValueReaderWriter) ReadDBPointer() (ns string, oid objectid.ObjectID, err error) {
+func (llvrw *TestValueReaderWriter) ReadDBPointer() (ns string, oid primitive.ObjectID, err error) {
 	llvrw.invoked = llvrwReadDBPointer
 	if llvrw.errAfter == llvrw.invoked {
-		return "", objectid.ObjectID{}, llvrw.err
+		return "", primitive.ObjectID{}, llvrw.err
 	}
 
 	switch tt := llvrw.readval.(type) {
@@ -160,12 +159,12 @@ func (llvrw *TestValueReaderWriter) ReadDBPointer() (ns string, oid objectid.Obj
 		ns, oid, _, ok := bsoncore.ReadDBPointer(tt.Data)
 		if !ok {
 			llvrw.t.Error("Invalid Value instance provided for return value of ReadDBPointer")
-			return "", objectid.ObjectID{}, nil
+			return "", primitive.ObjectID{}, nil
 		}
 		return ns, oid, nil
 	default:
 		llvrw.t.Errorf("Incorrect type provided for return value of ReadDBPointer: %T", llvrw.readval)
-		return "", objectid.ObjectID{}, nil
+		return "", primitive.ObjectID{}, nil
 	}
 }
 
@@ -184,16 +183,16 @@ func (llvrw *TestValueReaderWriter) ReadDateTime() (int64, error) {
 	return dt, nil
 }
 
-func (llvrw *TestValueReaderWriter) ReadDecimal128() (decimal.Decimal128, error) {
+func (llvrw *TestValueReaderWriter) ReadDecimal128() (primitive.Decimal128, error) {
 	llvrw.invoked = llvrwReadDecimal128
 	if llvrw.errAfter == llvrw.invoked {
-		return decimal.Decimal128{}, llvrw.err
+		return primitive.Decimal128{}, llvrw.err
 	}
 
-	d128, ok := llvrw.readval.(decimal.Decimal128)
+	d128, ok := llvrw.readval.(primitive.Decimal128)
 	if !ok {
 		llvrw.t.Errorf("Incorrect type provided for return value of ReadDecimal128: %T", llvrw.readval)
-		return decimal.Decimal128{}, nil
+		return primitive.Decimal128{}, nil
 	}
 
 	return d128, nil
@@ -284,15 +283,15 @@ func (llvrw *TestValueReaderWriter) ReadNull() error {
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) ReadObjectID() (objectid.ObjectID, error) {
+func (llvrw *TestValueReaderWriter) ReadObjectID() (primitive.ObjectID, error) {
 	llvrw.invoked = llvrwReadObjectID
 	if llvrw.errAfter == llvrw.invoked {
-		return objectid.ObjectID{}, llvrw.err
+		return primitive.ObjectID{}, llvrw.err
 	}
-	oid, ok := llvrw.readval.(objectid.ObjectID)
+	oid, ok := llvrw.readval.(primitive.ObjectID)
 	if !ok {
 		llvrw.t.Errorf("Incorrect type provided for return value of ReadObjectID: %T", llvrw.readval)
-		return objectid.ObjectID{}, nil
+		return primitive.ObjectID{}, nil
 	}
 
 	return oid, nil
@@ -418,7 +417,7 @@ func (llvrw *TestValueReaderWriter) WriteCodeWithScope(code string) (DocumentWri
 	return llvrw, nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteDBPointer(ns string, oid objectid.ObjectID) error {
+func (llvrw *TestValueReaderWriter) WriteDBPointer(ns string, oid primitive.ObjectID) error {
 	llvrw.invoked = llvrwWriteDBPointer
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -434,7 +433,7 @@ func (llvrw *TestValueReaderWriter) WriteDateTime(dt int64) error {
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteDecimal128(decimal.Decimal128) error {
+func (llvrw *TestValueReaderWriter) WriteDecimal128(primitive.Decimal128) error {
 	llvrw.invoked = llvrwWriteDecimal128
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -498,7 +497,7 @@ func (llvrw *TestValueReaderWriter) WriteNull() error {
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteObjectID(objectid.ObjectID) error {
+func (llvrw *TestValueReaderWriter) WriteObjectID(primitive.ObjectID) error {
 	llvrw.invoked = llvrwWriteObjectID
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err

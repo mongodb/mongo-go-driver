@@ -13,8 +13,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -187,7 +186,7 @@ func TestCopier(t *testing.T) {
 			{
 				"ObjectID/dst/error",
 				&TestValueReaderWriter{bsontype: bsontype.ObjectID, err: errors.New("2"), errAfter: llvrwWriteObjectID},
-				&TestValueReaderWriter{bsontype: bsontype.ObjectID, readval: objectid.ObjectID{0x01, 0x02, 0x03}},
+				&TestValueReaderWriter{bsontype: bsontype.ObjectID, readval: primitive.ObjectID{0x01, 0x02, 0x03}},
 				errors.New("2"),
 			},
 			{
@@ -257,7 +256,7 @@ func TestCopier(t *testing.T) {
 					bsontype: bsontype.DBPointer,
 					readval: bsoncore.Value{
 						Type: bsontype.DBPointer,
-						Data: bsoncore.AppendDBPointer(nil, "foo", objectid.ObjectID{0x01, 0x02, 0x03}),
+						Data: bsoncore.AppendDBPointer(nil, "foo", primitive.ObjectID{0x01, 0x02, 0x03}),
 					},
 				},
 				errors.New("2"),
@@ -361,7 +360,7 @@ func TestCopier(t *testing.T) {
 			{
 				"Decimal128/dst/error",
 				&TestValueReaderWriter{bsontype: bsontype.Decimal128, err: errors.New("2"), errAfter: llvrwWriteDecimal128},
-				&TestValueReaderWriter{bsontype: bsontype.Decimal128, readval: decimal.NewDecimal128(12345, 67890)},
+				&TestValueReaderWriter{bsontype: bsontype.Decimal128, readval: primitive.NewDecimal128(12345, 67890)},
 				errors.New("2"),
 			},
 			{
