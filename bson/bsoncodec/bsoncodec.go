@@ -8,6 +8,7 @@ package bsoncodec
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
@@ -45,15 +46,39 @@ type ValueUnmarshaler interface {
 	UnmarshalBSONValue(bsontype.Type, []byte) error
 }
 
-// ValueEncoderError is an error returned from a ValueEncoder when the provided
-// value can't be encoded by the ValueEncoder.
+// ValueEncoderError is an error returned from a ValueEncoder when the provided value can't be
+// encoded by the ValueEncoder.
 type ValueEncoderError struct {
+	Name     string
+	Types    []reflect.Type
+	Kinds    []reflect.Kind
+	Received reflect.Value
+}
+
+func (vee ValueEncoderError) Error() string {
+	typeKinds := make([]string, 0, len(vee.Types)+len(vee.Kinds))
+	for _, t := range vee.Types {
+		typeKinds = append(typeKinds, t.String())
+	}
+	for _, k := range vee.Kinds {
+		typeKinds = append(typeKinds, k.String())
+	}
+	received := vee.Received.Kind().String()
+	if vee.Received.IsValid() {
+		received = vee.Received.Type().String()
+	}
+	return fmt.Sprintf("%s can only encode valid %s, but got %s", vee.Name, strings.Join(typeKinds, ", "), received)
+}
+
+// LegacyValueEncoderError is an error returned from a ValueEncoder when the provided
+// value can't be encoded by the ValueEncoder.
+type LegacyValueEncoderError struct {
 	Name     string
 	Types    []interface{}
 	Received interface{}
 }
 
-func (vee ValueEncoderError) Error() string {
+func (vee LegacyValueEncoderError) Error() string {
 	types := make([]string, 0, len(vee.Types))
 	for _, t := range vee.Types {
 		types = append(types, fmt.Sprintf("%T", t))
@@ -94,24 +119,46 @@ type DecodeContext struct {
 // ValueCodec is the interface that groups the methods to encode and decode
 // values.
 type ValueCodec interface {
-	ValueEncoder
+	ValueEncoderLegacy
 	ValueDecoder
 }
 
-// ValueEncoder is the interface implemented by types that can handle the
-// encoding of a value. Implementations must handle values and
-// may handle pointers to values.
+// ValueEncoder is the interface implemented by types that can handle the encoding of a value.
 type ValueEncoder interface {
-	EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error
+	EncodeValue(EncodeContext, bsonrw.ValueWriter, reflect.Value) error
 }
 
-// ValueEncoderFunc is an adapter function that allows a function with the
-// correct signature to be used as a ValueEncoder.
-type ValueEncoderFunc func(EncodeContext, bsonrw.ValueWriter, interface{}) error
+// ValueEncoderFunc is an adapter function that allows a function with the correct signature to be
+// used as a ValueEncoder.
+type ValueEncoderFunc func(EncodeContext, bsonrw.ValueWriter, reflect.Value) error
 
 // EncodeValue implements the ValueEncoder interface.
-func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val interface{}) error {
+func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	return fn(ec, vw, val)
+}
+
+func (fn ValueEncoderFunc) EncodeValueLegacy(ec EncodeContext, vw bsonrw.ValueWriter, val interface{}) error {
+	return fn(ec, vw, reflect.ValueOf(val))
+}
+
+// ValueEncoderLegacy is the interface implemented by types that can handle the
+// encoding of a value. Implementations must handle values and
+// may handle pointers to values.
+type ValueEncoderLegacy interface {
+	EncodeValueLegacy(EncodeContext, bsonrw.ValueWriter, interface{}) error
+}
+
+// ValueEncoderLegacyFunc is an adapter function that allows a function with the
+// correct signature to be used as a ValueEncoder.
+type ValueEncoderLegacyFunc func(EncodeContext, bsonrw.ValueWriter, interface{}) error
+
+// EncodeValueLegacy implements the ValueEncoder interface.
+func (fn ValueEncoderLegacyFunc) EncodeValueLegacy(ec EncodeContext, vw bsonrw.ValueWriter, val interface{}) error {
+	return fn(ec, vw, val)
+}
+
+func (fn ValueEncoderLegacyFunc) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	return fn(ec, vw, val.Interface())
 }
 
 // ValueDecoder is the interface implemented by types that can handle the decoding of a value.

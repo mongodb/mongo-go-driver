@@ -51,9 +51,9 @@ func init() {
 // A RegistryBuilder is used to build a Registry. This type is not goroutine
 // safe.
 type RegistryBuilder struct {
-	typeEncoders      map[reflect.Type]ValueEncoder
+	typeEncoders      map[reflect.Type]ValueEncoderLegacy
 	interfaceEncoders []interfaceValueEncoder
-	kindEncoders      map[reflect.Kind]ValueEncoder
+	kindEncoders      map[reflect.Kind]ValueEncoderLegacy
 
 	typeDecoders      map[reflect.Type]ValueDecoder
 	interfaceDecoders []interfaceValueDecoder
@@ -63,13 +63,13 @@ type RegistryBuilder struct {
 // A Registry is used to store and retrieve codecs for types and interfaces. This type is the main
 // typed passed around and Encoders and Decoders are constructed from it.
 type Registry struct {
-	typeEncoders map[reflect.Type]ValueEncoder
+	typeEncoders map[reflect.Type]ValueEncoderLegacy
 	typeDecoders map[reflect.Type]ValueDecoder
 
 	interfaceEncoders []interfaceValueEncoder
 	interfaceDecoders []interfaceValueDecoder
 
-	kindEncoders map[reflect.Kind]ValueEncoder
+	kindEncoders map[reflect.Kind]ValueEncoderLegacy
 	kindDecoders map[reflect.Kind]ValueDecoder
 
 	mu sync.RWMutex
@@ -78,13 +78,13 @@ type Registry struct {
 // NewRegistryBuilder creates a new empty RegistryBuilder.
 func NewRegistryBuilder() *RegistryBuilder {
 	return &RegistryBuilder{
-		typeEncoders: make(map[reflect.Type]ValueEncoder),
+		typeEncoders: make(map[reflect.Type]ValueEncoderLegacy),
 		typeDecoders: make(map[reflect.Type]ValueDecoder),
 
 		interfaceEncoders: make([]interfaceValueEncoder, 0),
 		interfaceDecoders: make([]interfaceValueDecoder, 0),
 
-		kindEncoders: make(map[reflect.Kind]ValueEncoder),
+		kindEncoders: make(map[reflect.Kind]ValueEncoderLegacy),
 		kindDecoders: make(map[reflect.Kind]ValueDecoder),
 	}
 }
@@ -107,7 +107,7 @@ func (rb *RegistryBuilder) RegisterCodec(t reflect.Type, codec ValueCodec) *Regi
 //
 // The type registered will be used directly, so an encoder can be registered for a type and a
 // different encoder can be registered for a pointer to that type.
-func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoder) *RegistryBuilder {
+func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoderLegacy) *RegistryBuilder {
 	if t == tEmpty {
 		rb.typeEncoders[t] = enc
 		return rb
@@ -155,7 +155,7 @@ func (rb *RegistryBuilder) RegisterDecoder(t reflect.Type, dec ValueDecoder) *Re
 
 // RegisterDefaultEncoder will registr the provided ValueEncoder to the provided
 // kind.
-func (rb *RegistryBuilder) RegisterDefaultEncoder(kind reflect.Kind, enc ValueEncoder) *RegistryBuilder {
+func (rb *RegistryBuilder) RegisterDefaultEncoder(kind reflect.Kind, enc ValueEncoderLegacy) *RegistryBuilder {
 	rb.kindEncoders[kind] = enc
 	return rb
 }
@@ -171,7 +171,7 @@ func (rb *RegistryBuilder) RegisterDefaultDecoder(kind reflect.Kind, dec ValueDe
 func (rb *RegistryBuilder) Build() *Registry {
 	registry := new(Registry)
 
-	registry.typeEncoders = make(map[reflect.Type]ValueEncoder)
+	registry.typeEncoders = make(map[reflect.Type]ValueEncoderLegacy)
 	for t, enc := range rb.typeEncoders {
 		registry.typeEncoders[t] = enc
 	}
@@ -187,7 +187,7 @@ func (rb *RegistryBuilder) Build() *Registry {
 	registry.interfaceDecoders = make([]interfaceValueDecoder, len(rb.interfaceDecoders))
 	copy(registry.interfaceDecoders, rb.interfaceDecoders)
 
-	registry.kindEncoders = make(map[reflect.Kind]ValueEncoder)
+	registry.kindEncoders = make(map[reflect.Kind]ValueEncoderLegacy)
 	for kind, enc := range rb.kindEncoders {
 		registry.kindEncoders[kind] = enc
 	}
@@ -205,7 +205,7 @@ func (rb *RegistryBuilder) Build() *Registry {
 // precedence over an encoder registered for an interface the type satisfies,
 // which takes precedence over an encoder for the reflect.Kind of the value. If
 // no encoder can be found, an error is returned.
-func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
+func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoderLegacy, error) {
 	encodererr := ErrNoEncoder{Type: t}
 	r.mu.RLock()
 	enc, found := r.lookupTypeEncoder(t)
@@ -253,12 +253,12 @@ func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
 	return enc, nil
 }
 
-func (r *Registry) lookupTypeEncoder(t reflect.Type) (ValueEncoder, bool) {
+func (r *Registry) lookupTypeEncoder(t reflect.Type) (ValueEncoderLegacy, bool) {
 	enc, found := r.typeEncoders[t]
 	return enc, found
 }
 
-func (r *Registry) lookupInterfaceEncoder(t reflect.Type) (ValueEncoder, bool) {
+func (r *Registry) lookupInterfaceEncoder(t reflect.Type) (ValueEncoderLegacy, bool) {
 	if t == nil {
 		return nil, false
 	}
@@ -339,7 +339,7 @@ func (r *Registry) lookupInterfaceDecoder(t reflect.Type) (ValueDecoder, bool) {
 
 type interfaceValueEncoder struct {
 	i  reflect.Type
-	ve ValueEncoder
+	ve ValueEncoderLegacy
 }
 
 type interfaceValueDecoder struct {

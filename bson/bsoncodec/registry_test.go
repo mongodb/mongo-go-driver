@@ -50,7 +50,7 @@ func TestRegistry(t *testing.T) {
 				RegisterEncoder(reflect.TypeOf(ft4), fc4)
 			want := []struct {
 				t reflect.Type
-				c ValueEncoder
+				c ValueEncoderLegacy
 			}{
 				{reflect.TypeOf(ft1), fc3},
 				{reflect.TypeOf(ft2), fc2},
@@ -77,7 +77,7 @@ func TestRegistry(t *testing.T) {
 				RegisterDefaultEncoder(k4, fc4)
 			want := []struct {
 				k reflect.Kind
-				c ValueEncoder
+				c ValueEncoderLegacy
 			}{
 				{k1, fc3},
 				{k2, fc2},
@@ -151,7 +151,7 @@ func TestRegistry(t *testing.T) {
 		})
 		t.Run("Lookup", func(t *testing.T) {
 			type Codec interface {
-				ValueEncoder
+				ValueEncoderLegacy
 				ValueDecoder
 			}
 
@@ -311,7 +311,9 @@ type fakeMapCodec struct{ fakeCodec }
 
 type fakeCodec struct{ num int }
 
-func (fc fakeCodec) EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error { return nil }
+func (fc fakeCodec) EncodeValueLegacy(EncodeContext, bsonrw.ValueWriter, interface{}) error {
+	return nil
+}
 func (fc fakeCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error { return nil }
 
 type testInterface1 interface{ test1() }

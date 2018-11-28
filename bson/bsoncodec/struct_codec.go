@@ -34,7 +34,7 @@ type StructCodec struct {
 	parser StructTagParser
 }
 
-var _ ValueEncoder = &StructCodec{}
+var _ ValueEncoderLegacy = &StructCodec{}
 var _ ValueDecoder = &StructCodec{}
 
 // NewStructCodec returns a StructCodec that uses p for struct tag parsing.
@@ -49,8 +49,8 @@ func NewStructCodec(p StructTagParser) (*StructCodec, error) {
 	}, nil
 }
 
-// EncodeValue handles encoding generic struct types.
-func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
+// EncodeValueLegacy handles encoding generic struct types.
+func (sc *StructCodec) EncodeValueLegacy(r EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	val := reflect.ValueOf(i)
 	for {
 		if val.Kind() == reflect.Ptr {
@@ -103,7 +103,7 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i int
 		}
 
 		ectx := EncodeContext{Registry: r.Registry, MinSize: desc.minSize}
-		err = encoder.EncodeValue(ectx, vw2, rv.Interface())
+		err = encoder.EncodeValueLegacy(ectx, vw2, rv.Interface())
 		if err != nil {
 			return err
 		}
@@ -266,7 +266,7 @@ type fieldDescription struct {
 	minSize   bool
 	truncate  bool
 	inline    []int
-	encoder   ValueEncoder
+	encoder   ValueEncoderLegacy
 	decoder   ValueDecoder
 }
 

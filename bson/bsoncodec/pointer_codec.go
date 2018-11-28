@@ -10,16 +10,16 @@ import (
 )
 
 var defaultPointerCodec = &PointerCodec{
-	ecache: make(map[reflect.Type]ValueEncoder),
+	ecache: make(map[reflect.Type]ValueEncoderLegacy),
 	dcache: make(map[reflect.Type]ValueDecoder),
 }
 
-var _ ValueEncoder = &PointerCodec{}
+var _ ValueEncoderLegacy = &PointerCodec{}
 var _ ValueDecoder = &PointerCodec{}
 
 // PointerCodec is the Codec used for pointers.
 type PointerCodec struct {
-	ecache map[reflect.Type]ValueEncoder
+	ecache map[reflect.Type]ValueEncoderLegacy
 	dcache map[reflect.Type]ValueDecoder
 	l      sync.RWMutex
 }
@@ -27,21 +27,21 @@ type PointerCodec struct {
 // NewPointerCodec returns a PointerCodec that has been initialized.
 func NewPointerCodec() *PointerCodec {
 	return &PointerCodec{
-		ecache: make(map[reflect.Type]ValueEncoder),
+		ecache: make(map[reflect.Type]ValueEncoderLegacy),
 		dcache: make(map[reflect.Type]ValueDecoder),
 	}
 }
 
-// EncodeValue handles encoding a pointer by either encoding it to BSON Null if the pointer is nil
+// EncodeValueLegacy handles encoding a pointer by either encoding it to BSON Null if the pointer is nil
 // or looking up an encoder for the type of value the pointer points to.
-func (pc *PointerCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
+func (pc *PointerCodec) EncodeValueLegacy(ec EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	if i == nil {
 		return vw.WriteNull()
 	}
 	val := reflect.ValueOf(i)
 
 	if val.Type().Kind() != reflect.Ptr {
-		return ValueEncoderError{
+		return LegacyValueEncoderError{
 			Name:     "PointerCodec.EncodeValue",
 			Types:    []interface{}{reflect.Ptr},
 			Received: i,
@@ -59,7 +59,7 @@ func (pc *PointerCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i i
 		if enc == nil {
 			return ErrNoEncoder{Type: val.Type()}
 		}
-		return enc.EncodeValue(ec, vw, val.Elem().Interface())
+		return enc.EncodeValueLegacy(ec, vw, val.Elem().Interface())
 	}
 
 	enc, err := ec.LookupEncoder(val.Type().Elem())
@@ -70,7 +70,7 @@ func (pc *PointerCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, i i
 		return err
 	}
 
-	return enc.EncodeValue(ec, vw, val.Elem().Interface())
+	return enc.EncodeValueLegacy(ec, vw, val.Elem().Interface())
 }
 
 // DecodeValue handles decoding a pointer either by setting the value of the pointer to nil if the
