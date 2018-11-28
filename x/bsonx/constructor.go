@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
@@ -75,7 +73,7 @@ func Binary(subtype byte, data []byte) Val {
 func Undefined() Val { return Val{t: bsontype.Undefined} }
 
 // ObjectID constructs a BSON objectid Value.
-func ObjectID(oid objectid.ObjectID) Val {
+func ObjectID(oid primitive.ObjectID) Val {
 	v := Val{t: bsontype.ObjectID}
 	copy(v.bootstrap[0:12], oid[:])
 	return v
@@ -108,7 +106,7 @@ func Regex(pattern, options string) Val {
 }
 
 // DBPointer constructs a BSON dbpointer Value.
-func DBPointer(ns string, ptr objectid.ObjectID) Val {
+func DBPointer(ns string, ptr primitive.ObjectID) Val {
 	dbptr := primitive.DBPointer{DB: ns, Pointer: ptr}
 	return Val{t: bsontype.DBPointer, primitive: dbptr}
 }
@@ -157,7 +155,7 @@ func Timestamp(t, i uint32) Val {
 func Int64(i64 int64) Val { return Val{t: bsontype.Int64}.writei64(i64) }
 
 // Decimal128 constructs a BSON decimal128 Value.
-func Decimal128(d128 decimal.Decimal128) Val {
+func Decimal128(d128 primitive.Decimal128) Val {
 	return Val{t: bsontype.Decimal128, primitive: d128}
 }
 

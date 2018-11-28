@@ -19,7 +19,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 // Dialer is used to make network connections.
@@ -101,7 +101,7 @@ func ensureID(d bsonx.Doc) (bsonx.Doc, interface{}) {
 	case nil:
 		id = elem
 	default:
-		oid := objectid.New()
+		oid := primitive.NewObjectID()
 		d = append(d, bsonx.Elem{"_id", bsonx.ObjectID(oid)})
 		id = oid
 	}

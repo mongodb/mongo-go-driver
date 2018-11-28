@@ -17,8 +17,7 @@ import (
 	"unicode"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 var _ ValueReader = (*valueReader)(nil)
@@ -464,7 +463,7 @@ func (vr *valueReader) ReadCodeWithScope() (code string, dr DocumentReader, err 
 	return code, vr, nil
 }
 
-func (vr *valueReader) ReadDBPointer() (ns string, oid objectid.ObjectID, err error) {
+func (vr *valueReader) ReadDBPointer() (ns string, oid primitive.ObjectID, err error) {
 	if err := vr.ensureElementValue(bsontype.DBPointer, 0, "ReadDBPointer"); err != nil {
 		return "", oid, err
 	}
@@ -499,21 +498,21 @@ func (vr *valueReader) ReadDateTime() (int64, error) {
 	return i, nil
 }
 
-func (vr *valueReader) ReadDecimal128() (decimal.Decimal128, error) {
+func (vr *valueReader) ReadDecimal128() (primitive.Decimal128, error) {
 	if err := vr.ensureElementValue(bsontype.Decimal128, 0, "ReadDecimal128"); err != nil {
-		return decimal.Decimal128{}, err
+		return primitive.Decimal128{}, err
 	}
 
 	b, err := vr.readBytes(16)
 	if err != nil {
-		return decimal.Decimal128{}, err
+		return primitive.Decimal128{}, err
 	}
 
 	l := binary.LittleEndian.Uint64(b[0:8])
 	h := binary.LittleEndian.Uint64(b[8:16])
 
 	vr.pop()
-	return decimal.NewDecimal128(h, l), nil
+	return primitive.NewDecimal128(h, l), nil
 }
 
 func (vr *valueReader) ReadDouble() (float64, error) {
@@ -584,17 +583,17 @@ func (vr *valueReader) ReadNull() error {
 	return nil
 }
 
-func (vr *valueReader) ReadObjectID() (objectid.ObjectID, error) {
+func (vr *valueReader) ReadObjectID() (primitive.ObjectID, error) {
 	if err := vr.ensureElementValue(bsontype.ObjectID, 0, "ReadObjectID"); err != nil {
-		return objectid.ObjectID{}, err
+		return primitive.ObjectID{}, err
 	}
 
 	oidbytes, err := vr.readBytes(12)
 	if err != nil {
-		return objectid.ObjectID{}, err
+		return primitive.ObjectID{}, err
 	}
 
-	var oid objectid.ObjectID
+	var oid primitive.ObjectID
 	copy(oid[:], oidbytes)
 
 	vr.pop()

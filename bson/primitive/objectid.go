@@ -7,9 +7,7 @@
 // Based on gopkg.in/mgo.v2/bson by Gustavo Niemeyer
 // See THIRD-PARTY-NOTICES for original license terms.
 
-// Package objectid contains an implementation of a BSON objectID type functions to create
-// objectIDs.
-package objectid
+package primitive
 
 import (
 	"bytes"
@@ -36,8 +34,8 @@ var NilObjectID ObjectID
 var objectIDCounter = readRandomUint32()
 var processUnique = processUniqueBytes()
 
-// New generates a new ObjectID.
-func New() ObjectID {
+// NewObjectID generates a new ObjectID.
+func NewObjectID() ObjectID {
 	var b [12]byte
 
 	binary.BigEndian.PutUint32(b[0:4], uint32(time.Now().Unix()))
@@ -61,9 +59,9 @@ func (id ObjectID) IsZero() bool {
 	return bytes.Equal(id[:], NilObjectID[:])
 }
 
-// FromHex creates a new ObjectID from a hex string. It returns an error if the hex string is not a
+// ObjectIDFromHex creates a new ObjectID from a hex string. It returns an error if the hex string is not a
 // valid ObjectID.
-func FromHex(s string) (ObjectID, error) {
+func ObjectIDFromHex(s string) (ObjectID, error) {
 	b, err := hex.DecodeString(s)
 	if err != nil {
 		return NilObjectID, err

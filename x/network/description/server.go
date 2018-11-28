@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/tag"
 	"github.com/mongodb/mongo-go-driver/x/network/address"
 	"github.com/mongodb/mongo-go-driver/x/network/result"
@@ -34,7 +34,7 @@ type Server struct {
 	AverageRTTSet         bool
 	Compression           []string // compression methods returned by server
 	CanonicalAddr         address.Address
-	ElectionID            objectid.ObjectID
+	ElectionID            primitive.ObjectID
 	HeartbeatInterval     time.Duration
 	LastError             error
 	LastUpdateTime        time.Time

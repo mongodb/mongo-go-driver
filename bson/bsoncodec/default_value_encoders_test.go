@@ -19,8 +19,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw/bsonrwtest"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -49,11 +48,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 	now := time.Now().Truncate(time.Millisecond)
 	pjsnum := new(json.Number)
 	*pjsnum = json.Number("3.14159")
-	d128 := decimal.NewDecimal128(12345, 67890)
+	d128 := primitive.NewDecimal128(12345, 67890)
 
 	var ptimeNil *(time.Time)
-	var pobjectidNil *(objectid.ObjectID)
-	var pd128Nil *(decimal.Decimal128)
+	var pobjectidNil *(primitive.ObjectID)
+	var pd128Nil *(primitive.Decimal128)
 	var pjsnumNil *(json.Number)
 	var purlNil *(url.URL)
 	var pbytesliceNil *[]byte
@@ -311,21 +310,21 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					ValueEncoderError{
 						Name:     "ObjectIDEncodeValue",
-						Types:    []interface{}{objectid.ObjectID{}, (*objectid.ObjectID)(nil)},
+						Types:    []interface{}{primitive.ObjectID{}, (*primitive.ObjectID)(nil)},
 						Received: wrong,
 					},
 				},
 				{
-					"objectid.ObjectID/success",
-					objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+					"primitive.ObjectID/success",
+					primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					nil, nil, bsonrwtest.WriteObjectID, nil,
 				},
 				{
-					"*objectid.ObjectID/success",
-					&objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+					"*primitive.ObjectID/success",
+					&primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					nil, nil, bsonrwtest.WriteObjectID, nil,
 				},
-				{"*objectid.ObjectID/nil/success", pobjectidNil, nil, nil, bsonrwtest.WriteNull, nil},
+				{"*primitive.ObjectID/nil/success", pobjectidNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -340,7 +339,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					ValueEncoderError{
 						Name:     "Decimal128EncodeValue",
-						Types:    []interface{}{decimal.Decimal128{}, (*decimal.Decimal128)(nil)},
+						Types:    []interface{}{primitive.Decimal128{}, (*primitive.Decimal128)(nil)},
 						Received: wrong,
 					},
 				},
@@ -584,8 +583,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 	}
 
 	t.Run("success path", func(t *testing.T) {
-		oid := objectid.New()
-		oids := []objectid.ObjectID{objectid.New(), objectid.New(), objectid.New()}
+		oid := primitive.NewObjectID()
+		oids := []primitive.ObjectID{primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()}
 		var str = new(string)
 		*str = "bar"
 		now := time.Now().Truncate(time.Millisecond)
@@ -594,7 +593,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			t.Errorf("Error parsing URL: %v", err)
 			t.FailNow()
 		}
-		decimal128, err := decimal.ParseDecimal128("1.5e10")
+		decimal128, err := primitive.ParseDecimal128("1.5e10")
 		if err != nil {
 			t.Errorf("Error parsing decimal128: %v", err)
 			t.FailNow()
@@ -618,8 +617,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 				nil,
 			},
 			{
-				"map[string]objectid.ObjectID",
-				map[string]objectid.ObjectID{"foo": oid},
+				"map[string]primitive.ObjectID",
+				map[string]primitive.ObjectID{"foo": oid},
 				buildDocument(bsoncore.AppendObjectIDElement(nil, "foo", oid)),
 				nil,
 			},
@@ -634,8 +633,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 				nil,
 			},
 			{
-				"map[string][]objectid.ObjectID",
-				map[string][]objectid.ObjectID{"Z": oids},
+				"map[string][]primitive.ObjectID",
+				map[string][]primitive.ObjectID{"Z": oids},
 				buildDocumentArray(func(doc []byte) []byte {
 					doc = bsoncore.AppendObjectIDElement(doc, "0", oids[0])
 					doc = bsoncore.AppendObjectIDElement(doc, "1", oids[1])
@@ -670,8 +669,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 				nil,
 			},
 			{
-				"map[string][]decimal.Decimal128",
-				map[string][]decimal.Decimal128{"Z": {decimal128}},
+				"map[string][]primitive.Decimal128",
+				map[string][]primitive.Decimal128{"Z": {decimal128}},
 				buildDocumentArray(func(doc []byte) []byte {
 					return bsoncore.AppendDecimal128Element(doc, "0", decimal128)
 				}),
@@ -797,13 +796,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 					L struct {
 						M string
 					}
-					Q  objectid.ObjectID
+					Q  primitive.ObjectID
 					T  []struct{}
 					Y  json.Number
 					Z  time.Time
 					AA json.Number
 					AB *url.URL
-					AC decimal.Decimal128
+					AC primitive.Decimal128
 					AD *time.Time
 					AE testValueMarshaler
 					AF Proxy
@@ -882,7 +881,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 						M string
 					}
 					N  [][]string
-					R  []objectid.ObjectID
+					R  []primitive.ObjectID
 					T  []struct{}
 					W  []map[string]struct{}
 					X  []map[string]struct{}
@@ -890,7 +889,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					Z  []time.Time
 					AA []json.Number
 					AB []*url.URL
-					AC []decimal.Decimal128
+					AC []primitive.Decimal128
 					AD []*time.Time
 					AE []testValueMarshaler
 					AF []Proxy
@@ -922,7 +921,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					Z:  []time.Time{now, now},
 					AA: []json.Number{json.Number("5"), json.Number("10.1")},
 					AB: []*url.URL{murl},
-					AC: []decimal.Decimal128{decimal128},
+					AC: []primitive.Decimal128{decimal128},
 					AD: []*time.Time{&now, &now},
 					AE: []testValueMarshaler{
 						{t: bsontype.String, buf: bsoncore.AppendString(nil, "hello")},

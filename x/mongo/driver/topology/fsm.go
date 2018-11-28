@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/network/address"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
@@ -21,7 +21,7 @@ var minSupportedMongoDBVersion = "2.6"
 type fsm struct {
 	description.Topology
 	SetName       string
-	maxElectionID objectid.ObjectID
+	maxElectionID primitive.ObjectID
 	maxSetVersion uint32
 }
 
@@ -196,7 +196,7 @@ func (f *fsm) updateRSFromPrimary(s description.Server) {
 		return
 	}
 
-	if s.SetVersion != 0 && !bytes.Equal(s.ElectionID[:], objectid.NilObjectID[:]) {
+	if s.SetVersion != 0 && !bytes.Equal(s.ElectionID[:], primitive.NilObjectID[:]) {
 		if f.maxSetVersion > s.SetVersion || bytes.Compare(f.maxElectionID[:], s.ElectionID[:]) == 1 {
 			f.replaceServer(description.Server{
 				Addr:      s.Addr,

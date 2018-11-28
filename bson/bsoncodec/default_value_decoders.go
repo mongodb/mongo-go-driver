@@ -18,8 +18,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 var defaultValueDecoders DefaultValueDecoders
@@ -433,15 +432,15 @@ func (dvd DefaultValueDecoders) StringDecodeValue(dctx DecodeContext, vr bsonrw.
 	return nil
 }
 
-// ObjectIDDecodeValue is the ValueDecoderFunc for objectid.ObjectID.
+// ObjectIDDecodeValue is the ValueDecoderFunc for primitive.ObjectID.
 func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	if vr.Type() != bsontype.ObjectID {
 		return fmt.Errorf("cannot decode %v into an ObjectID", vr.Type())
 	}
 
-	target, ok := i.(*objectid.ObjectID)
+	target, ok := i.(*primitive.ObjectID)
 	if !ok || target == nil {
-		return ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []interface{}{(*objectid.ObjectID)(nil)}, Received: i}
+		return ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []interface{}{(*primitive.ObjectID)(nil)}, Received: i}
 	}
 
 	oid, err := vr.ReadObjectID()
@@ -453,15 +452,15 @@ func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.
 	return nil
 }
 
-// Decimal128DecodeValue is the ValueDecoderFunc for decimal.Decimal128.
+// Decimal128DecodeValue is the ValueDecoderFunc for primitive.Decimal128.
 func (dvd DefaultValueDecoders) Decimal128DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	if vr.Type() != bsontype.Decimal128 {
-		return fmt.Errorf("cannot decode %v into a decimal.Decimal128", vr.Type())
+		return fmt.Errorf("cannot decode %v into a primitive.Decimal128", vr.Type())
 	}
 
-	target, ok := i.(*decimal.Decimal128)
+	target, ok := i.(*primitive.Decimal128)
 	if !ok || target == nil {
-		return ValueDecoderError{Name: "Decimal128DecodeValue", Types: []interface{}{(*decimal.Decimal128)(nil)}, Received: i}
+		return ValueDecoderError{Name: "Decimal128DecodeValue", Types: []interface{}{(*primitive.Decimal128)(nil)}, Received: i}
 	}
 
 	d128, err := vr.ReadDecimal128()
@@ -799,9 +798,9 @@ func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr b
 		rtype = tInt64
 		fn = func() { *target = *(val.(*int64)) }
 	case bsontype.Decimal128:
-		val = new(decimal.Decimal128)
+		val = new(primitive.Decimal128)
 		rtype = tDecimal
-		fn = func() { *target = *(val.(*decimal.Decimal128)) }
+		fn = func() { *target = *(val.(*primitive.Decimal128)) }
 	default:
 		return fmt.Errorf("Type %s is not a valid BSON type and has no default Go type to decode into", vr.Type())
 	}

@@ -12,8 +12,7 @@ import (
 	"sync"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 // ExtJSONValueReaderPool is a pool for ValueReaders that read ExtJSON.
@@ -353,14 +352,14 @@ func (ejvr *extJSONValueReader) ReadCodeWithScope() (code string, dr DocumentRea
 	return code, ejvr, err
 }
 
-func (ejvr *extJSONValueReader) ReadDBPointer() (ns string, oid objectid.ObjectID, err error) {
+func (ejvr *extJSONValueReader) ReadDBPointer() (ns string, oid primitive.ObjectID, err error) {
 	if err = ejvr.ensureElementValue(bsontype.DBPointer, 0, "ReadDBPointer"); err != nil {
-		return "", objectid.NilObjectID, err
+		return "", primitive.NilObjectID, err
 	}
 
 	v, err := ejvr.p.readValue(bsontype.DBPointer)
 	if err != nil {
-		return "", objectid.NilObjectID, err
+		return "", primitive.NilObjectID, err
 	}
 
 	ns, oid, err = v.parseDBPointer()
@@ -385,14 +384,14 @@ func (ejvr *extJSONValueReader) ReadDateTime() (int64, error) {
 	return d, err
 }
 
-func (ejvr *extJSONValueReader) ReadDecimal128() (decimal.Decimal128, error) {
+func (ejvr *extJSONValueReader) ReadDecimal128() (primitive.Decimal128, error) {
 	if err := ejvr.ensureElementValue(bsontype.Decimal128, 0, "ReadDecimal128"); err != nil {
-		return decimal.Decimal128{}, err
+		return primitive.Decimal128{}, err
 	}
 
 	v, err := ejvr.p.readValue(bsontype.Decimal128)
 	if err != nil {
-		return decimal.Decimal128{}, err
+		return primitive.Decimal128{}, err
 	}
 
 	d, err := v.parseDecimal128()
@@ -515,14 +514,14 @@ func (ejvr *extJSONValueReader) ReadNull() error {
 	return nil
 }
 
-func (ejvr *extJSONValueReader) ReadObjectID() (objectid.ObjectID, error) {
+func (ejvr *extJSONValueReader) ReadObjectID() (primitive.ObjectID, error) {
 	if err := ejvr.ensureElementValue(bsontype.ObjectID, 0, "ReadObjectID"); err != nil {
-		return objectid.ObjectID{}, err
+		return primitive.ObjectID{}, err
 	}
 
 	v, err := ejvr.p.readValue(bsontype.ObjectID)
 	if err != nil {
-		return objectid.ObjectID{}, err
+		return primitive.ObjectID{}, err
 	}
 
 	oid, err := v.parseObjectID()

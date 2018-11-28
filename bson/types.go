@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
@@ -46,7 +44,7 @@ var tBinary = reflect.TypeOf(primitive.Binary{})
 var tBool = reflect.TypeOf(false)
 var tCodeWithScope = reflect.TypeOf(primitive.CodeWithScope{})
 var tDBPointer = reflect.TypeOf(primitive.DBPointer{})
-var tDecimal = reflect.TypeOf(decimal.Decimal128{})
+var tDecimal = reflect.TypeOf(primitive.Decimal128{})
 var tDocument = reflect.TypeOf((bsonx.Doc)(nil))
 var tMDoc = reflect.TypeOf((bsonx.MDoc)(nil))
 var tD = reflect.TypeOf(D{})
@@ -65,7 +63,7 @@ var tInt16 = reflect.TypeOf(int16(0))
 var tInt32 = reflect.TypeOf(int32(0))
 var tInt64 = reflect.TypeOf(int64(0))
 var tJavaScript = reflect.TypeOf(primitive.JavaScript(""))
-var tOID = reflect.TypeOf(objectid.ObjectID{})
+var tOID = reflect.TypeOf(primitive.ObjectID{})
 var tRaw = reflect.TypeOf(Raw(nil))
 var tRegex = reflect.TypeOf(primitive.Regex{})
 var tString = reflect.TypeOf("")

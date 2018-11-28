@@ -11,8 +11,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -299,11 +298,11 @@ func (llvrw *ValueReaderWriter) ReadCodeWithScope() (code string, dr bsonrw.Docu
 }
 
 // ReadDBPointer implements the bsonrw.ValueReader interface.
-func (llvrw *ValueReaderWriter) ReadDBPointer() (ns string, oid objectid.ObjectID, err error) {
+func (llvrw *ValueReaderWriter) ReadDBPointer() (ns string, oid primitive.ObjectID, err error) {
 	llvrw.checkdepth()
 	llvrw.Invoked = ReadDBPointer
 	if llvrw.ErrAfter == llvrw.Invoked {
-		return "", objectid.ObjectID{}, llvrw.Err
+		return "", primitive.ObjectID{}, llvrw.Err
 	}
 
 	switch tt := llvrw.Return.(type) {
@@ -311,12 +310,12 @@ func (llvrw *ValueReaderWriter) ReadDBPointer() (ns string, oid objectid.ObjectI
 		ns, oid, _, ok := bsoncore.ReadDBPointer(tt.Data)
 		if !ok {
 			llvrw.T.Error("Invalid Value instance provided for return value of ReadDBPointer")
-			return "", objectid.ObjectID{}, nil
+			return "", primitive.ObjectID{}, nil
 		}
 		return ns, oid, nil
 	default:
 		llvrw.T.Errorf("Incorrect type provided for return value of ReadDBPointer: %T", llvrw.Return)
-		return "", objectid.ObjectID{}, nil
+		return "", primitive.ObjectID{}, nil
 	}
 }
 
@@ -338,17 +337,17 @@ func (llvrw *ValueReaderWriter) ReadDateTime() (int64, error) {
 }
 
 // ReadDecimal128 implements the bsonrw.ValueReader interface.
-func (llvrw *ValueReaderWriter) ReadDecimal128() (decimal.Decimal128, error) {
+func (llvrw *ValueReaderWriter) ReadDecimal128() (primitive.Decimal128, error) {
 	llvrw.checkdepth()
 	llvrw.Invoked = ReadDecimal128
 	if llvrw.ErrAfter == llvrw.Invoked {
-		return decimal.Decimal128{}, llvrw.Err
+		return primitive.Decimal128{}, llvrw.Err
 	}
 
-	d128, ok := llvrw.Return.(decimal.Decimal128)
+	d128, ok := llvrw.Return.(primitive.Decimal128)
 	if !ok {
 		llvrw.T.Errorf("Incorrect type provided for return value of ReadDecimal128: %T", llvrw.Return)
-		return decimal.Decimal128{}, nil
+		return primitive.Decimal128{}, nil
 	}
 
 	return d128, nil
@@ -454,16 +453,16 @@ func (llvrw *ValueReaderWriter) ReadNull() error {
 }
 
 // ReadObjectID implements the bsonrw.ValueReader interface.
-func (llvrw *ValueReaderWriter) ReadObjectID() (objectid.ObjectID, error) {
+func (llvrw *ValueReaderWriter) ReadObjectID() (primitive.ObjectID, error) {
 	llvrw.checkdepth()
 	llvrw.Invoked = ReadObjectID
 	if llvrw.ErrAfter == llvrw.Invoked {
-		return objectid.ObjectID{}, llvrw.Err
+		return primitive.ObjectID{}, llvrw.Err
 	}
-	oid, ok := llvrw.Return.(objectid.ObjectID)
+	oid, ok := llvrw.Return.(primitive.ObjectID)
 	if !ok {
 		llvrw.T.Errorf("Incorrect type provided for return value of ReadObjectID: %T", llvrw.Return)
-		return objectid.ObjectID{}, nil
+		return primitive.ObjectID{}, nil
 	}
 
 	return oid, nil
@@ -612,7 +611,7 @@ func (llvrw *ValueReaderWriter) WriteCodeWithScope(code string) (bsonrw.Document
 }
 
 // WriteDBPointer implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteDBPointer(ns string, oid objectid.ObjectID) error {
+func (llvrw *ValueReaderWriter) WriteDBPointer(ns string, oid primitive.ObjectID) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteDBPointer
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -632,7 +631,7 @@ func (llvrw *ValueReaderWriter) WriteDateTime(dt int64) error {
 }
 
 // WriteDecimal128 implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteDecimal128(decimal.Decimal128) error {
+func (llvrw *ValueReaderWriter) WriteDecimal128(primitive.Decimal128) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteDecimal128
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -712,7 +711,7 @@ func (llvrw *ValueReaderWriter) WriteNull() error {
 }
 
 // WriteObjectID implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteObjectID(objectid.ObjectID) error {
+func (llvrw *ValueReaderWriter) WriteObjectID(primitive.ObjectID) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteObjectID
 	if llvrw.ErrAfter == llvrw.Invoked {

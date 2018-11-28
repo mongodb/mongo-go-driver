@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 func noerr(t *testing.T, err error) {
@@ -38,7 +38,7 @@ func compareErrors(err1, err2 error) bool {
 	return true
 }
 
-func compareDecimal128(d1, d2 decimal.Decimal128) bool {
+func compareDecimal128(d1, d2 primitive.Decimal128) bool {
 	d1H, d1L := d1.GetBytes()
 	d2H, d2L := d2.GetBytes()
 

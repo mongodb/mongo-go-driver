@@ -15,8 +15,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 func wrapperKeyBSONType(key string) bsontype.Type {
@@ -126,9 +125,9 @@ func (ejv *extJSONValue) parseBinary() (b []byte, subType byte, err error) {
 	return b, subType, nil
 }
 
-func (ejv *extJSONValue) parseDBPointer() (ns string, oid objectid.ObjectID, err error) {
+func (ejv *extJSONValue) parseDBPointer() (ns string, oid primitive.ObjectID, err error) {
 	if ejv.t != bsontype.EmbeddedDocument {
-		return "", objectid.NilObjectID, fmt.Errorf("$dbPointer value should be object, but instead is %s", ejv.t)
+		return "", primitive.NilObjectID, fmt.Errorf("$dbPointer value should be object, but instead is %s", ejv.t)
 	}
 
 	dbpObj := ejv.v.(*extJSONObject)
@@ -141,32 +140,32 @@ func (ejv *extJSONValue) parseDBPointer() (ns string, oid objectid.ObjectID, err
 		switch key {
 		case "$ref":
 			if nsFound {
-				return "", objectid.NilObjectID, errors.New("duplicate $ref key in $dbPointer")
+				return "", primitive.NilObjectID, errors.New("duplicate $ref key in $dbPointer")
 			}
 
 			if val.t != bsontype.String {
-				return "", objectid.NilObjectID, fmt.Errorf("$dbPointer $ref value should be string, but instead is %s", val.t)
+				return "", primitive.NilObjectID, fmt.Errorf("$dbPointer $ref value should be string, but instead is %s", val.t)
 			}
 
 			ns = val.v.(string)
 			nsFound = true
 		case "$id":
 			if oidFound {
-				return "", objectid.NilObjectID, errors.New("duplicate $id key in $dbPointer")
+				return "", primitive.NilObjectID, errors.New("duplicate $id key in $dbPointer")
 			}
 
 			if val.t != bsontype.String {
-				return "", objectid.NilObjectID, fmt.Errorf("$dbPointer $id value should be string, but instead is %s", val.t)
+				return "", primitive.NilObjectID, fmt.Errorf("$dbPointer $id value should be string, but instead is %s", val.t)
 			}
 
-			oid, err = objectid.FromHex(val.v.(string))
+			oid, err = primitive.ObjectIDFromHex(val.v.(string))
 			if err != nil {
-				return "", objectid.NilObjectID, err
+				return "", primitive.NilObjectID, err
 			}
 
 			oidFound = true
 		default:
-			return "", objectid.NilObjectID, fmt.Errorf("invalid key in $dbPointer object: %s", key)
+			return "", primitive.NilObjectID, fmt.Errorf("invalid key in $dbPointer object: %s", key)
 		}
 	}
 
@@ -236,14 +235,14 @@ func parseDatetimeObject(data *extJSONObject) (d int64, err error) {
 	return d, nil
 }
 
-func (ejv *extJSONValue) parseDecimal128() (decimal.Decimal128, error) {
+func (ejv *extJSONValue) parseDecimal128() (primitive.Decimal128, error) {
 	if ejv.t != bsontype.String {
-		return decimal.Decimal128{}, fmt.Errorf("$numberDecimal value should be string, but instead is %s", ejv.t)
+		return primitive.Decimal128{}, fmt.Errorf("$numberDecimal value should be string, but instead is %s", ejv.t)
 	}
 
-	d, err := decimal.ParseDecimal128(ejv.v.(string))
+	d, err := primitive.ParseDecimal128(ejv.v.(string))
 	if err != nil {
-		return decimal.Decimal128{}, fmt.Errorf("$invalid $numberDecimal string: %s", ejv.v.(string))
+		return primitive.Decimal128{}, fmt.Errorf("$invalid $numberDecimal string: %s", ejv.v.(string))
 	}
 
 	return d, nil
@@ -333,12 +332,12 @@ func (ejv *extJSONValue) parseMinMaxKey(minmax string) error {
 	return nil
 }
 
-func (ejv *extJSONValue) parseObjectID() (objectid.ObjectID, error) {
+func (ejv *extJSONValue) parseObjectID() (primitive.ObjectID, error) {
 	if ejv.t != bsontype.String {
-		return objectid.NilObjectID, fmt.Errorf("$oid value should be string, but instead is %s", ejv.t)
+		return primitive.NilObjectID, fmt.Errorf("$oid value should be string, but instead is %s", ejv.t)
 	}
 
-	return objectid.FromHex(ejv.v.(string))
+	return primitive.ObjectIDFromHex(ejv.v.(string))
 }
 
 func (ejv *extJSONValue) parseRegex() (pattern, options string, err error) {

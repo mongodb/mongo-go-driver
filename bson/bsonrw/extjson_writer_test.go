@@ -14,12 +14,11 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 func TestExtJSONValueWriter(t *testing.T) {
-	oid := objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
+	oid := primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 	testCases := []struct {
 		name   string
 		fn     interface{}
@@ -58,7 +57,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 		{
 			"WriteDecimal128",
 			(*extJSONValueWriter).WriteDecimal128,
-			[]interface{}{decimal.NewDecimal128(10, 20)},
+			[]interface{}{primitive.NewDecimal128(10, 20)},
 		},
 		{
 			"WriteDouble",

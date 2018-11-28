@@ -8,8 +8,7 @@ package bsonrw
 
 import (
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 // ArrayWriter is the interface used to create a BSON or BSON adjacent array.
@@ -37,9 +36,9 @@ type ValueWriter interface {
 	WriteBinaryWithSubtype(b []byte, btype byte) error
 	WriteBoolean(bool) error
 	WriteCodeWithScope(code string) (DocumentWriter, error)
-	WriteDBPointer(ns string, oid objectid.ObjectID) error
+	WriteDBPointer(ns string, oid primitive.ObjectID) error
 	WriteDateTime(dt int64) error
-	WriteDecimal128(decimal.Decimal128) error
+	WriteDecimal128(primitive.Decimal128) error
 	WriteDouble(float64) error
 	WriteInt32(int32) error
 	WriteInt64(int64) error
@@ -47,7 +46,7 @@ type ValueWriter interface {
 	WriteMaxKey() error
 	WriteMinKey() error
 	WriteNull() error
-	WriteObjectID(objectid.ObjectID) error
+	WriteObjectID(primitive.ObjectID) error
 	WriteRegex(pattern, options string) error
 	WriteString(string) error
 	WriteDocument() (DocumentWriter, error)

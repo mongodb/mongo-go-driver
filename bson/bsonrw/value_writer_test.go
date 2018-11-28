@@ -17,8 +17,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -41,7 +40,7 @@ func TestNewBSONValueWriter(t *testing.T) {
 
 func TestValueWriter(t *testing.T) {
 	header := []byte{0x00, 0x00, 0x00, 0x00}
-	oid := objectid.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
+	oid := primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 	testCases := []struct {
 		name   string
 		fn     interface{}
@@ -87,8 +86,8 @@ func TestValueWriter(t *testing.T) {
 		{
 			"WriteDecimal128",
 			(*valueWriter).WriteDecimal128,
-			[]interface{}{decimal.NewDecimal128(10, 20)},
-			bsoncore.AppendDecimal128Element(header, "foo", decimal.NewDecimal128(10, 20)),
+			[]interface{}{primitive.NewDecimal128(10, 20)},
+			bsoncore.AppendDecimal128Element(header, "foo", primitive.NewDecimal128(10, 20)),
 		},
 		{
 			"WriteDouble",

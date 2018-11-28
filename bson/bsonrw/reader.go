@@ -8,8 +8,7 @@ package bsonrw
 
 import (
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/decimal"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 // ArrayReader is implemented by types that allow reading values from a BSON
@@ -36,9 +35,9 @@ type ValueReader interface {
 	ReadBoolean() (bool, error)
 	ReadDocument() (DocumentReader, error)
 	ReadCodeWithScope() (code string, dr DocumentReader, err error)
-	ReadDBPointer() (ns string, oid objectid.ObjectID, err error)
+	ReadDBPointer() (ns string, oid primitive.ObjectID, err error)
 	ReadDateTime() (int64, error)
-	ReadDecimal128() (decimal.Decimal128, error)
+	ReadDecimal128() (primitive.Decimal128, error)
 	ReadDouble() (float64, error)
 	ReadInt32() (int32, error)
 	ReadInt64() (int64, error)
@@ -46,7 +45,7 @@ type ValueReader interface {
 	ReadMaxKey() error
 	ReadMinKey() error
 	ReadNull() error
-	ReadObjectID() (objectid.ObjectID, error)
+	ReadObjectID() (primitive.ObjectID, error)
 	ReadRegex() (pattern, options string, err error)
 	ReadString() (string, error)
 	ReadSymbol() (symbol string, err error)

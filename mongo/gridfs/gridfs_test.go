@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/objectid"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo"
@@ -268,7 +268,7 @@ func compareValues(expected bsonx.Val, actual bsonx.Val) bool {
 	return true // shouldn't get here
 }
 
-func compareGfsDoc(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, filesID objectid.ObjectID) {
+func compareGfsDoc(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, filesID primitive.ObjectID) {
 	for _, elem := range expected {
 		key := elem.Key
 
@@ -314,7 +314,7 @@ func compareGfsDoc(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, filesID o
 }
 
 // compare chunks and expectedChunks collections
-func compareChunks(t *testing.T, filesID objectid.ObjectID) {
+func compareChunks(t *testing.T, filesID primitive.ObjectID) {
 	actualCursor, err := chunks.Find(ctx, emptyDoc)
 	testhelpers.RequireNil(t, err, "error running Find for chunks: %s", err)
 	expectedCursor, err := expectedChunks.Find(ctx, emptyDoc)
@@ -357,7 +357,7 @@ func compareFiles(t *testing.T) {
 		err = expectedCursor.Decode(&expectedFile)
 		testhelpers.RequireNil(t, err, "error decoding expected file: %s", err)
 
-		compareGfsDoc(t, expectedFile, actualFile, objectid.ObjectID{})
+		compareGfsDoc(t, expectedFile, actualFile, primitive.ObjectID{})
 	}
 }
 
@@ -378,7 +378,7 @@ func msgToDoc(t *testing.T, msg json.RawMessage) bsonx.Doc {
 	return doc
 }
 
-func runUploadAssert(t *testing.T, test test, fileID objectid.ObjectID) {
+func runUploadAssert(t *testing.T, test test, fileID primitive.ObjectID) {
 	assert := test.Assert
 
 	for _, assertData := range assert.Data {
