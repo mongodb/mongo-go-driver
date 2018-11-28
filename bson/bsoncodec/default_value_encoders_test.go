@@ -431,6 +431,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
+			"EmptyInterfaceEncodeValue",
+			ValueEncoderFunc(dve.EmptyInterfaceEncodeValue),
+			[]subtest{
+				{"interface/nil", nil, nil, nil, bsonrwtest.WriteNull, nil},
+			},
+		},
+		{
 			"ValueMarshalerEncodeValue",
 			ValueEncoderFunc(dve.ValueMarshalerEncodeValue),
 			[]subtest{
