@@ -9,6 +9,7 @@ package bson
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -67,11 +68,16 @@ func (rv RawValue) UnmarshalWithRegistry(r *bsoncodec.Registry, val interface{})
 	}
 
 	vr := bsonrw.NewBSONValueReader(rv.Type, rv.Value)
-	dec, err := r.LookupDecoder(reflect.TypeOf(val))
+	rval := reflect.ValueOf(val)
+	if rval.Kind() != reflect.Ptr {
+		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)
+	}
+	rval = rval.Elem()
+	dec, err := r.LookupDecoder(rval.Type())
 	if err != nil {
 		return err
 	}
-	return dec.DecodeValue(bsoncodec.DecodeContext{Registry: r}, vr, val)
+	return dec.DecodeValue(bsoncodec.DecodeContext{Registry: r}, vr, rval)
 }
 
 func convertFromCoreValue(v bsoncore.Value) RawValue { return RawValue{Type: v.Type, Value: v.Data} }
