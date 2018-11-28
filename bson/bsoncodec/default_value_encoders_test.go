@@ -42,20 +42,10 @@ func TestDefaultValueEncoders(t *testing.T) {
 	type myfloat64 float64
 	type mystring string
 
-	intAllowedTypes := []interface{}{int8(0), int16(0), int32(0), int64(0), int(0)}
-	uintAllowedEncodeTypes := []interface{}{uint8(0), uint16(0), uint32(0), uint64(0), uint(0)}
-
 	now := time.Now().Truncate(time.Millisecond)
 	pjsnum := new(json.Number)
 	*pjsnum = json.Number("3.14159")
 	d128 := primitive.NewDecimal128(12345, 67890)
-
-	var ptimeNil *(time.Time)
-	var pobjectidNil *(primitive.ObjectID)
-	var pd128Nil *(primitive.Decimal128)
-	var pjsnumNil *(json.Number)
-	var purlNil *(url.URL)
-	var pbytesliceNil *[]byte
 
 	type subtest struct {
 		name   string
@@ -81,7 +71,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "BooleanEncodeValue", Types: []interface{}{bool(true)}, Received: wrong},
+					ValueEncoderError{Name: "BooleanEncodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: reflect.ValueOf(wrong)},
 				},
 				{"fast path", bool(true), nil, nil, bsonrwtest.WriteBoolean, nil},
 				{"reflection path", mybool(true), nil, nil, bsonrwtest.WriteBoolean, nil},
@@ -97,7 +87,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "IntEncodeValue", Types: intAllowedTypes, Received: wrong},
+					ValueEncoderError{
+						Name:     "IntEncodeValue",
+						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Received: reflect.ValueOf(wrong),
+					},
 				},
 				{"int8/fast path", int8(127), nil, nil, bsonrwtest.WriteInt32, nil},
 				{"int16/fast path", int16(32767), nil, nil, bsonrwtest.WriteInt32, nil},
@@ -129,7 +123,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "UintEncodeValue", Types: uintAllowedEncodeTypes, Received: wrong},
+					ValueEncoderError{
+						Name:     "UintEncodeValue",
+						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Received: reflect.ValueOf(wrong),
+					},
 				},
 				{"uint8/fast path", uint8(127), nil, nil, bsonrwtest.WriteInt32, nil},
 				{"uint16/fast path", uint16(32767), nil, nil, bsonrwtest.WriteInt32, nil},
@@ -169,7 +167,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "FloatEncodeValue", Types: []interface{}{float32(0), float64(0)}, Received: wrong},
+					ValueEncoderError{
+						Name:     "FloatEncodeValue",
+						Kinds:    []reflect.Kind{reflect.Float32, reflect.Float64},
+						Received: reflect.ValueOf(wrong),
+					},
 				},
 				{"float32/fast path", float32(3.14159), nil, nil, bsonrwtest.WriteDouble, nil},
 				{"float64/fast path", float64(3.14159), nil, nil, bsonrwtest.WriteDouble, nil},
@@ -187,15 +189,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "TimeEncodeValue",
-						Types:    []interface{}{time.Time{}, (*time.Time)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: reflect.ValueOf(wrong)},
 				},
 				{"time.Time", now, nil, nil, bsonrwtest.WriteDateTime, nil},
-				{"*time.Time", &now, nil, nil, bsonrwtest.WriteDateTime, nil},
-				{"*time.Time/nil", ptimeNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -208,7 +204,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					errors.New("MapEncodeValue can only encode maps with string keys"),
+					ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"wrong kind (non-string key)",
@@ -216,7 +212,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					errors.New("MapEncodeValue can only encode maps with string keys"),
+					ValueEncoderError{
+						Name:     "MapEncodeValue",
+						Kinds:    []reflect.Kind{reflect.Map},
+						Received: reflect.ValueOf(map[int]interface{}{}),
+					},
 				},
 				{
 					"WriteDocument Error",
@@ -253,6 +253,60 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
+			"ArrayEncodeValue",
+			ValueEncoderFunc(dve.ArrayEncodeValue),
+			[]subtest{
+				{
+					"wrong kind",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "ArrayEncodeValue", Kinds: []reflect.Kind{reflect.Array}, Received: reflect.ValueOf(wrong)},
+				},
+				{
+					"WriteArray Error",
+					[1]string{},
+					nil,
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("wa error"), ErrAfter: bsonrwtest.WriteArray},
+					bsonrwtest.WriteArray,
+					errors.New("wa error"),
+				},
+				{
+					"Lookup Error",
+					[1]interface{}{},
+					&EncodeContext{Registry: NewRegistryBuilder().Build()},
+					&bsonrwtest.ValueReaderWriter{},
+					bsonrwtest.WriteArray,
+					ErrNoEncoder{Type: reflect.TypeOf((*interface{})(nil)).Elem()},
+				},
+				{
+					"WriteArrayElement Error",
+					[1]string{"foo"},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("wae error"), ErrAfter: bsonrwtest.WriteArrayElement},
+					bsonrwtest.WriteArrayElement,
+					errors.New("wae error"),
+				},
+				{
+					"EncodeValue Error",
+					[1]string{"foo"},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("ev error"), ErrAfter: bsonrwtest.WriteString},
+					bsonrwtest.WriteString,
+					errors.New("ev error"),
+				},
+				{
+					"[1]primitive.E/success",
+					[1]primitive.E{{"hello", "world"}},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
+			},
+		},
+		{
 			"SliceEncodeValue",
 			ValueEncoderFunc(dve.SliceEncodeValue),
 			[]subtest{
@@ -262,7 +316,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					errors.New("SliceEncodeValue can only encode arrays and slices"),
+					ValueEncoderError{Name: "SliceEncodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"WriteArray Error",
@@ -296,6 +350,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.WriteString,
 					errors.New("ev error"),
 				},
+				{
+					"D/success",
+					primitive.D{{"hello", "world"}},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
 			},
 		},
 		{
@@ -308,23 +370,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "ObjectIDEncodeValue",
-						Types:    []interface{}{primitive.ObjectID{}, (*primitive.ObjectID)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "ObjectIDEncodeValue", Types: []reflect.Type{tOID}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"primitive.ObjectID/success",
 					primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					nil, nil, bsonrwtest.WriteObjectID, nil,
 				},
-				{
-					"*primitive.ObjectID/success",
-					&primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-					nil, nil, bsonrwtest.WriteObjectID, nil,
-				},
-				{"*primitive.ObjectID/nil/success", pobjectidNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -337,15 +389,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "Decimal128EncodeValue",
-						Types:    []interface{}{primitive.Decimal128{}, (*primitive.Decimal128)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "Decimal128EncodeValue", Types: []reflect.Type{tDecimal}, Received: reflect.ValueOf(wrong)},
 				},
 				{"Decimal128/success", d128, nil, nil, bsonrwtest.WriteDecimal128, nil},
-				{"*Decimal128/success", &d128, nil, nil, bsonrwtest.WriteDecimal128, nil},
-				{"*Decimal128/nil/success", pd128Nil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -358,11 +404,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "JSONNumberEncodeValue",
-						Types:    []interface{}{json.Number(""), (*json.Number)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "JSONNumberEncodeValue", Types: []reflect.Type{tJSONNumber}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"json.Number/invalid",
@@ -379,12 +421,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					json.Number("3.14159"),
 					nil, nil, bsonrwtest.WriteDouble, nil,
 				},
-				{
-					"*json.Number/int64/success",
-					pjsnum,
-					nil, nil, bsonrwtest.WriteDouble, nil,
-				},
-				{"*json.Number/nil/success", pjsnumNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -397,15 +433,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "URLEncodeValue",
-						Types:    []interface{}{url.URL{}, (*url.URL)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "URLEncodeValue", Types: []reflect.Type{tURL}, Received: reflect.ValueOf(wrong)},
 				},
 				{"url.URL", url.URL{Scheme: "http", Host: "example.com"}, nil, nil, bsonrwtest.WriteString, nil},
-				{"*url.URL", &url.URL{Scheme: "http", Host: "example.com"}, nil, nil, bsonrwtest.WriteString, nil},
-				{"*url.URL/nil", purlNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
@@ -418,22 +448,24 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "ByteSliceEncodeValue",
-						Types:    []interface{}{[]byte{}, (*[]byte)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: reflect.ValueOf(wrong)},
 				},
 				{"[]byte", []byte{0x01, 0x02, 0x03}, nil, nil, bsonrwtest.WriteBinary, nil},
-				{"*[]byte", &([]byte{0x01, 0x02, 0x03}), nil, nil, bsonrwtest.WriteBinary, nil},
-				{"*[]byte/nil", pbytesliceNil, nil, nil, bsonrwtest.WriteNull, nil},
+				{"[]byte/nil", []byte(nil), nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
 			"EmptyInterfaceEncodeValue",
 			ValueEncoderFunc(dve.EmptyInterfaceEncodeValue),
 			[]subtest{
-				{"interface/nil", nil, nil, nil, bsonrwtest.WriteNull, nil},
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(wrong)},
+				},
 			},
 		},
 		{
@@ -448,8 +480,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.Nothing,
 					ValueEncoderError{
 						Name:     "ValueMarshalerEncodeValue",
-						Types:    []interface{}{(ValueMarshaler)(nil)},
-						Received: wrong,
+						Types:    []reflect.Type{tValueMarshaler},
+						Received: reflect.ValueOf(wrong),
 					},
 				},
 				{
@@ -488,11 +520,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "MarshalerEncodeValue",
-						Types:    []interface{}{(ValueMarshaler)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "MarshalerEncodeValue", Types: []reflect.Type{tMarshaler}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"MarshalBSON error",
@@ -522,11 +550,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "ProxyEncodeValue",
-						Types:    []interface{}{(Proxy)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"Proxy error",
@@ -542,7 +566,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					bsonrwtest.Nothing,
-					ErrNilType,
+					ErrNoEncoder{Type: nil},
 				},
 				{
 					"success",
@@ -551,6 +575,309 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					bsonrwtest.WriteInt64,
 					nil,
+				},
+			},
+		},
+		{
+			"PointerCodec.EncodeValue",
+			NewPointerCodec(),
+			[]subtest{
+				{
+					"nil",
+					nil,
+					nil,
+					nil,
+					bsonrwtest.WriteNull,
+					nil,
+				},
+				{
+					"not pointer",
+					int32(123456),
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "PointerCodec.EncodeValue", Kinds: []reflect.Kind{reflect.Ptr}, Received: reflect.ValueOf(int32(123456))},
+				},
+				{
+					"typed nil",
+					(*int32)(nil),
+					nil,
+					nil,
+					bsonrwtest.WriteNull,
+					nil,
+				},
+				{
+					"no encoder",
+					&wrong,
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.Nothing,
+					ErrNoEncoder{Type: reflect.TypeOf(wrong)},
+				},
+			},
+		},
+		{
+			"JavaScriptEncodeValue",
+			ValueEncoderFunc(dve.JavaScriptEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "JavaScriptEncodeValue", Types: []reflect.Type{tJavaScript}, Received: reflect.ValueOf(wrong)},
+				},
+				{"JavaScript", primitive.JavaScript("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
+			},
+		},
+		{
+			"SymbolEncodeValue",
+			ValueEncoderFunc(dve.SymbolEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "SymbolEncodeValue", Types: []reflect.Type{tSymbol}, Received: reflect.ValueOf(wrong)},
+				},
+				{"Symbol", primitive.Symbol("foobar"), nil, nil, bsonrwtest.WriteSymbol, nil},
+			},
+		},
+		{
+			"BinaryEncodeValue",
+			ValueEncoderFunc(dve.BinaryEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "BinaryEncodeValue", Types: []reflect.Type{tBinary}, Received: reflect.ValueOf(wrong)},
+				},
+				{"Binary/success", primitive.Binary{Data: []byte{0x01, 0x02}, Subtype: 0xFF}, nil, nil, bsonrwtest.WriteBinaryWithSubtype, nil},
+			},
+		},
+		{
+			"UndefinedEncodeValue",
+			ValueEncoderFunc(dve.UndefinedEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "UndefinedEncodeValue", Types: []reflect.Type{tUndefined}, Received: reflect.ValueOf(wrong)},
+				},
+				{"Undefined/success", primitive.Undefined{}, nil, nil, bsonrwtest.WriteUndefined, nil},
+			},
+		},
+		{
+			"DateTimeEncodeValue",
+			ValueEncoderFunc(dve.DateTimeEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "DateTimeEncodeValue", Types: []reflect.Type{tDateTime}, Received: reflect.ValueOf(wrong)},
+				},
+				{"DateTime/success", primitive.DateTime(1234567890), nil, nil, bsonrwtest.WriteDateTime, nil},
+			},
+		},
+		{
+			"NullEncodeValue",
+			ValueEncoderFunc(dve.NullEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "NullEncodeValue", Types: []reflect.Type{tNull}, Received: reflect.ValueOf(wrong)},
+				},
+				{"Null/success", primitive.Null{}, nil, nil, bsonrwtest.WriteNull, nil},
+			},
+		},
+		{
+			"RegexEncodeValue",
+			ValueEncoderFunc(dve.RegexEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "RegexEncodeValue", Types: []reflect.Type{tRegex}, Received: reflect.ValueOf(wrong)},
+				},
+				{"Regex/success", primitive.Regex{Pattern: "foo", Options: "bar"}, nil, nil, bsonrwtest.WriteRegex, nil},
+			},
+		},
+		{
+			"DBPointerEncodeValue",
+			ValueEncoderFunc(dve.DBPointerEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "DBPointerEncodeValue", Types: []reflect.Type{tDBPointer}, Received: reflect.ValueOf(wrong)},
+				},
+				{
+					"DBPointer/success",
+					primitive.DBPointer{
+						DB:      "foobar",
+						Pointer: primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
+					},
+					nil, nil, bsonrwtest.WriteDBPointer, nil,
+				},
+			},
+		},
+		{
+			"TimestampEncodeValue",
+			ValueEncoderFunc(dve.TimestampEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "TimestampEncodeValue", Types: []reflect.Type{tTimestamp}, Received: reflect.ValueOf(wrong)},
+				},
+				{"Timestamp/success", primitive.Timestamp{T: 12345, I: 67890}, nil, nil, bsonrwtest.WriteTimestamp, nil},
+			},
+		},
+		{
+			"MinKeyEncodeValue",
+			ValueEncoderFunc(dve.MinKeyEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "MinKeyEncodeValue", Types: []reflect.Type{tMinKey}, Received: reflect.ValueOf(wrong)},
+				},
+				{"MinKey/success", primitive.MinKey{}, nil, nil, bsonrwtest.WriteMinKey, nil},
+			},
+		},
+		{
+			"MaxKeyEncodeValue",
+			ValueEncoderFunc(dve.MaxKeyEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{Name: "MaxKeyEncodeValue", Types: []reflect.Type{tMaxKey}, Received: reflect.ValueOf(wrong)},
+				},
+				{"MaxKey/success", primitive.MaxKey{}, nil, nil, bsonrwtest.WriteMaxKey, nil},
+			},
+		},
+		{
+			"CoreDocumentEncodeValue",
+			ValueEncoderFunc(dve.CoreDocumentEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{
+						Name:     "CoreDocumentEncodeValue",
+						Types:    []reflect.Type{tCoreDocument},
+						Received: reflect.ValueOf(wrong),
+					},
+				},
+				{
+					"WriteDocument Error",
+					bsoncore.Document{},
+					nil,
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("wd error"), ErrAfter: bsonrwtest.WriteDocument},
+					bsonrwtest.WriteDocument,
+					errors.New("wd error"),
+				},
+				{
+					"bsoncore.Document.Elements Error",
+					bsoncore.Document{0xFF, 0x00, 0x00, 0x00, 0x00},
+					nil,
+					&bsonrwtest.ValueReaderWriter{},
+					bsonrwtest.WriteDocument,
+					errors.New("length read exceeds number of bytes available. length=5 bytes=255"),
+				},
+				{
+					"WriteDocumentElement Error",
+					bsoncore.Document(buildDocument(bsoncore.AppendNullElement(nil, "foo"))),
+					nil,
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("wde error"), ErrAfter: bsonrwtest.WriteDocumentElement},
+					bsonrwtest.WriteDocumentElement,
+					errors.New("wde error"),
+				},
+				{
+					"encodeValue error",
+					bsoncore.Document(buildDocument(bsoncore.AppendNullElement(nil, "foo"))),
+					nil,
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("ev error"), ErrAfter: bsonrwtest.WriteNull},
+					bsonrwtest.WriteNull,
+					errors.New("ev error"),
+				},
+				{
+					"iterator error",
+					bsoncore.Document{0x0C, 0x00, 0x00, 0x00, 0x01, 'f', 'o', 'o', 0x00, 0x01, 0x02, 0x03},
+					nil,
+					&bsonrwtest.ValueReaderWriter{},
+					bsonrwtest.WriteDocumentElement,
+					errors.New("not enough bytes available to read type. bytes=3 type=double"),
+				},
+			},
+		},
+		{
+			"CodeWithScopeEncodeValue",
+			ValueEncoderFunc(dve.CodeWithScopeEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{
+						Name:     "CodeWithScopeEncodeValue",
+						Types:    []reflect.Type{tCodeWithScope},
+						Received: reflect.ValueOf(wrong),
+					},
+				},
+				{
+					"WriteCodeWithScope error",
+					primitive.CodeWithScope{},
+					nil,
+					&bsonrwtest.ValueReaderWriter{Err: errors.New("wcws error"), ErrAfter: bsonrwtest.WriteCodeWithScope},
+					bsonrwtest.WriteCodeWithScope,
+					errors.New("wcws error"),
+				},
+				{
+					"CodeWithScope/success",
+					primitive.CodeWithScope{
+						Code:  "var hello = 'world';",
+						Scope: primitive.D{},
+					},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil, bsonrwtest.WriteDocumentEnd, nil,
 				},
 			},
 		},
@@ -569,7 +896,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 						llvrw = subtest.llvrw
 					}
 					llvrw.T = t
-					err := tc.ve.EncodeValue(ec, llvrw, subtest.val)
+					err := tc.ve.EncodeValue(ec, llvrw, reflect.ValueOf(subtest.val))
 					if !compareErrors(err, subtest.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
 					}
@@ -807,6 +1134,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AE testValueMarshaler
 					AF Proxy
 					AG testProxy
+					AH map[string]interface{}
+					AI primitive.CodeWithScope
 				}{
 					A: true,
 					B: 123,
@@ -834,6 +1163,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AE: testValueMarshaler{t: bsontype.String, buf: bsoncore.AppendString(nil, "hello, world")},
 					AF: testProxy{ret: struct{ Hello string }{Hello: "world!"}},
 					AG: testProxy{ret: struct{ Pi float64 }{Pi: 3.14159}},
+					AH: nil,
+					AI: primitive.CodeWithScope{Code: "var hello = 'world';", Scope: primitive.D{{"pi", 3.14159}}},
 				},
 				buildDocument(func(doc []byte) []byte {
 					doc = bsoncore.AppendBooleanElement(doc, "a", true)
@@ -860,6 +1191,10 @@ func TestDefaultValueEncoders(t *testing.T) {
 					doc = bsoncore.AppendStringElement(doc, "ae", "hello, world")
 					doc = bsoncore.AppendDocumentElement(doc, "af", buildDocument(bsoncore.AppendStringElement(nil, "hello", "world!")))
 					doc = bsoncore.AppendDocumentElement(doc, "ag", buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)))
+					doc = bsoncore.AppendNullElement(doc, "ah")
+					doc = bsoncore.AppendCodeWithScopeElement(doc, "ai",
+						"var hello = 'world';", buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
+					)
 					return doc
 				}(nil)),
 				nil,
@@ -1014,7 +1349,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)
-				err = enc.EncodeValue(EncodeContext{Registry: reg}, vw, tc.value)
+				err = enc.EncodeValue(EncodeContext{Registry: reg}, vw, reflect.ValueOf(tc.value))
 				if err != tc.err {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
@@ -1024,6 +1359,27 @@ func TestDefaultValueEncoders(t *testing.T) {
 					t.Errorf("Readers\ngot: %v\nwant:%v\n", bsoncore.Document(b), bsoncore.Document(tc.b))
 				}
 			})
+		}
+	})
+
+	t.Run("EmptyInterfaceEncodeValue/nil", func(t *testing.T) {
+		val := reflect.New(tEmpty).Elem()
+		llvrw := new(bsonrwtest.ValueReaderWriter)
+		err := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: NewRegistryBuilder().Build()}, llvrw, val)
+		noerr(t, err)
+		if llvrw.Invoked != bsonrwtest.WriteNull {
+			t.Errorf("Incorrect method called. got %v; want %v", llvrw.Invoked, bsonrwtest.WriteNull)
+		}
+	})
+
+	t.Run("EmptyInterfaceEncodeValue/LookupEncoder error", func(t *testing.T) {
+		val := reflect.New(tEmpty).Elem()
+		val.Set(reflect.ValueOf(int64(1234567890)))
+		llvrw := new(bsonrwtest.ValueReaderWriter)
+		got := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: NewRegistryBuilder().Build()}, llvrw, val)
+		want := ErrNoEncoder{Type: tInt64}
+		if !compareErrors(got, want) {
+			t.Errorf("Did not recieve expected error. got %v; want %v", got, want)
 		}
 	})
 }

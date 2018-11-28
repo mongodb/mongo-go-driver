@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -61,7 +62,7 @@ type parseErrorTestCase struct {
 
 const dataDir = "../data"
 
-var pc PrimitiveCodecs
+var pc bsonx.PrimitiveCodecs
 var dvd bsoncodec.DefaultValueDecoders
 var dve bsoncodec.DefaultValueEncoders
 
@@ -163,10 +164,10 @@ func normalizeRelaxedDouble(t *testing.T, key string, rEJ string) string {
 
 // bsonToNative decodes the BSON bytes (b) into a native Document
 func bsonToNative(t *testing.T, b []byte, bType, testDesc string) bsonx.Doc {
-	var doc bsonx.Doc
-	err := pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
+	doc := reflect.New(reflect.TypeOf(bsonx.Doc{})).Elem()
+	err := pc.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), doc)
 	expectNoError(t, err, fmt.Sprintf("%s: decoding %s BSON", testDesc, bType))
-	return doc
+	return doc.Interface().(bsonx.Doc)
 }
 
 // nativeToBSON encodes the native Document (doc) into canonical BSON and compares it to the expected
@@ -175,7 +176,7 @@ func nativeToBSON(t *testing.T, cB []byte, doc bsonx.Doc, testDesc, bType, docSr
 	actualB := new(bytes.Buffer)
 	vw, err := bsonrw.NewBSONValueWriter(actualB)
 	expectNoError(t, err, fmt.Sprintf("%s: creating ValueWriter", testDesc))
-	err = pc.x.DocumentEncodeValue(ec, vw, doc)
+	err = pc.DocumentEncodeValue(ec, vw, reflect.ValueOf(doc))
 	expectNoError(t, err, fmt.Sprintf("%s: encoding %s BSON", testDesc, bType))
 
 	if diff := cmp.Diff(cB, actualB.Bytes()); diff != "" {
@@ -299,8 +300,8 @@ func runTest(t *testing.T, file string) {
 			b, err := hex.DecodeString(d.Bson)
 			expectNoError(t, err, d.Description)
 
-			var doc bsonx.Doc
-			err = pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
+			doc := reflect.New(reflect.TypeOf(bsonx.Doc{})).Elem()
+			err = pc.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), doc)
 			expectError(t, err, fmt.Sprintf("%s: expected decode error", d.Description))
 		}
 

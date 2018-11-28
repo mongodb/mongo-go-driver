@@ -53,6 +53,17 @@ func (c Copier) CopyDocumentFromBytes(dst ValueWriter, src []byte) error {
 		return err
 	}
 
+	err = c.CopyBytesToDocumentWriter(dw, src)
+	if err != nil {
+		return err
+	}
+
+	return dw.WriteDocumentEnd()
+}
+
+// CopyBytesToDocumentWriter copies the values from a BSON document represented as a []byte to a
+// DocumentWriter.
+func (c Copier) CopyBytesToDocumentWriter(dst DocumentWriter, src []byte) error {
 	// TODO(skriptble): Create errors types here. Anything thats a tag should be a property.
 	length, rem, ok := bsoncore.ReadLength(src)
 	if !ok {
@@ -82,7 +93,7 @@ func (c Copier) CopyDocumentFromBytes(dst ValueWriter, src []byte) error {
 		if !ok {
 			return fmt.Errorf("invalid key found. remaining bytes=%v", rem)
 		}
-		dvw, err := dw.WriteDocumentElement(key)
+		dvw, err := dst.WriteDocumentElement(key)
 		if err != nil {
 			return err
 		}
@@ -95,8 +106,7 @@ func (c Copier) CopyDocumentFromBytes(dst ValueWriter, src []byte) error {
 			return err
 		}
 	}
-
-	return dw.WriteDocumentEnd()
+	return nil
 }
 
 // CopyDocumentToBytes copies an entire document from the ValueReader and
