@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
 func TestRegistry(t *testing.T) {
@@ -50,7 +51,7 @@ func TestRegistry(t *testing.T) {
 				RegisterEncoder(reflect.TypeOf(ft4), fc4)
 			want := []struct {
 				t reflect.Type
-				c ValueEncoder
+				c ValueEncoderLegacy
 			}{
 				{reflect.TypeOf(ft1), fc3},
 				{reflect.TypeOf(ft2), fc2},
@@ -77,7 +78,7 @@ func TestRegistry(t *testing.T) {
 				RegisterDefaultEncoder(k4, fc4)
 			want := []struct {
 				k reflect.Kind
-				c ValueEncoder
+				c ValueEncoderLegacy
 			}{
 				{k1, fc3},
 				{k2, fc2},
@@ -151,7 +152,7 @@ func TestRegistry(t *testing.T) {
 		})
 		t.Run("Lookup", func(t *testing.T) {
 			type Codec interface {
-				ValueEncoder
+				ValueEncoderLegacy
 				ValueDecoder
 			}
 
@@ -298,6 +299,38 @@ func TestRegistry(t *testing.T) {
 			}
 		})
 	})
+	t.Run("Type Map", func(t *testing.T) {
+		reg := NewRegistryBuilder().
+			RegisterTypeMapEntry(bsontype.String, reflect.TypeOf(string(""))).
+			RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int(0))).
+			Build()
+
+		var got, want reflect.Type
+
+		want = reflect.TypeOf(string(""))
+		got, err := reg.LookupTypeMapEntry(bsontype.String)
+		noerr(t, err)
+		if got != want {
+			t.Errorf("Did not get expected type. got %v; want %v", got, want)
+		}
+
+		want = reflect.TypeOf(int(0))
+		got, err = reg.LookupTypeMapEntry(bsontype.Int32)
+		noerr(t, err)
+		if got != want {
+			t.Errorf("Did not get expected type. got %v; want %v", got, want)
+		}
+
+		want = nil
+		wanterr := ErrNoTypeMapEntry{Type: bsontype.ObjectID}
+		got, err = reg.LookupTypeMapEntry(bsontype.ObjectID)
+		if err != wanterr {
+			t.Errorf("Did not get expected error. got %v; want %v", err, wanterr)
+		}
+		if got != want {
+			t.Errorf("Did not get expected type. got %v; want %v", got, want)
+		}
+	})
 }
 
 type fakeType1 struct{ b bool }
@@ -311,8 +344,12 @@ type fakeMapCodec struct{ fakeCodec }
 
 type fakeCodec struct{ num int }
 
-func (fc fakeCodec) EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error { return nil }
-func (fc fakeCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error { return nil }
+func (fc fakeCodec) EncodeValueLegacy(EncodeContext, bsonrw.ValueWriter, interface{}) error {
+	return nil
+}
+func (fc fakeCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, reflect.Value) error {
+	return nil
+}
 
 type testInterface1 interface{ test1() }
 type testInterface2 interface{ test2() }

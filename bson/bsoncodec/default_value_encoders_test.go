@@ -42,16 +42,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 	type myfloat64 float64
 	type mystring string
 
-	intAllowedTypes := []interface{}{int8(0), int16(0), int32(0), int64(0), int(0)}
-	uintAllowedEncodeTypes := []interface{}{uint8(0), uint16(0), uint32(0), uint64(0), uint(0)}
-
 	now := time.Now().Truncate(time.Millisecond)
 	pjsnum := new(json.Number)
 	*pjsnum = json.Number("3.14159")
 	d128 := primitive.NewDecimal128(12345, 67890)
 
 	var ptimeNil *(time.Time)
-	var pobjectidNil *(primitive.ObjectID)
 	var pd128Nil *(primitive.Decimal128)
 	var pjsnumNil *(json.Number)
 	var purlNil *(url.URL)
@@ -68,7 +64,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		ve       ValueEncoder
+		ve       ValueEncoderLegacy
 		subtests []subtest
 	}{
 		{
@@ -81,7 +77,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "BooleanEncodeValue", Types: []interface{}{bool(true)}, Received: wrong},
+					ValueEncoderError{Name: "BooleanEncodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: reflect.ValueOf(wrong)},
 				},
 				{"fast path", bool(true), nil, nil, bsonrwtest.WriteBoolean, nil},
 				{"reflection path", mybool(true), nil, nil, bsonrwtest.WriteBoolean, nil},
@@ -97,7 +93,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "IntEncodeValue", Types: intAllowedTypes, Received: wrong},
+					ValueEncoderError{
+						Name:     "IntEncodeValue",
+						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Received: reflect.ValueOf(wrong),
+					},
 				},
 				{"int8/fast path", int8(127), nil, nil, bsonrwtest.WriteInt32, nil},
 				{"int16/fast path", int16(32767), nil, nil, bsonrwtest.WriteInt32, nil},
@@ -129,7 +129,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "UintEncodeValue", Types: uintAllowedEncodeTypes, Received: wrong},
+					ValueEncoderError{
+						Name:     "UintEncodeValue",
+						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Received: reflect.ValueOf(wrong),
+					},
 				},
 				{"uint8/fast path", uint8(127), nil, nil, bsonrwtest.WriteInt32, nil},
 				{"uint16/fast path", uint16(32767), nil, nil, bsonrwtest.WriteInt32, nil},
@@ -169,7 +173,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "FloatEncodeValue", Types: []interface{}{float32(0), float64(0)}, Received: wrong},
+					ValueEncoderError{
+						Name:     "FloatEncodeValue",
+						Kinds:    []reflect.Kind{reflect.Float32, reflect.Float64},
+						Received: reflect.ValueOf(wrong),
+					},
 				},
 				{"float32/fast path", float32(3.14159), nil, nil, bsonrwtest.WriteDouble, nil},
 				{"float64/fast path", float64(3.14159), nil, nil, bsonrwtest.WriteDouble, nil},
@@ -179,7 +187,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimeEncodeValue",
-			ValueEncoderFunc(dve.TimeEncodeValue),
+			ValueEncoderLegacyFunc(dve.TimeEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -187,7 +195,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
+					LegacyValueEncoderError{
 						Name:     "TimeEncodeValue",
 						Types:    []interface{}{time.Time{}, (*time.Time)(nil)},
 						Received: wrong,
@@ -200,7 +208,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MapEncodeValue",
-			ValueEncoderFunc(dve.MapEncodeValue),
+			ValueEncoderLegacyFunc(dve.MapEncodeValue),
 			[]subtest{
 				{
 					"wrong kind",
@@ -254,7 +262,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"SliceEncodeValue",
-			ValueEncoderFunc(dve.SliceEncodeValue),
+			ValueEncoderLegacyFunc(dve.SliceEncodeValue),
 			[]subtest{
 				{
 					"wrong kind",
@@ -308,28 +316,18 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
-						Name:     "ObjectIDEncodeValue",
-						Types:    []interface{}{primitive.ObjectID{}, (*primitive.ObjectID)(nil)},
-						Received: wrong,
-					},
+					ValueEncoderError{Name: "ObjectIDEncodeValue", Types: []reflect.Type{tOID}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"primitive.ObjectID/success",
 					primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 					nil, nil, bsonrwtest.WriteObjectID, nil,
 				},
-				{
-					"*primitive.ObjectID/success",
-					&primitive.ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-					nil, nil, bsonrwtest.WriteObjectID, nil,
-				},
-				{"*primitive.ObjectID/nil/success", pobjectidNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
 			"Decimal128EncodeValue",
-			ValueEncoderFunc(dve.Decimal128EncodeValue),
+			ValueEncoderLegacyFunc(dve.Decimal128EncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -337,7 +335,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
+					LegacyValueEncoderError{
 						Name:     "Decimal128EncodeValue",
 						Types:    []interface{}{primitive.Decimal128{}, (*primitive.Decimal128)(nil)},
 						Received: wrong,
@@ -350,7 +348,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"JSONNumberEncodeValue",
-			ValueEncoderFunc(dve.JSONNumberEncodeValue),
+			ValueEncoderLegacyFunc(dve.JSONNumberEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -358,7 +356,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
+					LegacyValueEncoderError{
 						Name:     "JSONNumberEncodeValue",
 						Types:    []interface{}{json.Number(""), (*json.Number)(nil)},
 						Received: wrong,
@@ -389,7 +387,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"URLEncodeValue",
-			ValueEncoderFunc(dve.URLEncodeValue),
+			ValueEncoderLegacyFunc(dve.URLEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -397,7 +395,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
+					LegacyValueEncoderError{
 						Name:     "URLEncodeValue",
 						Types:    []interface{}{url.URL{}, (*url.URL)(nil)},
 						Received: wrong,
@@ -410,7 +408,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ByteSliceEncodeValue",
-			ValueEncoderFunc(dve.ByteSliceEncodeValue),
+			ValueEncoderLegacyFunc(dve.ByteSliceEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -418,7 +416,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
+					LegacyValueEncoderError{
 						Name:     "ByteSliceEncodeValue",
 						Types:    []interface{}{[]byte{}, (*[]byte)(nil)},
 						Received: wrong,
@@ -431,14 +429,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"EmptyInterfaceEncodeValue",
-			ValueEncoderFunc(dve.EmptyInterfaceEncodeValue),
+			ValueEncoderLegacyFunc(dve.EmptyInterfaceEncodeValue),
 			[]subtest{
 				{"interface/nil", nil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
 		{
 			"ValueMarshalerEncodeValue",
-			ValueEncoderFunc(dve.ValueMarshalerEncodeValue),
+			ValueEncoderLegacyFunc(dve.ValueMarshalerEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -446,7 +444,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
+					LegacyValueEncoderError{
 						Name:     "ValueMarshalerEncodeValue",
 						Types:    []interface{}{(ValueMarshaler)(nil)},
 						Received: wrong,
@@ -480,7 +478,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MarshalerEncodeValue",
-			ValueEncoderFunc(dve.MarshalerEncodeValue),
+			ValueEncoderLegacyFunc(dve.MarshalerEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -488,7 +486,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
+					LegacyValueEncoderError{
 						Name:     "MarshalerEncodeValue",
 						Types:    []interface{}{(ValueMarshaler)(nil)},
 						Received: wrong,
@@ -514,7 +512,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ProxyEncodeValue",
-			ValueEncoderFunc(dve.ProxyEncodeValue),
+			ValueEncoderLegacyFunc(dve.ProxyEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -522,7 +520,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{
+					LegacyValueEncoderError{
 						Name:     "ProxyEncodeValue",
 						Types:    []interface{}{(Proxy)(nil)},
 						Received: wrong,
@@ -572,7 +570,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					ValueEncoderError{Name: "PointerCodec.EncodeValue", Types: []interface{}{reflect.Ptr}, Received: int32(123456)},
+					LegacyValueEncoderError{Name: "PointerCodec.EncodeValue", Types: []interface{}{reflect.Ptr}, Received: int32(123456)},
 				},
 				{
 					"typed nil",
@@ -607,7 +605,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 						llvrw = subtest.llvrw
 					}
 					llvrw.T = t
-					err := tc.ve.EncodeValue(ec, llvrw, subtest.val)
+					err := tc.ve.EncodeValueLegacy(ec, llvrw, subtest.val)
 					if !compareErrors(err, subtest.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
 					}
@@ -1052,7 +1050,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)
-				err = enc.EncodeValue(EncodeContext{Registry: reg}, vw, tc.value)
+				err = enc.EncodeValueLegacy(EncodeContext{Registry: reg}, vw, tc.value)
 				if err != tc.err {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
