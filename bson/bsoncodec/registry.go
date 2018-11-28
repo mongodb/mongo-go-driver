@@ -10,6 +10,8 @@ import (
 	"errors"
 	"reflect"
 	"sync"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
 // ErrNilType is returned when nil is passed to either LookupEncoder or LookupDecoder.
@@ -39,6 +41,15 @@ func (end ErrNoDecoder) Error() string {
 	return "no decoder found for " + end.Type.String()
 }
 
+// ErrNoTypeMapEntry is returned when there wasn't a type available for the provided BSON type.
+type ErrNoTypeMapEntry struct {
+	Type bsontype.Type
+}
+
+func (entme ErrNoTypeMapEntry) Error() string {
+	return "no type map entry found for " + entme.Type.String()
+}
+
 // ErrNotInterface is returned when the provided type is not an interface.
 var ErrNotInterface = errors.New("The provided type is not an interface")
 
@@ -58,6 +69,8 @@ type RegistryBuilder struct {
 	typeDecoders      map[reflect.Type]ValueDecoder
 	interfaceDecoders []interfaceValueDecoder
 	kindDecoders      map[reflect.Kind]ValueDecoder
+
+	typeMap map[bsontype.Type]reflect.Type
 }
 
 // A Registry is used to store and retrieve codecs for types and interfaces. This type is the main
@@ -71,6 +84,8 @@ type Registry struct {
 
 	kindEncoders map[reflect.Kind]ValueEncoder
 	kindDecoders map[reflect.Kind]ValueDecoder
+
+	typeMap map[bsontype.Type]reflect.Type
 
 	mu sync.RWMutex
 }
@@ -86,6 +101,8 @@ func NewRegistryBuilder() *RegistryBuilder {
 
 		kindEncoders: make(map[reflect.Kind]ValueEncoder),
 		kindDecoders: make(map[reflect.Kind]ValueDecoder),
+
+		typeMap: make(map[bsontype.Type]reflect.Type),
 	}
 }
 
@@ -133,6 +150,10 @@ func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoder) *Re
 // The type registered will be used directly, so a decoder can be registered for a type and a
 // different decoder can be registered for a pointer to that type.
 func (rb *RegistryBuilder) RegisterDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
+	if t == nil {
+		rb.typeDecoders[nil] = dec
+		return rb
+	}
 	if t == tEmpty {
 		rb.typeDecoders[t] = dec
 		return rb
@@ -167,6 +188,14 @@ func (rb *RegistryBuilder) RegisterDefaultDecoder(kind reflect.Kind, dec ValueDe
 	return rb
 }
 
+// RegisterTypeMapEntry will register the provided type to the BSON type. The primary usage for this
+// mapping is decoding situations where an empty interface is used and a default type needs to be
+// created and decoded into.
+func (rb *RegistryBuilder) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Type) *RegistryBuilder {
+	rb.typeMap[bt] = rt
+	return rb
+}
+
 // Build creates a Registry from the current state of this RegistryBuilder.
 func (rb *RegistryBuilder) Build() *Registry {
 	registry := new(Registry)
@@ -195,6 +224,11 @@ func (rb *RegistryBuilder) Build() *Registry {
 	registry.kindDecoders = make(map[reflect.Kind]ValueDecoder)
 	for kind, dec := range rb.kindDecoders {
 		registry.kindDecoders[kind] = dec
+	}
+
+	registry.typeMap = make(map[bsontype.Type]reflect.Type)
+	for bt, rt := range rb.typeMap {
+		registry.typeMap[bt] = rt
 	}
 
 	return registry
@@ -335,6 +369,16 @@ func (r *Registry) lookupInterfaceDecoder(t reflect.Type) (ValueDecoder, bool) {
 		return idec.vd, true
 	}
 	return nil, false
+}
+
+// LookupTypeMapEntry inspects the registry's type map for a Go type for the corresponding BSON
+// type. If no type is found, ErrNoTypeMapEntry is returned.
+func (r *Registry) LookupTypeMapEntry(bt bsontype.Type) (reflect.Type, error) {
+	t, ok := r.typeMap[bt]
+	if !ok || t == nil {
+		return nil, ErrNoTypeMapEntry{Type: bt}
+	}
+	return t, nil
 }
 
 type interfaceValueEncoder struct {

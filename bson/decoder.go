@@ -62,15 +62,16 @@ func (d *Decoder) Decode(val interface{}) error {
 		return unmarshaler.UnmarshalBSON(buf)
 	}
 
-	rval := reflect.TypeOf(val)
+	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Decode must be a pointer to a type, but got %v", rval)
 	}
-	decoder, err := d.r.LookupDecoder(rval.Elem())
+	rval = rval.Elem()
+	decoder, err := d.r.LookupDecoder(rval.Type())
 	if err != nil {
 		return err
 	}
-	return decoder.DecodeValue(bsoncodec.DecodeContext{Registry: d.r}, d.vr, val)
+	return decoder.DecodeValue(bsoncodec.DecodeContext{Registry: d.r}, d.vr, rval)
 }
 
 // Reset will reset the state of the decoder, using the same *Registry used in
