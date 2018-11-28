@@ -48,6 +48,23 @@
     },
     {
       "key": {
+        "uuid": "9353b401_34507a2f",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-28T02:30:11Z",
+      "side": 1,
+      "message": "Why are we turning it into a []byte? Can we not use a ValueWriter that will turn it into bsonx.Doc? bsonrw.CopyDocument seems like it might do the trick here.",
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fcb7837d_e17d276e",
         "filename": "mongo/mongo.go",
         "patchSetId": 1
