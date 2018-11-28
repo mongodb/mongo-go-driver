@@ -34,7 +34,7 @@ type StructCodec struct {
 	parser StructTagParser
 }
 
-var _ ValueEncoder = &StructCodec{}
+var _ ValueEncoderLegacy = &StructCodec{}
 var _ ValueDecoder = &StructCodec{}
 
 // NewStructCodec returns a StructCodec that uses p for struct tag parsing.
@@ -49,8 +49,8 @@ func NewStructCodec(p StructTagParser) (*StructCodec, error) {
 	}, nil
 }
 
-// EncodeValue handles encoding generic struct types.
-func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
+// EncodeValueLegacy handles encoding generic struct types.
+func (sc *StructCodec) EncodeValueLegacy(r EncodeContext, vw bsonrw.ValueWriter, i interface{}) error {
 	val := reflect.ValueOf(i)
 	for {
 		if val.Kind() == reflect.Ptr {
@@ -103,7 +103,7 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i int
 		}
 
 		ectx := EncodeContext{Registry: r.Registry, MinSize: desc.minSize}
-		err = encoder.EncodeValue(ectx, vw2, rv.Interface())
+		err = encoder.EncodeValueLegacy(ectx, vw2, rv.Interface())
 		if err != nil {
 			return err
 		}
@@ -122,23 +122,18 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, i int
 	return dw.WriteDocumentEnd()
 }
 
-// DecodeValue implements the Codec interface.
-func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+func (sc *StructCodec) DecodeValueLegacy(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
 	val := reflect.ValueOf(i)
-	if val.Kind() == reflect.Ptr {
-		if val.IsNil() {
-			val = reflect.New(val.Type().Elem())
-		}
+	if val.Kind() == reflect.Ptr && val.Elem().IsValid() {
 		val = val.Elem()
-		if val.Kind() == reflect.Ptr {
-			if val.IsNil() && val.CanSet() {
-				val.Set(reflect.New(val.Type().Elem()))
-			}
-			val = val.Elem()
-		}
 	}
-	if val.Kind() != reflect.Struct || !val.CanAddr() {
-		return fmt.Errorf("%T can only processes addressable structs, but got %T (addressable: %t)", sc, i, val.CanAddr())
+	return sc.DecodeValue(dc, vr, val)
+}
+
+// DecodeValueLegacy implements the Codec interface.
+func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.CanSet() || val.Kind() != reflect.Struct {
+		return ValueDecoderError{Name: "StructCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Struct}, Received: val}
 	}
 
 	sd, err := sc.describeStruct(r.Registry, val.Type())
@@ -185,12 +180,12 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, i int
 				continue
 			}
 
-			ptr := reflect.New(inlineMap.Type().Elem())
-			err = decoder.DecodeValue(r, vr, ptr.Interface())
+			elem := reflect.New(inlineMap.Type().Elem()).Elem()
+			err = decoder.DecodeValue(r, vr, elem)
 			if err != nil {
 				return err
 			}
-			inlineMap.SetMapIndex(reflect.ValueOf(name), ptr.Elem())
+			inlineMap.SetMapIndex(reflect.ValueOf(name), elem)
 			continue
 		}
 
@@ -205,7 +200,7 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, i int
 			return fmt.Errorf("cannot decode element '%s' into field %v; it is not settable", name, field)
 		}
 		if field.Kind() == reflect.Ptr && field.IsNil() {
-			field.Set(reflect.New(field.Type()).Elem())
+			field.Set(reflect.New(field.Type().Elem()))
 		}
 		field = field.Addr()
 
@@ -214,7 +209,14 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, i int
 			return ErrNoDecoder{Type: field.Elem().Type()}
 		}
 
-		err = fd.decoder.DecodeValue(dctx, vr, field.Interface())
+		if decoder, ok := fd.decoder.(ValueDecoder); ok {
+			err = decoder.DecodeValue(dctx, vr, field.Elem())
+			if err != nil {
+				return err
+			}
+			continue
+		}
+		err = fd.decoder.DecodeValue(dctx, vr, field)
 		if err != nil {
 			return err
 		}
@@ -266,7 +268,7 @@ type fieldDescription struct {
 	minSize   bool
 	truncate  bool
 	inline    []int
-	encoder   ValueEncoder
+	encoder   ValueEncoderLegacy
 	decoder   ValueDecoder
 }
 

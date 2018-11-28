@@ -8,6 +8,7 @@ package bsoncodec
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
@@ -45,15 +46,39 @@ type ValueUnmarshaler interface {
 	UnmarshalBSONValue(bsontype.Type, []byte) error
 }
 
-// ValueEncoderError is an error returned from a ValueEncoder when the provided
-// value can't be encoded by the ValueEncoder.
+// ValueEncoderError is an error returned from a ValueEncoder when the provided value can't be
+// encoded by the ValueEncoder.
 type ValueEncoderError struct {
+	Name     string
+	Types    []reflect.Type
+	Kinds    []reflect.Kind
+	Received reflect.Value
+}
+
+func (vee ValueEncoderError) Error() string {
+	typeKinds := make([]string, 0, len(vee.Types)+len(vee.Kinds))
+	for _, t := range vee.Types {
+		typeKinds = append(typeKinds, t.String())
+	}
+	for _, k := range vee.Kinds {
+		typeKinds = append(typeKinds, k.String())
+	}
+	received := vee.Received.Kind().String()
+	if vee.Received.IsValid() {
+		received = vee.Received.Type().String()
+	}
+	return fmt.Sprintf("%s can only encode valid %s, but got %s", vee.Name, strings.Join(typeKinds, ", "), received)
+}
+
+// LegacyValueEncoderError is an error returned from a ValueEncoder when the provided
+// value can't be encoded by the ValueEncoder.
+type LegacyValueEncoderError struct {
 	Name     string
 	Types    []interface{}
 	Received interface{}
 }
 
-func (vee ValueEncoderError) Error() string {
+func (vee LegacyValueEncoderError) Error() string {
 	types := make([]string, 0, len(vee.Types))
 	for _, t := range vee.Types {
 		types = append(types, fmt.Sprintf("%T", t))
@@ -61,15 +86,43 @@ func (vee ValueEncoderError) Error() string {
 	return fmt.Sprintf("%s can only process %s, but got a %T", vee.Name, strings.Join(types, ", "), vee.Received)
 }
 
-// ValueDecoderError is an error returned from a ValueDecoder when the provided
-// value can't be decoded by the ValueDecoder.
+// ValueDecoderError is an error returned from a ValueDecoder when the provided value can't be
+// decoded by the ValueDecoder.
 type ValueDecoderError struct {
+	Name     string
+	Types    []reflect.Type
+	Kinds    []reflect.Kind
+	Received reflect.Value
+}
+
+func (vde ValueDecoderError) Error() string {
+	typeKinds := make([]string, 0, len(vde.Types)+len(vde.Kinds))
+	for _, t := range vde.Types {
+		typeKinds = append(typeKinds, t.String())
+	}
+	for _, k := range vde.Kinds {
+		if k == reflect.Map {
+			typeKinds = append(typeKinds, "map[string]*")
+			continue
+		}
+		typeKinds = append(typeKinds, k.String())
+	}
+	received := vde.Received.Kind().String()
+	if vde.Received.IsValid() {
+		received = vde.Received.Type().String()
+	}
+	return fmt.Sprintf("%s can only decode valid and settable %s, but got %s", vde.Name, strings.Join(typeKinds, ", "), received)
+}
+
+// LegacyValueDecoderError is an error returned from a ValueDecoder when the provided
+// value can't be decoded by the ValueDecoder.
+type LegacyValueDecoderError struct {
 	Name     string
 	Types    []interface{}
 	Received interface{}
 }
 
-func (vde ValueDecoderError) Error() string {
+func (vde LegacyValueDecoderError) Error() string {
 	types := make([]string, 0, len(vde.Types))
 	for _, t := range vde.Types {
 		types = append(types, fmt.Sprintf("%T", t))
@@ -94,39 +147,67 @@ type DecodeContext struct {
 // ValueCodec is the interface that groups the methods to encode and decode
 // values.
 type ValueCodec interface {
-	ValueEncoder
+	ValueEncoderLegacy
 	ValueDecoder
 }
 
-// ValueEncoder is the interface implemented by types that can handle the
-// encoding of a value. Implementations must handle values and
-// may handle pointers to values.
+// ValueEncoder is the interface implemented by types that can handle the encoding of a value.
 type ValueEncoder interface {
-	EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error
+	EncodeValue(EncodeContext, bsonrw.ValueWriter, reflect.Value) error
 }
 
-// ValueEncoderFunc is an adapter function that allows a function with the
-// correct signature to be used as a ValueEncoder.
-type ValueEncoderFunc func(EncodeContext, bsonrw.ValueWriter, interface{}) error
+// ValueEncoderFunc is an adapter function that allows a function with the correct signature to be
+// used as a ValueEncoder.
+type ValueEncoderFunc func(EncodeContext, bsonrw.ValueWriter, reflect.Value) error
 
 // EncodeValue implements the ValueEncoder interface.
-func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val interface{}) error {
+func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	return fn(ec, vw, val)
 }
 
-// ValueDecoder is the interface implemented by types that can handle the decoding of a value.
-// Implementations must handle pointers to values and may handle pointers to pointers to values. The
-// implementation may create a new value and assign it to the pointer if necessary.
-type ValueDecoder interface {
-	DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error
+func (fn ValueEncoderFunc) EncodeValueLegacy(ec EncodeContext, vw bsonrw.ValueWriter, val interface{}) error {
+	return fn(ec, vw, reflect.ValueOf(val))
 }
 
-// ValueDecoderFunc is an adapter function that allows a function with the
-// correct signature to be used as a ValueDecoder.
-type ValueDecoderFunc func(DecodeContext, bsonrw.ValueReader, interface{}) error
+// ValueEncoderLegacy is the interface implemented by types that can handle the
+// encoding of a value. Implementations must handle values and
+// may handle pointers to values.
+type ValueEncoderLegacy interface {
+	EncodeValueLegacy(EncodeContext, bsonrw.ValueWriter, interface{}) error
+}
+
+// ValueEncoderLegacyFunc is an adapter function that allows a function with the
+// correct signature to be used as a ValueEncoder.
+type ValueEncoderLegacyFunc func(EncodeContext, bsonrw.ValueWriter, interface{}) error
+
+// EncodeValueLegacy implements the ValueEncoder interface.
+func (fn ValueEncoderLegacyFunc) EncodeValueLegacy(ec EncodeContext, vw bsonrw.ValueWriter, val interface{}) error {
+	return fn(ec, vw, val)
+}
+
+func (fn ValueEncoderLegacyFunc) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	return fn(ec, vw, val.Interface())
+}
+
+// ValueDecoder is the interface implemented by types that can handle the decoding of a value.
+type ValueDecoder interface {
+	DecodeValue(DecodeContext, bsonrw.ValueReader, reflect.Value) error
+}
+
+// ValueDecoderFunc is an adapter function that allows a function with the correct signature to be
+// used as a ValueDecoder.
+type ValueDecoderFunc func(DecodeContext, bsonrw.ValueReader, reflect.Value) error
 
 // DecodeValue implements the ValueDecoder interface.
-func (fn ValueDecoderFunc) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val interface{}) error {
+func (fn ValueDecoderFunc) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	return fn(dc, vr, val)
+}
+
+func (fn ValueDecoderFunc) DecodeValueLegacy(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	val := reflect.ValueOf(i)
+	if val.Kind() == reflect.Ptr && val.Elem().IsValid() {
+		val = val.Elem()
+	}
 	return fn(dc, vr, val)
 }
 
