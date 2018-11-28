@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4d62e5e5_4294d170",
+        "filename": "bson/bsonrw/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 166,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-28T15:02:07Z",
+      "side": 1,
+      "message": "This change was previously validated in validateToken through the call above to advanceState. If we are here with jpsSawBeginObject, it means that we are sitting in a non-first top-level document.",
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d3213968_c20dc4c1",
+        "filename": "bson/bsonrw/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-28T15:02:07Z",
+      "side": 1,
+      "message": "This was a separate issue that is also fixed. Previously, reading a document a second time, even when only 1 document existed, would result in successfully reading an empty second document due to the nature of how the ExtJSONValueReader functions. Instead of returning ErrEOD, we\u0027ll actually return EOF to signal that the stream is done and no document was found.",
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
