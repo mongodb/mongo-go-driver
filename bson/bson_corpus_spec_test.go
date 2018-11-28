@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -163,10 +164,10 @@ func normalizeRelaxedDouble(t *testing.T, key string, rEJ string) string {
 
 // bsonToNative decodes the BSON bytes (b) into a native Document
 func bsonToNative(t *testing.T, b []byte, bType, testDesc string) bsonx.Doc {
-	var doc bsonx.Doc
-	err := pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
+	doc := reflect.New(reflect.TypeOf(bsonx.Doc{})).Elem()
+	err := pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), doc)
 	expectNoError(t, err, fmt.Sprintf("%s: decoding %s BSON", testDesc, bType))
-	return doc
+	return doc.Interface().(bsonx.Doc)
 }
 
 // nativeToBSON encodes the native Document (doc) into canonical BSON and compares it to the expected
@@ -299,8 +300,8 @@ func runTest(t *testing.T, file string) {
 			b, err := hex.DecodeString(d.Bson)
 			expectNoError(t, err, d.Description)
 
-			var doc bsonx.Doc
-			err = pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), &doc)
+			doc := reflect.New(reflect.TypeOf(bsonx.Doc{})).Elem()
+			err = pc.x.DocumentDecodeValue(dc, bsonrw.NewBSONDocumentReader(b), doc)
 			expectError(t, err, fmt.Sprintf("%s: expected decode error", d.Description))
 		}
 
