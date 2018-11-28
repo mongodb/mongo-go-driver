@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "1e0d207b_ad8e5468",
+        "filename": "bson/bsonrw/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 166,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-28T21:46:19Z",
+      "side": 1,
+      "message": "It\u0027s not `{ \"a\": 1 {` that is implied here... it\u0027s `{ \"a\": 1 }{ \"b\": 2}` is implied to be valid. Which it isn\u0027t at a depth level \u003e 0 or if we are inside an array. This is exactly what is validated by validateToken. I\u0027ve added a comment.",
+      "parentUuid": "7b612bb3_982479f4",
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d3213968_c20dc4c1",
         "filename": "bson/bsonrw/extjson_parser.go",
         "patchSetId": 1
@@ -90,6 +108,24 @@
     },
     {
       "key": {
+        "uuid": "05cde4ce_8b9d4bf8",
+        "filename": "bson/bsonrw/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-28T21:46:19Z",
+      "side": 1,
+      "message": "This doesn\u0027t fix that. That is something else. All I\u0027ve proven is that you can manually use a ValueReader to read a top-level array of documents.",
+      "parentUuid": "45a406af_6dbdb22c",
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "13c3d6f4_132d32b2",
         "filename": "bson/bsonrw/extjson_reader_test.go",
         "patchSetId": 1
@@ -101,6 +137,30 @@
       "writtenOn": "2018-11-28T20:48:49Z",
       "side": 1,
       "message": "Can we use backticks here so we don\u0027t have to escape the double quotes?",
+      "range": {
+        "startLine": 28,
+        "startChar": 3,
+        "endLine": 28,
+        "endChar": 16
+      },
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3034b70b_36a68e75",
+        "filename": "bson/bsonrw/extjson_reader_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-28T21:46:19Z",
+      "side": 1,
+      "message": "I can\u0027t do that for all these because some of these have newline characters, which can\u0027t be added when using backticks. I\u0027ve opted to be consistent and always escape the quotes in this test.",
+      "parentUuid": "13c3d6f4_132d32b2",
       "range": {
         "startLine": 28,
         "startChar": 3,
