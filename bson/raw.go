@@ -35,8 +35,8 @@ func (r Raw) Validate() (err error) { return bsoncore.Document(r).Validate() }
 
 // Lookup search the document, potentially recursively, for the given key. If
 // there are multiple keys provided, this method will recurse down, as long as
-// the top and intermediate nodes are either documents or arrays. If any key
-// except for the last is not a document or an array, an error will be returned.
+// the top and intermediate nodes are either documents or arrays.If an error
+// occurs or if the value doesn't exist, an empty RawValue is returned.
 func (r Raw) Lookup(key ...string) RawValue {
 	return convertFromCoreValue(bsoncore.Document(r).Lookup(key...))
 }
