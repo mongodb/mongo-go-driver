@@ -23,7 +23,7 @@ func TestRawValue(t *testing.T) {
 			reg := bsoncodec.NewRegistryBuilder().Build()
 			val := RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "foobar"), r: reg}
 			var s string
-			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(&s)}
+			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(s)}
 			got := val.Unmarshal(&s)
 			if !compareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
@@ -53,7 +53,7 @@ func TestRawValue(t *testing.T) {
 			reg := bsoncodec.NewRegistryBuilder().Build()
 			var val RawValue
 			var s string
-			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(&s)}
+			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(s)}
 			got := val.UnmarshalWithRegistry(reg, &s)
 			if !compareErrors(got, want) {
 				t.Errorf("Execpted errors to match. got %v; want %v", got, want)
