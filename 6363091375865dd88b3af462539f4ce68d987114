@@ -48,6 +48,30 @@
     },
     {
       "key": {
+        "uuid": "88b354cd_0acbc8ce",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-28T20:07:06Z",
+      "side": 1,
+      "message": "It\u0027ll be part of finalizing the Core API.",
+      "parentUuid": "a2027b72_5b397b0d",
+      "range": {
+        "startLine": 73,
+        "startChar": 18,
+        "endLine": 73,
+        "endChar": 19
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9353b401_34507a2f",
         "filename": "mongo/mongo.go",
         "patchSetId": 1
@@ -65,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "448c0cab_8ee55059",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-28T20:07:06Z",
+      "side": 1,
+      "message": "We don\u0027t have a ValueWriter nor a ValueReader for bsonx.Doc, and I\u0027m turning it into a []byte so that we can easily pull out a Go primitive type. This is super hacky right now and we should likely fix it later, but I don\u0027t want to pull on the thread that will make us rip out bsonx from core.",
+      "parentUuid": "9353b401_34507a2f",
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fcb7837d_e17d276e",
         "filename": "mongo/mongo.go",
         "patchSetId": 1
@@ -76,6 +118,30 @@
       "writtenOn": "2018-11-28T02:12:53Z",
       "side": 1,
       "message": "Does this mean we allow nil to be inserted?  If so, should error instead.",
+      "range": {
+        "startLine": 83,
+        "startChar": 0,
+        "endLine": 83,
+        "endChar": 1
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2897f3a4_1706c90a",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-28T20:07:06Z",
+      "side": 1,
+      "message": "This is current behavior, if we want to change it we should log a ticket and schedule it.",
+      "parentUuid": "fcb7837d_e17d276e",
       "range": {
         "startLine": 83,
         "startChar": 0,
@@ -111,6 +177,30 @@
     },
     {
       "key": {
+        "uuid": "7f100994_d0279153",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-28T20:07:06Z",
+      "side": 1,
+      "message": "This is copy pasted from the code that was already there. When we refactor this code this will get handled.",
+      "parentUuid": "7b11a2ca_de754582",
+      "range": {
+        "startLine": 91,
+        "startChar": 2,
+        "endLine": 91,
+        "endChar": 3
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "515de50e_97ad48d6",
         "filename": "mongo/mongo.go",
         "patchSetId": 1
@@ -134,6 +224,30 @@
     },
     {
       "key": {
+        "uuid": "fb4875ae_b5da3ef2",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-28T20:07:06Z",
+      "side": 1,
+      "message": "If we were using a pool, this is what we would need to do.",
+      "parentUuid": "515de50e_97ad48d6",
+      "range": {
+        "startLine": 93,
+        "startChar": 0,
+        "endLine": 93,
+        "endChar": 1
+      },
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6c1815a6_29cb26c2",
         "filename": "mongo/mongo.go",
         "patchSetId": 1
@@ -145,6 +259,24 @@
       "writtenOn": "2018-11-27T23:00:19Z",
       "side": 1,
       "message": "I think you need to put \"_id\" at the beginning of the document. This isn\u0027t written down anywhere, but is apparently still important according to asya.",
+      "revId": "6363091375865dd88b3af462539f4ce68d987114",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2dc679c4_81d2faba",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-28T20:07:06Z",
+      "side": 1,
+      "message": "We can do that, but this is the current behavior and it\u0027s a bit messier to prepend to the document without doing another allocation.",
+      "parentUuid": "6c1815a6_29cb26c2",
       "revId": "6363091375865dd88b3af462539f4ce68d987114",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
