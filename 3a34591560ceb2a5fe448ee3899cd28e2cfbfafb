@@ -69,6 +69,47 @@
       "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "45a406af_6dbdb22c",
+        "filename": "bson/bsonrw/extjson_parser.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 170,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-28T20:48:49Z",
+      "side": 1,
+      "message": "Can you add GODRIVER-611 to the body of the commit message? I believe that this is the bug that was reported there.",
+      "parentUuid": "ecc869fc_de904140",
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "13c3d6f4_132d32b2",
+        "filename": "bson/bsonrw/extjson_reader_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-11-28T20:48:49Z",
+      "side": 1,
+      "message": "Can we use backticks here so we don\u0027t have to escape the double quotes?",
+      "range": {
+        "startLine": 28,
+        "startChar": 3,
+        "endLine": 28,
+        "endChar": 16
+      },
+      "revId": "3a34591560ceb2a5fe448ee3899cd28e2cfbfafb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
