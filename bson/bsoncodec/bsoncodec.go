@@ -99,8 +99,8 @@ type ValueCodec interface {
 }
 
 // ValueEncoder is the interface implemented by types that can handle the
-// encoding of a value. Implementations must handle both values and
-// pointers to values.
+// encoding of a value. Implementations must handle values and
+// may handle pointers to values.
 type ValueEncoder interface {
 	EncodeValue(EncodeContext, bsonrw.ValueWriter, interface{}) error
 }
@@ -114,10 +114,9 @@ func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, 
 	return fn(ec, vw, val)
 }
 
-// ValueDecoder is the interface implemented by types that can handle the
-// decoding of a value. Implementations must handle pointers to values,
-// including pointers to pointer values. The implementation may create a new
-// value and assign it to the pointer if necessary.
+// ValueDecoder is the interface implemented by types that can handle the decoding of a value.
+// Implementations must handle pointers to values and may handle pointers to pointers to values. The
+// implementation may create a new value and assign it to the pointer if necessary.
 type ValueDecoder interface {
 	DecodeValue(DecodeContext, bsonrw.ValueReader, interface{}) error
 }
