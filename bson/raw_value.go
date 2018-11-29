@@ -19,6 +19,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
+// ErrNilContext is returned when the provided DecodeContext is nil.
+var ErrNilContext = errors.New("DecodeContext cannot be nil")
+
 // ErrNilRegistry is returned when the provided registry is nil.
 var ErrNilRegistry = errors.New("Registry cannot be nil")
 
@@ -72,6 +75,21 @@ func (rv RawValue) UnmarshalWithRegistry(r *bsoncodec.Registry, val interface{})
 		return err
 	}
 	return dec.DecodeValue(bsoncodec.DecodeContext{Registry: r}, vr, val)
+}
+
+// UnmarshalWithContext performs the same unmarshalling as Unmarshal but uses the provided DecodeContext
+// instead of the one attached or the default registry.
+func (rv RawValue) UnmarshalWithContext(dc *bsoncodec.DecodeContext, val interface{}) error {
+	if dc == nil {
+		return ErrNilContext
+	}
+
+	vr := bsonrw.NewBSONValueReader(rv.Type, rv.Value)
+	dec, err := dc.LookupDecoder(reflect.TypeOf(val))
+	if err != nil {
+		return err
+	}
+	return dec.DecodeValue(*dc, vr, val)
 }
 
 func convertFromCoreValue(v bsoncore.Value) RawValue { return RawValue{Type: v.Type, Value: v.Data} }
