@@ -8,7 +8,7 @@ package bsoncodec
 
 import (
 	"testing"
-	//"time"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
