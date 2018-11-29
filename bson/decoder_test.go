@@ -49,7 +49,7 @@ func TestDecoderv2(t *testing.T) {
 				} else {
 					reg = DefaultRegistry
 				}
-				dec, err := NewDecoder(reg, vr)
+				dec, err := NewDecoderWithContext(bsoncodec.DecodeContext{Registry: reg}, vr)
 				noerr(t, err)
 				err = dec.Decode(got)
 				noerr(t, err)
@@ -62,7 +62,7 @@ func TestDecoderv2(t *testing.T) {
 		t.Run("lookup error", func(t *testing.T) {
 			type certainlydoesntexistelsewhereihope func(string, string) string
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
-			dec, err := NewDecoder(DefaultRegistry, bsonrw.NewBSONDocumentReader([]byte{}))
+			dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
 			noerr(t, err)
 			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
 			got := dec.Decode(&cdeih)
@@ -100,7 +100,7 @@ func TestDecoderv2(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					unmarshaler := &testUnmarshaler{err: tc.err}
-					dec, err := NewDecoder(DefaultRegistry, tc.vr)
+					dec, err := NewDecoder(tc.vr)
 					noerr(t, err)
 					got := dec.Decode(unmarshaler)
 					want := tc.err
@@ -118,21 +118,39 @@ func TestDecoderv2(t *testing.T) {
 			}
 		})
 	})
-	t.Run("NewDecoderv2", func(t *testing.T) {
-		t.Run("errors", func(t *testing.T) {
-			_, got := NewDecoder(nil, bsonrw.ValueReader(nil))
-			want := errors.New("cannot create a new Decoder with a nil Registry")
-			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
-				t.Errorf("Was expecting error but got different error. got %v; want %v", got, want)
-			}
-			_, got = NewDecoder(DefaultRegistry, nil)
-			want = errors.New("cannot create a new Decoder with a nil ValueReader")
+	t.Run("NewDecoder", func(t *testing.T) {
+		t.Run("error", func(t *testing.T) {
+			_, got := NewDecoder(nil)
+			want := errors.New("cannot create a new Decoder with a nil ValueReader")
 			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 				t.Errorf("Was expecting error but got different error. got %v; want %v", got, want)
 			}
 		})
 		t.Run("success", func(t *testing.T) {
-			got, err := NewDecoder(DefaultRegistry, bsonrw.NewBSONDocumentReader([]byte{}))
+			got, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
+			noerr(t, err)
+			if got == nil {
+				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
+			}
+		})
+	})
+	t.Run("NewDecoderWithContext", func(t *testing.T) {
+		t.Run("errors", func(t *testing.T) {
+			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+			_, got := NewDecoderWithContext(dc, nil)
+			want := errors.New("cannot create a new Decoder with a nil ValueReader")
+			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
+				t.Errorf("Was expecting error but got different error. got %v; want %v", got, want)
+			}
+		})
+		t.Run("success", func(t *testing.T) {
+			got, err := NewDecoderWithContext(bsoncodec.DecodeContext{}, bsonrw.NewBSONDocumentReader([]byte{}))
+			noerr(t, err)
+			if got == nil {
+				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
+			}
+			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+			got, err = NewDecoderWithContext(dc, bsonrw.NewBSONDocumentReader([]byte{}))
 			noerr(t, err)
 			if got == nil {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
@@ -150,7 +168,7 @@ func TestDecoderv2(t *testing.T) {
 		got.Bonus = 2
 		data := docToBytes(bsonx.Doc{{"item", bsonx.String("canvas")}, {"qty", bsonx.Int32(4)}})
 		vr := bsonrw.NewBSONDocumentReader(data)
-		dec, err := NewDecoder(DefaultRegistry, vr)
+		dec, err := NewDecoder(vr)
 		noerr(t, err)
 		err = dec.Decode(&got)
 		noerr(t, err)
@@ -161,7 +179,8 @@ func TestDecoderv2(t *testing.T) {
 	})
 	t.Run("Reset", func(t *testing.T) {
 		vr1, vr2 := bsonrw.NewBSONDocumentReader([]byte{}), bsonrw.NewBSONDocumentReader([]byte{})
-		dec, err := NewDecoder(DefaultRegistry, vr1)
+		dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+		dec, err := NewDecoderWithContext(dc, vr1)
 		noerr(t, err)
 		if dec.vr != vr1 {
 			t.Errorf("Decoder should use the value reader provided. got %v; want %v", dec.vr, vr1)
@@ -172,17 +191,33 @@ func TestDecoderv2(t *testing.T) {
 			t.Errorf("Decoder should use the value reader provided. got %v; want %v", dec.vr, vr2)
 		}
 	})
-	t.Run("SetRegistry", func(t *testing.T) {
-		reg1, reg2 := DefaultRegistry, NewRegistryBuilder().Build()
-		dec, err := NewDecoder(reg1, bsonrw.NewBSONDocumentReader([]byte{}))
+	t.Run("SetContext", func(t *testing.T) {
+		dc1 := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+		dc2 := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
+		dec, err := NewDecoderWithContext(dc1, bsonrw.NewBSONDocumentReader([]byte{}))
 		noerr(t, err)
-		if dec.r != reg1 {
-			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.r, reg1)
+		if dec.dc != dc1 {
+			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
 		}
-		err = dec.SetRegistry(reg2)
+		err = dec.SetContext(dc2)
 		noerr(t, err)
-		if dec.r != reg2 {
-			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.r, reg2)
+		if dec.dc != dc2 {
+			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
+		}
+	})
+	t.Run("SetRegistry", func(t *testing.T) {
+		r1, r2 := DefaultRegistry, NewRegistryBuilder().Build()
+		dc1 := bsoncodec.DecodeContext{Registry: r1}
+		dc2 := bsoncodec.DecodeContext{Registry: r2}
+		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))
+		noerr(t, err)
+		if dec.dc != dc1 {
+			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
+		}
+		err = dec.SetRegistry(r2)
+		noerr(t, err)
+		if dec.dc != dc2 {
+			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
 		}
 	})
 }
