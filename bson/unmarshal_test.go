@@ -48,3 +48,52 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 		})
 	}
 }
+
+func TestUnmarshalWithContext(t *testing.T) {
+	for _, tc := range unmarshalingTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var reg *bsoncodec.Registry
+			if tc.reg != nil {
+				reg = tc.reg
+			} else {
+				reg = DefaultRegistry
+			}
+			dc := bsoncodec.DecodeContext{Registry: reg}
+			got := reflect.New(tc.sType).Interface()
+			err := UnmarshalWithContext(&dc, tc.data, got)
+			noerr(t, err)
+			if !cmp.Equal(got, tc.want) {
+				t.Errorf("Did not unmarshal as expected. got %v; want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
+	t.Run("UnmarshalExtJSONWithContext", func(t *testing.T) {
+		type teststruct struct{ Foo int }
+		var got teststruct
+		data := []byte("{\"foo\":1}")
+		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &got)
+		noerr(t, err)
+		want := teststruct{1}
+		if !cmp.Equal(got, want) {
+			t.Errorf("Did not unmarshal as expected. got %v; want %v", got, want)
+		}
+	})
+}
+
+func TestUnmarshalExtJSONWithContext(t *testing.T) {
+	t.Run("UnmarshalExtJSONWithContext", func(t *testing.T) {
+		type teststruct struct{ Foo int }
+		var got teststruct
+		data := []byte("{\"foo\":1}")
+		dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+		err := UnmarshalExtJSONWithContext(&dc, data, true, &got)
+		noerr(t, err)
+		want := teststruct{1}
+		if !cmp.Equal(got, want) {
+			t.Errorf("Did not unmarshal as expected. got %v; want %v", got, want)
+		}
+	})
+}
