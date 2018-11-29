@@ -7,18 +7,18 @@
 package options
 
 import (
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"time"
-
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // ChangeStreamOptions represents all possible options to a change stream
 type ChangeStreamOptions struct {
-	BatchSize    *int32         // The number of documents to return per batch
-	Collation    *Collation     // Specifies a collation
-	FullDocument *FullDocument  // When set to ‘updateLookup’, the change notification for partial updates will include both a delta describing the changes to the document, as well as a copy of the entire document that was changed from some time after the change occurred.
-	MaxAwaitTime *time.Duration // The maximum amount of time for the server to wait on new documents to satisfy a change stream query
-	ResumeAfter  bsonx.Doc      // Specifies the logical starting point for the new change stream
+	BatchSize            *int32               // The number of documents to return per batch
+	Collation            *Collation           // Specifies a collation
+	FullDocument         *FullDocument        // When set to ‘updateLookup’, the change notification for partial updates will include both a delta describing the changes to the document, as well as a copy of the entire document that was changed from some time after the change occurred.
+	MaxAwaitTime         *time.Duration       // The maximum amount of time for the server to wait on new documents to satisfy a change stream query
+	ResumeAfter          interface{}          // Specifies the logical starting point for the new change stream
+	StartAtOperationTime *primitive.Timestamp // Ensures that a change stream will only provide changes that occurred after a timestamp.
 }
 
 // ChangeStream returns a pointer to a new ChangeStreamOptions
@@ -55,8 +55,14 @@ func (cso *ChangeStreamOptions) SetMaxAwaitTime(d time.Duration) *ChangeStreamOp
 }
 
 // SetResumeAfter specifies the logical starting point for the new change stream
-func (cso *ChangeStreamOptions) SetResumeAfter(d bsonx.Doc) *ChangeStreamOptions {
-	cso.ResumeAfter = d
+func (cso *ChangeStreamOptions) SetResumeAfter(rt interface{}) *ChangeStreamOptions {
+	cso.ResumeAfter = rt
+	return cso
+}
+
+// SetStartAtOperationTime ensures that a change stream will only provide changes that occurred after a specified timestamp.
+func (cso *ChangeStreamOptions) SetStartAtOperationTime(t *primitive.Timestamp) *ChangeStreamOptions {
+	cso.StartAtOperationTime = t
 	return cso
 }
 
@@ -81,6 +87,9 @@ func MergeChangeStreamOptions(opts ...*ChangeStreamOptions) *ChangeStreamOptions
 		}
 		if cso.ResumeAfter != nil {
 			csOpts.ResumeAfter = cso.ResumeAfter
+		}
+		if cso.StartAtOperationTime != nil {
+			csOpts.StartAtOperationTime = cso.StartAtOperationTime
 		}
 	}
 

@@ -225,86 +225,6 @@ func TestMaxConnIdleTime(t *testing.T) {
 	}
 }
 
-func TestMaxConnLifeTime(t *testing.T) {
-	tests := []struct {
-		s        string
-		expected time.Duration
-		err      bool
-	}{
-		{s: "maxLifeTimeMS=10", expected: time.Duration(10) * time.Millisecond},
-		{s: "maxLifeTimeMS=100", expected: time.Duration(100) * time.Millisecond},
-		{s: "maxLifeTimeMS=-2", err: true},
-		{s: "maxLifeTimeMS=gsdge", err: true},
-	}
-
-	for _, test := range tests {
-		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
-		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
-			if test.err {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, test.expected, cs.MaxConnLifeTime)
-			}
-		})
-	}
-}
-
-func TestMaxConnsPerHost(t *testing.T) {
-	tests := []struct {
-		s        string
-		expected uint16
-		err      bool
-	}{
-		{s: "maxConnsPerHost=10", expected: 10},
-		{s: "maxConnsPerHost=100", expected: 100},
-		{s: "maxConnsPerHost=-2", err: true},
-		{s: "maxConnsPerHost=gsdge", err: true},
-	}
-
-	for _, test := range tests {
-		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
-		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
-			if test.err {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.True(t, cs.MaxConnsPerHostSet)
-				require.Equal(t, test.expected, cs.MaxConnsPerHost)
-			}
-		})
-	}
-}
-
-func TestMaxIdleConnsPerHost(t *testing.T) {
-	tests := []struct {
-		s        string
-		expected uint16
-		err      bool
-	}{
-		{s: "maxIdleConnsPerHost=10", expected: 10},
-		{s: "maxIdleConnsPerHost=100", expected: 100},
-		{s: "maxIdleConnsPerHost=-2", err: true},
-		{s: "maxIdleConnsPerHost=gsdge", err: true},
-	}
-
-	for _, test := range tests {
-		s := fmt.Sprintf("mongodb://localhost/?%s", test.s)
-		t.Run(s, func(t *testing.T) {
-			cs, err := connstring.Parse(s)
-			if test.err {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.True(t, cs.MaxIdleConnsPerHostSet)
-				require.Equal(t, test.expected, cs.MaxIdleConnsPerHost)
-			}
-		})
-	}
-}
-
 func TestMaxPoolSize(t *testing.T) {
 	tests := []struct {
 		s        string
@@ -325,10 +245,8 @@ func TestMaxPoolSize(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				require.True(t, cs.MaxConnsPerHostSet)
-				require.Equal(t, test.expected, cs.MaxConnsPerHost)
-				require.True(t, cs.MaxIdleConnsPerHostSet)
-				require.Equal(t, test.expected, cs.MaxIdleConnsPerHost)
+				require.True(t, cs.MaxPoolSizeSet)
+				require.Equal(t, test.expected, cs.MaxPoolSize)
 			}
 		})
 	}

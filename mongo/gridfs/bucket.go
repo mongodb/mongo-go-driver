@@ -336,7 +336,7 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 		return nil, err
 	}
 
-	fileLen := fileLenElem.Int32()
+	fileLen := fileLenElem.Int64()
 	if fileLen == 0 {
 		return newDownloadStream(nil, b.chunkSize, 0), nil
 	}
@@ -455,7 +455,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 
 	docRes := cloned.FindOne(ctx, bsonx.Doc{}, options.FindOne().SetProjection(bsonx.Doc{{"_id", bsonx.Int32(1)}}))
 
-	err = docRes.Decode(nil)
+	err = docRes.Err()
 	if err == mongo.ErrNoDocuments {
 		filesIv := b.filesColl.Indexes()
 		chunksIv := b.chunksColl.Indexes()

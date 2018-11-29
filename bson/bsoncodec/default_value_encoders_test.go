@@ -431,6 +431,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
+			"EmptyInterfaceEncodeValue",
+			ValueEncoderFunc(dve.EmptyInterfaceEncodeValue),
+			[]subtest{
+				{"interface/nil", nil, nil, nil, bsonrwtest.WriteNull, nil},
+			},
+		},
+		{
 			"ValueMarshalerEncodeValue",
 			ValueEncoderFunc(dve.ValueMarshalerEncodeValue),
 			[]subtest{
@@ -468,6 +475,40 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.WriteString,
+					nil,
+				},
+			},
+		},
+		{
+			"MarshalerEncodeValue",
+			ValueEncoderFunc(dve.MarshalerEncodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					ValueEncoderError{
+						Name:     "MarshalerEncodeValue",
+						Types:    []interface{}{(ValueMarshaler)(nil)},
+						Received: wrong,
+					},
+				},
+				{
+					"MarshalBSON error",
+					testMarshaler{err: errors.New("mbson error")},
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					errors.New("mbson error"),
+				},
+				{
+					"success",
+					testMarshaler{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))},
+					nil,
+					nil,
+					bsonrwtest.WriteDocumentEnd,
 					nil,
 				},
 			},
@@ -996,6 +1037,15 @@ type testValueMarshaler struct {
 
 func (tvm testValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	return tvm.t, tvm.buf, tvm.err
+}
+
+type testMarshaler struct {
+	buf []byte
+	err error
+}
+
+func (tvm testMarshaler) MarshalBSON() ([]byte, error) {
+	return tvm.buf, tvm.err
 }
 
 type testProxy struct {

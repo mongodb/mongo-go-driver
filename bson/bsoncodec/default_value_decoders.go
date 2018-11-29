@@ -48,6 +48,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDecoder(reflect.PtrTo(tJSONNumber), ValueDecoderFunc(dvd.JSONNumberDecodeValue)).
 		RegisterDecoder(reflect.PtrTo(tURL), ValueDecoderFunc(dvd.URLDecodeValue)).
 		RegisterDecoder(tValueUnmarshaler, ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)).
+		RegisterDecoder(tUnmarshaler, ValueDecoderFunc(dvd.UnmarshalerDecodeValue)).
 		RegisterDefaultDecoder(reflect.Bool, ValueDecoderFunc(dvd.BooleanDecodeValue)).
 		RegisterDefaultDecoder(reflect.Int, ValueDecoderFunc(dvd.IntDecodeValue)).
 		RegisterDefaultDecoder(reflect.Int8, ValueDecoderFunc(dvd.IntDecodeValue)).
@@ -733,6 +734,32 @@ func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(dc DecodeContext, vr
 	}
 
 	return valueUnmarshaler.UnmarshalBSONValue(t, src)
+}
+
+// UnmarshalerDecodeValue is the ValueDecoderFunc for Unmarshaler implementations.
+func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, i interface{}) error {
+	val := reflect.ValueOf(i)
+	var unmarshaler Unmarshaler
+	if val.Kind() == reflect.Ptr && val.IsNil() {
+		return fmt.Errorf("UnmarshalerDecodeValue can only unmarshal into non-nil Unmarshaler values, got %T", i)
+	}
+	if val.Type().Implements(tUnmarshaler) {
+		unmarshaler = val.Interface().(Unmarshaler)
+	} else if val.Type().Kind() == reflect.Ptr && val.Elem().Type().Implements(tUnmarshaler) {
+		if val.Elem().Kind() == reflect.Ptr && val.Elem().IsNil() {
+			val.Elem().Set(reflect.New(val.Type().Elem().Elem()))
+		}
+		unmarshaler = val.Elem().Interface().(Unmarshaler)
+	} else {
+		return fmt.Errorf("UnmarshalerDecodeValue can only handle types or pointers to types that are a Unmarshaler, got %T", i)
+	}
+
+	_, src, err := bsonrw.Copier{}.CopyValueToBytes(vr)
+	if err != nil {
+		return err
+	}
+
+	return unmarshaler.UnmarshalBSON(src)
 }
 
 // EmptyInterfaceDecodeValue is the ValueDecoderFunc for interface{}.

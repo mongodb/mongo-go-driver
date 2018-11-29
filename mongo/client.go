@@ -79,12 +79,6 @@ func NewClientWithOptions(uri string, opts ...*options.ClientOptions) (*Client, 
 	return newClient(cs, opts...)
 }
 
-// NewClientFromConnString creates a new client to connect to a cluster, with configuration
-// specified by the connection string.
-func NewClientFromConnString(cs connstring.ConnString) (*Client, error) {
-	return newClient(cs)
-}
-
 // Connect initializes the Client by starting background monitoring goroutines.
 // This method must be called before a Client can be used.
 func (c *Client) Connect(ctx context.Context) error {
@@ -432,4 +426,13 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 	}
 
 	return fn(sessCtx)
+}
+
+// Watch returns a change stream cursor used to receive information of changes to the client. This method is preferred
+// to running a raw aggregation with a $changeStream stage because it supports resumability in the case of some errors.
+// The client must have read concern majority or no read concern for a change stream to be created successfully.
+func (c *Client) Watch(ctx context.Context, pipeline interface{},
+	opts ...*options.ChangeStreamOptions) (Cursor, error) {
+
+	return newClientChangeStream(ctx, c, pipeline, opts...)
 }

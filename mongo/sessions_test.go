@@ -268,7 +268,7 @@ func getReturnError(returnVals []reflect.Value) error {
 	switch converted := errVal.Interface().(type) {
 	case error:
 		return converted
-	case *DocumentResult:
+	case *SingleResult:
 		return converted.err
 	default:
 		return nil

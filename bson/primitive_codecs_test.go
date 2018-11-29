@@ -151,8 +151,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 						Received: wrong,
 					},
 				},
-				{"Symbol", primitive.Symbol("foobar"), nil, nil, bsonrwtest.WriteJavascript, nil},
-				{"*Symbol", psymbol, nil, nil, bsonrwtest.WriteJavascript, nil},
+				{"Symbol", primitive.Symbol("foobar"), nil, nil, bsonrwtest.WriteSymbol, nil},
+				{"*Symbol", psymbol, nil, nil, bsonrwtest.WriteSymbol, nil},
 				{"*Symbol/nil", psymbolNil, nil, nil, bsonrwtest.WriteNull, nil},
 			},
 		},
@@ -997,6 +997,18 @@ func TestDefaultValueEncoders(t *testing.T) {
 			b     []byte
 			err   error
 		}{
+			{
+				"D to JavaScript",
+				D{{"a", primitive.JavaScript(`function() { var hello = "world"; }`)}},
+				docToBytes(bsonx.Doc{{"a", bsonx.JavaScript(`function() { var hello = "world"; }`)}}),
+				nil,
+			},
+			{
+				"D to Symbol",
+				D{{"a", primitive.Symbol("foobarbaz")}},
+				docToBytes(bsonx.Doc{{"a", bsonx.Symbol("foobarbaz")}}),
+				nil,
+			},
 			{
 				"struct{}",
 				struct {
@@ -2422,6 +2434,18 @@ func TestDefaultValueDecoders(t *testing.T) {
 					Foo: zeroTest{true},
 				},
 				docToBytes(bsonx.Doc{{"a", bsonx.String("bar")}}),
+				nil,
+			},
+			{
+				"JavaScript to D",
+				D{{"a", primitive.JavaScript(`function() { var hello = "world"; }`)}},
+				docToBytes(bsonx.Doc{{"a", bsonx.JavaScript(`function() { var hello = "world"; }`)}}),
+				nil,
+			},
+			{
+				"Symbol to D",
+				D{{"a", primitive.Symbol("foobarbaz")}},
+				docToBytes(bsonx.Doc{{"a", bsonx.Symbol("foobarbaz")}}),
 				nil,
 			},
 			{
