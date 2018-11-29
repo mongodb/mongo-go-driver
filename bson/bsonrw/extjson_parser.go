@@ -468,7 +468,14 @@ func (ejp *extJSONParser) advanceState() {
 		}
 	case jttString:
 		switch ejp.s {
-		case jpsSawBeginObject, jpsSawComma:
+		case jpsSawComma:
+			if ejp.peekMode() == jpmArrayMode {
+				ejp.s = jpsSawValue
+				ejp.v = extendJSONToken(jt)
+				return
+			}
+			fallthrough
+		case jpsSawBeginObject:
 			ejp.s = jpsSawKey
 			ejp.k = jt.v.(string)
 			return
