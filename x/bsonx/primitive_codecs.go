@@ -111,7 +111,6 @@ func (pc PrimitiveCodecs) ArrayDecodeValue(dc bsoncodec.DecodeContext, vr bsonrw
 	if parr == nil {
 		return errors.New("ArrayDecodeValue can only be used to decode non-nil *Arr")
 	}
-
 	ar, err := vr.ReadArray()
 	if err != nil {
 		return err
