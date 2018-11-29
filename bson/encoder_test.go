@@ -44,8 +44,8 @@ func TestEncoderEncode(t *testing.T) {
 			got := make(bsonrw.SliceWriter, 0, 1024)
 			vw, err := bsonrw.NewBSONValueWriter(&got)
 			noerr(t, err)
-			reg := DefaultRegistry
-			enc, err := NewEncoder(reg, vw)
+			ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
+			enc, err := NewEncoder(&ec, vw)
 			noerr(t, err)
 			err = enc.Encode(tc.val)
 			noerr(t, err)
@@ -104,7 +104,8 @@ func TestEncoderEncode(t *testing.T) {
 					noerr(t, err)
 				}
 
-				enc, err := NewEncoder(DefaultRegistry, vw)
+				ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
+				enc, err := NewEncoder(&ec, vw)
 				noerr(t, err)
 				got := enc.Encode(marshaler)
 				want := tc.wanterr

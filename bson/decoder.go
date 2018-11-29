@@ -28,12 +28,27 @@ var decPool = sync.Pool{
 // A Decoder reads and decodes BSON documents from a stream. It reads from a bsonrw.ValueReader as
 // the source of BSON data.
 type Decoder struct {
-	r  *bsoncodec.Registry
+	dc *bsoncodec.DecodeContext
 	vr bsonrw.ValueReader
 }
 
-// NewDecoder returns a new decoder that uses Registry reg to read from r.
-func NewDecoder(r *bsoncodec.Registry, vr bsonrw.ValueReader) (*Decoder, error) {
+// NewDecoder returns a new decoder that uses DecodeContext dc to read from vr.
+func NewDecoder(dc *bsoncodec.DecodeContext, vr bsonrw.ValueReader) (*Decoder, error) {
+	if dc == nil {
+		return nil, errors.New("cannot create a new Decoder with a nil DecodeContext")
+	}
+	if vr == nil {
+		return nil, errors.New("cannot create a new Decoder with a nil ValueReader")
+	}
+
+	return &Decoder{
+		dc: dc,
+		vr: vr,
+	}, nil
+}
+
+// NewDecoderWithRegistry returns a new decoder that uses Registry r to read from vr.
+func NewDecoderWithRegistry(r *bsoncodec.Registry, vr bsonrw.ValueReader) (*Decoder, error) {
 	if r == nil {
 		return nil, errors.New("cannot create a new Decoder with a nil Registry")
 	}
@@ -42,7 +57,7 @@ func NewDecoder(r *bsoncodec.Registry, vr bsonrw.ValueReader) (*Decoder, error) 
 	}
 
 	return &Decoder{
-		r:  r,
+		dc: &bsoncodec.DecodeContext{Registry: r},
 		vr: vr,
 	}, nil
 }
@@ -66,15 +81,15 @@ func (d *Decoder) Decode(val interface{}) error {
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Decode must be a pointer to a type, but got %v", rval)
 	}
-	decoder, err := d.r.LookupDecoder(rval.Elem())
+	decoder, err := d.dc.LookupDecoder(rval.Elem())
 	if err != nil {
 		return err
 	}
-	return decoder.DecodeValue(bsoncodec.DecodeContext{Registry: d.r}, d.vr, val)
+	return decoder.DecodeValue(*d.dc, d.vr, val)
 }
 
-// Reset will reset the state of the decoder, using the same *Registry used in
-// the original construction but using r for reading.
+// Reset will reset the state of the decoder, using the same *DecodeContext used in
+// the original construction but using vr for reading.
 func (d *Decoder) Reset(vr bsonrw.ValueReader) error {
 	d.vr = vr
 	return nil
@@ -82,6 +97,12 @@ func (d *Decoder) Reset(vr bsonrw.ValueReader) error {
 
 // SetRegistry replaces the current registry of the decoder with r.
 func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
-	d.r = r
+	d.dc = &bsoncodec.DecodeContext{Registry: r, Truncate: d.dc.Truncate}
+	return nil
+}
+
+// SetContext replaces the current registry of the decoder with dc.
+func (d *Decoder) SetContext(dc *bsoncodec.DecodeContext) error {
+	d.dc = dc
 	return nil
 }

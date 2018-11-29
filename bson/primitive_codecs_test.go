@@ -1217,7 +1217,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 				b := make(bsonrw.SliceWriter, 0, 512)
 				vw, err := bsonrw.NewBSONValueWriter(&b)
 				noerr(t, err)
-				enc, err := NewEncoder(DefaultRegistry, vw)
+				ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
+				enc, err := NewEncoder(&ec, vw)
 				noerr(t, err)
 				err = enc.Encode(tc.value)
 				if err != tc.err {
@@ -2655,7 +2656,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					vr := bsonrw.NewBSONDocumentReader(tc.b)
-					dec, err := NewDecoder(DefaultRegistry, vr)
+					dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+					dec, err := NewDecoder(&dc, vr)
 					noerr(t, err)
 					gotVal := reflect.New(reflect.TypeOf(tc.value))
 					err = dec.Decode(gotVal.Interface())
