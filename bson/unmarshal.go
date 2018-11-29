@@ -42,7 +42,15 @@ func Unmarshal(data []byte, val interface{}) error {
 // a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 func UnmarshalWithRegistry(r *bsoncodec.Registry, data []byte, val interface{}) error {
 	vr := bsonrw.NewBSONDocumentReader(data)
-	return unmarshalFromReader(r, vr, val)
+	return unmarshalFromReader(bsoncodec.DecodeContext{Registry: r}, vr, val)
+}
+
+// UnmarshalWithContext parses the BSON-encoded data using DecodeContext dc and
+// stores the result in the value pointed to by val. If val is nil or not
+// a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
+func UnmarshalWithContext(dc bsoncodec.DecodeContext, data []byte, val interface{}) error {
+	vr := bsonrw.NewBSONDocumentReader(data)
+	return unmarshalFromReader(dc, vr, val)
 }
 
 // UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
@@ -57,10 +65,18 @@ func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
 // nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 func UnmarshalExtJSONWithRegistry(r *bsoncodec.Registry, data []byte, canonical bool, val interface{}) error {
 	ejvr := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), canonical)
-	return unmarshalFromReader(r, ejvr, val)
+	return unmarshalFromReader(bsoncodec.DecodeContext{Registry: r}, ejvr, val)
 }
 
-func unmarshalFromReader(r *bsoncodec.Registry, vr bsonrw.ValueReader, val interface{}) error {
+// UnmarshalExtJSONWithContext parses the extended JSON-encoded data using
+// DecodeContext dc and stores the result in the value pointed to by val. If val is
+// nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
+func UnmarshalExtJSONWithContext(dc bsoncodec.DecodeContext, data []byte, canonical bool, val interface{}) error {
+	ejvr := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), canonical)
+	return unmarshalFromReader(dc, ejvr, val)
+}
+
+func unmarshalFromReader(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val interface{}) error {
 	dec := decPool.Get().(*Decoder)
 	defer decPool.Put(dec)
 
@@ -68,7 +84,7 @@ func unmarshalFromReader(r *bsoncodec.Registry, vr bsonrw.ValueReader, val inter
 	if err != nil {
 		return err
 	}
-	err = dec.SetRegistry(r)
+	err = dec.SetContext(dc)
 	if err != nil {
 		return err
 	}

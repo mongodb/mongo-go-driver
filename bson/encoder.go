@@ -27,21 +27,33 @@ var encPool = sync.Pool{
 // An Encoder writes a serialization format to an output stream. It writes to a bsonrw.ValueWriter
 // as the destination of BSON data.
 type Encoder struct {
-	r  *bsoncodec.Registry
+	ec bsoncodec.EncodeContext
 	vw bsonrw.ValueWriter
 }
 
-// NewEncoder returns a new encoder that uses Registry r to write to w.
-func NewEncoder(r *bsoncodec.Registry, vw bsonrw.ValueWriter) (*Encoder, error) {
-	if r == nil {
-		return nil, errors.New("cannot create a new Encoder with a nil Registry")
+// NewEncoder returns a new encoder that uses the DefaultRegistry to write to vw.
+func NewEncoder(vw bsonrw.ValueWriter) (*Encoder, error) {
+	if vw == nil {
+		return nil, errors.New("cannot create a new Encoder with a nil ValueWriter")
+	}
+
+	return &Encoder{
+		ec: bsoncodec.EncodeContext{Registry: DefaultRegistry},
+		vw: vw,
+	}, nil
+}
+
+// NewEncoderWithContext returns a new encoder that uses EncodeContext ec to write to vw.
+func NewEncoderWithContext(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter) (*Encoder, error) {
+	if ec.Registry == nil {
+		ec = bsoncodec.EncodeContext{Registry: DefaultRegistry}
 	}
 	if vw == nil {
 		return nil, errors.New("cannot create a new Encoder with a nil ValueWriter")
 	}
 
 	return &Encoder{
-		r:  r,
+		ec: ec,
 		vw: vw,
 	}, nil
 }
@@ -60,14 +72,14 @@ func (e *Encoder) Encode(val interface{}) error {
 		return bsonrw.Copier{}.CopyDocumentFromBytes(e.vw, buf)
 	}
 
-	encoder, err := e.r.LookupEncoder(reflect.TypeOf(val))
+	encoder, err := e.ec.LookupEncoder(reflect.TypeOf(val))
 	if err != nil {
 		return err
 	}
-	return encoder.EncodeValue(bsoncodec.EncodeContext{Registry: e.r}, e.vw, reflect.ValueOf(val))
+	return encoder.EncodeValue(e.ec, e.vw, reflect.ValueOf(val))
 }
 
-// Reset will reset the state of the encoder, using the same *Registry used in
+// Reset will reset the state of the encoder, using the same *EncodeContext used in
 // the original construction but using vw.
 func (e *Encoder) Reset(vw bsonrw.ValueWriter) error {
 	e.vw = vw
@@ -76,6 +88,12 @@ func (e *Encoder) Reset(vw bsonrw.ValueWriter) error {
 
 // SetRegistry replaces the current registry of the encoder with r.
 func (e *Encoder) SetRegistry(r *bsoncodec.Registry) error {
-	e.r = r
+	e.ec.Registry = r
+	return nil
+}
+
+// SetContext replaces the current EncodeContext of the encoder with er.
+func (e *Encoder) SetContext(ec bsoncodec.EncodeContext) error {
+	e.ec = ec
 	return nil
 }
