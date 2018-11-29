@@ -48,3 +48,23 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 		})
 	}
 }
+
+func TestUnmarshalWithContext(t *testing.T) {
+	for _, tc := range unmarshalingTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var reg *bsoncodec.Registry
+			if tc.reg != nil {
+				reg = tc.reg
+			} else {
+				reg = DefaultRegistry
+			}
+			dc := bsoncodec.DecodeContext{Registry: reg}
+			got := reflect.New(tc.sType).Interface()
+			err := UnmarshalWithContext(&dc, tc.data, got)
+			noerr(t, err)
+			if !cmp.Equal(got, tc.want) {
+				t.Errorf("Did not unmarshal as expected. got %v; want %v", got, tc.want)
+			}
+		})
+	}
+}

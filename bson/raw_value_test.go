@@ -81,4 +81,45 @@ func TestRawValue(t *testing.T) {
 			}
 		})
 	})
+	t.Run("UnmarshalWithContext", func(t *testing.T) {
+		t.Run("Returns error when DecodeContext is nil", func(t *testing.T) {
+			want := ErrNilContext
+			var val RawValue
+			got := val.UnmarshalWithContext(nil, bsonx.Doc{})
+			if got != want {
+				t.Errorf("Expected errors to match. got %v; want %v", got, want)
+			}
+		})
+		t.Run("Returns lookup error", func(t *testing.T) {
+			dc := bsoncodec.DecodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()}
+			var val RawValue
+			var s string
+			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(&s)}
+			got := val.UnmarshalWithContext(&dc, &s)
+			if !compareErrors(got, want) {
+				t.Errorf("Execpted errors to match. got %v; want %v", got, want)
+			}
+		})
+		t.Run("Returns DecodeValue error", func(t *testing.T) {
+			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
+			val := RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)}
+			var s string
+			want := fmt.Errorf("cannot decode %v into a string type", bsontype.Double)
+			got := val.UnmarshalWithContext(&dc, &s)
+			if !compareErrors(got, want) {
+				t.Errorf("Expected errors to match. got %v; want %v", got, want)
+			}
+		})
+		t.Run("Success", func(t *testing.T) {
+			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
+			want := float64(3.14159)
+			val := RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, want)}
+			var got float64
+			err := val.UnmarshalWithContext(&dc, &got)
+			noerr(t, err)
+			if got != want {
+				t.Errorf("Expected results to match. got %g; want %g", got, want)
+			}
+		})
+	})
 }

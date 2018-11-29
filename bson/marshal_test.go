@@ -36,6 +36,28 @@ func TestMarshalAppendWithRegistry(t *testing.T) {
 	}
 }
 
+func TestMarshalAppendWithContext(t *testing.T) {
+	for _, tc := range marshalingTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dst := make([]byte, 0, 1024)
+			var reg *bsoncodec.Registry
+			if tc.reg != nil {
+				reg = tc.reg
+			} else {
+				reg = DefaultRegistry
+			}
+			ec := bsoncodec.EncodeContext{Registry: reg}
+			got, err := MarshalAppendWithContext(&ec, dst, tc.val)
+			noerr(t, err)
+
+			if !bytes.Equal(got, tc.want) {
+				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
+				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestMarshalWithRegistry(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -46,6 +68,27 @@ func TestMarshalWithRegistry(t *testing.T) {
 				reg = DefaultRegistry
 			}
 			got, err := MarshalWithRegistry(reg, tc.val)
+			noerr(t, err)
+
+			if !bytes.Equal(got, tc.want) {
+				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
+				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestMarshalWithContext(t *testing.T) {
+	for _, tc := range marshalingTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var reg *bsoncodec.Registry
+			if tc.reg != nil {
+				reg = tc.reg
+			} else {
+				reg = DefaultRegistry
+			}
+			ec := bsoncodec.EncodeContext{Registry: reg}
+			got, err := MarshalWithContext(&ec, tc.val)
 			noerr(t, err)
 
 			if !bytes.Equal(got, tc.want) {

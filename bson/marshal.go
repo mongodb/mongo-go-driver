@@ -53,10 +53,23 @@ func MarshalWithRegistry(r *bsoncodec.Registry, val interface{}) ([]byte, error)
 	return MarshalAppendWithRegistry(r, dst, val)
 }
 
+// MarshalWithContext returns the BSON encoding of val using EncodeContext ec.
+func MarshalWithContext(ec *bsoncodec.EncodeContext, val interface{}) ([]byte, error) {
+	dst := make([]byte, 0, 256) // TODO: make the default cap a constant
+	return MarshalAppendWithContext(ec, dst, val)
+}
+
 // MarshalAppendWithRegistry will append the BSON encoding of val to dst using
 // Registry r. If dst is not large enough to hold the BSON encoding of val, dst
 // will be grown.
 func MarshalAppendWithRegistry(r *bsoncodec.Registry, dst []byte, val interface{}) ([]byte, error) {
+	return MarshalAppendWithContext(&bsoncodec.EncodeContext{Registry: r}, dst, val)
+}
+
+// MarshalAppendWithContext will append the BSON encoding of val to dst using
+// EncodeContext ec. If dst is not large enough to hold the BSON encoding of val, dst
+// will be grown.
+func MarshalAppendWithContext(ec *bsoncodec.EncodeContext, dst []byte, val interface{}) ([]byte, error) {
 	sw := new(bsonrw.SliceWriter)
 	*sw = dst
 	vw := bvwPool.Get(sw)
@@ -69,7 +82,7 @@ func MarshalAppendWithRegistry(r *bsoncodec.Registry, dst []byte, val interface{
 	if err != nil {
 		return nil, err
 	}
-	err = enc.SetRegistry(r)
+	err = enc.SetContext(ec)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +110,13 @@ func MarshalExtJSONAppend(dst []byte, val interface{}, canonical, escapeHTML boo
 // MarshalExtJSONWithRegistry returns the extended JSON encoding of val using Registry r.
 func MarshalExtJSONWithRegistry(r *bsoncodec.Registry, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
 	dst := make([]byte, 0, defaultDstCap)
-	return MarshalExtJSONAppendWithRegistry(r, dst, val, canonical, escapeHTML)
+	return MarshalExtJSONAppendWithContext(&bsoncodec.EncodeContext{Registry: r}, dst, val, canonical, escapeHTML)
+}
+
+// MarshalExtJSONWithContext returns the extended JSON encoding of val using Registry r.
+func MarshalExtJSONWithContext(ec *bsoncodec.EncodeContext, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
+	dst := make([]byte, 0, defaultDstCap)
+	return MarshalExtJSONAppendWithContext(ec, dst, val, canonical, escapeHTML)
 }
 
 // MarshalExtJSONAppendWithRegistry will append the extended JSON encoding of
@@ -117,6 +136,36 @@ func MarshalExtJSONAppendWithRegistry(r *bsoncodec.Registry, dst []byte, val int
 		return nil, err
 	}
 	err = enc.SetRegistry(r)
+	if err != nil {
+		return nil, err
+	}
+
+	err = enc.Encode(val)
+	if err != nil {
+		return nil, err
+	}
+
+	return *sw, nil
+	//return MarshalExtJSONAppendWithContext(&bsoncodec.EncodeContext{Registry: r}, dst, val, canonical, escapeHTML)
+}
+
+// MarshalExtJSONAppendWithContext will append the extended JSON encoding of
+// val to dst using Registry r. If dst is not large enough to hold the BSON
+// encoding of val, dst will be grown.
+func MarshalExtJSONAppendWithContext(ec *bsoncodec.EncodeContext, dst []byte, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
+	sw := new(bsonrw.SliceWriter)
+	*sw = dst
+	ejvw := extjPool.Get(sw, canonical, escapeHTML)
+	defer extjPool.Put(ejvw)
+
+	enc := encPool.Get().(*Encoder)
+	defer encPool.Put(enc)
+
+	err := enc.Reset(ejvw)
+	if err != nil {
+		return nil, err
+	}
+	err = enc.SetContext(ec)
 	if err != nil {
 		return nil, err
 	}
