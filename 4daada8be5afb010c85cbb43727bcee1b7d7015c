@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c83bad2e_aadb1c07",
+        "filename": "bson/bsoncodec/pointer_codec.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-29T15:50:54Z",
+      "side": 1,
+      "message": "I don\u0027t understand what we are doing here. Will we ask users to register using `type` or `*type`? And if they register with `*type`, why would we have gotten here at all? If seems like the registry should have found that one immediately.\n\nAlso, why is this not happening up in EncodeValue?",
+      "revId": "4daada8be5afb010c85cbb43727bcee1b7d7015c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
