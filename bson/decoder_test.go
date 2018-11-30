@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw/bsonrwtest"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 func TestBasicDecode(t *testing.T) {
@@ -137,6 +138,26 @@ func TestDecoderv2(t *testing.T) {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
 			}
 		})
+	})
+	t.Run("Decode doesn't zero struct", func(t *testing.T) {
+		type foo struct {
+			Item  string
+			Qty   int
+			Bonus int
+		}
+		var got foo
+		got.Item = "apple"
+		got.Bonus = 2
+		data := docToBytes(bsonx.Doc{{"item", bsonx.String("canvas")}, {"qty", bsonx.Int32(4)}})
+		vr := bsonrw.NewBSONDocumentReader(data)
+		dec, err := NewDecoder(DefaultRegistry, vr)
+		noerr(t, err)
+		err = dec.Decode(&got)
+		noerr(t, err)
+		want := foo{Item: "canvas", Qty: 4, Bonus: 2}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("Results do not match. got %+v; want %+v", got, want)
+		}
 	})
 	t.Run("Reset", func(t *testing.T) {
 		vr1, vr2 := bsonrw.NewBSONDocumentReader([]byte{}), bsonrw.NewBSONDocumentReader([]byte{})
