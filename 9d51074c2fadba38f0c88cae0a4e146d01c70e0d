@@ -16,6 +16,24 @@
       "revId": "9d51074c2fadba38f0c88cae0a4e146d01c70e0d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5f4c7967_84fcc6fd",
+        "filename": "Gopkg.toml",
+        "patchSetId": 2
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-11-30T20:09:27Z",
+      "side": 1,
+      "message": "As far as I can tell, the .toml file can be edited to list the dependencies for a project (similar to package.json in JS projects). The .lock file is a transitively complete list of dependencies.\n\nSo if we depend on A, which internally depends on B, the .toml file will incldue A but .lock will include A and B.",
+      "parentUuid": "cef96e07_9c84a6ab",
+      "revId": "9d51074c2fadba38f0c88cae0a4e146d01c70e0d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }

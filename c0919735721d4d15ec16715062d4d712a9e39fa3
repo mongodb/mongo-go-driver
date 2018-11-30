@@ -16,6 +16,24 @@
       "revId": "c0919735721d4d15ec16715062d4d712a9e39fa3",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9400b552_f74db853",
+        "filename": "vendor/vendor.json",
+        "patchSetId": 2
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-11-30T20:09:27Z",
+      "side": 0,
+      "message": "this was removed automatically by dep init.",
+      "parentUuid": "a760a37d_5e7c558a",
+      "revId": "c0919735721d4d15ec16715062d4d712a9e39fa3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
