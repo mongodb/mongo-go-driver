@@ -58,11 +58,12 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 	}
 
 	cursor := bsonx.Doc{}
+	hasOutStage := a.HasDollarOut()
 
 	for _, opt := range a.Opts {
 		switch opt.Key {
 		case "batchSize":
-			if opt.Value.Int32() == 0 && a.HasDollarOut() {
+			if opt.Value.Int32() == 0 && hasOutStage {
 				continue
 			}
 			cursor = append(cursor, opt)
@@ -73,7 +74,7 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 	command = append(command, bsonx.Elem{"cursor", bsonx.Document(cursor)})
 
 	// add write concern because it won't be added by the Read command's Encode()
-	if a.WriteConcern != nil {
+	if hasOutStage && a.WriteConcern != nil {
 		element, err := a.WriteConcern.MarshalBSONElement()
 		if err != nil {
 			return nil, err
