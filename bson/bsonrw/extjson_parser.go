@@ -467,11 +467,13 @@ func (ejp *extJSONParser) advanceState() {
 			ejp.s = jpsInvalidState
 		}
 	case jttString:
-		switch ejp.s {
-		case jpsSawBeginObject, jpsSawComma:
-			ejp.s = jpsSawKey
-			ejp.k = jt.v.(string)
-			return
+		if ejp.peekMode() != jpmArrayMode {
+			switch ejp.s {
+			case jpsSawBeginObject, jpsSawComma:
+				ejp.s = jpsSawKey
+				ejp.k = jt.v.(string)
+				return
+			}
 		}
 		fallthrough
 	default:

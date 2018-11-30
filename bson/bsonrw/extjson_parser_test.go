@@ -466,6 +466,7 @@ func TestExtJSONParserAllTypes(t *testing.T) {
 			, "MaxKey"				: { "$maxKey": 1 }
 			, "Null"				: null
 			, "Undefined"			: { "$undefined": true }
+			, "MultipleStrsArray"   : ["value_01", "value_02", "value_03"]
 			}`
 
 	ejp := newExtJSONParser(strings.NewReader(in), true)
@@ -682,6 +683,15 @@ func TestExtJSONParserAllTypes(t *testing.T) {
 		{
 			f: expectSingleValue, p: ejp,
 			k: "Undefined", t: bsontype.Undefined, v: &extJSONValue{t: bsontype.Boolean, v: true},
+		},
+		{
+			f: expectArray, p: ejp,
+			k: "MultipleStrsArray", t: bsontype.Array,
+			v: []ejpKeyTypValTriple{
+				{typ: bsontype.String, val: &extJSONValue{t: bsontype.String, v: "value_01"}},
+				{typ: bsontype.String, val: &extJSONValue{t: bsontype.String, v: "value_02"}},
+				{typ: bsontype.String, val: &extJSONValue{t: bsontype.String, v: "value_03"}},
+			},
 		},
 	}
 
