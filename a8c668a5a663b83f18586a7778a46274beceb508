@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a9653bae_4ce5e5a3",
+        "filename": "bson/decoder.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-30T22:37:47Z",
+      "side": 1,
+      "message": "Same comment as in encoder.go... NewDecoder should only take a ValueReader, and we should have a NewDecoderWithContext. Probably don\u0027t need a NewDecoderWithRegistry at all.",
+      "revId": "a8c668a5a663b83f18586a7778a46274beceb508",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f18879e0_f8e2cf97",
+        "filename": "bson/encoder.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-11-30T22:37:47Z",
+      "side": 1,
+      "message": "I feel like NewEncoder should still not have any arguments except the ValueWriter, and there should be a NewEncoderWithContext... Otherwise, the user has to provide a registry either way, as an argument, or as part of the context. We should have one of these that defaults to use the default registry.",
+      "revId": "a8c668a5a663b83f18586a7778a46274beceb508",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
