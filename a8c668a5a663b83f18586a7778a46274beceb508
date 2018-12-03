@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "7f57024a_128e97ee",
+        "filename": "bson/decoder.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2018-12-03T20:33:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a9653bae_4ce5e5a3",
+      "revId": "a8c668a5a663b83f18586a7778a46274beceb508",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f18879e0_f8e2cf97",
         "filename": "bson/encoder.go",
         "patchSetId": 3
@@ -33,6 +51,24 @@
       "revId": "a8c668a5a663b83f18586a7778a46274beceb508",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a9596452_ec3e5a24",
+        "filename": "bson/encoder.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2018-12-03T20:33:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f18879e0_f8e2cf97",
+      "revId": "a8c668a5a663b83f18586a7778a46274beceb508",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
