@@ -1,0 +1,429 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ecb3fc1c_6c55c05f",
+        "filename": "bson/bsoncodec/bsoncodec_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "can be removed.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cc89c6c4_ac8d25ce",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "What about bsoncore.Document?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bdebf096_758fface",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "Were you doing map / array in another CR?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6d4a9015_09ca5db4",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "this should be first... no reason to read anything if you can\u0027t set it.\n\nThis is going to apply to all of these.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dfcf7513_c74f1b95",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 624,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "You check for null bsontype.Null in SliceDecodeValue... does it not need to be checked for here?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "153598ac_b7d8b8e4",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 643,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "What if this is null?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7427f437_369a571e",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 685,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "Is null not an option here, like for Slice (line 718)",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "25aafac0_015a50f1",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 743,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "I don\u0027t see any positive tests in here.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "307c5c87_e4cf54f5",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 809,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "No positive tests here.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9ed063f7_e080d3ff",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 871,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "No positive tests here.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f3985e32_8ab22654",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1276,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "can we have some success tests... nil, primitive pointer, double primitive pointer, pointer to map/slice...",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "03fd64dd_8e30c025",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1788,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "can we delete commented code?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1207ad0c_bfc50c31",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1824,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "delete commented code.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "661016e7_2f0d9183",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 2378,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "Let\u0027s add some test cases for arrays and documents.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5bd53e43_cf17dea0",
+        "filename": "bson/bsoncodec/default_value_encoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 223,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "could val be nil?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "358d6899_854d3a29",
+        "filename": "bson/bsoncodec/default_value_encoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 244,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "that seems like an oddly specific error for a general map encoder.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "77fe9b8f_77eac584",
+        "filename": "bson/bsoncodec/default_value_encoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "could val be nil?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b37186b6_3c2a7487",
+        "filename": "bson/bsoncodec/default_value_encoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "no success test here, or a test for when the map is nil.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cfd9ce75_c7a0afac",
+        "filename": "bson/bsoncodec/default_value_encoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 256,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "no success test here. Or a test when the slice is nil.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "303f897e_f77397d7",
+        "filename": "bson/bsoncodec/default_value_encoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "should have a success test for a non-nil value? Perhaps even a few with multiple indirections? And a pointer to a map/slice?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0a49cdb5_b046e0bb",
+        "filename": "bson/bsoncodec/registry.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "Is this still true? Don\u0027t we now have a nil encoder and decoder?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3af06e9_d0ea8f3f",
+        "filename": "bson/bsoncodec/struct_codec.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "What if vr\u0027s type is null?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8457e4b6_ef0388cd",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "I don\u0027t see an entry for tA being registered as an Encoder or a Decoder.",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "45adf1e5_f8e4433c",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "Will CodeWithScope codec move to bsoncodec when you add primitive.D into the primitive package?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81fed504_9c1713d7",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 197,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-03T17:34:11Z",
+      "side": 1,
+      "message": "Do we need to add checks for Type(0) in a lot more places?",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
