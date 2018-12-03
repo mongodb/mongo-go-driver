@@ -89,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "6309618f_b44c7254",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:03:42Z",
+      "side": 1,
+      "message": "They will be added when D and A are moved into the primitive package.",
+      "parentUuid": "bdebf096_758fface",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6d4a9015_09ca5db4",
         "filename": "bson/bsoncodec/default_value_decoders.go",
         "patchSetId": 11
