@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "3cb64ee2_20ae4232",
+        "filename": "bson/bsoncodec/bsoncodec_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ecb3fc1c_6c55c05f",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cc89c6c4_ac8d25ce",
         "filename": "bson/bsoncodec/default_value_decoders.go",
         "patchSetId": 11
@@ -33,6 +51,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "30b7c342_4d9f8405",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Added.",
+      "parentUuid": "cc89c6c4_ac8d25ce",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -70,6 +106,24 @@
     },
     {
       "key": {
+        "uuid": "1f8c00d7_79888361",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "This will actually require a bunch of work to change in the code and in the tests and doesn\u0027t actually change the external behavior aside from the error you get if you have both call this with an invalid element and with an incorrect ValueReader. I filed https://jira.mongodb.org/browse/GODRIVER-671 so we can do it in a future beta or after GA.",
+      "parentUuid": "6d4a9015_09ca5db4",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "dfcf7513_c74f1b95",
         "filename": "bson/bsoncodec/default_value_decoders.go",
         "patchSetId": 11
@@ -84,6 +138,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "516ab4a5_d628ca3e",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 624,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Added handling for BSON null.",
+      "parentUuid": "dfcf7513_c74f1b95",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -104,6 +176,24 @@
     },
     {
       "key": {
+        "uuid": "35f6c38b_1f518730",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 643,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Fixed to check the BSON type of vr.",
+      "parentUuid": "153598ac_b7d8b8e4",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7427f437_369a571e",
         "filename": "bson/bsoncodec/default_value_decoders.go",
         "patchSetId": 11
@@ -118,6 +208,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "03a60cd0_7a682aae",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 685,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "No, an array is not nilable, it\u0027s a block of memory: \"The argument must be a chan, func, interface, map, pointer, or slice value; if it is not, IsNil panics\" from the IsNil method on reflect.Value.",
+      "parentUuid": "7427f437_369a571e",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -138,6 +246,24 @@
     },
     {
       "key": {
+        "uuid": "94066aeb_cd4671f9",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 743,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "They are under the \"success path\" tests.",
+      "parentUuid": "25aafac0_015a50f1",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "307c5c87_e4cf54f5",
         "filename": "bson/bsoncodec/default_value_decoders_test.go",
         "patchSetId": 11
@@ -152,6 +278,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d0f69122_ff2e67ef",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 809,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "They are under the \"success path\" tests.",
+      "parentUuid": "307c5c87_e4cf54f5",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -172,6 +316,24 @@
     },
     {
       "key": {
+        "uuid": "ab291e2b_d3b1e76a",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 871,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "They are under the \"success path\" tests.",
+      "parentUuid": "9ed063f7_e080d3ff",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f3985e32_8ab22654",
         "filename": "bson/bsoncodec/default_value_decoders_test.go",
         "patchSetId": 11
@@ -186,6 +348,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4cc5f780_d9d0a720",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1276,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "They are under the \"success path\" tests.",
+      "parentUuid": "f3985e32_8ab22654",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -206,6 +386,24 @@
     },
     {
       "key": {
+        "uuid": "994ad3cd_23583ea5",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1788,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "03fd64dd_8e30c025",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1207ad0c_bfc50c31",
         "filename": "bson/bsoncodec/default_value_decoders_test.go",
         "patchSetId": 11
@@ -220,6 +418,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "60973d20_47211d1a",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 1824,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1207ad0c_bfc50c31",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -240,6 +456,24 @@
     },
     {
       "key": {
+        "uuid": "c5878ffe_e47c7b04",
+        "filename": "bson/bsoncodec/default_value_decoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 2378,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "We couldn\u0027t add these until GODRIVER-670 is done, but since that\u0027s being rolled into this patch, it\u0027ll be done in the next patch.",
+      "parentUuid": "661016e7_2f0d9183",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5bd53e43_cf17dea0",
         "filename": "bson/bsoncodec/default_value_encoders.go",
         "patchSetId": 11
@@ -254,6 +488,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a00df897_d5e34a68",
+        "filename": "bson/bsoncodec/default_value_encoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 223,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Added nil handling.",
+      "parentUuid": "5bd53e43_cf17dea0",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -274,6 +526,24 @@
     },
     {
       "key": {
+        "uuid": "4bcbd156_d63916ea",
+        "filename": "bson/bsoncodec/default_value_encoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 244,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "This method is private and it allows the struct inline map codec to share most of the code with the MapEncodeValue encoder. Since the only way to get this error is if a collisionFn is provided it will only get returned for structs with inline maps.",
+      "parentUuid": "358d6899_854d3a29",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "77fe9b8f_77eac584",
         "filename": "bson/bsoncodec/default_value_encoders.go",
         "patchSetId": 11
@@ -288,6 +558,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2d6d4085_97a65dd4",
+        "filename": "bson/bsoncodec/default_value_encoders.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "No, an array is not nilable.",
+      "parentUuid": "77fe9b8f_77eac584",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -308,6 +596,24 @@
     },
     {
       "key": {
+        "uuid": "66b000ed_dd0757d0",
+        "filename": "bson/bsoncodec/default_value_encoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Same as before, under \"success path\".",
+      "parentUuid": "b37186b6_3c2a7487",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cfd9ce75_c7a0afac",
         "filename": "bson/bsoncodec/default_value_encoders_test.go",
         "patchSetId": 11
@@ -322,6 +628,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d3ed6a3c_107396b9",
+        "filename": "bson/bsoncodec/default_value_encoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 256,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Same as before, under \"success path\".",
+      "parentUuid": "cfd9ce75_c7a0afac",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -342,6 +666,24 @@
     },
     {
       "key": {
+        "uuid": "2cff178a_4221143e",
+        "filename": "bson/bsoncodec/default_value_encoders_test.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 520,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Same as before, under \"success path\".",
+      "parentUuid": "303f897e_f77397d7",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0a49cdb5_b046e0bb",
         "filename": "bson/bsoncodec/registry.go",
         "patchSetId": 11
@@ -356,6 +698,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "19a947d9_40c66a9a",
+        "filename": "bson/bsoncodec/registry.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "It\u0027s true for decoder, we there\u0027s no such thing as nil decoder, it wouldn\u0027t do anything.",
+      "parentUuid": "0a49cdb5_b046e0bb",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -376,6 +736,24 @@
     },
     {
       "key": {
+        "uuid": "d3ad23f4_e74c8c94",
+        "filename": "bson/bsoncodec/struct_codec.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Added a check for the BSON type.",
+      "parentUuid": "b3af06e9_d0ea8f3f",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8457e4b6_ef0388cd",
         "filename": "bson/primitive_codecs.go",
         "patchSetId": 11
@@ -390,6 +768,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8fded621_5f72ed01",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "We don\u0027t need a specific encoder or decoder for bson.A since it is transparently handled by the slice encoder and decoder.",
+      "parentUuid": "8457e4b6_ef0388cd",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -410,6 +806,24 @@
     },
     {
       "key": {
+        "uuid": "603e2a53_3fd41233",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Yup.",
+      "parentUuid": "45adf1e5_f8e4433c",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "81fed504_9c1713d7",
         "filename": "bson/primitive_codecs.go",
         "patchSetId": 11
@@ -424,6 +838,24 @@
       "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "414608d9_8cdd7fcb",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 197,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-03T22:02:55Z",
+      "side": 1,
+      "message": "Only for places that could be a Document. It is likely a bug if we allow bsontype.EmbeddedDocument but not bsontype.Type(0).",
+      "parentUuid": "81fed504_9c1713d7",
+      "revId": "f119a028eddab56c873b38f59f816725f4d1cee9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
