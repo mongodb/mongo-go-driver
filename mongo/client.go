@@ -214,8 +214,8 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 	if client.writeConcern == nil {
 		client.writeConcern = writeConcernFromConnString(&client.connString)
 	}
-	isSingleConnect := (cs.Connect == connstring.SingleConnect)
-	if client.readPreference == nil || isSingleConnect {
+	hasTopologyTypeSingle := (topo.Description().Kind == description.Single)
+	if client.readPreference == nil || hasTopologyTypeSingle {
 		rp, err := readPreferenceFromConnString(&client.connString)
 		if err != nil {
 			return nil, err
@@ -225,9 +225,9 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 		} else {
 			client.readPreference = readpref.Primary()
 		}
-		// default readPreference for 'single' topology type is primaryPreferred
-		if isSingleConnect && client.readPreference == readpref.Primary() {
-			// client.readPreference = readpref.PrimaryPreferred()
+		// deployments of topology type 'single' have a default readPreference of 'primaryPreferred', and overwrite user-supplied readPreferences of 'primary'
+		if hasTopologyTypeSingle && client.readPreference == readpref.Primary() {
+			client.readPreference = readpref.PrimaryPreferred()
 		}
 	}
 
