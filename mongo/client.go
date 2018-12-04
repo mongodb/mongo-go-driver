@@ -214,7 +214,8 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 	if client.writeConcern == nil {
 		client.writeConcern = writeConcernFromConnString(&client.connString)
 	}
-	if client.readPreference == nil {
+	isSingleConnect := (cs.Connect == connstring.SingleConnect)
+	if client.readPreference == nil || isSingleConnect {
 		rp, err := readPreferenceFromConnString(&client.connString)
 		if err != nil {
 			return nil, err
@@ -223,6 +224,10 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 			client.readPreference = rp
 		} else {
 			client.readPreference = readpref.Primary()
+		}
+		// default readPreference for 'single' topology type is primaryPreferred
+		if isSingleConnect && client.readPreference == readpref.Primary() {
+			// client.readPreference = readpref.PrimaryPreferred()
 		}
 	}
 
