@@ -101,7 +101,6 @@ func New(opts ...Option) (*Topology, error) {
 		subscribers: make(map[uint64]chan description.Topology),
 		servers:     make(map[address.Address]*Server),
 	}
-	t.desc.Store(description.Topology{})
 
 	if cfg.replicaSetName != "" {
 		t.fsm.SetName = cfg.replicaSetName
@@ -111,6 +110,8 @@ func New(opts ...Option) (*Topology, error) {
 	if cfg.mode == SingleMode {
 		t.fsm.Kind = description.Single
 	}
+
+	t.desc.Store(description.Topology{Kind: t.fsm.Kind})
 
 	return t, nil
 }
