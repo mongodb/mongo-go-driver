@@ -139,6 +139,24 @@
       "revId": "716d25529e6138528e93672682176c0ce75e0cab",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6ab23b6_5cd1fff1",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-04T22:25:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "51962aa8_d689f2ab",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
