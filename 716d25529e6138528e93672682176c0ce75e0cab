@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ab552480_0cb5f495",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 714,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-04T18:37:24Z",
+      "side": 1,
+      "message": "This is slightly different since it returns a slice of reflect.Value and an error. It\u0027s only used in the Array and Slice decoders.",
+      "parentUuid": "523b4692_6f3ebc6e",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "af711aed_0f5dbd72",
         "filename": "bson/primitive/document.go",
         "patchSetId": 12
@@ -33,6 +51,24 @@
       "revId": "716d25529e6138528e93672682176c0ce75e0cab",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6d0263b6_115ab986",
+        "filename": "bson/primitive/document.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-04T18:37:24Z",
+      "side": 1,
+      "message": "I had originally put the D family of types here, but then decided not to. I\u0027ll remove this file.",
+      "parentUuid": "af711aed_0f5dbd72",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "c49fb216_25dc0a16",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-04T18:37:24Z",
+      "side": 1,
+      "message": "This was an oversight, fixed.",
+      "parentUuid": "7956f934_0002f962",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "51c766ec_f280f6f5",
         "filename": "bson/primitive_codecs.go",
         "patchSetId": 12
@@ -64,6 +118,24 @@
       "writtenOn": "2018-12-04T02:27:25Z",
       "side": 1,
       "message": "Makes you wonder whether you should put Raw and RawValue into primitive as well.",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "51962aa8_d689f2ab",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-04T18:37:24Z",
+      "side": 1,
+      "message": "Unfortunately we can\u0027t, since RawValue requires the ability to unmarshal and unmarshaling requires the bsoncodec package and that would create a circular dependency.",
+      "parentUuid": "51c766ec_f280f6f5",
       "revId": "716d25529e6138528e93672682176c0ce75e0cab",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
