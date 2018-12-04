@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "523b4692_6f3ebc6e",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 714,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-04T02:27:25Z",
+      "side": 1,
+      "message": "isn\u0027t this the definition of a ValueDecoderFunc? Can you just use that name instead?\n\n(looks like there are other places for this, SliceDecodeValue at least)",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "af711aed_0f5dbd72",
+        "filename": "bson/primitive/document.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-04T02:27:25Z",
+      "side": 1,
+      "message": "what is this file for?",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7956f934_0002f962",
+        "filename": "bson/primitive/primitive.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-04T02:27:25Z",
+      "side": 1,
+      "message": "should be the primitive package now... Unless docs flow from the original type, which would make the docs weird.",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "51c766ec_f280f6f5",
+        "filename": "bson/primitive_codecs.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-04T02:27:25Z",
+      "side": 1,
+      "message": "Makes you wonder whether you should put Raw and RawValue into primitive as well.",
+      "revId": "716d25529e6138528e93672682176c0ce75e0cab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
