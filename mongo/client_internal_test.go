@@ -385,6 +385,30 @@ func TestClient_ReadPreferenceAbsent(t *testing.T) {
 	require.False(t, flag)
 }
 
+func TestClient_ConnectDirectReadPreference(t *testing.T) {
+	mongoURI := "mongodb://SECONDARY:27017/?connect=direct&readPreference=secondary"
+	c, err := NewClient(mongoURI)
+	require.NoError(t, err)
+	require.NotNil(t, c)
+	require.Equal(t, readpref.SecondaryMode, c.readPreference.Mode())
+}
+
+func TestClient_ConnectDirectReadPreferencePrimary(t *testing.T) {
+	mongoURI := "mongodb://SECONDARY:27017/?connect=direct&readPreference=primary"
+	c, err := NewClient(mongoURI)
+	require.NoError(t, err)
+	require.NotNil(t, c)
+	require.Equal(t, readpref.PrimaryPreferredMode, c.readPreference.Mode())
+}
+
+func TestClient_ConnectDirectReadPreferenceAbsent(t *testing.T) {
+	mongoURI := "mongodb://SECONDARY:27017/?connect=direct"
+	c, err := NewClient(mongoURI)
+	require.NoError(t, err)
+	require.NotNil(t, c)
+	require.Equal(t, readpref.PrimaryPreferredMode, c.readPreference.Mode())
+}
+
 func TestClient_CausalConsistency(t *testing.T) {
 	cs := testutil.ConnString(t)
 	c, err := NewClient(cs.String())
