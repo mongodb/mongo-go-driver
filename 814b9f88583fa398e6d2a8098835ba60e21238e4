@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "fc9152ab_e2a4c565",
+        "filename": "bson/bsonrw/value_reader.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-05T17:32:53Z",
+      "side": 1,
+      "message": "Why are we returning bsontype(0) here? We know the type based on either the user not giving us a starting type (document) or them explicitly providing us one. Can we return that? If the user doesn\u0027t care, they can ignore it.",
+      "revId": "814b9f88583fa398e6d2a8098835ba60e21238e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
