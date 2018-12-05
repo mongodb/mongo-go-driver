@@ -486,8 +486,8 @@ func (p *parser) addOption(pair string) error {
 		p.Compressors = compressors
 	case "connect":
 		switch strings.ToLower(value) {
-		case "auto", "automatic":
-		case "direct", "single":
+		case "automatic":
+		case "direct":
 			p.Connect = SingleConnect
 		default:
 			return fmt.Errorf("invalid 'connect' value: %s", value)

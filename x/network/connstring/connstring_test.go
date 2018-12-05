@@ -98,10 +98,8 @@ func TestConnect(t *testing.T) {
 		expected connstring.ConnectMode
 		err      bool
 	}{
-		{s: "connect=auto", expected: connstring.AutoConnect},
 		{s: "connect=automatic", expected: connstring.AutoConnect},
-		{s: "connect=AUTO", expected: connstring.AutoConnect},
-		{s: "connect=single", expected: connstring.SingleConnect},
+		{s: "connect=AUTOMATIC", expected: connstring.AutoConnect},
 		{s: "connect=direct", expected: connstring.SingleConnect},
 		{s: "connect=blah", err: true},
 	}
