@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 	"testing"
@@ -17,6 +18,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw/bsonrwtest"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func TestBasicDecode(t *testing.T) {
@@ -116,6 +118,20 @@ func TestDecoderv2(t *testing.T) {
 					}
 				})
 			}
+
+			t.Run("Unmarshaler/success bsonrw.ValueReader", func(t *testing.T) {
+				want := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
+				unmarshaler := &testUnmarshaler{}
+				vr := bsonrw.NewBSONDocumentReader(want)
+				dec, err := NewDecoder(DefaultRegistry, vr)
+				noerr(t, err)
+				err = dec.Decode(unmarshaler)
+				noerr(t, err)
+				got := unmarshaler.data
+				if !bytes.Equal(got, want) {
+					t.Errorf("Did not unmarshal properly. got %v; want %v", got, want)
+				}
+			})
 		})
 	})
 	t.Run("NewDecoderv2", func(t *testing.T) {
@@ -205,9 +221,11 @@ func (tdc *testDecoderCodec) DecodeValue(bsoncodec.DecodeContext, bsonrw.ValueRe
 type testUnmarshaler struct {
 	invoked bool
 	err     error
+	data    []byte
 }
 
-func (tu *testUnmarshaler) UnmarshalBSON(_ []byte) error {
+func (tu *testUnmarshaler) UnmarshalBSON(d []byte) error {
 	tu.invoked = true
+	tu.data = d
 	return tu.err
 }

@@ -260,14 +260,14 @@ func (vr *valueReader) nextElementLength() (int32, error) {
 	var err error
 	switch vr.stack[vr.frame].vType {
 	case bsontype.Array, bsontype.EmbeddedDocument, bsontype.CodeWithScope:
-		length, err = vr.peakLength()
+		length, err = vr.peekLength()
 	case bsontype.Binary:
-		length, err = vr.peakLength()
+		length, err = vr.peekLength()
 		length += 4 + 1 // binary length + subtype byte
 	case bsontype.Boolean:
 		length = 1
 	case bsontype.DBPointer:
-		length, err = vr.peakLength()
+		length, err = vr.peekLength()
 		length += 4 + 12 // string length + ObjectID length
 	case bsontype.DateTime, bsontype.Double, bsontype.Int64, bsontype.Timestamp:
 		length = 8
@@ -276,7 +276,7 @@ func (vr *valueReader) nextElementLength() (int32, error) {
 	case bsontype.Int32:
 		length = 4
 	case bsontype.JavaScript, bsontype.String, bsontype.Symbol:
-		length, err = vr.peakLength()
+		length, err = vr.peekLength()
 		length += 4
 	case bsontype.MaxKey, bsontype.MinKey, bsontype.Null, bsontype.Undefined:
 		length = 0
@@ -303,20 +303,29 @@ func (vr *valueReader) nextElementLength() (int32, error) {
 
 func (vr *valueReader) ReadValueBytes(dst []byte) (bsontype.Type, []byte, error) {
 	switch vr.stack[vr.frame].mode {
+	case mTopLevel:
+		length, err := vr.peekLength()
+		if err != nil {
+			return bsontype.Type(0), nil, err
+		}
+		dst, err = vr.appendBytes(dst, length)
+		if err != nil {
+			return bsontype.Type(0), nil, err
+		}
+		return bsontype.Type(0), dst, nil
 	case mElement, mValue:
+		length, err := vr.nextElementLength()
+		if err != nil {
+			return bsontype.Type(0), dst, err
+		}
+
+		dst, err = vr.appendBytes(dst, length)
+		t := vr.stack[vr.frame].vType
+		vr.pop()
+		return t, dst, err
 	default:
 		return bsontype.Type(0), nil, vr.invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
 	}
-
-	length, err := vr.nextElementLength()
-	if err != nil {
-		return bsontype.Type(0), dst, err
-	}
-
-	dst, err = vr.appendBytes(dst, length)
-	t := vr.stack[vr.frame].vType
-	vr.pop()
-	return t, dst, err
 }
 
 func (vr *valueReader) Skip() error {
@@ -819,7 +828,7 @@ func (vr *valueReader) readString() (string, error) {
 	return string(vr.d[start : start+int64(length)-1]), nil
 }
 
-func (vr *valueReader) peakLength() (int32, error) {
+func (vr *valueReader) peekLength() (int32, error) {
 	if vr.offset+4 > int64(len(vr.d)) {
 		return 0, io.EOF
 	}

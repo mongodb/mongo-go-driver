@@ -1428,6 +1428,57 @@ func TestValueReader(t *testing.T) {
 				})
 			})
 		}
+		t.Run("ReadValueBytes/Top Level Doc", func(t *testing.T) {
+			testCases := []struct {
+				name     string
+				want     []byte
+				wantType bsontype.Type
+				wantErr  error
+			}{
+				{
+					"success",
+					bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
+					bsontype.Type(0),
+					nil,
+				},
+				{
+					"wrong length",
+					[]byte{0x01, 0x02, 0x03},
+					bsontype.Type(0),
+					io.EOF,
+				},
+				{
+					"append bytes",
+					[]byte{0x01, 0x02, 0x03, 0x04},
+					bsontype.Type(0),
+					io.EOF,
+				},
+			}
+
+			for _, tc := range testCases {
+				tc := tc
+				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+					vr := &valueReader{
+						d: tc.want,
+						stack: []vrState{
+							{mode: mTopLevel},
+						},
+						frame: 0,
+					}
+					gotType, got, gotErr := vr.ReadValueBytes(nil)
+					if gotErr != tc.wantErr {
+						t.Errorf("Did not receive expected error. got %v; want %v", gotErr, tc.wantErr)
+					}
+					if tc.wantErr == nil && gotType != tc.wantType {
+						t.Errorf("Did not receive expected type. got %v; want %v", gotType, tc.wantType)
+					}
+					if tc.wantErr == nil && !bytes.Equal(got, tc.want) {
+						t.Errorf("Did not receive expected bytes. got %v; want %v", got, tc.want)
+					}
+				})
+			}
+		})
 	})
 
 	t.Run("invalid transition", func(t *testing.T) {
@@ -1439,14 +1490,15 @@ func TestValueReader(t *testing.T) {
 				t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
 			}
 		})
-		t.Run("ReadBytes", func(t *testing.T) {
-			vr := &valueReader{stack: []vrState{{mode: mTopLevel}}}
-			wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}}}).invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
-			_, _, goterr := vr.ReadValueBytes(nil)
-			if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
-				t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
-			}
-		})
+	})
+	t.Run("ReadBytes", func(t *testing.T) {
+		vr := &valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}
+		wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}).
+			invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
+		_, _, goterr := vr.ReadValueBytes(nil)
+		if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+			t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
+		}
 	})
 }
 

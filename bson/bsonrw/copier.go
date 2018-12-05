@@ -118,15 +118,9 @@ func (c Copier) CopyDocumentToBytes(src ValueReader) ([]byte, error) {
 // AppendDocumentBytes functions the same as CopyDocumentToBytes, but will
 // append the result to dst.
 func (c Copier) AppendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
-	if vr, ok := src.(*valueReader); ok {
-		length, err := vr.peakLength()
-		if err != nil {
-			return dst, err
-		}
-		dst = append(dst, vr.d[vr.offset:vr.offset+int64(length)]...)
-		vr.offset += int64(length)
-		vr.pop()
-		return dst, nil
+	if br, ok := src.(BytesReader); ok {
+		_, dst, err := br.ReadValueBytes(dst)
+		return dst, err
 	}
 
 	vw := vwPool.Get().(*valueWriter)
