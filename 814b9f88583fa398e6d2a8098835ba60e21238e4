@@ -16,6 +16,24 @@
       "revId": "814b9f88583fa398e6d2a8098835ba60e21238e4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "50493d03_b6f00699",
+        "filename": "bson/bsonrw/value_reader.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-05T19:08:14Z",
+      "side": 1,
+      "message": "An mTopLevel frame never has a type associated with it because we don\u0027t have a bsontype.Type constant for a top level document. In all other cases we\u0027ll hit the mElement or mValue case and it will return the type of that element or value.",
+      "parentUuid": "fc9152ab_e2a4c565",
+      "revId": "814b9f88583fa398e6d2a8098835ba60e21238e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
