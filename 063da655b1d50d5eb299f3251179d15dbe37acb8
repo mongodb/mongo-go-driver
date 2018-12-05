@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "94e7dc4d_2e3838ee",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 218,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-05T21:28:49Z",
+      "side": 1,
+      "message": "Don\u0027t need the parentheses here.",
+      "range": {
+        "startLine": 218,
+        "startChar": 26,
+        "endLine": 218,
+        "endChar": 27
+      },
+      "revId": "063da655b1d50d5eb299f3251179d15dbe37acb8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
