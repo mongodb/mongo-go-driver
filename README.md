@@ -3,7 +3,7 @@
   <a href="https://goreportcard.com/report/github.com/mongodb/mongo-go-driver"><img src="https://goreportcard.com/badge/github.com/mongodb/mongo-go-driver"></a>
   <a href="https://godoc.org/github.com/mongodb/mongo-go-driver/mongo"><img src="etc/assets/godoc-mongo-blue.svg" alt="GoDoc"></a>
   <a href="https://godoc.org/github.com/mongodb/mongo-go-driver/bson"><img src="etc/assets/godoc-bson-blue.svg" alt="GoDoc"></a>
-  <a href="https://docs.mongodb.com/ecosystem/drivers/go.html"><img src="etc/assets/docs-mongodb-green.svg"></a>
+  <a href="https://docs.mongodb.com/ecosystem/drivers/go/"><img src="etc/assets/docs-mongodb-green.svg"></a>
 </p>
 
 # MongoDB Go Driver
@@ -114,7 +114,7 @@ if err != nil {
 // Do something with result...
 ```
 
-Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://docs.mongodb.com/ecosystem/drivers/go.html).
+Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://docs.mongodb.com/ecosystem/drivers/go/).
 
 -------------------------
 ## Bugs / Feature Reporting
