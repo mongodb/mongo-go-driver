@@ -22,6 +22,29 @@
       "revId": "063da655b1d50d5eb299f3251179d15dbe37acb8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9f566be5_bfc470b9",
+        "filename": "mongo/client.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 231,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-06T19:37:22Z",
+      "side": 1,
+      "message": "We also have to consider the case where the read preference is changed at a lower level, e.g. Client.Database, Database.Collection, where read preference is one of the options.\n\nI suspect we will have to leave read preference alone at the high level, and instead apply this logic in the place(s) where read preference is actually added to the command (as $readPreference).  That\u0027s because at this point we don\u0027t necessarily know the type of server we\u0027re talking to, and this logic should not apply when connected to a mongos server.\n\nNote that for pre-3.6 servers (which use OP_QUERY), read preference is communicated to replica set members via the slaveOK bit, so whatever we do has to ensure that the slaveOk bit is set for pre-3.6 servers in this scenario, and that $readPreference is set for 3.6+ servers (which use OP_MSG).  That may already be working correctly, but whatever approach we take must preserve that.",
+      "range": {
+        "startLine": 231,
+        "startChar": 0,
+        "endLine": 231,
+        "endChar": 84
+      },
+      "revId": "063da655b1d50d5eb299f3251179d15dbe37acb8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
