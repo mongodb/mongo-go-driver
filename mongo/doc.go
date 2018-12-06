@@ -25,7 +25,7 @@
 //
 // A Collection can be used to query the database or insert documents:
 //
-//    res, err := collection.InsertOne(context.Background(), bson.M{"hello": "world"}))
+//    res, err := collection.InsertOne(context.Background(), bson.M{"hello": "world"})
 //    if err != nil { return err }
 //    id := res.InsertedID
 //
@@ -51,7 +51,7 @@
 // 	  	Bar int32
 // 	  }{}
 //    filter := bson.D{{"hello", "world"}}
-//    err := collection.FindOne(context.Background(), filter).Decode(&result))
+//    err := collection.FindOne(context.Background(), filter).Decode(&result)
 //    if err != nil { return err }
 //    // do something with result...
 //
