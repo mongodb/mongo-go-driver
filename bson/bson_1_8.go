@@ -9,6 +9,7 @@
 package bson
 
 import (
+	"encoding/json"
 	"math"
 	"strconv"
 	"strings"
@@ -32,6 +33,11 @@ type Zeroer interface {
 // This type should be used in situations where order matters, such as MongoDB commands. If the
 // order is not important, a map is more comfortable and concise.
 type D []E
+
+// MarshalJSON impl encoding/json.Marshaler interface
+func (d D) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.Map())
+}
 
 // Map creates a map from the elements of the D.
 func (d D) Map() M {

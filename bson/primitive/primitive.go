@@ -10,6 +10,7 @@ package primitive
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 )
 
@@ -118,6 +119,11 @@ func (d D) Map() M {
 		m[e.Key] = e.Value
 	}
 	return m
+}
+
+// MarshalJSON impl encoding/json.Marshaler interface
+func (d D) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.Map())
 }
 
 // E represents a BSON element for a D. It is usually used inside a D.
