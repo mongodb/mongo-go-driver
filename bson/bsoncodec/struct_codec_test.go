@@ -8,6 +8,7 @@ package bsoncodec
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -35,4 +36,12 @@ func TestZeoerInterfaceUsedByDecoder(t *testing.T) {
 
 	z.reportZero = true
 	assert.True(t, enc.isZero(z))
+
+	// *time.Time with nil should be zero
+	var tp *time.Time
+	assert.True(t, enc.isZero(tp))
+
+	// actually all zeroer if nil should also be zero
+	var zp *zeroTest
+	assert.True(t, enc.isZero(zp))
 }
