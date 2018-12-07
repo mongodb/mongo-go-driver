@@ -7,12 +7,43 @@
 package bsoncodec
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
+
+func ExampleValueEncoder() {
+	var _ ValueEncoderFunc = func(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+		if val.Kind() != reflect.String {
+			return ValueEncoderError{Name: "StringEncodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
+		}
+
+		return vw.WriteString(val.String())
+	}
+}
+
+func ExampleValueDecoder() {
+	var _ ValueDecoderFunc = func(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+		if !val.CanSet() || val.Kind() != reflect.String {
+			return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
+		}
+
+		if vr.Type() != bsontype.String {
+			return fmt.Errorf("cannot decode %v into a string type", vr.Type())
+		}
+
+		str, err := vr.ReadString()
+		if err != nil {
+			return err
+		}
+		val.SetString(str)
+		return nil
+	}
+}
 
 func noerr(t *testing.T, err error) {
 	if err != nil {
