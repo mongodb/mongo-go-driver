@@ -114,5 +114,10 @@ func Aggregate(
 		cmd.Opts = append(cmd.Opts, hintElem)
 	}
 
-	return cmd.RoundTrip(ctx, desc, ss, conn)
+	c, err := cmd.RoundTrip(ctx, desc, ss, conn)
+	if err != nil {
+		closeImplicitSession(cmd.Session)
+	}
+
+	return c, err
 }
