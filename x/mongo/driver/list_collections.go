@@ -60,5 +60,10 @@ func ListCollections(
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"nameOnly", bsonx.Boolean(*lc.NameOnly)})
 	}
 
-	return cmd.RoundTrip(ctx, ss.Description(), ss, conn)
+	c, err := cmd.RoundTrip(ctx, ss.Description(), ss, conn)
+	if err != nil && cmd.Session != nil {
+		cmd.Session.EndSession()
+	}
+
+	return c, err
 }
