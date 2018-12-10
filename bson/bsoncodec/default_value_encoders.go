@@ -309,19 +309,21 @@ func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.Val
 				return err
 			}
 
-			ve := e.Value
-			if reflect.TypeOf(ve) == nil {
-				ve = primitive.Null{}
-			}
+			if e.Value == nil {
+				err = vw.WriteNull()
+				if err != nil {
+					return err
+				}
+			} else {
+				encoder, err := ec.LookupEncoder(reflect.TypeOf(e.Value))
+				if err != nil {
+					return err
+				}
 
-			encoder, err := ec.LookupEncoder(reflect.TypeOf(ve))
-			if err != nil {
-				return err
-			}
-
-			err = encoder.EncodeValue(ec, vw, reflect.ValueOf(ve))
-			if err != nil {
-				return err
+				err = encoder.EncodeValue(ec, vw, reflect.ValueOf(e.Value))
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -377,18 +379,21 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 				return err
 			}
 
-			ve := e.Value
-			if reflect.TypeOf(ve) == nil {
-				ve = primitive.Null{}
-			}
-			encoder, err := ec.LookupEncoder(reflect.TypeOf(ve))
-			if err != nil {
-				return err
-			}
+			if e.Value == nil {
+				err = vw.WriteNull()
+				if err != nil {
+					return err
+				}
+			} else {
+				encoder, err := ec.LookupEncoder(reflect.TypeOf(e.Value))
+				if err != nil {
+					return err
+				}
 
-			err = encoder.EncodeValue(ec, vw, reflect.ValueOf(ve))
-			if err != nil {
-				return err
+				err = encoder.EncodeValue(ec, vw, reflect.ValueOf(e.Value))
+				if err != nil {
+					return err
+				}
 			}
 		}
 
