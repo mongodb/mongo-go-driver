@@ -381,6 +381,7 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 			if reflect.TypeOf(ve) == nil {
 				ve = primitive.Null{}
 			}
+			
 			encoder, err := ec.LookupEncoder(reflect.TypeOf(ve))
 			if err != nil {
 				return err
