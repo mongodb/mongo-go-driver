@@ -192,6 +192,7 @@ func (c *cursor) DecodeBytes() (bson.Raw, error) {
 	if br.Type != bson.TypeEmbeddedDocument {
 		return nil, errors.New("Non-Document in batch of documents for cursor")
 	}
+
 	return br.Document(), nil
 }
 
