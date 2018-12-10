@@ -232,7 +232,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	cmd := command.ListCollections{
 		DB:       db.name,
 		Filter:   filterDoc,
-		ReadPref: db.readPreference,
+		ReadPref: readpref.Primary(), // list collections must be run on a primary by default
 		Session:  sess,
 		Clock:    db.client.clock,
 	}
