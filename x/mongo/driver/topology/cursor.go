@@ -15,9 +15,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"strings"
 )
 
 type cursor struct {
@@ -36,6 +38,7 @@ type cursor struct {
 	batchSize   int32
 	limit       int32
 	numReturned int32 // number of docs returned by server
+	listColl    bool  // true if this cursor was created as a result of a list collections operation
 }
 
 func newCursor(result bson.Raw, clientSession *session.Client, clock *session.ClusterClock, server *Server, opts ...bsonx.Elem) (command.Cursor, error) {
@@ -126,6 +129,17 @@ func newLegacyCursor(ns command.Namespace, cursorID int64, batch []bson.Raw, lim
 	return c, nil
 }
 
+func newListCollCursor(ns command.Namespace, cursorID int64, batch []bson.Raw, server *Server) (command.Cursor, error) {
+	c, err := newLegacyCursor(ns, cursorID, batch, 0, 0, server)
+	if err != nil {
+		return nil, err
+	}
+
+	newCursor := c.(*cursor)
+	newCursor.listColl = true
+	return newCursor, nil
+}
+
 // close the associated session if it's implicit
 func (c *cursor) closeImplicitSession() {
 	if c.clientSession != nil && c.clientSession.SessionType == session.Implicit {
@@ -187,12 +201,43 @@ func (c *cursor) Decode(v interface{}) error {
 	return bson.UnmarshalWithRegistry(c.registry, br, v)
 }
 
+// project out the database name for a legacy server
+func projectNameElement(rawDoc bson.Raw) (bson.Raw, error) {
+	elems, err := rawDoc.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	var filteredElems []byte
+	for _, elem := range elems {
+		key := elem.Key()
+		if key != "name" {
+			filteredElems = append(filteredElems, elem...)
+			continue
+		}
+
+		name := elem.Value().StringValue()
+		collName := name[strings.Index(name, ".")+1:]
+		filteredElems = bsoncore.AppendStringElement(filteredElems, "name", collName)
+	}
+
+	var filteredDoc []byte
+	filteredDoc = bsoncore.BuildDocument(filteredDoc, filteredElems)
+	return filteredDoc, nil
+}
+
 func (c *cursor) DecodeBytes() (bson.Raw, error) {
 	br := c.batch[c.current]
 	if br.Type != bson.TypeEmbeddedDocument {
 		return nil, errors.New("Non-Document in batch of documents for cursor")
 	}
-	return br.Document(), nil
+
+	rawDoc := br.Document()
+	if !c.listColl {
+		return rawDoc, nil
+	}
+
+	return projectNameElement(rawDoc)
 }
 
 func (c *cursor) Err() error {

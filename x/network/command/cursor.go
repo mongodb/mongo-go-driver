@@ -63,6 +63,7 @@ type Cursor interface {
 type CursorBuilder interface {
 	BuildCursor(bson.Raw, *session.Client, *session.ClusterClock, ...bsonx.Elem) (Cursor, error)
 	BuildLegacyCursor(Namespace, int64, []bson.Raw, int32, int32) (Cursor, error)
+	BuildListCollCursor(Namespace, int64, []bson.Raw) (Cursor, error)
 }
 
 type emptyCursor struct{}

@@ -14,6 +14,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
@@ -36,10 +39,11 @@ func TestCommandListCollections(t *testing.T) {
 			t.FailNow()
 		}
 	}
-	// TODO(GODRIVER-492) don't skip once legacy collection enumeration is implemented
-	skipIfBelow32(t)
 
 	t.Run("InvalidDatabaseName", func(t *testing.T) {
+		// 2.6 server doesn't throw error for invalid database name
+		skipIfBelow32(t)
+
 		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
 		noerr(t, err)
 		conn, err := server.Connection(context.Background())
@@ -67,11 +71,6 @@ func TestCommandListCollections(t *testing.T) {
 		}
 	})
 	t.Run("SingleBatch", func(t *testing.T) {
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
-		noerr(t, err)
-		conn, err := server.Connection(context.Background())
-		noerr(t, err)
-
 		wc := writeconcern.New(writeconcern.WMajority())
 		collOne := testutil.ColName(t)
 		collTwo := testutil.ColName(t) + "2"
@@ -83,7 +82,16 @@ func TestCommandListCollections(t *testing.T) {
 		testutil.InsertDocs(t, testutil.DBName(t), collTwo, wc, bsonx.Doc{{"_id", bsonx.Int32(2)}})
 		testutil.InsertDocs(t, testutil.DBName(t), collThree, wc, bsonx.Doc{{"_id", bsonx.Int32(3)}})
 
-		cursor, err := (&command.ListCollections{DB: dbName}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		clientID, err := uuid.New()
+		noerr(t, err)
+		cursor, err := driver.ListCollections(
+			context.Background(),
+			command.ListCollections{DB: dbName},
+			testutil.Topology(t),
+			description.WriteSelector(),
+			clientID,
+			&session.Pool{},
+		)
 		noerr(t, err)
 
 		names := map[string]bool{}
