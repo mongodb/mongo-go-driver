@@ -455,6 +455,11 @@ func (s *Server) BuildLegacyCursor(ns command.Namespace, cursorID int64, batch [
 	return newLegacyCursor(ns, cursorID, batch, limit, batchSize, s)
 }
 
+// BuildListCollCursor implements the command.CursorBuilder interface for the Server type.
+func (s *Server) BuildListCollCursor(ns command.Namespace, cursorID int64, batch []bson.Raw) (command.Cursor, error) {
+	return newListCollCursor(ns, cursorID, batch, s)
+}
+
 // ServerSubscription represents a subscription to the description.Server updates for
 // a specific server.
 type ServerSubscription struct {
