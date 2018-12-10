@@ -1,0 +1,188 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c75b0e9f_9e4357fe",
+        "filename": "event/monitoring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-10T18:41:29Z",
+      "side": 1,
+      "message": "What did we decide about this struct?  I thought we said we wanted to move it to a different package and make it private, but in a separate ticket?  If so, pls open the ticket so we don\u0027t forget.",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 20,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "600cfb37_cf171d25",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-10T18:41:29Z",
+      "side": 1,
+      "message": "Remove commented-out lines.",
+      "range": {
+        "startLine": 68,
+        "startChar": 0,
+        "endLine": 68,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "379c3b94_2b51d6bf",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1579,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-10T18:41:29Z",
+      "side": 1,
+      "message": "We\u0027re trying to test that we\u0027re sending a read preference to a sharded cluster, but I would think this would be a client-side error as 100 doesn\u0027t map to any mode string, e.g. \"primary\" or \"secondary\".  I think instead you should use readpref.WithTags to pass some read pref tags to mongos for which it is unable to find a matching replica set member for any of its shards.  Any tag will do as orchestration doesn\u0027t tag any of the replica set members.",
+      "range": {
+        "startLine": 1579,
+        "startChar": 6,
+        "endLine": 1579,
+        "endChar": 9
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b7d0a4e3_a0d0f2b3",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-10T18:41:29Z",
+      "side": 1,
+      "message": "return here, right?",
+      "range": {
+        "startLine": 315,
+        "startChar": 3,
+        "endLine": 315,
+        "endChar": 4
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c4088bba_608d0f19",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 328,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-10T18:41:29Z",
+      "side": 1,
+      "message": "I\u0027m not clear why the cursor is closed here.  The client hasn\u0027t iterated the last batch yet.  Is there a test that exercised this branch?",
+      "range": {
+        "startLine": 328,
+        "startChar": 1,
+        "endLine": 328,
+        "endChar": 5
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3ad5ddad_15011efa",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 336,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-10T18:41:29Z",
+      "side": 1,
+      "message": "Since we know how many docs we have, should we pre-allocate the slice to have enough capacity to hold them all?",
+      "range": {
+        "startLine": 336,
+        "startChar": 0,
+        "endLine": 336,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1d346a72_89be0f5e",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 413,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-10T18:41:29Z",
+      "side": 1,
+      "message": "`\u003d\u003d 1`  seems clearer to me than `\u003e 0`.  Maybe personal preference though.",
+      "range": {
+        "startLine": 413,
+        "startChar": 0,
+        "endLine": 413,
+        "endChar": 3
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1df41572_ff239212",
+        "filename": "x/network/command/aggregate.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-10T18:41:29Z",
+      "side": 1,
+      "message": "This logic will have to be duplicated for listIndexes and listCollections, right?  Will there be a way to share this helper function?  \n\nWe talked about centralizing this logic in topology/cursor and decided to wait, iirc.  But let\u0027s make sure we don\u0027t duplicate this code too many times.",
+      "range": {
+        "startLine": 128,
+        "startChar": 5,
+        "endLine": 128,
+        "endChar": 20
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
