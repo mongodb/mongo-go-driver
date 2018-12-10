@@ -304,6 +304,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 					bsonrwtest.WriteDocumentEnd,
 					nil,
 				},
+				{
+					"[1]primitive.E/success",
+					[1]primitive.E{{"hello", nil}},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
 			},
 		},
 		{
@@ -353,6 +361,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"D/success",
 					primitive.D{{"hello", "world"}},
+					&EncodeContext{Registry: buildDefaultRegistry()},
+					nil,
+					bsonrwtest.WriteDocumentEnd,
+					nil,
+				},
+				{
+					"D/success",
+					primitive.D{{"hello", nil}},
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					bsonrwtest.WriteDocumentEnd,
