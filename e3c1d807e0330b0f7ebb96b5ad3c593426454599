@@ -72,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "be41c4c3_eaeb90ea",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-10T20:27:17Z",
+      "side": 1,
+      "message": "I left them in and opened GODRIVER-685 so we can easily put the tests back in parallel, but I can remove them if that\u0027s better.",
+      "parentUuid": "600cfb37_cf171d25",
+      "range": {
+        "startLine": 68,
+        "startChar": 0,
+        "endLine": 68,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "379c3b94_2b51d6bf",
         "filename": "mongo/collection_internal_test.go",
         "patchSetId": 1
@@ -118,6 +142,30 @@
     },
     {
       "key": {
+        "uuid": "f64ce31d_a82843ed",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-10T20:27:17Z",
+      "side": 1,
+      "message": "fixed in latest patch",
+      "parentUuid": "b7d0a4e3_a0d0f2b3",
+      "range": {
+        "startLine": 315,
+        "startChar": 3,
+        "endLine": 315,
+        "endChar": 4
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c4088bba_608d0f19",
         "filename": "x/mongo/driver/topology/cursor.go",
         "patchSetId": 1
@@ -129,6 +177,30 @@
       "writtenOn": "2018-12-10T18:41:29Z",
       "side": 1,
       "message": "I\u0027m not clear why the cursor is closed here.  The client hasn\u0027t iterated the last batch yet.  Is there a test that exercised this branch?",
+      "range": {
+        "startLine": 328,
+        "startChar": 1,
+        "endLine": 328,
+        "endChar": 5
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a58be65b_1b1f2a23",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 328,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-10T20:27:17Z",
+      "side": 1,
+      "message": "The cursor is closed because Close will call OP_KILL_CURSORS. The Next() function will return true even though the cursor has been closed because there are documents left in the batch. Once all the documents have been iterated, Next() will check the cursor ID (set to 0 by Close) and then return false. I think during the code walkthrough, we talked about whether or not Next() should return an error if called on a closed cursor, but we didn\u0027t reach a decision. If it should, this should likely be factored into Kris\u0027s new ticket about cursor semantics (GODRIVER-682).",
+      "parentUuid": "c4088bba_608d0f19",
       "range": {
         "startLine": 328,
         "startChar": 1,
@@ -188,6 +260,30 @@
     },
     {
       "key": {
+        "uuid": "ad5d71d1_f2e10159",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 336,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-10T20:27:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "08825b86_87bd2fe4",
+      "range": {
+        "startLine": 336,
+        "startChar": 0,
+        "endLine": 336,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1d346a72_89be0f5e",
         "filename": "x/mongo/driver/topology/cursor.go",
         "patchSetId": 1
@@ -235,6 +331,30 @@
     },
     {
       "key": {
+        "uuid": "f77a6dcb_ec88bae3",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 413,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-10T20:27:17Z",
+      "side": 1,
+      "message": "Changed to \u003d\u003d wiremessage.CursorNotFound because \u003d\u003d 1 relies on knowing that CursorNotFound \u003d 1, which I think removes the benefit of having named constants.",
+      "parentUuid": "491c4981_d52576a7",
+      "range": {
+        "startLine": 413,
+        "startChar": 0,
+        "endLine": 413,
+        "endChar": 3
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1df41572_ff239212",
         "filename": "x/network/command/aggregate.go",
         "patchSetId": 1
@@ -246,6 +366,30 @@
       "writtenOn": "2018-12-10T18:41:29Z",
       "side": 1,
       "message": "This logic will have to be duplicated for listIndexes and listCollections, right?  Will there be a way to share this helper function?  \n\nWe talked about centralizing this logic in topology/cursor and decided to wait, iirc.  But let\u0027s make sure we don\u0027t duplicate this code too many times.",
+      "range": {
+        "startLine": 128,
+        "startChar": 5,
+        "endLine": 128,
+        "endChar": 20
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ad0a5b74_efa80787",
+        "filename": "x/network/command/aggregate.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-10T20:27:17Z",
+      "side": 1,
+      "message": "Moved over to command/command.go in the latest patch. Opened GODRIVER-684 this morning to reflect our discussion about centralizing this.",
+      "parentUuid": "1df41572_ff239212",
       "range": {
         "startLine": 128,
         "startChar": 5,
