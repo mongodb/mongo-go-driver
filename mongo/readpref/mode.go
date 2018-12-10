@@ -16,10 +16,11 @@ type Mode uint8
 
 // Mode constants
 const (
+	_ Mode = iota
 	// PrimaryMode indicates that only a primary is
 	// considered for reading. This is the default
 	// mode.
-	PrimaryMode Mode = iota
+	PrimaryMode
 	// PrimaryPreferredMode indicates that if a primary
 	// is available, use it; otherwise, eligible
 	// secondaries will be considered.
@@ -51,5 +52,5 @@ func ModeFromString(mode string) (Mode, error) {
 	case "nearest":
 		return NearestMode, nil
 	}
-	return Mode(uint8(0)), fmt.Errorf("unknown read preference %v", mode)
+	return Mode(0), fmt.Errorf("unknown read preference %v", mode)
 }

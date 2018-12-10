@@ -33,19 +33,33 @@ type Read struct {
 	err    error
 }
 
-func (r *Read) createReadPref(kind description.ServerKind) bsonx.Doc {
-	if r.ReadPref == nil {
+func (r *Read) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) bsonx.Doc {
+	doc := bsonx.Doc{}
+	rp := r.ReadPref
+
+	if rp == nil {
+		if topologyKind == description.Single && serverKind != description.Mongos {
+			return append(doc, bsonx.Elem{"mode", bsonx.String("primaryPreferred")})
+		}
 		return nil
 	}
 
-	doc := bsonx.Doc{}
-
-	switch r.ReadPref.Mode() {
+	switch rp.Mode() {
 	case readpref.PrimaryMode:
+		if serverKind == description.Mongos {
+			return nil
+		}
+		if topologyKind == description.Single {
+			return append(doc, bsonx.Elem{"mode", bsonx.String("primaryPreferred")})
+		}
 		doc = append(doc, bsonx.Elem{"mode", bsonx.String("primary")})
 	case readpref.PrimaryPreferredMode:
 		doc = append(doc, bsonx.Elem{"mode", bsonx.String("primaryPreferred")})
 	case readpref.SecondaryPreferredMode:
+		_, ok := r.ReadPref.MaxStaleness()
+		if serverKind == description.Mongos && isOpQuery && !ok && len(r.ReadPref.TagSets()) == 0 {
+			return nil
+		}
 		doc = append(doc, bsonx.Elem{"mode", bsonx.String("secondaryPreferred")})
 	case readpref.SecondaryMode:
 		doc = append(doc, bsonx.Elem{"mode", bsonx.String("secondary")})
@@ -78,8 +92,8 @@ func (r *Read) createReadPref(kind description.ServerKind) bsonx.Doc {
 // addReadPref will add a read preference to the query document.
 //
 // NOTE: This method must always return either a valid bson.Reader or an error.
-func (r *Read) addReadPref(rp *readpref.ReadPref, kind description.ServerKind, query bson.Raw) (bson.Raw, error) {
-	doc := r.createReadPref(kind)
+func (r *Read) addReadPref(rp *readpref.ReadPref, serverKind description.ServerKind, topologyKind description.TopologyKind, query bson.Raw) (bson.Raw, error) {
+	doc := r.createReadPref(serverKind, topologyKind, true)
 	if doc == nil {
 		return query, nil
 	}
@@ -102,7 +116,7 @@ func (r *Read) encodeOpMsg(desc description.SelectedServer, cmd bsonx.Doc) (wire
 		Sections:  make([]wiremessage.Section, 0),
 	}
 
-	readPrefDoc := r.createReadPref(desc.Server.Kind)
+	readPrefDoc := r.createReadPref(desc.Server.Kind, desc.Kind, false)
 	fullDocRdr, err := opmsgAddGlobals(cmd, r.DB, readPrefDoc)
 	if err != nil {
 		return nil, err
@@ -136,22 +150,6 @@ func (r *Read) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {
 	return 0
 }
 
-// return true if a read preference needs to be added when encoding r as a OP_QUERY message
-func (r *Read) queryNeedsReadPref(kind description.ServerKind) bool {
-	if kind != description.Mongos || r.ReadPref == nil {
-		return false
-	}
-
-	// simple Primary or SecondaryPreferred is communicated via slaveOk to Mongos.
-	if r.ReadPref.Mode() == readpref.PrimaryMode || r.ReadPref.Mode() == readpref.SecondaryPreferredMode {
-		if _, ok := r.ReadPref.MaxStaleness(); !ok && len(r.ReadPref.TagSets()) == 0 {
-			return false
-		}
-	}
-
-	return true
-}
-
 // Encode c as OP_QUERY
 func (r *Read) encodeOpQuery(desc description.SelectedServer, cmd bsonx.Doc) (wiremessage.WireMessage, error) {
 	rdr, err := marshalCommand(cmd)
@@ -159,8 +157,8 @@ func (r *Read) encodeOpQuery(desc description.SelectedServer, cmd bsonx.Doc) (wi
 		return nil, err
 	}
 
-	if r.queryNeedsReadPref(desc.Server.Kind) {
-		rdr, err = r.addReadPref(r.ReadPref, desc.Server.Kind, rdr)
+	if desc.Server.Kind == description.Mongos {
+		rdr, err = r.addReadPref(r.ReadPref, desc.Server.Kind, desc.Kind, rdr)
 		if err != nil {
 			return nil, err
 		}
