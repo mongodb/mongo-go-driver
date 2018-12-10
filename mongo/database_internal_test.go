@@ -206,7 +206,7 @@ func verifyListCollections(cursor Cursor, uncappedName string, cappedName string
 	var cappedFound bool
 
 	for cursor.Next(context.Background()) {
-		next := bsonx.Doc{}
+		next := &bsonx.Doc{}
 		err = cursor.Decode(next)
 		if err != nil {
 			return err
@@ -223,9 +223,9 @@ func verifyListCollections(cursor Cursor, uncappedName string, cappedName string
 
 		elemName := elem.StringValue()
 
-		if elemName != uncappedName && elemName != cappedName {
-			return fmt.Errorf("incorrect collection name. got: %s. wanted: %s or %s", elemName, uncappedName,
-				cappedName)
+		// legacy servers can return an indexes collection that shouldn't be considered here
+		if elemName != cappedName && elemName != uncappedName {
+			continue
 		}
 
 		if elemName == uncappedName && !uncappedFound {
@@ -268,8 +268,9 @@ func listCollectionsTest(db *Database, cappedOnly bool) error {
 		filter = bsonx.Doc{{"options.capped", bsonx.Boolean(true)}}
 	}
 
+	var cursor Cursor
 	for i := 0; i < 10; i++ {
-		cursor, err := db.ListCollections(context.Background(), filter)
+		cursor, err = db.ListCollections(context.Background(), filter)
 		if err != nil {
 			return err
 		}
@@ -284,9 +285,6 @@ func listCollectionsTest(db *Database, cappedOnly bool) error {
 }
 
 func TestDatabase_ListCollections(t *testing.T) {
-	// TODO(GODRIVER-492) - implement legacy list collections
-	skipIfBelow32(t)
-
 	rpPrimary := readpref.Primary()
 	rpSecondary := readpref.Secondary()
 
@@ -308,11 +306,12 @@ func TestDatabase_ListCollections(t *testing.T) {
 
 	for _, tt := range listCollectionsTable {
 		t.Run(tt.name, func(t *testing.T) {
-			if os.Getenv("topology") != tt.expectedTopology {
+			if os.Getenv("TOPOLOGY") != tt.expectedTopology {
 				t.Skip()
 			}
 			dbName := tt.name
-			db := createTestDatabase(t, &dbName, options.Database().SetReadPreference(tt.rp))
+			db := createTestDatabase(t, &dbName, options.Database().SetReadPreference(tt.rp),
+				options.Database().SetWriteConcern(wcMajority))
 
 			defer func() {
 				err := db.Drop(context.Background())
