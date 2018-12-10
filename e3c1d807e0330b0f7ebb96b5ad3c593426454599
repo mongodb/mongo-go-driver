@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "c297ad00_6e788a7c",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-10T20:28:07Z",
+      "side": 1,
+      "message": "Removed in latest patch.",
+      "parentUuid": "be41c4c3_eaeb90ea",
+      "range": {
+        "startLine": 68,
+        "startChar": 0,
+        "endLine": 68,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "379c3b94_2b51d6bf",
         "filename": "mongo/collection_internal_test.go",
         "patchSetId": 1
