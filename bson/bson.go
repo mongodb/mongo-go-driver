@@ -38,6 +38,9 @@ type Zeroer interface {
 // order is not important, a map is more comfortable and concise.
 type D = primitive.D
 
+// E represents a BSON element for a D. It is usually used inside a D.
+type E = primitive.E
+
 // M is an unordered, concise representation of a BSON Document. It should generally be used to
 // serialize BSON when the order of the elements of a BSON document do not matter. If the element
 // order matters, use a D instead.
