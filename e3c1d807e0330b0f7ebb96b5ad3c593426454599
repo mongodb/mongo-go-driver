@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "3a8a99da_c9e254b8",
+        "filename": "event/monitoring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-10T22:44:57Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "88f6f3cf_9d4fab17",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 20,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "600cfb37_cf171d25",
         "filename": "mongo/collection_internal_test.go",
         "patchSetId": 1
@@ -164,6 +188,30 @@
       "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "34d53dcf_ca07f055",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1579,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-10T22:44:57Z",
+      "side": 1,
+      "message": "Since this is deleted I\u0027m guessing this is resolved.",
+      "parentUuid": "379c3b94_2b51d6bf",
+      "range": {
+        "startLine": 1579,
+        "startChar": 6,
+        "endLine": 1579,
+        "endChar": 9
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
