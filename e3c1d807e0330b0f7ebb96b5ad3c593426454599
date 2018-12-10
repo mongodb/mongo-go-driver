@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "88f6f3cf_9d4fab17",
+        "filename": "event/monitoring.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-10T19:54:44Z",
+      "side": 1,
+      "message": "I believe this ticket was already created: https://jira.mongodb.org/browse/GODRIVER-683.",
+      "parentUuid": "c75b0e9f_9e4357fe",
+      "range": {
+        "startLine": 20,
+        "startChar": 0,
+        "endLine": 20,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "600cfb37_cf171d25",
         "filename": "mongo/collection_internal_test.go",
         "patchSetId": 1
@@ -140,6 +164,30 @@
     },
     {
       "key": {
+        "uuid": "08825b86_87bd2fe4",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 336,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-10T19:54:44Z",
+      "side": 1,
+      "message": "No, we are reusing the slice we had before, see clearCursor.",
+      "parentUuid": "3ad5ddad_15011efa",
+      "range": {
+        "startLine": 336,
+        "startChar": 0,
+        "endLine": 336,
+        "endChar": 1
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1d346a72_89be0f5e",
         "filename": "x/mongo/driver/topology/cursor.go",
         "patchSetId": 1
@@ -151,6 +199,30 @@
       "writtenOn": "2018-12-10T18:41:29Z",
       "side": 1,
       "message": "`\u003d\u003d 1`  seems clearer to me than `\u003e 0`.  Maybe personal preference though.",
+      "range": {
+        "startLine": 413,
+        "startChar": 0,
+        "endLine": 413,
+        "endChar": 3
+      },
+      "revId": "e3c1d807e0330b0f7ebb96b5ad3c593426454599",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "491c4981_d52576a7",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 413,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-10T19:54:44Z",
+      "side": 1,
+      "message": "I usually do \u003d\u003d wiremessage.CursorNotFound.",
+      "parentUuid": "1d346a72_89be0f5e",
       "range": {
         "startLine": 413,
         "startChar": 0,
