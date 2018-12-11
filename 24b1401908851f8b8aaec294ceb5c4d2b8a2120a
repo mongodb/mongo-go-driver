@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "cbd97cc8_aaa93ca9",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T18:55:49Z",
+      "side": 1,
+      "message": "The `cursor` struct implements the `Cursor` interface.  I don\u0027t see why ListCollections func can\u0027t just wrap the Cursor it gets from executing the find command inside its own implementation of the Cursor interface that forwards all methods to the underlying Cursor, and handles the projection it its own implementation.",
+      "parentUuid": "c9052cee_72e741a2",
+      "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "899def1e_fa6f431a",
         "filename": "x/mongo/driver/topology/server.go",
         "patchSetId": 2
@@ -66,6 +84,29 @@
       "side": 1,
       "message": "see reply to other comment in cursor.go",
       "parentUuid": "899def1e_fa6f431a",
+      "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c12ea803_a8ad3010",
+        "filename": "x/network/integration/list_collections_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T18:55:49Z",
+      "side": 1,
+      "message": "Comment doesn\u0027t match code.  What about a 3.0 server?",
+      "range": {
+        "startLine": 44,
+        "startChar": 0,
+        "endLine": 44,
+        "endChar": 1
+      },
       "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
