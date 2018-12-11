@@ -118,6 +118,30 @@
       "revId": "1507cc74cf47d5a88a173d044c9491d1818a9bdc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e2afade5_6319621a",
+        "filename": "x/mongo/driver/list_indexes.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T22:55:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7839823f_a1994d66",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 97,
+        "endChar": 1
+      },
+      "revId": "1507cc74cf47d5a88a173d044c9491d1818a9bdc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
