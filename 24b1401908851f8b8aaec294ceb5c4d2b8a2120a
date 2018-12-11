@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "c9052cee_72e741a2",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-11T14:46:40Z",
+      "side": 1,
+      "message": "Yeah, this felt weird to me as well. The other option was to have another implementation and factor the common code out to helper functions. This might be a little cleaner from the cursor perspective, but as long as we have servers building cursors, the CursorBuilder interface will need to have multiple methods for different types of cursors. I imagine this could be cleaned up when cursors are moved to the driver package and are no longer directly created by servers.",
+      "parentUuid": "e4ef9502_a5999249",
+      "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "899def1e_fa6f431a",
         "filename": "x/mongo/driver/topology/server.go",
         "patchSetId": 2
@@ -30,6 +48,24 @@
       "writtenOn": "2018-12-11T14:41:30Z",
       "side": 1,
       "message": "Are we going to be doing something about this in the future? Feels a bit over the top to have the server selector have n different methods for building specific types of cursors.",
+      "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c24947b7_ef9cd600",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 459,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-11T14:46:40Z",
+      "side": 1,
+      "message": "see reply to other comment in cursor.go",
+      "parentUuid": "899def1e_fa6f431a",
       "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
