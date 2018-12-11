@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e4ef9502_a5999249",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-11T14:41:30Z",
+      "side": 1,
+      "message": "I don\u0027t understand what\u0027s going on here... This feels really weird to have a boolean in here for a specific type of cursor.\n\nObviously, a list collections cursor has to do something different, for whatever reason. Why does this need to be encoded in the cursor itself as opposed to elsewhere?",
+      "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "899def1e_fa6f431a",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 459,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-11T14:41:30Z",
+      "side": 1,
+      "message": "Are we going to be doing something about this in the future? Feels a bit over the top to have the server selector have n different methods for building specific types of cursors.",
+      "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
