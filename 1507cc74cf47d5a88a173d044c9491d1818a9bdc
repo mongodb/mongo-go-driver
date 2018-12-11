@@ -22,6 +22,30 @@
       "revId": "1507cc74cf47d5a88a173d044c9491d1818a9bdc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1020336f_6801a1a0",
+        "filename": "x/mongo/driver/list_indexes.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-11T18:36:13Z",
+      "side": 1,
+      "message": "I mis-interpreted a section of the spec. One interesting thing though - the command.ListIndexes struct doesn\u0027t have a read preference on it, so there\u0027s nothing to pass down to command.Find. Should the read preference be there or was it intentionally left out?",
+      "parentUuid": "1810632b_eed30399",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 97,
+        "endChar": 1
+      },
+      "revId": "1507cc74cf47d5a88a173d044c9491d1818a9bdc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
