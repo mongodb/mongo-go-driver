@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/connection"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
 
@@ -43,6 +44,10 @@ func ListIndexes(
 	}
 	defer conn.Close()
 
+	if ss.Description().WireVersion.Max < 3 {
+		return legacyListIndexes(ctx, cmd, ss, conn, opts...)
+	}
+
 	lio := options.MergeListIndexesOptions(opts...)
 	if lio.BatchSize != nil {
 		elem := bsonx.Elem{"batchSize", bsonx.Int32(*lio.BatchSize)}
@@ -67,4 +72,32 @@ func ListIndexes(
 	}
 
 	return c, err
+}
+
+func legacyListIndexes(
+	ctx context.Context,
+	cmd command.ListIndexes,
+	ss *topology.SelectedServer,
+	conn connection.Connection,
+	opts ...*options.ListIndexesOptions,
+) (command.Cursor, error) {
+	lio := options.MergeListIndexesOptions(opts...)
+	ns := cmd.NS.DB + "." + cmd.NS.Collection
+
+	findCmd := command.Find{
+		NS: command.NewNamespace(cmd.NS.DB, "system.indexes"),
+		Filter: bsonx.Doc{
+			{"ns", bsonx.String(ns)},
+		},
+	}
+
+	findOpts := options.Find()
+	if lio.BatchSize != nil {
+		findOpts.SetBatchSize(*lio.BatchSize)
+	}
+	if lio.MaxTime != nil {
+		findOpts.SetMaxTime(*lio.MaxTime)
+	}
+
+	return legacyFind(ctx, findCmd, nil, ss, conn, findOpts)
 }

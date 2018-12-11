@@ -12,10 +12,29 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
+
+func runCommand(t *testing.T, cmd command.ListIndexes, opts ...*options.ListIndexesOptions) (command.Cursor, error) {
+	clientID, err := uuid.New()
+	noerr(t, err)
+
+	return driver.ListIndexes(
+		context.Background(),
+		cmd,
+		testutil.Topology(t),
+		description.WriteSelector(),
+		clientID,
+		&session.Pool{},
+		opts...,
+	)
+}
 
 func TestCommandListIndexes(t *testing.T) {
 	noerr := func(t *testing.T, err error) {
@@ -25,16 +44,10 @@ func TestCommandListIndexes(t *testing.T) {
 			t.FailNow()
 		}
 	}
-	// TODO(GODRIVER-279) don't skip once legacy index enumeration implemented
-	skipIfBelow32(t)
 
 	t.Run("InvalidDatabaseName", func(t *testing.T) {
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
-		noerr(t, err)
-		conn, err := server.Connection(context.Background())
-		noerr(t, err)
 		ns := command.Namespace{DB: "ex", Collection: "space"}
-		cursor, err := (&command.ListIndexes{NS: ns}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		cursor, err := runCommand(t, command.ListIndexes{NS: ns})
 		noerr(t, err)
 
 		indexes := []string{}
@@ -58,12 +71,8 @@ func TestCommandListIndexes(t *testing.T) {
 		}
 	})
 	t.Run("InvalidCollectionName", func(t *testing.T) {
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
-		noerr(t, err)
-		conn, err := server.Connection(context.Background())
-		noerr(t, err)
 		ns := command.Namespace{DB: "ex", Collection: testutil.ColName(t)}
-		cursor, err := (&command.ListIndexes{NS: ns}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		cursor, err := runCommand(t, command.ListIndexes{NS: ns})
 		noerr(t, err)
 
 		indexes := []string{}
@@ -87,10 +96,6 @@ func TestCommandListIndexes(t *testing.T) {
 		}
 	})
 	t.Run("SingleBatch", func(t *testing.T) {
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
-		noerr(t, err)
-		conn, err := server.Connection(context.Background())
-		noerr(t, err)
 		testutil.AutoDropCollection(t)
 		testutil.AutoCreateIndexes(t, []string{"a"})
 		testutil.AutoCreateIndexes(t, []string{"b"})
@@ -98,7 +103,7 @@ func TestCommandListIndexes(t *testing.T) {
 		testutil.AutoCreateIndexes(t, []string{"d", "e"})
 
 		ns := command.NewNamespace(dbName, testutil.ColName(t))
-		cursor, err := (&command.ListIndexes{NS: ns}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		cursor, err := runCommand(t, command.ListIndexes{NS: ns})
 		noerr(t, err)
 
 		indexes := []string{}
@@ -129,20 +134,13 @@ func TestCommandListIndexes(t *testing.T) {
 		}
 	})
 	t.Run("MultipleBatch", func(t *testing.T) {
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
-		noerr(t, err)
-		conn, err := server.Connection(context.Background())
-		noerr(t, err)
 		testutil.AutoDropCollection(t)
 		testutil.AutoCreateIndexes(t, []string{"a"})
 		testutil.AutoCreateIndexes(t, []string{"b"})
 		testutil.AutoCreateIndexes(t, []string{"c"})
 
 		ns := command.NewNamespace(dbName, testutil.ColName(t))
-		opts := []bsonx.Elem{
-			{"batchSize", bsonx.Int32(1)},
-		}
-		cursor, err := (&command.ListIndexes{NS: ns, Opts: opts}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		cursor, err := runCommand(t, command.ListIndexes{NS: ns}, options.ListIndexes().SetBatchSize(1))
 		noerr(t, err)
 
 		indexes := []string{}
