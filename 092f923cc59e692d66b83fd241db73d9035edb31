@@ -22,6 +22,30 @@
       "revId": "092f923cc59e692d66b83fd241db73d9035edb31",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "70dfa5b2_e3fb1331",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 193,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-11T21:26:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7b51fc04_face34ae",
+      "range": {
+        "startLine": 193,
+        "startChar": 0,
+        "endLine": 193,
+        "endChar": 2
+      },
+      "revId": "092f923cc59e692d66b83fd241db73d9035edb31",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

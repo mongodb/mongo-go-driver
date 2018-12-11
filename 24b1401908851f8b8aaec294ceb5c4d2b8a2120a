@@ -55,6 +55,24 @@
     },
     {
       "key": {
+        "uuid": "1c917866_0d1db32a",
+        "filename": "x/mongo/driver/topology/cursor.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 236,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-11T21:26:11Z",
+      "side": 1,
+      "message": "Fixed in latest patch. The new implementation wraps the existing cursor struct.",
+      "parentUuid": "cbd97cc8_aaa93ca9",
+      "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "899def1e_fa6f431a",
         "filename": "x/mongo/driver/topology/server.go",
         "patchSetId": 2
@@ -110,6 +128,30 @@
       "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "91622359_9da96222",
+        "filename": "x/network/integration/list_collections_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-11T21:26:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c12ea803_a8ad3010",
+      "range": {
+        "startLine": 44,
+        "startChar": 0,
+        "endLine": 44,
+        "endChar": 1
+      },
+      "revId": "24b1401908851f8b8aaec294ceb5c4d2b8a2120a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
