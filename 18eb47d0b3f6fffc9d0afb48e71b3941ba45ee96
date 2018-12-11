@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cb228861_a1a19a77",
+        "filename": "x/mongo/driver/list_collections.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T23:14:01Z",
+      "side": 1,
+      "message": "becuase -\u003e because",
+      "range": {
+        "startLine": 97,
+        "startChar": 3,
+        "endLine": 97,
+        "endChar": 4
+      },
+      "revId": "18eb47d0b3f6fffc9d0afb48e71b3941ba45ee96",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2ad50043_d41f483c",
+        "filename": "x/mongo/driver/topology/listcollections_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T23:14:01Z",
+      "side": 1,
+      "message": "Should file name be list_collections_cursor.go?",
+      "range": {
+        "startLine": 1,
+        "startChar": 0,
+        "endLine": 1,
+        "endChar": 7
+      },
+      "revId": "18eb47d0b3f6fffc9d0afb48e71b3941ba45ee96",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8f03e013_08a6f788",
+        "filename": "x/mongo/driver/topology/listcollections_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T23:14:01Z",
+      "side": 1,
+      "message": "listCollCursor -\u003e listCollectionsCursor",
+      "range": {
+        "startLine": 11,
+        "startChar": 5,
+        "endLine": 11,
+        "endChar": 19
+      },
+      "revId": "18eb47d0b3f6fffc9d0afb48e71b3941ba45ee96",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
