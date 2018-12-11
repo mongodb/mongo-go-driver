@@ -70,6 +70,30 @@
       "revId": "1507cc74cf47d5a88a173d044c9491d1818a9bdc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1558c20e_46445b5e",
+        "filename": "x/mongo/driver/list_indexes.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 97,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T22:27:15Z",
+      "side": 1,
+      "message": "Also, I think it makes more sense if read preference is passed down to all commands that read.  If the high-level driver always passes Primary to ListCollections, that\u0027s fine.  But easier if core is consistent.",
+      "parentUuid": "c88c9c10_079e3c5d",
+      "range": {
+        "startLine": 97,
+        "startChar": 0,
+        "endLine": 97,
+        "endChar": 1
+      },
+      "revId": "1507cc74cf47d5a88a173d044c9491d1818a9bdc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
