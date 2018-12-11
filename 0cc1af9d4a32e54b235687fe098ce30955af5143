@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "dcf7f492_3c76990e",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T23:20:08Z",
+      "side": 1,
+      "message": "Decoders -\u003e ValueDecoders  (for consistency)",
+      "range": {
+        "startLine": 9,
+        "startChar": 3,
+        "endLine": 9,
+        "endChar": 4
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cea92989_4ea83456",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T23:20:08Z",
+      "side": 1,
+      "message": "sigunature -\u003e signature",
+      "range": {
+        "startLine": 17,
+        "startChar": 59,
+        "endLine": 17,
+        "endChar": 69
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6de82166_3c7dde4b",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T23:20:08Z",
+      "side": 1,
+      "message": "Comma isn\u0027t right here.  Not sure if it should be a period, colon or semicolon though!",
+      "range": {
+        "startLine": 30,
+        "startChar": 20,
+        "endLine": 30,
+        "endChar": 21
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4ff92baf_0173fecc",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T23:20:08Z",
+      "side": 1,
+      "message": "DefalutValueDecoders -\u003e DefaultValueDecoders",
+      "range": {
+        "startLine": 53,
+        "startChar": 32,
+        "endLine": 53,
+        "endChar": 52
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "139686a7_2e990ca0",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-11T23:20:08Z",
+      "side": 1,
+      "message": "Not sure what you meant here, but it doesn\u0027t make sense to me as written.",
+      "range": {
+        "startLine": 55,
+        "startChar": 22,
+        "endLine": 56,
+        "endChar": 25
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
