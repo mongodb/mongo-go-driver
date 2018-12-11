@@ -52,8 +52,6 @@ func getIndexableCollection(t *testing.T) (string, *Collection) {
 
 func TestIndexView_List(t *testing.T) {
 	t.Parallel()
-	// TODO(GODRIVER-279) don't skip for legacy servers
-	skipIfBelow32(t)
 
 	if testing.Short() {
 		t.Skip()
@@ -87,7 +85,6 @@ func TestIndexView_List(t *testing.T) {
 
 func TestIndexView_CreateOne(t *testing.T) {
 	t.Parallel()
-	skipIfBelow32(t)
 
 	if testing.Short() {
 		t.Skip()
@@ -129,7 +126,6 @@ func TestIndexView_CreateOne(t *testing.T) {
 
 func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 	t.Parallel()
-	skipIfBelow32(t)
 
 	if testing.Short() {
 		t.Skip()
@@ -253,7 +249,6 @@ func TestIndexView_CreateOneWithNilKeys(t *testing.T) {
 
 func TestIndexView_CreateMany(t *testing.T) {
 	t.Parallel()
-	skipIfBelow32(t)
 
 	if testing.Short() {
 		t.Skip()
@@ -317,7 +312,6 @@ func TestIndexView_CreateMany(t *testing.T) {
 
 func TestIndexView_DropOne(t *testing.T) {
 	t.Parallel()
-	skipIfBelow32(t)
 
 	if testing.Short() {
 		t.Skip()
@@ -368,7 +362,6 @@ func TestIndexView_DropOne(t *testing.T) {
 
 func TestIndexView_DropAll(t *testing.T) {
 	t.Parallel()
-	skipIfBelow32(t)
 
 	if testing.Short() {
 		t.Skip()
@@ -419,7 +412,6 @@ func TestIndexView_DropAll(t *testing.T) {
 
 func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 	t.Parallel()
-	skipIfBelow32(t)
 
 	if testing.Short() {
 		t.Skip()
@@ -490,7 +482,6 @@ func TestIndexView_CreateIndexesOptioner(t *testing.T) {
 
 func TestIndexView_DropIndexesOptioner(t *testing.T) {
 	t.Parallel()
-	skipIfBelow32(t)
 
 	if testing.Short() {
 		t.Skip()
