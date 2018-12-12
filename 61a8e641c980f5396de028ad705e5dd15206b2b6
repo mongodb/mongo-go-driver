@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "094ae744_4bc874e9",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-12T23:02:20Z",
+      "side": 1,
+      "message": "Got it - I had the driver behave this way due to the rules laid out in the specs under \"Rules for server selection\" \u003e \"Topology Type: Single\" https://github.com/mongodb/specifications/blob/master/source/server-selection/server-selection.rst#topology-type-single. The specs here indicate that for non-mongos servers, clients using OP_MSG should set nil/Primary readPreferences to PrimaryPreferred.",
+      "parentUuid": "d2ba1bab_b1134090",
+      "range": {
+        "startLine": 68,
+        "startChar": 0,
+        "endLine": 68,
+        "endChar": 1
+      },
+      "revId": "61a8e641c980f5396de028ad705e5dd15206b2b6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7cbad895_bd92f591",
         "filename": "x/network/command/command_test.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2018-12-12T22:20:36Z",
       "side": 1,
       "message": "I think this test is incorrect.  Drivers should only ever include $readPreference when connected to a mongos server.",
+      "range": {
+        "startLine": 104,
+        "startChar": 8,
+        "endLine": 104,
+        "endChar": 19
+      },
+      "revId": "61a8e641c980f5396de028ad705e5dd15206b2b6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ffda2413_8515b63e",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-12T23:02:20Z",
+      "side": 1,
+      "message": "See comment above",
+      "parentUuid": "7cbad895_bd92f591",
       "range": {
         "startLine": 104,
         "startChar": 8,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "082f3db1_8cdbd655",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-12T23:02:20Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "753156a9_3afa6bfb",
+      "range": {
+        "startLine": 140,
+        "startChar": 0,
+        "endLine": 140,
+        "endChar": 1
+      },
+      "revId": "61a8e641c980f5396de028ad705e5dd15206b2b6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "d283ecdb_d1c478af",
         "filename": "x/network/command/read.go",
         "patchSetId": 1
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "9f0548cc_6b3e72f4",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-12T23:02:20Z",
+      "side": 1,
+      "message": "Thanks for clarifying this Jeff! Just to confirm, we think the rules specified in \"Passing read preference to mongos\" apply to OP_QUERY, and that for OP_MSG the rules are the same except for two things: (1) nothing regarding setting the slaveOk bit applies since OP_MSG does not have a slaveOk bit and (2) we should always send a secondaryPreferred readPreference to mongos via OP_MSG regardless of whether maxStaleness or tagSets are provided. Basically, the rule for OP_MSG is to always set the readPreference unless the application-configured readPreference is Primary.",
+      "parentUuid": "d283ecdb_d1c478af",
+      "range": {
+        "startLine": 45,
+        "startChar": 0,
+        "endLine": 45,
+        "endChar": 1
+      },
+      "revId": "61a8e641c980f5396de028ad705e5dd15206b2b6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bce56ed8_154a2b97",
         "filename": "x/network/command/read.go",
         "patchSetId": 1
@@ -105,6 +201,30 @@
       "writtenOn": "2018-12-12T22:20:36Z",
       "side": 1,
       "message": "Same rule here as for OP_QUERY: $readPreference field should only be added for messages sent to a mongos server",
+      "range": {
+        "startLine": 118,
+        "startChar": 0,
+        "endLine": 118,
+        "endChar": 1
+      },
+      "revId": "61a8e641c980f5396de028ad705e5dd15206b2b6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d86fe515_e90318d8",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-12T23:02:20Z",
+      "side": 1,
+      "message": "See comment in command_test.go - specs seem to indicate that $readPreference should be passed via OP_MSG to non-mongos servers.",
+      "parentUuid": "bce56ed8_154a2b97",
       "range": {
         "startLine": 118,
         "startChar": 0,
