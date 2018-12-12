@@ -8,11 +8,16 @@ package mongo
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
+	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func TestTransformDocument(t *testing.T) {
@@ -62,6 +67,161 @@ func TestTransformDocument(t *testing.T) {
 	}
 }
 
+func TestTransformAggregatePipeline(t *testing.T) {
+	index, arr := bsoncore.AppendArrayStart(nil)
+	dindex, arr := bsoncore.AppendDocumentElementStart(arr, "0")
+	arr = bsoncore.AppendInt32Element(arr, "$limit", 12345)
+	arr, _ = bsoncore.AppendDocumentEnd(arr, dindex)
+	arr, _ = bsoncore.AppendArrayEnd(arr, index)
+
+	testCases := []struct {
+		name     string
+		pipeline interface{}
+		arr      bsonx.Arr
+		err      error
+	}{
+		{"Pipeline/error", Pipeline{{{"hello", func() {}}}}, bsonx.Arr{}, MarshalError{Value: primitive.D{}}},
+		{
+			"Pipeline/success",
+			Pipeline{{{"hello", "world"}}, {{"pi", 3.14159}}},
+			bsonx.Arr{
+				bsonx.Document(bsonx.Doc{{"hello", bsonx.String("world")}}),
+				bsonx.Document(bsonx.Doc{{"pi", bsonx.Double(3.14159)}}),
+			},
+			nil,
+		},
+		{
+			"bsonx.Arr",
+			bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}})},
+			bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}})},
+			nil,
+		},
+		{
+			"[]bsonx.Doc",
+			[]bsonx.Doc{{{"$limit", bsonx.Int32(12345)}}},
+			bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}})},
+			nil,
+		},
+		{
+			"primitive.A/error",
+			primitive.A{"5"},
+			bsonx.Arr{},
+			MarshalError{Value: string("")},
+		},
+		{
+			"primitive.A/success",
+			primitive.A{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
+			bsonx.Arr{
+				bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}}),
+				bsonx.Document(bsonx.Doc{{"$count", bsonx.String("foobar")}}),
+			},
+			nil,
+		},
+		{
+			"bson.A/error",
+			bson.A{"5"},
+			bsonx.Arr{},
+			MarshalError{Value: string("")},
+		},
+		{
+			"bson.A/success",
+			bson.A{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
+			bsonx.Arr{
+				bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}}),
+				bsonx.Document(bsonx.Doc{{"$count", bsonx.String("foobar")}}),
+			},
+			nil,
+		},
+		{
+			"[]interface{}/error",
+			[]interface{}{"5"},
+			bsonx.Arr{},
+			MarshalError{Value: string("")},
+		},
+		{
+			"[]interface{}/success",
+			[]interface{}{bson.D{{"$limit", int32(12345)}}, map[string]interface{}{"$count": "foobar"}},
+			bsonx.Arr{
+				bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}}),
+				bsonx.Document(bsonx.Doc{{"$count", bsonx.String("foobar")}}),
+			},
+			nil,
+		},
+		{
+			"bsoncodec.ValueMarshaler/MarshalBSONValue error",
+			bvMarsh{err: errors.New("MarshalBSONValue error")},
+			bsonx.Arr{},
+			errors.New("MarshalBSONValue error"),
+		},
+		{
+			"bsoncodec.ValueMarshaler/not array",
+			bvMarsh{t: bsontype.String},
+			bsonx.Arr{},
+			fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", bsontype.String, bsontype.Array),
+		},
+		{
+			"bsoncodec.ValueMarshaler/UnmarshalBSONValue error",
+			bvMarsh{t: bsontype.Array},
+			bsonx.Arr{},
+			bsoncore.NewInsufficientBytesError(nil, nil),
+		},
+		{
+			"bsoncodec.ValueMarshaler/success",
+			bvMarsh{t: bsontype.Array, data: arr},
+			bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int32(12345)}})},
+			nil,
+		},
+		{
+			"nil",
+			nil,
+			bsonx.Arr{},
+			errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"),
+		},
+		{
+			"not array or slice",
+			int64(42),
+			bsonx.Arr{},
+			errors.New("can only transform slices and arrays into aggregation pipelines, but got int64"),
+		},
+		{
+			"array/error",
+			[1]interface{}{int64(42)},
+			bsonx.Arr{},
+			MarshalError{Value: int64(0)},
+		},
+		{
+			"array/success",
+			[1]interface{}{primitive.D{{"$limit", int64(12345)}}},
+			bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int64(12345)}})},
+			nil,
+		},
+		{
+			"slice/error",
+			[]interface{}{int64(42)},
+			bsonx.Arr{},
+			MarshalError{Value: int64(0)},
+		},
+		{
+			"slice/success",
+			[]interface{}{primitive.D{{"$limit", int64(12345)}}},
+			bsonx.Arr{bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int64(12345)}})},
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			arr, err := transformAggregatePipeline(bson.NewRegistryBuilder().Build(), tc.pipeline)
+			if !cmp.Equal(err, tc.err, cmp.Comparer(compareErrors)) {
+				t.Errorf("Error does not match expected error. got %v; want %v", err, tc.err)
+			}
+			if !cmp.Equal(arr, tc.arr, cmp.AllowUnexported(bsonx.Val{})) {
+				t.Errorf("Returned array does not match expected array. got %v; want %v", arr, tc.arr)
+			}
+		})
+	}
+}
+
 func compareErrors(err1, err2 error) bool {
 	if err1 == nil && err2 == nil {
 		return true
@@ -90,4 +250,16 @@ func (b bMarsh) MarshalBSON() ([]byte, error) {
 
 type reflectStruct struct {
 	Foo string
+}
+
+var _ bsoncodec.ValueMarshaler = bvMarsh{}
+
+type bvMarsh struct {
+	t    bsontype.Type
+	data []byte
+	err  error
+}
+
+func (b bvMarsh) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return b.t, b.data, b.err
 }
