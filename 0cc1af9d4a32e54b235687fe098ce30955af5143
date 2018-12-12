@@ -84,6 +84,30 @@
     },
     {
       "key": {
+        "uuid": "bbd00aab_0d72bf1e",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-12T16:27:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "624b990c_198f1e14",
+      "range": {
+        "startLine": 9,
+        "startChar": 3,
+        "endLine": 9,
+        "endChar": 4
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cea92989_4ea83456",
         "filename": "bson/bsoncodec/doc.go",
         "patchSetId": 3
@@ -131,6 +155,30 @@
     },
     {
       "key": {
+        "uuid": "0a2fdaee_75a245a3",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-12T16:27:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bad1e2ac_87c0248f",
+      "range": {
+        "startLine": 17,
+        "startChar": 59,
+        "endLine": 17,
+        "endChar": 69
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6de82166_3c7dde4b",
         "filename": "bson/bsoncodec/doc.go",
         "patchSetId": 3
@@ -166,6 +214,30 @@
       "side": 1,
       "message": "I think a comma is fine here, but a semicolon works as well so I\u0027ll change it to that.",
       "parentUuid": "6de82166_3c7dde4b",
+      "range": {
+        "startLine": 30,
+        "startChar": 20,
+        "endLine": 30,
+        "endChar": 21
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "59c53c93_3eaab3e2",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 30,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-12T16:27:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2982732d_9c278096",
       "range": {
         "startLine": 30,
         "startChar": 20,
@@ -260,6 +332,30 @@
     },
     {
       "key": {
+        "uuid": "901a4391_0b490601",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-12T16:27:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4c3f21f1_0cabd9e0",
+      "range": {
+        "startLine": 53,
+        "startChar": 32,
+        "endLine": 53,
+        "endChar": 52
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "139686a7_2e990ca0",
         "filename": "bson/bsoncodec/doc.go",
         "patchSetId": 3
@@ -295,6 +391,30 @@
       "side": 1,
       "message": "Rewrote it to make more sense.",
       "parentUuid": "139686a7_2e990ca0",
+      "range": {
+        "startLine": 55,
+        "startChar": 22,
+        "endLine": 56,
+        "endChar": 25
+      },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "be2463d0_1d2e582d",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-12T16:27:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "022104ad_32fb5471",
       "range": {
         "startLine": 55,
         "startChar": 22,
