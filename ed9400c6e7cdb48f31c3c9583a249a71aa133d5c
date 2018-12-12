@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "58b9023c_cc40c699",
+        "filename": "mongo/database_internal_test.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-12T15:29:45Z",
+      "side": 1,
+      "message": "As the code is written now, the list collections command passes the read preference down to the find command. Reading the spec, though, I see \"Drivers MUST run listCollections on the primary node in \"replicaset\" mode, unless directly connected to a secondary node in \"standalone\" mode.\" I think the test was written this way because the spec lists \"replica set secondary node\" as one of the configurations, but this isn\u0027t the correct way of setting up that config.",
+      "parentUuid": "67e889c3_400edb09",
+      "range": {
+        "startLine": 314,
+        "startChar": 3,
+        "endLine": 314,
+        "endChar": 4
+      },
+      "revId": "ed9400c6e7cdb48f31c3c9583a249a71aa133d5c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "81372f0a_93408bb8",
         "filename": "x/network/integration/list_collections_test.go",
         "patchSetId": 9
@@ -36,6 +60,24 @@
       "writtenOn": "2018-12-12T15:17:12Z",
       "side": 1,
       "message": "What prompted this change?",
+      "revId": "ed9400c6e7cdb48f31c3c9583a249a71aa133d5c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "046a4d3c_78818a8d",
+        "filename": "x/network/integration/list_collections_test.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-12T15:29:45Z",
+      "side": 1,
+      "message": "The original code just checked for code \u003d\u003d 73. When running the Evergreen patch, I saw different error codes from different server versions. 3.0 servers return 16256 (\"invalid ns\") and 3.0 mongos\u0027s return 15918 (\"invalid database name\") so I updated the code to reflect that.",
+      "parentUuid": "81372f0a_93408bb8",
       "revId": "ed9400c6e7cdb48f31c3c9583a249a71aa133d5c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
