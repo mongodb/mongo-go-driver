@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "67e889c3_400edb09",
+        "filename": "mongo/database_internal_test.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 314,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-12T15:17:12Z",
+      "side": 1,
+      "message": "Doesn\u0027t ListCollections always use primary read preference regardless of the read preference set on the Database?",
+      "range": {
+        "startLine": 314,
+        "startChar": 3,
+        "endLine": 314,
+        "endChar": 4
+      },
+      "revId": "ed9400c6e7cdb48f31c3c9583a249a71aa133d5c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81372f0a_93408bb8",
+        "filename": "x/network/integration/list_collections_test.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-12T15:17:12Z",
+      "side": 1,
+      "message": "What prompted this change?",
+      "revId": "ed9400c6e7cdb48f31c3c9583a249a71aa133d5c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
