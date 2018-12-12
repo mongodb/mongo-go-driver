@@ -97,11 +97,17 @@ func skipIfBelow32(t *testing.T) {
 }
 
 func createCollectionStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
+	if pipeline == nil {
+		pipeline = Pipeline{}
+	}
 	client := createTestClient(t)
 	return createStream(t, client, dbName, collName, pipeline)
 }
 
 func createMonitoredStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
+	if pipeline == nil {
+		pipeline = Pipeline{}
+	}
 	client := createMonitoredClient(t, monitor)
 	return createStream(t, client, dbName, collName, pipeline)
 }
@@ -169,7 +175,7 @@ func TestChangeStream(t *testing.T) {
 		_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
 		require.NoError(t, err)
 
-		changes, err := coll.Watch(context.Background(), nil)
+		changes, err := coll.Watch(context.Background(), Pipeline{})
 		require.NoError(t, err)
 		defer changes.Close(ctx)
 
@@ -242,7 +248,7 @@ func TestChangeStream(t *testing.T) {
 		_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
 		require.NoError(t, err)
 
-		_, err = coll.Watch(context.Background(), nil)
+		_, err = coll.Watch(context.Background(), Pipeline{})
 		require.Error(t, err)
 		if _, ok := err.(command.Error); !ok {
 			t.Errorf("Should have returned command error, but got %T", err)
@@ -282,7 +288,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 	t.Run("TestTrackResumeToken", func(t *testing.T) {
 		// Stream must continuously track last seen resumeToken
 
-		coll, stream := createCollectionStream(t, "TrackTokenDB", "TrackTokenColl", bsonx.Doc{})
+		coll, stream := createCollectionStream(t, "TrackTokenDB", "TrackTokenColl", Pipeline{})
 		defer closeCursor(stream)
 
 		cs := stream.(*changeStream)
