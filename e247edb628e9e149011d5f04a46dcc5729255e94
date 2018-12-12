@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e1350e8d_d0e44d10",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-12T19:23:10Z",
+      "side": 0,
+      "message": "I removed this function and put this logic in createReadPref. Previously this logic was only applied to OP_QUERY but it is now applied to both OP_QUERY and OP_MSG.",
+      "revId": "e247edb628e9e149011d5f04a46dcc5729255e94",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
