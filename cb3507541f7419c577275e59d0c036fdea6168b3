@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "65307d17_2c792811",
+        "filename": "x/mongo/driver/topology/list_collections_cursor.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-12T14:07:25Z",
+      "side": 1,
+      "message": "Nice... I like the wrapping.\n\nKeep in mind that this can be generalized to a transforming cursor in the future if you have need of further \"specialized\" cursors.",
+      "revId": "cb3507541f7419c577275e59d0c036fdea6168b3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
