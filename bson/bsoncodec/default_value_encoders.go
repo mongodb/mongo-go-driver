@@ -33,6 +33,27 @@ var sliceWriterPool = sync.Pool{
 	},
 }
 
+func encodeElement(ec EncodeContext, dw bsonrw.DocumentWriter, e primitive.E) error {
+	vw, err := dw.WriteDocumentElement(e.Key)
+	if err != nil {
+		return err
+	}
+
+	if e.Value == nil {
+		return vw.WriteNull()
+	}
+	encoder, err := ec.LookupEncoder(reflect.TypeOf(e.Value))
+	if err != nil {
+		return err
+	}
+
+	err = encoder.EncodeValue(ec, vw, reflect.ValueOf(e.Value))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // DefaultValueEncoders is a namespace type for the default ValueEncoders used
 // when creating a registry.
 type DefaultValueEncoders struct{}
@@ -304,17 +325,7 @@ func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.Val
 
 		for idx := 0; idx < val.Len(); idx++ {
 			e := val.Index(idx).Interface().(primitive.E)
-			vw, err := dw.WriteDocumentElement(e.Key)
-			if err != nil {
-				return err
-			}
-
-			encoder, err := ec.LookupEncoder(reflect.TypeOf(e.Value))
-			if err != nil {
-				return err
-			}
-
-			err = encoder.EncodeValue(ec, vw, reflect.ValueOf(e.Value))
+			err = encodeElement(ec, dw, e)
 			if err != nil {
 				return err
 			}
@@ -367,17 +378,7 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 		}
 
 		for _, e := range d {
-			vw, err := dw.WriteDocumentElement(e.Key)
-			if err != nil {
-				return err
-			}
-
-			encoder, err := ec.LookupEncoder(reflect.TypeOf(e.Value))
-			if err != nil {
-				return err
-			}
-
-			err = encoder.EncodeValue(ec, vw, reflect.ValueOf(e.Value))
+			err = encodeElement(ec, dw, e)
 			if err != nil {
 				return err
 			}
