@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "6102f194_dbc62cf9",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-12T14:17:41Z",
+      "side": 1,
+      "message": "Technically, anywhere BSON is referenced in here, JSON is also viable. Probably important to make that clear, particularly if reading to and from JSON is more efficient (memory/speed) than the built-in JSON encoder/decoder. Do we know if this is true?",
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "dcf7f492_3c76990e",
         "filename": "bson/bsoncodec/doc.go",
         "patchSetId": 3
@@ -65,6 +82,23 @@
         "endLine": 30,
         "endChar": 21
       },
+      "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "02ffeabb_b85cb46b",
+        "filename": "bson/bsoncodec/doc.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-12T14:17:41Z",
+      "side": 1,
+      "message": "Does this not panic because regbuilder is nil?",
       "revId": "0cc1af9d4a32e54b235687fe098ce30955af5143",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
