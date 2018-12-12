@@ -93,7 +93,7 @@ type connection struct {
 	compressor  compressor.Compressor // use for compressing messages
 	// server can compress response with any compressor supported by driver
 	compressorMap    map[wiremessage.CompressorID]compressor.Compressor
-	commandMap       map[int64]*event.CommandMetadata // map for monitoring commands sent to server
+	commandMap       map[int64]*commandMetadata // map for monitoring commands sent to server
 	dead             bool
 	idleTimeout      time.Duration
 	idleDeadline     time.Time
@@ -146,7 +146,7 @@ func New(ctx context.Context, addr address.Address, opts ...Option) (Connection,
 		conn:             nc,
 		compressBuf:      make([]byte, 256),
 		compressorMap:    compressorMap,
-		commandMap:       make(map[int64]*event.CommandMetadata),
+		commandMap:       make(map[int64]*commandMetadata),
 		addr:             addr,
 		idleTimeout:      cfg.idleTimeout,
 		lifetimeDeadline: lifetimeDeadline,
@@ -441,7 +441,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		return nil
 	}
 
-	c.commandMap[startedEvent.RequestID] = event.CreateMetadata(startedEvent.CommandName)
+	c.commandMap[startedEvent.RequestID] = createMetadata(startedEvent.CommandName)
 	return nil
 }
 
