@@ -19,6 +19,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
@@ -55,6 +56,12 @@ type MarshalError struct {
 // Error implements the error interface.
 func (me MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a *bsonx.Document", reflect.TypeOf(me.Value))
+}
+
+// Equal returns true if the provided error is a MarshalError.
+func (me MarshalError) Equal(err error) bool {
+	_, ok := err.(MarshalError)
+	return ok
 }
 
 // Pipeline is a type that makes creating aggregation pipelines easier. It is a
@@ -165,42 +172,29 @@ func ensureDollarKey(doc bsonx.Doc) error {
 func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface{}) (bsonx.Arr, error) {
 	pipelineArr := bsonx.Arr{}
 	switch t := pipeline.(type) {
-	case Pipeline:
-		for _, d := range t {
-			doc, err := transformDocument(registry, d)
-			if err != nil {
-				return nil, err
-			}
-			pipelineArr = append(pipelineArr, bsonx.Document(doc))
-		}
-	case bsonx.Arr:
-		pipelineArr = make(bsonx.Arr, len(t))
-		copy(pipelineArr, t)
-	case []bsonx.Doc:
-		pipelineArr = bsonx.Arr{}
-
-		for _, doc := range t {
-			pipelineArr = append(pipelineArr, bsonx.Document(doc))
-		}
-	case []interface{}:
-		pipelineArr = bsonx.Arr{}
-
-		for _, val := range t {
-			doc, err := transformDocument(registry, val)
-			if err != nil {
-				return nil, err
-			}
-
-			pipelineArr = append(pipelineArr, bsonx.Document(doc))
-		}
-	default:
-		p, err := transformDocument(registry, pipeline)
+	case bsoncodec.ValueMarshaler:
+		btype, val, err := t.MarshalBSONValue()
 		if err != nil {
 			return nil, err
 		}
-
-		for _, elem := range p {
-			pipelineArr = append(pipelineArr, elem.Value)
+		if btype != bsontype.Array {
+			return nil, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", btype, bsontype.Array)
+		}
+		err = pipelineArr.UnmarshalBSONValue(btype, val)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		val := reflect.ValueOf(t)
+		if !val.IsValid() || (val.Kind() != reflect.Slice && val.Kind() != reflect.Array) {
+			return nil, fmt.Errorf("can only transform slices and arrays into aggregation pipelines, but got %v", val.Kind())
+		}
+		for idx := 0; idx < val.Len(); idx++ {
+			elem, err := transformDocument(registry, val.Index(idx).Interface())
+			if err != nil {
+				return nil, err
+			}
+			pipelineArr = append(pipelineArr, bsonx.Document(elem))
 		}
 	}
 
