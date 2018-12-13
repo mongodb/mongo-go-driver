@@ -67,6 +67,9 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 
 // CreateOne creates a single index in the collection specified by the model.
 func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*options.CreateIndexesOptions) (string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	names, err := iv.CreateMany(ctx, []IndexModel{model}, opts...)
 	if err != nil {
 		return "", err
@@ -78,6 +81,9 @@ func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*op
 // CreateMany creates multiple indexes in the collection specified by the models. The names of the
 // creates indexes are returned.
 func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ...*options.CreateIndexesOptions) ([]string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	names := make([]string, 0, len(models))
 	indexes := bsonx.Arr{}
 
@@ -133,6 +139,9 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 // DropOne drops the index with the given name from the collection.
 func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if name == "*" {
 		return nil, ErrMultipleIndexDrop
 	}
@@ -163,6 +172,9 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 
 // DropAll drops all indexes in the collection.
 func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	sess := sessionFromContext(ctx)
 
 	err := iv.coll.client.ValidSession(sess)
