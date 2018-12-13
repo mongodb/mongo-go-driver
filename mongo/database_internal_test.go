@@ -147,6 +147,22 @@ func TestDatabase_RunCommand(t *testing.T) {
 	require.Equal(t, ok.Double(), 1.0)
 }
 
+func TestDatabase_RunCommand_DecodeStruct(t *testing.T) {
+	t.Parallel()
+
+	db := createTestDatabase(t, nil)
+
+	result := struct {
+		Ismaster bool    `bson:"ismaster"`
+		Ok       float64 `bson:"ok"`
+	}{}
+
+	err := db.RunCommand(context.Background(), bsonx.Doc{{"ismaster", bsonx.Int32(1)}}).Decode(&result)
+	require.NoError(t, err)
+	require.Equal(t, result.Ismaster, true)
+	require.Equal(t, result.Ok, 1.0)
+}
+
 func TestDatabase_Drop(t *testing.T) {
 	t.Parallel()
 

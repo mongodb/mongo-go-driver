@@ -150,7 +150,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		db.client.topology.SessionPool,
 	)
 
-	return &SingleResult{err: replaceTopologyErr(err), rdr: doc}
+	return &SingleResult{err: replaceTopologyErr(err), rdr: doc, reg: db.registry}
 }
 
 // RunCommandCursor runs a command on the database and returns a cursor over the resulting reader. A user can supply
