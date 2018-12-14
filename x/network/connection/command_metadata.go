@@ -4,15 +4,19 @@ import "time"
 
 // commandMetadata contains metadata about a command sent to the server.
 type commandMetadata struct {
-	Name string
-	Time time.Time
+	Name               string
+	Time               time.Time
+	Legacy             bool
+	FullCollectionName string
 }
 
 // createMetadata creates metadata for a command.
-func createMetadata(name string) *commandMetadata {
+func createMetadata(name string, legacy bool, fullCollName string) *commandMetadata {
 	return &commandMetadata{
-		Name: name,
-		Time: time.Now(),
+		Name:               name,
+		Time:               time.Now(),
+		Legacy:             legacy,
+		FullCollectionName: fullCollName,
 	}
 }
 

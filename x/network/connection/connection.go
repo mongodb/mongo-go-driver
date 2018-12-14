@@ -370,23 +370,22 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 
 	var cmd bsonx.Doc
 	var err error
+	var legacy bool
+	var fullCollName string
 
 	var acknowledged bool
 	switch converted := wm.(type) {
 	case wiremessage.Query:
-		cmd, err = bsonx.ReadDoc([]byte(converted.Query))
+		cmd, err = converted.CommandDocument()
 		if err != nil {
 			return err
 		}
 
 		acknowledged = converted.AcknowledgedWrite()
-		startedEvent.DatabaseName = converted.FullCollectionName[:len(converted.FullCollectionName)-5] // remove $.cmd
+		startedEvent.DatabaseName = converted.DatabaseName()
 		startedEvent.RequestID = int64(converted.MsgHeader.RequestID)
-
-		cmdElem := cmd[0]
-		if cmdElem.Key == "$query" {
-			cmd = cmdElem.Value.Document()
-		}
+		legacy = converted.Legacy()
+		fullCollName = converted.FullCollectionName
 	case wiremessage.Msg:
 		cmd, err = converted.GetMainDocument()
 		if err != nil {
@@ -410,6 +409,18 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 
 		startedEvent.DatabaseName = dbVal.StringValue()
 		startedEvent.RequestID = int64(converted.MsgHeader.RequestID)
+	case wiremessage.GetMore:
+		cmd = converted.CommandDocument()
+		startedEvent.DatabaseName = converted.DatabaseName()
+		startedEvent.RequestID = int64(converted.MsgHeader.RequestID)
+		acknowledged = true
+		legacy = true
+		fullCollName = converted.FullCollectionName
+	case wiremessage.KillCursors:
+		cmd = converted.CommandDocument()
+		startedEvent.DatabaseName = converted.DatabaseName
+		startedEvent.RequestID = int64(converted.MsgHeader.RequestID)
+		legacy = true
 	}
 
 	startedEvent.Command = cmd
@@ -441,7 +452,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		return nil
 	}
 
-	c.commandMap[startedEvent.RequestID] = createMetadata(startedEvent.CommandName)
+	c.commandMap[startedEvent.RequestID] = createMetadata(startedEvent.CommandName, legacy, fullCollName)
 	return nil
 }
 
@@ -498,18 +509,26 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 	switch converted := wm.(type) {
 	case wiremessage.Reply:
 		requestID = int64(converted.MsgHeader.ResponseTo)
-		reply, err = converted.GetMainDocument()
 	case wiremessage.Msg:
 		requestID = int64(converted.MsgHeader.ResponseTo)
+	}
+	cmdMetadata := c.commandMap[requestID]
+	delete(c.commandMap, requestID)
+
+	switch converted := wm.(type) {
+	case wiremessage.Reply:
+		if cmdMetadata.Legacy {
+			reply, err = converted.GetMainLegacyDocument(cmdMetadata.FullCollectionName)
+		} else {
+			reply, err = converted.GetMainDocument()
+		}
+	case wiremessage.Msg:
 		reply, err = converted.GetMainDocument()
 	}
-
 	if err != nil {
 		return err
 	}
 
-	cmdMetadata := c.commandMap[requestID]
-	delete(c.commandMap, requestID)
 	success, errmsg := processReply(reply)
 
 	if (success && c.cmdMonitor.Succeeded == nil) || (!success && c.cmdMonitor.Failed == nil) {

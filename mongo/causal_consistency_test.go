@@ -179,6 +179,8 @@ func skipIfSessionsSupported(t *testing.T, db *Database) {
 }
 
 func TestCausalConsistency(t *testing.T) {
+	skipIfBelow36(t)
+
 	t.Run("TestOperationTimeNil", func(t *testing.T) {
 		// When a ClientSession is first created the operationTime has no value
 

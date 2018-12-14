@@ -11,6 +11,7 @@ import (
 
 	"context"
 
+	"fmt"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
@@ -609,6 +610,85 @@ func roundTripBatches(
 	}
 
 	return res, batches, nil
+}
+
+// get the firstBatch, cursor ID, and namespace from a bson.Raw
+func getCursorValues(result bson.Raw) ([]bson.RawValue, Namespace, int64, error) {
+	cur, err := result.LookupErr("cursor")
+	if err != nil {
+		return nil, Namespace{}, 0, err
+	}
+	if cur.Type != bson.TypeEmbeddedDocument {
+		return nil, Namespace{}, 0, fmt.Errorf("cursor should be an embedded document but it is a BSON %s", cur.Type)
+	}
+
+	elems, err := cur.Document().Elements()
+	if err != nil {
+		return nil, Namespace{}, 0, err
+	}
+
+	var ok bool
+	var arr bson.Raw
+	var namespace Namespace
+	var cursorID int64
+
+	for _, elem := range elems {
+		switch elem.Key() {
+		case "firstBatch":
+			arr, ok = elem.Value().ArrayOK()
+			if !ok {
+				return nil, Namespace{}, 0, fmt.Errorf("firstBatch should be an array but it is a BSON %s", elem.Value().Type)
+			}
+			if err != nil {
+				return nil, Namespace{}, 0, err
+			}
+		case "ns":
+			if elem.Value().Type != bson.TypeString {
+				return nil, Namespace{}, 0, fmt.Errorf("namespace should be a string but it is a BSON %s", elem.Value().Type)
+			}
+			namespace = ParseNamespace(elem.Value().StringValue())
+			err = namespace.Validate()
+			if err != nil {
+				return nil, Namespace{}, 0, err
+			}
+		case "id":
+			cursorID, ok = elem.Value().Int64OK()
+			if !ok {
+				return nil, Namespace{}, 0, fmt.Errorf("id should be an int64 but it is a BSON %s", elem.Value().Type)
+			}
+		}
+	}
+
+	vals, err := arr.Values()
+	if err != nil {
+		return nil, Namespace{}, 0, err
+	}
+
+	return vals, namespace, cursorID, nil
+}
+
+func getBatchSize(opts []bsonx.Elem) int32 {
+	for _, opt := range opts {
+		if opt.Key == "batchSize" {
+			return opt.Value.Int32()
+		}
+	}
+
+	return 0
+}
+
+func buildLegacyCursor(cb CursorBuilder, rdr bson.Raw, batchSize int32) (Cursor, error) {
+	firstBatchVals, ns, cursorID, err := getCursorValues(rdr)
+	if err != nil {
+		return nil, err
+	}
+
+	batchRaw := make([]bson.Raw, len(firstBatchVals))
+	for i, val := range firstBatchVals {
+		batchRaw[i] = val.Value
+	}
+
+	return cb.BuildLegacyCursor(ns, cursorID, batchRaw, 0, batchSize)
 }
 
 // ErrUnacknowledgedWrite is returned from functions that have an unacknowledged

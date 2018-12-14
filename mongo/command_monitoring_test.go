@@ -355,9 +355,8 @@ func compareReply(t *testing.T, succeeded *event.CommandSucceededEvent, reply bs
 			actualNVal, err := succeeded.Reply.LookupErr("n")
 			testhelpers.RequireNil(t, err, "could not find key n in reply")
 
-			if int(actualNVal.Int32()) != int(elem.Value.Int32()) {
-				t.Errorf("n values do not match. expected %d got %d", elem.Value.Int32(), actualNVal.Int32())
-				t.FailNow()
+			if !compareValues(elem.Value, actualNVal) {
+				t.Errorf("n values do not match")
 			}
 		case "writeErrors":
 			actualArr, err := succeeded.Reply.LookupErr("writeErrors")

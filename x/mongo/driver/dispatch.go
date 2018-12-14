@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 )
 
 // ErrCollation is caused if a collation is given for an invalid server version.
@@ -56,5 +57,11 @@ func interfaceToElement(key string, i interface{}, registry *bsoncodec.Registry)
 		}
 
 		return bsonx.Elem{key, bsonx.Document(doc)}, nil
+	}
+}
+
+func closeImplicitSession(sess *session.Client) {
+	if sess != nil && sess.SessionType == session.Implicit {
+		sess.EndSession()
 	}
 }
