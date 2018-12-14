@@ -1,0 +1,165 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "87e92668_8d7144b0",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-14T17:20:36Z",
+      "side": 1,
+      "message": "For short things like this, it\u0027s fine to format as a single line.",
+      "range": {
+        "startLine": 69,
+        "startChar": 9,
+        "endLine": 71,
+        "endChar": 3
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "502c4547_e17981f9",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-14T17:20:36Z",
+      "side": 1,
+      "message": "This should likely be split across multiple lines. It\u0027s a little tough to read because there\u0027s a lot going on. I\u0027d probably write it like this:\n\ncmd.Encode(description.SelectedServer{\n    Server: description.Server{\n        Kind: description.RSSecondary,\n        WireVersion: \u0026description.VersionRange{Max: 6},\n    },\n    Kind: description.Single,\n})",
+      "range": {
+        "startLine": 72,
+        "startChar": 13,
+        "endLine": 72,
+        "endChar": 184
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2e623e7e_541417a8",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-14T17:20:36Z",
+      "side": 1,
+      "message": "We can use t.Fatalf here since we\u0027re calling FailNow directly after this.",
+      "range": {
+        "startLine": 76,
+        "startChar": 5,
+        "endLine": 76,
+        "endChar": 11
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e2e5873d_22cfd1f7",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-14T17:20:36Z",
+      "side": 1,
+      "message": "Not sure if we need this to be an else if, I think we can likely use a regular if here.",
+      "range": {
+        "startLine": 83,
+        "startChar": 4,
+        "endLine": 83,
+        "endChar": 8
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6e663850_a9d322e8",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-14T17:20:36Z",
+      "side": 1,
+      "message": "I think we can move this check under the case for PrimaryMode and inverse it, so we\u0027re checking there if the serverKind is a Mongos and if so returning nil.",
+      "range": {
+        "startLine": 41,
+        "startChar": 2,
+        "endLine": 43,
+        "endChar": 3
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6c390a07_bd5a04a0",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-14T17:20:36Z",
+      "side": 1,
+      "message": "For this else if clause, are we only returning nil when it\u0027s SecondaryPreferred, and OP_QUERY wire message, and both the MaxStaleness and TagSets are empty and otherwise returning adding the mode of secondaryPreferred, along with the MaxStaleness and TagSets?",
+      "range": {
+        "startLine": 43,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 4
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a24d8456_053156e5",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-14T17:20:36Z",
+      "side": 1,
+      "message": "I think we can split this case into two. We place one in the \"if rp \u003d\u003dnil\" case and the other under the PrimaryMode case.",
+      "range": {
+        "startLine": 48,
+        "startChar": 3,
+        "endLine": 51,
+        "endChar": 3
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
