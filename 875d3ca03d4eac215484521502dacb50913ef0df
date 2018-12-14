@@ -22,6 +22,30 @@
       "revId": "875d3ca03d4eac215484521502dacb50913ef0df",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d6d35e88_96661fb7",
+        "filename": "x/mongo/driver/topology/list_collections_cursor.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 23,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-14T19:15:42Z",
+      "side": 1,
+      "message": "Yeah this was an issue because legacyFind() returns command.Cursor and the listCollections() in driver/ can\u0027t do the type cast because the cursor implementation is private in topology. This should be easy to fix when cursor is moved to driver.",
+      "parentUuid": "d99cf1b2_9e8a43ba",
+      "range": {
+        "startLine": 23,
+        "startChar": 30,
+        "endLine": 23,
+        "endChar": 46
+      },
+      "revId": "875d3ca03d4eac215484521502dacb50913ef0df",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
