@@ -7,6 +7,7 @@
 package bsonrw
 
 import (
+	"io"
 	"strings"
 	"testing"
 
@@ -282,7 +283,38 @@ func TestJsonScannerValidInputs(t *testing.T) {
 		c, err := js.nextToken()
 		jttDiff(t, jttEOF, c.t, tc.desc)
 		noerr(t, err)
+
+		// testing early EOF reading
+		js = &jsonScanner{r: earlyEOFReader{strings.NewReader(tc.input)}}
+
+		for _, token := range tc.tokens {
+			c, err := js.nextToken()
+			jttDiff(t, token.t, c.t, tc.desc)
+			jtvDiff(t, token.v, c.v, tc.desc)
+			expectNoError(t, err, tc.desc)
+		}
+
+		c, err = js.nextToken()
+		jttDiff(t, jttEOF, c.t, tc.desc)
+		noerr(t, err)
 	}
+}
+
+type earlyEOFReader struct {
+	r *strings.Reader
+}
+
+func (r earlyEOFReader) Read(p []byte) (int, error) {
+	n, err := r.r.Read(p)
+	if err != nil {
+		return n, err
+	}
+
+	if n < len(p) {
+		return n, io.EOF
+	}
+
+	return n, nil
 }
 
 func TestJsonScannerInvalidInputs(t *testing.T) {
