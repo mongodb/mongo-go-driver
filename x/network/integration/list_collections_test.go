@@ -14,6 +14,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
@@ -28,6 +31,20 @@ func skipIfBelow32(t *testing.T) {
 	}
 }
 
+func skipIfBelow30(t *testing.T) {
+	server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	if err != nil {
+		t.Fatalf("error selecting server: %s", err)
+	}
+	if server.Description().WireVersion.Max < 3 {
+		t.Skip("skipping for legacy servers")
+	}
+}
+
+func invalidNsCode(code int32) bool {
+	return code == 73 || code == 16256 || code == 15918
+}
+
 func TestCommandListCollections(t *testing.T) {
 	noerr := func(t *testing.T, err error) {
 		// t.Helper()
@@ -36,10 +53,11 @@ func TestCommandListCollections(t *testing.T) {
 			t.FailNow()
 		}
 	}
-	// TODO(GODRIVER-492) don't skip once legacy collection enumeration is implemented
-	skipIfBelow32(t)
 
 	t.Run("InvalidDatabaseName", func(t *testing.T) {
+		// 2.6 server doesn't throw error for invalid database name
+		skipIfBelow30(t)
+
 		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
 		noerr(t, err)
 		conn, err := server.Connection(context.Background())
@@ -48,8 +66,8 @@ func TestCommandListCollections(t *testing.T) {
 		_, err = (&command.ListCollections{}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
 		switch errt := err.(type) {
 		case command.Error:
-			if errt.Code != 73 {
-				t.Errorf("Incorrect error code returned from server. got %d; want %d", errt.Code, 73)
+			if !invalidNsCode(errt.Code) {
+				t.Errorf("Incorrect error code returned from server. got %d", errt.Code)
 			}
 		case command.QueryFailureError:
 			rdr := errt.Response
@@ -59,19 +77,14 @@ func TestCommandListCollections(t *testing.T) {
 			if !ok {
 				t.Errorf("Incorrect value for code. It is a BSON %v", v.Type)
 			}
-			if code != 73 {
-				t.Errorf("Incorrect error code returned from server. got %d; want %d", code, 73)
+			if !invalidNsCode(code) {
+				t.Errorf("Incorrect error code returned from server. got %d", code)
 			}
 		default:
 			t.Errorf("Incorrect type of command returned. got %T; want %T or %T", err, command.Error{}, command.QueryFailureError{})
 		}
 	})
 	t.Run("SingleBatch", func(t *testing.T) {
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
-		noerr(t, err)
-		conn, err := server.Connection(context.Background())
-		noerr(t, err)
-
 		wc := writeconcern.New(writeconcern.WMajority())
 		collOne := testutil.ColName(t)
 		collTwo := testutil.ColName(t) + "2"
@@ -83,7 +96,16 @@ func TestCommandListCollections(t *testing.T) {
 		testutil.InsertDocs(t, testutil.DBName(t), collTwo, wc, bsonx.Doc{{"_id", bsonx.Int32(2)}})
 		testutil.InsertDocs(t, testutil.DBName(t), collThree, wc, bsonx.Doc{{"_id", bsonx.Int32(3)}})
 
-		cursor, err := (&command.ListCollections{DB: dbName}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		clientID, err := uuid.New()
+		noerr(t, err)
+		cursor, err := driver.ListCollections(
+			context.Background(),
+			command.ListCollections{DB: dbName},
+			testutil.Topology(t),
+			description.WriteSelector(),
+			clientID,
+			&session.Pool{},
+		)
 		noerr(t, err)
 
 		names := map[string]bool{}

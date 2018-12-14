@@ -27,6 +27,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
+	"github.com/mongodb/mongo-go-driver/x/network/connstring"
 )
 
 func createTestClient(t *testing.T) *Client {
@@ -35,6 +36,18 @@ func createTestClient(t *testing.T) *Client {
 		id:             id,
 		topology:       testutil.Topology(t),
 		connString:     testutil.ConnString(t),
+		readPreference: readpref.Primary(),
+		clock:          &session.ClusterClock{},
+		registry:       bson.DefaultRegistry,
+	}
+}
+
+func createTestClientWithConnstring(t *testing.T, cs connstring.ConnString) *Client {
+	id, _ := uuid.New()
+	return &Client{
+		id:             id,
+		topology:       testutil.TopologyWithConnString(t, cs),
+		connString:     cs,
 		readPreference: readpref.Primary(),
 		clock:          &session.ClusterClock{},
 		registry:       bson.DefaultRegistry,
