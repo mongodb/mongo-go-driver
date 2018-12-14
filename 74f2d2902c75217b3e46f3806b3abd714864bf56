@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a5ed8fb6_7b2fc314",
+        "filename": "bson/bsonrw/json_scanner.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 144,
+      "author": {
+        "id": 1014927
+      },
+      "writtenOn": "2018-12-14T16:21:50Z",
+      "side": 1,
+      "message": "Is it worth moving this into the conditional above? Only need to set err to nil when it is not already nil. Specifically:\nif err !\u003d nil {\n  js.lastReadErr \u003d err\n  if n \u003e 0 {\n    err \u003d nil\n  }\n}",
+      "revId": "74f2d2902c75217b3e46f3806b3abd714864bf56",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
