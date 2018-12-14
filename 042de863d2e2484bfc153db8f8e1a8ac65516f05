@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "d32b5803_7fe0aa0a",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-14T22:18:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "87e92668_8d7144b0",
+      "range": {
+        "startLine": 69,
+        "startChar": 9,
+        "endLine": 71,
+        "endChar": 3
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "502c4547_e17981f9",
         "filename": "x/network/command/command_test.go",
         "patchSetId": 2
@@ -45,6 +69,30 @@
       "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dbcbee92_d7f5d40b",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-14T22:18:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "502c4547_e17981f9",
+      "range": {
+        "startLine": 72,
+        "startChar": 13,
+        "endLine": 72,
+        "endChar": 184
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "8c574e14_17706fd4",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-14T22:18:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2e623e7e_541417a8",
+      "range": {
+        "startLine": 76,
+        "startChar": 5,
+        "endLine": 76,
+        "endChar": 11
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e2e5873d_22cfd1f7",
         "filename": "x/network/command/command_test.go",
         "patchSetId": 2
@@ -82,6 +154,30 @@
       "writtenOn": "2018-12-14T17:20:36Z",
       "side": 1,
       "message": "Not sure if we need this to be an else if, I think we can likely use a regular if here.",
+      "range": {
+        "startLine": 83,
+        "startChar": 4,
+        "endLine": 83,
+        "endChar": 8
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6d7e33c6_ad1db689",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-14T22:18:02Z",
+      "side": 1,
+      "message": "I used an else if here because bsonCore.Value.StringValue panics when called on non-string types, so if err is non-nil it will panic at this line. I could change it to use StringValueOk, which doesn\u0027t panic, but I decided not too because the ok bool seemed redundant with the err message. Let me know if you think this would be a better approach though!",
+      "parentUuid": "e2e5873d_22cfd1f7",
       "range": {
         "startLine": 83,
         "startChar": 4,
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "3d37a994_1e4fa193",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-14T22:18:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6e663850_a9d322e8",
+      "range": {
+        "startLine": 41,
+        "startChar": 2,
+        "endLine": 43,
+        "endChar": 3
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6c390a07_bd5a04a0",
         "filename": "x/network/command/read.go",
         "patchSetId": 2
@@ -128,6 +248,30 @@
       "writtenOn": "2018-12-14T17:20:36Z",
       "side": 1,
       "message": "For this else if clause, are we only returning nil when it\u0027s SecondaryPreferred, and OP_QUERY wire message, and both the MaxStaleness and TagSets are empty and otherwise returning adding the mode of secondaryPreferred, along with the MaxStaleness and TagSets?",
+      "range": {
+        "startLine": 43,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 4
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f1b44b5d_7038ae8f",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-14T22:18:02Z",
+      "side": 1,
+      "message": "Yep!",
+      "parentUuid": "6c390a07_bd5a04a0",
       "range": {
         "startLine": 43,
         "startChar": 0,
@@ -160,6 +304,30 @@
       "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "942e41ec_9157288a",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-14T22:18:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a24d8456_053156e5",
+      "range": {
+        "startLine": 48,
+        "startChar": 3,
+        "endLine": 51,
+        "endChar": 3
+      },
+      "revId": "042de863d2e2484bfc153db8f8e1a8ac65516f05",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
