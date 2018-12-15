@@ -220,6 +220,19 @@ func (c *ClientOptions) SetReadPreference(rp *readpref.ReadPref) *ClientOptions 
 func (c *ClientOptions) SetRegistry(registry *bsoncodec.Registry) *ClientOptions {
 	c.Registry = registry
 
+	// add registry to the server options so that it will be used for the cursors built by this client
+	c.TopologyOptions = append(
+		c.TopologyOptions,
+		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
+			return append(
+				opts,
+				topology.WithRegistry(func(*bsoncodec.Registry) *bsoncodec.Registry {
+					return registry
+				}),
+			)
+		}),
+	)
+
 	return c
 }
 
