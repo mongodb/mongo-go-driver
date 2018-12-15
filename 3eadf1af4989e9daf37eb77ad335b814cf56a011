@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3d81885e_2248c4ea",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-15T00:09:27Z",
+      "side": 1,
+      "message": "Instead of adding a new read preference mode, we could make this a pointer and tests that expect no read preference could set this to nil.",
+      "revId": "3eadf1af4989e9daf37eb77ad335b814cf56a011",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c9ea3d26_033ebed8",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-15T00:09:27Z",
+      "side": 1,
+      "message": "We should use t.Fatalf here because it doesn\u0027t make sense to do the string comparison in the next condition if $readPreference wasn\u0027t found in the document. This would also address Kris\u0027 comment of using a regular if instead of an else/if.",
+      "revId": "3eadf1af4989e9daf37eb77ad335b814cf56a011",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
