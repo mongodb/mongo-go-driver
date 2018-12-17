@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "3bd93d10_0bf37c40",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-17T17:22:14Z",
+      "side": 1,
+      "message": "Thanks for the suggestion! I tried this out and unfortunately since the readpref.Mode\u0027s are constants they are not addressable. Though there are workarounds for this I spoke with Kris offline and he agreed that the existing approach is best.",
+      "parentUuid": "3d81885e_2248c4ea",
+      "revId": "3eadf1af4989e9daf37eb77ad335b814cf56a011",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c9ea3d26_033ebed8",
         "filename": "x/network/command/command_test.go",
         "patchSetId": 4
@@ -33,6 +51,24 @@
       "revId": "3eadf1af4989e9daf37eb77ad335b814cf56a011",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a81c956c_e36c606c",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 79,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-17T17:22:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c9ea3d26_033ebed8",
+      "revId": "3eadf1af4989e9daf37eb77ad335b814cf56a011",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
