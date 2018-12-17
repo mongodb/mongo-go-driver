@@ -165,6 +165,9 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 	dispatchModels := make([]driver.WriteModel, len(models))
 	for i, model := range models {
+		if model == nil {
+			return nil, ErrNilDocument
+		}
 		dispatchModels[i] = model.convertModel()
 	}
 
@@ -271,10 +274,17 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 		ctx = context.Background()
 	}
 
+	if len(documents) == 0 {
+		return nil, errors.New("an insertMany must contain at least one document")
+	}
+
 	result := make([]interface{}, len(documents))
 	docs := make([]bsonx.Doc, len(documents))
 
 	for i, doc := range documents {
+		if doc == nil {
+			return nil, ErrNilDocument
+		}
 		bdoc, insertedID, err := transformAndEnsureID(coll.registry, doc)
 		if err != nil {
 			return nil, err
@@ -879,13 +889,9 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		ctx = context.Background()
 	}
 
-	var f bsonx.Doc
-	var err error
-	if filter != nil {
-		f, err = transformDocument(coll.registry, filter)
-		if err != nil {
-			return nil, err
-		}
+	f, err := transformDocument(coll.registry, filter)
+	if err != nil {
+		return nil, err
 	}
 
 	sess := sessionFromContext(ctx)
@@ -934,13 +940,9 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	var f bsonx.Doc
-	var err error
-	if filter != nil {
-		f, err = transformDocument(coll.registry, filter)
-		if err != nil {
-			return nil, err
-		}
+	f, err := transformDocument(coll.registry, filter)
+	if err != nil {
+		return nil, err
 	}
 
 	sess := sessionFromContext(ctx)
@@ -986,13 +988,9 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	var f bsonx.Doc
-	var err error
-	if filter != nil {
-		f, err = transformDocument(coll.registry, filter)
-		if err != nil {
-			return &SingleResult{err: err}
-		}
+	f, err := transformDocument(coll.registry, filter)
+	if err != nil {
+		return &SingleResult{err: err}
 	}
 
 	sess := sessionFromContext(ctx)
@@ -1065,13 +1063,9 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
-	var f bsonx.Doc
-	var err error
-	if filter != nil {
-		f, err = transformDocument(coll.registry, filter)
-		if err != nil {
-			return &SingleResult{err: err}
-		}
+	f, err := transformDocument(coll.registry, filter)
+	if err != nil {
+		return &SingleResult{err: err}
 	}
 
 	sess := sessionFromContext(ctx)

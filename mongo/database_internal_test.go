@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"fmt"
@@ -125,7 +126,7 @@ func TestDatabase_ReplaceTopologyError(t *testing.T) {
 	err = db.Drop(ctx)
 	require.Equal(t, err, ErrClientDisconnected)
 
-	_, err = db.ListCollections(ctx, nil)
+	_, err = db.ListCollections(ctx, bsonx.Doc{})
 	require.Equal(t, err, ErrClientDisconnected)
 }
 
@@ -165,6 +166,21 @@ func TestDatabase_RunCommand_DecodeStruct(t *testing.T) {
 	require.Equal(t, result.Ok, 1.0)
 }
 
+func TestDatabase_NilDocumentError(t *testing.T) {
+	t.Parallel()
+
+	db := createTestDatabase(t, nil)
+
+	err := db.RunCommand(context.Background(), nil).Err()
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = db.Watch(context.Background(), nil)
+	require.Equal(t, err, errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"))
+
+	_, err = db.ListCollections(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
+}
+
 func TestDatabase_Drop(t *testing.T) {
 	t.Parallel()
 
@@ -175,7 +191,7 @@ func TestDatabase_Drop(t *testing.T) {
 	client := createTestClient(t)
 	err := db.Drop(context.Background())
 	require.NoError(t, err)
-	list, err := client.ListDatabaseNames(context.Background(), nil)
+	list, err := client.ListDatabaseNames(context.Background(), bsonx.Doc{})
 
 	require.NoError(t, err)
 	require.NotContains(t, list, name)

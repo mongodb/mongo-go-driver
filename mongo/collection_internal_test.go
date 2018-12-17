@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -200,16 +201,16 @@ func TestCollection_ReplaceTopologyError(t *testing.T) {
 	_, err = coll.Aggregate(context.Background(), pipeline, options.Aggregate())
 	require.Equal(t, err, ErrClientDisconnected)
 
-	_, err = coll.Count(context.Background(), nil)
+	_, err = coll.Count(context.Background(), bsonx.Doc{})
 	require.Equal(t, err, ErrClientDisconnected)
 
-	_, err = coll.CountDocuments(context.Background(), nil)
+	_, err = coll.CountDocuments(context.Background(), bsonx.Doc{})
 	require.Equal(t, err, ErrClientDisconnected)
 
 	_, err = coll.EstimatedDocumentCount(context.Background())
 	require.Equal(t, err, ErrClientDisconnected)
 
-	_, err = coll.Distinct(context.Background(), "x", nil)
+	_, err = coll.Distinct(context.Background(), "x", bsonx.Doc{})
 	require.Equal(t, err, ErrClientDisconnected)
 
 	_, err = coll.Find(context.Background(), doc1)
@@ -317,6 +318,95 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 	if _, ok := err.(WriteConcernError); !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
+}
+
+func TestCollection_NilDocumentError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	coll := createTestCollection(t, nil, nil)
+
+	_, err := coll.InsertOne(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.InsertMany(context.Background(), nil)
+	require.Equal(t, err, errors.New("an insertMany must contain at least one document"))
+
+	_, err = coll.InsertMany(context.Background(), []interface{}{})
+	require.Equal(t, err, errors.New("an insertMany must contain at least one document"))
+
+	_, err = coll.InsertMany(context.Background(), []interface{}{bsonx.Doc{bsonx.Elem{"_id", bsonx.Int32(1)}}, nil})
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.DeleteOne(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.DeleteMany(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.UpdateOne(context.Background(), nil, bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"_id", bsonx.Double(3.14159)}})}})
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.UpdateOne(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.UpdateMany(context.Background(), nil, bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"_id", bsonx.Double(3.14159)}})}})
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.UpdateMany(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.ReplaceOne(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.ReplaceOne(context.Background(), nil, bsonx.Doc{{"_id", bsonx.Double(3.14159)}})
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.Count(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.CountDocuments(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.Distinct(context.Background(), "field", nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.Find(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	res := coll.FindOne(context.Background(), nil)
+	require.Equal(t, res.err, ErrNilDocument)
+
+	res = coll.FindOneAndDelete(context.Background(), nil)
+	require.Equal(t, res.err, ErrNilDocument)
+
+	res = coll.FindOneAndReplace(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
+	require.Equal(t, res.err, ErrNilDocument)
+
+	res = coll.FindOneAndReplace(context.Background(), nil, bsonx.Doc{{"_id", bsonx.Double(3.14159)}})
+	require.Equal(t, res.err, ErrNilDocument)
+
+	res = coll.FindOneAndUpdate(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
+	require.Equal(t, res.err, ErrNilDocument)
+
+	res = coll.FindOneAndUpdate(context.Background(), nil, bsonx.Doc{{"_id", bsonx.Double(3.14159)}})
+	require.Equal(t, res.err, ErrNilDocument)
+
+	_, err = coll.BulkWrite(context.Background(), nil)
+	require.Equal(t, err, errors.New("a bulk write must contain at least one write model"))
+
+	_, err = coll.BulkWrite(context.Background(), []WriteModel{})
+	require.Equal(t, err, errors.New("a bulk write must contain at least one write model"))
+
+	_, err = coll.BulkWrite(context.Background(), []WriteModel{nil})
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = coll.Aggregate(context.Background(), nil)
+	require.Equal(t, err, errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"))
+
+	_, err = coll.Watch(context.Background(), nil)
+	require.Equal(t, err, errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"))
 }
 
 func TestCollection_InsertMany(t *testing.T) {
@@ -1215,7 +1305,7 @@ func TestCollection_Count(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.Count(context.Background(), nil)
+	count, err := coll.Count(context.Background(), bsonx.Doc{})
 	require.Nil(t, err)
 	require.Equal(t, count, int64(5))
 }
@@ -1243,7 +1333,7 @@ func TestCollection_Count_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.Count(context.Background(), nil, options.Count().SetLimit(int64(3)))
+	count, err := coll.Count(context.Background(), bsonx.Doc{}, options.Count().SetLimit(int64(3)))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -1256,7 +1346,7 @@ func TestCollection_CountDocuments(t *testing.T) {
 	col1 := createTestCollection(t, nil, nil)
 	initCollection(t, col1)
 
-	count, err := col1.CountDocuments(context.Background(), nil)
+	count, err := col1.CountDocuments(context.Background(), bsonx.Doc{})
 	require.Nil(t, err)
 	require.Equal(t, count, int64(5))
 }
@@ -1285,7 +1375,7 @@ func TestCollection_CountDocuments_withLimitOptions(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.CountDocuments(context.Background(), nil, options.Count().SetLimit(3))
+	count, err := coll.CountDocuments(context.Background(), bsonx.Doc{}, options.Count().SetLimit(3))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(3))
 }
@@ -1298,7 +1388,7 @@ func TestCollection_CountDocuments_withSkipOptions(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	count, err := coll.CountDocuments(context.Background(), nil, options.Count().SetSkip(3))
+	count, err := coll.CountDocuments(context.Background(), bsonx.Doc{}, options.Count().SetSkip(3))
 	require.Nil(t, err)
 	require.Equal(t, count, int64(2))
 }
@@ -1338,7 +1428,7 @@ func TestCollection_Distinct(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	results, err := coll.Distinct(context.Background(), "x", nil)
+	results, err := coll.Distinct(context.Background(), "x", bsonx.Doc{})
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)})
 }
@@ -1366,7 +1456,7 @@ func TestCollection_Distinct_withOption(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 	initCollection(t, coll)
 
-	results, err := coll.Distinct(context.Background(), "x", nil,
+	results, err := coll.Distinct(context.Background(), "x", bsonx.Doc{},
 		options.Distinct().SetMaxTime(5000000000))
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)})
@@ -1381,7 +1471,7 @@ func TestCollection_Find_found(t *testing.T) {
 	initCollection(t, coll)
 
 	cursor, err := coll.Find(context.Background(),
-		nil,
+		bsonx.Doc{},
 		options.Find().SetSort(bsonx.Doc{{"x", bsonx.Int32(1)}}),
 	)
 	require.Nil(t, err)
@@ -1466,7 +1556,7 @@ func TestCollection_Find_Error(t *testing.T) {
 	t.Run("TestKillCursor", func(t *testing.T) {
 		coll := createTestCollection(t, nil, nil)
 		initCollection(t, coll)
-		c, err := coll.Find(context.Background(), nil, options.Find().SetBatchSize(2))
+		c, err := coll.Find(context.Background(), bsonx.Doc{}, options.Find().SetBatchSize(2))
 		require.Nil(t, err, "error running find: %s", err)
 
 		// exhaust first batch
