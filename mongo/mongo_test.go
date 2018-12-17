@@ -59,6 +59,12 @@ func TestTransformDocument(t *testing.T) {
 			nil,
 			MarshalError{Value: []string{"foo", "bar"}, Err: errors.New("invalid state transition: TopLevel -> ArrayMode")},
 		},
+		{
+			"nil",
+			nil,
+			nil,
+			bsonx.ErrNilDocument,
+		},
 	}
 
 	for _, tc := range testCases {
