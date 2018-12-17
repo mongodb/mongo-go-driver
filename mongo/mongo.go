@@ -81,7 +81,7 @@ func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsonx.
 	}
 	switch tt := val.(type) {
 	case nil:
-		val = bsonx.Doc{}
+		return nil, nil, ErrNilDocument
 	case bsonx.Doc:
 		val = tt.Copy()
 	case []byte:
@@ -122,7 +122,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc
 		registry = bson.NewRegistryBuilder().Build()
 	}
 	if val == nil {
-		return bsonx.Doc{}, nil
+		return nil, ErrNilDocument
 	}
 	if doc, ok := val.(bsonx.Doc); ok {
 		return doc.Copy(), nil

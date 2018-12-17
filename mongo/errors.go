@@ -26,6 +26,14 @@ var ErrUnacknowledgedWrite = errors.New("unacknowledged write")
 // disconnected client
 var ErrClientDisconnected = errors.New("client is disconnected")
 
+// ErrNilDocument is returned when a user attempts to pass a nil document or filter
+// to a function where the field is required.
+var ErrNilDocument = errors.New("document is nil")
+
+// ErrEmptySlice is returned when a user attempts to pass an empty slice as input
+// to a function wehere the field is required.
+var ErrEmptySlice = errors.New("must provide at least one element in input slice")
+
 func replaceTopologyErr(err error) error {
 	if err == topology.ErrTopologyClosed {
 		return ErrClientDisconnected
