@@ -169,7 +169,7 @@ func TestChangeStream(t *testing.T) {
 		_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
 		require.NoError(t, err)
 
-		changes, err := coll.Watch(context.Background(), nil)
+		changes, err := coll.Watch(context.Background(), bsonx.Doc{})
 		require.NoError(t, err)
 		defer changes.Close(ctx)
 
@@ -242,7 +242,7 @@ func TestChangeStream(t *testing.T) {
 		_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(1)}})
 		require.NoError(t, err)
 
-		_, err = coll.Watch(context.Background(), nil)
+		_, err = coll.Watch(context.Background(), bsonx.Doc{})
 		require.Error(t, err)
 		if _, ok := err.(command.Error); !ok {
 			t.Errorf("Should have returned command error, but got %T", err)
@@ -332,7 +332,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// ChangeStream will automatically resume one time on a resumable error (including not master) with the initial
 		// pipeline and options, except for the addition/update of a resumeToken.
 
-		coll, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", nil)
+		coll, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", bsonx.Doc{})
 		defer closeCursor(stream)
 		startCmd := (<-startedChan).Command
 		startPipeline := startCmd.Lookup("pipeline").Array()
@@ -406,7 +406,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
-				_, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", nil)
+				_, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", bsonx.Doc{})
 				defer closeCursor(stream)
 				cs := stream.(*changeStream)
 				cs.cursor = &errorCursor{
@@ -434,7 +434,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 	t.Run("CursorNotClosed", func(t *testing.T) {
 		// Ensure that a cursor returned from an aggregate command with a cursor id and an initial empty batch is not
 
-		_, stream := createCollectionStream(t, "CursorNotClosedDB", "CursorNotClosedColl", nil)
+		_, stream := createCollectionStream(t, "CursorNotClosedDB", "CursorNotClosedColl", bsonx.Doc{})
 		defer closeCursor(stream)
 		cs := stream.(*changeStream)
 
@@ -458,7 +458,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			t.Skip("skipping for version < 4.0")
 		}
 
-		coll, stream := createMonitoredStream(t, "NoExceptionsDB", "NoExceptionsColl", nil)
+		coll, stream := createMonitoredStream(t, "NoExceptionsDB", "NoExceptionsColl", bsonx.Doc{})
 		defer closeCursor(stream)
 		cs := stream.(*changeStream)
 
@@ -507,7 +507,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			t.Skip("skipping for version < 4.0")
 		}
 
-		_, stream := createMonitoredStream(t, "IncludeTimeDB", "IncludeTimeColl", nil)
+		_, stream := createMonitoredStream(t, "IncludeTimeDB", "IncludeTimeColl", bsonx.Doc{})
 		defer closeCursor(stream)
 		cs := stream.(*changeStream)
 

@@ -727,7 +727,7 @@ func verifyRunCommandResult(t *testing.T, res bson.Raw, result json.RawMessage) 
 }
 
 func verifyCollectionContents(t *testing.T, coll *Collection, result json.RawMessage) {
-	cursor, err := coll.Find(context.Background(), nil)
+	cursor, err := coll.Find(context.Background(), bsonx.Doc{})
 	require.NoError(t, err)
 
 	verifyCursorResult(t, cursor, result)
