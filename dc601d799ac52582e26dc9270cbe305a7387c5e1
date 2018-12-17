@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b3febc5f_4cd38135",
+        "filename": "x/network/command/command_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-17T17:57:28Z",
+      "side": 1,
+      "message": "You can just use 0 here instead of casting it twice.",
+      "range": {
+        "startLine": 34,
+        "startChar": 56,
+        "endLine": 34,
+        "endChar": 61
+      },
+      "revId": "dc601d799ac52582e26dc9270cbe305a7387c5e1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
