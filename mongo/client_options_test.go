@@ -24,6 +24,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/network/connstring"
 	"github.com/stretchr/testify/require"
+	"reflect"
 )
 
 func TestClientOptions_simple(t *testing.T) {
@@ -144,7 +145,7 @@ func TestClientOptions_chainAll(t *testing.T) {
 			SSLClientCertificateKeyFile:        "client.pem",
 			SSLClientCertificateKeyFileSet:     true,
 			SSLClientCertificateKeyPassword:    nil,
-			SSLClientCertificateKeyPasswordSet: true,
+			SSLClientCertificateKeyPasswordSet: false, // will not be set if it's nil
 			SSLInsecure:                        false,
 			SSLInsecureSet:                     true,
 			SSLCaFile:                          "ca.pem",
@@ -157,6 +158,44 @@ func TestClientOptions_chainAll(t *testing.T) {
 	}
 
 	require.Equal(t, expectedClient, opts)
+}
+
+func TestClientOptions_sslOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("TestEmptyOptionsNotSet", func(t *testing.T) {
+		ssl := &options.SSLOpt{}
+		c, err := NewClientWithOptions("mongodb://localhost", options.Client().SetSSL(ssl))
+		require.NoError(t, err)
+
+		require.Equal(t, c.connString.SSLClientCertificateKeyFile, "")
+		require.Equal(t, c.connString.SSLClientCertificateKeyFileSet, false)
+		require.Nil(t, c.connString.SSLClientCertificateKeyPassword)
+		require.Equal(t, c.connString.SSLClientCertificateKeyPasswordSet, false)
+		require.Equal(t, c.connString.SSLCaFile, "")
+		require.Equal(t, c.connString.SSLCaFileSet, false)
+	})
+
+	t.Run("TestNonEmptyOptionsSet", func(t *testing.T) {
+		f := func() string {
+			return "KeyPassword"
+		}
+
+		ssl := &options.SSLOpt{
+			ClientCertificateKeyFile:     "KeyFile",
+			ClientCertificateKeyPassword: f,
+			CaFile:                       "CaFile",
+		}
+		c, err := NewClientWithOptions("mongodb://localhost", options.Client().SetSSL(ssl))
+		require.NoError(t, err)
+
+		require.Equal(t, c.connString.SSLClientCertificateKeyFile, "KeyFile")
+		require.Equal(t, c.connString.SSLClientCertificateKeyFileSet, true)
+		require.Equal(t, reflect.ValueOf(c.connString.SSLClientCertificateKeyPassword).Pointer(), reflect.ValueOf(f).Pointer())
+		require.Equal(t, c.connString.SSLClientCertificateKeyPasswordSet, true)
+		require.Equal(t, c.connString.SSLCaFile, "CaFile")
+		require.Equal(t, c.connString.SSLCaFileSet, true)
+	})
 }
 
 func TestClientOptions_CustomDialer(t *testing.T) {
