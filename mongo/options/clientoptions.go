@@ -285,17 +285,23 @@ func (c *ClientOptions) SetSSL(ssl *SSLOpt) *ClientOptions {
 	c.ConnString.SSL = ssl.Enabled
 	c.ConnString.SSLSet = true
 
-	c.ConnString.SSLClientCertificateKeyFile = ssl.ClientCertificateKeyFile
-	c.ConnString.SSLClientCertificateKeyFileSet = true
+	if ssl.ClientCertificateKeyFile != "" {
+		c.ConnString.SSLClientCertificateKeyFile = ssl.ClientCertificateKeyFile
+		c.ConnString.SSLClientCertificateKeyFileSet = true
+	}
 
-	c.ConnString.SSLClientCertificateKeyPassword = ssl.ClientCertificateKeyPassword
-	c.ConnString.SSLClientCertificateKeyPasswordSet = true
+	if ssl.ClientCertificateKeyPassword != nil {
+		c.ConnString.SSLClientCertificateKeyPassword = ssl.ClientCertificateKeyPassword
+		c.ConnString.SSLClientCertificateKeyPasswordSet = true
+	}
 
 	c.ConnString.SSLInsecure = ssl.Insecure
 	c.ConnString.SSLInsecureSet = true
 
-	c.ConnString.SSLCaFile = ssl.CaFile
-	c.ConnString.SSLCaFileSet = true
+	if ssl.CaFile != "" {
+		c.ConnString.SSLCaFile = ssl.CaFile
+		c.ConnString.SSLCaFileSet = true
+	}
 
 	return c
 }
