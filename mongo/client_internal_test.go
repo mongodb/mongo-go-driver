@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path"
 	"testing"
@@ -141,7 +142,7 @@ func TestClientRegistryPassedToCursors(t *testing.T) {
 	_, err = coll.InsertOne(ctx, NewCodec{ID: 10})
 	require.NoError(t, err)
 
-	c, err := coll.Find(ctx, nil)
+	c, err := coll.Find(ctx, bsonx.Doc{})
 	require.NoError(t, err)
 
 	require.True(t, c.Next(ctx))
@@ -285,7 +286,7 @@ func TestClient_ReplaceTopologyError(t *testing.T) {
 	_, err = c.StartSession()
 	require.Equal(t, err, ErrClientDisconnected)
 
-	_, err = c.ListDatabases(ctx, nil)
+	_, err = c.ListDatabases(ctx, bsonx.Doc{})
 	require.Equal(t, err, ErrClientDisconnected)
 
 	err = c.Ping(ctx, nil)
@@ -314,7 +315,7 @@ func TestClient_ListDatabases_noFilter(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	dbs, err := c.ListDatabases(context.Background(), nil)
+	dbs, err := c.ListDatabases(context.Background(), bsonx.Doc{})
 	require.NoError(t, err)
 	found := false
 
@@ -378,7 +379,7 @@ func TestClient_ListDatabaseNames_noFilter(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	dbs, err := c.ListDatabaseNames(context.Background(), nil)
+	dbs, err := c.ListDatabaseNames(context.Background(), bsonx.Doc{})
 	found := false
 
 	for _, name := range dbs {
@@ -419,6 +420,21 @@ func TestClient_ListDatabaseNames_filter(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, dbs, 1)
 	require.Equal(t, dbName, dbs[0])
+}
+
+func TestClient_NilDocumentError(t *testing.T) {
+	t.Parallel()
+
+	c := createTestClient(t)
+
+	_, err := c.Watch(context.Background(), nil)
+	require.Equal(t, err, errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"))
+
+	_, err = c.ListDatabases(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
+
+	_, err = c.ListDatabaseNames(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
 }
 
 func TestClient_ReadPreference(t *testing.T) {

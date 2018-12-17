@@ -14,7 +14,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
@@ -221,12 +220,9 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, err
 	}
 
-	var filterDoc bsonx.Doc
-	if filter != nil {
-		filterDoc, err = transformDocument(db.registry, filter)
-		if err != nil {
-			return nil, err
-		}
+	filterDoc, err := transformDocument(db.registry, filter)
+	if err != nil {
+		return nil, err
 	}
 
 	cmd := command.ListCollections{
