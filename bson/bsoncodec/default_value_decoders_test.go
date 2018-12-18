@@ -2274,6 +2274,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AS []byte
 					AT map[string]interface{}
 					AU primitive.CodeWithScope
+					AV primitive.M
+					AW primitive.D
+					AX map[string]interface{}
+					AY []primitive.E
+					AZ interface{}
 				}{
 					A: true,
 					B: 123,
@@ -2315,6 +2320,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AS: nil,
 					AT: nil,
 					AU: primitive.CodeWithScope{Code: "var hello = 'world';", Scope: primitive.D{{"pi", 3.14159}}},
+					AV: primitive.M{"foo": primitive.M{"bar": "baz"}},
+					AW: primitive.D{{"foo", primitive.D{{"bar", "baz"}}}},
+					AX: map[string]interface{}{"foo": map[string]interface{}{"bar": "baz"}},
+					AY: []primitive.E{{"foo", []primitive.E{{"bar", "baz"}}}},
+					AZ: primitive.D{{"foo", primitive.D{{"bar", "baz"}}}},
 				},
 				buildDocument(func(doc []byte) []byte {
 					doc = bsoncore.AppendBooleanElement(doc, "a", true)
@@ -2361,6 +2371,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 					doc = bsoncore.AppendCodeWithScopeElement(doc, "au",
 						"var hello = 'world';", buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
 					)
+					for _, name := range [5]string{"av", "aw", "ax", "ay", "az"} {
+						doc = bsoncore.AppendDocumentElement(doc, name, buildDocument(
+							bsoncore.AppendDocumentElement(nil, "foo", buildDocument(
+								bsoncore.AppendStringElement(nil, "bar", "baz"),
+							)),
+						))
+					}
 					return doc
 				}(nil)),
 				nil,
@@ -2575,11 +2592,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"String - string",
 					string("foo bar baz"),
 					bsontype.String,
-				},
-				{
-					"Embedded Document - primitive.D",
-					primitive.D{{"foo", nil}},
-					bsontype.EmbeddedDocument,
 				},
 				{
 					"Array - primitive.A",
