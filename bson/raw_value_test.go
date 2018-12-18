@@ -13,7 +13,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -44,7 +43,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns error when registry is nil", func(t *testing.T) {
 			want := ErrNilRegistry
 			var val RawValue
-			got := val.UnmarshalWithRegistry(nil, bsonx.Doc{})
+			got := val.UnmarshalWithRegistry(nil, &D{})
 			if got != want {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
@@ -85,7 +84,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns error when DecodeContext is nil", func(t *testing.T) {
 			want := ErrNilContext
 			var val RawValue
-			got := val.UnmarshalWithContext(nil, bsonx.Doc{})
+			got := val.UnmarshalWithContext(nil, &D{})
 			if got != want {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
