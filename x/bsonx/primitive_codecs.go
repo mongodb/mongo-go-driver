@@ -16,6 +16,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
+var primitiveCodecs PrimitiveCodecs
+
 var tDocument = reflect.TypeOf((Doc)(nil))
 var tMDoc = reflect.TypeOf((MDoc)(nil))
 var tArray = reflect.TypeOf((Arr)(nil))

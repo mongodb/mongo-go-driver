@@ -15,7 +15,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/stretchr/testify/require"
 )
@@ -258,7 +257,7 @@ func TestRaw(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected error from ElementAt: %s", err)
 				}
-				if diff := cmp.Diff(got, tc.want, cmp.Comparer(readerElementComparer)); diff != "" {
+				if diff := cmp.Diff(got, tc.want); diff != "" {
 					t.Errorf("Documents differ: (-got +want)\n%s", diff)
 				}
 			})
@@ -345,12 +344,4 @@ func TestRaw(t *testing.T) {
 			})
 		}
 	})
-}
-
-func readerElementEqual(e1, e2 bsonx.Elem) bool { return e1.Equal(e2) }
-
-func readerElementComparer(e1, e2 bsonx.Elem) bool { return e1.Equal(e2) }
-
-func fromElement(e bsonx.Elem) bsonx.Elem {
-	return e
 }
