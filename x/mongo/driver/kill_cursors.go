@@ -32,5 +32,6 @@ func KillCursors(
 	if err != nil {
 		return result.KillCursors{}, err
 	}
+	defer conn.Close()
 	return cmd.RoundTrip(ctx, desc, conn)
 }
