@@ -99,7 +99,8 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeMapEntry(bsontype.Timestamp, tTimestamp).
 		RegisterTypeMapEntry(bsontype.Decimal128, tDecimal).
 		RegisterTypeMapEntry(bsontype.MinKey, tMinKey).
-		RegisterTypeMapEntry(bsontype.MaxKey, tMaxKey)
+		RegisterTypeMapEntry(bsontype.MaxKey, tMaxKey).
+		RegisterTypeMapEntry(bsontype.Type(0), tD)
 }
 
 // BooleanDecodeValue is the ValueDecoderFunc for bool types.
