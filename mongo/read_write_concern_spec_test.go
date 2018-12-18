@@ -144,6 +144,14 @@ func runConnectionStringTest(t *testing.T, testName string, testCase *connection
 			}
 
 			wcBSON, err := wc.MarshalBSONElement()
+			if err == writeconcern.ErrEmptyWriteConcern {
+				if len(testCase.WriteConcern) == 0 {
+					return
+				}
+				if _, exists := testCase.WriteConcern["journal"]; exists && len(testCase.WriteConcern) == 1 {
+					return
+				}
+			}
 			require.NoError(t, err)
 
 			wcDoc := wcBSON.Value.Document()
@@ -227,6 +235,14 @@ func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
 				return
 			}
 
+			if err == writeconcern.ErrEmptyWriteConcern {
+				if len(testCase.WriteConcernDocument) == 0 {
+					return
+				}
+				if _, exists := testCase.WriteConcernDocument["j"]; exists && len(testCase.WriteConcernDocument) == 1 {
+					return
+				}
+			}
 			require.NoError(t, err)
 
 			wcBytes, _ := wcDoc.Value.Document().MarshalBSON()
