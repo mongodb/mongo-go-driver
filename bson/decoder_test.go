@@ -17,7 +17,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw/bsonrwtest"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -182,7 +181,7 @@ func TestDecoderv2(t *testing.T) {
 		var got foo
 		got.Item = "apple"
 		got.Bonus = 2
-		data := docToBytes(bsonx.Doc{{"item", bsonx.String("canvas")}, {"qty", bsonx.Int32(4)}})
+		data := docToBytes(D{{"item", "canvas"}, {"qty", 4}})
 		vr := bsonrw.NewBSONDocumentReader(data)
 		dec, err := NewDecoder(vr)
 		noerr(t, err)
