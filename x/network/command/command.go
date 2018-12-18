@@ -12,6 +12,7 @@ import (
 	"context"
 
 	"fmt"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
@@ -299,6 +300,9 @@ func addWriteConcern(cmd bsonx.Doc, wc *writeconcern.WriteConcern) (bsonx.Doc, e
 
 	element, err := wc.MarshalBSONElement()
 	if err != nil {
+		if err == writeconcern.ErrEmptyWriteConcern {
+			return cmd, nil
+		}
 		return cmd, err
 	}
 
