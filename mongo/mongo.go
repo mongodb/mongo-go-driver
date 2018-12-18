@@ -172,45 +172,6 @@ func ensureDollarKey(doc bsonx.Doc) error {
 func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface{}) (bsonx.Arr, error) {
 	pipelineArr := bsonx.Arr{}
 	switch t := pipeline.(type) {
-	case Pipeline:
-		for _, d := range t {
-			doc, err := transformDocument(registry, d)
-			if err != nil {
-				return nil, err
-			}
-			pipelineArr = append(pipelineArr, bsonx.Document(doc))
-		}
-	case bsonx.Arr:
-		pipelineArr = make(bsonx.Arr, len(t))
-		copy(pipelineArr, t)
-	case []bsonx.Doc:
-		pipelineArr = bsonx.Arr{}
-
-		for _, doc := range t {
-			pipelineArr = append(pipelineArr, bsonx.Document(doc))
-		}
-	case primitive.A:
-		pipelineArr = bsonx.Arr{}
-
-		for _, val := range t {
-			doc, err := transformDocument(registry, val)
-			if err != nil {
-				return nil, err
-			}
-
-			pipelineArr = append(pipelineArr, bsonx.Document(doc))
-		}
-	case []interface{}:
-		pipelineArr = bsonx.Arr{}
-
-		for _, val := range t {
-			doc, err := transformDocument(registry, val)
-			if err != nil {
-				return nil, err
-			}
-
-			pipelineArr = append(pipelineArr, bsonx.Document(doc))
-		}
 	case bsoncodec.ValueMarshaler:
 		btype, val, err := t.MarshalBSONValue()
 		if err != nil {

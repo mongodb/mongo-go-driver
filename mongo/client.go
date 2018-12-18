@@ -177,7 +177,17 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 		topologyOptions: clientOpt.TopologyOptions,
 		connString:      clientOpt.ConnString,
 		localThreshold:  defaultLocalThreshold,
+		readPreference:  clientOpt.ReadPreference,
+		readConcern:     clientOpt.ReadConcern,
+		writeConcern:    clientOpt.WriteConcern,
 		registry:        clientOpt.Registry,
+	}
+
+	if client.connString.RetryWritesSet {
+		client.retryWrites = client.connString.RetryWrites
+	}
+	if clientOpt.RetryWrites != nil {
+		client.retryWrites = *clientOpt.RetryWrites
 	}
 
 	clientID, err := uuid.New()
