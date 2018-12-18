@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"strings"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
@@ -229,6 +230,7 @@ func createSessionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor) 
 		readPreference: readpref.Primary(),
 		readConcern:    readconcern.Local(),
 		clock:          clock,
+		registry:       bson.DefaultRegistry,
 	}
 
 	subscription, err := c.topology.Subscribe()
