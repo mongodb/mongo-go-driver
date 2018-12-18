@@ -93,6 +93,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeMapEntry(bsontype.DBPointer, tDBPointer).
 		RegisterTypeMapEntry(bsontype.JavaScript, tJavaScript).
 		RegisterTypeMapEntry(bsontype.Symbol, tSymbol).
+		RegisterTypeMapEntry(bsontype.CodeWithScope, tCodeWithScope).
 		RegisterTypeMapEntry(bsontype.Int32, tInt32).
 		RegisterTypeMapEntry(bsontype.Int64, tInt64).
 		RegisterTypeMapEntry(bsontype.Timestamp, tTimestamp).
