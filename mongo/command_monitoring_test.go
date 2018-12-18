@@ -55,6 +55,7 @@ func createMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client 
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 		clock:          &session.ClusterClock{},
+		registry:       bson.DefaultRegistry,
 	}
 }
 
