@@ -191,6 +191,12 @@ func (rb *RegistryBuilder) RegisterDefaultDecoder(kind reflect.Kind, dec ValueDe
 // RegisterTypeMapEntry will register the provided type to the BSON type. The primary usage for this
 // mapping is decoding situations where an empty interface is used and a default type needs to be
 // created and decoded into.
+//
+// NOTE: It is unlikely that registering a type for BSON Embedded Document is actually desired. By
+// registering a type map entry for BSON Embedded Document the type registered will be used in any
+// case where a BSON Embedded Document will be decoded into an empty interface. For example, if you
+// register primitive.M, the EmptyInterface decoder will always use primitive.M, even if an ancestor
+// was a primitive.D.
 func (rb *RegistryBuilder) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Type) *RegistryBuilder {
 	rb.typeMap[bt] = rt
 	return rb
