@@ -114,6 +114,11 @@ type EncodeContext struct {
 type DecodeContext struct {
 	*Registry
 	Truncate bool
+	// Ancestor is the type of a containing document. This is mainly used to determine what type
+	// should be used when decoding an embedded document into an empty interface. For example, if
+	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
+	// will be decoded into a bson.M.
+	Ancestor reflect.Type
 }
 
 // ValueCodec is the interface that groups the methods to encode and decode
