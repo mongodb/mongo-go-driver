@@ -20,6 +20,14 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
+func noerr(t *testing.T, err error) {
+	if err != nil {
+		t.Helper()
+		t.Errorf("Unexpected error: (%T)%v", err, err)
+		t.FailNow()
+	}
+}
+
 func TestTransformDocument(t *testing.T) {
 	testCases := []struct {
 		name     string
