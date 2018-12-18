@@ -12,7 +12,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 var primitiveCodecs PrimitiveCodecs
@@ -33,8 +32,6 @@ func (pc PrimitiveCodecs) RegisterPrimitiveCodecs(rb *bsoncodec.RegistryBuilder)
 		RegisterEncoder(tRaw, bsoncodec.ValueEncoderFunc(pc.RawEncodeValue)).
 		RegisterDecoder(tRawValue, bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue)).
 		RegisterDecoder(tRaw, bsoncodec.ValueDecoderFunc(pc.RawDecodeValue))
-
-	bsonx.PrimitiveCodecs{}.RegisterPrimitiveCodecs(rb)
 }
 
 // RawValueEncodeValue is the ValueEncoderFunc for RawValue.

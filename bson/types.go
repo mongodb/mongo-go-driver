@@ -12,7 +12,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // These constants uniquely refer to each BSON type.
@@ -45,16 +44,11 @@ var tBool = reflect.TypeOf(false)
 var tCodeWithScope = reflect.TypeOf(primitive.CodeWithScope{})
 var tDBPointer = reflect.TypeOf(primitive.DBPointer{})
 var tDecimal = reflect.TypeOf(primitive.Decimal128{})
-var tDocument = reflect.TypeOf((bsonx.Doc)(nil))
-var tMDoc = reflect.TypeOf((bsonx.MDoc)(nil))
 var tD = reflect.TypeOf(D{})
 var tA = reflect.TypeOf(A{})
-var tElementSlice = reflect.TypeOf(([]bsonx.Elem)(nil))
 var tDateTime = reflect.TypeOf(primitive.DateTime(0))
 var tUndefined = reflect.TypeOf(primitive.Undefined{})
 var tNull = reflect.TypeOf(primitive.Null{})
-var tArray = reflect.TypeOf((bsonx.Arr)(nil))
-var tValue = reflect.TypeOf(bsonx.Val{})
 var tRawValue = reflect.TypeOf(RawValue{})
 var tFloat32 = reflect.TypeOf(float32(0))
 var tFloat64 = reflect.TypeOf(float64(0))

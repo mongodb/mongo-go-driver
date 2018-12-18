@@ -10,7 +10,6 @@ import (
 	"reflect"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 type unmarshalingTestCase struct {
@@ -31,7 +30,7 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 		&struct {
 			Foo bool
 		}{Foo: true},
-		docToBytes(bsonx.Doc{{"foo", bsonx.Boolean(true)}}),
+		docToBytes(D{{"foo", true}}),
 	},
 	{
 		"nested document",
@@ -50,7 +49,7 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 				Bar bool
 			}{Bar: true},
 		},
-		docToBytes(bsonx.Doc{{"foo", bsonx.Document(bsonx.Doc{{"bar", bsonx.Boolean(true)}})}}),
+		docToBytes(D{{"foo", D{{"bar", true}}}}),
 	},
 	{
 		"simple array",
@@ -63,6 +62,6 @@ var unmarshalingTestCases = []unmarshalingTestCase{
 		}{
 			Foo: []bool{true},
 		},
-		docToBytes(bsonx.Doc{{"foo", bsonx.Array(bsonx.Arr{bsonx.Boolean(true)})}}),
+		docToBytes(D{{"foo", A{true}}}),
 	},
 }
