@@ -18,6 +18,9 @@ import (
 // ErrInconsistent indicates that an inconsistent write concern was specified.
 var ErrInconsistent = errors.New("a write concern cannot have both w=0 and j=true")
 
+// ErrEmptyWriteConcern indicates that a write concern has no fields set.
+var ErrEmptyWriteConcern = errors.New("a write concern must have at least one field set")
+
 // ErrNegativeW indicates that a negative integer `w` field was specified.
 var ErrNegativeW = errors.New("write concern `w` field cannot be a negative number")
 
@@ -118,6 +121,9 @@ func (wc *WriteConcern) MarshalBSONElement() (bsonx.Elem, error) {
 		elems = append(elems, bsonx.Elem{"wtimeout", bsonx.Int64(int64(wc.wTimeout / time.Millisecond))})
 	}
 
+	if len(elems) == 0 {
+		return bsonx.Elem{}, ErrEmptyWriteConcern
+	}
 	return bsonx.Elem{"writeConcern", bsonx.Document(elems)}, nil
 }
 
