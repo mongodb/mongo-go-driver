@@ -2769,6 +2769,18 @@ func TestDefaultValueDecoders(t *testing.T) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
 		})
+		t.Run("top level document", func(t *testing.T) {
+			data := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
+			vr := bsonrw.NewBSONDocumentReader(data)
+			want := primitive.D{{"pi", 3.14159}}
+			var got interface{}
+			val := reflect.ValueOf(&got).Elem()
+			err := dvd.EmptyInterfaceDecodeValue(DecodeContext{Registry: buildDefaultRegistry()}, vr, val)
+			noerr(t, err)
+			if !cmp.Equal(got, want) {
+				t.Errorf("Did not get correct result. got %v; want %v", got, want)
+			}
+		})
 	})
 }
 
