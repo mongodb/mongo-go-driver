@@ -33,6 +33,9 @@ type SingleResult struct {
 // will be returned. If there were no returned documents, ErrNoDocuments is
 // returned.
 func (sr *SingleResult) Decode(v interface{}) error {
+	if sr.reg == nil {
+		return bson.ErrNilRegistry
+	}
 	switch {
 	case sr.err != nil:
 		return sr.err
