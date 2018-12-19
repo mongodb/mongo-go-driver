@@ -7,11 +7,12 @@
 package session
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -32,21 +33,18 @@ func compareOperationTimes(t *testing.T, expected *primitive.Timestamp, actual *
 }
 
 func TestClientSession(t *testing.T) {
-	var clusterTime1 = bsonx.Doc{{"$clusterTime",
-		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(10, 5)}})}}
-	var clusterTime2 = bsonx.Doc{{"$clusterTime",
-		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(5, 5)}})}}
-	var clusterTime3 = bsonx.Doc{{"$clusterTime",
-		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(5, 0)}})}}
+	var clusterTime1 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 10, 5))))
+	var clusterTime2 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 5, 5))))
+	var clusterTime3 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 5, 0))))
 
 	t.Run("TestMaxClusterTime", func(t *testing.T) {
 		maxTime := MaxClusterTime(clusterTime1, clusterTime2)
-		if !maxTime.Equal(clusterTime1) {
+		if !bytes.Equal(maxTime, clusterTime1) {
 			t.Errorf("Wrong max time")
 		}
 
 		maxTime = MaxClusterTime(clusterTime3, clusterTime2)
-		if !maxTime.Equal(clusterTime2) {
+		if !bytes.Equal(maxTime, clusterTime2) {
 			t.Errorf("Wrong max time")
 		}
 	})
@@ -57,17 +55,17 @@ func TestClientSession(t *testing.T) {
 		require.Nil(t, err, "Unexpected error")
 		err = sess.AdvanceClusterTime(clusterTime2)
 		require.Nil(t, err, "Unexpected error")
-		if !sess.ClusterTime.Equal(clusterTime2) {
+		if !bytes.Equal(sess.ClusterTime, clusterTime2) {
 			t.Errorf("Session cluster time incorrect, expected %v, received %v", clusterTime2, sess.ClusterTime)
 		}
 		err = sess.AdvanceClusterTime(clusterTime3)
 		require.Nil(t, err, "Unexpected error")
-		if !sess.ClusterTime.Equal(clusterTime2) {
+		if !bytes.Equal(sess.ClusterTime, clusterTime2) {
 			t.Errorf("Session cluster time incorrect, expected %v, received %v", clusterTime2, sess.ClusterTime)
 		}
 		err = sess.AdvanceClusterTime(clusterTime1)
 		require.Nil(t, err, "Unexpected error")
-		if !sess.ClusterTime.Equal(clusterTime1) {
+		if !bytes.Equal(sess.ClusterTime, clusterTime1) {
 			t.Errorf("Session cluster time incorrect, expected %v, received %v", clusterTime1, sess.ClusterTime)
 		}
 		sess.EndSession()

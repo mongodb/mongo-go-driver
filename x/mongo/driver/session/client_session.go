@@ -9,11 +9,11 @@ package session
 import (
 	"errors"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 )
 
@@ -63,7 +63,7 @@ const (
 type Client struct {
 	*Server
 	ClientID       uuid.UUID
-	ClusterTime    bsonx.Doc
+	ClusterTime    bson.Raw
 	Consistent     bool // causal consistency
 	OperationTime  *primitive.Timestamp
 	SessionType    Type
@@ -88,7 +88,7 @@ type Client struct {
 	state state
 }
 
-func getClusterTime(clusterTime bsonx.Doc) (uint32, uint32) {
+func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
 	if clusterTime == nil {
 		return 0, 0
 	}
@@ -98,7 +98,7 @@ func getClusterTime(clusterTime bsonx.Doc) (uint32, uint32) {
 		return 0, 0
 	}
 
-	timestampVal, err := clusterTimeVal.Document().LookupErr("clusterTime")
+	timestampVal, err := bson.Raw(clusterTimeVal.Value).LookupErr("clusterTime")
 	if err != nil {
 		return 0, 0
 	}
@@ -107,7 +107,7 @@ func getClusterTime(clusterTime bsonx.Doc) (uint32, uint32) {
 }
 
 // MaxClusterTime compares 2 clusterTime documents and returns the document representing the highest cluster time.
-func MaxClusterTime(ct1 bsonx.Doc, ct2 bsonx.Doc) bsonx.Doc {
+func MaxClusterTime(ct1, ct2 bson.Raw) bson.Raw {
 	epoch1, ord1 := getClusterTime(ct1)
 	epoch2, ord2 := getClusterTime(ct2)
 
@@ -158,7 +158,7 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, sessionType Type, opts ...
 }
 
 // AdvanceClusterTime updates the session's cluster time.
-func (c *Client) AdvanceClusterTime(clusterTime bsonx.Doc) error {
+func (c *Client) AdvanceClusterTime(clusterTime bson.Raw) error {
 	if c.Terminated {
 		return ErrSessionEnded
 	}

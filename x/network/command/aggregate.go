@@ -75,12 +75,16 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 
 	// add write concern because it won't be added by the Read command's Encode()
 	if desc.WireVersion.Max >= 5 && hasOutStage && a.WriteConcern != nil {
-		element, err := a.WriteConcern.MarshalBSONElement()
+		t, data, err := a.WriteConcern.MarshalBSONValue()
 		if err != nil {
 			return nil, err
 		}
-
-		command = append(command, element)
+		var xval bsonx.Val
+		err = xval.UnmarshalBSONValue(t, data)
+		if err != nil {
+			return nil, err
+		}
+		command = append(command, bsonx.Elem{Key: "writeConcern", Value: xval})
 	}
 
 	return &Read{

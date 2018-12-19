@@ -133,20 +133,17 @@ func extractError(rdr bson.Raw) error {
 	}
 }
 
-func responseClusterTime(response bson.Raw) bsonx.Doc {
+func responseClusterTime(response bson.Raw) bson.Raw {
 	clusterTime, err := response.LookupErr("$clusterTime")
 	if err != nil {
 		// $clusterTime not included by the server
 		return nil
 	}
-
-	val := bsonx.Val{}
-	err = val.UnmarshalBSONValue(clusterTime.Type, clusterTime.Value)
-	if err != nil {
-		return nil
-	}
-
-	return bsonx.Doc{{"$clusterTime", val}}
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendHeader(doc, clusterTime.Type, "$clusterTime")
+	doc = append(doc, clusterTime.Value...)
+	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
+	return doc
 }
 
 func updateClusterTimes(sess *session.Client, clock *session.ClusterClock, response bson.Raw) error {
@@ -236,7 +233,7 @@ func addClusterTime(cmd bsonx.Doc, desc description.SelectedServer, sess *sessio
 		return cmd
 	}
 
-	var clusterTime bsonx.Doc
+	var clusterTime bson.Raw
 	if clock != nil {
 		clusterTime = clock.GetClusterTime()
 	}
@@ -253,9 +250,14 @@ func addClusterTime(cmd bsonx.Doc, desc description.SelectedServer, sess *sessio
 		return cmd
 	}
 
+	d, err := bsonx.ReadDoc(clusterTime)
+	if err != nil {
+		return cmd // broken clusterTime
+	}
+
 	cmd = cmd.Delete("$clusterTime")
 
-	return append(cmd, clusterTime...)
+	return append(cmd, d...)
 }
 
 // add a read concern to a BSON doc representing a command
@@ -274,17 +276,21 @@ func addReadConcern(cmd bsonx.Doc, desc description.SelectedServer, rc *readconc
 		return cmd, nil
 	}
 
-	element, err := rc.MarshalBSONElement()
+	t, data, err := rc.MarshalBSONValue()
 	if err != nil {
 		return cmd, err
 	}
 
-	rcDoc := element.Value.Document()
+	var rcDoc bsonx.Doc
+	err = rcDoc.UnmarshalBSONValue(t, data)
+	if err != nil {
+		return cmd, err
+	}
 	if description.SessionsSupported(desc.WireVersion) && sess != nil && sess.Consistent && sess.OperationTime != nil {
 		rcDoc = append(rcDoc, bsonx.Elem{"afterClusterTime", bsonx.Timestamp(sess.OperationTime.T, sess.OperationTime.I)})
 	}
 
-	cmd = cmd.Delete(element.Key)
+	cmd = cmd.Delete("readConcern")
 
 	if len(rcDoc) != 0 {
 		cmd = append(cmd, bsonx.Elem{"readConcern", bsonx.Document(rcDoc)})
@@ -298,7 +304,7 @@ func addWriteConcern(cmd bsonx.Doc, wc *writeconcern.WriteConcern) (bsonx.Doc, e
 		return cmd, nil
 	}
 
-	element, err := wc.MarshalBSONElement()
+	t, data, err := wc.MarshalBSONValue()
 	if err != nil {
 		if err == writeconcern.ErrEmptyWriteConcern {
 			return cmd, nil
@@ -306,10 +312,16 @@ func addWriteConcern(cmd bsonx.Doc, wc *writeconcern.WriteConcern) (bsonx.Doc, e
 		return cmd, err
 	}
 
-	// delete if doc already has write concern
-	cmd = cmd.Delete(element.Key)
+	var xval bsonx.Val
+	err = xval.UnmarshalBSONValue(t, data)
+	if err != nil {
+		return cmd, err
+	}
 
-	return append(cmd, element), nil
+	// delete if doc already has write concern
+	cmd = cmd.Delete("writeConcern")
+
+	return append(cmd, bsonx.Elem{Key: "writeConcern", Value: xval}), nil
 }
 
 // Get the error labels from a command response

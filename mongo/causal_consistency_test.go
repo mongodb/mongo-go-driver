@@ -11,6 +11,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
@@ -44,11 +45,11 @@ func compareOperationTimes(t *testing.T, expected *primitive.Timestamp, actual *
 	}
 }
 
-func checkOperationTime(t *testing.T, cmd bsonx.Doc, shouldInclude bool) {
+func checkOperationTime(t *testing.T, cmd bson.Raw, shouldInclude bool) {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key read concern not found")
 
-	_, err = rc.Document().LookupErr("afterClusterTime")
+	_, err = bson.Raw(rc.Value).LookupErr("afterClusterTime")
 	if shouldInclude {
 		testhelpers.RequireNil(t, err, "afterClusterTime not found")
 	} else {
@@ -56,11 +57,11 @@ func checkOperationTime(t *testing.T, cmd bsonx.Doc, shouldInclude bool) {
 	}
 }
 
-func getOperationTime(t *testing.T, cmd bsonx.Doc) *primitive.Timestamp {
+func getOperationTime(t *testing.T, cmd bson.Raw) *primitive.Timestamp {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key read concern not found")
 
-	ct, err := rc.Document().LookupErr("afterClusterTime")
+	ct, err := bson.Raw(rc.Value).LookupErr("afterClusterTime")
 	testhelpers.RequireNil(t, err, "key afterClusterTime not found")
 
 	timeT, timeI := ct.Timestamp()
@@ -93,11 +94,11 @@ func createReadFuncMap(t *testing.T, dbName string, collName string) (*Client, *
 	return client, db, coll, functions
 }
 
-func checkReadConcern(t *testing.T, cmd bsonx.Doc, levelIncluded bool, expectedLevel string, optimeIncluded bool, expectedTime *primitive.Timestamp) {
+func checkReadConcern(t *testing.T, cmd bson.Raw, levelIncluded bool, expectedLevel string, optimeIncluded bool, expectedTime *primitive.Timestamp) {
 	rc, err := cmd.LookupErr("readConcern")
 	testhelpers.RequireNil(t, err, "key readConcern not found")
 
-	rcDoc := rc.Document()
+	rcDoc := bson.Raw(rc.Value)
 	levelVal, err := rcDoc.LookupErr("level")
 	if levelIncluded {
 		testhelpers.RequireNil(t, err, "key level not found")
