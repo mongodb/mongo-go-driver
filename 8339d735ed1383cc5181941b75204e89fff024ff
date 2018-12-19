@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7ffb4218_352046ac",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-19T17:00:21Z",
+      "side": 1,
+      "message": "Might need to check instead for len(documents) \u003d\u003d 0. I believe that an empty list of documents to insert is probably the same deal.",
+      "revId": "8339d735ed1383cc5181941b75204e89fff024ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
