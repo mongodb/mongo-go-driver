@@ -10,9 +10,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
@@ -48,8 +48,8 @@ type Session interface {
 	StartTransaction(...*options.TransactionOptions) error
 	AbortTransaction(context.Context) error
 	CommitTransaction(context.Context) error
-	ClusterTime() bsonx.Doc
-	AdvanceClusterTime(bsonx.Doc) error
+	ClusterTime() bson.Raw
+	AdvanceClusterTime(bson.Raw) error
 	OperationTime() *primitive.Timestamp
 	AdvanceOperationTime(*primitive.Timestamp) error
 	session()
@@ -143,11 +143,11 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	return err
 }
 
-func (s *sessionImpl) ClusterTime() bsonx.Doc {
+func (s *sessionImpl) ClusterTime() bson.Raw {
 	return s.Client.ClusterTime
 }
 
-func (s *sessionImpl) AdvanceClusterTime(d bsonx.Doc) error {
+func (s *sessionImpl) AdvanceClusterTime(d bson.Raw) error {
 	return s.Client.AdvanceClusterTime(d)
 }
 

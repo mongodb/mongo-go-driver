@@ -7,18 +7,16 @@
 package session
 
 import (
+	"bytes"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func TestClusterClock(t *testing.T) {
-	var clusterTime1 = bsonx.Doc{{"$clusterTime",
-		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(10, 5)}})}}
-	var clusterTime2 = bsonx.Doc{{"$clusterTime",
-		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(5, 5)}})}}
-	var clusterTime3 = bsonx.Doc{{"$clusterTime",
-		bsonx.Document(bsonx.Doc{{"clusterTime", bsonx.Timestamp(5, 0)}})}}
+	var clusterTime1 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 10, 5))))
+	var clusterTime2 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 5, 5))))
+	var clusterTime3 = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", bsoncore.BuildDocument(nil, bsoncore.AppendTimestampElement(nil, "clusterTime", 5, 0))))
 
 	t.Run("ClusterTime", func(t *testing.T) {
 		clock := ClusterClock{}
@@ -31,7 +29,7 @@ func TestClusterClock(t *testing.T) {
 		clock.AdvanceClusterTime(clusterTime2)
 
 		<-done
-		if !clock.GetClusterTime().Equal(clusterTime1) {
+		if !bytes.Equal(clock.GetClusterTime(), clusterTime1) {
 			t.Errorf("Expected cluster time %v, received %v", clusterTime1, clock.GetClusterTime())
 		}
 	})
