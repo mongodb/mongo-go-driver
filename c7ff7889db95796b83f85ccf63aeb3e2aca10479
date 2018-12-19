@@ -34,6 +34,24 @@
       "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "caa9bdc7_2e1c1c52",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-19T17:55:06Z",
+      "side": 1,
+      "message": "arguably, the ticket is to fix the problem. We\u0027ve just covered over it. Is there a different ticket to fix the root cause?",
+      "parentUuid": "121f428d_2e7c3ca6",
+      "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
