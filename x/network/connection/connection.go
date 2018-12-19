@@ -24,9 +24,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/network/address"
 	"github.com/mongodb/mongo-go-driver/x/network/compressor"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
@@ -34,7 +36,7 @@ import (
 )
 
 var globalClientConnectionID uint64
-var emptyDoc = bsonx.Doc{}
+var emptyDoc bson.Raw
 
 func nextClientConnectionID() uint64 {
 	return atomic.AddUint64(&globalClientConnectionID, 1)
@@ -423,7 +425,8 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 		legacy = true
 	}
 
-	startedEvent.Command = cmd
+	rawcmd, _ := cmd.MarshalBSON()
+	startedEvent.Command = rawcmd
 	startedEvent.CommandName = cmd[0].Key
 	if !canMonitor(startedEvent.CommandName) {
 		startedEvent.Command = emptyDoc
@@ -446,7 +449,7 @@ func (c *connection) commandStartedEvent(ctx context.Context, wm wiremessage.Wir
 
 		c.cmdMonitor.Succeeded(ctx, &event.CommandSucceededEvent{
 			CommandFinishedEvent: finishedEvent,
-			Reply:                bsonx.Doc{{"ok", bsonx.Int32(1)}},
+			Reply:                bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)),
 		})
 
 		return nil
@@ -564,8 +567,9 @@ func (c *connection) commandFinishedEvent(ctx context.Context, wm wiremessage.Wi
 			}
 		}
 
+		replyraw, _ := reply.MarshalBSON()
 		successEvent := &event.CommandSucceededEvent{
-			Reply:                reply,
+			Reply:                replyraw,
 			CommandFinishedEvent: finishedEvent,
 		}
 
