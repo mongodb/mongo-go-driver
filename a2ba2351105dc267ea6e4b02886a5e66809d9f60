@@ -16,6 +16,24 @@
       "revId": "a2ba2351105dc267ea6e4b02886a5e66809d9f60",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1997534e_1a6fece5",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-19T17:16:51Z",
+      "side": 1,
+      "message": "There\u0027s already code scattered all over the expects bsontype.Type(0) to identify a top level document. I think there\u0027s an argument we can make for changing the behavior, but I\u0027m still not convinced that there is no semantic difference between a top level document and an embedded document, but I\u0027m open to changing my mind.\n\nThis ticket doesn\u0027t seem like the place to pay down this tech debt either.",
+      "parentUuid": "ac48439f_7eae6961",
+      "revId": "a2ba2351105dc267ea6e4b02886a5e66809d9f60",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
