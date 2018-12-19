@@ -88,6 +88,24 @@
       "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c9765fc9_53ba3642",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-19T19:56:40Z",
+      "side": 1,
+      "message": "I think it should error or panic. Silently using the default registry might cover up bugs if someone writes a new function that returns SingleResult and doesn\u0027t set the registry.",
+      "parentUuid": "04c9c06b_0b479dd3",
+      "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
