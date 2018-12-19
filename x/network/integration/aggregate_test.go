@@ -246,7 +246,7 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 		switch started.CommandName {
 		case "aggregate":
 			assert.Equal(t, 2, int(started.Command.Lookup("cursor", "batchSize").Int32()))
-			assert.Equal(t, started.Command.Lookup("maxAwaitTimeMS"), bsonx.Val{},
+			assert.Equal(t, started.Command.Lookup("maxAwaitTimeMS"), bson.RawValue{},
 				"Should not have sent maxAwaitTimeMS in find command")
 		case "getMore":
 			assert.Equal(t, 2, int(started.Command.Lookup("batchSize").Int32()))
@@ -266,7 +266,8 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 		case "aggregate":
 			assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
 
-			actual := succeeded.Reply.Lookup("cursor", "firstBatch").Array()
+			actual, err := succeeded.Reply.Lookup("cursor", "firstBatch").Array().Values()
+			assert.NoError(t, err)
 
 			for _, v := range actual {
 				assert.Equal(t, id, int(v.Document().Lookup("fullDocument", "_id").Int32()))
@@ -276,7 +277,8 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 			assert.Equal(t, "getMore", succeeded.CommandName)
 			assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
 
-			actual := succeeded.Reply.Lookup("cursor", "nextBatch").Array()
+			actual, err := succeeded.Reply.Lookup("cursor", "nextBatch").Array().Values()
+			assert.NoError(t, err)
 
 			for _, v := range actual {
 				assert.Equal(t, id, int(v.Document().Lookup("fullDocument", "_id").Int32()))

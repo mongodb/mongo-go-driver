@@ -278,7 +278,7 @@ func getReturnError(returnVals []reflect.Value) error {
 	}
 }
 
-func getSessionUUID(t *testing.T, cmd bsonx.Doc) []byte {
+func getSessionUUID(t *testing.T, cmd bson.Raw) []byte {
 	lsid, err := cmd.LookupErr("lsid")
 	testhelpers.RequireNil(t, err, "key lsid not found in command")
 	sessID, err := lsid.Document().LookupErr("id")
@@ -425,8 +425,16 @@ func TestSessions(t *testing.T) {
 				nextCtVal, err := sessionStarted.Command.LookupErr("$clusterTime")
 				testhelpers.RequireNil(t, err, "key $clusterTime not found in first command for %s", tc.name)
 
-				epoch1, ord1 := getClusterTime(bsonx.Doc{{"$clusterTime", bsonx.Document(replyCtVal.Document())}})
-				epoch2, ord2 := getClusterTime(bsonx.Doc{{"$clusterTime", bsonx.Document(nextCtVal.Document())}})
+				replyCt, err := bsonx.ReadDoc(replyCtVal.Document())
+				if err != nil {
+					t.Fatalf("could not read document: %v", err)
+				}
+				nextCt, err := bsonx.ReadDoc(nextCtVal.Document())
+				if err != nil {
+					t.Fatalf("could not read document: %v", err)
+				}
+				epoch1, ord1 := getClusterTime(bsonx.Doc{{"$clusterTime", bsonx.Document(replyCt)}})
+				epoch2, ord2 := getClusterTime(bsonx.Doc{{"$clusterTime", bsonx.Document(nextCt)}})
 
 				if epoch1 == 0 {
 					t.Fatal("epoch1 is 0")

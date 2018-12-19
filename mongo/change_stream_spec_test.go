@@ -95,7 +95,15 @@ func changeStreamCompareErrors(t *testing.T, expected map[string]interface{}, ac
 	}
 }
 
-func compareCommands(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
+func compareCommands(t *testing.T, expectedraw, actualraw bson.Raw) {
+	expected, err := bsonx.ReadDoc(expectedraw)
+	if err != nil {
+		t.Fatalf("could not parse document: %v", err)
+	}
+	actual, err := bsonx.ReadDoc(actualraw)
+	if err != nil {
+		t.Fatalf("could not parse document: %v", err)
+	}
 	for _, expectedElem := range expected {
 
 		aVal, err := actual.LookupErr(expectedElem.Key)
@@ -140,7 +148,7 @@ func compareCsStartedEvent(t *testing.T, expected json.RawMessage) {
 		t.Fatalf("db name mismatch. expected %s got %s", expectedDbName, actual.DatabaseName)
 	}
 
-	expectedCmd := expectedDoc.Lookup("command").Document()
+	expectedCmd, _ := expectedDoc.Lookup("command").Document().MarshalBSON()
 	compareCommands(t, expectedCmd, actual.Command)
 }
 
