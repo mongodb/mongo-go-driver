@@ -106,6 +106,24 @@
       "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "101712e5_29462160",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-19T20:26:38Z",
+      "side": 1,
+      "message": "That works for me. I\u0027ll update this patch.",
+      "parentUuid": "04c9c06b_0b479dd3",
+      "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
