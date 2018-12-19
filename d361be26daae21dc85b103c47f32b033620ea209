@@ -16,6 +16,24 @@
       "revId": "d361be26daae21dc85b103c47f32b033620ea209",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "97d4c960_9c026d00",
+        "filename": "mongo/writeconcern/writeconcern.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-19T17:22:54Z",
+      "side": 1,
+      "message": "This is as real as the other errors. The purpose of this ticket was that we shouldn\u0027t send an empty write concern, which means we likely don\u0027t want to serialize an empty write concern.",
+      "parentUuid": "312d8662_24f41729",
+      "revId": "d361be26daae21dc85b103c47f32b033620ea209",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
