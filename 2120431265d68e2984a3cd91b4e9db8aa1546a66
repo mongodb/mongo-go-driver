@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e9ac6906_cdb2d1d7",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-19T21:24:16Z",
+      "side": 1,
+      "message": "Not sure if this should be public if it\u0027s just added to make writing a test easier.  It\u0027ll show up in Godoc I imagine.  If it can be hidden that seems better.",
+      "range": {
+        "startLine": 62,
+        "startChar": 0,
+        "endLine": 62,
+        "endChar": 4
+      },
+      "revId": "2120431265d68e2984a3cd91b4e9db8aa1546a66",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
