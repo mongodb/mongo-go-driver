@@ -12,6 +12,8 @@ import (
 	"os"
 	"testing"
 
+	"time"
+
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
@@ -23,7 +25,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/stretchr/testify/assert"
-	"time"
 )
 
 func initMonitor() (chan *event.CommandStartedEvent, chan *event.CommandSucceededEvent, chan *event.CommandFailedEvent, *event.CommandMonitor) {
@@ -115,7 +116,7 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 			assert.Equal(t, 3, int(started.Command.Lookup("batchSize").Int32()))
 			assert.True(t, started.Command.Lookup("tailable").Boolean())
 			assert.True(t, started.Command.Lookup("awaitData").Boolean())
-			assert.Equal(t, started.Command.Lookup("maxAwaitTimeMS"), bsonx.Val{},
+			assert.Equal(t, started.Command.Lookup("maxAwaitTimeMS"), bson.RawValue{},
 				"Should not have sent maxAwaitTimeMS in find command")
 		case "getMore":
 			assert.Equal(t, 3, int(started.Command.Lookup("batchSize").Int32()))
@@ -135,7 +136,8 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 		case "find":
 			assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
 
-			actual := succeeded.Reply.Lookup("cursor", "firstBatch").Array()
+			actual, err := succeeded.Reply.Lookup("cursor", "firstBatch").Array().Values()
+			assert.NoError(t, err)
 
 			for _, v := range actual {
 				assert.Equal(t, id, int(v.Document().Lookup("_id").Int32()))
@@ -145,7 +147,8 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 			assert.Equal(t, "getMore", succeeded.CommandName)
 			assert.Equal(t, 1, int(succeeded.Reply.Lookup("ok").Double()))
 
-			actual := succeeded.Reply.Lookup("cursor", "nextBatch").Array()
+			actual, err := succeeded.Reply.Lookup("cursor", "nextBatch").Array().Values()
+			assert.NoError(t, err)
 
 			for _, v := range actual {
 				assert.Equal(t, id, int(v.Document().Lookup("_id").Int32()))

@@ -142,7 +142,7 @@ func TestTxnNumberIncluded(t *testing.T) {
 			if tc.includesTxn {
 				require.NotNil(t, evt.Command.Lookup("txnNumber"))
 			} else {
-				require.Equal(t, evt.Command.Lookup("txnNumber"), bsonx.Val{})
+				require.Equal(t, evt.Command.Lookup("txnNumber"), bson.RawValue{})
 			}
 		})
 	}

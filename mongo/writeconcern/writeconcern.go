@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
@@ -89,48 +88,48 @@ func WTimeout(d time.Duration) Option {
 }
 
 // MarshalBSONElement marshals the write concern into a *bsonx.Element.
-func (wc *WriteConcern) MarshalBSONElement() (bsonx.Elem, error) {
+func (wc *WriteConcern) MarshalBSONElement() (bsoncore.Element, error) {
 	if !wc.IsValid() {
-		return bsonx.Elem{}, ErrInconsistent
+		return nil, ErrInconsistent
 	}
 
-	elems := bsonx.Doc{}
+	var elems []byte
 
 	if wc.w != nil {
 		switch t := wc.w.(type) {
 		case int:
 			if t < 0 {
-				return bsonx.Elem{}, ErrNegativeW
+				return nil, ErrNegativeW
 			}
 
-			elems = append(elems, bsonx.Elem{"w", bsonx.Int32(int32(t))})
+			elems = bsoncore.AppendInt32Element(elems, "w", int32(t))
 		case string:
-			elems = append(elems, bsonx.Elem{"w", bsonx.String(t)})
+			elems = bsoncore.AppendStringElement(elems, "w", string(t))
 		}
 	}
 
 	if wc.j {
-		elems = append(elems, bsonx.Elem{"j", bsonx.Boolean(wc.j)})
+		elems = bsoncore.AppendBooleanElement(elems, "j", wc.j)
 	}
 
 	if wc.wTimeout < 0 {
-		return bsonx.Elem{}, ErrNegativeWTimeout
+		return nil, ErrNegativeWTimeout
 	}
 
 	if wc.wTimeout != 0 {
-		elems = append(elems, bsonx.Elem{"wtimeout", bsonx.Int64(int64(wc.wTimeout / time.Millisecond))})
+		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(wc.wTimeout/time.Millisecond))
 	}
 
 	if len(elems) == 0 {
-		return bsonx.Elem{}, ErrEmptyWriteConcern
+		return nil, ErrEmptyWriteConcern
 	}
-	return bsonx.Elem{"writeConcern", bsonx.Document(elems)}, nil
+	return bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocument(nil, elems)), nil
 }
 
 // AcknowledgedElement returns true if a BSON element for a write concern represents an acknowledged write concern.
 // The element's value must be a document representing a write concern.
-func AcknowledgedElement(elem bsonx.Elem) bool {
-	wcDoc := elem.Value.Document()
+func AcknowledgedElement(elem bsoncore.Element) bool {
+	wcDoc := elem.Value().Document()
 	wVal, err := wcDoc.LookupErr("w")
 	if err != nil {
 		// key w not found --> acknowledged

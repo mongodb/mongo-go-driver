@@ -588,7 +588,7 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bsonx
 
 			// Keys that may be nil
 			if val.Type() == bson.TypeNull {
-				require.Equal(t, actual.LookupElement(key), bsonx.Elem{}, "Expected %s to be nil", key)
+				require.Equal(t, actual.Lookup(key), bson.RawValue{}, "Expected %s to be nil", key)
 				continue
 			} else if key == "ordered" {
 				// TODO: some tests specify that "ordered" must be a key in the event but ordered isn't a valid option for some of these cases (e.g. insertOne)
@@ -596,13 +596,17 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bsonx
 			}
 
 			// Keys that should not be nil
-			require.NotEqual(t, actualVal.Type(), bsontype.Null, "Expected %v, got nil for key: %s", elem, key)
+			require.NotEqual(t, actualVal.Type, bsontype.Null, "Expected %v, got nil for key: %s", elem, key)
 			if key == "lsid" {
 				if val.StringValue() == "session0" {
-					require.True(t, id0.Equal(actualVal.Document()), "Session ID mismatch")
+					doc, err := bsonx.ReadDoc(actualVal.Document())
+					require.NoError(t, err)
+					require.True(t, id0.Equal(doc), "Session ID mismatch")
 				}
 				if val.StringValue() == "session1" {
-					require.True(t, id1.Equal(actualVal.Document()), "Session ID mismatch")
+					doc, err := bsonx.ReadDoc(actualVal.Document())
+					require.NoError(t, err)
+					require.True(t, id1.Equal(doc), "Session ID mismatch")
 				}
 			} else if key == "getMore" {
 				require.NotNil(t, actualVal, "Expected %v, got nil for key: %s", elem, key)
@@ -620,10 +624,14 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bsonx
 					require.NotNil(t, rcActualDoc.Lookup("afterClusterTime"))
 				}
 				if level.Type() != bsontype.Null {
-					compareElements(t, rcExpectDoc.LookupElement("level"), rcActualDoc.LookupElement("level"))
+					doc, err := bsonx.ReadDoc(rcActualDoc)
+					require.NoError(t, err)
+					compareElements(t, rcExpectDoc.LookupElement("level"), doc.LookupElement("level"))
 				}
 			} else {
-				compareElements(t, elem, actual.LookupElement(key))
+				doc, err := bsonx.ReadDoc(actual)
+				require.NoError(t, err)
+				compareElements(t, elem, doc.LookupElement(key))
 			}
 
 		}
