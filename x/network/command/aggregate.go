@@ -79,8 +79,13 @@ func (a *Aggregate) encode(desc description.SelectedServer) (*Read, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		command = append(command, element)
+		key, val := element.Key(), element.Value()
+		var xval bsonx.Val
+		err = xval.UnmarshalBSONValue(val.Type, val.Data)
+		if err != nil {
+			return nil, err
+		}
+		command = append(command, bsonx.Elem{Key: key, Value: xval})
 	}
 
 	return &Read{
