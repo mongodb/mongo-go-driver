@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ed7c5d7a_af094e7e",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 678,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-19T17:18:09Z",
+      "side": 1,
+      "message": "Yes.",
+      "parentUuid": "5a10dfba_88cff6ea",
+      "revId": "c853d193313ed2072d8386f39e3be402b9e758ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "cac2ef81_a7a627e2",
         "filename": "bson/bsoncodec/default_value_decoders.go",
         "patchSetId": 1
@@ -30,6 +48,24 @@
       "writtenOn": "2018-12-19T16:51:48Z",
       "side": 1,
       "message": "because bson.D goes through here?",
+      "revId": "c853d193313ed2072d8386f39e3be402b9e758ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7008c292_546bde26",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 764,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-19T17:18:09Z",
+      "side": 1,
+      "message": "Yes.",
+      "parentUuid": "cac2ef81_a7a627e2",
       "revId": "c853d193313ed2072d8386f39e3be402b9e758ae",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
