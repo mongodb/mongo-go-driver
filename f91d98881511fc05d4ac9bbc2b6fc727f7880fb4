@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d4b235de_b454b8be",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-19T16:41:56Z",
+      "side": 1,
+      "message": "It feels like there should be a better way to do this... For instance, create an Encoder and have it encode whatever the user gave us. If we got an array, great...\n\nCoding for each of these things manually seems error prone and indefinitely long.",
+      "revId": "f91d98881511fc05d4ac9bbc2b6fc727f7880fb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
