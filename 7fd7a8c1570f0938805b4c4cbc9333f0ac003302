@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "0d06a90d_2fed141e",
+        "filename": "mongo/client.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-19T20:03:34Z",
+      "side": 1,
+      "message": "Ack - thanks for filing those!",
+      "parentUuid": "f4bbdc5c_4d42a638",
+      "revId": "7fd7a8c1570f0938805b4c4cbc9333f0ac003302",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "21801e26_a5022539",
         "filename": "mongo/client_test.go",
         "patchSetId": 2
@@ -69,6 +87,24 @@
       "revId": "7fd7a8c1570f0938805b4c4cbc9333f0ac003302",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "989d4df8_50b5a843",
+        "filename": "mongo/client_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-19T20:03:34Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "cfa6a0bc_a0feadbc",
+      "revId": "7fd7a8c1570f0938805b4c4cbc9333f0ac003302",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
