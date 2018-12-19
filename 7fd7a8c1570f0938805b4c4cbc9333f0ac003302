@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "59c02767_e3514326",
+        "filename": "mongo/client.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-19T19:03:00Z",
+      "side": 1,
+      "message": "Maybe we can rename MergeClientOptions or refactor to have some of this logic elsewhere? I only say this because the comment above the MergeClientOptions function claims that \"MergeClientOptions combines the given connstring and *ClientOptions into a single *ClientOptions in a last one wins fashion. The given connstring will be used for the default options, which can be overwritten using the given *ClientOptions.\" But it seems this logic is actually happening here in this function.",
+      "revId": "7fd7a8c1570f0938805b4c4cbc9333f0ac003302",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "21801e26_a5022539",
+        "filename": "mongo/client_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-19T19:03:00Z",
+      "side": 1,
+      "message": "What\u0027s the function of this file vs. client_internal_test? There are a few readPreference tests there as well - does it make sense to have both? I\u0027m not familiar with how we organize our tests so this is likely a misunderstanding on my part. :)",
+      "revId": "7fd7a8c1570f0938805b4c4cbc9333f0ac003302",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
