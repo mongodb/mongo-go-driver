@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
@@ -131,7 +132,17 @@ func compareOptions(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
 	}
 }
 
-func comparePipelines(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
+func comparePipelines(t *testing.T, expectedraw, actualraw bson.Raw) {
+	var expected bsonx.Arr
+	var actual bsonx.Arr
+	err := expected.UnmarshalBSONValue(bsontype.Array, expectedraw)
+	if err != nil {
+		t.Fatalf("could not unmarshal expected: %v", err)
+	}
+	err = actual.UnmarshalBSONValue(bsontype.Array, actualraw)
+	if err != nil {
+		t.Fatalf("could not unmarshal actual: %v", err)
+	}
 	if len(expected) != len(actual) {
 		t.Fatalf("pipeline length mismatch. expected %d got %d", len(expected), len(actual))
 	}
@@ -374,10 +385,6 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		pipeline := started.Command.Lookup("pipeline").Array()
 
-		if len(startPipeline) != len(pipeline) {
-			t.Fatalf("pipeline len mismatch")
-		}
-
 		comparePipelines(t, startPipeline, pipeline)
 	})
 
@@ -546,10 +553,10 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		if len(pipeline) == 0 {
 			t.Fatalf("empty pipeline")
 		}
-		csVal := pipeline[0] // doc with nested options document (key $changeStream)
+		csVal := pipeline.Index(0) // doc with nested options document (key $changeStream)
 		testhelpers.RequireNil(t, err, "pipeline is empty")
 
-		optsVal, err := csVal.Document().LookupErr("$changeStream")
+		optsVal, err := csVal.Value().Document().LookupErr("$changeStream")
 		testhelpers.RequireNil(t, err, "key $changeStream not found")
 
 		if _, err := optsVal.Document().LookupErr("startAtOperationTime"); err != nil {

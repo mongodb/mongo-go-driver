@@ -95,7 +95,7 @@ type ListDatabases struct {
 type IsMaster struct {
 	Arbiters                     []string           `bson:"arbiters,omitempty"`
 	ArbiterOnly                  bool               `bson:"arbiterOnly,omitempty"`
-	ClusterTime                  bsonx.Doc          `bson:"$clusterTime,omitempty"`
+	ClusterTime                  bson.Raw           `bson:"$clusterTime,omitempty"`
 	Compression                  []string           `bson:"compression,omitempty"`
 	ElectionID                   primitive.ObjectID `bson:"electionId,omitempty"`
 	Hidden                       bool               `bson:"hidden,omitempty"`
