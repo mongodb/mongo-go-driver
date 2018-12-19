@@ -22,6 +22,30 @@
       "revId": "2120431265d68e2984a3cd91b4e9db8aa1546a66",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1270453c_6b8d44b5",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-19T22:37:55Z",
+      "side": 1,
+      "message": "So I deleted this and ran a test and had no errors, so I guess we don\u0027t need this, because all of the tests are passing. Pushing a new patch with this removed.",
+      "parentUuid": "e9ac6906_cdb2d1d7",
+      "range": {
+        "startLine": 62,
+        "startChar": 0,
+        "endLine": 62,
+        "endChar": 4
+      },
+      "revId": "2120431265d68e2984a3cd91b4e9db8aa1546a66",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
