@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "2c65ca0e_c44b0032",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-19T21:01:36Z",
+      "side": 1,
+      "message": "Nit - is this check necessary? I see below you changed one of the nils in a call to createCollectionStream to an empty Pipeline{}. I know there are a couple other instances of createCollectionStream and createMonitoredStream in this file where pipeline is nil, and I think we should make our tests more consistent - either have nils for all of them and keep this check or empty Pipeline{}\u0027s for all of them and discard it.",
+      "revId": "f91d98881511fc05d4ac9bbc2b6fc727f7880fb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d4b235de_b454b8be",
         "filename": "mongo/mongo.go",
         "patchSetId": 5
