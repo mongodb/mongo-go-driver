@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ac48439f_7eae6961",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-19T16:45:21Z",
+      "side": 1,
+      "message": "I really feel like there is a better way to handle this. If instead of treating the top-level differently than an embedded document, this would naturally just run through the empty-interface codec.",
+      "revId": "a2ba2351105dc267ea6e4b02886a5e66809d9f60",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
