@@ -13,6 +13,7 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
@@ -36,8 +37,8 @@ type IndexView struct {
 
 // IndexModel contains information about an index.
 type IndexModel struct {
-	Keys    bsonx.Doc
-	Options bsonx.Doc
+	Keys    interface{}
+	Options interface{}
 }
 
 // List returns a cursor iterating over all the indexes in the collection.
@@ -86,16 +87,24 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 			return nil, fmt.Errorf("index model keys cannot be nil")
 		}
 
-		name, err := getOrGenerateIndexName(model)
+		name, err := getOrGenerateIndexName(iv.coll.registry, model)
 		if err != nil {
 			return nil, err
 		}
 
 		names = append(names, name)
 
-		index := bsonx.Doc{{"key", bsonx.Document(model.Keys)}}
+		keys, err := transformDocument(iv.coll.registry, model.Keys)
+		if err != nil {
+			return nil, err
+		}
+		index := bsonx.Doc{{"key", bsonx.Document(keys)}}
 		if model.Options != nil {
-			index = append(index, model.Options...)
+			options, err := transformDocument(iv.coll.registry, model.Options)
+			if err != nil {
+				return nil, err
+			}
+			index = append(index, options...)
 		}
 		index = index.Set("name", bsonx.String(name))
 
@@ -187,9 +196,13 @@ func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOpt
 	)
 }
 
-func getOrGenerateIndexName(model IndexModel) (string, error) {
+func getOrGenerateIndexName(registry *bsoncodec.Registry, model IndexModel) (string, error) {
 	if model.Options != nil {
-		nameVal, err := model.Options.LookupErr("name")
+		options, err := transformDocument(registry, model.Options)
+		if err != nil {
+			return "", err
+		}
+		nameVal, err := options.LookupErr("name")
 
 		switch err.(type) {
 		case bsonx.KeyNotFound:
@@ -208,7 +221,11 @@ func getOrGenerateIndexName(model IndexModel) (string, error) {
 	name := bytes.NewBufferString("")
 	first := true
 
-	for _, elem := range model.Keys {
+	keys, err := transformDocument(registry, model.Keys)
+	if err != nil {
+		return "", err
+	}
+	for _, elem := range keys {
 		if !first {
 			_, err := name.WriteRune('_')
 			if err != nil {

@@ -7,130 +7,128 @@
 package mongo
 
 import (
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // IndexOptionsBuilder constructs a BSON document for index options
 type IndexOptionsBuilder struct {
-	document bsonx.Doc
+	document bson.D
 }
 
 // NewIndexOptionsBuilder creates a new instance of IndexOptionsBuilder
 func NewIndexOptionsBuilder() *IndexOptionsBuilder {
-	var b IndexOptionsBuilder
-	b.document = bsonx.Doc{}
-	return &b
+	return &IndexOptionsBuilder{}
 }
 
 // Background sets the background option
 func (iob *IndexOptionsBuilder) Background(background bool) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"background", bsonx.Boolean(background)})
+	iob.document = append(iob.document, bson.E{"background", background})
 	return iob
 }
 
 // ExpireAfterSeconds sets the expireAfterSeconds option
 func (iob *IndexOptionsBuilder) ExpireAfterSeconds(expireAfterSeconds int32) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"expireAfterSeconds", bsonx.Int32(expireAfterSeconds)})
+	iob.document = append(iob.document, bson.E{"expireAfterSeconds", expireAfterSeconds})
 	return iob
 }
 
 // Name sets the name option
 func (iob *IndexOptionsBuilder) Name(name string) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"name", bsonx.String(name)})
+	iob.document = append(iob.document, bson.E{"name", name})
 	return iob
 }
 
 // Sparse sets the sparse option
 func (iob *IndexOptionsBuilder) Sparse(sparse bool) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"sparse", bsonx.Boolean(sparse)})
+	iob.document = append(iob.document, bson.E{"sparse", sparse})
 	return iob
 }
 
 // StorageEngine sets the storageEngine option
-func (iob *IndexOptionsBuilder) StorageEngine(storageEngine bsonx.Doc) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"storageEngine", bsonx.Document(storageEngine)})
+func (iob *IndexOptionsBuilder) StorageEngine(storageEngine interface{}) *IndexOptionsBuilder {
+	iob.document = append(iob.document, bson.E{"storageEngine", storageEngine})
 	return iob
 }
 
 // Unique sets the unique option
 func (iob *IndexOptionsBuilder) Unique(unique bool) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"unique", bsonx.Boolean(unique)})
+	iob.document = append(iob.document, bson.E{"unique", unique})
 	return iob
 }
 
 // Version sets the version option
 func (iob *IndexOptionsBuilder) Version(version int32) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"v", bsonx.Int32(version)})
+	iob.document = append(iob.document, bson.E{"v", version})
 	return iob
 }
 
 // DefaultLanguage sets the defaultLanguage option
 func (iob *IndexOptionsBuilder) DefaultLanguage(defaultLanguage string) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"default_language", bsonx.String(defaultLanguage)})
+	iob.document = append(iob.document, bson.E{"default_language", defaultLanguage})
 	return iob
 }
 
 // LanguageOverride sets the languageOverride option
 func (iob *IndexOptionsBuilder) LanguageOverride(languageOverride string) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"language_override", bsonx.String(languageOverride)})
+	iob.document = append(iob.document, bson.E{"language_override", languageOverride})
 	return iob
 }
 
 // TextVersion sets the textVersion option
 func (iob *IndexOptionsBuilder) TextVersion(textVersion int32) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"textIndexVersion", bsonx.Int32(textVersion)})
+	iob.document = append(iob.document, bson.E{"textIndexVersion", textVersion})
 	return iob
 }
 
 // Weights sets the weights option
-func (iob *IndexOptionsBuilder) Weights(weights bsonx.Doc) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"weights", bsonx.Document(weights)})
+func (iob *IndexOptionsBuilder) Weights(weights interface{}) *IndexOptionsBuilder {
+	iob.document = append(iob.document, bson.E{"weights", weights})
 	return iob
 }
 
 // SphereVersion sets the sphereVersion option
 func (iob *IndexOptionsBuilder) SphereVersion(sphereVersion int32) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"2dsphereIndexVersion", bsonx.Int32(sphereVersion)})
+	iob.document = append(iob.document, bson.E{"2dsphereIndexVersion", sphereVersion})
 	return iob
 }
 
 // Bits sets the bits option
 func (iob *IndexOptionsBuilder) Bits(bits int32) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"bits", bsonx.Int32(bits)})
+	iob.document = append(iob.document, bson.E{"bits", bits})
 	return iob
 }
 
 // Max sets the max option
 func (iob *IndexOptionsBuilder) Max(max float64) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"max", bsonx.Double(max)})
+	iob.document = append(iob.document, bson.E{"max", max})
 	return iob
 }
 
 // Min sets the min option
 func (iob *IndexOptionsBuilder) Min(min float64) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"min", bsonx.Double(min)})
+	iob.document = append(iob.document, bson.E{"min", min})
 	return iob
 }
 
 // BucketSize sets the bucketSize option
 func (iob *IndexOptionsBuilder) BucketSize(bucketSize int32) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"bucketSize", bsonx.Int32(bucketSize)})
+	iob.document = append(iob.document, bson.E{"bucketSize", bucketSize})
 	return iob
 }
 
 // PartialFilterExpression sets the partialFilterExpression option
-func (iob *IndexOptionsBuilder) PartialFilterExpression(partialFilterExpression bsonx.Doc) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"partialFilterExpression", bsonx.Document(partialFilterExpression)})
+func (iob *IndexOptionsBuilder) PartialFilterExpression(partialFilterExpression interface{}) *IndexOptionsBuilder {
+	iob.document = append(iob.document, bson.E{"partialFilterExpression", partialFilterExpression})
 	return iob
 }
 
 // Collation sets the collation option
-func (iob *IndexOptionsBuilder) Collation(collation bsonx.Doc) *IndexOptionsBuilder {
-	iob.document = append(iob.document, bsonx.Elem{"collation", bsonx.Document(collation)})
+func (iob *IndexOptionsBuilder) Collation(collation interface{}) *IndexOptionsBuilder {
+	iob.document = append(iob.document, bson.E{"collation", collation})
 	return iob
 }
 
 // Build returns the BSON document from the builder
-func (iob *IndexOptionsBuilder) Build() bsonx.Doc {
+func (iob *IndexOptionsBuilder) Build() bson.D {
 	return iob.document
 }
