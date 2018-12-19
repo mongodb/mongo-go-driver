@@ -16,6 +16,24 @@
       "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "121f428d_2e7c3ca6",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-19T17:19:35Z",
+      "side": 1,
+      "message": "Yes, but this ticket was to fix the issue where we panic if this happens to be nil, which we want to avoid. It\u0027s a safety net.",
+      "parentUuid": "dbfb24d2_31fbba29",
+      "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
