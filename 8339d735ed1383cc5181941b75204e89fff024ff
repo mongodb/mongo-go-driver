@@ -16,6 +16,24 @@
       "revId": "8339d735ed1383cc5181941b75204e89fff024ff",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2ec5311a_e3874f10",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-19T20:29:24Z",
+      "side": 1,
+      "message": "Makes sense - bulkWrite has a check like this as well so I changed InsertMany to function in a similar way. Also added some tests to demonstrate the behavior.",
+      "parentUuid": "7ffb4218_352046ac",
+      "revId": "8339d735ed1383cc5181941b75204e89fff024ff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
