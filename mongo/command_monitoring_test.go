@@ -330,6 +330,10 @@ func compareUpserted(t *testing.T, expected bsonx.Arr, actual bsonx.Arr) {
 }
 
 func compareReply(t *testing.T, succeeded *event.CommandSucceededEvent, reply bsonx.Doc) {
+	eventReply, err := bsonx.ReadDoc(succeeded.Reply)
+	if err != nil {
+		t.Fatalf("could not read reply doc: %v", err)
+	}
 	for _, elem := range reply {
 		switch elem.Key {
 		case "ok":
@@ -338,7 +342,7 @@ func compareReply(t *testing.T, succeeded *event.CommandSucceededEvent, reply bs
 			actualOkVal, err := succeeded.Reply.LookupErr("ok")
 			testhelpers.RequireNil(t, err, "could not find key ok in reply")
 
-			switch actualOkVal.Type() {
+			switch actualOkVal.Type {
 			case bson.TypeInt32:
 				actualOk = actualOkVal.Int32()
 			case bson.TypeInt64:
@@ -352,24 +356,24 @@ func compareReply(t *testing.T, succeeded *event.CommandSucceededEvent, reply bs
 				t.FailNow()
 			}
 		case "n":
-			actualNVal, err := succeeded.Reply.LookupErr("n")
+			actualNVal, err := eventReply.LookupErr("n")
 			testhelpers.RequireNil(t, err, "could not find key n in reply")
 
 			if !compareValues(elem.Value, actualNVal) {
 				t.Errorf("n values do not match")
 			}
 		case "writeErrors":
-			actualArr, err := succeeded.Reply.LookupErr("writeErrors")
+			actualArr, err := eventReply.LookupErr("writeErrors")
 			testhelpers.RequireNil(t, err, "could not find key writeErrors in reply")
 
 			compareWriteErrors(t, elem.Value.Array(), actualArr.Array())
 		case "cursor":
-			actualDoc, err := succeeded.Reply.LookupErr("cursor")
+			actualDoc, err := eventReply.LookupErr("cursor")
 			testhelpers.RequireNil(t, err, "could not find key cursor in reply")
 
 			compareCursors(t, elem.Value.Document(), actualDoc.Document())
 		case "upserted":
-			actualDoc, err := succeeded.Reply.LookupErr("upserted")
+			actualDoc, err := eventReply.LookupErr("upserted")
 			testhelpers.RequireNil(t, err, "could not find key upserted in reply")
 
 			compareUpserted(t, elem.Value.Array(), actualDoc.Array())
@@ -390,6 +394,18 @@ func getInt64(val bsonx.Val) int64 {
 	}
 
 	return 0
+}
+
+func compareRawValues(expected, actual bson.RawValue) bool {
+	var e bsonx.Val
+	var a bsonx.Val
+	if err := e.UnmarshalBSONValue(expected.Type, expected.Value); err != nil {
+		return false
+	}
+	if err := a.UnmarshalBSONValue(actual.Type, actual.Value); err != nil {
+		return false
+	}
+	return compareValues(e, a)
 }
 
 func compareValues(expected bsonx.Val, actual bsonx.Val) bool {
@@ -514,7 +530,7 @@ func compareStartedEvent(t *testing.T, expected bsonx.Doc) {
 			continue
 		}
 
-		actualVal, err := started.Command.LookupErr(key)
+		actualRawVal, err := started.Command.LookupErr(key)
 		testhelpers.RequireNil(t, err, "key %s not found in started event %s", key, started.CommandName)
 
 		// TODO: tests in find.json expect different batch sizes for find/getMore commands based on an optional limit
@@ -524,6 +540,11 @@ func compareStartedEvent(t *testing.T, expected bsonx.Doc) {
 			continue
 		}
 
+		var actualVal bsonx.Val
+		err = actualVal.UnmarshalBSONValue(actualRawVal.Type, actualRawVal.Value)
+		if err != nil {
+			t.Errorf("could not unmarshal actual value: %v", err)
+		}
 		if !compareValues(val, actualVal) {
 			t.Errorf("values for key %s do not match. cmd: %s", key, started.CommandName)
 			t.FailNow()
@@ -537,7 +558,8 @@ func compareStartedEvent(t *testing.T, expected bsonx.Doc) {
 
 	actualArrayVal, err := started.Command.LookupErr(identifier)
 	testhelpers.RequireNil(t, err, "array with id %s not found in started command", identifier)
-	actualPayload := actualArrayVal.Array()
+	var actualPayload bsonx.Arr
+	err = actualPayload.UnmarshalBSONValue(actualArrayVal.Type, actualArrayVal.Value)
 
 	if len(expectedPayload) != len(actualPayload) {
 		t.Errorf("payload length mismatch. expected %d, got %d", len(expectedPayload), len(actualPayload))
@@ -551,7 +573,11 @@ func compareStartedEvent(t *testing.T, expected bsonx.Doc) {
 		compareDocs(t, expectedDoc, actualDoc)
 	}
 
-	checkActualFields(t, expectedCmd, started.Command)
+	startedCommand, err := bsonx.ReadDoc(started.Command)
+	if err != nil {
+		t.Fatalf("cannot read command: %v", err)
+	}
+	checkActualFields(t, expectedCmd, startedCommand)
 }
 
 func compareSuccessEvent(t *testing.T, expected bsonx.Doc) {
