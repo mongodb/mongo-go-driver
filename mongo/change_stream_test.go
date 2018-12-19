@@ -10,6 +10,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
@@ -288,7 +289,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 	t.Run("TestTrackResumeToken", func(t *testing.T) {
 		// Stream must continuously track last seen resumeToken
 
-		coll, stream := createCollectionStream(t, "TrackTokenDB", "TrackTokenColl", Pipeline{})
+		coll, stream := createCollectionStream(t, "TrackTokenDB", "TrackTokenColl", nil)
 		defer closeCursor(stream)
 
 		cs := stream.(*changeStream)
@@ -560,4 +561,110 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 	// There's another test: ChangeStream will resume after a killCursors command is issued for its child cursor.
 	// But, killCursors was already used to cause an error for the ResumeOnce test, so this does not need to be tested
 	// again.
+
+	t.Run("Decode Doesn't Panic", func(t *testing.T) {
+		skipIfBelow36(t)
+		if os.Getenv("TOPOLOGY") != "replica_set" {
+			t.Skip()
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		client := createTestClient(t)
+		client.writeConcern = wcMajority
+		db := client.Database("changestream-decode-doesnt-panic")
+		err := db.Drop(ctx)
+		testhelpers.RequireNil(t, err, "error dropping db: %s", err)
+
+		t.Run("collection", func(t *testing.T) {
+			coll := db.Collection("random-collection-one")
+			coll.writeConcern = wcMajority
+			_, err = coll.InsertOne(ctx, collectionStartingDoc) // create collection on server for 3.6
+
+			stream, err := coll.Watch(ctx, Pipeline{})
+			testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+			defer stream.Close(ctx)
+
+			_, err = coll.InsertOne(ctx, bson.D{{"pi", 3.14159}})
+			testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+
+			if stream.Next(ctx) {
+				var res bson.D
+				err := stream.Decode(&res)
+				testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+				if len(res) == 0 {
+					t.Errorf("result is empty, was expecting change document")
+				}
+			}
+			testhelpers.RequireNil(t, stream.Err(), "error while reading stream: %v", err)
+		})
+		t.Run("database", func(t *testing.T) {
+			version, err := getServerVersion(createTestDatabase(t, nil))
+			testhelpers.RequireNil(t, err, "error getting server version: %s", err)
+
+			if compareVersions(t, version, "4.0") < 0 {
+				t.Skip("skipping for version < 4.0")
+			}
+
+			coll := db.Collection("random-collection-one")
+			coll.writeConcern = wcMajority
+			_, err = coll.InsertOne(ctx, collectionStartingDoc) // create collection on server for 3.6
+
+			stream, err := db.Watch(ctx, Pipeline{})
+			testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+			defer stream.Close(ctx)
+
+			_, err = coll.InsertOne(ctx, bson.D{{"pi", 3.14159}})
+			testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+
+			defer func() {
+				if err := recover(); err != nil {
+					t.Errorf("panic while attempting to decode: %v", err)
+				}
+			}()
+			if stream.Next(ctx) {
+				var res bson.D
+				err := stream.Decode(&res)
+				testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+				if len(res) == 0 {
+					t.Errorf("result is empty, was expecting change document")
+				}
+			}
+			testhelpers.RequireNil(t, stream.Err(), "error while reading stream: %v", err)
+		})
+		t.Run("client", func(t *testing.T) {
+			version, err := getServerVersion(createTestDatabase(t, nil))
+			testhelpers.RequireNil(t, err, "error getting server version: %s", err)
+
+			if compareVersions(t, version, "4.0") < 0 {
+				t.Skip("skipping for version < 4.0")
+			}
+
+			coll := db.Collection("random-collection-one")
+			coll.writeConcern = wcMajority
+			_, err = coll.InsertOne(ctx, collectionStartingDoc) // create collection on server for 3.6
+
+			stream, err := client.Watch(ctx, Pipeline{})
+			testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+			defer stream.Close(ctx)
+
+			_, err = coll.InsertOne(ctx, bson.D{{"pi", 3.14159}})
+			testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+
+			defer func() {
+				if err := recover(); err != nil {
+					t.Errorf("panic while attempting to decode: %v", err)
+				}
+			}()
+			if stream.Next(ctx) {
+				var res bson.D
+				err := stream.Decode(&res)
+				testhelpers.RequireNil(t, err, "error creating stream: %s", err)
+				if len(res) == 0 {
+					t.Errorf("result is empty, was expecting change document")
+				}
+			}
+			testhelpers.RequireNil(t, stream.Err(), "error while reading stream: %v", err)
+		})
+	})
 }
