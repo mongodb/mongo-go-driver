@@ -52,6 +52,24 @@
       "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "52afc32e_9ecb01b3",
+        "filename": "mongo/single_result.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-19T19:28:59Z",
+      "side": 1,
+      "message": "Oh yes, we\u0027ve already fixed the root cause, this was a \"in case this happens again\" preventative measure.",
+      "parentUuid": "caa9bdc7_2e1c1c52",
+      "revId": "c7ff7889db95796b83f85ccf63aeb3e2aca10479",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
