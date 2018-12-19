@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "312d8662_24f41729",
+        "filename": "mongo/writeconcern/writeconcern.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-19T16:58:35Z",
+      "side": 1,
+      "message": "Is this a real error or a sentinel value? I see us using it internally as a sentinel value.\n\nIt\u0027s confusing because we are using the naming of ErrXXX to include both real errors and now this one, which doesn\u0027t seem to be a real error.",
+      "revId": "d361be26daae21dc85b103c47f32b033620ea209",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
