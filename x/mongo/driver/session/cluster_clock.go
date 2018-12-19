@@ -9,18 +9,18 @@ package session
 import (
 	"sync"
 
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // ClusterClock represents a logical clock for keeping track of cluster time.
 type ClusterClock struct {
-	clusterTime bsonx.Doc
+	clusterTime bson.Raw
 	lock        sync.Mutex
 }
 
 // GetClusterTime returns the cluster's current time.
-func (cc *ClusterClock) GetClusterTime() bsonx.Doc {
-	var ct bsonx.Doc
+func (cc *ClusterClock) GetClusterTime() bson.Raw {
+	var ct bson.Raw
 	cc.lock.Lock()
 	ct = cc.clusterTime
 	cc.lock.Unlock()
@@ -29,7 +29,7 @@ func (cc *ClusterClock) GetClusterTime() bsonx.Doc {
 }
 
 // AdvanceClusterTime updates the cluster's current time.
-func (cc *ClusterClock) AdvanceClusterTime(clusterTime bsonx.Doc) {
+func (cc *ClusterClock) AdvanceClusterTime(clusterTime bson.Raw) {
 	cc.lock.Lock()
 	cc.clusterTime = MaxClusterTime(cc.clusterTime, clusterTime)
 	cc.lock.Unlock()
