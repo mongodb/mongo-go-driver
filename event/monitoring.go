@@ -9,12 +9,12 @@ package event
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 // CommandStartedEvent represents an event generated when a command is sent to a server.
 type CommandStartedEvent struct {
-	Command      bsonx.Doc
+	Command      bson.Raw
 	DatabaseName string
 	CommandName  string
 	RequestID    int64
@@ -32,7 +32,7 @@ type CommandFinishedEvent struct {
 // CommandSucceededEvent represents an event generated when a command's execution succeeds.
 type CommandSucceededEvent struct {
 	CommandFinishedEvent
-	Reply bsonx.Doc
+	Reply bson.Raw
 }
 
 // CommandFailedEvent represents an event generated when a command's execution fails.

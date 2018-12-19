@@ -165,7 +165,7 @@ func (q *Query) AcknowledgedWrite() bool {
 		return true
 	}
 
-	return writeconcern.AcknowledgedElementRaw(wcElem)
+	return writeconcern.AcknowledgedValue(wcElem)
 }
 
 // Legacy returns true if the query represents a legacy find operation.

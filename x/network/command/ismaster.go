@@ -12,6 +12,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/network/result"
 	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 )
@@ -84,7 +85,7 @@ func (im *IsMaster) Decode(wm wiremessage.WireMessage) *IsMaster {
 
 	// Reconstructs the $clusterTime doc after decode
 	if im.res.ClusterTime != nil {
-		im.res.ClusterTime = bsonx.Doc{{"$clusterTime", bsonx.Document(im.res.ClusterTime)}}
+		im.res.ClusterTime = bsoncore.BuildDocument(nil, bsoncore.AppendDocumentElement(nil, "$clusterTime", im.res.ClusterTime))
 	}
 	return im
 }

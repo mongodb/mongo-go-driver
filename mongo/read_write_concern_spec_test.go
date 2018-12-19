@@ -124,10 +124,10 @@ func runConnectionStringTest(t *testing.T, testName string, testCase *connection
 				rc = readconcern.New()
 			}
 
-			rcBSON, err := rc.MarshalBSONElement()
+			typ, data, err := rc.MarshalBSONValue()
 			require.NoError(t, err)
 
-			rcDoc := rcBSON.Value.Document()
+			rcDoc := bson.RawValue{Type: typ, Value: data}.Document()
 			expectedLevel, expectedFound := testCase.ReadConcern["level"]
 			actualLevel, actualErr := rcDoc.LookupErr("level")
 			require.Equal(t, expectedFound, actualErr == nil)
@@ -143,7 +143,7 @@ func runConnectionStringTest(t *testing.T, testName string, testCase *connection
 				wc = writeconcern.New()
 			}
 
-			wcBSON, err := wc.MarshalBSONElement()
+			typ, data, err := wc.MarshalBSONValue()
 			if err == writeconcern.ErrEmptyWriteConcern {
 				if len(testCase.WriteConcern) == 0 {
 					return
@@ -154,7 +154,7 @@ func runConnectionStringTest(t *testing.T, testName string, testCase *connection
 			}
 			require.NoError(t, err)
 
-			wcDoc := wcBSON.Value.Document()
+			wcDoc := bson.RawValue{Type: typ, Value: data}.Document()
 
 			// Don't count journal=false since our write concern type doesn't encode it.
 			expectedLength := len(testCase.WriteConcern)
@@ -162,11 +162,14 @@ func runConnectionStringTest(t *testing.T, testName string, testCase *connection
 				expectedLength--
 			}
 
-			require.Equal(t, len(wcDoc), expectedLength)
+			elems, err := wcDoc.Elements()
+			require.NoError(t, err)
 
-			for _, e := range wcDoc {
+			require.Equal(t, len(elems), expectedLength)
 
-				switch e.Key {
+			for _, e := range elems {
+
+				switch e.Key() {
 				case "w":
 					v, found := testCase.WriteConcern["w"]
 					require.True(t, found)
@@ -174,24 +177,24 @@ func runConnectionStringTest(t *testing.T, testName string, testCase *connection
 					vInt := testhelpers.GetIntFromInterface(v)
 
 					if vInt == nil {
-						require.Equal(t, e.Value.Type(), bson.TypeString)
+						require.Equal(t, e.Value().Type, bson.TypeString)
 
 						vString, ok := v.(string)
 						require.True(t, ok)
-						require.Equal(t, vString, e.Value.StringValue())
+						require.Equal(t, vString, e.Value().StringValue())
 
 						break
 					}
 
-					require.Equal(t, e.Value.Type(), bson.TypeInt32)
-					require.Equal(t, *vInt, int64(e.Value.Int32()))
+					require.Equal(t, e.Value().Type, bson.TypeInt32)
+					require.Equal(t, *vInt, int64(e.Value().Int32()))
 				case "wtimeout":
 					v, found := testCase.WriteConcern["wtimeoutMS"]
 					require.True(t, found)
 
 					i := testhelpers.GetIntFromInterface(v)
 					require.NotNil(t, i)
-					require.Equal(t, *i, e.Value.Int64())
+					require.Equal(t, *i, e.Value().Int64())
 				case "j":
 					v, found := testCase.WriteConcern["journal"]
 					require.True(t, found)
@@ -199,7 +202,7 @@ func runConnectionStringTest(t *testing.T, testName string, testCase *connection
 					vBool, ok := v.(bool)
 					require.True(t, ok)
 
-					require.Equal(t, vBool, e.Value.Boolean())
+					require.Equal(t, vBool, e.Value().Boolean())
 				}
 			}
 		}
@@ -210,10 +213,10 @@ func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
 	t.Run(testName, func(t *testing.T) {
 		if testCase.ReadConcern != nil {
 			rc := readConcernFromStruct(*testCase.ReadConcern)
-			rcDoc, err := rc.MarshalBSONElement()
+			typ, data, err := rc.MarshalBSONValue()
 			require.NoError(t, err)
 
-			rcBytes, _ := rcDoc.Value.Document().MarshalBSON()
+			rcBytes := bson.RawValue{Type: typ, Value: data}.Document()
 
 			actual := make(map[string]interface{})
 			err = bson.Unmarshal(rcBytes, &actual)
@@ -229,7 +232,7 @@ func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
 				require.Equal(t, *testCase.IsAcknowledged, wc.Acknowledged())
 			}
 
-			wcDoc, err := wc.MarshalBSONElement()
+			typ, data, err := wc.MarshalBSONValue()
 			if !testCase.Valid {
 				require.Error(t, err)
 				return
@@ -245,7 +248,7 @@ func runDocumentTest(t *testing.T, testName string, testCase *documentTest) {
 			}
 			require.NoError(t, err)
 
-			wcBytes, _ := wcDoc.Value.Document().MarshalBSON()
+			wcBytes := bson.RawValue{Type: typ, Value: data}.Document()
 
 			actual := make(map[string]interface{})
 			err = bson.Unmarshal(wcBytes, &actual)

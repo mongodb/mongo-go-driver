@@ -240,6 +240,14 @@ func (d *Doc) UnmarshalBSON(b []byte) error {
 	return nil
 }
 
+// UnmarshalBSONValue implements the bson.ValueUnmarshaler interface.
+func (d *Doc) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
+	if t != bsontype.EmbeddedDocument {
+		return fmt.Errorf("cannot unmarshal %s into a bsonx.Doc", t)
+	}
+	return d.UnmarshalBSON(data)
+}
+
 // Equal compares this document to another, returning true if they are equal.
 func (d Doc) Equal(id IDoc) bool {
 	switch tt := id.(type) {

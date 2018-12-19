@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
@@ -80,10 +81,11 @@ func TestClient(t *testing.T) {
 			rc := readconcern.Majority()
 			client, err := newClient(cs)
 			noerr(t, err)
-			want, err := rc.MarshalBSONElement()
+			wantT, wantData, err := rc.MarshalBSONValue()
 			noerr(t, err)
-			got, err := client.readConcern.MarshalBSONElement()
+			gotT, gotData, err := client.readConcern.MarshalBSONValue()
 			noerr(t, err)
+			want, got := bson.RawValue{Type: wantT, Value: wantData}, bson.RawValue{Type: gotT, Value: gotData}
 			if !cmp.Equal(got, want) {
 				t.Errorf("ReadConcern mode not set correctly. got %v; want %v", got, want)
 			}
@@ -94,10 +96,11 @@ func TestClient(t *testing.T) {
 			rc := readconcern.Majority()
 			client, err := newClient(cs, options.Client().SetReadConcern(rc))
 			noerr(t, err)
-			want, err := rc.MarshalBSONElement()
+			wantT, wantData, err := rc.MarshalBSONValue()
 			noerr(t, err)
-			got, err := client.readConcern.MarshalBSONElement()
+			gotT, gotData, err := client.readConcern.MarshalBSONValue()
 			noerr(t, err)
+			want, got := bson.RawValue{Type: wantT, Value: wantData}, bson.RawValue{Type: gotT, Value: gotData}
 			if !cmp.Equal(got, want) {
 				t.Errorf("ReadConcern mode not set correctly. got %v; want %v", got, want)
 			}
@@ -108,10 +111,11 @@ func TestClient(t *testing.T) {
 			rc := readconcern.Linearizable()
 			client, err := newClient(cs, options.Client().SetReadConcern(rc))
 			noerr(t, err)
-			want, err := rc.MarshalBSONElement()
+			wantT, wantData, err := rc.MarshalBSONValue()
 			noerr(t, err)
-			got, err := client.readConcern.MarshalBSONElement()
+			gotT, gotData, err := client.readConcern.MarshalBSONValue()
 			noerr(t, err)
+			want, got := bson.RawValue{Type: wantT, Value: wantData}, bson.RawValue{Type: gotT, Value: gotData}
 			if !cmp.Equal(got, want) {
 				t.Errorf("ReadConcern mode not set correctly. got %v; want %v", got, want)
 			}
@@ -124,10 +128,11 @@ func TestClient(t *testing.T) {
 			wc := writeconcern.New(writeconcern.WMajority())
 			client, err := newClient(cs)
 			noerr(t, err)
-			want, err := wc.MarshalBSONElement()
+			wantT, wantData, err := wc.MarshalBSONValue()
 			noerr(t, err)
-			got, err := client.writeConcern.MarshalBSONElement()
+			gotT, gotData, err := client.writeConcern.MarshalBSONValue()
 			noerr(t, err)
+			want, got := bson.RawValue{Type: wantT, Value: wantData}, bson.RawValue{Type: gotT, Value: gotData}
 			if !cmp.Equal(got, want) {
 				t.Errorf("WriteConcern mode not set correctly. got %v; want %v", got, want)
 			}
@@ -138,10 +143,11 @@ func TestClient(t *testing.T) {
 			wc := writeconcern.New(writeconcern.WMajority())
 			client, err := newClient(cs, options.Client().SetWriteConcern(wc))
 			noerr(t, err)
-			want, err := wc.MarshalBSONElement()
+			wantT, wantData, err := wc.MarshalBSONValue()
 			noerr(t, err)
-			got, err := client.writeConcern.MarshalBSONElement()
+			gotT, gotData, err := client.writeConcern.MarshalBSONValue()
 			noerr(t, err)
+			want, got := bson.RawValue{Type: wantT, Value: wantData}, bson.RawValue{Type: gotT, Value: gotData}
 			if !cmp.Equal(got, want) {
 				t.Errorf("WriteConcern mode not set correctly. got %v; want %v", got, want)
 			}
@@ -152,10 +158,11 @@ func TestClient(t *testing.T) {
 			wc := writeconcern.New(writeconcern.WMajority())
 			client, err := newClient(cs, options.Client().SetWriteConcern(wc))
 			noerr(t, err)
-			want, err := wc.MarshalBSONElement()
+			wantT, wantData, err := wc.MarshalBSONValue()
 			noerr(t, err)
-			got, err := client.writeConcern.MarshalBSONElement()
+			gotT, gotData, err := client.writeConcern.MarshalBSONValue()
 			noerr(t, err)
+			want, got := bson.RawValue{Type: wantT, Value: wantData}, bson.RawValue{Type: gotT, Value: gotData}
 			if !cmp.Equal(got, want) {
 				t.Errorf("WriteConcern mode not set correctly. got %v; want %v", got, want)
 			}
