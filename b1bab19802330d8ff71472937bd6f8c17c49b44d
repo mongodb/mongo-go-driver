@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "db39a478_4c8ca946",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-20T18:47:40Z",
+      "side": 1,
+      "message": "That forces an additional, potentially large, allocation. With this method we only allocate if absolutely necessary, e.g. the length of d is the capacity.",
+      "parentUuid": "7dfd9a59_daa8688f",
+      "range": {
+        "startLine": 111,
+        "startChar": 2,
+        "endLine": 111,
+        "endChar": 3
+      },
+      "revId": "b1bab19802330d8ff71472937bd6f8c17c49b44d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "77a4210c_918b2d5e",
         "filename": "mongo/mongo.go",
         "patchSetId": 1
@@ -60,6 +84,30 @@
       "writtenOn": "2018-12-20T18:14:06Z",
       "side": 1,
       "message": "Might be missing something - what does this new code do? Just check if a Marshal/Unmarshal round trip is successful?",
+      "range": {
+        "startLine": 120,
+        "startChar": 1,
+        "endLine": 120,
+        "endChar": 2
+      },
+      "revId": "b1bab19802330d8ff71472937bd6f8c17c49b44d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d65e35e0_8291737a",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-20T18:47:40Z",
+      "side": 1,
+      "message": "This code ensures that we return a Go type for the _id. The bsonx library will generally return Go types, but it will return bsonx.Doc and bsonx.Arr for documents and arrays. Although we should be using UnmarshalWithRegistry instead of Unmarshal below.",
+      "parentUuid": "77a4210c_918b2d5e",
       "range": {
         "startLine": 120,
         "startChar": 1,
