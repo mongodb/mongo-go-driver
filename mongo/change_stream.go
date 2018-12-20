@@ -451,7 +451,7 @@ func (cs *changeStream) Decode(out interface{}) error {
 		return err
 	}
 
-	return bson.UnmarshalWithRegistry(cs.coll.registry, br, out)
+	return bson.UnmarshalWithRegistry(cs.registry, br, out)
 }
 
 func (cs *changeStream) DecodeBytes() (bson.Raw, error) {
