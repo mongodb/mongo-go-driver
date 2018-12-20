@@ -81,7 +81,7 @@ func (d Doc) Prepend(key string, val Val) Doc {
 // does not have an element with that key, the element is appended to the
 // document instead.
 func (d Doc) Set(key string, val Val) Doc {
-	idx := d.indexOf(key)
+	idx := d.IndexOf(key)
 	if idx == -1 {
 		return append(d, Elem{Key: key, Value: val})
 	}
@@ -89,7 +89,9 @@ func (d Doc) Set(key string, val Val) Doc {
 	return d
 }
 
-func (d Doc) indexOf(key string) int {
+// IndexOf returns the index of the first element with a key of key, or -1 if no element with a key
+// was found.
+func (d Doc) IndexOf(key string) int {
 	for i, e := range d {
 		if e.Key == key {
 			return i
@@ -100,7 +102,7 @@ func (d Doc) indexOf(key string) int {
 
 // Delete removes the element with key if it exists and returns the updated Doc.
 func (d Doc) Delete(key string) Doc {
-	idx := d.indexOf(key)
+	idx := d.IndexOf(key)
 	if idx == -1 {
 		return d
 	}
@@ -147,7 +149,7 @@ func (d Doc) LookupElementErr(key ...string) (Elem, error) {
 
 	var elem Elem
 	var err error
-	idx := d.indexOf(key[0])
+	idx := d.IndexOf(key[0])
 	if idx == -1 {
 		return Elem{}, KeyNotFound{Key: key}
 	}
