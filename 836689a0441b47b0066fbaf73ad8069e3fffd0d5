@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "ed91a9a0_93bb8491",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-20T19:45:43Z",
+      "side": 1,
+      "message": "Thanks for the feedback! I originally wrote it this way because BulkWrite threw a similar error. But I think this suggestion is especially relevant now that I\u0027ve rebased and have a bunch of errors thrown from transformAggregatePipeline that also differ from ErrNilDocument. So two questions I guess - 1) knowing that insertMany is error-ing out in a similar way to bulkWrite, do you still think I should change it? 2) thoughts on whether I should modify transformAggregatePipeline to thrown the same \"nil\" error that transformDocument and transformAndEnsureID throw?",
+      "parentUuid": "deed6ae4_02afcc6e",
+      "range": {
+        "startLine": 278,
+        "startChar": 14,
+        "endLine": 278,
+        "endChar": 20
+      },
+      "revId": "836689a0441b47b0066fbaf73ad8069e3fffd0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a184fdfe_a6728a2b",
         "filename": "mongo/collection.go",
         "patchSetId": 2
@@ -45,6 +69,30 @@
       "revId": "836689a0441b47b0066fbaf73ad8069e3fffd0d5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0db70c99_9d3b15b8",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 286,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-20T19:45:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a184fdfe_a6728a2b",
+      "range": {
+        "startLine": 286,
+        "startChar": 15,
+        "endLine": 286,
+        "endChar": 20
+      },
+      "revId": "836689a0441b47b0066fbaf73ad8069e3fffd0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
