@@ -233,6 +233,10 @@ func TestJsonScannerValidInputs(t *testing.T) {
 			tokens: []jsonToken{{t: jttDouble, v: -1.2e-10}},
 		},
 		{
+			desc: "valid double: 8005332285744496613785600", input: "8005332285744496613785600",
+			tokens: []jsonToken{{t: jttDouble, v: float64(8005332285744496613785600)}},
+		},
+		{
 			desc:  "valid object, only spaces",
 			input: `{"key": "string", "key2": 2, "key3": {}, "key4": [], "key5": false }`,
 			tokens: []jsonToken{

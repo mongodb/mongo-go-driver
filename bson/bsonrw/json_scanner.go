@@ -417,25 +417,23 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 			return nil, fmt.Errorf("invalid JSON number. Position: %d", start)
 		case nssDone:
 			js.pos = int(math.Max(0, float64(js.pos-1)))
-			if t == jttDouble {
-				v, err := strconv.ParseFloat(b.String(), 64)
-				if err != nil {
-					return nil, err
-				}
+			if t != jttDouble {
+				v, err := strconv.ParseInt(b.String(), 10, 64)
+				if err == nil {
+					if v < math.MinInt32 || v > math.MaxInt32 {
+						return &jsonToken{t: jttInt64, v: v, p: start}, nil
+					}
 
-				return &jsonToken{t: t, v: v, p: start}, nil
+					return &jsonToken{t: jttInt32, v: int32(v), p: start}, nil
+				}
 			}
 
-			v, err := strconv.ParseInt(b.String(), 10, 64)
+			v, err := strconv.ParseFloat(b.String(), 64)
 			if err != nil {
 				return nil, err
 			}
 
-			if v < math.MinInt32 || v > math.MaxInt32 {
-				return &jsonToken{t: t, v: v, p: start}, nil
-			}
-
-			return &jsonToken{t: jttInt32, v: int32(v), p: start}, nil
+			return &jsonToken{t: jttDouble, v: v, p: start}, nil
 		}
 	}
 }
