@@ -103,17 +103,30 @@ func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsonx.
 
 	var id interface{}
 
-	v, err := bson.Raw(b).LookupErr("_id")
-	switch err.(type) {
-	case nil:
-		if err := v.Unmarshal(&id); err != nil {
-			return nil, nil, err
-		}
+	idx := d.IndexOf("_id")
+	var idElem bsonx.Elem
+	switch idx {
+	case -1:
+		idElem = bsonx.Elem{"_id", bsonx.ObjectID(primitive.NewObjectID())}
+		d = append(d, bsonx.Elem{})
+		copy(d[1:], d)
+		d[0] = idElem
 	default:
-		oid := primitive.NewObjectID()
-		d = append(d, bsonx.Elem{"_id", bsonx.ObjectID(oid)})
-		id = oid
+		idElem = d[idx]
+		copy(d[1:idx+1], d[0:idx])
+		d[0] = idElem
 	}
+
+	t, data, err := idElem.Value.MarshalAppendBSONValue(buf[:0])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = bson.RawValue{Type: t, Value: data}.UnmarshalWithRegistry(registry, &id)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return d, id, nil
 }
 

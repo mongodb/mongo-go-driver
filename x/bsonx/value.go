@@ -160,64 +160,69 @@ func (v Val) Interface() interface{} {
 
 // MarshalBSONValue implements the bsoncodec.ValueMarshaler interface.
 func (v Val) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return v.MarshalAppendBSONValue(nil)
+}
+
+// MarshalAppendBSONValue is similar to MarshalBSONValue, but allows the caller to specify a slice
+// to add the bytes to.
+func (v Val) MarshalAppendBSONValue(dst []byte) (bsontype.Type, []byte, error) {
 	t := v.Type()
-	var data []byte
 	switch v.Type() {
 	case bsontype.Double:
-		data = bsoncore.AppendDouble(data, v.Double())
+		dst = bsoncore.AppendDouble(dst, v.Double())
 	case bsontype.String:
-		data = bsoncore.AppendString(data, v.String())
+		dst = bsoncore.AppendString(dst, v.String())
 	case bsontype.EmbeddedDocument:
 		switch v.primitive.(type) {
 		case Doc:
-			t, data, _ = v.primitive.(Doc).MarshalBSONValue() // Doc.MarshalBSONValue never returns an error.
+			t, dst, _ = v.primitive.(Doc).MarshalBSONValue() // Doc.MarshalBSONValue never returns an error.
 		case MDoc:
-			t, data, _ = v.primitive.(MDoc).MarshalBSONValue() // MDoc.MarshalBSONValue never returns an error.
+			t, dst, _ = v.primitive.(MDoc).MarshalBSONValue() // MDoc.MarshalBSONValue never returns an error.
 		}
 	case bsontype.Array:
-		t, data, _ = v.Array().MarshalBSONValue() // Arr.MarshalBSON never returns an error.
+		t, dst, _ = v.Array().MarshalBSONValue() // Arr.MarshalBSON never returns an error.
 	case bsontype.Binary:
 		subtype, bindata := v.Binary()
-		data = bsoncore.AppendBinary(data, subtype, bindata)
+		dst = bsoncore.AppendBinary(dst, subtype, bindata)
 	case bsontype.Undefined:
 	case bsontype.ObjectID:
-		data = bsoncore.AppendObjectID(data, v.ObjectID())
+		dst = bsoncore.AppendObjectID(dst, v.ObjectID())
 	case bsontype.Boolean:
-		data = bsoncore.AppendBoolean(data, v.Boolean())
+		dst = bsoncore.AppendBoolean(dst, v.Boolean())
 	case bsontype.DateTime:
-		data = bsoncore.AppendDateTime(data, int64(v.DateTime()))
+		dst = bsoncore.AppendDateTime(dst, int64(v.DateTime()))
 	case bsontype.Null:
 	case bsontype.Regex:
 		pattern, options := v.Regex()
-		data = bsoncore.AppendRegex(data, pattern, options)
+		dst = bsoncore.AppendRegex(dst, pattern, options)
 	case bsontype.DBPointer:
 		ns, ptr := v.DBPointer()
-		data = bsoncore.AppendDBPointer(data, ns, ptr)
+		dst = bsoncore.AppendDBPointer(dst, ns, ptr)
 	case bsontype.JavaScript:
-		data = bsoncore.AppendJavaScript(data, string(v.JavaScript()))
+		dst = bsoncore.AppendJavaScript(dst, string(v.JavaScript()))
 	case bsontype.Symbol:
-		data = bsoncore.AppendSymbol(data, string(v.Symbol()))
+		dst = bsoncore.AppendSymbol(dst, string(v.Symbol()))
 	case bsontype.CodeWithScope:
 		code, doc := v.CodeWithScope()
 		var scope []byte
 		scope, _ = doc.MarshalBSON() // Doc.MarshalBSON never returns an error.
-		data = bsoncore.AppendCodeWithScope(data, code, scope)
+		dst = bsoncore.AppendCodeWithScope(dst, code, scope)
 	case bsontype.Int32:
-		data = bsoncore.AppendInt32(data, v.Int32())
+		dst = bsoncore.AppendInt32(dst, v.Int32())
 	case bsontype.Timestamp:
 		t, i := v.Timestamp()
-		data = bsoncore.AppendTimestamp(data, t, i)
+		dst = bsoncore.AppendTimestamp(dst, t, i)
 	case bsontype.Int64:
-		data = bsoncore.AppendInt64(data, v.Int64())
+		dst = bsoncore.AppendInt64(dst, v.Int64())
 	case bsontype.Decimal128:
-		data = bsoncore.AppendDecimal128(data, v.Decimal128())
+		dst = bsoncore.AppendDecimal128(dst, v.Decimal128())
 	case bsontype.MinKey:
 	case bsontype.MaxKey:
 	default:
 		panic(fmt.Errorf("invalid BSON type %v", t))
 	}
 
-	return t, data, nil
+	return t, dst, nil
 }
 
 // UnmarshalBSONValue implements the bsoncodec.ValueUnmarshaler interface.
