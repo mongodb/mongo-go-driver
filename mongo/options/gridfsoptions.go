@@ -109,9 +109,7 @@ type UploadOptions struct {
 
 // GridFSUpload creates a new *UploadOptions
 func GridFSUpload() *UploadOptions {
-	return &UploadOptions{
-		ChunkSizeBytes: &DefaultChunkSize,
-	}
+	return &UploadOptions{}
 }
 
 // SetChunkSizeBytes sets the chunk size in bytes for the upload. Defaults to 255KB if not set.
