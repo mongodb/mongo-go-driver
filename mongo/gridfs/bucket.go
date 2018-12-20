@@ -508,7 +508,7 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 	}
 
 	uo := options.MergeUploadOptions(opts...)
-	if uo.ChunkSizeBytes != nil {
+	if *uo.ChunkSizeBytes != DefaultChunkSize {
 		upload.chunkSize = *uo.ChunkSizeBytes
 	}
 	if uo.Metadata != nil {
