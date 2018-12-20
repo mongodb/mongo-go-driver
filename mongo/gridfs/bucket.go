@@ -458,31 +458,34 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 
 	docRes := cloned.FindOne(ctx, bsonx.Doc{}, options.FindOne().SetProjection(bsonx.Doc{{"_id", bsonx.Int32(1)}}))
 
-	err = docRes.Err()
-	if err == mongo.ErrNoDocuments {
-		filesIv := b.filesColl.Indexes()
-		chunksIv := b.chunksColl.Indexes()
+	_, err = docRes.DecodeBytes()
+	if err != mongo.ErrNoDocuments {
+		// nil, or error that occured during the FindOne operation
+		return err
+	}
 
-		filesModel := mongo.IndexModel{
-			Keys: bson.D{
-				{"filename", int32(1)},
-				{"uploadDate", int32(1)},
-			},
-		}
+	filesIv := b.filesColl.Indexes()
+	chunksIv := b.chunksColl.Indexes()
 
-		chunksModel := mongo.IndexModel{
-			Keys: bson.D{
-				{"files_id", int32(1)},
-				{"n", int32(1)},
-			},
-		}
+	filesModel := mongo.IndexModel{
+		Keys: bson.D{
+			{"filename", int32(1)},
+			{"uploadDate", int32(1)},
+		},
+	}
 
-		if err = createIndexIfNotExists(ctx, filesIv, filesModel); err != nil {
-			return err
-		}
-		if err = createIndexIfNotExists(ctx, chunksIv, chunksModel); err != nil {
-			return err
-		}
+	chunksModel := mongo.IndexModel{
+		Keys: bson.D{
+			{"files_id", int32(1)},
+			{"n", int32(1)},
+		},
+	}
+
+	if err = createIndexIfNotExists(ctx, filesIv, filesModel); err != nil {
+		return err
+	}
+	if err = createIndexIfNotExists(ctx, chunksIv, chunksModel); err != nil {
+		return err
 	}
 
 	return nil
