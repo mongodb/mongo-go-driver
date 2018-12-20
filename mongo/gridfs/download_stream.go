@@ -8,6 +8,7 @@ package gridfs
 
 import (
 	"context"
+	"fmt"
 
 	"errors"
 
@@ -43,7 +44,6 @@ type DownloadStream struct {
 
 func newDownloadStream(cursor mongo.Cursor, chunkSize int32, fileLen int64) *DownloadStream {
 	numChunks := int32(math.Ceil(float64(fileLen) / float64(chunkSize)))
-
 	return &DownloadStream{
 		numChunks: numChunks,
 		chunkSize: chunkSize,
@@ -91,7 +91,6 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 
 	bytesCopied := 0
 	var err error
-
 	for bytesCopied < len(p) {
 		if ds.bufferStart == 0 {
 			// buffer empty
@@ -106,6 +105,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		}
 
 		copied := copy(p, ds.buffer[ds.bufferStart:])
+		fmt.Println("copied in Read: ", copied)
 		bytesCopied += copied
 		ds.bufferStart = (ds.bufferStart + copied) % int(ds.chunkSize)
 	}
@@ -189,20 +189,17 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	_, dataBytes := data.Binary()
 
 	bytesLen := int32(len(dataBytes))
+	fmt.Println("bytesLen: ", bytesLen)
 	if ds.expectedChunk == ds.numChunks {
 		// final chunk can be fewer than ds.chunkSize bytes
 		bytesDownloaded := ds.chunkSize * (ds.expectedChunk - 1)
 		bytesRemaining := ds.fileLen - int64(bytesDownloaded)
-
-		if int64(bytesLen) != bytesRemaining {
-			return ErrWrongSize
-		}
-	} else if bytesLen != ds.chunkSize {
-		// all intermediate chunks must have size ds.chunkSize
-		return ErrWrongSize
+		fmt.Println(bytesLen)
+		fmt.Println(bytesRemaining)
 	}
 
-	copy(ds.buffer, dataBytes)
+	copied := copy(ds.buffer, dataBytes)
+	fmt.Println("copied in fill buffer: ", copied)
 	ds.bufferStart = 0
 	return nil
 }

@@ -21,7 +21,7 @@ import (
 
 // UploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
 // lengths is equal to the batch size.
-const UploadBufferSize = 16 * 1000000 // 16 MB
+const UploadBufferSize = 10 // 16 MB
 
 // ErrStreamClosed is an error returned if an operation is attempted on a closed/aborted stream.
 var ErrStreamClosed = errors.New("stream is closed or aborted")
@@ -151,7 +151,7 @@ func (us *UploadStream) uploadChunks(ctx context.Context) error {
 	numChunks := math.Ceil(float64(us.bufferIndex) / float64(us.chunkSize))
 
 	docs := make([]interface{}, int(numChunks))
-
+	begChunkIndex := us.chunkIndex
 	for i := 0; i < us.bufferIndex; i += int(us.chunkSize) {
 		var chunkData []byte
 		if us.bufferIndex-i < int(us.chunkSize) {
@@ -159,8 +159,7 @@ func (us *UploadStream) uploadChunks(ctx context.Context) error {
 		} else {
 			chunkData = us.buffer[i : i+int(us.chunkSize)]
 		}
-
-		docs[us.chunkIndex] = bsonx.Doc{
+		docs[us.chunkIndex-begChunkIndex] = bsonx.Doc{
 			{"_id", bsonx.ObjectID(primitive.NewObjectID())},
 			{"files_id", bsonx.ObjectID(us.FileID)},
 			{"n", bsonx.Int32(int32(us.chunkIndex))},
