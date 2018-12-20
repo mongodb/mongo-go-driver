@@ -63,7 +63,7 @@ func TestTransformDocument(t *testing.T) {
 			"nil",
 			nil,
 			nil,
-			bsonx.ErrNilDocument,
+			ErrNilDocument,
 		},
 	}
 

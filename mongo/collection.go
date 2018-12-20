@@ -166,7 +166,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	dispatchModels := make([]driver.WriteModel, len(models))
 	for i, model := range models {
 		if model == nil {
-			return nil, bsonx.ErrNilDocument
+			return nil, ErrNilDocument
 		}
 		dispatchModels[i] = model.convertModel()
 	}
@@ -283,7 +283,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 
 	for i, doc := range documents {
 		if doc == nil {
-			return nil, bsonx.ErrNilDocument
+			return nil, ErrNilDocument
 		}
 		bdoc, insertedID, err := transformAndEnsureID(coll.registry, doc)
 		if err != nil {

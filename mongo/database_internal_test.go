@@ -172,13 +172,13 @@ func TestDatabase_NilDocumentError(t *testing.T) {
 
 	var result bsonx.Doc
 	err := db.RunCommand(context.Background(), nil).Decode(&result)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = db.Watch(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = db.ListCollections(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 }
 
 func TestDatabase_Drop(t *testing.T) {

@@ -427,13 +427,13 @@ func TestClient_NilDocumentError(t *testing.T) {
 	c := createTestClient(t)
 
 	_, err := c.Watch(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = c.ListDatabases(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = c.ListDatabaseNames(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 }
 
 func TestClient_ReadPreference(t *testing.T) {

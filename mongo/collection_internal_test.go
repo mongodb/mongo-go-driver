@@ -328,7 +328,7 @@ func TestCollection_NilDocumentError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil)
 
 	_, err := coll.InsertOne(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.InsertMany(context.Background(), nil)
 	require.Equal(t, err, errors.New("an insertMany must contain at least one document"))
@@ -337,61 +337,61 @@ func TestCollection_NilDocumentError(t *testing.T) {
 	require.Equal(t, err, errors.New("an insertMany must contain at least one document"))
 
 	_, err = coll.InsertMany(context.Background(), []interface{}{bsonx.Doc{bsonx.Elem{"_id", bsonx.Int32(1)}}, nil})
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.DeleteOne(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.DeleteMany(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.UpdateOne(context.Background(), nil, bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"_id", bsonx.Double(3.14159)}})}})
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.UpdateOne(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.UpdateMany(context.Background(), nil, bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"_id", bsonx.Double(3.14159)}})}})
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.UpdateMany(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.ReplaceOne(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.ReplaceOne(context.Background(), nil, bsonx.Doc{{"_id", bsonx.Double(3.14159)}})
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.Count(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.CountDocuments(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.Distinct(context.Background(), "field", nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.Find(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	res := coll.FindOne(context.Background(), nil)
-	require.Equal(t, res.err, bsonx.ErrNilDocument)
+	require.Equal(t, res.err, ErrNilDocument)
 
 	res = coll.FindOneAndDelete(context.Background(), nil)
-	require.Equal(t, res.err, bsonx.ErrNilDocument)
+	require.Equal(t, res.err, ErrNilDocument)
 
 	res = coll.FindOneAndReplace(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
-	require.Equal(t, res.err, bsonx.ErrNilDocument)
+	require.Equal(t, res.err, ErrNilDocument)
 
 	res = coll.FindOneAndReplace(context.Background(), nil, bsonx.Doc{{"_id", bsonx.Double(3.14159)}})
-	require.Equal(t, res.err, bsonx.ErrNilDocument)
+	require.Equal(t, res.err, ErrNilDocument)
 
 	res = coll.FindOneAndUpdate(context.Background(), bsonx.Doc{{"_id", bsonx.Double(3.14159)}}, nil)
-	require.Equal(t, res.err, bsonx.ErrNilDocument)
+	require.Equal(t, res.err, ErrNilDocument)
 
 	res = coll.FindOneAndUpdate(context.Background(), nil, bsonx.Doc{{"_id", bsonx.Double(3.14159)}})
-	require.Equal(t, res.err, bsonx.ErrNilDocument)
+	require.Equal(t, res.err, ErrNilDocument)
 
 	_, err = coll.BulkWrite(context.Background(), nil)
 	require.Equal(t, err, errors.New("a bulk write must contain at least one write model"))
@@ -400,13 +400,13 @@ func TestCollection_NilDocumentError(t *testing.T) {
 	require.Equal(t, err, errors.New("a bulk write must contain at least one write model"))
 
 	_, err = coll.BulkWrite(context.Background(), []WriteModel{nil})
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.Aggregate(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.Watch(context.Background(), nil)
-	require.Equal(t, err, bsonx.ErrNilDocument)
+	require.Equal(t, err, ErrNilDocument)
 }
 
 func TestCollection_InsertMany(t *testing.T) {
