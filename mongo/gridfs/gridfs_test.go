@@ -540,7 +540,12 @@ func compareDownloadAssert(t *testing.T, assert assertSection, stream *DownloadS
 		// files are small enough to read into memory once
 		err := stream.SetReadDeadline(deadline)
 		testhelpers.RequireNil(t, err, "error setting read deadline: %s", err)
-		copied, copiedErr = stream.Read(downloadBuffer)
+		for {
+			copied, copiedErr = stream.Read(downloadBuffer)
+			if copied == 0 {
+				break
+			}
+		}
 		testhelpers.RequireNil(t, err, "error reading from stream: %s", err)
 	}
 
