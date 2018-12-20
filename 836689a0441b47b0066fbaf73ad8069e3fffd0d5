@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "c616ad44_078e6b63",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-20T20:53:20Z",
+      "side": 1,
+      "message": "I think BulkWrite and InsertMany should throw the same error and neither of those should be bsonx. Not sure which errors in transformAggregatePipeline you\u0027re referring to specifically. It does call transformDocument on the individual elements of the pipeline array, so that should catch the case where any of them are nil. I\u0027m not sure what the semantics of aggregate are. If an empty pipeline is invalid, transformAggregatePipeline should check the length of the array as well.",
+      "parentUuid": "ed91a9a0_93bb8491",
+      "range": {
+        "startLine": 278,
+        "startChar": 14,
+        "endLine": 278,
+        "endChar": 20
+      },
+      "revId": "836689a0441b47b0066fbaf73ad8069e3fffd0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a184fdfe_a6728a2b",
         "filename": "mongo/collection.go",
         "patchSetId": 2
