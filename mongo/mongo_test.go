@@ -81,6 +81,42 @@ func TestTransformDocument(t *testing.T) {
 	}
 }
 
+func TestTransformAndEnsureID(t *testing.T) {
+	t.Run("newly added _id should be first element", func(t *testing.T) {
+		doc := bson.D{{"foo", "bar"}, {"baz", "qux"}, {"hello", "world"}}
+		want := bsonx.Doc{
+			{"_id", bsonx.Null()}, {"foo", bsonx.String("bar")},
+			{"baz", bsonx.String("qux")}, {"hello", bsonx.String("world")},
+		}
+		got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
+		noerr(t, err)
+		oid, ok := id.(primitive.ObjectID)
+		if !ok {
+			t.Fatalf("Expected returned id to be a %T, but was %T", primitive.ObjectID{}, id)
+		}
+		want[0] = bsonx.Elem{"_id", bsonx.ObjectID(oid)}
+		if diff := cmp.Diff(got, want, cmp.AllowUnexported(bsonx.Elem{}, bsonx.Val{})); diff != "" {
+			t.Errorf("Returned documents differ: (-got +want)\n%s", diff)
+		}
+	})
+	t.Run("existing _id should be first element", func(t *testing.T) {
+		doc := bson.D{{"foo", "bar"}, {"baz", "qux"}, {"_id", 3.14159}, {"hello", "world"}}
+		want := bsonx.Doc{
+			{"_id", bsonx.Double(3.14159)}, {"foo", bsonx.String("bar")},
+			{"baz", bsonx.String("qux")}, {"hello", bsonx.String("world")},
+		}
+		got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
+		noerr(t, err)
+		_, ok := id.(float64)
+		if !ok {
+			t.Fatalf("Expected returned id to be a %T, but was %T", float64(0), id)
+		}
+		if diff := cmp.Diff(got, want, cmp.AllowUnexported(bsonx.Elem{}, bsonx.Val{})); diff != "" {
+			t.Errorf("Returned documents differ: (-got +want)\n%s", diff)
+		}
+	})
+}
+
 func TestTransformAggregatePipeline(t *testing.T) {
 	index, arr := bsoncore.AppendArrayStart(nil)
 	dindex, arr := bsoncore.AppendDocumentElementStart(arr, "0")
