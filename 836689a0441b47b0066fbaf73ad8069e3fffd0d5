@@ -97,6 +97,30 @@
     },
     {
       "key": {
+        "uuid": "7cbdca62_612852db",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2018-12-20T21:20:25Z",
+      "side": 1,
+      "message": "^That\u0027s functioning correctly. I\u0027m happy to change the errors thrown by InsertMany and BulkWrite to a constant error similar to ErrNilDocument, maybe ErrEmptySlice. But can you explain why you think in this particular case the err msgs should be constant whereas it\u0027s fine to use errors.New() elsewhere? I think that\u0027s what I\u0027m confused about.",
+      "parentUuid": "2f4734b3_0be164e2",
+      "range": {
+        "startLine": 278,
+        "startChar": 14,
+        "endLine": 278,
+        "endChar": 20
+      },
+      "revId": "836689a0441b47b0066fbaf73ad8069e3fffd0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a184fdfe_a6728a2b",
         "filename": "mongo/collection.go",
         "patchSetId": 2
