@@ -36,6 +36,7 @@ type DownloadStream struct {
 	closed        bool
 	buffer        []byte // store up to 1 chunk if the user provided buffer isn't big enough
 	bufferStart   int
+	bufferEnd     int
 	expectedChunk int32 // index of next expected chunk
 	readDeadline  time.Time
 	fileLen       int64
@@ -89,28 +90,27 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		defer cancel()
 	}
 
-	bytesCopied := 0
 	var err error
-
-	for bytesCopied < len(p) {
-		if ds.bufferStart == 0 {
-			// buffer empty
-			err = ds.fillBuffer(ctx)
-			if err != nil {
-				if err == errNoMoreChunks {
-					return bytesCopied, nil
-				}
-
-				return bytesCopied, err
+	if ds.bufferStart == 0 {
+		// Buffer is empty and can load in data from new chunk.
+		err = ds.fillBuffer(ctx)
+		if err != nil {
+			if err == errNoMoreChunks {
+				return 0, nil
 			}
-		}
 
-		copied := copy(p, ds.buffer[ds.bufferStart:])
-		bytesCopied += copied
-		ds.bufferStart = (ds.bufferStart + copied) % int(ds.chunkSize)
+			return 0, err
+		}
 	}
 
-	return len(p), nil
+	copied := copy(p, ds.buffer[ds.bufferStart:ds.bufferEnd])
+
+	if copied < len(p) {
+		ds.bufferStart = 0
+	} else {
+		ds.bufferStart += len(p)
+	}
+	return int(copied), nil
 }
 
 // Skip skips a given number of bytes in the file.
@@ -187,22 +187,10 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	}
 
 	_, dataBytes := data.Binary()
+	copied := copy(ds.buffer, dataBytes)
 
-	bytesLen := int32(len(dataBytes))
-	if ds.expectedChunk == ds.numChunks {
-		// final chunk can be fewer than ds.chunkSize bytes
-		bytesDownloaded := ds.chunkSize * (ds.expectedChunk - 1)
-		bytesRemaining := ds.fileLen - int64(bytesDownloaded)
-
-		if int64(bytesLen) != bytesRemaining {
-			return ErrWrongSize
-		}
-	} else if bytesLen != ds.chunkSize {
-		// all intermediate chunks must have size ds.chunkSize
-		return ErrWrongSize
-	}
-
-	copy(ds.buffer, dataBytes)
 	ds.bufferStart = 0
+	ds.bufferEnd = copied
+
 	return nil
 }
