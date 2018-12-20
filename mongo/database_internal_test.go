@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"fmt"
@@ -170,12 +171,11 @@ func TestDatabase_NilDocumentError(t *testing.T) {
 
 	db := createTestDatabase(t, nil)
 
-	var result bsonx.Doc
-	err := db.RunCommand(context.Background(), nil).Decode(&result)
+	err := db.RunCommand(context.Background(), nil).Err()
 	require.Equal(t, err, ErrNilDocument)
 
 	_, err = db.Watch(context.Background(), nil)
-	require.Equal(t, err, ErrNilDocument)
+	require.Equal(t, err, errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"))
 
 	_, err = db.ListCollections(context.Background(), nil)
 	require.Equal(t, err, ErrNilDocument)

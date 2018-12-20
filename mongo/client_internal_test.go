@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path"
 	"testing"
@@ -141,7 +142,7 @@ func TestClientRegistryPassedToCursors(t *testing.T) {
 	_, err = coll.InsertOne(ctx, NewCodec{ID: 10})
 	require.NoError(t, err)
 
-	c, err := coll.Find(ctx, nil)
+	c, err := coll.Find(ctx, bsonx.Doc{})
 	require.NoError(t, err)
 
 	require.True(t, c.Next(ctx))
@@ -427,7 +428,7 @@ func TestClient_NilDocumentError(t *testing.T) {
 	c := createTestClient(t)
 
 	_, err := c.Watch(context.Background(), nil)
-	require.Equal(t, err, ErrNilDocument)
+	require.Equal(t, err, errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"))
 
 	_, err = c.ListDatabases(context.Background(), nil)
 	require.Equal(t, err, ErrNilDocument)

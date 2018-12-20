@@ -403,10 +403,10 @@ func TestCollection_NilDocumentError(t *testing.T) {
 	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.Aggregate(context.Background(), nil)
-	require.Equal(t, err, ErrNilDocument)
+	require.Equal(t, err, errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"))
 
 	_, err = coll.Watch(context.Background(), nil)
-	require.Equal(t, err, ErrNilDocument)
+	require.Equal(t, err, errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid"))
 }
 
 func TestCollection_InsertMany(t *testing.T) {
