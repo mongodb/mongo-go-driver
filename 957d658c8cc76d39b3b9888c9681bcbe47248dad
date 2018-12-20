@@ -2,6 +2,57 @@
   "comments": [
     {
       "key": {
+        "uuid": "de083d63_03c0a176",
+        "filename": "mongo/index_options_builder.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-20T20:21:55Z",
+      "side": 1,
+      "message": "Why not bson.Raw here like everywhere else. It feels like throughout the rest of this, we\u0027ve settled on take interface{}, return bson.Raw. Which kinda lines up with go\u0027s general advice of take interfaces, return structs.\n\nSo, any reason to do this differently here?",
+      "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "305e103b_2c20a253",
+        "filename": "mongo/readconcern/readconcern.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-20T20:21:55Z",
+      "side": 1,
+      "message": "comment is no longer correct.",
+      "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "09bbd98a_710adfab",
+        "filename": "mongo/writeconcern/writeconcern.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2018-12-20T20:21:55Z",
+      "side": 1,
+      "message": "comment...",
+      "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b20b8287_99d700a5",
         "filename": "x/network/command/aggregate.go",
         "patchSetId": 9
