@@ -546,3 +546,67 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 	// But, killCursors was already used to cause an error for the ResumeOnce test, so this does not need to be tested
 	// again.
 }
+
+func TestChangeStream_RegistryCheckInDecode(t *testing.T) {
+	t.Run("TestRegistryCheckForCollection", func(t *testing.T) {
+		coll := createTestCollection(t, nil, nil)
+
+		// Opening a change stream cursor for a collection
+		changes, err := coll.Watch(context.Background(), nil)
+		require.NoError(t, err)
+		defer changes.Close(ctx)
+
+		_, err = coll.InsertOne(ctx, doc)
+		require.NoError(t, err)
+
+		changes.Next(ctx)
+		var a bsonx.Doc
+
+		require.NotPanics(t, func() {
+			err = changes.Decode(&a)
+			require.Nil(t, err)
+		}, "Calling changes.Decode should NOT panic" )
+
+	})
+	t.Run("TestRegistryCheckForDatabase", func(t *testing.T) {
+		db := createTestDatabase(t, nil)
+
+		// Opening a change stream cursor for a database
+		changes, err := db.Watch(context.Background(), nil)
+		require.NoError(t, err)
+		defer changes.Close(ctx)
+
+
+		_, err = db.Collection("newColl").InsertOne(ctx, doc)
+		require.NoError(t, err)
+
+		changes.Next(ctx)
+		var a bsonx.Doc
+
+		require.NotPanics(t, func() {
+			err = changes.Decode(&a)
+			require.Nil(t, err)
+		}, "Calling changes.Decode should NOT panic" )
+
+	})
+	t.Run("TestRegistryCheckForClient", func(t *testing.T) {
+		cli := createTestClient(t)
+
+		// Opening a change stream cursor for a client
+		changes, err := cli.Watch(context.Background(), nil)
+		require.NoError(t, err)
+		defer changes.Close(ctx)
+
+		_, err = cli.Database("newdb").Collection("newColl").InsertOne(ctx, doc)
+		require.NoError(t, err)
+
+		changes.Next(ctx)
+		var a bsonx.Doc
+
+		require.NotPanics(t, func() {
+			err = changes.Decode(&a)
+			require.Nil(t, err)
+		}, "Calling changes.Decode should NOT panic" )
+
+	})
+}
