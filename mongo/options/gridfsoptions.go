@@ -130,7 +130,7 @@ func (u *UploadOptions) SetMetadata(doc bsonx.Doc) *UploadOptions {
 // If the chunk size is not set in any of the given *UploadOptions, the resulting *UploadOptions will have chunk size
 // 255KB.
 func MergeUploadOptions(opts ...*UploadOptions) *UploadOptions {
-	u := GridFSUpload()
+	u := &UploadOptions{}
 
 	for _, opt := range opts {
 		if opt == nil {
