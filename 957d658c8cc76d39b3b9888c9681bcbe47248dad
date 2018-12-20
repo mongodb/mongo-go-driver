@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "07bf82b0_034282f2",
+        "filename": "mongo/index_options_builder.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-20T23:28:36Z",
+      "side": 1,
+      "message": "I mentioned this in yesterday, but the main reason is that in order to create a bson.Raw from interface{} we need a registry and the ability to return an error, neither of which we can do with this model. We could do some delayed processing and return an error here and make Build take a registry, but since we are doing GODRIVER-729, I agree with Jeff that we should bother changing this.",
+      "parentUuid": "25a4d871_09a2f922",
+      "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "305e103b_2c20a253",
         "filename": "mongo/readconcern/readconcern.go",
         "patchSetId": 9
@@ -51,6 +69,24 @@
       "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "188dbacc_5728e72e",
+        "filename": "mongo/readconcern/readconcern.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-20T23:28:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "305e103b_2c20a253",
+      "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +107,24 @@
     },
     {
       "key": {
+        "uuid": "33db0e6d_5e7e2aa3",
+        "filename": "mongo/writeconcern/writeconcern.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-20T23:28:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "09bbd98a_710adfab",
+      "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b20b8287_99d700a5",
         "filename": "x/network/command/aggregate.go",
         "patchSetId": 9
@@ -82,6 +136,30 @@
       "writtenOn": "2018-12-20T19:52:53Z",
       "side": 1,
       "message": "Would it simplify things if instead there was a WriteConcern.MarshalBSONValue method that returns a Value instead of an Element, and then let the caller determine the element name?",
+      "range": {
+        "startLine": 82,
+        "startChar": 0,
+        "endLine": 82,
+        "endChar": 1
+      },
+      "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fd3bd2c9_3bb81cc7",
+        "filename": "x/network/command/aggregate.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2018-12-20T23:28:36Z",
+      "side": 1,
+      "message": "I updated the implementation to return the type and value instead of an Element.",
+      "parentUuid": "b20b8287_99d700a5",
       "range": {
         "startLine": 82,
         "startChar": 0,
