@@ -50,13 +50,16 @@ func (ci *CreateIndexes) encode(desc description.SelectedServer) (*Write, error)
 	}
 	cmd = append(cmd, ci.Opts...)
 
-	return &Write{
-		Clock:        ci.Clock,
-		DB:           ci.NS.DB,
-		Command:      cmd,
-		WriteConcern: ci.WriteConcern,
-		Session:      ci.Session,
-	}, nil
+	write := &Write{
+		Clock:   ci.Clock,
+		DB:      ci.NS.DB,
+		Command: cmd,
+		Session: ci.Session,
+	}
+	if desc.WireVersion != nil && desc.WireVersion.Max >= 5 {
+		write.WriteConcern = ci.WriteConcern
+	}
+	return write, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

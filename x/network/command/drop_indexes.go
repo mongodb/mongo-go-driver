@@ -49,13 +49,16 @@ func (di *DropIndexes) encode(desc description.SelectedServer) (*Write, error) {
 	}
 	cmd = append(cmd, di.Opts...)
 
-	return &Write{
-		Clock:        di.Clock,
-		DB:           di.NS.DB,
-		Command:      cmd,
-		WriteConcern: di.WriteConcern,
-		Session:      di.Session,
-	}, nil
+	write := &Write{
+		Clock:   di.Clock,
+		DB:      di.NS.DB,
+		Command: cmd,
+		Session: di.Session,
+	}
+	if desc.WireVersion != nil && desc.WireVersion.Max >= 5 {
+		write.WriteConcern = di.WriteConcern
+	}
+	return write, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
