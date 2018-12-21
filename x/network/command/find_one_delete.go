@@ -55,13 +55,16 @@ func (f *FindOneAndDelete) encode(desc description.SelectedServer) (*Write, erro
 	}
 	command = append(command, f.Opts...)
 
-	return &Write{
-		Clock:        f.Clock,
-		DB:           f.NS.DB,
-		Command:      command,
-		WriteConcern: f.WriteConcern,
-		Session:      f.Session,
-	}, nil
+	write := &Write{
+		Clock:   f.Clock,
+		DB:      f.NS.DB,
+		Command: command,
+		Session: f.Session,
+	}
+	if desc.WireVersion != nil && desc.WireVersion.Max >= 4 {
+		write.WriteConcern = f.WriteConcern
+	}
+	return write, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding

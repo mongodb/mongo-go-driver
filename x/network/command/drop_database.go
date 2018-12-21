@@ -43,13 +43,16 @@ func (dd *DropDatabase) Encode(desc description.SelectedServer) (wiremessage.Wir
 func (dd *DropDatabase) encode(desc description.SelectedServer) (*Write, error) {
 	cmd := bsonx.Doc{{"dropDatabase", bsonx.Int32(1)}}
 
-	return &Write{
-		Clock:        dd.Clock,
-		DB:           dd.DB,
-		Command:      cmd,
-		WriteConcern: dd.WriteConcern,
-		Session:      dd.Session,
-	}, nil
+	write := &Write{
+		Clock:   dd.Clock,
+		DB:      dd.DB,
+		Command: cmd,
+		Session: dd.Session,
+	}
+	if desc.WireVersion != nil && desc.WireVersion.Max >= 5 {
+		write.WriteConcern = dd.WriteConcern
+	}
+	return write, nil
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
