@@ -169,6 +169,30 @@
       "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "330ab3cf_179ad8b6",
+        "filename": "x/network/command/aggregate.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2018-12-21T00:28:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "fd3bd2c9_3bb81cc7",
+      "range": {
+        "startLine": 82,
+        "startChar": 0,
+        "endLine": 82,
+        "endChar": 1
+      },
+      "revId": "957d658c8cc76d39b3b9888c9681bcbe47248dad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
