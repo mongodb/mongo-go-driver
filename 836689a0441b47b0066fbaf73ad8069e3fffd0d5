@@ -121,6 +121,30 @@
     },
     {
       "key": {
+        "uuid": "77bfeda8_7c80ab42",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2018-12-23T22:15:06Z",
+      "side": 1,
+      "message": "The current codebase is inconsistent with errors because we mix constants, errors.New, and fmt.Errorf. I personally prefer constant errors for a few reasons:\n\n1. they seem more readable to me\n2. we can document them more easily\n3. users can easily check what kind of error occurred if they want special logic based on the error. In this case they can do something like if err \u003d\u003d ErrEmptySlice. errors.New doesn\u0027t allow this, even if you use the right error msg (i.e. errors.New(\"foo\") !\u003d errors.New(\"foo\")).",
+      "parentUuid": "7cbdca62_612852db",
+      "range": {
+        "startLine": 278,
+        "startChar": 14,
+        "endLine": 278,
+        "endChar": 20
+      },
+      "revId": "836689a0441b47b0066fbaf73ad8069e3fffd0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a184fdfe_a6728a2b",
         "filename": "mongo/collection.go",
         "patchSetId": 2
