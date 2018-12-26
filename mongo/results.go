@@ -78,6 +78,8 @@ type UpdateResult struct {
 	MatchedCount int64
 	// The number of documents that were modified.
 	ModifiedCount int64
+	// The number of documents that were upserted.
+	UpsertedCount int64
 	// The identifier of the inserted document if an upsert took place.
 	UpsertedID interface{}
 }

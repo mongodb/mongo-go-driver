@@ -499,6 +499,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 	res := &UpdateResult{
 		MatchedCount:  r.MatchedCount,
 		ModifiedCount: r.ModifiedCount,
+		UpsertedCount: int64(len(r.Upserted)),
 	}
 	if len(r.Upserted) > 0 {
 		res.UpsertedID = r.Upserted[0].ID
