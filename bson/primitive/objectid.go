@@ -55,8 +55,8 @@ func (id ObjectID) String() string {
 }
 
 // IsZero returns true if id is the empty ObjectID.
-func (id ObjectID) IsZero() bool {
-	return bytes.Equal(id[:], NilObjectID[:])
+func (id *ObjectID) IsZero() bool {
+	return id == nil || bytes.Equal(id[:], NilObjectID[:])
 }
 
 // ObjectIDFromHex creates a new ObjectID from a hex string. It returns an error if the hex string is not a
