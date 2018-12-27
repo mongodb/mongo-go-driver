@@ -139,7 +139,7 @@ func TestIndexView_CreateOneWithNameOption(t *testing.T) {
 		context.Background(),
 		IndexModel{
 			Keys:    bsonx.Doc{{"foo", bsonx.Int32(-1)}},
-			Options: NewIndexOptionsBuilder().Name("testname").Build(),
+			Options: options.Index().SetName("testname"),
 		},
 	)
 	require.NoError(t, err)
@@ -182,31 +182,35 @@ func TestIndexView_CreateOneWithAllOptions(t *testing.T) {
 		context.Background(),
 		IndexModel{
 			Keys: bsonx.Doc{{"foo", bsonx.String("text")}},
-			Options: NewIndexOptionsBuilder().
-				Background(false).
-				ExpireAfterSeconds(10).
-				Name("a").
-				Sparse(false).
-				Unique(false).
-				Version(1).
-				DefaultLanguage("english").
-				LanguageOverride("english").
-				TextVersion(1).
-				Weights(bsonx.Doc{}).
-				SphereVersion(1).
-				Bits(32).
-				Max(10).
-				Min(1).
-				BucketSize(1).
-				PartialFilterExpression(bsonx.Doc{}).
-				StorageEngine(bsonx.Doc{{"wiredTiger", bsonx.Document(bsonx.Doc{{"configString", bsonx.String("block_compressor=zlib")}})}}).
-				Build(),
+			Options: options.Index().
+				SetBackground(false).
+				SetExpireAfterSeconds(10).
+				SetName("a").
+				SetSparse(false).
+				SetUnique(false).
+				SetVersion(1).
+				SetDefaultLanguage("english").
+				SetLanguageOverride("english").
+				SetTextVersion(1).
+				SetWeights(bsonx.Doc{}).
+				SetSphereVersion(1).
+				SetBits(2).
+				SetMax(10).
+				SetMin(1).
+				SetBucketSize(1).
+				SetPartialFilterExpression(bsonx.Doc{}).
+				SetStorageEngine(bsonx.Doc{
+					{"wiredTiger", bsonx.Document(bsonx.Doc{
+						{"configString", bsonx.String("block_compressor=zlib")},
+					})},
+				}),
 		},
 	)
 	require.NoError(t, err)
 }
 
 func TestIndexView_CreateOneWithCollationOption(t *testing.T) {
+	skipIfBelow34(t, createTestDatabase(t, nil)) // collation invalid for server versions < 3.4
 	t.Parallel()
 
 	if testing.Short() {
@@ -220,9 +224,9 @@ func TestIndexView_CreateOneWithCollationOption(t *testing.T) {
 		context.Background(),
 		IndexModel{
 			Keys: bsonx.Doc{{"bar", bsonx.String("text")}},
-			Options: NewIndexOptionsBuilder().
-				Collation(bsonx.Doc{{"locale", bsonx.String("simple")}}).
-				Build(),
+			Options: options.Index().SetCollation(&options.Collation{
+				Locale: "simple",
+			}),
 		},
 	)
 	require.NoError(t, err)

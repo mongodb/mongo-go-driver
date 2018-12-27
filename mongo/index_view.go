@@ -38,7 +38,7 @@ type IndexView struct {
 // IndexModel contains information about an index.
 type IndexModel struct {
 	Keys    interface{}
-	Options interface{}
+	Options *options.IndexOptions
 }
 
 // List returns a cursor iterating over all the indexes in the collection.
@@ -100,11 +100,12 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		}
 		index := bsonx.Doc{{"key", bsonx.Document(keys)}}
 		if model.Options != nil {
-			options, err := transformDocument(iv.coll.registry, model.Options)
+			optsDoc, err := iv.createOptionsDoc(model.Options)
 			if err != nil {
 				return nil, err
 			}
-			index = append(index, options...)
+
+			index = append(index, optsDoc...)
 		}
 		index = index.Set("name", bsonx.String(name))
 
@@ -138,6 +139,82 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 	}
 
 	return names, nil
+}
+
+func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsonx.Doc, error) {
+	optsDoc := bsonx.Doc{}
+	if opts.Background != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"background", bsonx.Boolean(*opts.Background)})
+	}
+	if opts.ExpireAfterSeconds != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"expireAfterSeconds", bsonx.Int32(*opts.ExpireAfterSeconds)})
+	}
+	if opts.Name != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"name", bsonx.String(*opts.Name)})
+	}
+	if opts.Sparse != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"sparse", bsonx.Boolean(*opts.Sparse)})
+	}
+	if opts.StorageEngine != nil {
+		doc, err := transformDocument(iv.coll.registry, opts.StorageEngine)
+		if err != nil {
+			return nil, err
+		}
+
+		optsDoc = append(optsDoc, bsonx.Elem{"storageEngine", bsonx.Document(doc)})
+	}
+	if opts.Unique != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"unique", bsonx.Boolean(*opts.Unique)})
+	}
+	if opts.Version != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"v", bsonx.Int32(*opts.Version)})
+	}
+	if opts.DefaultLanguage != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"default_language", bsonx.String(*opts.DefaultLanguage)})
+	}
+	if opts.LanguageOverride != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"language_override", bsonx.String(*opts.LanguageOverride)})
+	}
+	if opts.TextVersion != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"textIndexVersion", bsonx.Int32(*opts.TextVersion)})
+	}
+	if opts.Weights != nil {
+		weightsDoc, err := transformDocument(iv.coll.registry, opts.Weights)
+		if err != nil {
+			return nil, err
+		}
+
+		optsDoc = append(optsDoc, bsonx.Elem{"weights", bsonx.Document(weightsDoc)})
+	}
+	if opts.SphereVersion != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"2dsphereIndexVersion", bsonx.Int32(*opts.SphereVersion)})
+	}
+	if opts.Bits != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"bits", bsonx.Int32(*opts.Bits)})
+	}
+	if opts.Max != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"max", bsonx.Double(*opts.Max)})
+	}
+	if opts.Min != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"min", bsonx.Double(*opts.Min)})
+	}
+	if opts.BucketSize != nil {
+		optsDoc = append(optsDoc, bsonx.Elem{"bucketSize", bsonx.Int32(*opts.BucketSize)})
+	}
+	if opts.PartialFilterExpression != nil {
+		doc, err := transformDocument(iv.coll.registry, opts.PartialFilterExpression)
+		if err != nil {
+			return nil, err
+		}
+
+		optsDoc = append(optsDoc, bsonx.Elem{"partialFilterExpression", bsonx.Document(doc)})
+	}
+	if opts.Collation != nil {
+		doc := opts.Collation.ToDocument()
+		optsDoc = append(optsDoc, bsonx.Elem{"collation", bsonx.Document(doc)})
+	}
+
+	return optsDoc, nil
 }
 
 // DropOne drops the index with the given name from the collection.
@@ -197,25 +274,8 @@ func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOpt
 }
 
 func getOrGenerateIndexName(registry *bsoncodec.Registry, model IndexModel) (string, error) {
-	if model.Options != nil {
-		options, err := transformDocument(registry, model.Options)
-		if err != nil {
-			return "", err
-		}
-		nameVal, err := options.LookupErr("name")
-
-		switch err.(type) {
-		case bsonx.KeyNotFound:
-			break
-		case nil:
-			if nameVal.Type() != bson.TypeString {
-				return "", ErrNonStringIndexName
-			}
-
-			return nameVal.StringValue(), nil
-		default:
-			return "", err
-		}
+	if model.Options != nil && model.Options.Name != nil {
+		return *model.Options.Name, nil
 	}
 
 	name := bytes.NewBufferString("")
