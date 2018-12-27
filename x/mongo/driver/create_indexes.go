@@ -38,6 +38,11 @@ func CreateIndexes(
 		return result.CreateIndexes{}, err
 	}
 
+	desc := ss.Description()
+	if desc.WireVersion.Max < 5 && hasCollation(cmd) {
+		return result.CreateIndexes{}, ErrCollation
+	}
+
 	conn, err := ss.Connection(ctx)
 	if err != nil {
 		return result.CreateIndexes{}, err
@@ -59,4 +64,14 @@ func CreateIndexes(
 	}
 
 	return cmd.RoundTrip(ctx, ss.Description(), conn)
+}
+
+func hasCollation(cmd command.CreateIndexes) bool {
+	for _, ind := range cmd.Indexes {
+		if _, err := ind.Document().LookupErr("collation"); err == nil {
+			return true
+		}
+	}
+
+	return false
 }
