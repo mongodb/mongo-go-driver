@@ -36,6 +36,7 @@ type DownloadStream struct {
 	closed        bool
 	buffer        []byte // store up to 1 chunk if the user provided buffer isn't big enough
 	bufferStart   int
+	bufferEnd     int
 	expectedChunk int32 // index of next expected chunk
 	readDeadline  time.Time
 	fileLen       int64
@@ -93,7 +94,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 	var err error
 
 	for bytesCopied < len(p) {
-		if ds.bufferStart == 0 {
+		if ds.bufferStart >= ds.bufferEnd {
 			// buffer empty
 			err = ds.fillBuffer(ctx)
 			if err != nil {
@@ -105,9 +106,9 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 			}
 		}
 
-		copied := copy(p, ds.buffer[ds.bufferStart:])
+		copied := copy(p[bytesCopied:], ds.buffer[ds.bufferStart:ds.bufferEnd])
 		bytesCopied += copied
-		ds.bufferStart = (ds.bufferStart + copied) % int(ds.chunkSize)
+		ds.bufferStart += copied
 	}
 
 	return len(p), nil
@@ -204,5 +205,6 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 
 	copy(ds.buffer, dataBytes)
 	ds.bufferStart = 0
+	ds.bufferEnd = int(bytesLen)
 	return nil
 }
