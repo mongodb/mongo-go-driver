@@ -65,17 +65,17 @@ var doc2 = bsonx.Doc{{"y", bsonx.Int32(1)}}
 
 var fooIndex = IndexModel{
 	Keys:    bsonx.Doc{{"foo", bsonx.Int32(-1)}},
-	Options: NewIndexOptionsBuilder().Name("fooIndex").Build(),
+	Options: options.Index().SetName("fooIndex"),
 }
 
 var barIndex = IndexModel{
 	Keys:    bsonx.Doc{{"bar", bsonx.Int32(-1)}},
-	Options: NewIndexOptionsBuilder().Name("barIndex").Build(),
+	Options: options.Index().SetName("barIndex"),
 }
 
 var bazIndex = IndexModel{
 	Keys:    bsonx.Doc{{"baz", bsonx.Int32(-1)}},
-	Options: NewIndexOptionsBuilder().Name("bazIndex").Build(),
+	Options: options.Index().SetName("bazIndex"),
 }
 
 func createFuncMap(t *testing.T, dbName string, collName string, monitored bool) (*Client, *Database, *Collection, []CollFunction) {
