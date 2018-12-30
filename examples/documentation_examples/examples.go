@@ -1860,15 +1860,14 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 61
 		//
-        // group by uom
-        // Expected result:
-        //  { "numOfItems" : 2, "uom" : "in" }
+		// group by uom
+		// Expected result:
+		//  { "numOfItems" : 2, "uom" : "in" }
 		//  { "numOfItems" : 3, "uom" : "cm" }
 
-
-        query := mongo.Pipeline{
-        	// group by uom:
-        	bson.D{
+		query := mongo.Pipeline{
+			// group by uom:
+			bson.D{
 				{"$group", bson.D{
 					{"_id", "$size.uom"},
 					{"numOfItems", bson.D{
@@ -1878,7 +1877,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 			},
 			// re-shape the result to get meaningful output
 			bson.D{
-				{"$project",bson.D{
+				{"$project", bson.D{
 					{"_id", 0},
 					{"uom", "$_id"},
 					{"numOfItems", 1},
@@ -1893,8 +1892,8 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		type AggRes struct {
-			NumOfItems int `bson:"numOfItems"`
-			Uom string `bson:"uom"`
+			NumOfItems int    `bson:"numOfItems"`
+			Uom        string `bson:"uom"`
 		}
 
 		count := 0
