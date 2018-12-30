@@ -1115,7 +1115,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1152,7 +1152,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			require.False(t, containsKey(doc, "_id"))
@@ -1188,7 +1188,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1225,7 +1225,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1234,10 +1234,9 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			require.True(t, containsKey(doc, "size"))
 			require.False(t, containsKey(doc, "instock"))
 
-			require.True(t, containsKey(doc, "uom", "size"))
-			require.False(t, containsKey(doc, "h", "size"))
-			require.False(t, containsKey(doc, "w", "size"))
-
+			require.True(t, containsKey(doc, "size", "uom"))
+			require.False(t, containsKey(doc, "size", "h"))
+			require.False(t, containsKey(doc, "size", "w"))
 		}
 
 		require.NoError(t, cursor.Err())
@@ -1265,7 +1264,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1274,9 +1273,9 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			require.True(t, containsKey(doc, "size"))
 			require.True(t, containsKey(doc, "instock"))
 
-			require.False(t, containsKey(doc, "uom", "size"))
-			require.True(t, containsKey(doc, "h", "size"))
-			require.True(t, containsKey(doc, "w", "size"))
+			require.False(t, containsKey(doc, "size", "uom"))
+			require.True(t, containsKey(doc, "size", "h"))
+			require.True(t, containsKey(doc, "size", "w"))
 
 		}
 
@@ -1307,7 +1306,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1360,7 +1359,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1537,7 +1536,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			uom, err := doc.LookupErr("size", "uom")
@@ -1594,7 +1593,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			uom, err := doc.LookupErr("size", "uom")
@@ -1651,7 +1650,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(doc)
+			err := cursor.Decode(&doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1775,13 +1774,148 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 	}
 
 	{
-		// Start Example 56
+		// Start Example 59
 
 		result, err := coll.DeleteMany(context.Background(), bsonx.Doc{})
 
-		// End Example 56
+		// End Example 59
 
 		require.NoError(t, err)
 		require.Equal(t, int64(2), result.DeletedCount)
+	}
+}
+
+func AggregationExamples(t *testing.T, db *mongo.Database) {
+	err := db.RunCommand(
+		context.Background(),
+		bson.D{{"dropDatabase", 1}},
+	).Err()
+	require.NoError(t, err)
+
+	coll := db.Collection("inventory")
+
+	{
+		// Start Example 60
+		docs := []interface{}{
+			bson.D{
+				{"item", "journal"},
+				{"qty", 25},
+				{"size", bson.D{
+					{"h", 14},
+					{"w", 21},
+					{"uom", "cm"},
+				}},
+				{"status", "A"},
+			},
+			bson.D{
+				{"item", "notebook"},
+				{"qty", 50},
+				{"size", bson.D{
+					{"h", 8.5},
+					{"w", 11},
+					{"uom", "in"},
+				}},
+				{"status", "P"},
+			},
+			bson.D{
+				{"item", "paper"},
+				{"qty", 100},
+				{"size", bson.D{
+					{"h", 8.5},
+					{"w", 11},
+					{"uom", "in"},
+				}},
+				{"status", "D"},
+			},
+			bson.D{
+				{"item", "planner"},
+				{"qty", 75},
+				{"size", bson.D{
+					{"h", 22.85},
+					{"w", 30},
+					{"uom", "cm"},
+				}},
+				{"status", "D"},
+			},
+			bson.D{
+				{"item", "postcard"},
+				{"qty", 45},
+				{"size", bson.D{
+					{"h", 10},
+					{"w", 15.25},
+					{"uom", "cm"},
+				}},
+				{"status", "A"},
+			},
+		}
+
+		result, err := coll.InsertMany(context.Background(), docs)
+
+		// End Example 60
+
+		require.NoError(t, err)
+		require.Len(t, result.InsertedIDs, 5)
+	}
+
+	{
+		// Start Example 61
+		//
+		// group by uom
+		// Expected result:
+		//  { "numOfItems" : 2, "uom" : "in" }
+		//  { "numOfItems" : 3, "uom" : "cm" }
+
+		query := mongo.Pipeline{
+			// group by uom:
+			bson.D{
+				{"$group", bson.D{
+					{"_id", "$size.uom"},
+					{"numOfItems", bson.D{
+						{"$sum", 1},
+					}}},
+				},
+			},
+			// re-shape the result to get meaningful output
+			bson.D{
+				{"$project", bson.D{
+					{"_id", 0},
+					{"uom", "$_id"},
+					{"numOfItems", 1},
+				}}},
+		}
+
+		cursor, err := coll.Aggregate(
+			context.Background(),
+			query,
+		)
+
+		require.NoError(t, err)
+
+		type AggRes struct {
+			NumOfItems int    `bson:"numOfItems"`
+			Uom        string `bson:"uom"`
+		}
+
+		count := 0
+		defer cursor.Close(context.Background())
+		for cursor.Next(context.Background()) {
+			count++
+			doc := AggRes{}
+			err := cursor.Decode(&doc)
+			require.NoError(t, err)
+
+			switch doc.Uom {
+			case "cm":
+				require.Equal(t, 3, doc.NumOfItems, "numOfItems should be 3, but it's %d", doc.NumOfItems)
+			case "in":
+				require.Equal(t, 2, doc.NumOfItems, "numOfItems should be 2, but it's %d", doc.NumOfItems)
+			default:
+				t.Error("unknown uom: ", doc.Uom)
+			}
+		}
+
+		require.Equal(t, 2, count, "should be 2 items in the result. actually, there are %d", count)
+
+		// End Example 61
 	}
 }
