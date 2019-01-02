@@ -90,11 +90,12 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 	}
 
 	bytesCopied := 0
+	copied := 0
 	var err error
 	for bytesCopied < len(p) {
 		if ds.bufferStart == 0 {
 			// buffer empty
-			err = ds.fillBuffer(ctx)
+			copied, err = ds.fillBuffer(ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
 					return bytesCopied, nil
@@ -104,8 +105,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 			}
 		}
 
-		copied := copy(p, ds.buffer[ds.bufferStart:])
-		fmt.Println("copied in Read: ", copied)
+		copy(p, ds.buffer[ds.bufferStart:ds.bufferStart+copied])
 		bytesCopied += copied
 		ds.bufferStart = (ds.bufferStart + copied) % int(ds.chunkSize)
 	}
@@ -133,7 +133,7 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 
 	for skipped < skip {
 		if ds.bufferStart == 0 {
-			err = ds.fillBuffer(ctx)
+			_, err = ds.fillBuffer(ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
 					return skipped, nil
@@ -160,46 +160,42 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 	return skip, nil
 }
 
-func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
+func (ds *DownloadStream) fillBuffer(ctx context.Context) (int, error) {
 	if !ds.cursor.Next(ctx) {
 		ds.done = true
-		return errNoMoreChunks
+		return 0, errNoMoreChunks
 	}
 
 	nextChunk, err := ds.cursor.DecodeBytes()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	chunkIndex, err := nextChunk.LookupErr("n")
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if chunkIndex.Int32() != ds.expectedChunk {
-		return ErrWrongIndex
+		return 0, ErrWrongIndex
 	}
 
 	ds.expectedChunk++
 	data, err := nextChunk.LookupErr("data")
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	_, dataBytes := data.Binary()
 
 	bytesLen := int32(len(dataBytes))
-	fmt.Println("bytesLen: ", bytesLen)
 	if ds.expectedChunk == ds.numChunks {
 		// final chunk can be fewer than ds.chunkSize bytes
 		bytesDownloaded := ds.chunkSize * (ds.expectedChunk - 1)
 		bytesRemaining := ds.fileLen - int64(bytesDownloaded)
-		fmt.Println(bytesLen)
-		fmt.Println(bytesRemaining)
 	}
 
 	copied := copy(ds.buffer, dataBytes)
-	fmt.Println("copied in fill buffer: ", copied)
 	ds.bufferStart = 0
-	return nil
+	return copied, nil
 }
