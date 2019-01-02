@@ -145,6 +145,30 @@
     },
     {
       "key": {
+        "uuid": "9ed5044b_7fd9e2b6",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-02T15:39:05Z",
+      "side": 1,
+      "message": "Got it - thanks for the explanation! Much appreciated.",
+      "parentUuid": "77bfeda8_7c80ab42",
+      "range": {
+        "startLine": 278,
+        "startChar": 14,
+        "endLine": 278,
+        "endChar": 20
+      },
+      "revId": "836689a0441b47b0066fbaf73ad8069e3fffd0d5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a184fdfe_a6728a2b",
         "filename": "mongo/collection.go",
         "patchSetId": 2
