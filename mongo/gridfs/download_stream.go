@@ -107,6 +107,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 
 		copy(p, ds.buffer[ds.bufferStart:ds.bufferStart+copied])
 		bytesCopied += copied
+		fmt.Println("copied:", copied)
 		ds.bufferStart = (ds.bufferStart + copied) % int(ds.chunkSize)
 	}
 
@@ -163,36 +164,43 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 func (ds *DownloadStream) fillBuffer(ctx context.Context) (int, error) {
 	if !ds.cursor.Next(ctx) {
 		ds.done = true
+		fmt.Println("no next chunk")
 		return 0, errNoMoreChunks
 	}
 
 	nextChunk, err := ds.cursor.DecodeBytes()
 	if err != nil {
+		fmt.Println("could not decode")
 		return 0, err
 	}
 
 	chunkIndex, err := nextChunk.LookupErr("n")
 	if err != nil {
+		fmt.Println("err looking up")
 		return 0, err
 	}
 
 	if chunkIndex.Int32() != ds.expectedChunk {
+		fmt.Println("not expected chunk")
 		return 0, ErrWrongIndex
 	}
 
 	ds.expectedChunk++
 	data, err := nextChunk.LookupErr("data")
 	if err != nil {
+		fmt.Println("err looking up")
 		return 0, err
 	}
 
 	_, dataBytes := data.Binary()
-
+	fmt.Println(string(dataBytes))
 	bytesLen := int32(len(dataBytes))
 	if ds.expectedChunk == ds.numChunks {
 		// final chunk can be fewer than ds.chunkSize bytes
 		bytesDownloaded := ds.chunkSize * (ds.expectedChunk - 1)
 		bytesRemaining := ds.fileLen - int64(bytesDownloaded)
+		fmt.Println("bytesLen: ", bytesLen)
+		fmt.Println("bytesRemaining: ", bytesRemaining)
 	}
 
 	copied := copy(ds.buffer, dataBytes)
