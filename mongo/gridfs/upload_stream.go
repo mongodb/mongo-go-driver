@@ -106,14 +106,6 @@ func (us *UploadStream) Write(p []byte) (int, error) {
 
 	origLen := len(p)
 	for {
-		if us.bufferIndex == UploadBufferSize {
-			err := us.uploadChunks(ctx)
-			if err != nil {
-				return 0, err
-			}
-			us.bufferIndex = 0
-		}
-
 		if len(p) == 0 {
 			break
 		}
@@ -121,9 +113,18 @@ func (us *UploadStream) Write(p []byte) (int, error) {
 		n := copy(us.buffer[us.bufferIndex:], p) // copy as much as possible
 		p = p[n:]
 		us.bufferIndex += n
+
+		if us.bufferIndex == UploadBufferSize {
+			err := us.uploadChunks(ctx)
+			if err != nil {
+				return 0, err
+			}
+			us.bufferIndex = 0
+			continue
+		}
+
 		break
 	}
-
 	return origLen, nil
 }
 
