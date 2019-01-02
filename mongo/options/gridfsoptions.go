@@ -19,7 +19,7 @@ import (
 var DefaultName = "fs"
 
 // DefaultChunkSize is the default size of each file chunk in bytes.
-var DefaultChunkSize int32 = 255 * 1000
+var DefaultChunkSize int32 = 3 //255 * 1000
 
 // DefaultRevision is the default revision number for a download by name operation.
 var DefaultRevision int32 = -1

@@ -27,7 +27,7 @@ import (
 // TODO: add sessions options
 
 // DefaultChunkSize is the default size of each file chunk.
-const DefaultChunkSize int32 = 255 * 1000 // 255 KB
+const DefaultChunkSize int32 = 3 // 255 * 1000 // 255 KB
 
 // ErrFileNotFound occurs if a user asks to download a file with a file ID that isn't found in the files collection.
 var ErrFileNotFound = errors.New("file with given parameters not found")
