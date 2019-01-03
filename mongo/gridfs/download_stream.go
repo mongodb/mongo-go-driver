@@ -93,7 +93,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 	var err error
 	if ds.bufferStart == 0 {
 		// Buffer is empty and can load in data from new chunk.
-		_, err = ds.fillBuffer(ctx)
+		err = ds.fillBuffer(ctx)
 		if err != nil {
 			if err == errNoMoreChunks {
 				return 0, nil
@@ -105,12 +105,10 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 
 	copied := copy(p, ds.buffer[ds.bufferStart:ds.bufferEnd])
 
-	// update buffer start
-	if ds.chunkSize < int32(len(p)) || copied < len(p) && ds.chunkSize > int32(len(p)) {
+	if copied < len(p) {
 		ds.bufferStart = 0
 	} else {
-		ds.bufferStart = int(int32(ds.bufferStart+len(p)) % ds.chunkSize) // mod chunk size so itll eventually get back to 0
-
+		ds.bufferStart += len(p)
 	}
 	return int(copied), nil
 }
@@ -135,7 +133,7 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 
 	for skipped < skip {
 		if ds.bufferStart == 0 {
-			_, err = ds.fillBuffer(ctx)
+			err = ds.fillBuffer(ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
 					return skipped, nil
@@ -162,30 +160,30 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 	return skip, nil
 }
 
-func (ds *DownloadStream) fillBuffer(ctx context.Context) (int, error) {
+func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	if !ds.cursor.Next(ctx) {
 		ds.done = true
-		return 0, errNoMoreChunks
+		return errNoMoreChunks
 	}
 
 	nextChunk, err := ds.cursor.DecodeBytes()
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	chunkIndex, err := nextChunk.LookupErr("n")
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	if chunkIndex.Int32() != ds.expectedChunk {
-		return 0, ErrWrongIndex
+		return ErrWrongIndex
 	}
 
 	ds.expectedChunk++
 	data, err := nextChunk.LookupErr("data")
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	_, dataBytes := data.Binary()
@@ -194,5 +192,5 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) (int, error) {
 	ds.bufferStart = 0
 	ds.bufferEnd = copied
 
-	return copied, nil
+	return nil
 }
