@@ -91,6 +91,30 @@
       "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "38c9ee29_4e6f141c",
+        "filename": "x/mongo/driver/create_indexes.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-03T16:13:50Z",
+      "side": 1,
+      "message": "The specification says the driver must raise an error: https://github.com/mongodb/specifications/blob/master/source/collation/collation.rst#require-maxwireversion-5",
+      "parentUuid": "affdfb6e_f6182bff",
+      "range": {
+        "startLine": 41,
+        "startChar": 0,
+        "endLine": 41,
+        "endChar": 1
+      },
+      "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
