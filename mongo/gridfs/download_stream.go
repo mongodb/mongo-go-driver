@@ -8,13 +8,13 @@ package gridfs
 
 import (
 	"context"
-	"math"
 
 	"errors"
 
 	"time"
 
 	"io"
+	"math"
 
 	"github.com/mongodb/mongo-go-driver/mongo"
 )
@@ -36,6 +36,7 @@ type DownloadStream struct {
 	closed        bool
 	buffer        []byte // store up to 1 chunk if the user provided buffer isn't big enough
 	bufferStart   int
+	bufferEnd     int
 	expectedChunk int32 // index of next expected chunk
 	readDeadline  time.Time
 	fileLen       int64
@@ -43,6 +44,7 @@ type DownloadStream struct {
 
 func newDownloadStream(cursor mongo.Cursor, chunkSize int32, fileLen int64) *DownloadStream {
 	numChunks := int32(math.Ceil(float64(fileLen) / float64(chunkSize)))
+
 	return &DownloadStream{
 		numChunks: numChunks,
 		chunkSize: chunkSize,
@@ -79,7 +81,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		return 0, ErrStreamClosed
 	}
 
-	if ds.done || int64(ds.bufferStart) > ds.fileLen {
+	if ds.done {
 		return 0, io.EOF
 	}
 
@@ -88,11 +90,10 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		defer cancel()
 	}
 
-	dataBytes := 0
 	var err error
 	if ds.bufferStart == 0 {
 		// Buffer is empty and can load in data from new chunk.
-		dataBytes, err = ds.fillBuffer(ctx)
+		_, err = ds.fillBuffer(ctx)
 		if err != nil {
 			if err == errNoMoreChunks {
 				return 0, nil
@@ -102,17 +103,10 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		}
 	}
 
-	copy(p, ds.buffer[ds.bufferStart:])
-
-	// If chunkSize > len(p), we copy len(p) bytes. **not always! could not have that much left over.**
-	// Otherwise we load in one chunk. **this databytes thing should matter then!**
-	copied := float64(len(p))
-	if dataBytes != 0 {
-		copied = math.Min(float64(dataBytes), float64(len(p)))
-	}
+	copied := copy(p, ds.buffer[ds.bufferStart:ds.bufferEnd])
 
 	// update buffer start
-	if ds.chunkSize < int32(len(p)) || ds.bufferStart > 0 && ds.bufferStart < len(p) {
+	if ds.chunkSize < int32(len(p)) || copied < len(p) && ds.chunkSize > int32(len(p)) {
 		ds.bufferStart = 0
 	} else {
 		ds.bufferStart = int(int32(ds.bufferStart+len(p)) % ds.chunkSize) // mod chunk size so itll eventually get back to 0
@@ -196,6 +190,9 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) (int, error) {
 
 	_, dataBytes := data.Binary()
 	copied := copy(ds.buffer, dataBytes)
+
 	ds.bufferStart = 0
+	ds.bufferEnd = copied
+
 	return copied, nil
 }
