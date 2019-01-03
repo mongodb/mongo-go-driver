@@ -8,13 +8,13 @@ package gridfs
 
 import (
 	"context"
+	"math"
 
 	"errors"
 
 	"time"
 
 	"io"
-	"math"
 
 	"github.com/mongodb/mongo-go-driver/mongo"
 )
@@ -79,7 +79,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		return 0, ErrStreamClosed
 	}
 
-	if ds.done {
+	if ds.done || int64(ds.bufferStart) > ds.fileLen {
 		return 0, io.EOF
 	}
 
@@ -88,27 +88,37 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		defer cancel()
 	}
 
-	bytesCopied := 0
-	copied := 0
+	dataBytes := 0
 	var err error
-	for bytesCopied < len(p) {
-		if ds.bufferStart == 0 {
-			// buffer empty
-			copied, err = ds.fillBuffer(ctx)
-			if err != nil {
-				if err == errNoMoreChunks {
-					return bytesCopied, nil
-				}
-
-				return bytesCopied, err
+	if ds.bufferStart == 0 {
+		// Buffer is empty and can load in data from new chunk.
+		dataBytes, err = ds.fillBuffer(ctx)
+		if err != nil {
+			if err == errNoMoreChunks {
+				return 0, nil
 			}
-		}
 
-		copy(p[bytesCopied:], ds.buffer[ds.bufferStart:])
-		bytesCopied += copied
+			return 0, err
+		}
 	}
 
-	return len(p), nil
+	copy(p, ds.buffer[ds.bufferStart:])
+
+	// If chunkSize > len(p), we copy len(p) bytes. **not always! could not have that much left over.**
+	// Otherwise we load in one chunk. **this databytes thing should matter then!**
+	copied := float64(len(p))
+	if dataBytes != 0 {
+		copied = math.Min(float64(dataBytes), float64(len(p)))
+	}
+
+	// update buffer start
+	if ds.chunkSize < int32(len(p)) || ds.bufferStart > 0 && ds.bufferStart < len(p) {
+		ds.bufferStart = 0
+	} else {
+		ds.bufferStart = int(int32(ds.bufferStart+len(p)) % ds.chunkSize) // mod chunk size so itll eventually get back to 0
+
+	}
+	return int(copied), nil
 }
 
 // Skip skips a given number of bytes in the file.
