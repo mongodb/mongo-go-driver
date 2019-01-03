@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ffc7251f_e6672fed",
+        "filename": "mongo/options/indexoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-03T03:57:02Z",
+      "side": 1,
+      "message": "Why is there a default language?",
+      "range": {
+        "startLine": 14,
+        "startChar": 0,
+        "endLine": 14,
+        "endChar": 3
+      },
+      "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "22da2a79_c6e9d49a",
+        "filename": "mongo/options/indexoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-03T03:57:02Z",
+      "side": 1,
+      "message": "Java driver has this as in Int64",
+      "range": {
+        "startLine": 122,
+        "startChar": 0,
+        "endLine": 122,
+        "endChar": 1
+      },
+      "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5dd65176_ac8621ae",
+        "filename": "mongo/options/indexoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-03T03:57:02Z",
+      "side": 1,
+      "message": "Java driver has this as floating point.  Not sure why, but double check it.",
+      "range": {
+        "startLine": 136,
+        "startChar": 0,
+        "endLine": 136,
+        "endChar": 1
+      },
+      "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "affdfb6e_f6182bff",
+        "filename": "x/mongo/driver/create_indexes.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-03T03:57:02Z",
+      "side": 1,
+      "message": "Can we let the server report this error instead of detecting client-side?  That is our usual practice for acknowledged commands.",
+      "range": {
+        "startLine": 41,
+        "startChar": 0,
+        "endLine": 41,
+        "endChar": 1
+      },
+      "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
