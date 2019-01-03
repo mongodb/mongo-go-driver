@@ -184,6 +184,10 @@ const rfc3339Milli = "2006-01-02T15:04:05.999Z07:00"
 
 func (ejv *extJSONValue) parseDateTime() (int64, error) {
 	switch ejv.t {
+	case bsontype.Int32:
+		return int64(ejv.v.(int32)), nil
+	case bsontype.Int64:
+		return ejv.v.(int64), nil
 	case bsontype.String:
 		return parseDatetimeString(ejv.v.(string))
 	case bsontype.EmbeddedDocument:
