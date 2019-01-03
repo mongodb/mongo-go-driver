@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "90492874_da1b1fca",
+        "filename": "mongo/options/indexoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-03T16:17:35Z",
+      "side": 1,
+      "message": "The spec says \"Is english if none is provided.\" in the documentation for default language but I misinterpreted this to mean that the driver has to set this to english if not explicitly set by the user. I\u0027ll change this in the next patch.",
+      "parentUuid": "ffc7251f_e6672fed",
+      "range": {
+        "startLine": 14,
+        "startChar": 0,
+        "endLine": 14,
+        "endChar": 3
+      },
+      "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "22da2a79_c6e9d49a",
         "filename": "mongo/options/indexoptions.go",
         "patchSetId": 2
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "1af96c74_920bd6c5",
+        "filename": "mongo/options/indexoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-03T16:17:35Z",
+      "side": 1,
+      "message": "It\u0027s an int32 in the spec.",
+      "parentUuid": "22da2a79_c6e9d49a",
+      "range": {
+        "startLine": 122,
+        "startChar": 0,
+        "endLine": 122,
+        "endChar": 1
+      },
+      "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5dd65176_ac8621ae",
         "filename": "mongo/options/indexoptions.go",
         "patchSetId": 2
@@ -59,6 +107,30 @@
       "writtenOn": "2019-01-03T03:57:02Z",
       "side": 1,
       "message": "Java driver has this as floating point.  Not sure why, but double check it.",
+      "range": {
+        "startLine": 136,
+        "startChar": 0,
+        "endLine": 136,
+        "endChar": 1
+      },
+      "revId": "b7100be6499cb424f4faf6776a2ca8a957db4f9b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "97c8a938_48405cd6",
+        "filename": "mongo/options/indexoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-03T16:17:35Z",
+      "side": 1,
+      "message": "Also an int32 in the spec.",
+      "parentUuid": "5dd65176_ac8621ae",
       "range": {
         "startLine": 136,
         "startChar": 0,
