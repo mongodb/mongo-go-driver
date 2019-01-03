@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b19307ae_2ac15640",
+        "filename": "mongo/mongo_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-03T23:12:49Z",
+      "side": 1,
+      "message": "Not really sure if it\u0027s necessary, but consider adding a test where _id is already first and so doesn\u0027t have to move.",
+      "range": {
+        "startLine": 102,
+        "startChar": 0,
+        "endLine": 102,
+        "endChar": 1
+      },
+      "revId": "6390ae63b7f632de9e43b5907381f3d76c893bc6",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
