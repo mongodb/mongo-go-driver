@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cef7f313_f7b08041",
+        "filename": "x/network/integration/main_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-04T20:13:03Z",
+      "side": 1,
+      "message": "Should start with \"bootstrapConnections\" instead of \"bootstrapConnection\" and should say \"will listen for num connections on the return address\"",
+      "range": {
+        "startLine": 164,
+        "startChar": 3,
+        "endLine": 164,
+        "endChar": 22
+      },
+      "revId": "e7b1b029edf26a5f7b782657ebf647a459e48b13",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
