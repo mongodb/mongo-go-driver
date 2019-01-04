@@ -370,6 +370,7 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 			opts := []connection.Option{
 				connection.WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 				connection.WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+				connection.WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 			}
 			opts = append(opts, s.cfg.connectionOpts...)
 			// We override whatever handshaker is currently attached to the options with an empty
