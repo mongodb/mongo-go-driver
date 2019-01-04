@@ -22,6 +22,30 @@
       "revId": "e7b1b029edf26a5f7b782657ebf647a459e48b13",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7e33bf82_de4b8b35",
+        "filename": "x/network/integration/main_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 164,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-04T21:09:37Z",
+      "side": 1,
+      "message": "Private stuff doesn\u0027t have to follow the starts-with convention, but these changes make sense regardless of that. Updated.",
+      "parentUuid": "cef7f313_f7b08041",
+      "range": {
+        "startLine": 164,
+        "startChar": 3,
+        "endLine": 164,
+        "endChar": 22
+      },
+      "revId": "e7b1b029edf26a5f7b782657ebf647a459e48b13",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
