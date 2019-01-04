@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d31b1d55_a1c43c5e",
+        "filename": "bson/bson_corpus_spec_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 318,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-04T22:37:40Z",
+      "side": 1,
+      "message": "Should we be checking this error?",
+      "range": {
+        "startLine": 318,
+        "startChar": 10,
+        "endLine": 318,
+        "endChar": 13
+      },
+      "revId": "7451e2410bcdfbce9e9344f7b30e63146ba5db6e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
