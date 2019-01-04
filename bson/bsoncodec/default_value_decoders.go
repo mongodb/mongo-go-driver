@@ -679,6 +679,7 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.Value
 		dc.Ancestor = val.Type()
 	}
 
+	keyType := val.Type().Key()
 	for {
 		key, vr, err := dr.ReadElement()
 		if err == bsonrw.ErrEOD {
@@ -695,7 +696,7 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr bsonrw.Value
 			return err
 		}
 
-		val.SetMapIndex(reflect.ValueOf(key), elem)
+		val.SetMapIndex(reflect.ValueOf(key).Convert(keyType), elem)
 	}
 	return nil
 }
