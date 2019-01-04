@@ -64,7 +64,11 @@ func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
 // Registry r and stores the result in the value pointed to by val. If val is
 // nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 func UnmarshalExtJSONWithRegistry(r *bsoncodec.Registry, data []byte, canonical bool, val interface{}) error {
-	ejvr := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), canonical)
+	ejvr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), canonical)
+	if err != nil {
+		return err
+	}
+
 	return unmarshalFromReader(bsoncodec.DecodeContext{Registry: r}, ejvr, val)
 }
 
@@ -72,7 +76,11 @@ func UnmarshalExtJSONWithRegistry(r *bsoncodec.Registry, data []byte, canonical 
 // DecodeContext dc and stores the result in the value pointed to by val. If val is
 // nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 func UnmarshalExtJSONWithContext(dc bsoncodec.DecodeContext, data []byte, canonical bool, val interface{}) error {
-	ejvr := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), canonical)
+	ejvr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), canonical)
+	if err != nil {
+		return err
+	}
+
 	return unmarshalFromReader(dc, ejvr, val)
 }
 

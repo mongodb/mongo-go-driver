@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 func TestUnmarshal(t *testing.T) {
@@ -79,6 +80,14 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 		want := teststruct{1}
 		if !cmp.Equal(got, want) {
 			t.Errorf("Did not unmarshal as expected. got %v; want %v", got, want)
+		}
+	})
+
+	t.Run("UnmarshalExtJSONInvalidInput", func(t *testing.T) {
+		data := []byte("invalid")
+		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &M{})
+		if err != bsonrw.ErrInvalidJSON {
+			t.Fatalf("wanted ErrInvalidJSON, got %v", err)
 		}
 	})
 }
