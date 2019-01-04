@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cf695ca7_4261adbe",
+        "filename": "mongo/gridfs/download_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-04T19:42:37Z",
+      "side": 1,
+      "message": "Previously we copied the entirety of ds.buffer, which is of length chunkSize, even if the buffer is not full (partial chunk). Now we set ds.bufferEnd to the number of bytes in the current chunk.",
+      "revId": "2f09ff6d1a5f6828bd7b4df359a936f9ea4b11cf",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2aa267df_5ed26424",
+        "filename": "mongo/gridfs/download_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 115,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-04T19:42:37Z",
+      "side": 1,
+      "message": "Note that this implementation is less optimal than our old implementation in that it only loads at most one chunk into p before returning. I can add this back in later, but decided first to focus on correctness.",
+      "revId": "2f09ff6d1a5f6828bd7b4df359a936f9ea4b11cf",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "729b823e_a03f8e81",
+        "filename": "mongo/gridfs/upload_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-04T19:42:37Z",
+      "side": 1,
+      "message": "uploadChunks can be called multiple times. numChunks refers to the number of chunks that must be uploaded during this function call, whereas us.chunkIndex is an ongoing count which tracks how many total chunks we have uploaded. Previously, if uploadChunks was called a second time, us.chunkIndex would be out of bounds for the docs slice, causing it to panic.",
+      "revId": "2f09ff6d1a5f6828bd7b4df359a936f9ea4b11cf",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
