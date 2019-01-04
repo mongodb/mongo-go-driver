@@ -358,10 +358,14 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		Clock:   c.clock,
 	}
 
+	readSelector := description.CompositeSelector([]description.ServerSelector{
+		description.ReadPrefSelector(readpref.Primary()),
+		description.LatencySelector(c.localThreshold),
+	})
 	res, err := driver.ListDatabases(
 		ctx, cmd,
 		c.topology,
-		description.ReadPrefSelector(readpref.Primary()),
+		readSelector,
 		c.id,
 		c.topology.SessionPool,
 		opts...,

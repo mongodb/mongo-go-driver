@@ -233,10 +233,14 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		Clock:    db.client.clock,
 	}
 
+	readSelector := description.CompositeSelector([]description.ServerSelector{
+		description.ReadPrefSelector(readpref.Primary()),
+		description.LatencySelector(db.client.localThreshold),
+	})
 	cursor, err := driver.ListCollections(
 		ctx, cmd,
 		db.client.topology,
-		db.readSelector,
+		readSelector,
 		db.client.id,
 		db.client.topology.SessionPool,
 		opts...,
