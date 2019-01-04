@@ -2130,6 +2130,12 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
+				"map[mystring]interface{}",
+				map[mystring]interface{}{"pi": 3.14159},
+				buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
+				nil,
+			},
+			{
 				"-",
 				struct {
 					A string `bson:"-"`
