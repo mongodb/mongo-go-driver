@@ -10,6 +10,7 @@ import (
 	"context"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/network/connection"
@@ -83,6 +84,40 @@ func TestTopologyTopology(t *testing.T) {
 				t.Errorf(
 					"Should have closed the same number of connections as opened. closed %d; opened %d",
 					d.lenclosed(), d.lenopened())
+			}
+		})
+		t.Run("can disconnect from hung server", func(t *testing.T) {
+			bctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			start := make(chan struct{}, 1)
+			addr := bootstrapConnections(t, 5, func(_ net.Conn) {
+				start <- struct{}{}
+				<-bctx.Done()
+			})
+			topo, err := topology.New(
+				topology.WithConnString(
+					func(connstring.ConnString) connstring.ConnString {
+						cs, err := connstring.Parse("mongodb://" + addr.String() + "/")
+						noerr(t, err)
+						cs.ConnectTimeout = 20 * time.Millisecond
+						return cs
+					},
+				),
+			)
+			noerr(t, err)
+			err = topo.Connect(context.TODO())
+			noerr(t, err)
+			<-start
+			done := make(chan struct{}, 1)
+			go func() {
+				err := topo.Disconnect(bctx)
+				noerr(t, err)
+				done <- struct{}{}
+			}()
+			select {
+			case <-done:
+			case <-time.After(300 * time.Millisecond):
+				t.Error("Could not disconnect a topology within required timelimit")
 			}
 		})
 	})
