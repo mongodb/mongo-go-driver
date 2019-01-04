@@ -315,8 +315,8 @@ func runTest(t *testing.T, file string) {
 				err := UnmarshalExtJSON([]byte(s), true, &doc)
 				expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
 			case "0x13":
-				ejvr := bsonrw.NewExtJSONValueReader(strings.NewReader(s), true)
-				_, err := ejvr.ReadDecimal128()
+				ejvr, err := bsonrw.NewExtJSONValueReader(strings.NewReader(s), true)
+				_, err = ejvr.ReadDecimal128()
 				expectError(t, err, fmt.Sprintf("%s: expected parse error", p.Description))
 			default:
 				t.Errorf("Update test to check for parse errors for type %s", test.BsonType)

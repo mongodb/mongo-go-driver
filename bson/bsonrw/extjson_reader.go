@@ -32,10 +32,9 @@ func NewExtJSONValueReaderPool() *ExtJSONValueReaderPool {
 }
 
 // Get retrieves a ValueReader from the pool and uses src as the underlying ExtJSON.
-func (bvrp *ExtJSONValueReaderPool) Get(r io.Reader, canonical bool) ValueReader {
+func (bvrp *ExtJSONValueReaderPool) Get(r io.Reader, canonical bool) (ValueReader, error) {
 	vr := bvrp.pool.Get().(*extJSONValueReader)
-	vr = vr.reset(r, canonical)
-	return vr
+	return vr.reset(r, canonical)
 }
 
 // Put inserts a ValueReader into the pool. If the ValueReader is not a ExtJSON ValueReader nothing
@@ -46,7 +45,7 @@ func (bvrp *ExtJSONValueReaderPool) Put(vr ValueReader) (ok bool) {
 		return false
 	}
 
-	bvr = bvr.reset(nil, false)
+	bvr, _ = bvr.reset(nil, false)
 	bvrp.pool.Put(bvr)
 	return true
 }
@@ -68,22 +67,21 @@ type extJSONValueReader struct {
 // NewExtJSONValueReader creates a new ValueReader from a given io.Reader
 // It will interpret the JSON of r as canonical or relaxed according to the
 // given canonical flag
-func NewExtJSONValueReader(r io.Reader, canonical bool) ValueReader {
+func NewExtJSONValueReader(r io.Reader, canonical bool) (ValueReader, error) {
 	return newExtJSONValueReader(r, canonical)
 }
 
-func newExtJSONValueReader(r io.Reader, canonical bool) *extJSONValueReader {
+func newExtJSONValueReader(r io.Reader, canonical bool) (*extJSONValueReader, error) {
 	ejvr := new(extJSONValueReader)
 	return ejvr.reset(r, canonical)
 }
 
-func (ejvr *extJSONValueReader) reset(r io.Reader, canonical bool) *extJSONValueReader {
+func (ejvr *extJSONValueReader) reset(r io.Reader, canonical bool) (*extJSONValueReader, error) {
 	p := newExtJSONParser(r, canonical)
 	typ, err := p.peekType()
 
 	if err != nil {
-		// TODO: invalid JSON--return error message?
-		return nil
+		return nil, ErrInvalidJSON
 	}
 
 	var m mode
@@ -104,7 +102,7 @@ func (ejvr *extJSONValueReader) reset(r io.Reader, canonical bool) *extJSONValue
 	return &extJSONValueReader{
 		p:     p,
 		stack: stack,
-	}
+	}, nil
 }
 
 func (ejvr *extJSONValueReader) advanceFrame() {
