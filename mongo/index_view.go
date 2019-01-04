@@ -16,9 +16,11 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
 
 // ErrInvalidIndexValue indicates that the index Keys document has a value that isn't either a number or a string.
@@ -56,10 +58,14 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		Clock:   iv.coll.client.clock,
 	}
 
+	readSelector := description.CompositeSelector([]description.ServerSelector{
+		description.ReadPrefSelector(readpref.Primary()),
+		description.LatencySelector(iv.coll.client.localThreshold),
+	})
 	return driver.ListIndexes(
 		ctx, listCmd,
 		iv.coll.client.topology,
-		iv.coll.writeSelector,
+		readSelector,
 		iv.coll.client.id,
 		iv.coll.client.topology.SessionPool,
 		opts...,
