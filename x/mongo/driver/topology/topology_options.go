@@ -70,6 +70,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		c.seedList = cs.Hosts
 
 		if cs.ConnectTimeout > 0 {
+			c.serverOpts = append(c.serverOpts, WithHeartbeatTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
 			connOpts = append(connOpts, connection.WithConnectTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
 		}
 

@@ -160,3 +160,25 @@ func (d *dialer) lenclosed() int {
 	defer d.Unlock()
 	return len(d.closed)
 }
+
+// bootstrapConnections lists for num connections on the returned address. The user provided run
+// function will be called with the accepted connection. The user is responsible for closing the
+// connection.
+func bootstrapConnections(t *testing.T, num int, run func(net.Conn)) net.Addr {
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Errorf("Could not set up a listener: %v", err)
+		t.FailNow()
+	}
+	go func() {
+		for i := 0; i < num; i++ {
+			c, err := l.Accept()
+			if err != nil {
+				t.Errorf("Could not accept a connection: %v", err)
+			}
+			go run(c)
+		}
+		_ = l.Close()
+	}()
+	return l.Addr()
+}

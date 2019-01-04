@@ -32,7 +32,7 @@ type serverConfig struct {
 func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
 	cfg := &serverConfig{
 		heartbeatInterval: 10 * time.Second,
-		heartbeatTimeout:  30 * time.Second,
+		heartbeatTimeout:  10 * time.Second,
 		maxConns:          100,
 		maxIdleConns:      100,
 		registry:          defaultRegistry,
