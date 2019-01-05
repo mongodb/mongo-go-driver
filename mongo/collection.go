@@ -611,6 +611,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 	res := &UpdateResult{
 		MatchedCount:  r.MatchedCount,
 		ModifiedCount: r.ModifiedCount,
+		UpsertedCount: int64(len(r.Upserted)),
 	}
 	// TODO(skriptble): Is this correct? Do we only return the first upserted ID for an UpdateMany?
 	if len(r.Upserted) > 0 {
