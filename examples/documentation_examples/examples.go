@@ -1858,7 +1858,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	}
 
 	{
-		// Start Example 61
+		// Start Example 61 - Use mongo.Pipeline
 		//
         // group by uom
         // Expected result:
@@ -1892,31 +1892,169 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		type AggRes struct {
-			NumOfItems int `bson:"numOfItems"`
-			Uom string `bson:"uom"`
-		}
-
-		count := 0
-		defer cursor.Close(context.Background())
-		for cursor.Next(context.Background()) {
-			count++
-			doc := AggRes{}
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
-
-			switch doc.Uom {
-			case "cm":
-				require.Equal(t, 3, doc.NumOfItems, "numOfItems should be 3, but it's %d", doc.NumOfItems)
-			case "in":
-				require.Equal(t, 2, doc.NumOfItems, "numOfItems should be 2, but it's %d", doc.NumOfItems)
-			default:
-				t.Error("unknown uom: ", doc.Uom)
-			}
-		}
-
-		require.Equal(t, 2, count, "should be 2 items in the result. actually, there are %d", count)
+		checkAggregation(t, cursor)
 
 		// End Example 61
 	}
+
+	{
+		// Start Example 62 - use []bson.M
+		//
+        // group by uom
+        // Expected result:
+        //  { "numOfItems" : 2, "uom" : "in" }
+		//  { "numOfItems" : 3, "uom" : "cm" }
+
+
+        query := []bson.M{
+        	// group by uom:
+        	bson.M{"$group": bson.M{
+					"_id": "$size.uom",
+					"numOfItems": bson.M{
+						"$sum": 1,
+					},
+				},
+			},
+			// re-shape the result to get meaningful output
+			bson.M{
+				"$project": bson.M{
+					"_id": 0,
+					"uom": "$_id",
+					"numOfItems": 1,
+				},
+			},
+		}
+
+		cursor, err := coll.Aggregate(
+			context.Background(),
+			query,
+		)
+
+        require.NoError(t, err)
+
+		checkAggregation(t, cursor)
+
+		// End Example 62
+	}
+
+	{
+		// Start Example 63 - use []bson.D
+		//
+        // group by uom
+        // Expected result:
+        //  { "numOfItems" : 2, "uom" : "in" }
+		//  { "numOfItems" : 3, "uom" : "cm" }
+
+
+        query := []bson.D{
+        	// group by uom:
+        	bson.D{
+        	    {"$group", bson.D{
+					{"_id", "$size.uom"},
+					{"numOfItems", bson.D{
+						{"$sum", 1},
+					}},
+				}},
+			},
+			// re-shape the result to get meaningful output
+			bson.D{
+				{"$project", bson.D{
+					{"_id", 0},
+					{"uom", "$_id"},
+					{"numOfItems", 1},
+				}},
+			},
+		}
+
+		cursor, err := coll.Aggregate(
+			context.Background(),
+			query,
+		)
+
+        require.NoError(t, err)
+
+		checkAggregation(t, cursor)
+
+		// End Example 63
+	}
+
+	{
+		// Start Example 64 - use bson.A (with mix of bson.D and bson.M)
+		//
+        // group by uom
+        // Expected result:
+        //  { "numOfItems" : 2, "uom" : "in" }
+		//  { "numOfItems" : 3, "uom" : "cm" }
+
+
+        query := bson.A{
+        	// group by uom:
+        	bson.D{
+        	    {"$group", bson.D{
+					{"_id", "$size.uom"},
+					{"numOfItems", bson.D{
+						{"$sum", 1},
+					}},
+				}},
+			},
+			// re-shape the result to get meaningful output
+			bson.M{
+				"$project": bson.M{
+					"_id": 0,
+					"uom": "$_id",
+					"numOfItems": 1,
+				},
+			},
+		}
+
+		cursor, err := coll.Aggregate(
+			context.Background(),
+			query,
+		)
+
+        require.NoError(t, err)
+
+		checkAggregation(t, cursor)
+
+		// End Example 64
+	}
 }
+
+type AggRes struct {
+    NumOfItems int `bson:"numOfItems"`
+    Uom string `bson:"uom"`
+}
+
+func checkAggregation(t *testing.T, cursor mongo.Cursor) {
+    count := 0
+    hasCm, hasInch := false, false
+
+    defer cursor.Close(context.Background())
+
+    for cursor.Next(context.Background()) {
+        count++
+        doc := AggRes{}
+        err := cursor.Decode(&doc)
+        require.NoError(t, err)
+
+        switch doc.Uom {
+        case "cm":
+            require.False(t, hasCm, "should be only one 'cm' document in the result")
+            hasCm = true
+            require.Equal(t, 3, doc.NumOfItems, "numOfItems should be 3, but it's %d", doc.NumOfItems)
+        case "in":
+            require.False(t, hasInch, "should be only one 'in' document in the result")
+            hasInch = true
+            require.Equal(t, 2, doc.NumOfItems, "numOfItems should be 2, but it's %d", doc.NumOfItems)
+        default:
+            t.Error("unknown uom: ", doc.Uom)
+        }
+    }
+
+    require.True(t, hasCm, "should be exactly one 'cm' document in the result")
+    require.True(t, hasInch, "should be exactly one 'in' document in the result")
+
+    require.Equal(t, 2, count, "should be 2 items in the result. actually, there are %d", count)
+}
+
+
