@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "292226b6_7f58fc65",
+        "filename": "mongo/options/gridfsoptions.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-07T18:42:22Z",
+      "side": 1,
+      "message": "I think a better fix would be to change GridFSUpload() to not set ChunkSizeBytes. Reading the spec again, there\u0027s nothing in there about default chunk size, so we shouldn\u0027t set that value by ourselves. With the current change, if a user just calls options.GridFSUpload() and passes the result into the upload functions, we\u0027d use DefaultChunkSize rather than the bucket\u0027s value.",
+      "range": {
+        "startLine": 133,
+        "startChar": 7,
+        "endLine": 133,
+        "endChar": 20
+      },
+      "revId": "309e41bbfa2eaea722dd6c7953b8054f2e70945b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
