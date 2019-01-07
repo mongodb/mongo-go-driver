@@ -35,7 +35,8 @@ type SingleResult struct {
 func (sr *SingleResult) Decode(v interface{}) error {
 	if sr.err != nil {
 		return sr.err
-	} else if sr.reg == nil {
+	}
+	if sr.reg == nil {
 		return bson.ErrNilRegistry
 	}
 	switch {
