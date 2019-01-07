@@ -398,6 +398,34 @@ func newClientChangeStream(ctx context.Context, client *Client, pipeline interfa
 	return cs, nil
 }
 
+func (cs *changeStream) getResumeToken() error {
+	br, err := cs.cursor.DecodeBytes()
+	if err != nil {
+		return err
+	}
+
+	idVal, err := br.LookupErr("_id")
+	if err != nil {
+		_ = cs.Close(context.Background())
+		return ErrMissingResumeToken
+	}
+
+	var idDoc bson.Raw
+	idDoc, ok := idVal.DocumentOK()
+	if !ok {
+		_ = cs.Close(context.Background())
+		return ErrMissingResumeToken
+	}
+	tokenDoc, err := bsonx.ReadDoc(idDoc)
+	if err != nil {
+		_ = cs.Close(context.Background())
+		return ErrMissingResumeToken
+	}
+
+	cs.resumeToken = tokenDoc
+	return nil
+}
+
 func (cs *changeStream) ID() int64 {
 	if cs.cursor == nil {
 		return 0
@@ -412,6 +440,12 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 	}
 
 	if cs.cursor.Next(ctx) {
+		err := cs.getResumeToken()
+		if err != nil {
+			cs.err = err
+			return false
+		}
+
 		return true
 	}
 
@@ -438,7 +472,7 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		return false
 	}
 
-	return true
+	return cs.Next(ctx) // recursively call Next() to increment the underlying cursor's position
 }
 
 func (cs *changeStream) Decode(out interface{}) error {
@@ -458,32 +492,11 @@ func (cs *changeStream) DecodeBytes() (bson.Raw, error) {
 	if cs.cursor == nil {
 		return nil, ErrNilCursor
 	}
-
-	br, err := cs.cursor.DecodeBytes()
-	if err != nil {
-		return nil, err
+	if cs.err != nil {
+		return nil, cs.err
 	}
 
-	idVal, err := br.LookupErr("_id")
-	if err != nil {
-		_ = cs.Close(context.Background())
-		return nil, ErrMissingResumeToken
-	}
-
-	var idDoc bson.Raw
-	idDoc, ok := idVal.DocumentOK()
-	if !ok {
-		_ = cs.Close(context.Background())
-		return nil, ErrMissingResumeToken
-	}
-	tokenDoc, err := bsonx.ReadDoc(idDoc)
-	if err != nil {
-		_ = cs.Close(context.Background())
-		return nil, ErrMissingResumeToken
-	}
-
-	cs.resumeToken = tokenDoc
-	return br, nil
+	return cs.cursor.DecodeBytes()
 }
 
 func (cs *changeStream) Err() error {
