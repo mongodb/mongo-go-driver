@@ -46,6 +46,30 @@
       "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f576fcc3_e1e68db7",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 373,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-07T17:37:46Z",
+      "side": 1,
+      "message": "Is there a guarantee that the connect timeout will always be non-infinite, regardless of what the user tries to do in the configuration?  I think the behavior should be that if the connect timeout is set to a non-infinite value, use the connect timeout for all timeouts of the heartbeat connection (connect, read, write).  Otherwise, use 10 seconds as the value for all timeouts.",
+      "parentUuid": "1d7f1521_b3e28758",
+      "range": {
+        "startLine": 373,
+        "startChar": 0,
+        "endLine": 373,
+        "endChar": 1
+      },
+      "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
