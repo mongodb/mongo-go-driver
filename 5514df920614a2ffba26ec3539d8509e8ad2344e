@@ -73,6 +73,24 @@
     },
     {
       "key": {
+        "uuid": "964a72a0_cdd510e0",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 510,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-07T18:56:35Z",
+      "side": 0,
+      "message": "Ack",
+      "parentUuid": "d6db4ebf_5ef833b2",
+      "revId": "5514df920614a2ffba26ec3539d8509e8ad2344e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "43154ea5_85100081",
         "filename": "mongo/gridfs/download_stream.go",
         "patchSetId": 2
