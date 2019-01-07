@@ -22,6 +22,30 @@
       "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1d7f1521_b3e28758",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 373,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-07T17:30:43Z",
+      "side": 1,
+      "message": "I may be wrong, but I think the actual fix for the reported issue was done in topology_options.go, where the if cs.ConnectTimeout \u003e 0 block was extended to pass cs.ConnectTimeout down to the server as the heartbeat timeout.",
+      "parentUuid": "0d8a165f_d2e62a4d",
+      "range": {
+        "startLine": 373,
+        "startChar": 0,
+        "endLine": 373,
+        "endChar": 1
+      },
+      "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
