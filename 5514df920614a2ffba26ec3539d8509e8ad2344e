@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "1bd42b89_d207c77b",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 510,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-07T17:13:03Z",
+      "side": 0,
+      "message": "uo.ChunkSizeBytes is never nil. MergeUploadOptions begins by initializing an UploadOptions object with ChunkSizeBytes set to DefaultChunkSize. Therefore if the user supplied the chunk size while creating the bucket and created the upload stream without options, uo.ChunkSizeBytes will be non-nil with a value of DefaultChunkSize and will overwrite b.chunkSize.\n\nI did not consider that edge case (point 2) however, so thanks for pointing that out! Maybe a better solution would be change MergeUploadOptions to initialize u without setting ChunkSizeBytes.",
+      "parentUuid": "146528d3_107be88c",
+      "revId": "5514df920614a2ffba26ec3539d8509e8ad2344e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "43154ea5_85100081",
         "filename": "mongo/gridfs/download_stream.go",
         "patchSetId": 2
