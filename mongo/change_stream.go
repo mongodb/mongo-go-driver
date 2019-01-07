@@ -205,42 +205,13 @@ func (cs *changeStream) runCommand(ctx context.Context, replaceOptions bool) err
 	}
 	cs.cursor = cursor
 
-	// can get resume token from initial aggregate command if non-empty batch
-	// operationTime from aggregate saved in the session
 	cursorValue, err := rdr.LookupErr("cursor")
 	if err != nil {
 		return err
 	}
 	cursorDoc := cursorValue.Document()
-
 	cs.ns = command.ParseNamespace(cursorDoc.Lookup("ns").StringValue())
 
-	batchVal := cursorDoc.Lookup("firstBatch")
-	if err != nil {
-		return err
-	}
-
-	batch := batchVal.Array()
-	elements, err := batch.Elements()
-	if err != nil {
-		return err
-	}
-
-	if len(elements) == 0 {
-		return nil // no resume token
-	}
-
-	firstElem, err := batch.IndexErr(0)
-	if err != nil {
-		return err
-	}
-
-	tokenDoc, err := bsonx.ReadDoc(firstElem.Value().Document().Lookup("_id").Document())
-	if err != nil {
-		return err
-	}
-
-	cs.resumeToken = tokenDoc
 	return nil
 }
 
@@ -398,6 +369,34 @@ func newClientChangeStream(ctx context.Context, client *Client, pipeline interfa
 	return cs, nil
 }
 
+func (cs *changeStream) storeResumeToken() error {
+	br, err := cs.cursor.DecodeBytes()
+	if err != nil {
+		return err
+	}
+
+	idVal, err := br.LookupErr("_id")
+	if err != nil {
+		_ = cs.Close(context.Background())
+		return ErrMissingResumeToken
+	}
+
+	var idDoc bson.Raw
+	idDoc, ok := idVal.DocumentOK()
+	if !ok {
+		_ = cs.Close(context.Background())
+		return ErrMissingResumeToken
+	}
+	tokenDoc, err := bsonx.ReadDoc(idDoc)
+	if err != nil {
+		_ = cs.Close(context.Background())
+		return ErrMissingResumeToken
+	}
+
+	cs.resumeToken = tokenDoc
+	return nil
+}
+
 func (cs *changeStream) ID() int64 {
 	if cs.cursor == nil {
 		return 0
@@ -412,6 +411,12 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 	}
 
 	if cs.cursor.Next(ctx) {
+		err := cs.storeResumeToken()
+		if err != nil {
+			cs.err = err
+			return false
+		}
+
 		return true
 	}
 
@@ -438,7 +443,7 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		return false
 	}
 
-	return true
+	return cs.cursor.Next(ctx)
 }
 
 func (cs *changeStream) Decode(out interface{}) error {
@@ -458,32 +463,11 @@ func (cs *changeStream) DecodeBytes() (bson.Raw, error) {
 	if cs.cursor == nil {
 		return nil, ErrNilCursor
 	}
-
-	br, err := cs.cursor.DecodeBytes()
-	if err != nil {
-		return nil, err
+	if cs.err != nil {
+		return nil, cs.err
 	}
 
-	idVal, err := br.LookupErr("_id")
-	if err != nil {
-		_ = cs.Close(context.Background())
-		return nil, ErrMissingResumeToken
-	}
-
-	var idDoc bson.Raw
-	idDoc, ok := idVal.DocumentOK()
-	if !ok {
-		_ = cs.Close(context.Background())
-		return nil, ErrMissingResumeToken
-	}
-	tokenDoc, err := bsonx.ReadDoc(idDoc)
-	if err != nil {
-		_ = cs.Close(context.Background())
-		return nil, ErrMissingResumeToken
-	}
-
-	cs.resumeToken = tokenDoc
-	return br, nil
+	return cs.cursor.DecodeBytes()
 }
 
 func (cs *changeStream) Err() error {

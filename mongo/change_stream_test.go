@@ -336,13 +336,14 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		coll.writeConcern = wcMajority
 		_, err := coll.InsertOne(ctx, doc1)
 		testhelpers.RequireNil(t, err, "error running insertOne: %s", err)
-		if !stream.Next(ctx) {
-			t.Fatal("no change found")
-		}
 
-		_, err = stream.DecodeBytes()
-		if err == nil || err != ErrMissingResumeToken {
-			t.Fatalf("expected ErrMissingResumeToken, got %s", err)
+		// Next should set the change stream error and return false if a document is missing the resume token
+		if stream.Next(ctx) {
+			t.Fatal("Next returned true, expected false")
+		}
+		err = stream.Err()
+		if err != ErrMissingResumeToken {
+			t.Fatalf("expected ErrMissingResumeToken, got %v", err)
 		}
 	})
 
@@ -355,6 +356,8 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		startCmd := (<-startedChan).Command
 		startPipeline := startCmd.Lookup("pipeline").Array()
 
+		// make sure resume token is recorded by the change stream because the resume process will hang otherwise
+		ensureResumeToken(t, coll, stream)
 		cs := stream.(*changeStream)
 
 		kc := command.KillCursors{
@@ -674,4 +677,34 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			testhelpers.RequireNil(t, stream.Err(), "error while reading stream: %v", err)
 		})
 	})
+
+	t.Run("ResumeErrorCallsNext", func(t *testing.T) {
+		// Test that the underlying cursor is advanced after a resumeable error occurs.
+
+		coll, stream := createCollectionStream(t, "ResumeNextDB", "ResumeNextColl", nil)
+		defer closeCursor(stream)
+		ensureResumeToken(t, coll, stream)
+
+		// kill the stream's underlying cursor to force a resumeable error
+		cs := stream.(*changeStream)
+		kc := command.KillCursors{
+			NS:  cs.ns,
+			IDs: []int64{cs.ID()},
+		}
+
+		_, err := driver.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
+		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
+
+		ensureResumeToken(t, coll, stream)
+	})
+}
+
+// ensure that a resume token has been recorded by a change stream
+func ensureResumeToken(t *testing.T, coll *Collection, cs Cursor) {
+	_, err := coll.InsertOne(ctx, bsonx.Doc{{"ensureResumeToken", bsonx.Int32(1)}})
+	testhelpers.RequireNil(t, err, "error inserting doc: %v", err)
+
+	if !cs.Next(ctx) {
+		t.Fatal("Next returned false, expected true")
+	}
 }
