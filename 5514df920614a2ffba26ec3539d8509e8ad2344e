@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "146528d3_107be88c",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 510,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-07T16:50:54Z",
+      "side": 0,
+      "message": "Can you explain why this is needed? We should be setting upload.chunkSize to any value the user specified through uo.ChunkSizeBytes. \n\n1. How does the new code fix the issue?\n\n2. I\u0027m not sure I see the need for the special case of (*uo.ChunkSizeBytes !\u003d DefaultCunkSize). What if the bucket was configured with a non-default chunk size but for this upload, the user wants to use DefaultChunkSize? The new code wouldn\u0027t end up using the user-supplied value, and would instead default to the bucket\u0027s chunk size.",
+      "parentUuid": "22707fb9_ba635b8c",
+      "revId": "5514df920614a2ffba26ec3539d8509e8ad2344e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "43154ea5_85100081",
         "filename": "mongo/gridfs/download_stream.go",
         "patchSetId": 2
