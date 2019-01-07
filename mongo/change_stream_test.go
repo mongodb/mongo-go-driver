@@ -674,4 +674,30 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			testhelpers.RequireNil(t, stream.Err(), "error while reading stream: %v", err)
 		})
 	})
+
+	t.Run("TestResumeErrorCallsNext", func(t *testing.T) {
+		// Test that the underlying cursor is advanced after a resumeable error occurs.
+		coll, stream := createCollectionStream(t, "ResumeNextDB", "ResumeNextColl", nil)
+		defer closeCursor(stream)
+
+		cs := stream.(*changeStream)
+		kc := command.KillCursors{
+			NS:  cs.ns,
+			IDs: []int64{cs.ID()},
+		}
+
+		_, err := driver.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
+		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
+
+		_, err = coll.InsertOne(ctx, doc1)
+		testhelpers.RequireNil(t, err, "error inserting doc: %s", err)
+
+		if !cs.Next(ctx) {
+			t.Fatal("Next() returned false, expected true")
+		}
+		_, err = cs.DecodeBytes()
+		if err != nil {
+			t.Fatalf("expected nil error for DecodeBytes(); got %v", err)
+		}
+	})
 }

@@ -438,7 +438,7 @@ func (cs *changeStream) Next(ctx context.Context) bool {
 		return false
 	}
 
-	return true
+	return cs.Next(ctx) // recursively call Next() to increment the underlying cursor's position
 }
 
 func (cs *changeStream) Decode(out interface{}) error {
