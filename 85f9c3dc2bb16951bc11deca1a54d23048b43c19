@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0d8a165f_d2e62a4d",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 373,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-07T17:24:10Z",
+      "side": 1,
+      "message": "I\u0027m not clear whether there\u0027s a real issue here.  I\u0027ve rarely seen writes timeout (they just get buffered client-side), it\u0027s usually the reads.  Not saying we shouldn\u0027t do it, but just trying to verify that the actual reported issue has been addressed.",
+      "range": {
+        "startLine": 373,
+        "startChar": 0,
+        "endLine": 373,
+        "endChar": 1
+      },
+      "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
