@@ -573,12 +573,14 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.ServerSelectionTimeout = time.Duration(n) * time.Millisecond
+		p.ServerSelectionTimeoutSet = true
 	case "sockettimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
 			return fmt.Errorf("invalid value for %s: %s", key, value)
 		}
 		p.SocketTimeout = time.Duration(n) * time.Millisecond
+		p.SocketTimeoutSet = true
 	case "ssl":
 		switch value {
 		case "true":

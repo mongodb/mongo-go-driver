@@ -139,6 +139,7 @@ func TestConnectTimeout(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, test.expected, cs.ConnectTimeout)
+				require.True(t, cs.ConnectTimeoutSet)
 			}
 		})
 	}
@@ -396,6 +397,7 @@ func TestServerSelectionTimeout(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, test.expected, cs.ServerSelectionTimeout)
+				require.True(t, cs.ServerSelectionTimeoutSet)
 			}
 		})
 	}
@@ -422,6 +424,7 @@ func TestSocketTimeout(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, test.expected, cs.SocketTimeout)
+				require.True(t, cs.SocketTimeoutSet)
 			}
 		})
 	}
@@ -448,6 +451,7 @@ func TestWTimeout(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, test.expected, cs.WTimeout)
+				require.True(t, cs.WTimeoutSet)
 			}
 		})
 	}
