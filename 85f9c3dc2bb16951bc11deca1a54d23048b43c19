@@ -70,6 +70,30 @@
       "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "264cac7c_ade78025",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 373,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-07T18:47:39Z",
+      "side": 1,
+      "message": "I didn\u0027t see anything in the spec linked to the ticket about a default value for connectTimeoutMS. Is this documented anywhere else?",
+      "parentUuid": "f576fcc3_e1e68db7",
+      "range": {
+        "startLine": 373,
+        "startChar": 0,
+        "endLine": 373,
+        "endChar": 1
+      },
+      "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
