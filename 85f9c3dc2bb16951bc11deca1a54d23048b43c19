@@ -94,6 +94,30 @@
       "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "55de2bf5_8656c711",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 373,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-07T19:00:33Z",
+      "side": 1,
+      "message": "The default heartbeat interval is 10 seconds, while the default heartbeat timeout is 30 seconds. The only reference to 10 seconds I can find in the spec is for the frequency, which is here: https://github.com/mongodb/specifications/blob/master/source/server-discovery-and-monitoring/server-discovery-and-monitoring.rst#heartbeatfrequencyms.",
+      "parentUuid": "264cac7c_ade78025",
+      "range": {
+        "startLine": 373,
+        "startChar": 0,
+        "endLine": 373,
+        "endChar": 1
+      },
+      "revId": "85f9c3dc2bb16951bc11deca1a54d23048b43c19",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
