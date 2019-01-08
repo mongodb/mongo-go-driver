@@ -519,7 +519,7 @@ func compareDownloadAssertResult(t *testing.T, assert assertSection, copied int6
 	err = bson.UnmarshalExtJSON(assertResult, true, &assertDoc)
 	testhelpers.RequireNil(t, err, "error constructing result doc: %s", err)
 
-	if hexStr, err := assertDoc.LookupErr("result", "$hex"); err == nil {
+	if hexStr, err := assertDoc.LookupErr("$hex"); err == nil {
 		hexBytes := convertHexToBytes(t, hexStr.StringValue())
 
 		if copied != int64(len(hexBytes)) {
@@ -529,6 +529,8 @@ func compareDownloadAssertResult(t *testing.T, assert assertSection, copied int6
 		if !bytes.Equal(hexBytes, downloadBuffer[:copied]) {
 			t.Fatalf("downloaded bytes mismatch. expected %v, got %v", hexBytes, downloadBuffer[:copied])
 		}
+	} else {
+		t.Fatalf("%v", err)
 	}
 }
 
