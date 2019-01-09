@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "bcc42c48_919ea9dc",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-09T21:06:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0ee864dd_49ee4843",
+      "range": {
+        "startLine": 243,
+        "startChar": 0,
+        "endLine": 243,
+        "endChar": 1
+      },
+      "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "adba6488_6d56e1f0",
         "filename": "mongo/change_stream.go",
         "patchSetId": 2
