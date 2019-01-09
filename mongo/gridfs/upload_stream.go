@@ -9,14 +9,13 @@ package gridfs
 import (
 	"errors"
 
-	"math"
-
 	"context"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"math"
 )
 
 // UploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
@@ -67,7 +66,7 @@ func (us *UploadStream) Close() error {
 	}
 
 	if us.bufferIndex != 0 {
-		if err := us.uploadChunks(ctx); err != nil {
+		if err := us.uploadChunks(ctx, true); err != nil {
 			return err
 		}
 	}
@@ -115,11 +114,10 @@ func (us *UploadStream) Write(p []byte) (int, error) {
 		us.bufferIndex += n
 
 		if us.bufferIndex == UploadBufferSize {
-			err := us.uploadChunks(ctx)
+			err := us.uploadChunks(ctx, false)
 			if err != nil {
 				return 0, err
 			}
-			us.bufferIndex = 0
 		}
 	}
 	return origLen, nil
@@ -145,25 +143,36 @@ func (us *UploadStream) Abort() error {
 	return nil
 }
 
-func (us *UploadStream) uploadChunks(ctx context.Context) error {
-	numChunks := math.Ceil(float64(us.bufferIndex) / float64(us.chunkSize))
+// uploadChunks uploads the current buffer as a series of chunks to the bucket
+// if uploadPartial is true, any data at the end of the buffer that is smaller than a chunk will be uploaded as a partial
+// chunk. if it is false, the data will be moved to the front of the buffer.
+// uploadChunks sets us.bufferIndex to the next available index in the buffer after uploading
+func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) error {
+	chunks := float64(us.bufferIndex) / float64(us.chunkSize)
+	numChunks := int(math.Ceil(chunks))
+	if !uploadPartial {
+		numChunks = int(math.Floor(chunks))
+	}
 
 	docs := make([]interface{}, int(numChunks))
+
 	begChunkIndex := us.chunkIndex
 	for i := 0; i < us.bufferIndex; i += int(us.chunkSize) {
-		var chunkData []byte
+		endIndex := i + int(us.chunkSize)
 		if us.bufferIndex-i < int(us.chunkSize) {
-			chunkData = us.buffer[i:us.bufferIndex]
-		} else {
-			chunkData = us.buffer[i : i+int(us.chunkSize)]
+			// partial chunk
+			if !uploadPartial {
+				break
+			}
+			endIndex = us.bufferIndex
 		}
+		chunkData := us.buffer[i:endIndex]
 		docs[us.chunkIndex-begChunkIndex] = bsonx.Doc{
 			{"_id", bsonx.ObjectID(primitive.NewObjectID())},
 			{"files_id", bsonx.ObjectID(us.FileID)},
 			{"n", bsonx.Int32(int32(us.chunkIndex))},
 			{"data", bsonx.Binary(0x00, chunkData)},
 		}
-
 		us.chunkIndex++
 		us.fileLen += int64(len(chunkData))
 	}
@@ -173,6 +182,12 @@ func (us *UploadStream) uploadChunks(ctx context.Context) error {
 		return err
 	}
 
+	// copy any remaining bytes to beginning of buffer and set buffer index
+	bytesUploaded := numChunks * int(us.chunkSize)
+	if bytesUploaded != UploadBufferSize && !uploadPartial {
+		copy(us.buffer[0:], us.buffer[bytesUploaded:us.bufferIndex])
+	}
+	us.bufferIndex = UploadBufferSize - bytesUploaded
 	return nil
 }
 
