@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "740964e9_5b4655f7",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-09T20:37:49Z",
+      "side": 1,
+      "message": "The spec says \"A driver MUST raise an error on the first response received without a resume token (e.g. the user has removed it with a pipeline stage), and close the change stream.\" This code does need to be fixed to address the error part. Not sure if doing this in Next() satisfies the spec requirement because that would accomplish this lazily.\n\nThere is some code reuse here that could be fixed by refactoring storeResumeToken a bit. Will address that in the next patch.",
+      "parentUuid": "3db4e828_6d01ae23",
+      "range": {
+        "startLine": 243,
+        "startChar": 0,
+        "endLine": 243,
+        "endChar": 1
+      },
+      "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "adba6488_6d56e1f0",
         "filename": "mongo/change_stream.go",
         "patchSetId": 2
@@ -39,6 +63,24 @@
       "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "856333eb_e586b31e",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 401,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-09T20:37:49Z",
+      "side": 1,
+      "message": "will rename this in the next patch to \"storeResumeToken\"",
+      "parentUuid": "adba6488_6d56e1f0",
+      "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -62,6 +104,30 @@
       "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b26e3f5_4274660c",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 475,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-09T20:37:49Z",
+      "side": 1,
+      "message": "will fix in the next patch",
+      "parentUuid": "4415d2cf_27aa1615",
+      "range": {
+        "startLine": 475,
+        "startChar": 0,
+        "endLine": 475,
+        "endChar": 1
+      },
+      "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
