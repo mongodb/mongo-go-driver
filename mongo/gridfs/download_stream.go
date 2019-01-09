@@ -190,6 +190,20 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	_, dataBytes := data.Binary()
 	copied := copy(ds.buffer, dataBytes)
 
+	bytesLen := int32(len(dataBytes))
+	if ds.expectedChunk == ds.numChunks {
+		// final chunk can be fewer than ds.chunkSize bytes
+		bytesDownloaded := ds.chunkSize * (ds.expectedChunk - 1)
+		bytesRemaining := ds.fileLen - int64(bytesDownloaded)
+
+		if int64(bytesLen) != bytesRemaining {
+			return ErrWrongSize
+		}
+	} else if bytesLen != ds.chunkSize {
+		// all intermediate chunks must have size ds.chunkSize
+		return ErrWrongSize
+	}
+
 	ds.bufferStart = 0
 	ds.bufferEnd = copied
 
