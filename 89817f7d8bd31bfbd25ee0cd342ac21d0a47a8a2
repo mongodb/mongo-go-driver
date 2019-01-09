@@ -97,6 +97,30 @@
     },
     {
       "key": {
+        "uuid": "90f06e20_e6248f4f",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 243,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-09T21:38:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bcc42c48_919ea9dc",
+      "range": {
+        "startLine": 243,
+        "startChar": 0,
+        "endLine": 243,
+        "endChar": 1
+      },
+      "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "adba6488_6d56e1f0",
         "filename": "mongo/change_stream.go",
         "patchSetId": 2
@@ -126,6 +150,24 @@
       "side": 1,
       "message": "will rename this in the next patch to \"storeResumeToken\"",
       "parentUuid": "adba6488_6d56e1f0",
+      "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7802c976_b2254a06",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 401,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-09T21:38:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "856333eb_e586b31e",
       "revId": "89817f7d8bd31bfbd25ee0cd342ac21d0a47a8a2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
