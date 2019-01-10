@@ -45,6 +45,30 @@
       "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1395586b_aa062ce8",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 409,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T19:38:20Z",
+      "side": 1,
+      "message": "Missed the part about only resuming once. The original patch recursively called cs.Next() function so the for loop was a way to avoid deep recursion, but if we only want to resume once I think the right fix is to have \"return cs.cursor.Next(ctx)\" at the end of this. Will update in the next patch.",
+      "parentUuid": "4613ff29_4fc4fcb3",
+      "range": {
+        "startLine": 409,
+        "startChar": 1,
+        "endLine": 409,
+        "endChar": 6
+      },
+      "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
