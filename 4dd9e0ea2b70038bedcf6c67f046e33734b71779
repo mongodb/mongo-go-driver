@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "04bb3092_6d19a9c4",
+        "filename": "mongo/gridfs/upload_stream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 159,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T20:28:33Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "04ce7afa_705a7bde",
+      "range": {
+        "startLine": 153,
+        "startChar": 1,
+        "endLine": 159,
+        "endChar": 2
+      },
+      "revId": "4dd9e0ea2b70038bedcf6c67f046e33734b71779",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ca11c4fd_ae141cdb",
         "filename": "mongo/gridfs/upload_stream.go",
         "patchSetId": 1
@@ -69,6 +93,30 @@
       "revId": "4dd9e0ea2b70038bedcf6c67f046e33734b71779",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "acfc4ea9_3cfc11f6",
+        "filename": "mongo/gridfs/upload_stream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T20:28:33Z",
+      "side": 1,
+      "message": "Addressed in latest patch.",
+      "parentUuid": "fb48e27d_83c386e8",
+      "range": {
+        "startLine": 165,
+        "startChar": 0,
+        "endLine": 174,
+        "endChar": 3
+      },
+      "revId": "4dd9e0ea2b70038bedcf6c67f046e33734b71779",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
