@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "04ce7afa_705a7bde",
+        "filename": "mongo/gridfs/upload_stream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 159,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-10T19:05:46Z",
+      "side": 1,
+      "message": "Can we reformat this to eliminate the else?\n\n  numChunks :\u003d int(math.Floor(chunks))\n  if uploadPartial {\n    numChunks \u003d int(math.Ceil(chunks))\n  }",
+      "range": {
+        "startLine": 153,
+        "startChar": 1,
+        "endLine": 159,
+        "endChar": 2
+      },
+      "revId": "4dd9e0ea2b70038bedcf6c67f046e33734b71779",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ca11c4fd_ae141cdb",
+        "filename": "mongo/gridfs/upload_stream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 174,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-10T19:05:46Z",
+      "side": 1,
+      "message": "To avoid the double if/else branching here, can we set chunkData when we initialize it to the case in the outer else statement and then early terminate, e.g.:\n  if !uploadPartial {\n    break\n  }",
+      "range": {
+        "startLine": 165,
+        "startChar": 0,
+        "endLine": 174,
+        "endChar": 3
+      },
+      "revId": "4dd9e0ea2b70038bedcf6c67f046e33734b71779",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
