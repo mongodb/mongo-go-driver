@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c21525c7_a8f2dab6",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 372,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-10T19:35:18Z",
+      "side": 1,
+      "message": "This function feels awkward, but we\u0027re going to have to change it in the near future once we implement the changes to the spec in SPEC-1122, so we can leave this for now.",
+      "range": {
+        "startLine": 372,
+        "startChar": 24,
+        "endLine": 372,
+        "endChar": 40
+      },
+      "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4613ff29_4fc4fcb3",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 409,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-10T19:35:18Z",
+      "side": 1,
+      "message": "Why is this in a for loop now?",
+      "range": {
+        "startLine": 409,
+        "startChar": 1,
+        "endLine": 409,
+        "endChar": 6
+      },
+      "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
