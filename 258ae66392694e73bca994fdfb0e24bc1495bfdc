@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba07bb65_12e80a95",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-10T22:16:56Z",
+      "side": 1,
+      "message": "fixed a linter error caused by context.Context not being the first parameter in the function",
+      "revId": "258ae66392694e73bca994fdfb0e24bc1495bfdc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f0126376_9c842e75",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 105,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-10T22:16:56Z",
+      "side": 1,
+      "message": "was failing to error check these",
+      "revId": "258ae66392694e73bca994fdfb0e24bc1495bfdc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "33f82ba2_6e07b58e",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1015552
+      },
+      "writtenOn": "2019-01-10T22:16:56Z",
+      "side": 1,
+      "message": "added some clean-up at the end",
+      "revId": "258ae66392694e73bca994fdfb0e24bc1495bfdc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
