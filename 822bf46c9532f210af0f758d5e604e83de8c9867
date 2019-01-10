@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "449ccda9_f2e35c0f",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T14:55:18Z",
+      "side": 1,
+      "message": "Ah I remember why I did it this way - createTestClient() is a private function that can\u0027t be accessed here. Regardless, it would be good to refactor this to use the testutil.Topology() function to make sure we don\u0027t connect multiple topologies and create 1 shared client from that topology.",
+      "parentUuid": "28186594_0e15645b",
+      "range": {
+        "startLine": 22,
+        "startChar": 22,
+        "endLine": 22,
+        "endChar": 31
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "02df52e2_5a4b309d",
         "filename": "mongo/gridfs/gridfs_test.go",
         "patchSetId": 2
