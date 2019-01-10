@@ -2,6 +2,190 @@
   "comments": [
     {
       "key": {
+        "uuid": "28186594_0e15645b",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "This is going to create a new client for every test and call \"Connect\" on it which will use a lot of extra resources for SDAM. You can use either createTestClient() or createTestDatabase() (which internally calls createTestClient()). createTestClient uses the sync library to implement a sort of singleton pattern to share 1 connected client.",
+      "range": {
+        "startLine": 22,
+        "startChar": 22,
+        "endLine": 22,
+        "endChar": 31
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "02df52e2_5a4b309d",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "Add a test that has just options.GridFSBucket() and options.GridFSUpload() to make sure defaults are being set correctly.",
+      "range": {
+        "startLine": 36,
+        "startChar": 4,
+        "endLine": 36,
+        "endChar": 18
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d749ff7d_e4ec06b3",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "Should be if tt.bucketOpts !\u003d nil \u0026\u0026 tt.bucketOpts.ChunkSizeBytes !\u003d nil",
+      "range": {
+        "startLine": 58,
+        "startChar": 3,
+        "endLine": 58,
+        "endChar": 28
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4d4fb13a_9fb0248e",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "Same idea as previous comment (if tt.uploadOpts !\u003d nil \u0026\u0026 tt.uploadOpts.ChunkSizeBytes !\u003d nil)",
+      "range": {
+        "startLine": 66,
+        "startChar": 3,
+        "endLine": 66,
+        "endChar": 26
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b9b173f_29868241",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "If you want a bson.Raw you can use DecodeBytes()",
+      "range": {
+        "startLine": 96,
+        "startChar": 2,
+        "endLine": 96,
+        "endChar": 21
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "42198fda_8ebf97d4",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 100,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "If you\u0027re checking that the element exists, this check should be (err \u003d\u003d nil).",
+      "range": {
+        "startLine": 100,
+        "startChar": 50,
+        "endLine": 100,
+        "endChar": 60
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f471383e_da1cbbc7",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "A lot of this logic is duplicated from the previous indexes check for the files collection. Can probably factor this into a method that takes a *Collection and an index name and checks if that index exists.",
+      "range": {
+        "startLine": 109,
+        "startChar": 1,
+        "endLine": 109,
+        "endChar": 4
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4223392a_53ceaec0",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "Might be better named \"RoundTrip\" instead of \"Write\" because it does both a write and a read.",
+      "range": {
+        "startLine": 125,
+        "startChar": 16,
+        "endLine": 125,
+        "endChar": 21
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0777c1ca_6c6ead9b",
         "filename": "mongo/gridfs/gridfs_test.go",
         "patchSetId": 2
@@ -13,6 +197,47 @@
       "writtenOn": "2019-01-09T22:03:07Z",
       "side": 1,
       "message": "@Divjot this test should test your new changes since the file size is \u003e 16 MB.",
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "126d7d45_42d5bda2",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "0777c1ca_6c6ead9b",
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b3a9a9e6_f046c001",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T01:14:57Z",
+      "side": 1,
+      "message": "Check this error before calling bytes.Equal",
+      "range": {
+        "startLine": 145,
+        "startChar": 4,
+        "endLine": 145,
+        "endChar": 7
+      },
       "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
