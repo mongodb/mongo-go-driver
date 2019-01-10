@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "93e83a12_ab9f845e",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-10T20:47:28Z",
+      "side": 1,
+      "message": "I think the change you made is the most optimal way to do this. Using testutil.Topology would require manually constructing a client, which isn\u0027t possible because Client has private fields.",
+      "parentUuid": "5f7f3dd1_61336753",
+      "range": {
+        "startLine": 22,
+        "startChar": 22,
+        "endLine": 22,
+        "endChar": 31
+      },
+      "revId": "822bf46c9532f210af0f758d5e604e83de8c9867",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "02df52e2_5a4b309d",
         "filename": "mongo/gridfs/gridfs_test.go",
         "patchSetId": 2
