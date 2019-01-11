@@ -117,6 +117,30 @@
       "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ddaf4bde_2106099c",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 409,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-11T17:32:06Z",
+      "side": 1,
+      "message": "I\u0027m still confused, how is this allowed per the spec if the spec says we\u0027re only allowed to retry a resumable error once?",
+      "parentUuid": "4f5b3859_2ead571a",
+      "range": {
+        "startLine": 409,
+        "startChar": 1,
+        "endLine": 409,
+        "endChar": 6
+      },
+      "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
