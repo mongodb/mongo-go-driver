@@ -122,6 +122,13 @@ func ReadElement(src []byte) (Element, []byte, bool) {
 	return src[:elemLength], src[elemLength:], true
 }
 
+// AppendValueElement appends value to dst as an element using key as the element's key.
+func AppendValueElement(dst []byte, key string, value Value) []byte {
+	dst = AppendHeader(dst, value.Type, key)
+	dst = append(dst, value.Data...)
+	return dst
+}
+
 // ReadValue reads the next value as the provided types and returns a Value, the remaining bytes,
 // and a boolean indicating if the read was successful.
 func ReadValue(src []byte, t bsontype.Type) (Value, []byte, bool) {

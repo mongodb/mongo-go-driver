@@ -7,11 +7,12 @@
 package command
 
 import (
+	"testing"
+
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/network/description"
-	"testing"
 )
 
 func TestAggregate(t *testing.T) {
