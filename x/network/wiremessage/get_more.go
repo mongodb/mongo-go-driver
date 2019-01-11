@@ -9,8 +9,9 @@ package wiremessage
 import (
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 // GetMore represents the OP_GET_MORE message of the MongoDB wire protocol.
