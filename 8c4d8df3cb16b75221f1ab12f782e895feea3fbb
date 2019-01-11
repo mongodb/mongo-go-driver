@@ -93,6 +93,30 @@
       "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "4f5b3859_2ead571a",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 409,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-11T15:57:33Z",
+      "side": 1,
+      "message": "Divjot, please summarize our discussion from yesterday about why a for loop here is necessary, so it\u0027s clear to all reviewers.",
+      "parentUuid": "e576eb29_84bfcd92",
+      "range": {
+        "startLine": 409,
+        "startChar": 1,
+        "endLine": 409,
+        "endChar": 6
+      },
+      "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
