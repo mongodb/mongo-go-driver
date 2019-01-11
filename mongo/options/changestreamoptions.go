@@ -7,8 +7,9 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ChangeStreamOptions represents all possible options to a change stream
