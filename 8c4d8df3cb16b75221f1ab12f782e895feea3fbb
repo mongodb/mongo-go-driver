@@ -141,6 +141,30 @@
       "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "8dbed302_d4cfa3ad",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 409,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-11T17:40:36Z",
+      "side": 1,
+      "message": "The idea is that a getMore can fail with a single stepdown of the primary, which would cause the SDAM state to be reset and the subsequent aggregate command to execute with no errors. If the aggregate has no results in the first batch, we\u0027d immediately do a getMore, which could fail due to a network error again. Putting the code in a loop allows us to resume multiple times in the event of multiple primary stepdowns (like the situation described in JAVA-2858).\n\nOne question I had about the spec - it does say we only resume once because multiple consecutive network errors on getMore indicate an outage. However, if there was an outage, wouldn\u0027t the aggregate fail as well? Going through the loop multiple times and having the aggregate succeed but the getMore fail doesn\u0027t seem to suggest an outage to me, but I might be missing something.\n\nAs for spec compliance, this bug was reported in both Java and .NET and the hope is that SPEC-1073 will be resolved by adding this fix.",
+      "parentUuid": "ddaf4bde_2106099c",
+      "range": {
+        "startLine": 409,
+        "startChar": 1,
+        "endLine": 409,
+        "endChar": 6
+      },
+      "revId": "8c4d8df3cb16b75221f1ab12f782e895feea3fbb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
