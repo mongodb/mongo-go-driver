@@ -9,11 +9,12 @@ package internal
 import (
 	"context"
 
+	"errors"
+	"fmt"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/network/wiremessage"
-	"errors"
-	"fmt"
 )
 
 // Implements the connection.Connection interface by reading and writing wire messages
