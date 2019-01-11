@@ -20,6 +20,9 @@ type ClusterClock struct {
 
 // GetClusterTime returns the cluster's current time.
 func (cc *ClusterClock) GetClusterTime() bson.Raw {
+	if cc == nil {
+		return nil
+	}
 	var ct bson.Raw
 	cc.lock.Lock()
 	ct = cc.clusterTime
