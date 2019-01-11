@@ -7,9 +7,10 @@
 package driver
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"testing"
 )
 
 func TestListCollections(t *testing.T) {
