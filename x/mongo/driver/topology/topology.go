@@ -14,12 +14,15 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"fmt"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/dns"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/network/address"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
@@ -60,7 +63,12 @@ type Topology struct {
 
 	desc atomic.Value // holds a description.Topology
 
+	DnsResolver dns.DnsResolver
+
 	done chan struct{}
+
+	pollingDone chan struct{}
+	pollingwg   sync.WaitGroup
 
 	fsm       *fsm
 	changes   chan description.Server
@@ -97,10 +105,12 @@ func New(opts ...Option) (*Topology, error) {
 	t := &Topology{
 		cfg:         cfg,
 		done:        make(chan struct{}),
+		pollingDone: make(chan struct{}),
 		fsm:         newFSM(),
 		changes:     make(chan description.Server),
 		subscribers: make(map[uint64]chan description.Topology),
 		servers:     make(map[address.Address]*Server),
+		DnsResolver: dns.DnsResolver{nil, nil, 0 * time.Second},
 	}
 	t.desc.Store(description.Topology{})
 
@@ -136,6 +146,11 @@ func (t *Topology) Connect(ctx context.Context) error {
 	go t.update()
 	t.changeswg.Add(1)
 
+	if strings.HasPrefix(t.cfg.cs.Original, "mongodb+srv://") {
+		go t.pollSRVRecords()
+		t.pollingwg.Add(1)
+	}
+
 	t.subscriptionsClosed = false // explicitly set in case topology was disconnected and then reconnected
 
 	atomic.StoreInt32(&t.connectionstate, connected)
@@ -159,10 +174,13 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 		t.removeServer(ctx, addr, server)
 	}
 	t.serversLock.Unlock()
-
 	t.wg.Wait()
+
 	t.done <- struct{}{}
 	t.changeswg.Wait()
+
+	t.pollingDone <- struct{}{}
+	t.pollingwg.Wait()
 
 	t.desc.Store(description.Topology{})
 
@@ -324,6 +342,99 @@ func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan descr
 		}
 
 		t.RequestImmediateCheck()
+	}
+}
+
+func diffSeedLists(oldSeedList []string, newSeedList []string) ([]string, []string) {
+	var added []string
+	var removed []string
+
+	sort.Strings(oldSeedList)
+	sort.Strings(newSeedList)
+
+	i, j := 0, 0
+	for i < len(oldSeedList) && j < len(newSeedList) {
+		oldSeed := oldSeedList[i]
+		newSeed := newSeedList[j]
+		switch {
+		case oldSeed < newSeed:
+			removed = append(removed, oldSeed)
+			i++
+		case oldSeed > newSeed:
+			added = append(added, newSeed)
+			j++
+		default:
+			i++
+			j++
+		}
+	}
+
+	for i < len(oldSeedList) {
+		removed = append(removed, oldSeedList[i])
+		i++
+	}
+	for j < len(newSeedList) {
+		added = append(added, newSeedList[j])
+		j++
+	}
+
+	return added, removed
+}
+
+func (t *Topology) pollSRVRecords() error {
+	defer t.pollingwg.Done()
+	defer func() {
+		//  ¯\_(ツ)_/¯
+		if r := recover(); r != nil {
+			<-t.pollingDone
+		}
+	}()
+
+	rescanSRVFrequencyMS := 60 * time.Second
+	if t.DnsResolver.TestingRescanFrequencyMS != 0*time.Second {
+		rescanSRVFrequencyMS = t.DnsResolver.TestingRescanFrequencyMS
+	}
+
+	for {
+		select {
+		case <-t.pollingDone:
+			return nil
+		default:
+		}
+		if !(t.fsm.Kind == description.Unknown || t.fsm.Kind == description.Sharded) {
+			return nil
+		}
+		// remove the scheme
+		uri := t.cfg.cs.Original[14:]
+		hosts := uri
+		if idx := strings.IndexAny(uri, "/?@"); idx != -1 {
+			hosts = uri[:idx]
+		}
+		parsedHosts, err := t.DnsResolver.ResolveHostFromSrvRecords(hosts)
+		if err != nil {
+			return err
+		}
+		added, removed := diffSeedLists(t.cfg.seedList, parsedHosts)
+		t.cfg.seedList = parsedHosts
+
+		t.serversLock.Lock()
+		if t.serversClosed {
+			t.serversLock.Unlock()
+			return nil
+		}
+		for _, r := range removed {
+			addr := address.Address(r).Canonicalize()
+			if s, ok := t.servers[addr]; ok {
+				t.removeServer(context.TODO(), addr, s)
+			}
+		}
+		for _, a := range added {
+			addr := address.Address(a).Canonicalize()
+			_ = t.addServer(context.TODO(), addr)
+		}
+		t.serversLock.Unlock()
+
+		time.Sleep(rescanSRVFrequencyMS)
 	}
 }
 
