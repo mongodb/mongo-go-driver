@@ -80,6 +80,53 @@ func DiffTopology(old, new Topology) TopologyDiff {
 	return diff
 }
 
+// HostlistDiff is the difference between a topology and a host list.
+type HostlistDiff struct {
+	Added   []string
+	Removed []string
+}
+
+// DiffHostlist compares the topology description and host list and returns the difference.
+func (t Topology) DiffHostlist(hostlist []string) HostlistDiff {
+	var diff HostlistDiff
+
+	oldServers := serverSorter(t.Servers)
+	sort.Sort(oldServers)
+	sort.Strings(hostlist)
+
+	i := 0
+	j := 0
+	for {
+		if i < len(oldServers) && j < len(hostlist) {
+			oldServer := oldServers[i].Addr.String()
+			comp := strings.Compare(oldServer, hostlist[j])
+			switch comp {
+			case 1:
+				//left is bigger than
+				diff.Added = append(diff.Added, hostlist[j])
+				j++
+			case -1:
+				// right is bigger
+				diff.Removed = append(diff.Removed, oldServer)
+				i++
+			case 0:
+				i++
+				j++
+			}
+		} else if i < len(oldServers) {
+			diff.Removed = append(diff.Removed, oldServers[i].Addr.String())
+			i++
+		} else if j < len(hostlist) {
+			diff.Added = append(diff.Added, hostlist[j])
+			j++
+		} else {
+			break
+		}
+	}
+
+	return diff
+}
+
 type serverSorter []Server
 
 func (ss serverSorter) Len() int      { return len(ss) }
