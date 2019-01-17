@@ -11,19 +11,19 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 // Parse parses the provided uri and returns a URI object.
 func Parse(s string) (ConnString, error) {
-	var p parser
+	p := parser{dnsResolver: dns.DefaultResolver()}
 	err := p.parse(s)
 	if err != nil {
 		err = internal.WrapErrorf(err, "error parsing uri (%s)", s)
@@ -110,6 +110,8 @@ const (
 
 type parser struct {
 	ConnString
+
+	dnsResolver dns.Resolver
 }
 
 func (p *parser) parse(original string) error {
@@ -182,37 +184,13 @@ func (p *parser) parse(original string) error {
 	parsedHosts := strings.Split(hosts, ",")
 
 	if isSRV {
-		parsedHosts = strings.Split(hosts, ",")
-		if len(parsedHosts) != 1 {
-			return fmt.Errorf("URI with SRV must include one and only one hostname")
-		}
-		parsedHosts, err = fetchSeedlistFromSRV(parsedHosts[0])
+		parsedHosts, err = p.dnsResolver.ResolveHostFromSrvRecords(hosts)
 		if err != nil {
 			return err
 		}
-
-		// error ignored because finding a TXT record should not be
-		// considered an error.
-		recordsFromTXT, _ := net.LookupTXT(hosts)
-
-		// This is a temporary fix to get around bug https://github.com/golang/go/issues/21472.
-		// It will currently incorrectly concatenate multiple TXT records to one
-		// on windows.
-		if runtime.GOOS == "windows" {
-			recordsFromTXT = []string{strings.Join(recordsFromTXT, "")}
-		}
-
-		if len(recordsFromTXT) > 1 {
-			return errors.New("multiple records from TXT not supported")
-		}
-		if len(recordsFromTXT) > 0 {
-			connectionArgsFromTXT = strings.FieldsFunc(recordsFromTXT[0], func(r rune) bool { return r == ';' || r == '&' })
-
-			err := validateTXTResult(connectionArgsFromTXT)
-			if err != nil {
-				return err
-			}
-
+		connectionArgsFromTXT, err = p.dnsResolver.ResolveAdditionalQueryParametersFromTxtRecords(hosts)
+		if err != nil {
+			return err
 		}
 
 		// SSL is enabled by default for SRV, but can be manually disabled with "ssl=false".
@@ -384,34 +362,6 @@ func (p *parser) validateAuth() error {
 		return fmt.Errorf("invalid auth mechanism")
 	}
 	return nil
-}
-
-func fetchSeedlistFromSRV(host string) ([]string, error) {
-	var err error
-
-	_, _, err = net.SplitHostPort(host)
-
-	if err == nil {
-		// we were able to successfully extract a port from the host,
-		// but should not be able to when using SRV
-		return nil, fmt.Errorf("URI with srv must not include a port number")
-	}
-
-	_, addresses, err := net.LookupSRV("mongodb", "tcp", host)
-	if err != nil {
-		return nil, err
-	}
-	parsedHosts := make([]string, len(addresses))
-	for i, address := range addresses {
-		trimmedAddressTarget := strings.TrimSuffix(address.Target, ".")
-		err := validateSRVResult(trimmedAddressTarget, host)
-		if err != nil {
-			return nil, err
-		}
-		parsedHosts[i] = fmt.Sprintf("%s:%d", trimmedAddressTarget, address.Port)
-	}
-
-	return parsedHosts, nil
 }
 
 func (p *parser) addHost(host string) error {
@@ -672,47 +622,6 @@ func (p *parser) addOption(pair string) error {
 	}
 	p.Options[lowerKey] = append(p.Options[lowerKey], value)
 
-	return nil
-}
-
-func validateSRVResult(recordFromSRV, inputHostName string) error {
-	separatedInputDomain := strings.Split(inputHostName, ".")
-	separatedRecord := strings.Split(recordFromSRV, ".")
-	if len(separatedRecord) < 2 {
-		return errors.New("DNS name must contain at least 2 labels")
-	}
-	if len(separatedRecord) < len(separatedInputDomain) {
-		return errors.New("Domain suffix from SRV record not matched input domain")
-	}
-
-	inputDomainSuffix := separatedInputDomain[1:]
-	domainSuffixOffset := len(separatedRecord) - (len(separatedInputDomain) - 1)
-
-	recordDomainSuffix := separatedRecord[domainSuffixOffset:]
-	for ix, label := range inputDomainSuffix {
-		if label != recordDomainSuffix[ix] {
-			return errors.New("Domain suffix from SRV record not matched input domain")
-		}
-	}
-	return nil
-}
-
-var allowedTXTOptions = map[string]struct{}{
-	"authsource": {},
-	"replicaset": {},
-}
-
-func validateTXTResult(paramsFromTXT []string) error {
-	for _, param := range paramsFromTXT {
-		kv := strings.SplitN(param, "=", 2)
-		if len(kv) != 2 {
-			return errors.New("Invalid TXT record")
-		}
-		key := strings.ToLower(kv[0])
-		if _, ok := allowedTXTOptions[key]; !ok {
-			return fmt.Errorf("Cannot specify option '%s' in TXT record", kv[0])
-		}
-	}
 	return nil
 }
 
