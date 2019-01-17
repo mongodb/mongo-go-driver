@@ -125,6 +125,7 @@ func TestExtJSONParserPeekType(t *testing.T) {
 		makeValidPeekTypeTestCase(`{"$binary": {"base64": "AQIDBAU=", "subType": "80"}}`, bsontype.Binary, "Binary"),
 		makeValidPeekTypeTestCase(`{"$code": "function() {}", "$scope": {}}`, bsontype.CodeWithScope, "Code With Scope"),
 		makeValidPeekTypeTestCase(`{"$binary": {"base64": "o0w498Or7cijeBSpkquNtg==", "subType": "03"}}`, bsontype.Binary, "Binary"),
+		makeValidPeekTypeTestCase(`{"$binary": "o0w498Or7cijeBSpkquNtg==", "$type": "03"}`, bsontype.Binary, "Binary"),
 		makeValidPeekTypeTestCase(`{"$regularExpression": {"pattern": "foo*", "options": "ix"}}`, bsontype.Regex, "Regular expression"),
 		makeValidPeekTypeTestCase(`{"$dbPointer": {"$ref": "db.collection", "$id": {"$oid": "57e193d7a9cc81b4027498b1"}}}`, bsontype.DBPointer, "DBPointer"),
 		makeValidPeekTypeTestCase(`{"$ref": "collection", "$id": {"$oid": "57fd71e96e32ab4225b723fb"}, "$db": "database"}`, bsontype.EmbeddedDocument, "DBRef"),
@@ -344,8 +345,8 @@ func expectMultipleValues(t *testing.T, p *extJSONParser, expectedKey string, ex
 	readKeyDiff(t, expectedKey, k, expectedType, typ, err, expectNoError, expectedKey)
 
 	v, err := p.readValue(typ)
-	typDiff(t, bsontype.EmbeddedDocument, v.t, expectedKey)
 	expectNoError(t, err, "")
+	typDiff(t, bsontype.EmbeddedDocument, v.t, expectedKey)
 
 	actObj := v.v.(*extJSONObject)
 	expObj := expectedValue.(*extJSONObject)
@@ -445,6 +446,7 @@ func TestExtJSONParserAllTypes(t *testing.T) {
 			, "SpecialFloat"		: { "$numberDouble": "NaN" }
 			, "Decimal"				: { "$numberDecimal": "1234" }
 			, "Binary"			 	: { "$binary": { "base64": "o0w498Or7cijeBSpkquNtg==", "subType": "03" } }
+			, "BinaryLegacy"  : { "$binary": "o0w498Or7cijeBSpkquNtg==", "$type": "03" }
 			, "BinaryUserDefined"	: { "$binary": { "base64": "AQIDBAU=", "subType": "80" } }
 			, "Code"				: { "$code": "function() {}" }
 			, "CodeWithEmptyScope"	: { "$code": "function() {}", "$scope": {} }
@@ -506,6 +508,17 @@ func TestExtJSONParserAllTypes(t *testing.T) {
 		{
 			f: expectMultipleValues, p: ejp,
 			k: "Binary", t: bsontype.Binary,
+			v: &extJSONObject{
+				keys: []string{"base64", "subType"},
+				values: []*extJSONValue{
+					{t: bsontype.String, v: "o0w498Or7cijeBSpkquNtg=="},
+					{t: bsontype.String, v: "03"},
+				},
+			},
+		},
+		{
+			f: expectMultipleValues, p: ejp,
+			k: "BinaryLegacy", t: bsontype.Binary,
 			v: &extJSONObject{
 				keys: []string{"base64", "subType"},
 				values: []*extJSONValue{
