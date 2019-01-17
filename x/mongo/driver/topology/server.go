@@ -152,7 +152,7 @@ func NewServer(addr address.Address, topo func(description.Server), opts ...Serv
 	return s, nil
 }
 
-// Connect initialzies the Server by starting background monitoring goroutines.
+// Connect initializes the Server by starting background monitoring goroutines.
 // This method must be called before a Server can be used.
 func (s *Server) Connect(ctx context.Context) error {
 	if !atomic.CompareAndSwapInt32(&s.connectionstate, disconnected, connected) {

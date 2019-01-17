@@ -80,6 +80,48 @@ func DiffTopology(old, new Topology) TopologyDiff {
 	return diff
 }
 
+// DiffTopologyAndHostlist compares the topology description and host list and returns the difference.
+func DiffTopologyAndHostlist(topo Topology, hostlist []string) ([]string, []string) {
+	var added []string
+	var removed []string
+
+	oldServers := serverSorter(topo.Servers)
+	sort.Sort(oldServers)
+	sort.Strings(hostlist)
+
+	i := 0
+	j := 0
+	for {
+		if i < len(oldServers) && j < len(hostlist) {
+			oldServer := oldServers[i].Addr.String()
+			comp := strings.Compare(oldServer, hostlist[j])
+			switch comp {
+			case 1:
+				//left is bigger than
+				added = append(added, hostlist[j])
+				j++
+			case -1:
+				// right is bigger
+				removed = append(removed, oldServer)
+				i++
+			case 0:
+				i++
+				j++
+			}
+		} else if i < len(oldServers) {
+			removed = append(removed, oldServers[i].Addr.String())
+			i++
+		} else if j < len(hostlist) {
+			added = append(added, hostlist[j])
+			j++
+		} else {
+			break
+		}
+	}
+
+	return added, removed
+}
+
 type serverSorter []Server
 
 func (ss serverSorter) Len() int      { return len(ss) }
