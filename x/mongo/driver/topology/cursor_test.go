@@ -172,7 +172,7 @@ func (m *mockConnection) ReadWireMessage(ctx context.Context) (wiremessage.WireM
 		// write empty batch
 		d := createOKBatchReplyDoc(2, bsonx.Arr{})
 
-		return internal.MakeReply(m.t, d), nil
+		return internal.MakeReply(d)
 	} else if m.willErr {
 		// write error
 		return nil, errors.New("intentional mock error")
@@ -180,7 +180,7 @@ func (m *mockConnection) ReadWireMessage(ctx context.Context) (wiremessage.WireM
 		// write non-empty batch
 		d := createOKBatchReplyDoc(2, bsonx.Arr{bsonx.String("a")})
 
-		return internal.MakeReply(m.t, d), nil
+		return internal.MakeReply(d)
 	}
 }
 

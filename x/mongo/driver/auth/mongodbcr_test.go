@@ -29,12 +29,12 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 2)
-	resps <- internal.MakeReply(t, bsonx.Doc{
+	writeReplies(t, resps, bsonx.Doc{
 		{"ok", bsonx.Int32(1)},
 		{"nonce", bsonx.String("2375531c32080ae8")},
+	}, bsonx.Doc{
+		{"ok", bsonx.Int32(0)},
 	})
-
-	resps <- internal.MakeReply(t, bsonx.Doc{{"ok", bsonx.Int32(0)}})
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
 
@@ -63,13 +63,12 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 2)
-
-	resps <- internal.MakeReply(t, bsonx.Doc{
+	writeReplies(t, resps, bsonx.Doc{
 		{"ok", bsonx.Int32(1)},
 		{"nonce", bsonx.String("2375531c32080ae8")},
+	}, bsonx.Doc{
+		{"ok", bsonx.Int32(1)},
 	})
-
-	resps <- internal.MakeReply(t, bsonx.Doc{{"ok", bsonx.Int32(1)}})
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 2), ReadResp: resps}
 
@@ -96,4 +95,15 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		{"key", bsonx.String("21742f26431831d5cfca035a08c5bdf6")},
 	}
 	compareResponses(t, <-c.Written, expectedAuthenticateDoc, "source")
+}
+
+func writeReplies(t *testing.T, c chan wiremessage.WireMessage, docs ...bsonx.Doc) {
+	for _, doc := range docs {
+		reply, err := internal.MakeReply(doc)
+		if err != nil {
+			t.Fatalf("error constructing reply: %v", err)
+		}
+
+		c <- reply
+	}
 }
