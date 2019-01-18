@@ -198,7 +198,7 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 		}
 
 		if collation, found := test.Operation.Arguments["collation"]; found {
-			opts = opts.SetCollation(newCollationFromMap(collation.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(collation.(map[string]interface{})))
 		}
 
 		out := false

@@ -72,7 +72,7 @@ func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface
 		case "limit":
 			opts = opts.SetLimit(int64(opt.(float64)))
 		case "collation":
-			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -98,7 +98,7 @@ func executeDistinct(sess *sessionImpl, coll *Collection, args map[string]interf
 		case "fieldName":
 			fieldName = opt.(string)
 		case "collation":
-			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -317,7 +317,7 @@ func executeDeleteOne(sess *sessionImpl, coll *Collection, args map[string]inter
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "collation":
-			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -346,7 +346,7 @@ func executeDeleteMany(sess *sessionImpl, coll *Collection, args map[string]inte
 		case "filter":
 			filter = opt.(map[string]interface{})
 		case "collation":
-			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -380,7 +380,7 @@ func executeReplaceOne(sess *sessionImpl, coll *Collection, args map[string]inte
 		case "upsert":
 			opts = opts.SetUpsert(opt.(bool))
 		case "collation":
-			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -423,7 +423,7 @@ func executeUpdateOne(sess *sessionImpl, coll *Collection, args map[string]inter
 		case "upsert":
 			opts = opts.SetUpsert(opt.(bool))
 		case "collation":
-			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -463,7 +463,7 @@ func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]inte
 		case "upsert":
 			opts = opts.SetUpsert(opt.(bool))
 		case "collation":
-			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -498,7 +498,7 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 		case "batchSize":
 			opts = opts.SetBatchSize(int32(opt.(float64)))
 		case "collation":
-			opts = opts.SetCollation(newCollationFromMap(opt.(map[string]interface{})))
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
 		}
 	}
 
@@ -824,46 +824,8 @@ func collationFromMap(m map[string]interface{}) *options.Collation {
 		collation.MaxVariable = maxVariable.(string)
 	}
 
-	if backwards, found := m["backwards"]; found {
-		collation.Backwards = backwards.(bool)
-	}
-
-	return &collation
-}
-
-// Matt: bad name, I know; also, type-aliasing, I know.
-// The issue is, options.Collation has a ToDocument function and mongoopt.Collation has a convert function
-// type aliasing doesn't allow defining new functions on non-local types.
-// When all options are updated to the improved api, this function will be the only one and will simply be named "collationFromMap"
-func newCollationFromMap(m map[string]interface{}) *options.Collation {
-	var collation options.Collation
-
-	if locale, found := m["locale"]; found {
-		collation.Locale = locale.(string)
-	}
-
-	if caseLevel, found := m["caseLevel"]; found {
-		collation.CaseLevel = caseLevel.(bool)
-	}
-
-	if caseFirst, found := m["caseFirst"]; found {
-		collation.CaseFirst = caseFirst.(string)
-	}
-
-	if strength, found := m["strength"]; found {
-		collation.Strength = int(strength.(float64))
-	}
-
-	if numericOrdering, found := m["numericOrdering"]; found {
-		collation.NumericOrdering = numericOrdering.(bool)
-	}
-
-	if alternate, found := m["alternate"]; found {
-		collation.Alternate = alternate.(string)
-	}
-
-	if maxVariable, found := m["maxVariable"]; found {
-		collation.MaxVariable = maxVariable.(string)
+	if normalization, found := m["normalization"]; found {
+		collation.Normalization = normalization.(bool)
 	}
 
 	if backwards, found := m["backwards"]; found {
