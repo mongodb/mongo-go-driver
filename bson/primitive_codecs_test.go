@@ -418,7 +418,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
 					}},
 					{"ae", A{"hello", "world"}},
-					{"af", A{D{{"foo", "bar"}}, D{{"hello", "world"}, {"number", int64(12345)}}}},
+					{"af", A{D{{"foo", "bar"}}, D{{"hello", "world"}, {"number", int32(12345)}}}},
 					{"ag", A{D{{"pi", float64(3.14159)}}, nil}},
 				}),
 				nil,

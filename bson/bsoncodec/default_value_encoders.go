@@ -117,14 +117,24 @@ func (dve DefaultValueEncoders) BooleanEncodeValue(ectx EncodeContext, vw bsonrw
 	return vw.WriteBoolean(val.Bool())
 }
 
+func fitsIn32Bits(i int64) bool {
+	return math.MinInt32 <= i && i <= math.MaxInt32
+}
+
 // IntEncodeValue is the ValueEncoderFunc for int types.
 func (dve DefaultValueEncoders) IntEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Int8, reflect.Int16, reflect.Int32:
 		return vw.WriteInt32(int32(val.Int()))
-	case reflect.Int, reflect.Int64:
+	case reflect.Int:
 		i64 := val.Int()
-		if ec.MinSize && i64 <= math.MaxInt32 {
+		if fitsIn32Bits(i64) {
+			return vw.WriteInt32(int32(i64))
+		}
+		return vw.WriteInt64(i64)
+	case reflect.Int64:
+		i64 := val.Int()
+		if ec.MinSize && fitsIn32Bits(i64) {
 			return vw.WriteInt32(int32(i64))
 		}
 		return vw.WriteInt64(i64)
