@@ -126,7 +126,7 @@ func TestMarshalExtJSONAppendWithContext(t *testing.T) {
 		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
 		got, err := MarshalExtJSONAppendWithContext(ec, dst, val, true, false)
 		noerr(t, err)
-		want := []byte(`{"foo":{"$numberLong":"1"}}`)
+		want := []byte(`{"foo":{"$numberInt":"1"}}`)
 		if !bytes.Equal(got, want) {
 			t.Errorf("Bytes are not equal. got %v; want %v", got, want)
 			t.Errorf("Bytes:\n%s\n%s", got, want)
@@ -141,7 +141,7 @@ func TestMarshalExtJSONWithContext(t *testing.T) {
 		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
 		got, err := MarshalExtJSONWithContext(ec, val, true, false)
 		noerr(t, err)
-		want := []byte(`{"foo":{"$numberLong":"1"}}`)
+		want := []byte(`{"foo":{"$numberInt":"1"}}`)
 		if !bytes.Equal(got, want) {
 			t.Errorf("Bytes are not equal. got %v; want %v", got, want)
 			t.Errorf("Bytes:\n%s\n%s", got, want)

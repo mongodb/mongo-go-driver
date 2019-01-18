@@ -124,7 +124,8 @@ func (dve DefaultValueEncoders) IntEncodeValue(ec EncodeContext, vw bsonrw.Value
 		return vw.WriteInt32(int32(val.Int()))
 	case reflect.Int, reflect.Int64:
 		i64 := val.Int()
-		if ec.MinSize && i64 <= math.MaxInt32 {
+		// int should be encoded as int32 if it fits in the int32 range regardless of ec.MinSize
+		if (val.Kind() == reflect.Int || ec.MinSize) && math.MinInt32 <= i64 && i64 <= math.MaxInt32 {
 			return vw.WriteInt32(int32(i64))
 		}
 		return vw.WriteInt64(i64)
