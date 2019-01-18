@@ -25,6 +25,7 @@ type Collation struct {
 	NumericOrdering bool   `bson:",omitempty"` // Whether to order numbers based on numerical order and not collation order
 	Alternate       string `bson:",omitempty"` // Whether spaces and punctuation are considered base characters
 	MaxVariable     string `bson:",omitempty"` // Which characters are affected by alternate: "shifted"
+	Normalization   bool   `bson:",omitempty"` // Causes text to be normalized into Unicode NFD
 	Backwards       bool   `bson:",omitempty"` // Causes secondary differences to be considered in reverse order, as it is done in the French language
 }
 
@@ -51,6 +52,9 @@ func (co *Collation) ToDocument() bsonx.Doc {
 	}
 	if co.MaxVariable != "" {
 		doc = append(doc, bsonx.Elem{"maxVariable", bsonx.String(co.MaxVariable)})
+	}
+	if co.Normalization {
+		doc = append(doc, bsonx.Elem{"normalization", bsonx.Boolean(co.Normalization)})
 	}
 	if co.Backwards {
 		doc = append(doc, bsonx.Elem{"backwards", bsonx.Boolean(true)})
