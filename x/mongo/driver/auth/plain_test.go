@@ -29,13 +29,13 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- internal.MakeReply(t, bsonx.Doc{
+	writeReplies(t, resps, bsonx.Doc{
 		{"ok", bsonx.Int32(1)},
 		{"conversationId", bsonx.Int32(1)},
 		{"payload", bsonx.Binary(0x00, []byte{})},
 		{"code", bsonx.Int32(143)},
-		{"done", bsonx.Boolean(true)}},
-	)
+		{"done", bsonx.Boolean(true)},
+	})
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
@@ -63,18 +63,17 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 2)
-	resps <- internal.MakeReply(t, bsonx.Doc{
+	writeReplies(t, resps, bsonx.Doc{
 		{"ok", bsonx.Int32(1)},
 		{"conversationId", bsonx.Int32(1)},
 		{"payload", bsonx.Binary(0x00, []byte{})},
-		{"done", bsonx.Boolean(false)}},
-	)
-	resps <- internal.MakeReply(t, bsonx.Doc{
+		{"done", bsonx.Boolean(false)},
+	}, bsonx.Doc{
 		{"ok", bsonx.Int32(1)},
 		{"conversationId", bsonx.Int32(1)},
 		{"payload", bsonx.Binary(0x00, []byte{})},
-		{"done", bsonx.Boolean(true)}},
-	)
+		{"done", bsonx.Boolean(true)},
+	})
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
@@ -102,12 +101,12 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	}
 
 	resps := make(chan wiremessage.WireMessage, 1)
-	resps <- internal.MakeReply(t, bsonx.Doc{
+	writeReplies(t, resps, bsonx.Doc{
 		{"ok", bsonx.Int32(1)},
 		{"conversationId", bsonx.Int32(1)},
 		{"payload", bsonx.Binary(0x00, []byte{})},
-		{"done", bsonx.Boolean(true)}},
-	)
+		{"done", bsonx.Boolean(true)},
+	})
 
 	c := &internal.ChannelConn{Written: make(chan wiremessage.WireMessage, 1), ReadResp: resps}
 
