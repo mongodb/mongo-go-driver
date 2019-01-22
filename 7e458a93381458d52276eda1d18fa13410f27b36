@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bfa40d64_948c58b5",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-22T19:51:01Z",
+      "side": 1,
+      "message": "description.Topology is in an \"x\" package so ideally wouldn\u0027t be exposed in the public API yet.\nConsider instead stringifying a short description of the topology in the error string.  FWIW in Java driver the message is: \n\n\"Timed out after %d ms while waiting to connect. Client view of cluster state is %s\",                                                                                            \n     settings.getServerSelectionTimeout(MILLISECONDS),\n     curDescription.getShortDescription())\n\ngetShortDescription included the topology type, and a description of each server in the topology, in particular its\n\n* address\n* type\n* tag sets\n* state\n* round trip time (if state \u003d\u003d connected)\n* last error",
+      "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
