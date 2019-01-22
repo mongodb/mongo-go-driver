@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"fmt"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
@@ -60,6 +61,21 @@ const (
 	connected
 	connecting
 )
+
+func connectionStateString(state int32) string {
+	switch state {
+	case 0:
+		return "Disconnected"
+	case 1:
+		return "Disconnecting"
+	case 2:
+		return "Connected"
+	case 3:
+		return "Connecting"
+	}
+
+	return ""
+}
 
 // Server is a single server within a topology.
 type Server struct {
@@ -454,6 +470,24 @@ func (s *Server) BuildCursor(result bson.Raw, clientSession *session.Client, clo
 // BuildLegacyCursor implements the command.CursorBuilder interface for the Server type.
 func (s *Server) BuildLegacyCursor(ns command.Namespace, cursorID int64, batch []bson.Raw, limit int32, batchSize int32) (command.Cursor, error) {
 	return newLegacyCursor(ns, cursorID, batch, limit, batchSize, s)
+}
+
+// String implements the Stringer interface.
+func (s *Server) String() string {
+	desc := s.Description()
+	str := fmt.Sprintf("Addr: %s, Type: %s, State: %s",
+		s.address, desc.Kind, connectionStateString(s.connectionstate))
+	if len(desc.Tags) != 0 {
+		str += fmt.Sprintf(", Tag sets: %s", desc.Tags)
+	}
+	if s.connectionstate == connected {
+		str += fmt.Sprintf(", Avergage RTT: %d", s.averageRTT)
+	}
+	if desc.LastError != nil {
+		str += fmt.Sprintf(", Last error: %s", desc.LastError)
+	}
+
+	return str
 }
 
 // ServerSubscription represents a subscription to the description.Server updates for
