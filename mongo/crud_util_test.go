@@ -157,7 +157,7 @@ func executeInsertMany(sess *sessionImpl, coll *Collection, args map[string]inte
 	return coll.InsertMany(context.Background(), documents)
 }
 
-func executeFind(sess *sessionImpl, coll *Collection, args map[string]interface{}) (Cursor, error) {
+func executeFind(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*Cursor, error) {
 	opts := options.Find()
 	var filter map[string]interface{}
 	for name, opt := range args {
@@ -488,7 +488,7 @@ func executeUpdateMany(sess *sessionImpl, coll *Collection, args map[string]inte
 	return coll.UpdateMany(ctx, filter, update, opts)
 }
 
-func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]interface{}) (Cursor, error) {
+func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]interface{}) (*Cursor, error) {
 	var pipeline []interface{}
 	opts := options.Aggregate()
 	for name, opt := range args {
@@ -612,7 +612,22 @@ func verifyInsertManyResult(t *testing.T, res *InsertManyResult, result json.Raw
 	}
 }
 
-func verifyCursorResult(t *testing.T, cur Cursor, result json.RawMessage) {
+func verifyCursorResult2(t *testing.T, cur *Cursor, result json.RawMessage) {
+	for _, expected := range docSliceFromRaw(t, result) {
+		require.NotNil(t, cur)
+		require.True(t, cur.Next(context.Background()))
+
+		var actual bsonx.Doc
+		require.NoError(t, cur.Decode(&actual))
+
+		compareDocs(t, expected, actual)
+	}
+
+	require.False(t, cur.Next(ctx))
+	require.NoError(t, cur.Err())
+}
+
+func verifyCursorResult(t *testing.T, cur *Cursor, result json.RawMessage) {
 	for _, expected := range docSliceFromRaw(t, result) {
 		require.NotNil(t, cur)
 		require.True(t, cur.Next(context.Background()))

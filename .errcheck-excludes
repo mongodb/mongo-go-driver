@@ -4,7 +4,8 @@
 (*github.com/mongodb/mongo-go-driver/x/mongo/driver/topology.Server).Close
 (*github.com/mongodb/mongo-go-driver/x/network/connection.pool).closeConnection
 (github.com/mongodb/mongo-go-driver/x/network/wiremessage.ReadWriteCloser).Close
-(github.com/mongodb/mongo-go-driver/mongo.Cursor).Close
+(*github.com/mongodb/mongo-go-driver/mongo.Cursor).Close
+(*github.com/mongodb/mongo-go-driver/mongo.ChangeStream).Close
 (net.Conn).Close
 encoding/pem.Encode
 fmt.Fprintf

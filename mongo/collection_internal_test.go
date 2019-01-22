@@ -16,6 +16,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
@@ -28,7 +30,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"time"
 )
 
 var impossibleWriteConcern = writeconcern.New(writeconcern.W(50), writeconcern.WTimeout(time.Second))
@@ -1201,7 +1202,7 @@ func TestCollection_Aggregate(t *testing.T) {
 
 	for i := 2; i < 5; i++ {
 		var doc bsonx.Doc
-		cursor.Next(context.Background())
+		require.True(t, cursor.Next(context.Background()))
 		err = cursor.Decode(&doc)
 		require.NoError(t, err)
 
@@ -1512,7 +1513,7 @@ func TestCollection_Find_notFound(t *testing.T) {
 	require.False(t, cursor.Next(context.Background()))
 }
 
-func killCursor(t *testing.T, c Cursor, coll *Collection) {
+func killCursor(t *testing.T, c *Cursor, coll *Collection) {
 	version, err := getServerVersion(coll.db)
 	require.Nil(t, err, "error getting server version: %s", err)
 	ns := command.NewNamespace(coll.db.name, coll.name)
