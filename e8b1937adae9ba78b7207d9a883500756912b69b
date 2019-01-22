@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8e04b650_e351041d",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1192,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-22T19:54:28Z",
+      "side": 1,
+      "message": "Good catch",
+      "revId": "e8b1937adae9ba78b7207d9a883500756912b69b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
