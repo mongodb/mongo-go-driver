@@ -14,6 +14,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
@@ -109,20 +110,25 @@ func TestCommandListCollections(t *testing.T) {
 		noerr(t, err)
 
 		names := map[string]bool{}
-		next := bsonx.Doc{}
 
 		for cursor.Next(context.Background()) {
-			next = next[:0]
-			err = cursor.Decode(&next)
-			noerr(t, err)
+			docs := cursor.Batch(nil)
+			var next bsoncore.Document
+			var ok bool
+			for {
+				next, docs, ok = bsoncore.ReadDocument(docs)
+				if !ok {
+					break
+				}
 
-			val, err := next.LookupErr("name")
-			noerr(t, err)
-			if val.Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
-				t.FailNow()
+				val, err := next.LookupErr("name")
+				noerr(t, err)
+				if val.Type != bson.TypeString {
+					t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type, bson.TypeString)
+					t.FailNow()
+				}
+				names[val.StringValue()] = true
 			}
-			names[val.StringValue()] = true
 		}
 
 		for _, required := range []string{collOne, collTwo, collThree} {

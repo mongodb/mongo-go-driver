@@ -60,7 +60,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 			return err
 		}
 		var r bson.Raw
-		r, err = cursor.DecodeBytes()
+		r, err = cursor.DecodeBytes(nil)
 		if err != nil {
 			return err
 		}
