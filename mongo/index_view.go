@@ -44,7 +44,7 @@ type IndexModel struct {
 }
 
 // List returns a cursor iterating over all the indexes in the collection.
-func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOptions) (Cursor, error) {
+func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOptions) (*Cursor, error) {
 	sess := sessionFromContext(ctx)
 
 	err := iv.coll.client.ValidSession(sess)
@@ -62,7 +62,7 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		description.ReadPrefSelector(readpref.Primary()),
 		description.LatencySelector(iv.coll.client.localThreshold),
 	})
-	return driver.ListIndexes(
+	batchCursor, err := driver.ListIndexes(
 		ctx, listCmd,
 		iv.coll.client.topology,
 		readSelector,
@@ -70,6 +70,15 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		iv.coll.client.topology.SessionPool,
 		opts...,
 	)
+	if err != nil {
+		if err == command.ErrEmptyCursor {
+			return newEmptyCursor(), nil
+		}
+		return nil, replaceTopologyErr(err)
+	}
+
+	cursor, err := newCursor(batchCursor, iv.coll.registry)
+	return cursor, replaceTopologyErr(err)
 }
 
 // CreateOne creates a single index in the collection specified by the model.

@@ -33,7 +33,7 @@ type Aggregate struct {
 	Clock        *session.ClusterClock
 	Session      *session.Client
 
-	result Cursor
+	result bson.Raw
 	err    error
 }
 
@@ -117,36 +117,23 @@ func (a *Aggregate) HasDollarOut() bool {
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (a *Aggregate) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *Aggregate {
+func (a *Aggregate) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Aggregate {
 	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		a.err = err
 		return a
 	}
 
-	return a.decode(desc, cb, rdr)
+	return a.decode(desc, rdr)
 }
 
-func (a *Aggregate) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *Aggregate {
-	labels, err := getErrorLabels(&rdr)
-	a.err = err
-
-	var res Cursor
-	if desc.WireVersion.Max >= 4 {
-		res, err = cb.BuildCursor(rdr, a.Session, a.Clock, a.CursorOpts...)
-	} else {
-		res, err = buildLegacyCursor(cb, rdr, getBatchSize(a.CursorOpts))
-	}
-
-	a.result = res
-	if err != nil {
-		a.err = Error{Message: err.Error(), Labels: labels}
-	}
+func (a *Aggregate) decode(desc description.SelectedServer, rdr bson.Raw) *Aggregate {
+	a.result = rdr
 	return a
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (a *Aggregate) Result() (Cursor, error) {
+func (a *Aggregate) Result() (bson.Raw, error) {
 	if a.err != nil {
 		return nil, a.err
 	}
@@ -157,7 +144,7 @@ func (a *Aggregate) Result() (Cursor, error) {
 func (a *Aggregate) Err() error { return a.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	cmd, err := a.encode(desc)
 	if err != nil {
 		return nil, err
@@ -168,5 +155,5 @@ func (a *Aggregate) RoundTrip(ctx context.Context, desc description.SelectedServ
 		return nil, err
 	}
 
-	return a.decode(desc, cb, rdr).Result()
+	return a.decode(desc, rdr).Result()
 }

@@ -10,8 +10,10 @@ import (
 	"context"
 
 	"errors"
+
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
@@ -33,7 +35,7 @@ func ListCollections(
 	clientID uuid.UUID,
 	pool *session.Pool,
 	opts ...*options.ListCollectionsOptions,
-) (command.Cursor, error) {
+) (*ListCollectionsBatchCursor, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
@@ -69,12 +71,19 @@ func ListCollections(
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"nameOnly", bsonx.Boolean(*lc.NameOnly)})
 	}
 
-	c, err := cmd.RoundTrip(ctx, ss.Description(), ss, conn)
+	res, err := cmd.RoundTrip(ctx, ss.Description(), conn)
 	if err != nil {
 		closeImplicitSession(cmd.Session)
+		return nil, err
 	}
 
-	return c, err
+	batchCursor, err := NewBatchCursor(bsoncore.Document(res), cmd.Session, cmd.Clock, ss.Server, cmd.CursorOpts...)
+	if err != nil {
+		closeImplicitSession(cmd.Session)
+		return nil, err
+	}
+
+	return NewListCollectionsBatchCursor(batchCursor)
 }
 
 func legacyListCollections(
@@ -82,7 +91,7 @@ func legacyListCollections(
 	cmd command.ListCollections,
 	ss *topology.SelectedServer,
 	conn connection.Connection,
-) (command.Cursor, error) {
+) (*ListCollectionsBatchCursor, error) {
 	filter, err := transformFilter(cmd.Filter, cmd.DB)
 	if err != nil {
 		return nil, err
@@ -95,12 +104,12 @@ func legacyListCollections(
 	}
 
 	// don't need registry because it's used to create BSON docs for find options that don't exist in this case
-	c, err := legacyFind(ctx, findCmd, nil, ss, conn)
+	batchCursor, err := legacyFind(ctx, findCmd, nil, ss, conn)
 	if err != nil {
 		return nil, err
 	}
 
-	return topology.NewListCollectionsCursor(c), nil
+	return NewLegacyListCollectionsBatchCursor(batchCursor)
 }
 
 // modify the user-supplied filter to prefix the "name" field with the database name.

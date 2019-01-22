@@ -13,7 +13,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
@@ -21,7 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
 
-func runCommand(t *testing.T, cmd command.ListIndexes, opts ...*options.ListIndexesOptions) (command.Cursor, error) {
+func runCommand(t *testing.T, cmd command.ListIndexes, opts ...*options.ListIndexesOptions) (*driver.BatchCursor, error) {
 	clientID, err := uuid.New()
 	noerr(t, err)
 
@@ -47,52 +47,16 @@ func TestCommandListIndexes(t *testing.T) {
 
 	t.Run("InvalidDatabaseName", func(t *testing.T) {
 		ns := command.Namespace{DB: "ex", Collection: "space"}
-		cursor, err := runCommand(t, command.ListIndexes{NS: ns})
-		noerr(t, err)
-
-		indexes := []string{}
-		var next bsonx.Doc
-
-		for cursor.Next(context.Background()) {
-			err = cursor.Decode(&next)
-			noerr(t, err)
-
-			val, err := next.LookupErr("name")
-			noerr(t, err)
-			if val.Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
-				t.FailNow()
-			}
-			indexes = append(indexes, val.StringValue())
-		}
-
-		if len(indexes) != 0 {
-			t.Errorf("Expected no indexes from invalid database. got %d; want %d", len(indexes), 0)
+		_, err := runCommand(t, command.ListIndexes{NS: ns})
+		if err != command.ErrEmptyCursor {
+			t.Errorf("Expected to receive empty cursor, but didn't. got %v; want %v", err, command.ErrEmptyCursor)
 		}
 	})
 	t.Run("InvalidCollectionName", func(t *testing.T) {
 		ns := command.Namespace{DB: "ex", Collection: testutil.ColName(t)}
-		cursor, err := runCommand(t, command.ListIndexes{NS: ns})
-		noerr(t, err)
-
-		indexes := []string{}
-		var next bsonx.Doc
-
-		for cursor.Next(context.Background()) {
-			err = cursor.Decode(&next)
-			noerr(t, err)
-
-			val, err := next.LookupErr("name")
-			noerr(t, err)
-			if val.Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
-				t.FailNow()
-			}
-			indexes = append(indexes, val.StringValue())
-		}
-
-		if len(indexes) != 0 {
-			t.Errorf("Expected no indexes from invalid database. got %d; want %d", len(indexes), 0)
+		_, err := runCommand(t, command.ListIndexes{NS: ns})
+		if err != command.ErrEmptyCursor {
+			t.Errorf("Expected to receive empty cursor, but didn't. got %v; want %v", err, command.ErrEmptyCursor)
 		}
 	})
 	t.Run("SingleBatch", func(t *testing.T) {
@@ -107,20 +71,25 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
-			next = next[:0]
-			err = cursor.Decode(&next)
-			noerr(t, err)
+			docs := cursor.Batch(nil)
+			var next bsoncore.Document
+			var ok bool
+			for {
+				next, docs, ok = bsoncore.ReadDocument(docs)
+				if !ok {
+					break
+				}
 
-			val, err := next.LookupErr("name")
-			noerr(t, err)
-			if val.Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
-				t.FailNow()
+				val, err := next.LookupErr("name")
+				noerr(t, err)
+				if val.Type != bson.TypeString {
+					t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type, bson.TypeString)
+					t.FailNow()
+				}
+				indexes = append(indexes, val.StringValue())
 			}
-			indexes = append(indexes, val.StringValue())
 		}
 
 		if len(indexes) != 5 {
@@ -144,20 +113,25 @@ func TestCommandListIndexes(t *testing.T) {
 		noerr(t, err)
 
 		indexes := []string{}
-		var next bsonx.Doc
 
 		for cursor.Next(context.Background()) {
-			next = next[:0]
-			err = cursor.Decode(&next)
-			noerr(t, err)
+			docs := cursor.Batch(nil)
+			var next bsoncore.Document
+			var ok bool
+			for {
+				next, docs, ok = bsoncore.ReadDocument(docs)
+				if !ok {
+					break
+				}
 
-			val, err := next.LookupErr("name")
-			noerr(t, err)
-			if val.Type() != bson.TypeString {
-				t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type(), bson.TypeString)
-				t.FailNow()
+				val, err := next.LookupErr("name")
+				noerr(t, err)
+				if val.Type != bson.TypeString {
+					t.Errorf("Incorrect type for 'name'. got %v; want %v", val.Type, bson.TypeString)
+					t.FailNow()
+				}
+				indexes = append(indexes, val.StringValue())
 			}
-			indexes = append(indexes, val.StringValue())
 		}
 
 		if len(indexes) != 4 {
