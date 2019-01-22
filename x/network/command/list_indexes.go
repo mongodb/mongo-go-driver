@@ -8,6 +8,7 @@ package command
 
 import (
 	"context"
+	"errors"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
@@ -15,6 +16,9 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 )
+
+// ErrEmptyCursor is a signaling error when a cursor for list indexes is empty.
+var ErrEmptyCursor = errors.New("empty cursor")
 
 // ListIndexes represents the listIndexes command.
 //
@@ -26,7 +30,7 @@ type ListIndexes struct {
 	Opts       []bsonx.Elem
 	Session    *session.Client
 
-	result Cursor
+	result bson.Raw
 	err    error
 }
 
@@ -53,35 +57,27 @@ func (li *ListIndexes) encode(desc description.SelectedServer) (*Read, error) {
 
 // Decode will decode the wire message using the provided server description. Errors during decoling
 // are deferred until either the Result or Err methods are called.
-func (li *ListIndexes) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListIndexes {
+func (li *ListIndexes) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *ListIndexes {
 	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		if IsNotFound(err) {
-			li.result = emptyCursor{}
+			li.err = ErrEmptyCursor
 			return li
 		}
 		li.err = err
 		return li
 	}
 
-	return li.decode(desc, cb, rdr)
+	return li.decode(desc, rdr)
 }
 
-func (li *ListIndexes) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *ListIndexes {
-	labels, err := getErrorLabels(&rdr)
-	li.err = err
-
-	res, err := cb.BuildCursor(rdr, li.Session, li.Clock, li.CursorOpts...)
-	li.result = res
-	if err != nil {
-		li.err = Error{Message: err.Error(), Labels: labels}
-	}
-
+func (li *ListIndexes) decode(desc description.SelectedServer, rdr bson.Raw) *ListIndexes {
+	li.result = rdr
 	return li
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (li *ListIndexes) Result() (Cursor, error) {
+func (li *ListIndexes) Result() (bson.Raw, error) {
 	if li.err != nil {
 		return nil, li.err
 	}
@@ -92,7 +88,7 @@ func (li *ListIndexes) Result() (Cursor, error) {
 func (li *ListIndexes) Err() error { return li.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (li *ListIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (li *ListIndexes) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	cmd, err := li.encode(desc)
 	if err != nil {
 		return nil, err
@@ -101,10 +97,10 @@ func (li *ListIndexes) RoundTrip(ctx context.Context, desc description.SelectedS
 	rdr, err := cmd.RoundTrip(ctx, desc, rw)
 	if err != nil {
 		if IsNotFound(err) {
-			return emptyCursor{}, nil
+			return nil, ErrEmptyCursor
 		}
 		return nil, err
 	}
 
-	return li.decode(desc, cb, rdr).Result()
+	return li.decode(desc, rdr).Result()
 }

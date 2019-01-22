@@ -693,20 +693,6 @@ func getBatchSize(opts []bsonx.Elem) int32 {
 	return 0
 }
 
-func buildLegacyCursor(cb CursorBuilder, rdr bson.Raw, batchSize int32) (Cursor, error) {
-	firstBatchVals, ns, cursorID, err := getCursorValues(rdr)
-	if err != nil {
-		return nil, err
-	}
-
-	batchRaw := make([]bson.Raw, len(firstBatchVals))
-	for i, val := range firstBatchVals {
-		batchRaw[i] = val.Value
-	}
-
-	return cb.BuildLegacyCursor(ns, cursorID, batchRaw, 0, batchSize)
-}
-
 // ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
 // write concern.
 var ErrUnacknowledgedWrite = errors.New("unacknowledged write")

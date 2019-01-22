@@ -31,7 +31,7 @@ type Find struct {
 	Clock       *session.ClusterClock
 	Session     *session.Client
 
-	result Cursor
+	result bson.Raw
 	err    error
 }
 
@@ -70,30 +70,23 @@ func (f *Find) encode(desc description.SelectedServer) (*Read, error) {
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (f *Find) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *Find {
+func (f *Find) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *Find {
 	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		f.err = err
 		return f
 	}
 
-	return f.decode(desc, cb, rdr)
+	return f.decode(desc, rdr)
 }
 
-func (f *Find) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *Find {
-	labels, err := getErrorLabels(&rdr)
-	f.err = err
-
-	res, err := cb.BuildCursor(rdr, f.Session, f.Clock, f.CursorOpts...)
-	f.result = res
-	if err != nil {
-		f.err = Error{Message: err.Error(), Labels: labels}
-	}
+func (f *Find) decode(desc description.SelectedServer, rdr bson.Raw) *Find {
+	f.result = rdr
 	return f
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (f *Find) Result() (Cursor, error) {
+func (f *Find) Result() (bson.Raw, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -105,7 +98,7 @@ func (f *Find) Result() (Cursor, error) {
 func (f *Find) Err() error { return f.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	cmd, err := f.encode(desc)
 	if err != nil {
 		return nil, err
@@ -116,5 +109,5 @@ func (f *Find) RoundTrip(ctx context.Context, desc description.SelectedServer, c
 		return nil, err
 	}
 
-	return f.decode(desc, cb, rdr).Result()
+	return f.decode(desc, rdr).Result()
 }
