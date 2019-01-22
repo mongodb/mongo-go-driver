@@ -8,10 +8,14 @@ package driver
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 
 	"time"
 
@@ -33,7 +37,7 @@ func Aggregate(
 	pool *session.Pool,
 	registry *bsoncodec.Registry,
 	opts ...*options.AggregateOptions,
-) (command.Cursor, error) {
+) (*BatchCursor, error) {
 
 	dollarOut := cmd.HasDollarOut()
 
@@ -79,10 +83,12 @@ func Aggregate(
 	if aggOpts.AllowDiskUse != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"allowDiskUse", bsonx.Boolean(*aggOpts.AllowDiskUse)})
 	}
+	var batchSize int32
 	if aggOpts.BatchSize != nil {
 		elem := bsonx.Elem{"batchSize", bsonx.Int32(*aggOpts.BatchSize)}
 		cmd.Opts = append(cmd.Opts, elem)
 		cmd.CursorOpts = append(cmd.CursorOpts, elem)
+		batchSize = *aggOpts.BatchSize
 	}
 	if aggOpts.BypassDocumentValidation != nil && desc.WireVersion.Includes(4) {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"bypassDocumentValidation", bsonx.Boolean(*aggOpts.BypassDocumentValidation)})
@@ -114,10 +120,88 @@ func Aggregate(
 		cmd.Opts = append(cmd.Opts, hintElem)
 	}
 
-	c, err := cmd.RoundTrip(ctx, desc, ss, conn)
+	res, err := cmd.RoundTrip(ctx, desc, conn)
 	if err != nil {
 		closeImplicitSession(cmd.Session)
+		return nil, err
 	}
 
-	return c, err
+	if desc.WireVersion.Max < 4 {
+		return buildLegacyCommandBatchCursor(res, batchSize, ss.Server)
+	}
+
+	return NewBatchCursor(bsoncore.Document(res), cmd.Session, cmd.Clock, ss.Server, cmd.CursorOpts...)
+}
+
+func buildLegacyCommandBatchCursor(rdr bson.Raw, batchSize int32, server *topology.Server) (*BatchCursor, error) {
+	firstBatchDocs, ns, cursorID, err := getCursorValues(rdr)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewLegacyBatchCursor(ns, cursorID, firstBatchDocs, 0, batchSize, server)
+}
+
+// get the firstBatch, cursor ID, and namespace from a bson.Raw
+//
+// TODO(GODRIVER-617): Change the documents return value into []bsoncore.Document.
+func getCursorValues(result bson.Raw) ([]bson.Raw, command.Namespace, int64, error) {
+	cur, err := result.LookupErr("cursor")
+	if err != nil {
+		return nil, command.Namespace{}, 0, err
+	}
+	if cur.Type != bson.TypeEmbeddedDocument {
+		return nil, command.Namespace{}, 0, fmt.Errorf("cursor should be an embedded document but it is a BSON %s", cur.Type)
+	}
+
+	elems, err := cur.Document().Elements()
+	if err != nil {
+		return nil, command.Namespace{}, 0, err
+	}
+
+	var ok bool
+	var batch []bson.Raw
+	var namespace command.Namespace
+	var cursorID int64
+
+	for _, elem := range elems {
+		switch elem.Key() {
+		case "firstBatch":
+			arr, ok := elem.Value().ArrayOK()
+			if !ok {
+				return nil, command.Namespace{}, 0, fmt.Errorf("firstBatch should be an array but it is a BSON %s", elem.Value().Type)
+			}
+			if err != nil {
+				return nil, command.Namespace{}, 0, err
+			}
+
+			vals, err := arr.Values()
+			if err != nil {
+				return nil, command.Namespace{}, 0, err
+			}
+
+			for _, val := range vals {
+				if val.Type != bsontype.EmbeddedDocument {
+					return nil, command.Namespace{}, 0, fmt.Errorf("element of cursor batch is not a document, but at %s", val.Type)
+				}
+				batch = append(batch, val.Value)
+			}
+		case "ns":
+			if elem.Value().Type != bson.TypeString {
+				return nil, command.Namespace{}, 0, fmt.Errorf("namespace should be a string but it is a BSON %s", elem.Value().Type)
+			}
+			namespace = command.ParseNamespace(elem.Value().StringValue())
+			err = namespace.Validate()
+			if err != nil {
+				return nil, command.Namespace{}, 0, err
+			}
+		case "id":
+			cursorID, ok = elem.Value().Int64OK()
+			if !ok {
+				return nil, command.Namespace{}, 0, fmt.Errorf("id should be an int64 but it is a BSON %s", elem.Value().Type)
+			}
+		}
+	}
+
+	return batch, namespace, cursorID, nil
 }

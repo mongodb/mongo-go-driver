@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo"
@@ -46,11 +47,11 @@ func findIndex(ctx context.Context, t *testing.T, coll *mongo.Collection, keys .
 	}
 	foundIndex := false
 	for cur.Next(ctx) {
-		elem, err := cur.DecodeBytes()
+		elem, err := cur.DecodeBytes(nil)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
-		if _, err := elem.LookupErr(keys...); err == nil {
+		if _, err := bson.Raw(elem).LookupErr(keys...); err == nil {
 			foundIndex = true
 		}
 	}

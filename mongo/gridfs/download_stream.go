@@ -16,6 +16,7 @@ import (
 	"io"
 	"math"
 
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/mongo"
 )
 
@@ -31,7 +32,7 @@ var errNoMoreChunks = errors.New("no more chunks remaining")
 type DownloadStream struct {
 	numChunks     int32
 	chunkSize     int32
-	cursor        mongo.Cursor
+	cursor        *mongo.Cursor
 	done          bool
 	closed        bool
 	buffer        []byte // store up to 1 chunk if the user provided buffer isn't big enough
@@ -42,7 +43,7 @@ type DownloadStream struct {
 	fileLen       int64
 }
 
-func newDownloadStream(cursor mongo.Cursor, chunkSize int32, fileLen int64) *DownloadStream {
+func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, fileLen int64) *DownloadStream {
 	numChunks := int32(math.Ceil(float64(fileLen) / float64(chunkSize)))
 
 	return &DownloadStream{
@@ -167,12 +168,12 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 		return errNoMoreChunks
 	}
 
-	nextChunk, err := ds.cursor.DecodeBytes()
+	nextChunk, err := ds.cursor.DecodeBytes(nil)
 	if err != nil {
 		return err
 	}
 
-	chunkIndex, err := nextChunk.LookupErr("n")
+	chunkIndex, err := bson.Raw(nextChunk).LookupErr("n")
 	if err != nil {
 		return err
 	}
@@ -182,7 +183,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	}
 
 	ds.expectedChunk++
-	data, err := nextChunk.LookupErr("data")
+	data, err := bson.Raw(nextChunk).LookupErr("data")
 	if err != nil {
 		return err
 	}

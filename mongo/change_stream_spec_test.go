@@ -70,7 +70,7 @@ func TestChangeStreamSpec(t *testing.T) {
 	}
 }
 
-func closeCursor(stream Cursor) {
+func closeCursor(stream *ChangeStream) {
 	_ = stream.Close(ctx)
 }
 
@@ -214,7 +214,7 @@ func runCsTestFile(t *testing.T, globalClient *Client, path string) {
 
 			drainChannels()
 			opts := getStreamOptions(&test)
-			var cursor Cursor
+			var cursor *ChangeStream
 			switch test.Target {
 			case "collection":
 				cursor, err = clientColl.Watch(ctx, test.Pipeline, opts)
