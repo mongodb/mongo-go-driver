@@ -205,6 +205,24 @@
       "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bfc2f4da_6b7ca91c",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-22T23:42:35Z",
+      "side": 1,
+      "message": "I see that the SPEC ticket is closed and the changes merged, but the related DRIVERS ticket is blocked on server, and the server ticket still has fix version of \"4.1 Desired\".  That generally means that drivers should hold up until there\u0027s a server available to test against.\n\nWhy is revisiting later a problem?  At least then we can a) write some tests and b) be more certain that the feature is not going to change before the server releases it.",
+      "parentUuid": "0106c3b9_fb6ec782",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
