@@ -235,7 +235,7 @@ func setupListCollectionsDb(db *Database) (uncappedName string, cappedName strin
 
 // verifies both collection names are found in cursor, cursor does not have extra collections, and cursor has no
 // duplicates
-func verifyListCollections(cursor Cursor, uncappedName string, cappedName string, cappedOnly bool) (err error) {
+func verifyListCollections(cursor *Cursor, uncappedName string, cappedName string, cappedOnly bool) (err error) {
 	var uncappedFound bool
 	var cappedFound bool
 
@@ -297,7 +297,7 @@ func listCollectionsTest(db *Database, cappedOnly bool, cappedName, uncappedName
 		filter = bsonx.Doc{{"options.capped", bsonx.Boolean(true)}}
 	}
 
-	var cursor Cursor
+	var cursor *Cursor
 	var err error
 	for i := 0; i < 10; i++ {
 		cursor, err = db.ListCollections(context.Background(), filter)

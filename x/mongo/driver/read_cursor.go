@@ -9,6 +9,8 @@ package driver
 import (
 	"context"
 
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
@@ -25,7 +27,8 @@ func ReadCursor(
 	selecctor description.ServerSelector,
 	clientID uuid.UUID,
 	pool *session.Pool,
-) (command.Cursor, error) {
+	cursorOpts ...bsonx.Elem,
+) (*BatchCursor, error) {
 
 	ss, err := topo.SelectServer(ctx, selecctor)
 	if err != nil {
@@ -48,13 +51,17 @@ func ReadCursor(
 
 	rdr, err := cmd.RoundTrip(ctx, desc, conn)
 	if err != nil {
-		cmd.Session.EndSession()
+		if cmd.Session != nil && cmd.Session.SessionType == session.Implicit {
+			cmd.Session.EndSession()
+		}
 		return nil, err
 	}
 
-	cursor, err := ss.BuildCursor(rdr, cmd.Session, cmd.Clock)
+	cursor, err := NewBatchCursor(bsoncore.Document(rdr), cmd.Session, cmd.Clock, ss.Server, cursorOpts...)
 	if err != nil {
-		cmd.Session.EndSession()
+		if cmd.Session != nil && cmd.Session.SessionType == session.Implicit {
+			cmd.Session.EndSession()
+		}
 		return nil, err
 	}
 

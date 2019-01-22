@@ -14,12 +14,14 @@ import (
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/examples/documentation_examples"
+	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDocumentationExamples(t *testing.T) {
-	client, err := mongo.Connect(context.Background(), "mongodb://localhost:27017", nil)
+	cs := testutil.ConnString(t)
+	client, err := mongo.Connect(context.Background(), cs.String(), nil)
 	require.NoError(t, err)
 
 	db := client.Database("documentation_examples")
