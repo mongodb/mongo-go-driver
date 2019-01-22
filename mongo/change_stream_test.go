@@ -72,7 +72,7 @@ func skipIfBelow36(t *testing.T) {
 	}
 }
 
-func createStream(t *testing.T, client *Client, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
+func createStream(t *testing.T, client *Client, dbName string, collName string, pipeline interface{}) (*Collection, *ChangeStream) {
 	client.writeConcern = wcMajority
 	db := client.Database(dbName)
 	err := db.Drop(ctx)
@@ -98,7 +98,7 @@ func skipIfBelow32(t *testing.T) {
 	}
 }
 
-func createCollectionStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
+func createCollectionStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, *ChangeStream) {
 	if pipeline == nil {
 		pipeline = Pipeline{}
 	}
@@ -106,7 +106,7 @@ func createCollectionStream(t *testing.T, dbName string, collName string, pipeli
 	return createStream(t, client, dbName, collName, pipeline)
 }
 
-func createMonitoredStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, Cursor) {
+func createMonitoredStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, *ChangeStream) {
 	if pipeline == nil {
 		pipeline = Pipeline{}
 	}
@@ -191,9 +191,9 @@ func TestChangeStream(t *testing.T) {
 		require.NoError(t, err)
 		defer changes.Close(ctx)
 
-		require.NotEqual(t, len(changes.(*changeStream).pipeline), 0)
+		require.NotEqual(t, len(changes.pipeline), 0)
 
-		elem := changes.(*changeStream).pipeline[0]
+		elem := changes.pipeline[0]
 
 		doc := elem.Document()
 		require.Equal(t, 1, len(doc))
@@ -268,7 +268,7 @@ func TestChangeStream(t *testing.T) {
 	})
 
 	t.Run("TestNilCursor", func(t *testing.T) {
-		cs := &changeStream{}
+		cs := &ChangeStream{}
 
 		if id := cs.ID(); id != 0 {
 			t.Fatalf("Wrong ID returned. Expected 0 got %d", id)
@@ -279,7 +279,7 @@ func TestChangeStream(t *testing.T) {
 		if err := cs.Decode(nil); err != ErrNilCursor {
 			t.Fatalf("Wrong decode err. Expected ErrNilCursor got %s", err)
 		}
-		if _, err := cs.DecodeBytes(); err != ErrNilCursor {
+		if _, err := cs.DecodeBytes(nil); err != ErrNilCursor {
 			t.Fatalf("Wrong decode bytes err. Expected ErrNilCursor got %s", err)
 		}
 		if err := cs.Err(); err != nil {
@@ -303,7 +303,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		coll, stream := createCollectionStream(t, "TrackTokenDB", "TrackTokenColl", nil)
 		defer closeCursor(stream)
 
-		cs := stream.(*changeStream)
+		cs := stream
 		if cs.resumeToken != nil {
 			t.Fatalf("non-nil error on stream")
 		}
@@ -315,7 +315,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			t.Fatalf("no change found")
 		}
 
-		_, err = stream.DecodeBytes()
+		_, err = stream.DecodeBytes(nil)
 		testhelpers.RequireNil(t, err, "error decoding bytes: %s", err)
 
 		testhelpers.RequireNotNil(t, cs.resumeToken, "no resume token found after first change")
@@ -358,7 +358,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		// make sure resume token is recorded by the change stream because the resume process will hang otherwise
 		ensureResumeToken(t, coll, stream)
-		cs := stream.(*changeStream)
+		cs := stream
 
 		kc := command.KillCursors{
 			NS:  cs.ns,
@@ -425,9 +425,12 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				_, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", nil)
 				defer closeCursor(stream)
-				cs := stream.(*changeStream)
-				cs.cursor = &errorCursor{
-					errCode: tc.errCode,
+				cs := stream
+				cs.cursor = &Cursor{
+					bc: driver.NewEmptyBatchCursor(),
+					err: command.Error{
+						Code: tc.errCode,
+					},
 				}
 
 				drainChannels()
@@ -453,7 +456,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		_, stream := createCollectionStream(t, "CursorNotClosedDB", "CursorNotClosedColl", nil)
 		defer closeCursor(stream)
-		cs := stream.(*changeStream)
+		cs := stream
 
 		if cs.sess.(*sessionImpl).Client.Terminated {
 			t.Fatalf("session was prematurely terminated")
@@ -477,7 +480,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		coll, stream := createMonitoredStream(t, "NoExceptionsDB", "NoExceptionsColl", nil)
 		defer closeCursor(stream)
-		cs := stream.(*changeStream)
+		cs := stream
 
 		// kill cursor to force a resumable error
 		kc := command.KillCursors{
@@ -526,7 +529,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		_, stream := createMonitoredStream(t, "IncludeTimeDB", "IncludeTimeColl", nil)
 		defer closeCursor(stream)
-		cs := stream.(*changeStream)
+		cs := stream
 
 		// kill cursor to force a resumable error
 		kc := command.KillCursors{
@@ -686,7 +689,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		ensureResumeToken(t, coll, stream)
 
 		// kill the stream's underlying cursor to force a resumeable error
-		cs := stream.(*changeStream)
+		cs := stream
 		kc := command.KillCursors{
 			NS:  cs.ns,
 			IDs: []int64{cs.ID()},
@@ -700,7 +703,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 }
 
 // ensure that a resume token has been recorded by a change stream
-func ensureResumeToken(t *testing.T, coll *Collection, cs Cursor) {
+func ensureResumeToken(t *testing.T, coll *Collection, cs *ChangeStream) {
 	_, err := coll.InsertOne(ctx, bsonx.Doc{{"ensureResumeToken", bsonx.Int32(1)}})
 	testhelpers.RequireNil(t, err, "error inserting doc: %v", err)
 

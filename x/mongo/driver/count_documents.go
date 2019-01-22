@@ -84,5 +84,5 @@ func CountDocuments(
 		cmd.Opts = append(cmd.Opts, hintElem)
 	}
 
-	return cmd.RoundTrip(ctx, desc, ss, conn)
+	return cmd.RoundTrip(ctx, desc, conn)
 }

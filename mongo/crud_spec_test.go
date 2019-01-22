@@ -212,7 +212,7 @@ func aggregateTest(t *testing.T, db *Database, coll *Collection, test *testCase)
 		require.NoError(t, err)
 
 		if !out {
-			verifyCursorResult(t, cursor, test.Outcome.Result)
+			verifyCursorResult2(t, cursor, test.Outcome.Result)
 		}
 
 		if test.Outcome.Collection != nil {
