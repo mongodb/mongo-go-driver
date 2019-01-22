@@ -34,6 +34,24 @@
       "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1dcf8222_4d52f09b",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-22T20:22:25Z",
+      "side": 1,
+      "message": "I didn\u0027t consider the fact that this exposes errors from x. As for a textual representation, I can update the ServerSelectionError.Error() function to included a stringified topology description. Should we still include the actual description.Topology struct in the error? I did this because I assumed tools would need the description for error handling code, but this could be wrong.",
+      "parentUuid": "0b1bb230_dc2fcf21",
+      "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
