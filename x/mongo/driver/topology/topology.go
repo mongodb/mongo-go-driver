@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"fmt"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/network/address"
@@ -289,6 +290,10 @@ func (t *Topology) FindServer(selected description.Server) (*SelectedServer, err
 	}, nil
 }
 
+func wrapServerSelectionError(err error, t *Topology) error {
+	return fmt.Errorf("server selection error: %v\ncurrent topology: %s", err, t.String())
+}
+
 // selectServer is the core piece of server selection. It handles getting
 // topology descriptions and running sever selection on those descriptions.
 func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan description.Topology, ss description.ServerSelector, timeoutCh <-chan time.Time) ([]description.Server, error) {
@@ -298,7 +303,7 @@ func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan descr
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-timeoutCh:
-			return nil, ErrServerSelectionTimeout
+			return nil, wrapServerSelectionError(ErrServerSelectionTimeout, t)
 		case current = <-subscriptionCh:
 		}
 
@@ -311,7 +316,7 @@ func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan descr
 
 		suitable, err := ss.SelectServer(current, allowed)
 		if err != nil {
-			return nil, err
+			return nil, wrapServerSelectionError(err, t)
 		}
 
 		if len(suitable) > 0 {
@@ -424,6 +429,16 @@ func (t *Topology) addServer(ctx context.Context, addr address.Address) error {
 func (t *Topology) removeServer(ctx context.Context, addr address.Address, server *Server) {
 	_ = server.Disconnect(ctx)
 	delete(t.servers, addr)
+}
+
+// String implements the Stringer interface
+func (t *Topology) String() string {
+	desc := t.Description()
+	str := fmt.Sprintf("Type: %s\nServers:\n", desc.Kind)
+	for _, s := range t.servers {
+		str += s.String() + "\n"
+	}
+	return str
 }
 
 // Subscription is a subscription to updates to the description of the Topology that created this

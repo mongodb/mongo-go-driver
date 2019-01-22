@@ -172,8 +172,8 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("Timed out while trying to retrieve selected servers")
 		}
 
-		if err != ErrServerSelectionTimeout {
-			t.Errorf("Incorrect error received. got %v; want %v", err, ErrServerSelectionTimeout)
+		if err == nil {
+			t.Fatalf("did not receive error from server selection")
 		}
 	})
 	t.Run("Error", func(t *testing.T) {
@@ -201,8 +201,8 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("Timed out while trying to retrieve selected servers")
 		}
 
-		if err != errSelectionError {
-			t.Errorf("Incorrect error received. got %v; want %v", err, errSelectionError)
+		if err == nil {
+			t.Fatalf("did not receive error from server selection")
 		}
 	})
 	t.Run("findServer returns topology kind", func(t *testing.T) {
