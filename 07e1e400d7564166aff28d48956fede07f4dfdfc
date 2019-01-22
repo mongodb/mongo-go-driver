@@ -42,6 +42,30 @@
     },
     {
       "key": {
+        "uuid": "33be8c25_3123f54c",
+        "filename": "mongo/database.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-22T20:57:23Z",
+      "side": 1,
+      "message": "Yeah, this is wrong, the batch cursor would be the thing that needs this behavior, not the cursor.",
+      "parentUuid": "2220b5c0_d4e83bbf",
+      "range": {
+        "startLine": 259,
+        "startChar": 24,
+        "endLine": 259,
+        "endChar": 25
+      },
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5d0d5ad6_9c9b2e83",
         "filename": "x/mongo/driver/batch_cursor.go",
         "patchSetId": 1
@@ -59,6 +83,24 @@
     },
     {
       "key": {
+        "uuid": "8315162a_82cdb228",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-22T20:57:23Z",
+      "side": 1,
+      "message": "This is the logic we have right now and I\u0027m pretty sure it\u0027s guaranteed to be an Int64.",
+      "parentUuid": "5d0d5ad6_9c9b2e83",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e6888111_f4a100cf",
         "filename": "x/mongo/driver/batch_cursor.go",
         "patchSetId": 1
@@ -70,6 +112,24 @@
       "writtenOn": "2019-01-22T20:20:27Z",
       "side": 1,
       "message": "I don\u0027t see any consumers of this method. When will this get used and by whom?",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "95383d42_c1b6a018",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-22T20:57:23Z",
+      "side": 1,
+      "message": "This is a new 4.2+ feature and we need to expose it because the postBatchResumeToken needs to be exposed to the user. There is no other way to provide it to the user because it\u0027s a part of the cursor body.",
+      "parentUuid": "e6888111_f4a100cf",
       "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
