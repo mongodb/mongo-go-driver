@@ -19,6 +19,29 @@
     },
     {
       "key": {
+        "uuid": "2220b5c0_d4e83bbf",
+        "filename": "mongo/database.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 259,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-22T20:45:50Z",
+      "side": 1,
+      "message": "Iirc, the cursor should only be a special list collections cursor for legacy server versions. Doing this for all server versions would cause a collection name like \"foo.bar\" to be reported as \"bar\" on non-legacy versions.",
+      "range": {
+        "startLine": 259,
+        "startChar": 24,
+        "endLine": 259,
+        "endChar": 25
+      },
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5d0d5ad6_9c9b2e83",
         "filename": "x/mongo/driver/batch_cursor.go",
         "patchSetId": 1
