@@ -169,6 +169,24 @@
       "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ee6e536c_c04763b7",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-01-22T22:46:54Z",
+      "side": 1,
+      "message": "I\u0027m cool with it being here, but is stitch using a BatchCursor? Or a cursor from the driver? Because the mongo.Cursor class doesn\u0027t expose this.",
+      "parentUuid": "9f78311c_09328100",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
