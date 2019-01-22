@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ae484e54_1d86fb1a",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-01-22T20:20:27Z",
+      "side": 1,
+      "message": "I feel like this isn\u0027t something that belongs in the cursor implementation. It should be a wrapper around this cursor rather. But as I\u0027m looking at this cursor design and it might be somewhat difficult to compose another cursor with this one, which feels like a problem to me.  I should be able to wrap another implementation of a cursor around this and delegate to it, but I don\u0027t believe that is possible here as I don\u0027t have access to any of the things I\u0027d need to make it happen, specifically current.\n\nMaybe not a big deal, but it means that I can\u0027t create a different cursor for listCollections wrapping around this one.",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5d0d5ad6_9c9b2e83",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-01-22T20:20:27Z",
+      "side": 1,
+      "message": "Is it possible that the server may send an Int32? This seems like a perfect place to call AsInt64() and have it upconvert automatically.",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e6888111_f4a100cf",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-01-22T20:20:27Z",
+      "side": 1,
+      "message": "I don\u0027t see any consumers of this method. When will this get used and by whom?",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
