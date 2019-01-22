@@ -13,6 +13,7 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
@@ -31,7 +32,7 @@ func ListIndexes(
 	clientID uuid.UUID,
 	pool *session.Pool,
 	opts ...*options.ListIndexesOptions,
-) (command.Cursor, error) {
+) (*BatchCursor, error) {
 
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
@@ -66,12 +67,13 @@ func ListIndexes(
 		}
 	}
 
-	c, err := cmd.RoundTrip(ctx, ss.Description(), ss, conn)
+	res, err := cmd.RoundTrip(ctx, ss.Description(), conn)
 	if err != nil {
 		closeImplicitSession(cmd.Session)
+		return nil, err
 	}
 
-	return c, err
+	return NewBatchCursor(bsoncore.Document(res), cmd.Session, cmd.Clock, ss.Server, cmd.CursorOpts...)
 }
 
 func legacyListIndexes(
@@ -80,7 +82,7 @@ func legacyListIndexes(
 	ss *topology.SelectedServer,
 	conn connection.Connection,
 	opts ...*options.ListIndexesOptions,
-) (command.Cursor, error) {
+) (*BatchCursor, error) {
 	lio := options.MergeListIndexesOptions(opts...)
 	ns := cmd.NS.DB + "." + cmd.NS.Collection
 

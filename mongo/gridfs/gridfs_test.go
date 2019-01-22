@@ -45,7 +45,7 @@ func findIndex(ctx context.Context, t *testing.T, coll *mongo.Collection, keys .
 	}
 	foundIndex := false
 	for cur.Next(ctx) {
-		elem, err := cur.DecodeBytes()
+		elem, err := cur.DecodeBytes(nil)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
