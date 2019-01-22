@@ -817,6 +817,15 @@ func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
 	}
 }
 
+func TestCollection_UpdateOne_EmptyUpdate(t *testing.T) {
+	coll := createTestCollection(t, nil, nil)
+	filter := bsonx.Doc{}
+	update := bsonx.Doc{}
+
+	_, err := coll.UpdateOne(ctx, filter, update)
+	require.NotNil(t, err)
+}
+
 func TestCollection_UpdateOne_found(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -931,6 +940,15 @@ func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
 	if !ok {
 		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
 	}
+}
+
+func TestCollection_UpdateMany_EmptyUpdate(t *testing.T) {
+	coll := createTestCollection(t, nil, nil)
+	filter := bsonx.Doc{}
+	update := bsonx.Doc{}
+
+	_, err := coll.UpdateMany(ctx, filter, update)
+	require.NotNil(t, err)
 }
 
 func TestCollection_UpdateMany_found(t *testing.T) {
@@ -1788,6 +1806,15 @@ func TestCollection_FindOneAndUpdate_found(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, elem.Type(), bson.TypeInt32, "Incorrect BSON Element type")
 	require.Equal(t, int(elem.Int32()), 3)
+}
+
+func TestCollection_FindOneAndUpdate_EmptyUpdate(t *testing.T) {
+	coll := createTestCollection(t, nil, nil)
+	filter := bsonx.Doc{}
+	update := bsonx.Doc{}
+
+	res := coll.FindOneAndUpdate(context.Background(), filter, update)
+	require.NotNil(t, res.Err())
 }
 
 func TestCollection_FindOneAndUpdate_found_ignoreResult(t *testing.T) {
