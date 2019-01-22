@@ -312,13 +312,13 @@ func checkLsidIncluded(t *testing.T, shouldInclude bool) {
 	}
 }
 
-func drainHelper(c Cursor) {
+func drainHelper(c *Cursor) {
 	for c.Next(ctx) {
 	}
 }
 
 func drainCursor(returnVals []reflect.Value) {
-	if c, ok := returnVals[0].Interface().(Cursor); ok {
+	if c, ok := returnVals[0].Interface().(*Cursor); ok {
 		drainHelper(c)
 	}
 }
