@@ -67,8 +67,7 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 
 	// make sure it's the right document
 	var next bson.Raw
-	err = cursor.Decode(&next)
-	noerr(t, err)
+	next = cursor.Batch(next)
 
 	if !bytes.Equal(next[:len(rdr)], rdr) {
 		t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next[:len(rdr)]), bson.Raw(rdr))
@@ -96,8 +95,7 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	noerr(t, cursor.Err())
 
 	// make sure it's the right document the second time
-	err = cursor.Decode(&next)
-	noerr(t, err)
+	next = cursor.Batch(next[:0])
 
 	if !bytes.Equal(next[:len(rdr)], rdr) {
 		t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next[:len(rdr)]), bson.Raw(rdr))

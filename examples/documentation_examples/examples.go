@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func requireCursorLength(t *testing.T, cursor mongo.Cursor, length int) {
+func requireCursorLength(t *testing.T, cursor *mongo.Cursor, length int) {
 	i := 0
 	for cursor.Next(context.Background()) {
 		i++
