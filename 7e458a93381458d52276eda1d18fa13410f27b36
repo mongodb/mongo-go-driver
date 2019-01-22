@@ -16,6 +16,24 @@
       "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0b1bb230_dc2fcf21",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-22T20:17:38Z",
+      "side": 1,
+      "message": "Since this is in an error I think it\u0027s okay. After all, this error comes from a package under \"x\".",
+      "parentUuid": "bfa40d64_948c58b5",
+      "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
