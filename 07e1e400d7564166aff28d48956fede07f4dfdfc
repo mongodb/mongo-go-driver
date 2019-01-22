@@ -187,6 +187,24 @@
       "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0106c3b9_fb6ec782",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-22T23:04:30Z",
+      "side": 1,
+      "message": "This is for ChangeStreams, so it\u0027ll be exposed via that, but since we only have access to the BatchCursor and not the cursor response doc, we need an accessor for it.",
+      "parentUuid": "ee6e536c_c04763b7",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
