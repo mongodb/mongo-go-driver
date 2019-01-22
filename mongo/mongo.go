@@ -170,7 +170,10 @@ func ensureID(d bsonx.Doc) (bsonx.Doc, interface{}) {
 }
 
 func ensureDollarKey(doc bsonx.Doc) error {
-	if len(doc) > 0 && !strings.HasPrefix(doc[0].Key, "$") {
+	if len(doc) == 0 {
+		return errors.New("update document must have at least one element")
+	}
+	if !strings.HasPrefix(doc[0].Key, "$") {
 		return errors.New("update document must contain key beginning with '$'")
 	}
 	return nil

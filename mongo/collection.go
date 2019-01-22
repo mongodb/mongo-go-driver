@@ -1189,8 +1189,11 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &SingleResult{err: err}
 	}
 
-	if len(u) > 0 && !strings.HasPrefix(u[0].Key, "$") {
-		return &SingleResult{err: errors.New("update document must contain key beginning with '$")}
+	err = ensureDollarKey(u)
+	if err != nil {
+		return &SingleResult{
+			err: err,
+		}
 	}
 
 	sess := sessionFromContext(ctx)
