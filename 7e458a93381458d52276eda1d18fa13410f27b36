@@ -52,6 +52,24 @@
       "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "633ce702_31ea49df",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-22T20:29:31Z",
+      "side": 1,
+      "message": "Regardless of whether we include the Topology struct in the error, including the relevant info in the error string is useful, as it\u0027s probably very common to just log the error string.\n\nNo one has ever asked for programmatic access to the topology iirc.  I don\u0027t see a scenario where you have any recourse to do anything with it, so I don\u0027t think we need to include it.  If we don\u0027t, do we need to define a public struct for this error at all?  Kris is right that the error struct itself is in an x package, so if we don\u0027t include it we don\u0027t need a struct at all.",
+      "parentUuid": "1dcf8222_4d52f09b",
+      "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
