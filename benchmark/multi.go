@@ -60,10 +60,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 			return err
 		}
 		var r bson.Raw
-		r, err = cursor.DecodeBytes()
-		if err != nil {
-			return err
-		}
+		r = cursor.DecodeBytes()
 		if len(r) == 0 {
 			return errors.New("error retrieving document")
 		}

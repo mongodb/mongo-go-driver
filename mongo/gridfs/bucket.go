@@ -246,7 +246,7 @@ func (b *Bucket) Delete(fileID primitive.ObjectID) error {
 }
 
 // Find returns the files collection documents that match the given filter.
-func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (mongo.Cursor, error) {
+func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
 	ctx, cancel := deadlineContext(b.readDeadline)
 	if cancel != nil {
 		defer cancel()
@@ -324,16 +324,11 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 		return nil, err
 	}
 
-	fileRdr, err := cursor.DecodeBytes()
+	fileLenElem, err := cursor.Current.LookupErr("length")
 	if err != nil {
 		return nil, err
 	}
-
-	fileLenElem, err := fileRdr.LookupErr("length")
-	if err != nil {
-		return nil, err
-	}
-	fileIDElem, err := fileRdr.LookupErr("_id")
+	fileIDElem, err := cursor.Current.LookupErr("_id")
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +374,7 @@ func (b *Bucket) deleteChunks(ctx context.Context, fileID primitive.ObjectID) er
 	return err
 }
 
-func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (mongo.Cursor, error) {
+func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error) {
 	cursor, err := b.filesColl.Find(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
@@ -393,7 +388,7 @@ func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*opti
 	return cursor, nil
 }
 
-func (b *Bucket) findChunks(ctx context.Context, fileID primitive.ObjectID) (mongo.Cursor, error) {
+func (b *Bucket) findChunks(ctx context.Context, fileID primitive.ObjectID) (*mongo.Cursor, error) {
 	chunksCursor, err := b.chunksColl.Find(ctx,
 		bsonx.Doc{{"files_id", bsonx.ObjectID(fileID)}},
 		options.Find().SetSort(bsonx.Doc{{"n", bsonx.Int32(1)}})) // sort by chunk index
@@ -416,12 +411,7 @@ func createIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo
 
 	var found bool
 	for c.Next(ctx) {
-		rdr, err := c.DecodeBytes()
-		if err != nil {
-			return err
-		}
-
-		keyElem, err := rdr.LookupErr("key")
+		keyElem, err := c.Current.LookupErr("key")
 		if err != nil {
 			return err
 		}

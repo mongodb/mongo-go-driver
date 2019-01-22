@@ -29,7 +29,7 @@ type ListCollections struct {
 	ReadPref   *readpref.ReadPref
 	Session    *session.Client
 
-	result Cursor
+	result bson.Raw
 	err    error
 }
 
@@ -61,30 +61,22 @@ func (lc *ListCollections) encode(desc description.SelectedServer) (*Read, error
 
 // Decode will decode the wire message using the provided server description. Errors during decolcng
 // are deferred until either the Result or Err methods are called.
-func (lc *ListCollections) Decode(desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *ListCollections {
+func (lc *ListCollections) Decode(desc description.SelectedServer, wm wiremessage.WireMessage) *ListCollections {
 	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		lc.err = err
 		return lc
 	}
-	return lc.decode(desc, cb, rdr)
+	return lc.decode(desc, rdr)
 }
 
-func (lc *ListCollections) decode(desc description.SelectedServer, cb CursorBuilder, rdr bson.Raw) *ListCollections {
-	labels, err := getErrorLabels(&rdr)
-	lc.err = err
-
-	res, err := cb.BuildCursor(rdr, lc.Session, lc.Clock, lc.CursorOpts...)
-	lc.result = res
-	if err != nil {
-		lc.err = Error{Message: err.Error(), Labels: labels}
-	}
-
+func (lc *ListCollections) decode(desc description.SelectedServer, rdr bson.Raw) *ListCollections {
+	lc.result = rdr
 	return lc
 }
 
 // Result returns the result of a decoded wire message and server description.
-func (lc *ListCollections) Result() (Cursor, error) {
+func (lc *ListCollections) Result() (bson.Raw, error) {
 	if lc.err != nil {
 		return nil, lc.err
 	}
@@ -95,7 +87,7 @@ func (lc *ListCollections) Result() (Cursor, error) {
 func (lc *ListCollections) Err() error { return lc.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (lc *ListCollections) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (Cursor, error) {
+func (lc *ListCollections) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (bson.Raw, error) {
 	cmd, err := lc.encode(desc)
 	if err != nil {
 		return nil, err
@@ -106,5 +98,5 @@ func (lc *ListCollections) RoundTrip(ctx context.Context, desc description.Selec
 		return nil, err
 	}
 
-	return lc.decode(desc, cb, rdr).Result()
+	return lc.decode(desc, rdr).Result()
 }

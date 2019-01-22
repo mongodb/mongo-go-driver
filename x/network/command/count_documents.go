@@ -10,7 +10,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
@@ -50,48 +50,45 @@ func (c *CountDocuments) Encode(desc description.SelectedServer) (wiremessage.Wi
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
-func (c *CountDocuments) Decode(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, wm wiremessage.WireMessage) *CountDocuments {
+func (c *CountDocuments) Decode(ctx context.Context, desc description.SelectedServer, wm wiremessage.WireMessage) *CountDocuments {
 	rdr, err := (&Read{}).Decode(desc, wm).Result()
 	if err != nil {
 		c.err = err
 		return c
 	}
-	cur, err := cb.BuildCursor(rdr, c.Session, c.Clock)
+
+	cursor, err := rdr.LookupErr("cursor")
+	if err != nil || cursor.Type != bsontype.EmbeddedDocument {
+		c.err = errors.New("Invalid response from server, no 'cursor' field")
+		return c
+	}
+	batch, err := cursor.Document().LookupErr("firstBatch")
+	if err != nil || batch.Type != bsontype.Array {
+		c.err = errors.New("Invalid response from server, no 'firstBatch' field")
+		return c
+	}
+
+	elem, err := batch.Array().IndexErr(0)
+	if err != nil || elem.Value().Type != bsontype.EmbeddedDocument {
+		c.result = 0
+		return c
+	}
+
+	val, err := elem.Value().Document().LookupErr("n")
 	if err != nil {
-		c.err = err
+		c.err = errors.New("Invalid response from server, no 'n' field")
 		return c
 	}
 
-	var doc bsonx.Doc
-	if cur.Next(ctx) {
-		err = cur.Decode(&doc)
-		if err != nil {
-			c.err = err
-			return c
-		}
-		val, err := doc.LookupErr("n")
-		switch err.(type) {
-		case bsonx.KeyNotFound:
-			c.err = errors.New("Invalid response from server, no 'n' field")
-			return c
-		case nil:
-		default:
-			c.err = err
-			return c
-		}
-		switch val.Type() {
-		case bson.TypeInt32:
-			c.result = int64(val.Int32())
-		case bson.TypeInt64:
-			c.result = val.Int64()
-		default:
-			c.err = errors.New("Invalid response from server, value field is not a number")
-		}
-
-		return c
+	switch val.Type {
+	case bsontype.Int32:
+		c.result = int64(val.Int32())
+	case bsontype.Int64:
+		c.result = val.Int64()
+	default:
+		c.err = errors.New("Invalid response from server, value field is not a number")
 	}
 
-	c.result = 0
 	return c
 }
 
@@ -107,7 +104,7 @@ func (c *CountDocuments) Result() (int64, error) {
 func (c *CountDocuments) Err() error { return c.err }
 
 // RoundTrip handles the execution of this command using the provided wiremessage.ReadWriter.
-func (c *CountDocuments) RoundTrip(ctx context.Context, desc description.SelectedServer, cb CursorBuilder, rw wiremessage.ReadWriter) (int64, error) {
+func (c *CountDocuments) RoundTrip(ctx context.Context, desc description.SelectedServer, rw wiremessage.ReadWriter) (int64, error) {
 	wm, err := c.Encode(desc)
 	if err != nil {
 		return 0, err
@@ -121,5 +118,5 @@ func (c *CountDocuments) RoundTrip(ctx context.Context, desc description.Selecte
 	if err != nil {
 		return 0, err
 	}
-	return c.Decode(ctx, desc, cb, wm).Result()
+	return c.Decode(ctx, desc, wm).Result()
 }
