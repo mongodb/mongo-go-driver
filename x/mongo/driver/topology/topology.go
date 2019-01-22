@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"fmt"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/network/address"
@@ -39,6 +40,17 @@ var ErrTopologyConnected = errors.New("topology is connected or connecting")
 // ErrServerSelectionTimeout is returned from server selection when the server
 // selection process took longer than allowed by the timeout.
 var ErrServerSelectionTimeout = errors.New("server selection timeout")
+
+// ServerSelectionError is returned when there is an error while selecting a server.
+type ServerSelectionError struct {
+	Err                 error
+	TopologyDescription description.Topology
+}
+
+// Error implements the error interface
+func (sse ServerSelectionError) Error() string {
+	return fmt.Sprintf("Underlying error: %v", sse.Err)
+}
 
 // MonitorMode represents the way in which a server is monitored.
 type MonitorMode uint8
@@ -298,7 +310,10 @@ func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan descr
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-timeoutCh:
-			return nil, ErrServerSelectionTimeout
+			return nil, ServerSelectionError{
+				Err:                 ErrServerSelectionTimeout,
+				TopologyDescription: t.Description(),
+			}
 		case current = <-subscriptionCh:
 		}
 
@@ -311,7 +326,10 @@ func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan descr
 
 		suitable, err := ss.SelectServer(current, allowed)
 		if err != nil {
-			return nil, err
+			return nil, ServerSelectionError{
+				Err:                 err,
+				TopologyDescription: current,
+			}
 		}
 
 		if len(suitable) > 0 {

@@ -27,6 +27,17 @@ func noerr(t *testing.T, err error) {
 	}
 }
 
+// checks if err is of type ServerSelectionError and the Err field equals underlyingErr
+func checkServerSelectionError(t *testing.T, err error, underlyingErr error) {
+	sse, ok := err.(ServerSelectionError)
+	if !ok {
+		t.Fatalf("incorrect error type received. got %t; wanted ServerSelectionError", err)
+	}
+	if sse.Err != underlyingErr {
+		t.Fatalf("incorrect underlying error. got %v; wanted %v", sse.Err, underlyingErr)
+	}
+}
+
 func TestServerSelection(t *testing.T) {
 	var selectFirst description.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
 		if len(candidates) == 0 {
@@ -172,9 +183,7 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("Timed out while trying to retrieve selected servers")
 		}
 
-		if err != ErrServerSelectionTimeout {
-			t.Errorf("Incorrect error received. got %v; want %v", err, ErrServerSelectionTimeout)
-		}
+		checkServerSelectionError(t, err, ErrServerSelectionTimeout)
 	})
 	t.Run("Error", func(t *testing.T) {
 		desc := description.Topology{
@@ -201,9 +210,7 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("Timed out while trying to retrieve selected servers")
 		}
 
-		if err != errSelectionError {
-			t.Errorf("Incorrect error received. got %v; want %v", err, errSelectionError)
-		}
+		checkServerSelectionError(t, err, errSelectionError)
 	})
 	t.Run("findServer returns topology kind", func(t *testing.T) {
 		topo, err := New()
