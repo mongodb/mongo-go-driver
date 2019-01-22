@@ -23,7 +23,7 @@ var ErrNoDocuments = errors.New("mongo: no documents in result")
 // return that error.
 type SingleResult struct {
 	err error
-	cur Cursor
+	cur *Cursor
 	rdr bson.Raw
 	reg *bsoncodec.Registry
 }
@@ -80,7 +80,7 @@ func (sr *SingleResult) DecodeBytes() (bson.Raw, error) {
 			}
 			return nil, ErrNoDocuments
 		}
-		return sr.cur.DecodeBytes()
+		return sr.cur.Current, nil
 	}
 
 	return nil, ErrNoDocuments

@@ -7,7 +7,6 @@
 package integration
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -20,6 +19,8 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil/israce"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/network/address"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
@@ -42,56 +43,57 @@ func TestCommandAggregate(t *testing.T) {
 		}
 	})
 	t.Run("Multiple Batches", func(t *testing.T) {
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
-		noerr(t, err)
-		conn, err := server.Connection(context.Background())
-		noerr(t, err)
-		ds := []bsonx.Doc{
-			{{"_id", bsonx.Int32(1)}},
-			{{"_id", bsonx.Int32(2)}},
-			{{"_id", bsonx.Int32(3)}},
-			{{"_id", bsonx.Int32(4)}},
-			{{"_id", bsonx.Int32(5)}},
-		}
-		wc := writeconcern.New(writeconcern.WMajority())
-		testutil.AutoInsertDocs(t, wc, ds...)
-
-		readers := make([]bson.Raw, 0, len(ds))
-		for _, doc := range ds {
-			r, err := doc.MarshalBSON()
-			noerr(t, err)
-			readers = append(readers, r)
-		}
-		cursor, err := (&command.Aggregate{
-			NS: command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
-			Pipeline: bsonx.Arr{
-				bsonx.Document(bsonx.Doc{
-					{"$match", bsonx.Document(bsonx.Doc{
-						{"_id", bsonx.Document(bsonx.Doc{{"$gt", bsonx.Int32(2)}})},
-					})}},
-				),
-				bsonx.Document(bsonx.Doc{{"$sort", bsonx.Document(bsonx.Doc{{"_id", bsonx.Int32(-1)}})}}),
-			},
-			Opts: []bsonx.Elem{{"batchSize", bsonx.Int32(2)}},
-		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
-		noerr(t, err)
-
-		var next bson.Raw
-
-		for i := 4; i > 1; i-- {
-			if !cursor.Next(context.Background()) {
-				t.Error("Cursor should have results, but does not have a next result")
-			}
-			err = cursor.Decode(&next)
-			noerr(t, err)
-			if !bytes.Equal(next[:len(readers[i])], readers[i]) {
-				t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next[:len(readers[i])]), readers[i])
-			}
-		}
-
-		if cursor.Next(context.Background()) {
-			t.Error("Cursor should be exhausted but has more results")
-		}
+		// TODO(GODRIVER-617): Restore these tests in the driver package.
+		// server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+		// noerr(t, err)
+		// conn, err := server.Connection(context.Background())
+		// noerr(t, err)
+		// ds := []bsonx.Doc{
+		// 	{{"_id", bsonx.Int32(1)}},
+		// 	{{"_id", bsonx.Int32(2)}},
+		// 	{{"_id", bsonx.Int32(3)}},
+		// 	{{"_id", bsonx.Int32(4)}},
+		// 	{{"_id", bsonx.Int32(5)}},
+		// }
+		// wc := writeconcern.New(writeconcern.WMajority())
+		// testutil.AutoInsertDocs(t, wc, ds...)
+		//
+		// readers := make([]bson.Raw, 0, len(ds))
+		// for _, doc := range ds {
+		// 	r, err := doc.MarshalBSON()
+		// 	noerr(t, err)
+		// 	readers = append(readers, r)
+		// }
+		// cursor, err := (&command.Aggregate{
+		// 	NS: command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
+		// 	Pipeline: bsonx.Arr{
+		// 		bsonx.Document(bsonx.Doc{
+		// 			{"$match", bsonx.Document(bsonx.Doc{
+		// 				{"_id", bsonx.Document(bsonx.Doc{{"$gt", bsonx.Int32(2)}})},
+		// 			})}},
+		// 		),
+		// 		bsonx.Document(bsonx.Doc{{"$sort", bsonx.Document(bsonx.Doc{{"_id", bsonx.Int32(-1)}})}}),
+		// 	},
+		// 	Opts: []bsonx.Elem{{"batchSize", bsonx.Int32(2)}},
+		// }).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		// noerr(t, err)
+		//
+		// var next bson.Raw
+		//
+		// for i := 4; i > 1; i-- {
+		// 	if !cursor.Next(context.Background()) {
+		// 		t.Error("Cursor should have results, but does not have a next result")
+		// 	}
+		// 	err = cursor.Decode(&next)
+		// 	noerr(t, err)
+		// 	if !bytes.Equal(next[:len(readers[i])], readers[i]) {
+		// 		t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next[:len(readers[i])]), readers[i])
+		// 	}
+		// }
+		//
+		// if cursor.Next(context.Background()) {
+		// 	t.Error("Cursor should be exhausted but has more results")
+		// }
 	})
 	t.Run("AllowDiskUse", func(t *testing.T) {
 		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
@@ -115,7 +117,7 @@ func TestCommandAggregate(t *testing.T) {
 			NS:       command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bsonx.Arr{},
 			Opts:     []bsonx.Elem{{"allowDiskUse", bsonx.Boolean(true)}},
-		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		}).RoundTrip(context.Background(), server.SelectedDescription(), conn)
 		if err != nil {
 			t.Errorf("Expected no error from allowing disk use, but got %v", err)
 		}
@@ -141,7 +143,7 @@ func TestCommandAggregate(t *testing.T) {
 			NS:       command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 			Pipeline: bsonx.Arr{},
 			Opts:     []bsonx.Elem{{"maxTimeMS", bsonx.Int64(1)}},
-		}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+		}).RoundTrip(context.Background(), server.SelectedDescription(), conn)
 		if !strings.Contains(err.Error(), "operation exceeded time limit") {
 			t.Errorf("Expected time limit exceeded error, but got %v", err)
 		}
@@ -190,7 +192,7 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	noerr(t, err)
 
 	// create an aggregate command that results with a TAILABLEAWAIT cursor
-	cursor, err := (&command.Aggregate{
+	result, err := (&command.Aggregate{
 		NS: command.Namespace{DB: dbName, Collection: testutil.ColName(t)},
 		Pipeline: bsonx.Arr{
 			bsonx.Document(bsonx.Doc{
@@ -204,7 +206,13 @@ func TestAggregatePassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 			{"batchSize", bsonx.Int32(2)},
 			{"maxTimeMS", bsonx.Int64(50)},
 		},
-	}).RoundTrip(context.Background(), server.SelectedDescription(), server, conn)
+	}).RoundTrip(context.Background(), server.SelectedDescription(), conn)
+	noerr(t, err)
+
+	cursor, err := driver.NewBatchCursor(
+		bsoncore.Document(result), nil, nil, server.Server,
+		bsonx.Elem{"batchSize", bsonx.Int32(2)}, bsonx.Elem{"maxTimeMS", bsonx.Int64(50)},
+	)
 	noerr(t, err)
 
 	// insert some documents
