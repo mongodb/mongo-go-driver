@@ -70,6 +70,24 @@
       "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "61d3f816_c46220b4",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-22T20:31:02Z",
+      "side": 1,
+      "message": "If we don\u0027t include the topology, then we can get rid of the struct. Will do that in the next patch.",
+      "parentUuid": "633ce702_31ea49df",
+      "revId": "7e458a93381458d52276eda1d18fa13410f27b36",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
