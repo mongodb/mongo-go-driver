@@ -23,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 
+	"github.com/mongodb/mongo-go-driver/internal/testutil/israce"
 	"golang.org/x/net/context"
 )
 
@@ -199,7 +200,13 @@ func TestGridFS(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create bucket: %v", err)
 		}
-		err = bucket.SetWriteDeadline(time.Now().Add(5 * time.Second))
+
+		timeout := 5 * time.Second
+		if israce.Enabled {
+			timeout = 20 * time.Second // race detector causes 2-20x slowdown
+		}
+
+		err = bucket.SetWriteDeadline(time.Now().Add(timeout))
 		if err != nil {
 			t.Fatalf("Failed to set write deadline: %v", err)
 		}
