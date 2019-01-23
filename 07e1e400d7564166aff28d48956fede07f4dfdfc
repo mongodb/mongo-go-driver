@@ -223,6 +223,24 @@
       "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2270b0ed_72af5044",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 221,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-23T22:52:44Z",
+      "side": 1,
+      "message": "Alright, I\u0027ll remove this for now.",
+      "parentUuid": "bfc2f4da_6b7ca91c",
+      "revId": "07e1e400d7564166aff28d48956fede07f4dfdfc",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
