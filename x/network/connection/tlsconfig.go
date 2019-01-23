@@ -23,6 +23,7 @@ import (
 type TLSConfig struct {
 	*tls.Config
 	clientCertPass func() string
+	x509Username   string
 }
 
 // NewTLSConfig creates a new TLSConfig.
@@ -75,10 +76,10 @@ func (c *TLSConfig) AddCACertFromFile(file string) error {
 
 // AddClientCertFromFile adds a client certificate to the configuration given a path to the
 // containing file and returns the certificate's subject name.
-func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
+func (c *TLSConfig) AddClientCertFromFile(clientFile string) error {
 	data, err := ioutil.ReadFile(clientFile)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	var currentBlock *pem.Block
@@ -101,7 +102,7 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 				var encoded bytes.Buffer
 				buf, err := x509.DecryptPEMBlock(currentBlock, []byte(c.clientCertPass()))
 				if err != nil {
-					return "", err
+					return err
 				}
 
 				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: buf})
@@ -114,15 +115,15 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 		}
 	}
 	if len(certBlock) == 0 {
-		return "", fmt.Errorf("failed to find CERTIFICATE")
+		return fmt.Errorf("failed to find CERTIFICATE")
 	}
 	if len(keyBlock) == 0 {
-		return "", fmt.Errorf("failed to find PRIVATE KEY")
+		return fmt.Errorf("failed to find PRIVATE KEY")
 	}
 
 	cert, err := tls.X509KeyPair(certBlock, keyBlock)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	c.Certificates = append(c.Certificates, cert)
@@ -131,10 +132,34 @@ func (c *TLSConfig) AddClientCertFromFile(clientFile string) (string, error) {
 	// retained.
 	crt, err := x509.ParseCertificate(certDecodedBlock)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return x509CertSubject(crt), nil
+	subject := x509CertSubject(crt)
+	c.x509Username = x509UsernameFromSubject(subject)
+	return nil
+}
+
+// X509Username gets the X509Username for this TLSConfig. This is the username extracted from the client cert file,
+// which should be added by calling AddClientCertFromFile. If this has not been called, an empty string is returned.
+func (c *TLSConfig) X509Username() string {
+	return c.x509Username
+}
+
+func x509UsernameFromSubject(subject string) string {
+	// The Go x509 package gives the subject with the pairs in reverse order that we want.
+	pairs := strings.Split(subject, ",")
+	b := bytes.NewBufferString("")
+
+	for i := len(pairs) - 1; i >= 0; i-- {
+		b.WriteString(pairs[i])
+
+		if i > 0 {
+			b.WriteString(",")
+		}
+	}
+
+	return b.String()
 }
 
 func loadCert(data []byte) ([]byte, error) {

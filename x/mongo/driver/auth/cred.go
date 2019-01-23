@@ -13,4 +13,5 @@ type Cred struct {
 	Password    string
 	PasswordSet bool
 	Props       map[string]string
+	Mechanism   string
 }

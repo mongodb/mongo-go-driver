@@ -18,10 +18,12 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/tag"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/auth"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/connection"
 	"github.com/mongodb/mongo-go-driver/x/network/connstring"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 )
@@ -196,9 +198,27 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 	}
 	client.id = clientID
 
-	topts := append(
-		client.topologyOptions,
+	tlsConfig, err := tlsConfigFromConnString(cs)
+	if err != nil {
+		return nil, err
+	}
+	authConfig, err := authConfigFromConnString(cs)
+	if err != nil {
+		return nil, err
+	}
+
+	topts := []topology.Option{
 		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return client.connString }),
+	}
+	if tlsConfig != nil {
+		topts = append(topts, topology.WithTLSConfig(func(*connection.TLSConfig) *connection.TLSConfig { return tlsConfig }))
+	}
+	if authConfig != nil {
+		topts = append(topts, topology.WithAuthConfig(func(*topology.AuthConfig) *topology.AuthConfig { return authConfig }))
+	}
+
+	topts = append(
+		topts,
 		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
 			return append(opts, topology.WithClock(func(clock *session.ClusterClock) *session.ClusterClock {
 				return client.clock
@@ -207,6 +227,8 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 			}))
 		}),
 	)
+	topts = append(topts, client.topologyOptions...)
+
 	topo, err := topology.New(topts...)
 	if err != nil {
 		return nil, replaceTopologyErr(err)
@@ -242,6 +264,76 @@ func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Clien
 		client.registry = bson.DefaultRegistry
 	}
 	return client, nil
+}
+
+func authConfigFromConnString(cs connstring.ConnString) (*topology.AuthConfig, error) {
+	if cs.Username == "" && cs.AuthMechanism != auth.MongoDBX509 && cs.AuthMechanism != auth.GSSAPI {
+		return nil, nil
+	}
+
+	authConfig := &topology.AuthConfig{
+		Cred: &auth.Cred{
+			Mechanism:   cs.AuthMechanism,
+			Source:      "admin",
+			Username:    cs.Username,
+			Password:    cs.Password,
+			PasswordSet: cs.PasswordSet,
+			Props:       cs.AuthMechanismProperties,
+		},
+		HandshakeOptions: &auth.HandshakeOptions{
+			AppName:     cs.AppName,
+			Compressors: cs.Compressors,
+		},
+	}
+
+	if cs.AuthSource != "" {
+		authConfig.Source = cs.AuthSource
+	} else {
+		switch cs.AuthMechanism {
+		case auth.GSSAPI, auth.PLAIN:
+			authConfig.Source = "$external"
+		default:
+			authConfig.Source = cs.Database
+		}
+	}
+
+	if cs.AuthMechanism == "" {
+		// Required for SASL mechanism negotiation during handshake
+		authConfig.DBUser = authConfig.Source + "." + authConfig.Username
+	}
+
+	return authConfig, nil
+}
+
+func tlsConfigFromConnString(cs connstring.ConnString) (*connection.TLSConfig, error) {
+	if !cs.SSL {
+		return nil, nil
+	}
+
+	tlsConfig := connection.NewTLSConfig()
+
+	if cs.SSLCaFileSet {
+		err := tlsConfig.AddCACertFromFile(cs.SSLCaFile)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if cs.SSLInsecure {
+		tlsConfig.SetInsecure(true)
+	}
+
+	if cs.SSLClientCertificateKeyFileSet {
+		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
+			tlsConfig.SetClientCertDecryptPassword(cs.SSLClientCertificateKeyPassword)
+		}
+		err := tlsConfig.AddClientCertFromFile(cs.SSLClientCertificateKeyFile)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return tlsConfig, nil
 }
 
 func readConcernFromConnString(cs *connstring.ConnString) *readconcern.ReadConcern {

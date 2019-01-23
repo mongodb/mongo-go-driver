@@ -306,6 +306,17 @@ func (c *ClientOptions) SetSSL(ssl *SSLOpt) *ClientOptions {
 	return c
 }
 
+// SetTLSConfig sets a TLS Config.
+func (c *ClientOptions) SetTLSConfig(tlsConfig *connection.TLSConfig) *ClientOptions {
+	c.TopologyOptions = append(c.TopologyOptions,
+		topology.WithTLSConfig(func(config *connection.TLSConfig) *connection.TLSConfig {
+			return tlsConfig
+		}),
+	)
+
+	return c
+}
+
 // SetWriteConcern sets the write concern.
 func (c *ClientOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientOptions {
 	c.WriteConcern = wc

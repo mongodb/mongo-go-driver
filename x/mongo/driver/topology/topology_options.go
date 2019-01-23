@@ -7,8 +7,6 @@
 package topology
 
 import (
-	"bytes"
-	"strings"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/auth"
@@ -21,6 +19,12 @@ import (
 // Option is a configuration option for a topology.
 type Option func(*config) error
 
+// AuthConfig represents all options necessary to configure a Handshaker for authentication.
+type AuthConfig struct {
+	*auth.Cred
+	*auth.HandshakeOptions
+}
+
 type config struct {
 	mode                   MonitorMode
 	replicaSetName         string
@@ -28,6 +32,8 @@ type config struct {
 	serverOpts             []ServerOption
 	cs                     connstring.ConnString
 	serverSelectionTimeout time.Duration
+	tlsConfig              *connection.TLSConfig
+	authConfig             *AuthConfig
 }
 
 func newConfig(opts ...Option) (*config, error) {
@@ -99,96 +105,10 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			c.replicaSetName = cs.ReplicaSet
 		}
 
-		var x509Username string
-		if cs.SSL {
-			tlsConfig := connection.NewTLSConfig()
-
-			if cs.SSLCaFileSet {
-				err := tlsConfig.AddCACertFromFile(cs.SSLCaFile)
-				if err != nil {
-					return err
-				}
-			}
-
-			if cs.SSLInsecure {
-				tlsConfig.SetInsecure(true)
-			}
-
-			if cs.SSLClientCertificateKeyFileSet {
-				if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
-					tlsConfig.SetClientCertDecryptPassword(cs.SSLClientCertificateKeyPassword)
-				}
-				s, err := tlsConfig.AddClientCertFromFile(cs.SSLClientCertificateKeyFile)
-				if err != nil {
-					return err
-				}
-
-				// The Go x509 package gives the subject with the pairs in reverse order that we want.
-				pairs := strings.Split(s, ",")
-				b := bytes.NewBufferString("")
-
-				for i := len(pairs) - 1; i >= 0; i-- {
-					b.WriteString(pairs[i])
-
-					if i > 0 {
-						b.WriteString(",")
-					}
-				}
-
-				x509Username = b.String()
-			}
-
-			connOpts = append(connOpts, connection.WithTLSConfig(func(*connection.TLSConfig) *connection.TLSConfig { return tlsConfig }))
-		}
-
-		if cs.Username != "" || cs.AuthMechanism == auth.MongoDBX509 || cs.AuthMechanism == auth.GSSAPI {
-			cred := &auth.Cred{
-				Source:      "admin",
-				Username:    cs.Username,
-				Password:    cs.Password,
-				PasswordSet: cs.PasswordSet,
-				Props:       cs.AuthMechanismProperties,
-			}
-
-			if cs.AuthSource != "" {
-				cred.Source = cs.AuthSource
-			} else {
-				switch cs.AuthMechanism {
-				case auth.MongoDBX509:
-					if cred.Username == "" {
-						cred.Username = x509Username
-					}
-					fallthrough
-				case auth.GSSAPI, auth.PLAIN:
-					cred.Source = "$external"
-				default:
-					cred.Source = cs.Database
-				}
-			}
-
-			authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred)
-			if err != nil {
-				return err
-			}
-
-			connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-				options := &auth.HandshakeOptions{
-					AppName:       cs.AppName,
-					Authenticator: authenticator,
-					Compressors:   cs.Compressors,
-				}
-				if cs.AuthMechanism == "" {
-					// Required for SASL mechanism negotiation during handshake
-					options.DBUser = cred.Source + "." + cred.Username
-				}
-				return auth.Handshaker(h, options)
-			}))
-		} else {
-			// We need to add a non-auth Handshaker to the connection options
-			connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-				return &command.Handshake{Client: command.ClientDoc(cs.AppName), Compressors: cs.Compressors}
-			}))
-		}
+		// We need to add a non-auth Handshaker to the connection options
+		connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
+			return &command.Handshake{Client: command.ClientDoc(cs.AppName), Compressors: cs.Compressors}
+		}))
 
 		if len(cs.Compressors) > 0 {
 			comp := make([]compressor.Compressor, 0, len(cs.Compressors))
@@ -221,6 +141,38 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 				return append(opts, connOpts...)
 			}))
 		}
+
+		return nil
+	}
+}
+
+// WithTLSConfig configures the topology's TLS settings.
+func WithTLSConfig(fn func(*connection.TLSConfig) *connection.TLSConfig) Option {
+	return func(cfg *config) error {
+		cfg.tlsConfig = fn(cfg.tlsConfig)
+		return nil
+	}
+}
+
+// WithAuthConfig configures the topology's auth settings.
+func WithAuthConfig(fn func(*AuthConfig) *AuthConfig) Option {
+	return func(cfg *config) error {
+		authConfig := fn(nil)
+		authenticator, err := auth.CreateAuthenticator(authConfig.Mechanism, authConfig.Cred)
+		if err != nil {
+			return err
+		}
+
+		if authConfig.Mechanism == auth.MongoDBX509 && authConfig.Username == "" && cfg.tlsConfig != nil {
+			authConfig.Username = cfg.tlsConfig.X509Username()
+		}
+
+		authConfig.Authenticator = authenticator
+		cfg.serverOpts = append(cfg.serverOpts, WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+			return append(opts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
+				return auth.Handshaker(nil, authConfig.HandshakeOptions)
+			}))
+		}))
 
 		return nil
 	}
