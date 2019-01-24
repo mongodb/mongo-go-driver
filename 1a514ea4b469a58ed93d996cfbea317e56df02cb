@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "67cad472_b0ea9d34",
+        "filename": "mongo/options/countoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-24T18:37:45Z",
+      "side": 1,
+      "message": "Is the math right where we write this to the wire:\n\n    int64(time.Duration(*distinctOpts.MaxTime) / time.Millisecond)\n\nIt looks good, but seems like we don\u0027t need to construct a Duration since MaxTime now already is one.",
+      "range": {
+        "startLine": 16,
+        "startChar": 12,
+        "endLine": 16,
+        "endChar": 16
+      },
+      "revId": "1a514ea4b469a58ed93d996cfbea317e56df02cb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
