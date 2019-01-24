@@ -6,13 +6,15 @@
 
 package options
 
+import "time"
+
 // CountOptions represents all possible options to the count() function
 type CountOptions struct {
-	Collation *Collation  // Specifies a collation
-	Hint      interface{} // The index to use
-	Limit     *int64      // The maximum number of documents to count
-	MaxTime   *int64      // The maximum amount of time to allow the operation to run
-	Skip      *int64      // The number of documents to skip before counting
+	Collation *Collation     // Specifies a collation
+	Hint      interface{}    // The index to use
+	Limit     *int64         // The maximum number of documents to count
+	MaxTime   *time.Duration // The maximum amount of time to allow the operation to run
+	Skip      *int64         // The number of documents to skip before counting
 }
 
 // Count returns a pointer to a new CountOptions
@@ -40,8 +42,8 @@ func (co *CountOptions) SetLimit(i int64) *CountOptions {
 }
 
 // SetMaxTime specifies the maximum amount of time to allow the operation to run
-func (co *CountOptions) SetMaxTime(i int64) *CountOptions {
-	co.MaxTime = &i
+func (co *CountOptions) SetMaxTime(d time.Duration) *CountOptions {
+	co.MaxTime = &d
 	return co
 }
 

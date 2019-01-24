@@ -6,10 +6,12 @@
 
 package options
 
+import "time"
+
 // DistinctOptions represents all possible options to the distinct() function
 type DistinctOptions struct {
-	Collation *Collation // Specifies a collation
-	MaxTime   *int64     // The maximum amount of time to allow the operation to run
+	Collation *Collation     // Specifies a collation
+	MaxTime   *time.Duration // The maximum amount of time to allow the operation to run
 }
 
 // Distinct returns a pointer to a new DistinctOptions
@@ -25,8 +27,8 @@ func (do *DistinctOptions) SetCollation(c *Collation) *DistinctOptions {
 }
 
 // SetMaxTime specifies the maximum amount of time to allow the operation to run
-func (do *DistinctOptions) SetMaxTime(i int64) *DistinctOptions {
-	do.MaxTime = &i
+func (do *DistinctOptions) SetMaxTime(d time.Duration) *DistinctOptions {
+	do.MaxTime = &d
 	return do
 }
 
