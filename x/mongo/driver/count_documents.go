@@ -8,8 +8,6 @@ package driver
 
 import (
 	"context"
-	"time"
-
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
@@ -19,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"time"
 )
 
 // CountDocuments handles the full cycle dispatch and execution of a countDocuments command against the provided
@@ -66,7 +65,7 @@ func CountDocuments(
 	// ignore Skip and Limit because we already have these options in the pipeline
 	if countOpts.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{
-			"maxTimeMS", bsonx.Int64(int64(time.Duration(*countOpts.MaxTime) / time.Millisecond)),
+			"maxTimeMS", bsonx.Int64(int64(*countOpts.MaxTime / time.Millisecond)),
 		})
 	}
 	if countOpts.Collation != nil {
