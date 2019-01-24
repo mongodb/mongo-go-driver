@@ -6,9 +6,11 @@
 
 package options
 
+import "time"
+
 // EstimatedDocumentCountOptions represents all possible options to the estimatedDocumentCount() function
 type EstimatedDocumentCountOptions struct {
-	MaxTime *int64 // The maximum amount of time to allow the operation to run
+	MaxTime *time.Duration // The maximum amount of time to allow the operation to run
 }
 
 // EstimatedDocumentCount returns a pointer to a new EstimatedDocumentCountOptions
@@ -17,8 +19,8 @@ func EstimatedDocumentCount() *EstimatedDocumentCountOptions {
 }
 
 // SetMaxTime specifies the maximum amount of time to allow the operation to run
-func (eco *EstimatedDocumentCountOptions) SetMaxTime(i int64) *EstimatedDocumentCountOptions {
-	eco.MaxTime = &i
+func (eco *EstimatedDocumentCountOptions) SetMaxTime(d time.Duration) *EstimatedDocumentCountOptions {
+	eco.MaxTime = &d
 	return eco
 }
 

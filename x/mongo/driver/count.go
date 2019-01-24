@@ -68,7 +68,7 @@ func Count(
 	}
 	if countOpts.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{
-			"maxTimeMS", bsonx.Int64(int64(time.Duration(*countOpts.MaxTime) / time.Millisecond)),
+			"maxTimeMS", bsonx.Int64(int64(*countOpts.MaxTime / time.Millisecond)),
 		})
 	}
 	if countOpts.Skip != nil {

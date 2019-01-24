@@ -8,8 +8,6 @@ package driver
 
 import (
 	"context"
-	"time"
-
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 
@@ -19,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/mongodb/mongo-go-driver/x/network/result"
+	"time"
 )
 
 // Distinct handles the full cycle dispatch and execution of a distinct command against the provided
@@ -64,7 +63,7 @@ func Distinct(
 
 	if distinctOpts.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{
-			"maxTimeMS", bsonx.Int64(int64(time.Duration(*distinctOpts.MaxTime) / time.Millisecond)),
+			"maxTimeMS", bsonx.Int64(int64(*distinctOpts.MaxTime / time.Millisecond)),
 		})
 	}
 	if distinctOpts.Collation != nil {
