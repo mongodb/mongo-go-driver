@@ -18,7 +18,7 @@ type WriteModel interface {
 
 // InsertOneModel is the write model for insert operations.
 type InsertOneModel struct {
-	driver.InsertOneModel
+	Document interface{}
 }
 
 // NewInsertOneModel creates a new InsertOneModel.
@@ -26,19 +26,22 @@ func NewInsertOneModel() *InsertOneModel {
 	return &InsertOneModel{}
 }
 
-// Document sets the BSON document for the InsertOneModel.
-func (iom *InsertOneModel) Document(doc interface{}) *InsertOneModel {
-	iom.InsertOneModel.Document = doc
+// SetDocument sets the BSON document for the InsertOneModel.
+func (iom *InsertOneModel) SetDocument(doc interface{}) *InsertOneModel {
+	iom.Document = doc
 	return iom
 }
 
 func (iom *InsertOneModel) convertModel() driver.WriteModel {
-	return iom.InsertOneModel
+	return driver.InsertOneModel{
+		Document: iom.Document,
+	}
 }
 
 // DeleteOneModel is the write model for delete operations.
 type DeleteOneModel struct {
-	driver.DeleteOneModel
+	Filter    interface{}
+	Collation *options.Collation
 }
 
 // NewDeleteOneModel creates a new DeleteOneModel.
@@ -46,25 +49,29 @@ func NewDeleteOneModel() *DeleteOneModel {
 	return &DeleteOneModel{}
 }
 
-// Filter sets the filter for the DeleteOneModel.
-func (dom *DeleteOneModel) Filter(filter interface{}) *DeleteOneModel {
-	dom.DeleteOneModel.Filter = filter
+// SetFilter sets the filter for the DeleteOneModel.
+func (dom *DeleteOneModel) SetFilter(filter interface{}) *DeleteOneModel {
+	dom.Filter = filter
 	return dom
 }
 
-// Collation sets the collation for the DeleteOneModel.
-func (dom *DeleteOneModel) Collation(collation *options.Collation) *DeleteOneModel {
-	dom.DeleteOneModel.Collation = collation
+// SetCollation sets the collation for the DeleteOneModel.
+func (dom *DeleteOneModel) SetCollation(collation *options.Collation) *DeleteOneModel {
+	dom.Collation = collation
 	return dom
 }
 
 func (dom *DeleteOneModel) convertModel() driver.WriteModel {
-	return dom.DeleteOneModel
+	return driver.DeleteOneModel{
+		Collation: dom.Collation,
+		Filter:    dom.Filter,
+	}
 }
 
 // DeleteManyModel is the write model for deleteMany operations.
 type DeleteManyModel struct {
-	driver.DeleteManyModel
+	Filter    interface{}
+	Collation *options.Collation
 }
 
 // NewDeleteManyModel creates a new DeleteManyModel.
@@ -72,25 +79,31 @@ func NewDeleteManyModel() *DeleteManyModel {
 	return &DeleteManyModel{}
 }
 
-// Filter sets the filter for the DeleteManyModel.
-func (dmm *DeleteManyModel) Filter(filter interface{}) *DeleteManyModel {
-	dmm.DeleteManyModel.Filter = filter
+// SetFilter sets the filter for the DeleteManyModel.
+func (dmm *DeleteManyModel) SetFilter(filter interface{}) *DeleteManyModel {
+	dmm.Filter = filter
 	return dmm
 }
 
-// Collation sets the collation for the DeleteManyModel.
-func (dmm *DeleteManyModel) Collation(collation *options.Collation) *DeleteManyModel {
-	dmm.DeleteManyModel.Collation = collation
+// SetCollation sets the collation for the DeleteManyModel.
+func (dmm *DeleteManyModel) SetCollation(collation *options.Collation) *DeleteManyModel {
+	dmm.Collation = collation
 	return dmm
 }
 
 func (dmm *DeleteManyModel) convertModel() driver.WriteModel {
-	return dmm.DeleteManyModel
+	return driver.DeleteManyModel{
+		Collation: dmm.Collation,
+		Filter:    dmm.Filter,
+	}
 }
 
 // ReplaceOneModel is the write model for replace operations.
 type ReplaceOneModel struct {
-	driver.ReplaceOneModel
+	Collation   *options.Collation
+	Upsert      *bool
+	Filter      interface{}
+	Replacement interface{}
 }
 
 // NewReplaceOneModel creates a new ReplaceOneModel.
@@ -98,38 +111,53 @@ func NewReplaceOneModel() *ReplaceOneModel {
 	return &ReplaceOneModel{}
 }
 
-// Filter sets the filter for the ReplaceOneModel.
-func (rom *ReplaceOneModel) Filter(filter interface{}) *ReplaceOneModel {
-	rom.ReplaceOneModel.Filter = filter
+// SetFilter sets the filter for the ReplaceOneModel.
+func (rom *ReplaceOneModel) SetFilter(filter interface{}) *ReplaceOneModel {
+	rom.Filter = filter
 	return rom
 }
 
-// Replacement sets the replacement document for the ReplaceOneModel.
-func (rom *ReplaceOneModel) Replacement(rep interface{}) *ReplaceOneModel {
-	rom.ReplaceOneModel.Replacement = rep
+// SetReplacement sets the replacement document for the ReplaceOneModel.
+func (rom *ReplaceOneModel) SetReplacement(rep interface{}) *ReplaceOneModel {
+	rom.Replacement = rep
 	return rom
 }
 
-// Collation sets the collation for the ReplaceOneModel.
-func (rom *ReplaceOneModel) Collation(collation *options.Collation) *ReplaceOneModel {
-	rom.ReplaceOneModel.Collation = collation
+// SetCollation sets the collation for the ReplaceOneModel.
+func (rom *ReplaceOneModel) SetCollation(collation *options.Collation) *ReplaceOneModel {
+	rom.Collation = collation
 	return rom
 }
 
-// Upsert specifies if a new document should be created if no document matches the query.
-func (rom *ReplaceOneModel) Upsert(upsert bool) *ReplaceOneModel {
-	rom.ReplaceOneModel.Upsert = upsert
-	rom.ReplaceOneModel.UpsertSet = true
+// SetUpsert specifies if a new document should be created if no document matches the query.
+func (rom *ReplaceOneModel) SetUpsert(upsert bool) *ReplaceOneModel {
+	rom.Upsert = &upsert
 	return rom
 }
 
 func (rom *ReplaceOneModel) convertModel() driver.WriteModel {
-	return rom.ReplaceOneModel
+	um := driver.UpdateModel{
+		Collation: rom.Collation,
+	}
+	if rom.Upsert != nil {
+		um.Upsert = *rom.Upsert
+		um.UpsertSet = true
+	}
+
+	return driver.ReplaceOneModel{
+		UpdateModel: um,
+		Filter:      rom.Filter,
+		Replacement: rom.Replacement,
+	}
 }
 
 // UpdateOneModel is the write model for update operations.
 type UpdateOneModel struct {
-	driver.UpdateOneModel
+	Collation    *options.Collation
+	Upsert       *bool
+	Filter       interface{}
+	Update       interface{}
+	ArrayFilters *options.ArrayFilters
 }
 
 // NewUpdateOneModel creates a new UpdateOneModel.
@@ -137,45 +165,65 @@ func NewUpdateOneModel() *UpdateOneModel {
 	return &UpdateOneModel{}
 }
 
-// Filter sets the filter for the UpdateOneModel.
-func (uom *UpdateOneModel) Filter(filter interface{}) *UpdateOneModel {
-	uom.UpdateOneModel.Filter = filter
+// SetFilter sets the filter for the UpdateOneModel.
+func (uom *UpdateOneModel) SetFilter(filter interface{}) *UpdateOneModel {
+	uom.Filter = filter
 	return uom
 }
 
-// Update sets the update document for the UpdateOneModel.
-func (uom *UpdateOneModel) Update(update interface{}) *UpdateOneModel {
-	uom.UpdateOneModel.Update = update
+// SetUpdate sets the update document for the UpdateOneModel.
+func (uom *UpdateOneModel) SetUpdate(update interface{}) *UpdateOneModel {
+	uom.Update = update
 	return uom
 }
 
-// ArrayFilters specifies a set of filters specifying to which array elements an update should apply.
-func (uom *UpdateOneModel) ArrayFilters(filters options.ArrayFilters) *UpdateOneModel {
-	uom.UpdateOneModel.ArrayFilters = filters
-	uom.UpdateOneModel.ArrayFiltersSet = true
+// SetArrayFilters specifies a set of filters specifying to which array elements an update should apply.
+func (uom *UpdateOneModel) SetArrayFilters(filters options.ArrayFilters) *UpdateOneModel {
+	uom.ArrayFilters = &filters
 	return uom
 }
 
-// Collation sets the collation for the UpdateOneModel.
-func (uom *UpdateOneModel) Collation(collation *options.Collation) *UpdateOneModel {
-	uom.UpdateOneModel.Collation = collation
+// SetCollation sets the collation for the UpdateOneModel.
+func (uom *UpdateOneModel) SetCollation(collation *options.Collation) *UpdateOneModel {
+	uom.Collation = collation
 	return uom
 }
 
-// Upsert specifies if a new document should be created if no document matches the query.
-func (uom *UpdateOneModel) Upsert(upsert bool) *UpdateOneModel {
-	uom.UpdateOneModel.Upsert = upsert
-	uom.UpdateOneModel.UpsertSet = true
+// SetUpsert specifies if a new document should be created if no document matches the query.
+func (uom *UpdateOneModel) SetUpsert(upsert bool) *UpdateOneModel {
+	uom.Upsert = &upsert
 	return uom
 }
 
 func (uom *UpdateOneModel) convertModel() driver.WriteModel {
-	return uom.UpdateOneModel
+	um := driver.UpdateModel{
+		Collation: uom.Collation,
+	}
+	if uom.Upsert != nil {
+		um.Upsert = *uom.Upsert
+		um.UpsertSet = true
+	}
+
+	converted := driver.UpdateOneModel{
+		UpdateModel: um,
+		Filter:      uom.Filter,
+		Update:      uom.Update,
+	}
+	if uom.ArrayFilters != nil {
+		converted.ArrayFilters = *uom.ArrayFilters
+		converted.ArrayFiltersSet = true
+	}
+
+	return converted
 }
 
 // UpdateManyModel is the write model for updateMany operations.
 type UpdateManyModel struct {
-	driver.UpdateManyModel
+	Collation    *options.Collation
+	Upsert       *bool
+	Filter       interface{}
+	Update       interface{}
+	ArrayFilters *options.ArrayFilters
 }
 
 // NewUpdateManyModel creates a new UpdateManyModel.
@@ -183,56 +231,110 @@ func NewUpdateManyModel() *UpdateManyModel {
 	return &UpdateManyModel{}
 }
 
-// Filter sets the filter for the UpdateManyModel.
-func (umm *UpdateManyModel) Filter(filter interface{}) *UpdateManyModel {
-	umm.UpdateManyModel.Filter = filter
+// SetFilter sets the filter for the UpdateManyModel.
+func (umm *UpdateManyModel) SetFilter(filter interface{}) *UpdateManyModel {
+	umm.Filter = filter
 	return umm
 }
 
-// Update sets the update document for the UpdateManyModel.
-func (umm *UpdateManyModel) Update(update interface{}) *UpdateManyModel {
-	umm.UpdateManyModel.Update = update
+// SetUpdate sets the update document for the UpdateManyModel.
+func (umm *UpdateManyModel) SetUpdate(update interface{}) *UpdateManyModel {
+	umm.Update = update
 	return umm
 }
 
-// ArrayFilters specifies a set of filters specifying to which array elements an update should apply.
-func (umm *UpdateManyModel) ArrayFilters(filters options.ArrayFilters) *UpdateManyModel {
-	umm.UpdateManyModel.ArrayFilters = filters
-	umm.UpdateManyModel.ArrayFiltersSet = true
+// SetArrayFilters specifies a set of filters specifying to which array elements an update should apply.
+func (umm *UpdateManyModel) SetArrayFilters(filters options.ArrayFilters) *UpdateManyModel {
+	umm.ArrayFilters = &filters
 	return umm
 }
 
-// Collation sets the collation for the UpdateManyModel.
-func (umm *UpdateManyModel) Collation(collation *options.Collation) *UpdateManyModel {
-	umm.UpdateManyModel.Collation = collation
+// SetCollation sets the collation for the UpdateManyModel.
+func (umm *UpdateManyModel) SetCollation(collation *options.Collation) *UpdateManyModel {
+	umm.Collation = collation
 	return umm
 }
 
-// Upsert specifies if a new document should be created if no document matches the query.
-func (umm *UpdateManyModel) Upsert(upsert bool) *UpdateManyModel {
-	umm.UpdateManyModel.Upsert = upsert
-	umm.UpdateManyModel.UpsertSet = true
+// SetUpsert specifies if a new document should be created if no document matches the query.
+func (umm *UpdateManyModel) SetUpsert(upsert bool) *UpdateManyModel {
+	umm.Upsert = &upsert
 	return umm
 }
 
 func (umm *UpdateManyModel) convertModel() driver.WriteModel {
-	return umm.UpdateManyModel
+	um := driver.UpdateModel{
+		Collation: umm.Collation,
+	}
+	if umm.Upsert != nil {
+		um.Upsert = *umm.Upsert
+		um.UpsertSet = true
+	}
+
+	converted := driver.UpdateManyModel{
+		UpdateModel: um,
+		Filter:      umm.Filter,
+		Update:      umm.Update,
+	}
+	if umm.ArrayFilters != nil {
+		converted.ArrayFilters = *umm.ArrayFilters
+		converted.ArrayFiltersSet = true
+	}
+
+	return converted
 }
 
 func dispatchToMongoModel(model driver.WriteModel) WriteModel {
 	switch conv := model.(type) {
 	case driver.InsertOneModel:
-		return &InsertOneModel{conv}
+		return &InsertOneModel{
+			Document: conv.Document,
+		}
 	case driver.DeleteOneModel:
-		return &DeleteOneModel{conv}
+		return &DeleteOneModel{
+			Filter:    conv.Filter,
+			Collation: conv.Collation,
+		}
 	case driver.DeleteManyModel:
-		return &DeleteManyModel{conv}
+		return &DeleteManyModel{
+			Filter:    conv.Filter,
+			Collation: conv.Collation,
+		}
 	case driver.ReplaceOneModel:
-		return &ReplaceOneModel{conv}
+		rom := &ReplaceOneModel{
+			Filter:      conv.Filter,
+			Replacement: conv.Replacement,
+			Collation:   conv.Collation,
+		}
+		if conv.UpsertSet {
+			rom.Upsert = &conv.Upsert
+		}
+		return rom
 	case driver.UpdateOneModel:
-		return &UpdateOneModel{conv}
+		uom := &UpdateOneModel{
+			Filter:    conv.Filter,
+			Update:    conv.Update,
+			Collation: conv.Collation,
+		}
+		if conv.UpsertSet {
+			uom.Upsert = &conv.Upsert
+		}
+		if conv.ArrayFiltersSet {
+			uom.ArrayFilters = &conv.ArrayFilters
+		}
+		return uom
 	case driver.UpdateManyModel:
-		return &UpdateManyModel{conv}
+		umm := &UpdateManyModel{
+			Filter:    conv.Filter,
+			Update:    conv.Update,
+			Collation: conv.Collation,
+		}
+		if conv.UpsertSet {
+			umm.Upsert = &conv.Upsert
+		}
+		if conv.ArrayFiltersSet {
+			umm.ArrayFilters = &conv.ArrayFilters
+		}
+		return umm
 	}
 
 	return nil
