@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "03e3b8c8_73fb24d6",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-24T15:51:53Z",
+      "side": 1,
+      "message": "I\u0027m slightly worried about newlines in default error output, but we can solve this in the future.",
+      "range": {
+        "startLine": 294,
+        "startChar": 46,
+        "endLine": 294,
+        "endChar": 48
+      },
+      "revId": "eb9598fbe4da5920628f3165fd0921079a84923b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
