@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3320eb53_02659b60",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-01-24T19:33:19Z",
+      "side": 1,
+      "message": "Do we have to take our own? `connection` is in the `x` package and won\u0027t be coming out anytime soon. We should be taking the vanilla one at this level. The user isn\u0027t going to need to have the X509Username, and it\u0027s their job to deal with credentials and passwords, etc...",
+      "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
