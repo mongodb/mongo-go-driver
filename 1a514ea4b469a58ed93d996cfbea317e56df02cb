@@ -22,6 +22,30 @@
       "revId": "1a514ea4b469a58ed93d996cfbea317e56df02cb",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "87a13209_32ba97e0",
+        "filename": "mongo/options/countoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-25T16:08:32Z",
+      "side": 1,
+      "message": "That\u0027s not a constructor, it\u0027s casting to a time.Duration, which I imagine is just optimized out by the compiler. That said, we don\u0027t really need it.",
+      "parentUuid": "67cad472_b0ea9d34",
+      "range": {
+        "startLine": 16,
+        "startChar": 12,
+        "endLine": 16,
+        "endChar": 16
+      },
+      "revId": "1a514ea4b469a58ed93d996cfbea317e56df02cb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
