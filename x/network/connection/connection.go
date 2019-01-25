@@ -69,7 +69,9 @@ func (df DialerFunc) DialContext(ctx context.Context, network, address string) (
 // will also change the Dialer used for this package. This should only be changed why all
 // of the connections being made need to use a different Dialer. Most of the time, using a
 // WithDialer option is more appropriate than changing this variable.
-var DefaultDialer Dialer = &net.Dialer{}
+var DefaultDialer Dialer = &net.Dialer{
+	KeepAlive: 300 * time.Second,
+}
 
 // Handshaker is the interface implemented by types that can perform a MongoDB
 // handshake over a provided ReadWriter. This is used during connection
