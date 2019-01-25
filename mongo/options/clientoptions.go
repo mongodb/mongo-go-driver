@@ -117,6 +117,7 @@ func (c *ClientOptions) SetConnectTimeout(d time.Duration) *ClientOptions {
 }
 
 // SetDialer specifies a custom dialer used to dial new connections to a server.
+// If a custom dialer is not set, a net.Dialer with a 300 second keepalive time will be used by default.
 func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
 	c.TopologyOptions = append(
 		c.TopologyOptions,

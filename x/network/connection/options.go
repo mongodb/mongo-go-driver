@@ -44,7 +44,10 @@ func newConfig(opts ...Option) (*config, error) {
 	}
 
 	if cfg.dialer == nil {
-		cfg.dialer = &net.Dialer{Timeout: cfg.connectTimeout}
+		cfg.dialer = &net.Dialer{
+			KeepAlive: tcpKeepalive,
+			Timeout:   cfg.connectTimeout,
+		}
 	}
 
 	return cfg, nil
