@@ -16,6 +16,24 @@
       "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "457c9bc8_5b7b7f19",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-25T16:01:41Z",
+      "side": 1,
+      "message": "I think we have to have our own tlsConfig type because we need to use specific logic when adding a tls certificate. However, we don\u0027t need to have this in the connection package.\n\nAlternatively, we could expose the function to extract the username from the subject and add another option for the user to provide it to us.",
+      "parentUuid": "3320eb53_02659b60",
+      "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
