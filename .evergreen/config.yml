@@ -270,7 +270,6 @@ functions:
     - command: shell.exec
       type: test
       params:
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
@@ -285,6 +284,30 @@ functions:
             cat .evergreen/krb5.config | tee -a ~/.krb5/config
             kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${gssapi_auth_username}"
             export MONGODB_URI="${gssapi_auth_linux_mongodb_uri}"
+          fi;
+          export GOPATH="$GOPATH"
+          export GOROOT="${GO_DIST}"
+          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
+          MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
+
+  run-enterprise-gssapi-service-host-auth-tests:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
+          if [ "Windows_NT" = "$OS" ]; then
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+            export MONGODB_URI="${gssapi_service_host_auth_windows_mongodb_uri}"
+          else
+            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
+            echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
+            base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
+            mkdir -p ~/.krb5
+            cat .evergreen/krb5.config | tee -a ~/.krb5/config
+            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${gssapi_auth_username}"
+            export MONGODB_URI="${gssapi_service_host_auth_linux_mongodb_uri}"
           fi;
           export GOPATH="$GOPATH"
           export GOROOT="${GO_DIST}"
@@ -550,6 +573,13 @@ tasks:
       tags: ["test", "enterprise-auth"]
       commands:
         - func: run-enterprise-gssapi-auth-tests
+          vars:
+            MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+
+    - name: test-enterprise-auth-gssapi-service-host
+      tags: ["test", "enterprise-auth"]
+      commands:
+        - func: run-enterprise-gssapi-service-host-auth-tests
           vars:
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 

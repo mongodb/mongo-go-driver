@@ -39,7 +39,13 @@ type ContextDialer interface {
 // Supported values include "SCRAM-SHA-256", "SCRAM-SHA-1", "MONGODB-CR", "PLAIN", "GSSAPI", and "MONGODB-X509".
 //
 // AuthMechanismProperties specifies additional configuration options which may be used by certain
-// authentication mechanisms.
+// authentication mechanisms. Supported properties are:
+// SERVICE_NAME: Specifies the name of the service. Defaults to mongodb.
+// CANONICALIZE_HOST_NAME: If true, tells the driver to canonicalize the given hostname. Defaults to false. This
+// property may not be used on Linux and Darwin systems and may not be used at the same time as SERVICE_HOST.
+// SERVICE_REALM: Specifies the realm of the service.
+// SERVICE_HOST: Specifies a hostname for GSSAPI authentication if it is different from the server's address. For
+// authentication mechanisms besides GSSAPI, this property is ignored.
 //
 // AuthSource specifies the database to authenticate against.
 //
