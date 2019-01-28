@@ -11,6 +11,8 @@ package auth
 
 import (
 	"context"
+	"fmt"
+	"net"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi"
 	"go.mongodb.org/mongo-driver/x/network/description"
@@ -43,7 +45,13 @@ type GSSAPIAuthenticator struct {
 
 // Auth authenticates the connection.
 func (a *GSSAPIAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
-	client, err := gssapi.New(desc.Addr.String(), a.Username, a.Password, a.PasswordSet, a.Props)
+	target := desc.Addr.String()
+	hostname, _, err := net.SplitHostPort(target)
+	if err != nil {
+		return newAuthError(fmt.Sprintf("invalid endpoint (%s) specified: %s", target, err), nil)
+	}
+
+	client, err := gssapi.New(hostname, a.Username, a.Password, a.PasswordSet, a.Props)
 
 	if err != nil {
 		return newAuthError("error creating gssapi", err)
