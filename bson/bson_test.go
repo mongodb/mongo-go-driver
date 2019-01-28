@@ -111,3 +111,13 @@ func TestD(t *testing.T) {
 		}
 	})
 }
+
+func TestFormatDouble(t *testing.T) {
+	t.Run("withExponent", func(t *testing.T) {
+		want := "3E-12"
+		got := formatDouble(float64(0.000000000003))
+		if got != want {
+			t.Errorf("Did not receive expected string. got %s: want %s", got, want)
+		}
+	})
+}
