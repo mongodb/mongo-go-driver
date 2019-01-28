@@ -43,7 +43,12 @@ type GSSAPIAuthenticator struct {
 
 // Auth authenticates the connection.
 func (a *GSSAPIAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
-	client, err := gssapi.New(desc.Addr.String(), a.Username, a.Password, a.PasswordSet, a.Props)
+	serviceHost := desc.Addr.String()
+	if host, ok := a.Props["SERVICE_HOST"]; ok {
+		serviceHost = host
+	}
+
+	client, err := gssapi.New(serviceHost, a.Username, a.Password, a.PasswordSet, a.Props)
 
 	if err != nil {
 		return newAuthError("error creating gssapi", err)
