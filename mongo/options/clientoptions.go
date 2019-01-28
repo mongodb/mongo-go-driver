@@ -40,6 +40,8 @@ type ContextDialer interface {
 //
 // AuthMechanismProperties specifies additional configuration options which may be used by certain
 // authentication mechanisms.
+// The SERVICE_HOST property can be used to specify a hostname for GSSAPI authentication if it is different from the
+// server's address. For authentication mechanisms besides GSSAPI, this property is ignored.
 //
 // AuthSource specifies the database to authenticate against.
 //
