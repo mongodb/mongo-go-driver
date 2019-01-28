@@ -538,3 +538,13 @@ func TestClient_Ping_InvalidHost(t *testing.T) {
 	err = c.Ping(ctx, nil)
 	require.NotNil(t, err)
 }
+
+func TestClient_Disconnect_NilContext(t *testing.T) {
+	cs := testutil.ConnString(t)
+	c, err := NewClient(cs.String())
+	require.NoError(t, err)
+	err = c.Connect(nil)
+	require.NoError(t, err)
+	err = c.Disconnect(nil)
+	require.NoError(t, err)
+}
