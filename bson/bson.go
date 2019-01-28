@@ -12,10 +12,6 @@
 package bson
 
 import (
-	"math"
-	"strconv"
-	"strings"
-
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
@@ -62,23 +58,3 @@ type M = primitive.M
 // 		bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
 //
 type A = primitive.A
-
-func formatDouble(f float64) string {
-	var s string
-	if math.IsInf(f, 1) {
-		s = "Infinity"
-	} else if math.IsInf(f, -1) {
-		s = "-Infinity"
-	} else if math.IsNaN(f) {
-		s = "NaN"
-	} else {
-		// Print exactly one decimalType place for integers; otherwise, print as many are necessary to
-		// perfectly represent it.
-		s = strconv.FormatFloat(f, 'G', -1, 64)
-		if !strings.ContainsRune(s, '.') {
-			s += ".0"
-		}
-	}
-
-	return s
-}
