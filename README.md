@@ -85,7 +85,7 @@ Several query methods return a cursor, which can be used like this:
 
 ```go
 ctx, _ = context.WithTimeout(context.Background(), 30*time.Second)
-cur, err := collection.Find(ctx, nil)
+cur, err := collection.Find(ctx, bson.D{})
 if err != nil { log.Fatal(err) }
 defer cur.Close(ctx)
 for cur.Next(ctx) {
