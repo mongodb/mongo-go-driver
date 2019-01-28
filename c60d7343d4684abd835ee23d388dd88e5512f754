@@ -34,6 +34,24 @@
       "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ccadc95_292b0407",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-28T19:51:21Z",
+      "side": 1,
+      "message": "I think we could construct our own for the most part from the standard tls.Config, but the only issue I see is the clientCertPass field (set through SetClientCertDecryptPassword). I don\u0027t see an analog in the standard tls.Config struct.",
+      "parentUuid": "457c9bc8_5b7b7f19",
+      "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
