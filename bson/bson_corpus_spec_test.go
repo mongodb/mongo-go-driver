@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"path"
 	"strconv"
 	"strings"
@@ -127,6 +128,26 @@ func unescapeUnicode(s, bsonType string) string {
 	}
 
 	return newS
+}
+
+func formatDouble(f float64) string {
+	var s string
+	if math.IsInf(f, 1) {
+		s = "Infinity"
+	} else if math.IsInf(f, -1) {
+		s = "-Infinity"
+	} else if math.IsNaN(f) {
+		s = "NaN"
+	} else {
+		// Print exactly one decimalType place for integers; otherwise, print as many are necessary to
+		// perfectly represent it.
+		s = strconv.FormatFloat(f, 'G', -1, 64)
+		if !strings.ContainsRune(s, 'E') && !strings.ContainsRune(s, '.') {
+			s += ".0"
+		}
+	}
+
+	return s
 }
 
 func normalizeCanonicalDouble(t *testing.T, key string, cEJ string) string {
