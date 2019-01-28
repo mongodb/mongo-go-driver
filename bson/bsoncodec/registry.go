@@ -265,13 +265,6 @@ func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
 		return enc, nil
 	}
 
-	if t != nil && t.Kind() == reflect.Map && t.Key().Kind() != reflect.String {
-		r.mu.Lock()
-		r.typeEncoders[t] = nil
-		r.mu.Unlock()
-		return nil, encodererr
-	}
-
 	if t == nil {
 		r.mu.Lock()
 		r.typeEncoders[t] = nil
@@ -338,13 +331,6 @@ func (r *Registry) LookupDecoder(t reflect.Type) (ValueDecoder, error) {
 		r.typeDecoders[t] = dec
 		r.mu.Unlock()
 		return dec, nil
-	}
-
-	if t.Kind() == reflect.Map && t.Key().Kind() != reflect.String {
-		r.mu.Lock()
-		r.typeDecoders[t] = nil
-		r.mu.Unlock()
-		return nil, decodererr
 	}
 
 	dec, found = r.kindDecoders[t.Kind()]
