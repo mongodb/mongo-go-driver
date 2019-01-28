@@ -52,6 +52,24 @@
       "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "aedc9205_8f621336",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-01-28T23:20:44Z",
+      "side": 1,
+      "message": "Agreed, but I\u0027m unclear as to why that\u0027s necessary? The user should be responsible for constructing and providing their cert in such a way that it can be used by the tls handshake as well as by us.  In the case where they have encrypted the cert with a password, it\u0027s their job to decrypt it before giving it to us.",
+      "parentUuid": "8ccadc95_292b0407",
+      "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
