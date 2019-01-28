@@ -253,8 +253,8 @@ func TestRegistry(t *testing.T) {
 				{
 					"map non-string key",
 					reflect.TypeOf(map[int]int{}),
+					fmc,
 					nil,
-					ErrNoEncoder{Type: reflect.TypeOf(map[int]int{})},
 					false,
 				},
 				{
