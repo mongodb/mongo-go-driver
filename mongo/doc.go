@@ -31,7 +31,7 @@
 //
 // Several methods return a cursor, which can be used like this:
 //
-//    cur, err := collection.Find(context.Background(), nil)
+//    cur, err := collection.Find(context.Background(), bson.D{})
 //    if err != nil { log.Fatal(err) }
 //    defer cur.Close(context.Background())
 //    for cur.Next(context.Background()) {
