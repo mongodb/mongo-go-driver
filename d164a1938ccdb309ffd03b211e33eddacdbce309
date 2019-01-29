@@ -46,6 +46,30 @@
       "revId": "d164a1938ccdb309ffd03b211e33eddacdbce309",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a01bc6cf_ff206788",
+        "filename": "bson/bson.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-01-29T20:13:31Z",
+      "side": 1,
+      "message": "Moved to bson_corpus_spec_test.go to avoid exporting formatDouble",
+      "parentUuid": "e5baf773_c5b84d70",
+      "range": {
+        "startLine": 66,
+        "startChar": 0,
+        "endLine": 66,
+        "endChar": 4
+      },
+      "revId": "d164a1938ccdb309ffd03b211e33eddacdbce309",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
