@@ -70,6 +70,24 @@
       "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6bd64d9d_b139793e",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 310,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-29T16:01:20Z",
+      "side": 1,
+      "message": "Fair point. I guess if users want give an encrypted cert and a password function, they can always use SetSSL instead of SetTLSConfig.",
+      "parentUuid": "aedc9205_8f621336",
+      "revId": "c60d7343d4684abd835ee23d388dd88e5512f754",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
