@@ -288,16 +288,16 @@ func TestCollection_InsertOne_WriteError(t *testing.T) {
 	_, err := coll.InsertOne(context.Background(), doc)
 	require.NoError(t, err)
 	_, err = coll.InsertOne(context.Background(), doc)
-	got, ok := err.(WriteErrors)
+	got, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteException{})
 	}
-	if len(got) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+	if len(got.WriteErrors) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
 		t.FailNow()
 	}
-	if got[0].Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
+	if got.WriteErrors[0].Code != want.Code {
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
 	}
 
 }
@@ -315,8 +315,12 @@ func TestCollection_InsertOne_WriteConcernError(t *testing.T) {
 	coll := createTestCollection(t, nil, nil, options.Collection().SetWriteConcern(impossibleWriteConcern))
 
 	_, err := coll.InsertOne(context.Background(), doc)
-	if _, ok := err.(WriteConcernError); !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+	writeErr, ok := err.(WriteException)
+	if !ok {
+		t.Errorf("incorrect error type returned: %T", writeErr)
+	}
+	if writeErr.WriteConcernError == nil {
+		t.Errorf("write concern error is nil: %+v", writeErr)
 	}
 }
 
@@ -661,17 +665,17 @@ func TestCollection_DeleteOne_WriteError(t *testing.T) {
 	coll := db.Collection(testutil.ColName(t))
 
 	_, err = coll.DeleteOne(context.Background(), filter)
-	got, ok := err.(WriteErrors)
+	got, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteException{})
 	}
-	if len(got) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+	if len(got.WriteErrors) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
 		t.FailNow()
 	}
 	// 2.6 returns 10101 instead of 20
-	if got[0].Code != 20 && got[0].Code != 10101 {
-		t.Errorf("Did not receive the correct error code. got %d; want 20 or 10101", got[0].Code)
+	if got.WriteErrors[0].Code != 20 && got.WriteErrors[0].Code != 10101 {
+		t.Errorf("Did not receive the correct error code. got %d; want 20 or 10101", got.WriteErrors[0].Code)
 	}
 }
 
@@ -698,9 +702,12 @@ func TestCollection_DeleteMany_WriteConcernError(t *testing.T) {
 		t.Fatalf("error cloning collection: %s", err)
 	}
 	_, err = cloned.DeleteOne(context.Background(), filter)
-	_, ok := err.(WriteConcernError)
+	writeErr, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+		t.Errorf("incorrect error type returned: %T", writeErr)
+	}
+	if writeErr.WriteConcernError == nil {
+		t.Errorf("write concern error is nil: %+v", writeErr)
 	}
 }
 
@@ -773,17 +780,17 @@ func TestCollection_DeleteMany_WriteError(t *testing.T) {
 	coll := db.Collection(testutil.ColName(t))
 
 	_, err = coll.DeleteMany(context.Background(), filter)
-	got, ok := err.(WriteErrors)
+	got, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteException{})
 	}
-	if len(got) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+	if len(got.WriteErrors) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
 		t.FailNow()
 	}
 	// 2.6 returns 10101 instead of 20
-	if got[0].Code != 20 && got[0].Code != 10101 {
-		t.Errorf("Did not receive the correct error code. got %d; want 20 or 10101", got[0].Code)
+	if got.WriteErrors[0].Code != 20 && got.WriteErrors[0].Code != 10101 {
+		t.Errorf("Did not receive the correct error code. got %d; want 20 or 10101", got.WriteErrors[0].Code)
 	}
 }
 
@@ -811,9 +818,12 @@ func TestCollection_DeleteOne_WriteConcernError(t *testing.T) {
 	}
 
 	_, err = cloned.DeleteMany(context.Background(), filter)
-	_, ok := err.(WriteConcernError)
+	writeErr, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+		t.Errorf("incorrect error type returned: %T", writeErr)
+	}
+	if writeErr.WriteConcernError == nil {
+		t.Errorf("write concern error is nil: %+v", writeErr)
 	}
 }
 
@@ -895,16 +905,16 @@ func TestCollection_UpdateOne_WriteError(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = coll.UpdateOne(context.Background(), filter, update)
-	got, ok := err.(WriteErrors)
+	got, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteException{})
 	}
-	if len(got) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+	if len(got.WriteErrors) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
 		t.FailNow()
 	}
-	if got[0].Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
+	if got.WriteErrors[0].Code != want.Code {
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
 	}
 
 }
@@ -933,9 +943,12 @@ func TestCollection_UpdateOne_WriteConcernError(t *testing.T) {
 		t.Fatalf("error cloning collection: %s", err)
 	}
 	_, err = cloned.UpdateOne(context.Background(), filter, update)
-	_, ok := err.(WriteConcernError)
+	writeErr, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+		t.Errorf("incorrect error type returned: %T", writeErr)
+	}
+	if writeErr.WriteConcernError == nil {
+		t.Errorf("write concern error is nil: %+v", writeErr)
 	}
 }
 
@@ -1019,16 +1032,16 @@ func TestCollection_UpdateMany_WriteError(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = coll.UpdateMany(context.Background(), filter, update)
-	got, ok := err.(WriteErrors)
+	got, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteException{})
 	}
-	if len(got) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+	if len(got.WriteErrors) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
 		t.FailNow()
 	}
-	if got[0].Code != want.Code {
-		t.Errorf("Did not receive the correct error code. got %d; want %d", got[0].Code, want.Code)
+	if got.WriteErrors[0].Code != want.Code {
+		t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
 	}
 
 }
@@ -1057,9 +1070,12 @@ func TestCollection_UpdateMany_WriteConcernError(t *testing.T) {
 		t.Fatalf("error cloning collection: %s", err)
 	}
 	_, err = cloned.UpdateMany(context.Background(), filter, update)
-	_, ok := err.(WriteConcernError)
+	writeErr, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+		t.Errorf("incorrect error type returned: %T", writeErr)
+	}
+	if writeErr.WriteConcernError == nil {
+		t.Errorf("write concern error is nil: %+v", writeErr)
 	}
 }
 
@@ -1134,19 +1150,19 @@ func TestCollection_ReplaceOne_WriteError(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = coll.ReplaceOne(context.Background(), filter, replacement)
-	got, ok := err.(WriteErrors)
+	got, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteException{})
 	}
-	if len(got) != 1 {
-		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got), 1)
+	if len(got.WriteErrors) != 1 {
+		t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
 		t.FailNow()
 	}
-	switch got[0].Code {
+	switch got.WriteErrors[0].Code {
 	case 66: // mongod v3.6
 	case 16837: //mongod v3.4, mongod v3.2
 	default:
-		t.Errorf("Did not receive the correct error code. got %d; want (one of) %d", got[0].Code, []int{66, 16837})
+		t.Errorf("Did not receive the correct error code. got %d; want (one of) %d", got.WriteErrors[0].Code, []int{66, 16837})
 		fmt.Printf("%#v\n", got)
 	}
 
@@ -1176,9 +1192,12 @@ func TestCollection_ReplaceOne_WriteConcernError(t *testing.T) {
 		t.Fatalf("error cloning collection: %s", err)
 	}
 	_, err = cloned.ReplaceOne(context.Background(), filter, update)
-	_, ok := err.(WriteConcernError)
+	writeErr, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteConcernError{})
+		t.Errorf("incorrect error type returned: %T", writeErr)
+	}
+	if writeErr.WriteConcernError == nil {
+		t.Errorf("write concern error is nil: %+v", writeErr)
 	}
 }
 
