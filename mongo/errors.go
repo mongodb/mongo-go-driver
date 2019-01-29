@@ -86,6 +86,20 @@ type WriteConcernError struct {
 
 func (wce WriteConcernError) Error() string { return wce.Message }
 
+// WriteException is an error for a non-bulk write operation.
+type WriteException struct {
+	WriteConcernError *WriteConcernError
+	WriteErrors       WriteErrors
+}
+
+func (mwe WriteException) Error() string {
+	var buf bytes.Buffer
+	fmt.Fprint(&buf, "multiple write errors: [")
+	fmt.Fprintf(&buf, "{%s}, ", mwe.WriteErrors)
+	fmt.Fprintf(&buf, "{%s}]", mwe.WriteConcernError)
+	return buf.String()
+}
+
 func convertBulkWriteErrors(errors []driver.BulkWriteError) []BulkWriteError {
 	bwErrors := make([]BulkWriteError, 0, len(errors))
 	for _, err := range errors {
@@ -161,10 +175,11 @@ func processWriteError(wce *result.WriteConcernError, wes []result.WriteError, e
 		return rrAll, ErrUnacknowledgedWrite
 	case err != nil:
 		return rrNone, replaceTopologyErr(err)
-	case wce != nil:
-		return rrMany, WriteConcernError{Code: wce.Code, Message: wce.ErrMsg}
-	case len(wes) > 0:
-		return rrMany, writeErrorsFromResult(wes)
+	case wce != nil || len(wes) > 0:
+		return rrMany, WriteException{
+			WriteConcernError: convertWriteConcernError(wce),
+			WriteErrors:       writeErrorsFromResult(wes),
+		}
 	default:
 		return rrAll, nil
 	}
