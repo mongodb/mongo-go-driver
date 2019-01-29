@@ -1,0 +1,136 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "682dd5cb_89c2cc37",
+        "filename": "mongo/batch_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-29T21:05:49Z",
+      "side": 1,
+      "message": "Add a comment here for consistency.",
+      "range": {
+        "startLine": 28,
+        "startChar": 1,
+        "endLine": 28,
+        "endChar": 6
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6744b754_c82fc736",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-29T21:05:49Z",
+      "side": 1,
+      "message": "The comment says \"The document will be appended to dst.\" but this doesn\u0027t happen. Also, why are we appending to the dst slice and returning the raw bytes? Is there a use case that would require both?",
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d8bac8f7_411e9793",
+        "filename": "mongo/cursor_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-29T21:05:49Z",
+      "side": 1,
+      "message": "Will these tests be filled out before merging this patch?",
+      "range": {
+        "startLine": 1,
+        "startChar": 8,
+        "endLine": 1,
+        "endChar": 13
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "934bb3eb_6262b95a",
+        "filename": "mongo/database.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-29T21:05:49Z",
+      "side": 1,
+      "message": "In what case does driver.ListCollections return ErrEmptyCursor?",
+      "range": {
+        "startLine": 254,
+        "startChar": 10,
+        "endLine": 254,
+        "endChar": 24
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8173fe9f_474ffbd2",
+        "filename": "x/mongo/driver/aggregate.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-29T21:05:49Z",
+      "side": 1,
+      "message": "Why this change? We were successfully running aggregates against server versions \u003c 3.2 before, no?",
+      "range": {
+        "startLine": 129,
+        "startChar": 4,
+        "endLine": 129,
+        "endChar": 8
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3a3dedb0_77b0387c",
+        "filename": "x/network/command/count_documents.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-01-29T21:05:49Z",
+      "side": 1,
+      "message": "Remove debugging statement.",
+      "range": {
+        "startLine": 68,
+        "startChar": 6,
+        "endLine": 68,
+        "endChar": 13
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
