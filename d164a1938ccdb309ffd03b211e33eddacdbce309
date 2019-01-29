@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d269fd0a_22c323f3",
+        "filename": "bson/bson.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-29T16:20:19Z",
+      "side": 1,
+      "message": "Why do we have two identical functions, one here and one extjson_writer?  This one only appears to be used in tests.\n\nCan we consolidate?",
+      "range": {
+        "startLine": 66,
+        "startChar": 0,
+        "endLine": 66,
+        "endChar": 4
+      },
+      "revId": "d164a1938ccdb309ffd03b211e33eddacdbce309",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
