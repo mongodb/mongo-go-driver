@@ -26,7 +26,7 @@ var ErrWrongClient = errors.New("session was not created by this client")
 
 // SessionContext is a hybrid interface. It combines a context.Context with
 // a mongo.Session. This type can be used as a regular context.Context or
-// Session type.
+// Session type. It is not goroutine safe and should not be used in multiple goroutines concurrently.
 type SessionContext interface {
 	context.Context
 	Session
