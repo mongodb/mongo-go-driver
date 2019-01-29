@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8961dbed_468f904f",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-29T16:28:20Z",
+      "side": 1,
+      "message": "I tried to use this statement and it didn\u0027t compile.  I think you have to remove one of the pairs of braces at the top level.",
+      "range": {
+        "startLine": 66,
+        "startChar": 11,
+        "endLine": 66,
+        "endChar": 19
+      },
+      "revId": "348ba2b0d394a13b5dfc823d3972940bc18e233e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
