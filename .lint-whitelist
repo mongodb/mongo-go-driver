@@ -61,3 +61,4 @@ bson/internal/jsonparser/parser.go:1137:9: if block ends with a return statement
 bson/internal/jsonparser/parser.go:1146:9: if block ends with a return statement, so drop this else and outdent its block (move short variable declaration to its own line if necessary)
 bson/internal/jsonparser/parser_test.go:1361:5: var testJson should be testJSON
 bson/internal/jsonpretty/pretty.go:7:1: comment on exported type Options should be of the form "Options ..." (with optional leading article)
+examples/documentation_examples/examples.go:10:1: don't use an underscore in package name
