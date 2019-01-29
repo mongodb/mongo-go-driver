@@ -22,6 +22,30 @@
       "revId": "348ba2b0d394a13b5dfc823d3972940bc18e233e",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fe37e7d4_a62ee63d",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-29T17:57:15Z",
+      "side": 1,
+      "message": "Yup, I think this is wrong in the ticket.",
+      "parentUuid": "8961dbed_468f904f",
+      "range": {
+        "startLine": 66,
+        "startChar": 11,
+        "endLine": 66,
+        "endChar": 19
+      },
+      "revId": "348ba2b0d394a13b5dfc823d3972940bc18e233e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
