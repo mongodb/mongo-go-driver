@@ -45,7 +45,7 @@ func (c *CountDocuments) Encode(desc description.SelectedServer) (wiremessage.Wi
 	command = append(command, bsonx.Elem{"cursor", bsonx.Document(bsonx.Doc{})})
 	command = append(command, c.Opts...)
 
-	return (&Read{DB: c.NS.DB, ReadPref: c.ReadPref, Command: command}).Encode(desc)
+	return (&Read{DB: c.NS.DB, ReadPref: c.ReadPref, Command: command, Session: c.Session}).Encode(desc)
 }
 
 // Decode will decode the wire message using the provided server description. Errors during decoding
