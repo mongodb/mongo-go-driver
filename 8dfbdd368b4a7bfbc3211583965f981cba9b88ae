@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0eb07a92_44fcaf58",
+        "filename": "x/network/connection/keepalive_default.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-30T15:17:37Z",
+      "side": 1,
+      "message": "What do the docs say for Dialer.KeepAlive in 1.12?  Currently the docs are:\n\n        // KeepAlive specifies the keep-alive period for an active\n        // network connection.\n        // If zero, keep-alives are not enabled. Network protocols\n        // that do not support keep-alives ignore this field.\n        KeepAlive time.Duration // Go 1.3\n\nMy concern is that this will have the effect of disabling keep-alives rather than use the default duration",
+      "range": {
+        "startLine": 11,
+        "startChar": 0,
+        "endLine": 11,
+        "endChar": 5
+      },
+      "revId": "8dfbdd368b4a7bfbc3211583965f981cba9b88ae",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
