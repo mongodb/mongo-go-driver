@@ -260,6 +260,23 @@
     },
     {
       "key": {
+        "uuid": "09375778_6835a310",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-01-30T20:59:13Z",
+      "side": 1,
+      "message": "I have a separate questions about this API. I understand this is the same idea that bsoncore has for building up documents, but I\u0027m concerned that\u0027s not the expected behavior here.\n\n1. Since you are providing the number of RequiredBytes(), I\u0027d expect a user to provide a dst that has already allocated all those bytes and you simply copy into them. If we are just appending, I don\u0027t think there is any need for RequiredBytes().\n\n2. When are we going to be appending Batches to anything else? I don\u0027t see the need for appending a batch onto something else.",
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3a3dedb0_77b0387c",
         "filename": "x/network/command/count_documents.go",
         "patchSetId": 6
