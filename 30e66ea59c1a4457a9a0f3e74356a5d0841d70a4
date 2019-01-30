@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "7fd22461_05dbb799",
+        "filename": "mongo/batch_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-30T19:30:20Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "682dd5cb_89c2cc37",
+      "range": {
+        "startLine": 28,
+        "startChar": 1,
+        "endLine": 28,
+        "endChar": 6
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6744b754_c82fc736",
         "filename": "mongo/cursor.go",
         "patchSetId": 6
@@ -42,6 +66,24 @@
     },
     {
       "key": {
+        "uuid": "8b65296f_899f186d",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-30T19:30:20Z",
+      "side": 1,
+      "message": "That\u0027s a mistake, we should be appending the doc to bytes here. Also, you\u0027re right, it makes sense to just return a []byte here. The idea here is that instead of us continuously allocating new slices of bytes we allow the user to recycle a slice.\n\nWe definitely want to copy here so users don\u0027t retain something we\u0027re reusing.",
+      "parentUuid": "6744b754_c82fc736",
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "d8bac8f7_411e9793",
         "filename": "mongo/cursor_test.go",
         "patchSetId": 6
@@ -53,6 +95,30 @@
       "writtenOn": "2019-01-29T21:05:49Z",
       "side": 1,
       "message": "Will these tests be filled out before merging this patch?",
+      "range": {
+        "startLine": 1,
+        "startChar": 8,
+        "endLine": 1,
+        "endChar": 13
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d9116db2_24a41ac8",
+        "filename": "mongo/cursor_test.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-30T19:30:20Z",
+      "side": 1,
+      "message": "No, but I wanted to keep these tests here so that when we do GODRIVER-794 we cover the test cases that the previous cursor type had.",
+      "parentUuid": "d8bac8f7_411e9793",
       "range": {
         "startLine": 1,
         "startChar": 8,
@@ -88,6 +154,30 @@
     },
     {
       "key": {
+        "uuid": "68171c23_3c855f85",
+        "filename": "mongo/database.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 254,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-30T19:30:20Z",
+      "side": 1,
+      "message": "Oh, I guess it doesn\u0027t, it\u0027s just list indexes that does.",
+      "parentUuid": "934bb3eb_6262b95a",
+      "range": {
+        "startLine": 254,
+        "startChar": 10,
+        "endLine": 254,
+        "endChar": 24
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8173fe9f_474ffbd2",
         "filename": "x/mongo/driver/aggregate.go",
         "patchSetId": 6
@@ -99,6 +189,30 @@
       "writtenOn": "2019-01-29T21:05:49Z",
       "side": 1,
       "message": "Why this change? We were successfully running aggregates against server versions \u003c 3.2 before, no?",
+      "range": {
+        "startLine": 129,
+        "startChar": 4,
+        "endLine": 129,
+        "endChar": 8
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "44c7a08a_d6c2869c",
+        "filename": "x/mongo/driver/aggregate.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 129,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-30T19:30:20Z",
+      "side": 1,
+      "message": "There isn\u0027t a getMore command before 3.2 so we need to use OP_GET_MORE which requires we build a BatchCursor that does that.",
+      "parentUuid": "8173fe9f_474ffbd2",
       "range": {
         "startLine": 129,
         "startChar": 4,
@@ -128,6 +242,24 @@
     },
     {
       "key": {
+        "uuid": "f0d6cd71_87dda047",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-30T19:30:20Z",
+      "side": 1,
+      "message": "We have to do copies between API boundaries or people might accidentally hold on to slices that will be reused. At this point we don\u0027t really have a way to avoid the copies we\u0027re doing since that would require a redesign of the lower libraries in the driver. Depending on what design we wind up with for the driver library we might do something more like this:\n\n1. Read wiremessage off wire into a slice BatchCursor provides\n2. Process that wiremessage and mark where each document is in that slice of bytes\n3. Append the documents of the batch to dst in this method.\n\nAt the minimum though, we need to do a copy when we move from our API space to the caller\u0027s.",
+      "parentUuid": "03accfa9_9176b6f0",
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3a3dedb0_77b0387c",
         "filename": "x/network/command/count_documents.go",
         "patchSetId": 6
@@ -148,6 +280,30 @@
       "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3e860ebc_37c49c20",
+        "filename": "x/network/command/count_documents.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-30T19:30:20Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3a3dedb0_77b0387c",
+      "range": {
+        "startLine": 68,
+        "startChar": 6,
+        "endLine": 68,
+        "endChar": 13
+      },
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
