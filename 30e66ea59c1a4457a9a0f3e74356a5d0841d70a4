@@ -111,6 +111,23 @@
     },
     {
       "key": {
+        "uuid": "03accfa9_9176b6f0",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-30T00:09:44Z",
+      "side": 1,
+      "message": "Am I understanding correctly, that to decode a batch of documents, the driver will\n\n1. Read bytes off the wire into a slice\n2. Copy bytes into bsoncore.Document (maybe that\u0027s the same underlying array as in step 1?)\n3. Append the bytes of each document in the batch into BatchCursor.currentBatch\n4. Append the bytes from BatchCursor.CurrentBatch into dst\n\nIs there a different design that removes the need for copies 3 and 4 and, if so, is it worth exploring? My concern is that, as this is a public API, we will trouble extricating ourselves if it proves that the extra byte copying is causing performance issues for our users.",
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3a3dedb0_77b0387c",
         "filename": "x/network/command/count_documents.go",
         "patchSetId": 6
