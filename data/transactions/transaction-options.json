@@ -1159,6 +1159,7 @@
           },
           "result": {
             "deletedCount": 0,
+            "insertedCount": 1,
             "insertedIds": {
               "0": 1
             },

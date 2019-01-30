@@ -221,7 +221,7 @@ func (c *Client) TransactionStarting() bool {
 // TransactionRunning returns true if the client session has started the transaction
 // and it hasn't been committed or aborted
 func (c *Client) TransactionRunning() bool {
-	return c.state == Starting || c.state == InProgress
+	return c != nil && (c.state == Starting || c.state == InProgress)
 }
 
 // TransactionCommitted returns true of the client session just committed a transaciton.
