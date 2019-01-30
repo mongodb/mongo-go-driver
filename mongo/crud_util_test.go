@@ -87,6 +87,33 @@ func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface
 	return coll.Count(ctx, filter, opts)
 }
 
+func executeCountDocuments(sess *sessionImpl, coll *Collection, args map[string]interface{}) (int64, error) {
+	var filter map[string]interface{}
+	opts := options.Count()
+	for name, opt := range args {
+		switch name {
+		case "filter":
+			filter = opt.(map[string]interface{})
+		case "skip":
+			opts = opts.SetSkip(int64(opt.(float64)))
+		case "limit":
+			opts = opts.SetLimit(int64(opt.(float64)))
+		case "collation":
+			opts = opts.SetCollation(collationFromMap(opt.(map[string]interface{})))
+		}
+	}
+
+	if sess != nil {
+		// EXAMPLE:
+		sessCtx := sessionContext{
+			Context: context.WithValue(ctx, sessionKey{}, sess),
+			Session: sess,
+		}
+		return coll.CountDocuments(sessCtx, filter, opts)
+	}
+	return coll.CountDocuments(ctx, filter, opts)
+}
+
 func executeDistinct(sess *sessionImpl, coll *Collection, args map[string]interface{}) ([]interface{}, error) {
 	var fieldName string
 	var filter map[string]interface{}
@@ -726,6 +753,9 @@ func verifyUpdateResult(t *testing.T, res *UpdateResult, result json.RawMessage)
 }
 
 func verifyRunCommandResult(t *testing.T, res bson.Raw, result json.RawMessage) {
+	if len(result) == 0 {
+		return
+	}
 	jsonBytes, err := result.MarshalJSON()
 	require.NoError(t, err)
 

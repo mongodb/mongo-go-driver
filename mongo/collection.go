@@ -36,6 +36,10 @@ type Collection struct {
 	registry       *bsoncodec.Registry
 }
 
+func checkIfTransactionRunning(sess *session.Client) bool {
+	return sess != nil && sess.TransactionRunning()
+}
+
 func newCollection(db *Database, name string, opts ...*options.CollectionOptions) *Collection {
 	collOpt := options.MergeCollectionOptions(opts...)
 
@@ -229,7 +233,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 	oldns := coll.namespace()
@@ -302,7 +306,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
@@ -381,7 +385,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
@@ -433,7 +437,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
@@ -480,7 +484,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
@@ -593,7 +597,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
@@ -702,12 +706,10 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
-		wc = nil
-	}
-
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+
+	if checkIfTransactionRunning(sess) {
+		wc = nil
 		rc = nil
 	}
 
@@ -811,7 +813,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if checkIfTransactionRunning(sess) {
 		rc = nil
 	}
 
@@ -908,7 +910,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if checkIfTransactionRunning(sess) {
 		rc = nil
 	}
 
@@ -959,7 +961,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if checkIfTransactionRunning(sess) {
 		rc = nil
 	}
 
@@ -1011,7 +1013,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if checkIfTransactionRunning(sess) {
 		rc = nil
 	}
 
@@ -1088,7 +1090,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 
 	oldns := coll.namespace()
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
@@ -1148,7 +1150,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
@@ -1213,7 +1215,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
@@ -1273,7 +1275,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 	}
 
 	wc := coll.writeConcern
-	if sess != nil && sess.TransactionRunning() {
+	if checkIfTransactionRunning(sess) {
 		wc = nil
 	}
 
