@@ -79,6 +79,9 @@ func ObjectIDFromHex(s string) (ObjectID, error) {
 
 // MarshalJSON returns the ObjectID as a string
 func (id ObjectID) MarshalJSON() ([]byte, error) {
+	if id.IsZero() {
+		return json.Marshal(nil)
+	}
 	return json.Marshal(id.Hex())
 }
 
@@ -98,6 +101,12 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 		if err != nil {
 			return err
 		}
+
+		if res == nil {
+			*id = NilObjectID
+			return err
+		}
+
 		str, ok := res.(string)
 		if !ok {
 			m, ok := res.(map[string]interface{})
@@ -114,7 +123,11 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 			}
 		}
 
-		if len(str) != 24 {
+		n := len(str)
+		if n == 0 {
+			*id = NilObjectID
+			return err
+		} else if n != 24 {
 			return fmt.Errorf("cannot unmarshal into an ObjectID, the length must be 12 but it is %d", len(str))
 		}
 
