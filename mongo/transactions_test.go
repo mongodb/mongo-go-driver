@@ -392,6 +392,10 @@ func executeCollectionOperation(t *testing.T, op *transOperation, sess *sessionI
 		_, err := executeCount(sess, coll, op.ArgMap)
 		// no results to verify with count
 		return err
+	case "countDocuments":
+		_, err := executeCountDocuments(sess, coll, op.ArgMap)
+		// no results to verify with count
+		return err
 	case "distinct":
 		res, err := executeDistinct(sess, coll, op.ArgMap)
 		if !resultHasError(t, op.Result) {
@@ -597,6 +601,7 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bsonx
 
 			// Keys that should not be nil
 			require.NotEqual(t, actualVal.Type, bsontype.Null, "Expected %v, got nil for key: %s", elem, key)
+			require.NoError(t, actualVal.Validate())
 			if key == "lsid" {
 				if val.StringValue() == "session0" {
 					doc, err := bsonx.ReadDoc(actualVal.Document())

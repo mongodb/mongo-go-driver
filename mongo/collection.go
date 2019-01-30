@@ -707,7 +707,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if sess != nil && (sess.TransactionInProgress() || (sess.TransactionStarting() && sess.CurrentRc == nil)) {
 		rc = nil
 	}
 
@@ -811,7 +811,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if sess != nil && (sess.TransactionInProgress() || (sess.TransactionStarting() && sess.CurrentRc == nil)) {
 		rc = nil
 	}
 
@@ -908,7 +908,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if sess != nil && (sess.TransactionInProgress() || (sess.TransactionStarting() && sess.CurrentRc == nil)) {
 		rc = nil
 	}
 
@@ -959,7 +959,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	}
 
 	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
+	if sess != nil && (sess.TransactionInProgress() || (sess.TransactionStarting() && sess.CurrentRc == nil)) {
 		rc = nil
 	}
 
