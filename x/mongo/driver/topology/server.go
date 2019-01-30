@@ -435,9 +435,12 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 	}
 
 	if !set {
+		prevDesc := s.desc.Load().(description.Server)
 		desc = description.Server{
-			Addr:      s.address,
-			LastError: saved,
+			Addr:        s.address,
+			LastError:   saved,
+			Kind:        description.Unknown,
+			WireVersion: prevDesc.WireVersion,
 		}
 	}
 
