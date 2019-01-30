@@ -277,6 +277,24 @@
     },
     {
       "key": {
+        "uuid": "2f01595e_7b14e0a2",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-01-30T21:35:51Z",
+      "side": 1,
+      "message": "1. I want to avoid copying because that means we\u0027ll have to return an error. Users can use RequiredBytes to ensure that the slice has enough capacity, and then pass it to Batch and we\u0027ll append the bytes to it. It also means that users can drain and entire cursor into a slice if so desired without needing a new special API.\n\n2. I don\u0027t think there\u0027s a reason to make this API more restrictive here. We made an entire API that relied on lengths and passing in a slice that was filled in, and it became unwieldy.\n\nIf you think people will actually require explicit copy behavior (like they want to copy into the middle of a slice but not chance reallocing the end of the slice), then we can add a CopyBatch method. If we wanted to be super specific we could have Batch, AppendBatch, and CopyBatch.",
+      "parentUuid": "09375778_6835a310",
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3a3dedb0_77b0387c",
         "filename": "x/network/command/count_documents.go",
         "patchSetId": 6
