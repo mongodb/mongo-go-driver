@@ -295,6 +295,24 @@
     },
     {
       "key": {
+        "uuid": "1fe309a7_a89b7b63",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-01-31T14:36:46Z",
+      "side": 1,
+      "message": "This thread is getting pretty complicated, and is more about the design than the implementation.  I think we should discuss in person.",
+      "parentUuid": "2f01595e_7b14e0a2",
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3a3dedb0_77b0387c",
         "filename": "x/network/command/count_documents.go",
         "patchSetId": 6
