@@ -31,6 +31,20 @@ func requireCursorLength(t *testing.T, cursor mongo.Cursor, length int) {
 	require.Equal(t, i, length)
 }
 
+func stringSliceEquals(s1 []string, s2 []string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 func containsKey(doc bsonx.Doc, key ...string) bool {
 	_, err := doc.LookupErr(key...)
 	if err != nil {
@@ -39,7 +53,6 @@ func containsKey(doc bsonx.Doc, key ...string) bool {
 	return true
 }
 
-// InsertExamples contains examples for insert operations.
 func InsertExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
@@ -131,7 +144,6 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 	}
 }
 
-// QueryToplevelFieldsExamples contains examples for querying top-level fields.
 func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
@@ -302,7 +314,6 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 }
 
-// QueryEmbeddedDocumentsExamples contains examples for querying embedded document fields.
 func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
@@ -466,7 +477,6 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 }
 
-// QueryArraysExamples contains examples for querying array fields.
 func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
@@ -655,7 +665,6 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 }
 
-// QueryArrayEmbeddedDocumentsExamples contains examples for querying fields with arrays and embedded documents.
 func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
@@ -887,7 +896,6 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	}
 }
 
-// QueryNullMissingFieldsExamples contains examples for querying fields that are null or missing.
 func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
@@ -968,7 +976,6 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 	}
 }
 
-// ProjectionExamples contains examples for specifying projections in find operations.
 func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
@@ -1108,7 +1115,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1145,7 +1152,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			require.False(t, containsKey(doc, "_id"))
@@ -1181,7 +1188,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1218,7 +1225,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1227,7 +1234,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			require.True(t, containsKey(doc, "size"))
 			require.False(t, containsKey(doc, "instock"))
 
-			require.True(t, containsKey(doc, "size", "uom"))
+			require.True(t, containsKey(doc, "uom", "size"))
 			require.False(t, containsKey(doc, "h", "size"))
 			require.False(t, containsKey(doc, "w", "size"))
 
@@ -1258,7 +1265,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1268,8 +1275,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			require.True(t, containsKey(doc, "instock"))
 
 			require.False(t, containsKey(doc, "uom", "size"))
-			require.True(t, containsKey(doc, "size", "h"))
-			require.True(t, containsKey(doc, "size", "w"))
+			require.True(t, containsKey(doc, "h", "size"))
+			require.True(t, containsKey(doc, "w", "size"))
 
 		}
 
@@ -1300,7 +1307,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1353,7 +1360,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1371,7 +1378,6 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	}
 }
 
-// UpdateExamples contains examples of update operations.
 func UpdateExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
@@ -1531,7 +1537,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			uom, err := doc.LookupErr("size", "uom")
@@ -1588,7 +1594,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			uom, err := doc.LookupErr("size", "uom")
@@ -1645,7 +1651,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
 			doc = doc[:0]
-			err := cursor.Decode(&doc)
+			err := cursor.Decode(doc)
 			require.NoError(t, err)
 
 			require.True(t, containsKey(doc, "_id"))
@@ -1663,7 +1669,6 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 }
 
-// DeleteExamples contains examples of delete operations.
 func DeleteExamples(t *testing.T, db *mongo.Database) {
 	err := db.RunCommand(
 		context.Background(),
