@@ -7,4 +7,4 @@
 package version
 
 // Driver is the current version of the driver.
-var Driver = "v0.3.0"
+var Driver = "v1.0.0-rc1+prerelease"
