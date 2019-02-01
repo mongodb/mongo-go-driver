@@ -313,6 +313,24 @@
     },
     {
       "key": {
+        "uuid": "48e99c7f_b0a078c8",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 175,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-02-01T00:08:41Z",
+      "side": 1,
+      "message": "So, event if we get this down to 2 copies, it seems 1 more than necessary. An alternative look at this could be as follows: \n\n1. Read wiremessage off wire into a slice BatchCursor provides\n2. Process that wiremessage and mark where each document is in that slice of bytes\n3. return those slices of bytes as a []bsoncore.Document.\n\n(3) is obviously the difference, so the big question is why we care if the user changes these bytes? I don\u0027t believe we need them any longer in the current design.\n\nI can think of only 1 reason, which you may have alluded to: there is going to be a []byte Pool used for wire messages. If that\u0027s the case, the 2nd copy is required so that we can return the wiremessage bytes back to the pool.\n\nAnother way would be to require the caller to provide a byte slice, already allocated, that we copy the wiremessage into. In that case, we can still return []bsoncore.Document, which are pointing at byte slices in the wiremessage slice they provided us to use and it\u0027s their job to recycle that. Still only 1 copy here.\n\nThoughts?",
+      "parentUuid": "f0d6cd71_87dda047",
+      "revId": "30e66ea59c1a4457a9a0f3e74356a5d0841d70a4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3a3dedb0_77b0387c",
         "filename": "x/network/command/count_documents.go",
         "patchSetId": 6
