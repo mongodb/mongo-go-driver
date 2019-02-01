@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
@@ -59,9 +58,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 		if err != nil {
 			return err
 		}
-		var r bson.Raw
-		r = cursor.DecodeBytes()
-		if len(r) == 0 {
+		if len(cursor.Current) == 0 {
 			return errors.New("error retrieving document")
 		}
 
