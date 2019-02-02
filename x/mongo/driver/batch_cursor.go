@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
@@ -25,7 +24,7 @@ type BatchCursor struct {
 	err           error
 	server        *topology.Server
 	opts          []bsonx.Elem
-	currentBatch  []byte
+	currentBatch  *bsoncore.DocumentSequence
 	firstBatch    bool
 	batchNumber   int
 
@@ -55,6 +54,7 @@ func NewBatchCursor(result bsoncore.Document, clientSession *session.Client, clo
 		server:        server,
 		opts:          opts,
 		firstBatch:    true,
+		currentBatch:  new(bsoncore.DocumentSequence),
 	}
 
 	var ok bool
@@ -65,17 +65,8 @@ func NewBatchCursor(result bsoncore.Document, clientSession *session.Client, clo
 			if !ok {
 				return nil, fmt.Errorf("firstBatch should be an array but it is a BSON %s", elem.Value().Type)
 			}
-			vals, err := arr.Values()
-			if err != nil {
-				return nil, err
-			}
-
-			for _, val := range vals {
-				if val.Type != bsontype.EmbeddedDocument {
-					return nil, fmt.Errorf("element of cursor batch is not a document, but at %s", val.Type)
-				}
-				bc.currentBatch = append(bc.currentBatch, val.Data...)
-			}
+			bc.currentBatch.Style = bsoncore.ArrayStyle
+			bc.currentBatch.Data = arr
 		case "ns":
 			if elem.Value().Type != bson.TypeString {
 				return nil, fmt.Errorf("namespace should be a string but it is a BSON %s", elem.Value().Type)
@@ -103,7 +94,7 @@ func NewBatchCursor(result bsoncore.Document, clientSession *session.Client, clo
 
 // NewEmptyBatchCursor returns a batch cursor that is empty.
 func NewEmptyBatchCursor() *BatchCursor {
-	return &BatchCursor{}
+	return &BatchCursor{currentBatch: new(bsoncore.DocumentSequence)}
 }
 
 // NewLegacyBatchCursor creates a new BatchCursor for server versions 3.0 and below from the
@@ -111,26 +102,30 @@ func NewEmptyBatchCursor() *BatchCursor {
 //
 // TODO(GODRIVER-617): The batch parameter here should be []bsoncore.Document. Change it to this
 // once we have the new wiremessage package that uses bsoncore instead of bson.
-func NewLegacyBatchCursor(ns command.Namespace, cursorID int64, batch []bson.Raw, limit int32, batchSize int32, server *topology.Server) (*BatchCursor, error) {
+func NewLegacyBatchCursor(ns command.Namespace, cursorID int64, ds *bsoncore.DocumentSequence, limit int32, batchSize int32, server *topology.Server) (*BatchCursor, error) {
+	dsCount := ds.DocumentCount()
 	bc := &BatchCursor{
 		id:          cursorID,
 		server:      server,
 		namespace:   ns,
 		limit:       limit,
 		batchSize:   batchSize,
-		numReturned: int32(len(batch)),
+		numReturned: int32(dsCount),
 		firstBatch:  true,
 	}
 
 	// take as many documents from the batch as needed
-	firstBatchSize := int32(len(batch))
-	if limit != 0 && limit < firstBatchSize {
-		firstBatchSize = limit
+	if limit != 0 && limit < int32(dsCount) {
+		for i := int32(0); i < limit; i++ {
+			_, err := ds.Next()
+			if err != nil {
+				return nil, err
+			}
+		}
+		ds.Data = ds.Data[:ds.Pos]
+		ds.ResetIterator()
 	}
-	batch = batch[:firstBatchSize]
-	for _, doc := range batch {
-		bc.currentBatch = append(bc.currentBatch, doc...)
-	}
+	bc.currentBatch = ds
 
 	return bc, nil
 }
@@ -165,17 +160,19 @@ func (bc *BatchCursor) Next(ctx context.Context) bool {
 		bc.getMore(ctx)
 	}
 
-	return len(bc.currentBatch) > 0
+	switch bc.currentBatch.Style {
+	case bsoncore.SequenceStyle:
+		return len(bc.currentBatch.Data) > 0
+	case bsoncore.ArrayStyle:
+		return len(bc.currentBatch.Data) > 5
+	default:
+		return false
+	}
 }
 
-// Batch will append the current batch of documents to dst. RequiredBytes can be called to determine
-// the length of the current batch of documents.
-//
-// If there is no batch available, this method does nothing.
-func (bc *BatchCursor) Batch(dst []byte) []byte { return append(dst, bc.currentBatch...) }
-
-// RequiredBytes returns the number of bytes required for the current batch.
-func (bc *BatchCursor) RequiredBytes() int { return len(bc.currentBatch) }
+// Batch will return a DocumentSequence for the current batch of documents. The returned
+// DocumentSequence is only valid until the next call to Next or Close.
+func (bc *BatchCursor) Batch() *bsoncore.DocumentSequence { return bc.currentBatch }
 
 // Err returns the latest error encountered.
 func (bc *BatchCursor) Err() error { return bc.err }
@@ -211,6 +208,10 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 	}
 
 	bc.id = 0
+	bc.currentBatch.Data = nil
+	bc.currentBatch.Style = 0
+	bc.currentBatch.ResetIterator()
+
 	return conn.Close()
 }
 
@@ -221,7 +222,7 @@ func (bc *BatchCursor) closeImplicitSession() {
 }
 
 func (bc *BatchCursor) clearBatch() {
-	bc.currentBatch = bc.currentBatch[:0]
+	bc.currentBatch.Data = bc.currentBatch.Data[:0]
 }
 
 func (bc *BatchCursor) getMore(ctx context.Context) {
@@ -283,20 +284,9 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		bc.err = fmt.Errorf("BSON Type %s is not %s", batch.Type, bson.TypeArray)
 		return
 	}
-	vals, err := arr.Values()
-	if err != nil {
-		bc.err = err
-		return
-	}
-
-	for _, val := range vals {
-		if val.Type != bsontype.EmbeddedDocument {
-			bc.err = fmt.Errorf("element of cursor batch is not a document, but at %s", val.Type)
-			bc.currentBatch = bc.currentBatch[:0] // don't return a batch on error
-			return
-		}
-		bc.currentBatch = append(bc.currentBatch, val.Value...)
-	}
+	bc.currentBatch.Style = bsoncore.ArrayStyle
+	bc.currentBatch.Data = arr
+	bc.currentBatch.ResetIterator()
 
 	return
 }
@@ -398,9 +388,13 @@ func (bc *BatchCursor) legacyGetMore(ctx context.Context) {
 		}
 	}
 
+	// TODO(GODRIVER-617): When the wiremessage package is updated, we should ensure we can get all
+	// of the documents as a single slice instead of having to reslice.
+	bc.currentBatch.Style = bsoncore.SequenceStyle
 	for _, doc := range reply.Documents {
-		bc.currentBatch = append(bc.currentBatch, doc...)
+		bc.currentBatch.Data = append(bc.currentBatch.Data, doc...)
 	}
+	bc.currentBatch.ResetIterator()
 }
 
 func validateGetMoreReply(reply wiremessage.Reply) error {

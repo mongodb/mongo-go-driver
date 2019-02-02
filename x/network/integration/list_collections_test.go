@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"io"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
@@ -112,14 +113,14 @@ func TestCommandListCollections(t *testing.T) {
 		names := map[string]bool{}
 
 		for cursor.Next(context.Background()) {
-			docs := cursor.Batch(nil)
+			docs := cursor.Batch()
 			var next bsoncore.Document
-			var ok bool
 			for {
-				next, docs, ok = bsoncore.ReadDocument(docs)
-				if !ok {
+				next, err = docs.Next()
+				if err == io.EOF {
 					break
 				}
+				noerr(t, err)
 
 				val, err := next.LookupErr("name")
 				noerr(t, err)
