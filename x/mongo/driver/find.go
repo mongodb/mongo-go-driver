@@ -272,7 +272,15 @@ func legacyFind(
 		cursorBatchSize = int32(*query.BatchSize)
 	}
 
-	return NewLegacyBatchCursor(cmd.NS, reply.CursorID, reply.Documents, cursorLimit, cursorBatchSize, ss.Server)
+	// TODO(GODRIVER-617): When the wiremessage package is updated, we should ensure we can get all
+	// of the documents as a single slice instead of having to reslice.
+	ds := new(bsoncore.DocumentSequence)
+	ds.Style = bsoncore.SequenceStyle
+	for _, doc := range reply.Documents {
+		ds.Data = append(ds.Data, doc...)
+	}
+
+	return NewLegacyBatchCursor(cmd.NS, reply.CursorID, ds, cursorLimit, cursorBatchSize, ss.Server)
 }
 
 func createLegacyOptionsDoc(fo *options.FindOptions, registry *bsoncodec.Registry) (bsonx.Doc, error) {

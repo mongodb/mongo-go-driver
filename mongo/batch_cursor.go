@@ -2,6 +2,8 @@ package mongo
 
 import (
 	"context"
+
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // batchCursor is the interface implemented by types that can provide batches of document results.
@@ -13,14 +15,9 @@ type batchCursor interface {
 	// Next returns true if there is a batch available.
 	Next(context.Context) bool
 
-	// Batch appends the current batch of documents to dst. RequiredBytes can be used to determine
-	// the length of the current batch of documents.
-	//
-	// If there is no batch available, this method should do nothing.
-	Batch(dst []byte) []byte
-
-	// RequiredBytes returns the number of bytes required fo rthe current batch.
-	RequiredBytes() int
+	// Batch will return a DocumentSequence for the current batch of documents. The returned
+	// DocumentSequence is only valid until the next call to Next or Close.
+	Batch() *bsoncore.DocumentSequence
 
 	// Err returns the last error encountered.
 	Err() error

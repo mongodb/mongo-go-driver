@@ -12,7 +12,6 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
@@ -145,7 +144,7 @@ func buildLegacyCommandBatchCursor(rdr bson.Raw, batchSize int32, server *topolo
 // get the firstBatch, cursor ID, and namespace from a bson.Raw
 //
 // TODO(GODRIVER-617): Change the documents return value into []bsoncore.Document.
-func getCursorValues(result bson.Raw) ([]bson.Raw, command.Namespace, int64, error) {
+func getCursorValues(result bson.Raw) (*bsoncore.DocumentSequence, command.Namespace, int64, error) {
 	cur, err := result.LookupErr("cursor")
 	if err != nil {
 		return nil, command.Namespace{}, 0, err
@@ -160,9 +159,9 @@ func getCursorValues(result bson.Raw) ([]bson.Raw, command.Namespace, int64, err
 	}
 
 	var ok bool
-	var batch []bson.Raw
 	var namespace command.Namespace
 	var cursorID int64
+	batch := new(bsoncore.DocumentSequence)
 
 	for _, elem := range elems {
 		switch elem.Key() {
@@ -171,21 +170,9 @@ func getCursorValues(result bson.Raw) ([]bson.Raw, command.Namespace, int64, err
 			if !ok {
 				return nil, command.Namespace{}, 0, fmt.Errorf("firstBatch should be an array but it is a BSON %s", elem.Value().Type)
 			}
-			if err != nil {
-				return nil, command.Namespace{}, 0, err
-			}
 
-			vals, err := arr.Values()
-			if err != nil {
-				return nil, command.Namespace{}, 0, err
-			}
-
-			for _, val := range vals {
-				if val.Type != bsontype.EmbeddedDocument {
-					return nil, command.Namespace{}, 0, fmt.Errorf("element of cursor batch is not a document, but at %s", val.Type)
-				}
-				batch = append(batch, val.Value)
-			}
+			batch.Style = bsoncore.ArrayStyle
+			batch.Data = arr
 		case "ns":
 			if elem.Value().Type != bson.TypeString {
 				return nil, command.Namespace{}, 0, fmt.Errorf("namespace should be a string but it is a BSON %s", elem.Value().Type)
