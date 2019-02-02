@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"errors"
+	"io"
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
@@ -13,7 +14,7 @@ import (
 type ListCollectionsBatchCursor struct {
 	legacy       bool
 	bc           *BatchCursor
-	currentBatch []byte
+	currentBatch *bsoncore.DocumentSequence
 	err          error
 }
 
@@ -22,7 +23,7 @@ func NewListCollectionsBatchCursor(bc *BatchCursor) (*ListCollectionsBatchCursor
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
 	}
-	return &ListCollectionsBatchCursor{bc: bc}, nil
+	return &ListCollectionsBatchCursor{bc: bc, currentBatch: new(bsoncore.DocumentSequence)}, nil
 }
 
 // NewLegacyListCollectionsBatchCursor creates a new legacy ListCollectionsCursor.
@@ -30,7 +31,7 @@ func NewLegacyListCollectionsBatchCursor(bc *BatchCursor) (*ListCollectionsBatch
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
 	}
-	return &ListCollectionsBatchCursor{legacy: true, bc: bc}, nil
+	return &ListCollectionsBatchCursor{legacy: true, bc: bc, currentBatch: new(bsoncore.DocumentSequence)}, nil
 }
 
 // ID returns the cursor ID for this batch cursor.
@@ -49,40 +50,38 @@ func (lcbc *ListCollectionsBatchCursor) Next(ctx context.Context) bool {
 	}
 
 	if !lcbc.legacy {
-		lcbc.currentBatch = lcbc.bc.currentBatch
+		lcbc.currentBatch.Style = lcbc.bc.currentBatch.Style
+		lcbc.currentBatch.Data = lcbc.bc.currentBatch.Data
+		lcbc.currentBatch.ResetIterator()
 		return true
 	}
 
-	batch := lcbc.bc.currentBatch
-	lcbc.currentBatch = lcbc.currentBatch[:0]
-	var doc bsoncore.Document
-	var ok bool
-	for {
-		doc, batch, ok = bsoncore.ReadDocument(batch)
-		if !ok {
-			break
-		}
+	lcbc.currentBatch.Style = bsoncore.SequenceStyle
+	lcbc.currentBatch.Data = lcbc.currentBatch.Data[:0]
 
+	var doc bsoncore.Document
+	for {
+		doc, lcbc.err = lcbc.bc.currentBatch.Next()
+		if lcbc.err != nil {
+			if lcbc.err == io.EOF {
+				lcbc.err = nil
+				break
+			}
+			return false
+		}
 		doc, lcbc.err = lcbc.projectNameElement(doc)
 		if lcbc.err != nil {
 			return false
 		}
-		lcbc.currentBatch = append(lcbc.currentBatch, doc...)
+		lcbc.currentBatch.Data = append(lcbc.currentBatch.Data, doc...)
 	}
 
 	return true
 }
 
-// Batch will append the current batch of documents to dst. RequiredBytes can be called to determine
-// the length of the current batch of documents.
-//
-// If there is no batch available, this method does nothing.
-func (lcbc *ListCollectionsBatchCursor) Batch(dst []byte) []byte {
-	return append(dst, lcbc.currentBatch...)
-}
-
-// RequiredBytes returns the number of bytes required for the current batch.
-func (lcbc *ListCollectionsBatchCursor) RequiredBytes() int { return len(lcbc.currentBatch) }
+// Batch will return a DocumentSequence for the current batch of documents. The returned
+// DocumentSequence is only valid until the next call to Next or Close.
+func (lcbc *ListCollectionsBatchCursor) Batch() *bsoncore.DocumentSequence { return lcbc.currentBatch }
 
 // Err returns the latest error encountered.
 func (lcbc *ListCollectionsBatchCursor) Err() error {
