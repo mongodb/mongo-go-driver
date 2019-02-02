@@ -9,9 +9,11 @@ package mongo
 import (
 	"context"
 	"errors"
+	"io"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 )
 
@@ -45,7 +47,7 @@ type Cursor struct {
 
 	bc       batchCursor
 	pos      int
-	batch    []byte
+	batch    *bsoncore.DocumentSequence
 	registry *bsoncodec.Registry
 
 	err error
@@ -58,7 +60,7 @@ func newCursor(bc batchCursor, registry *bsoncodec.Registry) (*Cursor, error) {
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
 	}
-	return &Cursor{bc: bc, pos: 0, batch: make([]byte, 0, 256), registry: registry}, nil
+	return &Cursor{bc: bc, registry: registry}, nil
 }
 
 func newEmptyCursor() *Cursor {
@@ -68,42 +70,26 @@ func newEmptyCursor() *Cursor {
 // ID returns the ID of this cursor.
 func (c *Cursor) ID() int64 { return c.bc.ID() }
 
-func (c *Cursor) advanceCurrentDocument() bool {
-	if len(c.batch[c.pos:]) < 4 {
-		c.err = errors.New("could not read next document: insufficient bytes")
-		return false
-	}
-	length := (int(c.batch[c.pos]) | int(c.batch[c.pos+1])<<8 | int(c.batch[c.pos+2])<<16 | int(c.batch[c.pos+3])<<24)
-	if len(c.batch[c.pos:]) < length {
-		c.err = errors.New("could not read next document: insufficient bytes")
-		return false
-	}
-	if len(c.Current) > 4 {
-		c.Current[0], c.Current[1], c.Current[2], c.Current[3] = 0x00, 0x00, 0x00, 0x00 // Invalidate the current document
-	}
-	c.Current = c.batch[c.pos : c.pos+length]
-	c.pos += length
-	return true
-}
-
 // Next gets the next result from this cursor. Returns true if there were no errors and the next
 // result is available for decoding.
 func (c *Cursor) Next(ctx context.Context) bool {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if c.pos < len(c.batch) {
-		return c.advanceCurrentDocument()
+	doc, err := c.batch.Next()
+	switch err {
+	case nil:
+		c.Current = bson.Raw(doc)
+		return true
+	case io.EOF: // Need to do a getMore
+	default:
+		c.err = err
+		return false
 	}
-
-	// clear the batch
-	c.batch = c.batch[:0]
-	c.pos = 0
-	c.Current = c.Current[:0]
 
 	// call the Next method in a loop until at least one document is returned in the next batch or
 	// the context times out.
-	for len(c.batch) == 0 {
+	for {
 		// If we don't have a next batch
 		if !c.bc.Next(ctx) {
 			// Do we have an error? If so we return false.
@@ -119,10 +105,15 @@ func (c *Cursor) Next(ctx context.Context) bool {
 			continue
 		}
 
-		c.batch = c.bc.Batch(c.batch[:0])
+		c.batch = c.bc.Batch()
+		doc, c.err = c.batch.Next()
+		if c.err == nil {
+			c.Current = bson.Raw(doc)
+			break
+		}
 	}
 
-	return c.advanceCurrentDocument()
+	return true
 }
 
 // Decode will decode the current document into val.

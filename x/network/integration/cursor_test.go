@@ -17,6 +17,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
@@ -66,11 +67,12 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	assert.True(t, cursor.Next(context.Background()), "Cursor should have a next result")
 
 	// make sure it's the right document
-	var next bson.Raw
-	next = cursor.Batch(next)
+	var next bsoncore.Document
+	next, err = cursor.Batch().Next()
+	noerr(t, err)
 
-	if !bytes.Equal(next[:len(rdr)], rdr) {
-		t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next[:len(rdr)]), bson.Raw(rdr))
+	if !bytes.Equal(next, rdr) {
+		t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next), bson.Raw(rdr))
 	}
 
 	// insert another document in 500 MS
@@ -95,9 +97,10 @@ func TestTailableCursorLoopsUntilDocsAvailable(t *testing.T) {
 	noerr(t, cursor.Err())
 
 	// make sure it's the right document the second time
-	next = cursor.Batch(next[:0])
+	next, err = cursor.Batch().Next()
+	noerr(t, err)
 
-	if !bytes.Equal(next[:len(rdr)], rdr) {
-		t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next[:len(rdr)]), bson.Raw(rdr))
+	if !bytes.Equal(next, rdr) {
+		t.Errorf("Did not get expected document. got %v; want %v", bson.Raw(next), bson.Raw(rdr))
 	}
 }
