@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "b0bd3ce6_6dd96c8d",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-04T19:31:15Z",
+      "side": 1,
+      "message": "Is io.EOF the only error that c.batch.Next() can return?  In the switch statement on lines 81-88 we check for io.EOF as well, but return false if it\u0027s any other non-nil error.",
+      "parentUuid": "6cbeeafe_6f302491",
+      "range": {
+        "startLine": 110,
+        "startChar": 1,
+        "endLine": 110,
+        "endChar": 2
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bffda4a1_e25c14f4",
         "filename": "x/bsonx/bsoncore/document_sequence.go",
         "patchSetId": 1
@@ -172,6 +196,24 @@
       "side": 1,
       "message": "This method was explicitly asked for by Craig, also this seems like the most obvious way someone directly consuming a batch cursor from the driver package would likely use this type.",
       "parentUuid": "f3178c64_5bcef804",
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5ceb8bd6_07694e9f",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-04T19:31:15Z",
+      "side": 1,
+      "message": "I thought the way we wanted people to use the type was with the Next() method.  @Craig, thoughts?",
+      "parentUuid": "c3057442_25655177",
       "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
