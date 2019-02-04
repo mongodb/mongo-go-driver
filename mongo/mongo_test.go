@@ -131,6 +131,22 @@ func TestTransformAndEnsureID(t *testing.T) {
 			t.Errorf("Returned documents differ: (-got +want)\n%s", diff)
 		}
 	})
+	t.Run("existing _id should not overwrite a first binary field", func(t *testing.T) {
+		doc := bson.D{{"bin", []byte{0, 0, 0}}, {"_id", "LongEnoughIdentifier"}}
+		want := bsonx.Doc{
+			{"_id", bsonx.String("LongEnoughIdentifier")},
+			{"bin", bsonx.Binary(0x00, []byte{0x00, 0x00, 0x00})},
+		}
+		got, id, err := transformAndEnsureID(bson.DefaultRegistry, doc)
+		noerr(t, err)
+		_, ok := id.(string)
+		if !ok {
+			t.Fatalf("Expected returned id to be a %T, but was %T", string(0), id)
+		}
+		if diff := cmp.Diff(got, want, cmp.AllowUnexported(bsonx.Elem{}, bsonx.Val{})); diff != "" {
+			t.Errorf("Returned documents differ: (-got +want)\n%s", diff)
+		}
+	})
 }
 
 func TestTransformAggregatePipeline(t *testing.T) {
