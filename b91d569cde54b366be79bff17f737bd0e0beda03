@@ -167,6 +167,30 @@
     },
     {
       "key": {
+        "uuid": "2cf12e9e_2105e705",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-02-04T20:26:25Z",
+      "side": 1,
+      "message": "Aren\u0027t there already helpers for resetting the state (ResetIterator)? I\u0027m not sure who would actually use Style here unless they were intending on consuming Data directly, at which point they are doing what we are doing for them. I think you\u0027d be pretty safe not exposing any of these.",
+      "parentUuid": "52b97aad_1a754066",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f3178c64_5bcef804",
         "filename": "x/bsonx/bsoncore/document_sequence.go",
         "patchSetId": 1
@@ -214,6 +238,24 @@
       "side": 1,
       "message": "I thought the way we wanted people to use the type was with the Next() method.  @Craig, thoughts?",
       "parentUuid": "c3057442_25655177",
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ee83bdc3_e1662ac2",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-02-04T20:26:25Z",
+      "side": 1,
+      "message": "I did indicate this would be nice. I think that \u0027twas on the actual cursor. If we have this and a way to iterate through here using Next(), that should be sufficient. We can always add this later if necessary.",
+      "parentUuid": "5ceb8bd6_07694e9f",
       "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
