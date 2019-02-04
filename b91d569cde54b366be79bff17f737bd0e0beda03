@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "079de84b_1de9778e",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-04T16:07:07Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8b16b6a6_47ef37a2",
+      "range": {
+        "startLine": 49,
+        "startChar": 0,
+        "endLine": 49,
+        "endChar": 1
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da20c2da_68691dc8",
         "filename": "mongo/cursor.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2019-02-04T14:30:33Z",
       "side": 1,
       "message": "I think this should return false if c.err !\u003d null, becure calling c.bc.Next again.",
+      "range": {
+        "startLine": 110,
+        "startChar": 1,
+        "endLine": 110,
+        "endChar": 2
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6cbeeafe_6f302491",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-04T16:07:07Z",
+      "side": 1,
+      "message": "The error here is io.EOF which means we got an empty batch. Unless you want to return an error if the server sends us back garbage. I don\u0027t disagree with that, I just want to make sure that\u0027s what you meant by returning false here.",
+      "parentUuid": "da20c2da_68691dc8",
       "range": {
         "startLine": 110,
         "startChar": 1,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "52b97aad_1a754066",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-04T16:07:07Z",
+      "side": 1,
+      "message": "This is exposed because it makes the type much easier to work with. Otherwise we\u0027d have to add helpers for resetting the state which would essentially be these fields as methods, which makes things more complicated. Also, since OP_MSG supports SequenceStyle we wouldn\u0027t get rid of it (and just because the server doesn\u0027t support it doesn\u0027t mean that server implementations won\u0027t support it, e.g. atlastproxy, house, etc...).",
+      "parentUuid": "bffda4a1_e25c14f4",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f3178c64_5bcef804",
         "filename": "x/bsonx/bsoncore/document_sequence.go",
         "patchSetId": 1
@@ -82,6 +154,24 @@
       "writtenOn": "2019-02-04T14:30:33Z",
       "side": 1,
       "message": "Delete unused method",
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c3057442_25655177",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-04T16:07:07Z",
+      "side": 1,
+      "message": "This method was explicitly asked for by Craig, also this seems like the most obvious way someone directly consuming a batch cursor from the driver package would likely use this type.",
+      "parentUuid": "f3178c64_5bcef804",
       "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
