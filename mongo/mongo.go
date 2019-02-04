@@ -117,7 +117,8 @@ func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsonx.
 		d[0] = idElem
 	}
 
-	t, data, err := idElem.Value.MarshalAppendBSONValue(buf[:0])
+	idBuf := make([]byte, 0, 256)
+	t, data, err := idElem.Value.MarshalAppendBSONValue(idBuf[:0])
 	if err != nil {
 		return nil, nil, err
 	}
