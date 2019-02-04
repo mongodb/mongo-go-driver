@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8b16b6a6_47ef37a2",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-04T14:30:33Z",
+      "side": 1,
+      "message": "no longer used",
+      "range": {
+        "startLine": 49,
+        "startChar": 0,
+        "endLine": 49,
+        "endChar": 1
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "da20c2da_68691dc8",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 110,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-04T14:30:33Z",
+      "side": 1,
+      "message": "I think this should return false if c.err !\u003d null, becure calling c.bc.Next again.",
+      "range": {
+        "startLine": 110,
+        "startChar": 1,
+        "endLine": 110,
+        "endChar": 2
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bffda4a1_e25c14f4",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-04T14:30:33Z",
+      "side": 1,
+      "message": "Why expose the innards of this struct when its methods provide a nice abstraction?  Especially as when we eventually drop 3.0 support we can get rid of the Style altogether.",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f3178c64_5bcef804",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-04T14:30:33Z",
+      "side": 1,
+      "message": "Delete unused method",
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
