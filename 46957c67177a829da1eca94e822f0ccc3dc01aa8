@@ -62,6 +62,30 @@
       "revId": "46957c67177a829da1eca94e822f0ccc3dc01aa8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "58aa3d78_65d53604",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 710,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-05T18:58:15Z",
+      "side": 1,
+      "message": "From reading the spec it looks like if a transaction is starting or running that we shouldn\u0027t inherit the read concern from the collection: \"The readConcern MUST NOT be inherited from the collection, database, or client associated with the driver method that invokes the first command.\"\n\nSo should this be:\n\n    if sess !\u003d nil \u0026\u0026 sess.TransactionRunning() {\n        rc \u003d nil\n    }",
+      "parentUuid": "271cc444_69364210",
+      "range": {
+        "startLine": 710,
+        "startChar": 0,
+        "endLine": 710,
+        "endChar": 1
+      },
+      "revId": "46957c67177a829da1eca94e822f0ccc3dc01aa8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
