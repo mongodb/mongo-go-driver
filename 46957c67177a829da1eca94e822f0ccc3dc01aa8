@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "127a6ed0_69427b95",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 706,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-05T20:45:55Z",
+      "side": 1,
+      "message": "No",
+      "parentUuid": "e6d9f27e_72948d27",
+      "revId": "46957c67177a829da1eca94e822f0ccc3dc01aa8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "271cc444_69364210",
         "filename": "mongo/collection.go",
         "patchSetId": 3
@@ -86,6 +104,54 @@
       "revId": "46957c67177a829da1eca94e822f0ccc3dc01aa8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "58ecea95_dbf9b66d",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 710,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-05T20:45:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4ea64d6e_62dcca91",
+      "range": {
+        "startLine": 710,
+        "startChar": 4,
+        "endLine": 710,
+        "endChar": 105
+      },
+      "revId": "46957c67177a829da1eca94e822f0ccc3dc01aa8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d29029a6_c490a4b4",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 710,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-05T20:45:55Z",
+      "side": 1,
+      "message": "Done. The txn read concern is applied in addReadConcern in command/command.go",
+      "parentUuid": "58aa3d78_65d53604",
+      "range": {
+        "startLine": 710,
+        "startChar": 0,
+        "endLine": 710,
+        "endChar": 1
+      },
+      "revId": "46957c67177a829da1eca94e822f0ccc3dc01aa8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
