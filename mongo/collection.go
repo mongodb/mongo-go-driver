@@ -738,54 +738,6 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	return cursor, replaceTopologyErr(err)
 }
 
-// Count gets the number of documents matching the filter.
-func (coll *Collection) Count(ctx context.Context, filter interface{},
-	opts ...*options.CountOptions) (int64, error) {
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	f, err := transformDocument(coll.registry, filter)
-	if err != nil {
-		return 0, err
-	}
-
-	sess := sessionFromContext(ctx)
-
-	err = coll.client.ValidSession(sess)
-	if err != nil {
-		return 0, err
-	}
-
-	rc := coll.readConcern
-	if sess != nil && (sess.TransactionInProgress()) {
-		rc = nil
-	}
-
-	oldns := coll.namespace()
-	cmd := command.Count{
-		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:       f,
-		ReadPref:    coll.readPreference,
-		ReadConcern: rc,
-		Session:     sess,
-		Clock:       coll.client.clock,
-	}
-
-	count, err := driver.Count(
-		ctx, cmd,
-		coll.client.topology,
-		coll.readSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.registry,
-		opts...,
-	)
-
-	return count, replaceTopologyErr(err)
-}
-
 // CountDocuments gets the number of documents matching the filter.
 func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	opts ...*options.CountOptions) (int64, error) {
