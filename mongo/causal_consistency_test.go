@@ -82,7 +82,7 @@ func createReadFuncMap(t *testing.T, dbName string, collName string) (*Client, *
 
 	functions := []CollFunction{
 		{"Aggregate", coll, nil, func(mctx SessionContext) error { _, err := coll.Aggregate(mctx, emptyArr); return err }},
-		{"Count", coll, nil, func(mctx SessionContext) error { _, err := coll.Count(mctx, emptyDoc); return err }},
+		{"EstimatedDocumentCount", coll, nil, func(mctx SessionContext) error { _, err := coll.EstimatedDocumentCount(mctx); return err }},
 		{"Distinct", coll, nil, func(mctx SessionContext) error { _, err := coll.Distinct(mctx, "field", emptyDoc); return err }},
 		{"Find", coll, nil, func(mctx SessionContext) error { _, err := coll.Find(mctx, emptyDoc); return err }},
 		{"FindOne", coll, nil, func(mctx SessionContext) error { res := coll.FindOne(mctx, emptyDoc); return res.err }},

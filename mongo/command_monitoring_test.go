@@ -182,7 +182,7 @@ func runCmTestFile(t *testing.T, filepath string) {
 			case "updateMany":
 				cmUpdateManyTest(t, testDoc, operationDoc, coll)
 			case "count":
-				cmCountTest(t, testDoc, operationDoc, coll)
+				// count has been deprecated
 			case "bulkWrite":
 				cmBulkWriteTest(t, testDoc, operationDoc, coll)
 			}
@@ -801,20 +801,6 @@ func cmUpdateManyTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, col
 	args := operation.Lookup("arguments").Document()
 	filter, update, opts := getUpdateParams(args)
 	_, _ = coll.UpdateMany(context.Background(), filter, update, opts...)
-	compareExpectations(t, testCase)
-}
-
-func cmCountTest(t *testing.T, testCase bsonx.Doc, operation bsonx.Doc, coll *Collection) {
-	filter := operation.Lookup("arguments").Document().Lookup("filter").Document()
-
-	oldRp := coll.readPreference
-	if rpVal, err := operation.LookupErr("read_preference"); err == nil {
-		coll.readPreference = getRp(rpVal.Document())
-	}
-
-	_, _ = coll.Count(context.Background(), filter)
-	coll.readPreference = oldRp
-
 	compareExpectations(t, testCase)
 }
 
