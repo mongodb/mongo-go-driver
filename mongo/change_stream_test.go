@@ -238,7 +238,7 @@ func TestChangeStream(t *testing.T) {
 
 		//Ensure the cursor returns an error when the resume token is changed.
 		err = changes.Err()
-		require.Equal(t, err, ErrMissingResumeToken)
+		require.Error(t, err)
 	})
 
 	t.Run("TestNoCustomStandaloneError", func(t *testing.T) {
@@ -339,9 +339,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			t.Fatal("Next returned true, expected false")
 		}
 		err = stream.Err()
-		if err != ErrMissingResumeToken {
-			t.Fatalf("expected ErrMissingResumeToken, got %v", err)
-		}
+		require.Error(t, err)
 	})
 
 	t.Run("ResumeOnce", func(t *testing.T) {
