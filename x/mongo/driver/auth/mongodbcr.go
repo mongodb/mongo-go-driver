@@ -47,11 +47,6 @@ type MongoDBCRAuthenticator struct {
 // The MONGODB-CR authentication mechanism is deprecated in MongoDB 4.0.
 func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
 
-	// Arbiters cannot be authenticated
-	if desc.Kind == description.RSArbiter {
-		return nil
-	}
-
 	db := a.DB
 	if db == "" {
 		db = defaultAuthDB

@@ -31,10 +31,6 @@ type SaslClientCloser interface {
 
 // ConductSaslConversation handles running a sasl conversation with MongoDB.
 func ConductSaslConversation(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter, db string, client SaslClient) error {
-	// Arbiters cannot be authenticated
-	if desc.Kind == description.RSArbiter {
-		return nil
-	}
 
 	if db == "" {
 		db = defaultAuthDB
