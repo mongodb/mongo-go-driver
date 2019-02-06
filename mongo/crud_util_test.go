@@ -82,9 +82,9 @@ func executeCount(sess *sessionImpl, coll *Collection, args map[string]interface
 			Context: context.WithValue(ctx, sessionKey{}, sess),
 			Session: sess,
 		}
-		return coll.Count(sessCtx, filter, opts)
+		return coll.CountDocuments(sessCtx, filter, opts)
 	}
-	return coll.Count(ctx, filter, opts)
+	return coll.CountDocuments(ctx, filter, opts)
 }
 
 func executeDistinct(sess *sessionImpl, coll *Collection, args map[string]interface{}) ([]interface{}, error) {

@@ -218,6 +218,10 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		}
 
 		for _, op := range test.Operations {
+			if op.Name == "count" {
+				t.Skip("count has been deprecated")
+			}
+
 			// create collection with default read preference Primary (needed to prevent server selection fail)
 			coll = db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()))
 			addCollectionOptions(coll, op.CollectionOptions)
@@ -388,10 +392,6 @@ func executeSessionOperation(op *transOperation, sess *sessionImpl) error {
 
 func executeCollectionOperation(t *testing.T, op *transOperation, sess *sessionImpl, coll *Collection) error {
 	switch op.Name {
-	case "count":
-		_, err := executeCount(sess, coll, op.ArgMap)
-		// no results to verify with count
-		return err
 	case "distinct":
 		res, err := executeDistinct(sess, coll, op.ArgMap)
 		if !resultHasError(t, op.Result) {
