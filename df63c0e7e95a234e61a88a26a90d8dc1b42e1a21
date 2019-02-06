@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4196bac6_54cb4604",
+        "filename": "mongo/collection.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-06T19:24:52Z",
+      "side": 1,
+      "message": "Instead of doing this can we put a nil check in TransactionRunning such that it returns false if the session.Client is nil? This way we don\u0027t have to have a separate function here.",
+      "range": {
+        "startLine": 39,
+        "startChar": 5,
+        "endLine": 39,
+        "endChar": 30
+      },
+      "revId": "df63c0e7e95a234e61a88a26a90d8dc1b42e1a21",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
