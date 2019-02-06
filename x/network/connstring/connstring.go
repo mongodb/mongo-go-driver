@@ -38,6 +38,8 @@ type ConnString struct {
 	AuthMechanism                      string
 	AuthMechanismProperties            map[string]string
 	AuthSource                         string
+	AuthenticateArbiterSet             bool
+	AuthenticateArbiter                bool
 	Compressors                        []string
 	Connect                            ConnectMode
 	ConnectSet                         bool
