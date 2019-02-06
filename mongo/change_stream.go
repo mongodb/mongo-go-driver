@@ -496,6 +496,11 @@ func (cs *ChangeStream) Close(ctx context.Context) error {
 	return cs.cursor.Close(ctx)
 }
 
+// ResumeToken returns the resume token for this change stream.
+func (cs *ChangeStream) ResumeToken() bsonx.Doc  {
+	return cs.resumeToken
+}
+
 // StreamType represents the type of a change stream.
 type StreamType uint8
 
