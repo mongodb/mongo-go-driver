@@ -268,16 +268,21 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			return err
 		}
 
-		opts := &auth.HandshakeOptions{
+		handshakeOpts := &auth.HandshakeOptions{
 			AppName:       appName,
 			Authenticator: authenticator,
 			Compressors:   compressors,
 		}
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
-			opts.DBUser = cred.Source + "." + cred.Username
+			handshakeOpts.DBUser = cred.Source + "." + cred.Username
 		}
-		handshaker = auth.Handshaker(nil, opts)
+		if opts.AuthenticateArbiter != nil && *opts.AuthenticateArbiter {
+			// Authenticate arbiters
+			handshakeOpts.PerformAuthentication = func(serv description.Server) bool { return true }
+		}
+
+		handshaker = auth.Handshaker(nil, handshakeOpts)
 	}
 	connOpts = append(connOpts, connection.WithHandshaker(
 		func(connection.Handshaker) connection.Handshaker { return handshaker },

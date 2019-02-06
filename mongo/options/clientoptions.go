@@ -61,6 +61,7 @@ type Credential struct {
 type ClientOptions struct {
 	AppName                *string
 	Auth                   *Credential
+	AuthenticateArbiter    *bool
 	ConnectTimeout         *time.Duration
 	Compressors            []string
 	Dialer                 ContextDialer
@@ -124,6 +125,10 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 			Password:                cs.Password,
 			PasswordSet:             cs.PasswordSet,
 		}
+	}
+
+	if cs.AuthenticateArbiterSet {
+		c.AuthenticateArbiter = &cs.AuthenticateArbiter
 	}
 
 	if cs.ConnectSet {
@@ -287,6 +292,13 @@ func (c *ClientOptions) SetCompressors(comps []string) *ClientOptions {
 	return c
 }
 
+// SetAuthenticateArbiter specifies whether or not the driver should authenticate arbiters. By
+// default, they are not authenticated.
+func (c *ClientOptions) SetAuthenticateArbiter(b bool) *ClientOptions {
+	c.AuthenticateArbiter = &b
+	return c
+}
+
 // SetConnectTimeout specifies the timeout for an initial connection to a server.
 // If a custom Dialer is used, this method won't be set and the user is
 // responsible for setting the ConnectTimeout for connections on the dialer
@@ -434,6 +446,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Auth != nil {
 			c.Auth = opt.Auth
+		}
+		if opt.AuthenticateArbiter != nil {
+			c.AuthenticateArbiter = opt.AuthenticateArbiter
 		}
 		if opt.Compressors != nil {
 			c.Compressors = opt.Compressors

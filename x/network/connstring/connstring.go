@@ -38,6 +38,8 @@ type ConnString struct {
 	AuthMechanism                      string
 	AuthMechanismProperties            map[string]string
 	AuthSource                         string
+	AuthenticateArbiterSet             bool
+	AuthenticateArbiter                bool
 	Compressors                        []string
 	Connect                            ConnectMode
 	ConnectSet                         bool
@@ -479,6 +481,16 @@ func (p *parser) addOption(pair string) error {
 		}
 	case "authsource":
 		p.AuthSource = value
+	case "autharbiter":
+		switch value {
+		case "true":
+			p.AuthenticateArbiter = true
+		case "false":
+			p.AuthenticateArbiter = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s", key, value)
+		}
+		p.AuthenticateArbiterSet = true
 	case "compressors":
 		compressors := strings.Split(value, ",")
 		if len(compressors) < 1 {
