@@ -201,7 +201,7 @@ func TestCollection_ReplaceTopologyError(t *testing.T) {
 	_, err = coll.Aggregate(context.Background(), pipeline, options.Aggregate())
 	require.Equal(t, err, ErrClientDisconnected)
 
-	_, err = coll.Count(context.Background(), bsonx.Doc{})
+	_, err = coll.EstimatedDocumentCount(context.Background())
 	require.Equal(t, err, ErrClientDisconnected)
 
 	_, err = coll.CountDocuments(context.Background(), bsonx.Doc{})
@@ -365,9 +365,6 @@ func TestCollection_NilDocumentError(t *testing.T) {
 	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.ReplaceOne(context.Background(), nil, bsonx.Doc{{"_id", bsonx.Double(3.14159)}})
-	require.Equal(t, err, ErrNilDocument)
-
-	_, err = coll.Count(context.Background(), nil)
 	require.Equal(t, err, ErrNilDocument)
 
 	_, err = coll.CountDocuments(context.Background(), nil)
@@ -1326,47 +1323,6 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 
 	err := testAggregateWithOptions(t, false, aggOpts)
 	require.NoError(t, err)
-}
-
-func TestCollection_Count(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	coll := createTestCollection(t, nil, nil)
-	initCollection(t, coll)
-
-	count, err := coll.Count(context.Background(), bsonx.Doc{})
-	require.Nil(t, err)
-	require.Equal(t, count, int64(5))
-}
-
-func TestCollection_Count_withFilter(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	coll := createTestCollection(t, nil, nil)
-	initCollection(t, coll)
-
-	filter := bsonx.Doc{{"x", bsonx.Document(bsonx.Doc{{"$gt", bsonx.Int32(2)}})}}
-
-	count, err := coll.Count(context.Background(), filter)
-	require.Nil(t, err)
-	require.Equal(t, count, int64(3))
-}
-
-func TestCollection_Count_withOption(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
-	coll := createTestCollection(t, nil, nil)
-	initCollection(t, coll)
-
-	count, err := coll.Count(context.Background(), bsonx.Doc{}, options.Count().SetLimit(int64(3)))
-	require.Nil(t, err)
-	require.Equal(t, count, int64(3))
 }
 
 func TestCollection_CountDocuments(t *testing.T) {
