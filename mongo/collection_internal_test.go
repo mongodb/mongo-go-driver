@@ -1325,6 +1325,32 @@ func TestCollection_Aggregate_withOptions(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestCollection_Aggregate_WriteConcernError(t *testing.T) {
+	skipIfBelow36(t)
+
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	coll := createTestCollection(t, nil, nil, options.Collection().SetWriteConcern(impossibleWriteConcern))
+
+	pipeline := Pipeline{
+		{{"$out", testutil.ColName(t)}},
+	}
+
+	cursor, err := coll.Aggregate(context.Background(), pipeline)
+	require.Nil(t, cursor)
+	require.Error(t, err)
+	_, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("incorrect error type returned: %T", err)
+	}
+}
+
 func TestCollection_CountDocuments(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -1661,6 +1687,30 @@ func TestCollection_FindOneAndDelete_notFound_ignoreResult(t *testing.T) {
 	require.Equal(t, ErrNoDocuments, err)
 }
 
+func TestCollection_FindOneAndDelete_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	skipIfBelow32(t)
+
+	coll := createTestCollection(t, nil, nil, options.Collection().SetWriteConcern(impossibleWriteConcern))
+
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
+
+	var result bsonx.Doc
+	err := coll.FindOneAndDelete(context.Background(), filter).Decode(&result)
+	require.Error(t, err)
+	_, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("incorrect error type returned: %T", err)
+	}
+}
+
 func TestCollection_FindOneAndReplace_found(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
@@ -1725,6 +1775,31 @@ func TestCollection_FindOneAndReplace_notFound_ignoreResult(t *testing.T) {
 
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
+}
+
+func TestCollection_FindOneAndReplace_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	skipIfBelow32(t)
+
+	coll := createTestCollection(t, nil, nil, options.Collection().SetWriteConcern(impossibleWriteConcern))
+
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
+	replacement := bsonx.Doc{{"y", bsonx.Int32(3)}}
+
+	var result bsonx.Doc
+	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(&result)
+	require.Error(t, err)
+	writeErr, ok := err.(WriteConcernError)
+	if !ok {
+		t.Errorf("incorrect error type returned: %T", writeErr)
+	}
 }
 
 func TestCollection_FindOneAndUpdate_found(t *testing.T) {
@@ -1797,4 +1872,28 @@ func TestCollection_FindOneAndUpdate_notFound_ignoreResult(t *testing.T) {
 
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(nil)
 	require.Equal(t, err, ErrNoDocuments)
+}
+
+func TestCollection_FindOneAndUpdate_WriteConcernError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	if os.Getenv("TOPOLOGY") != "replica_set" {
+		t.Skip()
+	}
+
+	skipIfBelow32(t)
+
+	coll := createTestCollection(t, nil, nil, options.Collection().SetWriteConcern(impossibleWriteConcern))
+
+	filter := bsonx.Doc{{"x", bsonx.Int32(3)}}
+	update := bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"x", bsonx.Int32(6)}})}}
+
+	var result bsonx.Doc
+	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(&result)
+	require.Error(t, err)
+	if writeErr, ok := err.(WriteConcernError); !ok {
+		t.Errorf("incorrect error type returned: %T", writeErr)
+	}
 }
