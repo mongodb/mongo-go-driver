@@ -23,6 +23,8 @@ import (
 
 	"time"
 
+	"reflect"
+
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
@@ -31,7 +33,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/connstring"
-	"reflect"
 )
 
 func createTestClient(t *testing.T) *Client {
@@ -85,19 +86,6 @@ func TestClient_Database(t *testing.T) {
 	require.Exactly(t, c, db.Client())
 }
 
-func TestClientOptions(t *testing.T) {
-	t.Parallel()
-
-	c, err := NewClientWithOptions("mongodb://localhost",
-		options.Client().SetMaxConnIdleTime(200).SetReplicaSet("test").SetLocalThreshold(10).
-			SetMaxConnIdleTime(100).SetLocalThreshold(20))
-	require.NoError(t, err)
-
-	require.Equal(t, time.Duration(20), c.connString.LocalThreshold)
-	require.Equal(t, time.Duration(100), c.connString.MaxConnIdleTime)
-	require.Equal(t, "test", c.connString.ReplicaSet)
-}
-
 type NewCodec struct {
 	ID int64 `bson:"_id"`
 }
@@ -126,7 +114,7 @@ func TestClientRegistryPassedToCursors(t *testing.T) {
 	rb.RegisterCodec(reflect.TypeOf(int64(0)), cod)
 
 	cs := testutil.ConnString(t)
-	client, err := NewClientWithOptions(cs.String(), options.Client().SetRegistry(rb.Build()))
+	client, err := NewClient(options.Client().ApplyURI(cs.String()).SetRegistry(rb.Build()))
 	require.NoError(t, err)
 	err = client.Connect(ctx)
 	require.NoError(t, err)
@@ -231,7 +219,7 @@ func TestClient_X509Auth(t *testing.T) {
 		path.Join(basePath, "client.pem"),
 	)
 
-	authClient, err := NewClient(cs)
+	authClient, err := NewClient(options.Client().ApplyURI(cs))
 	require.NoError(t, err)
 
 	err = authClient.Connect(context.Background())
@@ -279,7 +267,7 @@ func TestClient_ReplaceTopologyError(t *testing.T) {
 	}
 
 	cs := testutil.ConnString(t)
-	c, err := NewClient(cs.String())
+	c, err := NewClient(options.Client().ApplyURI(cs.String()))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 
@@ -460,7 +448,7 @@ func TestClient_ReadPreference(t *testing.T) {
 	baseConnString := testutil.ConnString(t)
 	cs := testutil.AddOptionsToURI(baseConnString.String(), "readpreference=secondary&readPreferenceTags=one:1&readPreferenceTags=two:2&maxStaleness=5")
 
-	c, err := NewClient(cs)
+	c, err := NewClient(options.Client().ApplyURI(cs))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 	require.Equal(t, readpref.SecondaryMode, c.readPreference.Mode())
@@ -474,7 +462,7 @@ func TestClient_ReadPreferenceAbsent(t *testing.T) {
 	t.Parallel()
 
 	cs := testutil.ConnString(t)
-	c, err := NewClient(cs.String())
+	c, err := NewClient(options.Client().ApplyURI(cs.String()))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 	require.Equal(t, readpref.PrimaryMode, c.readPreference.Mode())
@@ -485,7 +473,7 @@ func TestClient_ReadPreferenceAbsent(t *testing.T) {
 
 func TestClient_CausalConsistency(t *testing.T) {
 	cs := testutil.ConnString(t)
-	c, err := NewClient(cs.String())
+	c, err := NewClient(options.Client().ApplyURI(cs.String()))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 
@@ -516,7 +504,7 @@ func TestClient_CausalConsistency(t *testing.T) {
 
 func TestClient_Ping_DefaultReadPreference(t *testing.T) {
 	cs := testutil.ConnString(t)
-	c, err := NewClient(cs.String())
+	c, err := NewClient(options.Client().ApplyURI(cs.String()))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 
@@ -528,7 +516,7 @@ func TestClient_Ping_DefaultReadPreference(t *testing.T) {
 }
 
 func TestClient_Ping_InvalidHost(t *testing.T) {
-	c, err := NewClientWithOptions("mongodb://nohost:27017", options.Client().SetServerSelectionTimeout(1*time.Millisecond))
+	c, err := NewClient(options.Client().SetServerSelectionTimeout(1 * time.Millisecond))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 
@@ -541,7 +529,7 @@ func TestClient_Ping_InvalidHost(t *testing.T) {
 
 func TestClient_Disconnect_NilContext(t *testing.T) {
 	cs := testutil.ConnString(t)
-	c, err := NewClient(cs.String())
+	c, err := NewClient(options.Client().ApplyURI(cs.String()))
 	require.NoError(t, err)
 	err = c.Connect(nil)
 	require.NoError(t, err)

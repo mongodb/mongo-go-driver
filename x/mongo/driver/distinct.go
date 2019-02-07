@@ -8,8 +8,11 @@ package driver
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
@@ -17,7 +20,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/mongodb/mongo-go-driver/x/network/result"
-	"time"
 )
 
 // Distinct handles the full cycle dispatch and execution of a distinct command against the provided
@@ -70,7 +72,11 @@ func Distinct(
 		if desc.WireVersion.Max < 5 {
 			return result.Distinct{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(distinctOpts.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(distinctOpts.Collation.ToDocument())
+		if err != nil {
+			return result.Distinct{}, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 
 	return cmd.RoundTrip(ctx, desc, conn)
