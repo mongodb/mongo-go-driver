@@ -23,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"github.com/mongodb/mongo-go-driver/x/network/result"
 )
 
 // Aggregate handles the full cycle dispatch and execution of an aggregate command against the provided
@@ -125,6 +126,9 @@ func Aggregate(
 
 	res, err := cmd.RoundTrip(ctx, desc, conn)
 	if err != nil {
+		if wce, ok := err.(result.WriteConcernError); ok {
+			ss.ProcessWriteConcernError(&wce)
+		}
 		closeImplicitSession(cmd.Session)
 		return nil, err
 	}

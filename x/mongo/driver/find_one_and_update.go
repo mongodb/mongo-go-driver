@@ -121,12 +121,13 @@ func FindOneAndUpdate(
 	res, originalErr := findOneAndUpdate(ctx, cmd, ss, nil)
 
 	// Retry if appropriate
-	if cerr, ok := originalErr.(command.Error); ok && cerr.Retryable() {
+	if cerr, ok := originalErr.(command.Error); (ok && cerr.Retryable()) ||
+		(res.WriteConcernError != nil && command.IsWriteConcernErrorRetryable(res.WriteConcernError)) {
 		ss, err := topo.SelectServer(ctx, selector)
 
 		// Return original error if server selection fails or new server does not support retryable writes
 		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
-			return result.FindAndModify{}, originalErr
+			return res, originalErr
 		}
 
 		return findOneAndUpdate(ctx, cmd, ss, cerr)
@@ -162,5 +163,7 @@ func findOneAndUpdate(
 	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, desc, conn)
+	res, err := cmd.RoundTrip(ctx, desc, conn)
+	ss.ProcessWriteConcernError(res.WriteConcernError)
+	return res, err
 }
