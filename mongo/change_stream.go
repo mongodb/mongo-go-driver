@@ -102,7 +102,11 @@ func createCmdDocs(csType StreamType, opts *options.ChangeStreamOptions, registr
 		cursorDoc = cursorDoc.Append("batchSize", bsonx.Int32(*opts.BatchSize))
 	}
 	if opts.Collation != nil {
-		optsDoc = optsDoc.Append("collation", bsonx.Document(opts.Collation.ToDocument()))
+		collDoc, err := bsonx.ReadDoc(opts.Collation.ToDocument())
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		optsDoc = optsDoc.Append("collation", bsonx.Document(collDoc))
 	}
 	if opts.FullDocument != nil {
 		pipelineDoc = pipelineDoc.Append("fullDocument", bsonx.String(string(*opts.FullDocument)))
@@ -129,7 +133,7 @@ func createCmdDocs(csType StreamType, opts *options.ChangeStreamOptions, registr
 
 func getSession(ctx context.Context, client *Client) (Session, error) {
 	sess := sessionFromContext(ctx)
-	if err := client.ValidSession(sess); err != nil {
+	if err := client.validSession(sess); err != nil {
 		return nil, err
 	}
 
