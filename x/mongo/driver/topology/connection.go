@@ -48,7 +48,6 @@ func (sc *sconn) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessag
 }
 
 func (sc *sconn) processErr(err error) {
-	// TODO(GODRIVER-524) handle the rest of sdam error handling
 	// Invalidate server description if not master or node recovering error occurs
 	if cerr, ok := err.(command.Error); ok && (isRecoveringError(cerr) || isNotMasterError(cerr)) {
 		desc := sc.s.Description()
@@ -56,6 +55,9 @@ func (sc *sconn) processErr(err error) {
 		desc.LastError = err
 		// updates description to unknown
 		sc.s.updateDescription(desc, false)
+		sc.s.RequestImmediateCheck()
+		_ = sc.s.pool.Drain()
+		return
 	}
 
 	ne, ok := err.(connection.NetworkError)

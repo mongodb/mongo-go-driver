@@ -16,6 +16,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"github.com/mongodb/mongo-go-driver/x/network/result"
 	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 )
 
@@ -129,6 +130,11 @@ func (a *Aggregate) Decode(desc description.SelectedServer, wm wiremessage.WireM
 
 func (a *Aggregate) decode(desc description.SelectedServer, rdr bson.Raw) *Aggregate {
 	a.result = rdr
+	if val, err := rdr.LookupErr("writeConcernError"); err == nil {
+		var wce result.WriteConcernError
+		_ = val.Unmarshal(&wce)
+		a.err = wce
+	}
 	return a
 }
 

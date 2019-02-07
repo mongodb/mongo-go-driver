@@ -112,5 +112,7 @@ func delete(
 	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, desc, conn)
+	res, err := cmd.RoundTrip(ctx, desc, conn)
+	ss.ProcessWriteConcernError(res.WriteConcernError)
+	return res, err
 }
