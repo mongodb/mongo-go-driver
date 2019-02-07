@@ -150,7 +150,7 @@ func TestCollection_ReplaceTopologyError(t *testing.T) {
 	}
 
 	cs := testutil.ConnString(t)
-	c, err := NewClient(cs.String())
+	c, err := NewClient(options.Client().ApplyURI(cs.String()))
 	require.NoError(t, err)
 	require.NotNil(t, c)
 

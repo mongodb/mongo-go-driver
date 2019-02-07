@@ -158,7 +158,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 	sess := sessionFromContext(ctx)
 
-	err := coll.client.ValidSession(sess)
+	err := coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err := coll.client.ValidSession(sess)
+	err := coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +375,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +427,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -547,7 +547,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +587,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -660,7 +660,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -696,7 +696,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -753,7 +753,7 @@ func (coll *Collection) Count(ctx context.Context, filter interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return 0, err
 	}
@@ -803,7 +803,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return 0, err
 	}
@@ -846,7 +846,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 
 	sess := sessionFromContext(ctx)
 
-	err := coll.client.ValidSession(sess)
+	err := coll.client.validSession(sess)
 	if err != nil {
 		return 0, err
 	}
@@ -900,7 +900,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -951,7 +951,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -1003,7 +1003,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1079,7 +1079,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1140,7 +1140,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1205,7 +1205,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 
 	sess := sessionFromContext(ctx)
 
-	err = coll.client.ValidSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1265,7 +1265,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 
 	sess := sessionFromContext(ctx)
 
-	err := coll.client.ValidSession(sess)
+	err := coll.client.validSession(sess)
 	if err != nil {
 		return err
 	}

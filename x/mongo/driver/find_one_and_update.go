@@ -53,11 +53,19 @@ func FindOneAndUpdate(
 
 	uo := options.MergeFindOneAndUpdateOptions(opts...)
 	if uo.ArrayFilters != nil {
-		arr, err := uo.ArrayFilters.ToArray()
+		filters, err := uo.ArrayFilters.ToArray()
 		if err != nil {
 			return result.FindAndModify{}, err
 		}
 
+		arr := make(bsonx.Arr, 0, len(filters))
+		for _, filter := range filters {
+			doc, err := bsonx.ReadDoc(filter)
+			if err != nil {
+				return result.FindAndModify{}, err
+			}
+			arr = append(arr, bsonx.Document(doc))
+		}
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"arrayFilters", bsonx.Array(arr)})
 	}
 	if uo.BypassDocumentValidation != nil {
@@ -67,7 +75,11 @@ func FindOneAndUpdate(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.FindAndModify{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(uo.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(uo.Collation.ToDocument())
+		if err != nil {
+			return result.FindAndModify{}, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 	if uo.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"maxTimeMS", bsonx.Int64(int64(*uo.MaxTime / time.Millisecond))})

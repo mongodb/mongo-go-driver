@@ -7,8 +7,16 @@
 package options
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
@@ -16,35 +24,13 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
-	"github.com/mongodb/mongo-go-driver/x/network/connection"
+	"github.com/mongodb/mongo-go-driver/tag"
 	"github.com/mongodb/mongo-go-driver/x/network/connstring"
 )
 
 // ContextDialer makes new network connections
 type ContextDialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
-}
-
-// SSLOpt holds client SSL options.
-//
-// Enabled indicates whether SSL should be enabled.
-//
-// ClientCertificateKeyFile specifies the file containing the client certificate and private key
-// used for authentication.
-//
-// ClientCertificateKeyPassword provides a callback that returns a password used for decrypting the
-// private key of a PEM file (if one is provided).
-//
-// Insecure indicates whether to skip the verification of the server certificate and hostname.
-//
-// CaFile specifies the file containing the certificate authority used for SSL connections.
-type SSLOpt struct {
-	Enabled                      bool
-	ClientCertificateKeyFile     string
-	ClientCertificateKeyPassword func() string
-	Insecure                     bool
-	CaFile                       string
 }
 
 // Credential holds auth options.
@@ -68,39 +54,228 @@ type Credential struct {
 	Password                string
 }
 
-// ClientOptions represents all possbile options to configure a client.
+// ClientOptions represents all possible options to configure a client.
 type ClientOptions struct {
-	TopologyOptions []topology.Option
-	ConnString      connstring.ConnString
-	RetryWrites     *bool
-	ReadPreference  *readpref.ReadPref
-	ReadConcern     *readconcern.ReadConcern
-	WriteConcern    *writeconcern.WriteConcern
-	Registry        *bsoncodec.Registry
+	AppName                *string
+	Auth                   *Credential
+	ConnectTimeout         *time.Duration
+	Compressors            []string
+	Dialer                 ContextDialer
+	HeartbeatInterval      *time.Duration
+	Hosts                  []string
+	LocalThreshold         *time.Duration
+	MaxConnIdleTime        *time.Duration
+	MaxPoolSize            *uint16
+	Monitor                *event.CommandMonitor
+	ReadConcern            *readconcern.ReadConcern
+	ReadPreference         *readpref.ReadPref
+	Registry               *bsoncodec.Registry
+	ReplicaSet             *string
+	RetryWrites            *bool
+	ServerSelectionTimeout *time.Duration
+	Direct                 *bool
+	SocketTimeout          *time.Duration
+	TLSConfig              *tls.Config
+	WriteConcern           *writeconcern.WriteConcern
+	ZlibLevel              *int
+
+	err error
 }
 
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
-	return &ClientOptions{
-		TopologyOptions: make([]topology.Option, 0),
+	return new(ClientOptions)
+}
+
+// Validate validates the client options. This method will return the first error found.
+func (c *ClientOptions) Validate() error { return c.err }
+
+// ApplyURI parses the provided connection string and sets the values and options accordingly.
+//
+// Errors that occur in this method can be retrieved by calling Validate.
+func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
+	if c.err != nil {
+		return c
 	}
+
+	cs, err := connstring.Parse(uri)
+	if err != nil {
+		c.err = err
+		return c
+	}
+
+	if cs.AppName != "" {
+		c.AppName = &cs.AppName
+	}
+
+	if cs.AuthMechanism != "" || cs.AuthMechanismProperties != nil || cs.AuthSource != "" ||
+		cs.Username != "" || cs.PasswordSet {
+		c.Auth = &Credential{
+			AuthMechanism:           cs.AuthMechanism,
+			AuthMechanismProperties: cs.AuthMechanismProperties,
+			AuthSource:              cs.AuthSource,
+			Username:                cs.Username,
+			Password:                cs.Password,
+		}
+	}
+
+	if cs.ConnectSet {
+		direct := cs.Connect == connstring.SingleConnect
+		c.Direct = &direct
+	}
+
+	if cs.ConnectTimeoutSet {
+		c.ConnectTimeout = &cs.ConnectTimeout
+	}
+
+	if len(cs.Compressors) > 0 {
+		c.Compressors = cs.Compressors
+	}
+
+	if cs.HeartbeatIntervalSet {
+		c.HeartbeatInterval = &cs.HeartbeatInterval
+	}
+
+	c.Hosts = cs.Hosts
+
+	if cs.LocalThresholdSet {
+		c.LocalThreshold = &cs.LocalThreshold
+	}
+
+	if cs.MaxConnIdleTimeSet {
+		c.MaxConnIdleTime = &cs.MaxConnIdleTime
+	}
+
+	if cs.MaxPoolSizeSet {
+		c.MaxPoolSize = &cs.MaxPoolSize
+	}
+
+	if cs.ReadConcernLevel != "" {
+		c.ReadConcern = readconcern.New(readconcern.Level(cs.ReadConcernLevel))
+	}
+
+	if cs.ReadPreference != "" || len(cs.ReadPreferenceTagSets) > 0 || cs.MaxStalenessSet {
+		opts := make([]readpref.Option, 0, 1)
+
+		tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
+		if len(tagSets) > 0 {
+			opts = append(opts, readpref.WithTagSets(tagSets...))
+		}
+
+		if cs.MaxStaleness != 0 {
+			opts = append(opts, readpref.WithMaxStaleness(cs.MaxStaleness))
+		}
+
+		mode, err := readpref.ModeFromString(cs.ReadPreference)
+		if err != nil {
+			c.err = err
+			return c
+		}
+
+		c.ReadPreference, c.err = readpref.New(mode, opts...)
+		if c.err != nil {
+			return c
+		}
+	}
+
+	if cs.RetryWritesSet {
+		c.RetryWrites = &cs.RetryWrites
+	}
+
+	if cs.ReplicaSet != "" {
+		c.ReplicaSet = &cs.ReplicaSet
+	}
+
+	if cs.ServerSelectionTimeoutSet {
+		c.ServerSelectionTimeout = &cs.ServerSelectionTimeout
+	}
+
+	if cs.SocketTimeoutSet {
+		c.SocketTimeout = &cs.SocketTimeout
+	}
+
+	if cs.SSL {
+		tlsConfig := new(tls.Config)
+
+		if cs.SSLCaFileSet {
+			c.err = addCACertFromFile(tlsConfig, cs.SSLCaFile)
+			if c.err != nil {
+				return c
+			}
+		}
+
+		if cs.SSLInsecure {
+			tlsConfig.InsecureSkipVerify = true
+		}
+
+		if cs.SSLClientCertificateKeyFileSet {
+			var keyPasswd string
+			if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
+				keyPasswd = cs.SSLClientCertificateKeyPassword()
+			}
+			s, err := addClientCertFromFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
+			if err != nil {
+				c.err = err
+				return c
+			}
+
+			// If a username wasn't specified, add one from the certificate.
+			if c.Auth != nil && strings.ToLower(c.Auth.AuthMechanism) == "mongodb-x509" && c.Auth.Username == "" {
+				// The Go x509 package gives the subject with the pairs in reverse order that we want.
+				pairs := strings.Split(s, ",")
+				for left, right := 0, len(pairs)-1; left < right; left, right = left+1, right-1 {
+					pairs[left], pairs[right] = pairs[right], pairs[left]
+				}
+				c.Auth.Username = strings.Join(pairs, ",")
+			}
+		}
+
+		c.TLSConfig = tlsConfig
+	}
+
+	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
+		opts := make([]writeconcern.Option, 0, 1)
+
+		if len(cs.WString) > 0 {
+			opts = append(opts, writeconcern.WTagSet(cs.WString))
+		} else if cs.WNumberSet {
+			opts = append(opts, writeconcern.W(cs.WNumber))
+		}
+
+		if cs.JSet {
+			opts = append(opts, writeconcern.J(cs.J))
+		}
+
+		if cs.WTimeoutSet {
+			opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+		}
+
+		c.WriteConcern = writeconcern.New(opts...)
+	}
+
+	if cs.ZlibLevelSet {
+		c.ZlibLevel = &cs.ZlibLevel
+	}
+
+	return c
 }
 
 // SetAppName specifies the client application name. This value is used by MongoDB when it logs
 // connection information and profile information, such as slow queries.
 func (c *ClientOptions) SetAppName(s string) *ClientOptions {
-	c.ConnString.AppName = s
-
+	c.AppName = &s
 	return c
 }
 
 // SetAuth sets the authentication options.
 func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
-	c.ConnString.AuthMechanism = auth.AuthMechanism
-	c.ConnString.AuthMechanismProperties = auth.AuthMechanismProperties
-	c.ConnString.AuthSource = auth.AuthSource
-	c.ConnString.Username = auth.Username
-	c.ConnString.Password = auth.Password
+	c.Auth = &auth
+	return c
+}
+
+// SetCompressors sets the compressors that can be used when communicating with a server.
+func (c *ClientOptions) SetCompressors(comps []string) *ClientOptions {
+	c.Compressors = comps
 
 	return c
 }
@@ -110,69 +285,33 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 // responsible for setting the ConnectTimeout for connections on the dialer
 // themselves.
 func (c *ClientOptions) SetConnectTimeout(d time.Duration) *ClientOptions {
-	c.ConnString.ConnectTimeout = d
-	c.ConnString.ConnectTimeoutSet = true
-
+	c.ConnectTimeout = &d
 	return c
 }
 
 // SetDialer specifies a custom dialer used to dial new connections to a server.
 // If a custom dialer is not set, a net.Dialer with a 300 second keepalive time will be used by default.
 func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
-	c.TopologyOptions = append(
-		c.TopologyOptions,
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(
-				opts,
-				topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
-					return append(
-						opts,
-						connection.WithDialer(func(connection.Dialer) connection.Dialer {
-							return d
-						}),
-					)
-				}),
-			)
-		}),
-	)
-
+	c.Dialer = d
 	return c
 }
 
-// SetMonitor specifies a command monitor used to see commands for a client.
-func (c *ClientOptions) SetMonitor(m *event.CommandMonitor) *ClientOptions {
-	c.TopologyOptions = append(
-		c.TopologyOptions,
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(
-				opts,
-				topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
-					return append(
-						opts,
-						connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
-							return m
-						}),
-					)
-				}),
-			)
-		}),
-	)
-
+// SetDirect specifies whether the driver should connect directly to the server instead of
+// auto-discovering other servers in the cluster.
+func (c *ClientOptions) SetDirect(b bool) *ClientOptions {
+	c.Direct = &b
 	return c
 }
 
 // SetHeartbeatInterval specifies the interval to wait between server monitoring checks.
 func (c *ClientOptions) SetHeartbeatInterval(d time.Duration) *ClientOptions {
-	c.ConnString.HeartbeatInterval = d
-	c.ConnString.HeartbeatIntervalSet = true
-
+	c.HeartbeatInterval = &d
 	return c
 }
 
 // SetHosts specifies the initial list of addresses from which to discover the rest of the cluster.
 func (c *ClientOptions) SetHosts(s []string) *ClientOptions {
-	c.ConnString.Hosts = s
-
+	c.Hosts = s
 	return c
 }
 
@@ -180,26 +319,26 @@ func (c *ClientOptions) SetHosts(s []string) *ClientOptions {
 // round-trip time. If a server's roundtrip time is more than LocalThreshold slower than the
 // the fastest, the driver will not send queries to that server.
 func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
-	c.ConnString.LocalThreshold = d
-	c.ConnString.LocalThresholdSet = true
-
+	c.LocalThreshold = &d
 	return c
 }
 
 // SetMaxConnIdleTime specifies the maximum number of milliseconds that a connection can remain idle
 // in a connection pool before being removed and closed.
 func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
-	c.ConnString.MaxConnIdleTime = d
-	c.ConnString.MaxConnIdleTimeSet = true
-
+	c.MaxConnIdleTime = &d
 	return c
 }
 
 // SetMaxPoolSize specifies the max size of a server's connection pool.
 func (c *ClientOptions) SetMaxPoolSize(u uint16) *ClientOptions {
-	c.ConnString.MaxPoolSize = u
-	c.ConnString.MaxPoolSizeSet = true
+	c.MaxPoolSize = &u
+	return c
+}
 
+// SetMonitor specifies a command monitor used to see commands for a client.
+func (c *ClientOptions) SetMonitor(m *event.CommandMonitor) *ClientOptions {
+	c.Monitor = m
 	return c
 }
 
@@ -220,27 +359,12 @@ func (c *ClientOptions) SetReadPreference(rp *readpref.ReadPref) *ClientOptions 
 // SetRegistry specifies the bsoncodec.Registry.
 func (c *ClientOptions) SetRegistry(registry *bsoncodec.Registry) *ClientOptions {
 	c.Registry = registry
-
-	// add registry to the server options so that it will be used for the cursors built by this client
-	c.TopologyOptions = append(
-		c.TopologyOptions,
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(
-				opts,
-				topology.WithRegistry(func(*bsoncodec.Registry) *bsoncodec.Registry {
-					return registry
-				}),
-			)
-		}),
-	)
-
 	return c
 }
 
 // SetReplicaSet specifies the name of the replica set of the cluster.
 func (c *ClientOptions) SetReplicaSet(s string) *ClientOptions {
-	c.ConnString.ReplicaSet = s
-
+	c.ReplicaSet = &s
 	return c
 }
 
@@ -253,57 +377,20 @@ func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 
 // SetServerSelectionTimeout specifies a timeout in milliseconds to block for server selection.
 func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOptions {
-	c.ConnString.ServerSelectionTimeout = d
-	c.ConnString.ServerSelectionTimeoutSet = true
-
-	return c
-}
-
-// SetSingle specifies whether the driver should connect directly to the server instead of
-// auto-discovering other servers in the cluster.
-func (c *ClientOptions) SetSingle(b bool) *ClientOptions {
-	if b {
-		c.ConnString.Connect = connstring.SingleConnect
-	} else {
-		c.ConnString.Connect = connstring.AutoConnect
-	}
-	c.ConnString.ConnectSet = true
-
+	c.ServerSelectionTimeout = &d
 	return c
 }
 
 // SetSocketTimeout specifies the time in milliseconds to attempt to send or receive on a socket
 // before the attempt times out.
 func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
-	c.ConnString.SocketTimeout = d
-	c.ConnString.SocketTimeoutSet = true
-
+	c.SocketTimeout = &d
 	return c
 }
 
-// SetSSL sets SSL options.
-func (c *ClientOptions) SetSSL(ssl *SSLOpt) *ClientOptions {
-	c.ConnString.SSL = ssl.Enabled
-	c.ConnString.SSLSet = true
-
-	if ssl.ClientCertificateKeyFile != "" {
-		c.ConnString.SSLClientCertificateKeyFile = ssl.ClientCertificateKeyFile
-		c.ConnString.SSLClientCertificateKeyFileSet = true
-	}
-
-	if ssl.ClientCertificateKeyPassword != nil {
-		c.ConnString.SSLClientCertificateKeyPassword = ssl.ClientCertificateKeyPassword
-		c.ConnString.SSLClientCertificateKeyPasswordSet = true
-	}
-
-	c.ConnString.SSLInsecure = ssl.Insecure
-	c.ConnString.SSLInsecureSet = true
-
-	if ssl.CaFile != "" {
-		c.ConnString.SSLCaFile = ssl.CaFile
-		c.ConnString.SSLCaFileSet = true
-	}
-
+// SetTLSConfig sets the tls.Config.
+func (c *ClientOptions) SetTLSConfig(cfg *tls.Config) *ClientOptions {
+	c.TLSConfig = cfg
 	return c
 }
 
@@ -314,59 +401,56 @@ func (c *ClientOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientOp
 	return c
 }
 
+// SetZlibLevel sets the level for the zlib compressor.
+func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
+	c.ZlibLevel = &level
+
+	return c
+}
+
 // MergeClientOptions combines the given connstring and *ClientOptions into a single *ClientOptions in a last one wins
 // fashion. The given connstring will be used for the default options, which can be overwritten using the given
 // *ClientOptions.
-func MergeClientOptions(cs connstring.ConnString, opts ...*ClientOptions) *ClientOptions {
+func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 	c := Client()
-	c.ConnString = cs
 
 	for _, opt := range opts {
 		if opt == nil {
 			continue
 		}
-		c.TopologyOptions = append(c.TopologyOptions, opt.TopologyOptions...)
 
-		if an := opt.ConnString.AppName; an != "" {
-			c.ConnString.AppName = an
+		if opt.Dialer != nil {
+			c.Dialer = opt.Dialer
 		}
-		if am := opt.ConnString.AuthMechanism; len(am) != 0 {
-			c.ConnString.AuthMechanism = am
+		if opt.AppName != nil {
+			c.AppName = opt.AppName
 		}
-		if amp := opt.ConnString.AuthMechanismProperties; amp != nil {
-			c.ConnString.AuthMechanismProperties = amp
+		if opt.Auth != nil {
+			c.Auth = opt.Auth
 		}
-		if as := opt.ConnString.AuthSource; len(as) != 0 {
-			c.ConnString.AuthSource = as
+		if opt.Compressors != nil {
+			c.Compressors = opt.Compressors
 		}
-		if u := opt.ConnString.Username; len(u) != 0 {
-			c.ConnString.Username = u
+		if opt.ConnectTimeout != nil {
+			c.ConnectTimeout = opt.ConnectTimeout
 		}
-		if p := opt.ConnString.Password; len(p) != 0 {
-			c.ConnString.Password = p
+		if opt.HeartbeatInterval != nil {
+			c.HeartbeatInterval = opt.HeartbeatInterval
 		}
-		if opt.ConnString.ConnectTimeoutSet {
-			c.ConnString.ConnectTimeoutSet = true
-			c.ConnString.ConnectTimeout = opt.ConnString.ConnectTimeout
+		if len(opt.Hosts) > 0 {
+			c.Hosts = opt.Hosts
 		}
-		if opt.ConnString.HeartbeatIntervalSet {
-			c.ConnString.HeartbeatIntervalSet = true
-			c.ConnString.HeartbeatInterval = opt.ConnString.HeartbeatInterval
+		if opt.LocalThreshold != nil {
+			c.LocalThreshold = opt.LocalThreshold
 		}
-		if h := opt.ConnString.Hosts; h != nil {
-			c.ConnString.Hosts = h
+		if opt.MaxConnIdleTime != nil {
+			c.MaxConnIdleTime = opt.MaxConnIdleTime
 		}
-		if opt.ConnString.LocalThresholdSet {
-			c.ConnString.LocalThresholdSet = true
-			c.ConnString.LocalThreshold = opt.ConnString.LocalThreshold
+		if opt.MaxPoolSize != nil {
+			c.MaxPoolSize = opt.MaxPoolSize
 		}
-		if opt.ConnString.MaxConnIdleTimeSet {
-			c.ConnString.MaxConnIdleTimeSet = true
-			c.ConnString.MaxConnIdleTime = opt.ConnString.MaxConnIdleTime
-		}
-		if opt.ConnString.MaxPoolSizeSet {
-			c.ConnString.MaxPoolSizeSet = true
-			c.ConnString.MaxPoolSize = opt.ConnString.MaxPoolSize
+		if opt.Monitor != nil {
+			c.Monitor = opt.Monitor
 		}
 		if opt.ReadConcern != nil {
 			c.ReadConcern = opt.ReadConcern
@@ -377,48 +461,150 @@ func MergeClientOptions(cs connstring.ConnString, opts ...*ClientOptions) *Clien
 		if opt.Registry != nil {
 			c.Registry = opt.Registry
 		}
-		if rs := opt.ConnString.ReplicaSet; rs != "" {
-			c.ConnString.ReplicaSet = rs
+		if opt.ReplicaSet != nil {
+			c.ReplicaSet = opt.ReplicaSet
 		}
 		if opt.RetryWrites != nil {
 			c.RetryWrites = opt.RetryWrites
 		}
-		if opt.ConnString.ServerSelectionTimeoutSet {
-			c.ConnString.ServerSelectionTimeoutSet = true
-			c.ConnString.ServerSelectionTimeout = opt.ConnString.ServerSelectionTimeout
+		if opt.ServerSelectionTimeout != nil {
+			c.ServerSelectionTimeout = opt.ServerSelectionTimeout
 		}
-		if opt.ConnString.ConnectSet {
-			c.ConnString.ConnectSet = true
-			c.ConnString.Connect = opt.ConnString.Connect
+		if opt.Direct != nil {
+			c.Direct = opt.Direct
 		}
-		if opt.ConnString.SocketTimeoutSet {
-			c.ConnString.SocketTimeoutSet = true
-			c.ConnString.SocketTimeout = opt.ConnString.SocketTimeout
+		if opt.SocketTimeout != nil {
+			c.SocketTimeout = opt.SocketTimeout
 		}
-		if opt.ConnString.SSLSet {
-			c.ConnString.SSLSet = true
-			c.ConnString.SSL = opt.ConnString.SSL
-		}
-		if opt.ConnString.SSLClientCertificateKeyFileSet {
-			c.ConnString.SSLClientCertificateKeyFileSet = true
-			c.ConnString.SSLClientCertificateKeyFile = opt.ConnString.SSLClientCertificateKeyFile
-		}
-		if opt.ConnString.SSLClientCertificateKeyPasswordSet {
-			c.ConnString.SSLClientCertificateKeyPasswordSet = true
-			c.ConnString.SSLClientCertificateKeyPassword = opt.ConnString.SSLClientCertificateKeyPassword
-		}
-		if opt.ConnString.SSLInsecureSet {
-			c.ConnString.SSLInsecureSet = true
-			c.ConnString.SSLInsecure = opt.ConnString.SSLInsecure
-		}
-		if opt.ConnString.SSLCaFileSet {
-			c.ConnString.SSLCaFileSet = true
-			c.ConnString.SSLCaFile = opt.ConnString.SSLCaFile
+		if opt.TLSConfig != nil {
+			c.TLSConfig = opt.TLSConfig
 		}
 		if opt.WriteConcern != nil {
 			c.WriteConcern = opt.WriteConcern
 		}
+		if opt.ZlibLevel != nil {
+			c.ZlibLevel = opt.ZlibLevel
+		}
 	}
 
 	return c
+}
+
+// addCACertFromFile adds a root CA certificate to the configuration given a path
+// to the containing file.
+func addCACertFromFile(cfg *tls.Config, file string) error {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := loadCert(data)
+	if err != nil {
+		return err
+	}
+
+	cert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return err
+	}
+
+	if cfg.RootCAs == nil {
+		cfg.RootCAs = x509.NewCertPool()
+	}
+
+	cfg.RootCAs.AddCert(cert)
+
+	return nil
+}
+
+func loadCert(data []byte) ([]byte, error) {
+	var certBlock *pem.Block
+
+	for certBlock == nil {
+		if data == nil || len(data) == 0 {
+			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
+		}
+
+		block, rest := pem.Decode(data)
+		if block == nil {
+			return nil, errors.New("invalid .pem file")
+		}
+
+		switch block.Type {
+		case "CERTIFICATE":
+			if certBlock != nil {
+				return nil, errors.New("multiple CERTIFICATE sections in .pem file")
+			}
+
+			certBlock = block
+		}
+
+		data = rest
+	}
+
+	return certBlock.Bytes, nil
+}
+
+// addClientCertFromFile adds a client certificate to the configuration given a path to the
+// containing file and returns the certificate's subject name.
+func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (string, error) {
+	data, err := ioutil.ReadFile(clientFile)
+	if err != nil {
+		return "", err
+	}
+
+	var currentBlock *pem.Block
+	var certBlock, certDecodedBlock, keyBlock []byte
+
+	remaining := data
+	start := 0
+	for {
+		currentBlock, remaining = pem.Decode(remaining)
+		if currentBlock == nil {
+			break
+		}
+
+		if currentBlock.Type == "CERTIFICATE" {
+			certBlock = data[start : len(data)-len(remaining)]
+			certDecodedBlock = currentBlock.Bytes
+			start += len(certBlock)
+		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
+			if keyPasswd != "" && x509.IsEncryptedPEMBlock(currentBlock) {
+				var encoded bytes.Buffer
+				buf, err := x509.DecryptPEMBlock(currentBlock, []byte(keyPasswd))
+				if err != nil {
+					return "", err
+				}
+
+				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: buf})
+				keyBlock = encoded.Bytes()
+				start = len(data) - len(remaining)
+			} else {
+				keyBlock = data[start : len(data)-len(remaining)]
+				start += len(keyBlock)
+			}
+		}
+	}
+	if len(certBlock) == 0 {
+		return "", fmt.Errorf("failed to find CERTIFICATE")
+	}
+	if len(keyBlock) == 0 {
+		return "", fmt.Errorf("failed to find PRIVATE KEY")
+	}
+
+	cert, err := tls.X509KeyPair(certBlock, keyBlock)
+	if err != nil {
+		return "", err
+	}
+
+	cfg.Certificates = append(cfg.Certificates, cert)
+
+	// The documentation for the tls.X509KeyPair indicates that the Leaf certificate is not
+	// retained.
+	crt, err := x509.ParseCertificate(certDecodedBlock)
+	if err != nil {
+		return "", err
+	}
+
+	return x509CertSubject(crt), nil
 }
