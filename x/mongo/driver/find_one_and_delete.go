@@ -56,7 +56,11 @@ func FindOneAndDelete(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.FindAndModify{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(do.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(do.Collation.ToDocument())
+		if err != nil {
+			return result.FindAndModify{}, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 	if do.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"maxTimeMs", bsonx.Int64(int64(*do.MaxTime / time.Millisecond))})

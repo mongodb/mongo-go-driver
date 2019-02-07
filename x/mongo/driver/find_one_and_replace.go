@@ -59,7 +59,11 @@ func FindOneAndReplace(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.FindAndModify{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(ro.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(ro.Collation.ToDocument())
+		if err != nil {
+			return result.FindAndModify{}, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 	if ro.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"maxTimeMS", bsonx.Int64(int64(*ro.MaxTime / time.Millisecond))})
