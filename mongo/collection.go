@@ -21,6 +21,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"github.com/mongodb/mongo-go-driver/x/network/result"
 )
 
 // Collection performs operations on a given collection.
@@ -731,6 +732,9 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		aggOpts,
 	)
 	if err != nil {
+		if wce, ok := err.(result.WriteConcernError); ok {
+			return nil, *convertWriteConcernError(&wce)
+		}
 		return nil, replaceTopologyErr(err)
 	}
 
@@ -1060,8 +1064,13 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		coll.registry,
 		opts...,
 	)
+
 	if err != nil {
 		return &SingleResult{err: replaceTopologyErr(err)}
+	}
+
+	if res.WriteConcernError != nil {
+		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}
@@ -1124,6 +1133,10 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	)
 	if err != nil {
 		return &SingleResult{err: replaceTopologyErr(err)}
+	}
+
+	if res.WriteConcernError != nil {
+		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}
@@ -1189,6 +1202,10 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	)
 	if err != nil {
 		return &SingleResult{err: replaceTopologyErr(err)}
+	}
+
+	if res.WriteConcernError != nil {
+		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}

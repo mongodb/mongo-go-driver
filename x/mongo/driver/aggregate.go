@@ -23,6 +23,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"github.com/mongodb/mongo-go-driver/x/network/result"
 )
 
 // Aggregate handles the full cycle dispatch and execution of an aggregate command against the provided
@@ -121,6 +122,9 @@ func Aggregate(
 
 	res, err := cmd.RoundTrip(ctx, desc, conn)
 	if err != nil {
+		if wce, ok := err.(result.WriteConcernError); ok {
+			ss.ProcessWriteConcernError(&wce)
+		}
 		closeImplicitSession(cmd.Session)
 		return nil, err
 	}
@@ -129,7 +133,11 @@ func Aggregate(
 		return buildLegacyCommandBatchCursor(res, batchSize, ss.Server)
 	}
 
-	return NewBatchCursor(bsoncore.Document(res), cmd.Session, cmd.Clock, ss.Server, cmd.CursorOpts...)
+	cursor, err := NewBatchCursor(bsoncore.Document(res), cmd.Session, cmd.Clock, ss.Server, cmd.CursorOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return cursor, nil
 }
 
 func buildLegacyCommandBatchCursor(rdr bson.Raw, batchSize int32, server *topology.Server) (*BatchCursor, error) {

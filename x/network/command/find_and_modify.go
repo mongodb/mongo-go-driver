@@ -47,5 +47,8 @@ func unmarshalFindAndModifyResult(rdr bson.Raw) (result.FindAndModify, error) {
 			res.LastErrorObject.Upserted = oid
 		}
 	}
+	if val, err := rdr.LookupErr("writeConcernError"); err == nil {
+		_ = val.Unmarshal(&res.WriteConcernError)
+	}
 	return res, nil
 }
