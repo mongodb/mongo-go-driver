@@ -54,9 +54,17 @@ func Update(
 		if ss.Description().WireVersion.Max < 6 {
 			return result.Update{}, ErrArrayFilters
 		}
-		arr, err := updateOpts.ArrayFilters.ToArray()
+		filters, err := updateOpts.ArrayFilters.ToArray()
 		if err != nil {
 			return result.Update{}, err
+		}
+		arr := make(bsonx.Arr, 0, len(filters))
+		for _, filter := range filters {
+			doc, err := bsonx.ReadDoc(filter)
+			if err != nil {
+				return result.Update{}, err
+			}
+			arr = append(arr, bsonx.Document(doc))
 		}
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"arrayFilters", bsonx.Array(arr)})
 	}
@@ -67,7 +75,11 @@ func Update(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.Update{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(updateOpts.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(updateOpts.Collation.ToDocument())
+		if err != nil {
+			return result.Update{}, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 	if updateOpts.Upsert != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"upsert", bsonx.Boolean(*updateOpts.Upsert)})
