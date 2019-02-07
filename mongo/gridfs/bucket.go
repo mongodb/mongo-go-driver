@@ -526,7 +526,15 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 		upload.chunkSize = *uo.ChunkSizeBytes
 	}
 	if uo.Metadata != nil {
-		upload.metadata = uo.Metadata
+		raw, err := bson.MarshalWithRegistry(uo.Registry, uo.Metadata)
+		if err != nil {
+			return nil, err
+		}
+		doc, err := bsonx.ReadDoc(raw)
+		if err != nil {
+			return nil, err
+		}
+		upload.metadata = doc
 	}
 
 	return upload, nil

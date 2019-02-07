@@ -87,7 +87,11 @@ func Find(
 		if desc.WireVersion.Max < 5 {
 			return nil, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(fo.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(fo.Collation.ToDocument())
+		if err != nil {
+			return nil, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 	if fo.Comment != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"comment", bsonx.String(*fo.Comment)})
