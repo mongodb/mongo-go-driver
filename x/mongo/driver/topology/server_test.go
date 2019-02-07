@@ -15,6 +15,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/address"
 	"github.com/mongodb/mongo-go-driver/x/network/connection"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"github.com/mongodb/mongo-go-driver/x/network/result"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,7 +59,7 @@ func NewPool(connectionError bool, networkError bool, desc *description.Server) 
 	return p, nil
 }
 
-func TestSever(t *testing.T) {
+func TestServer(t *testing.T) {
 	var serverTestTable = []struct {
 		name            string
 		connectionError bool
@@ -101,4 +102,50 @@ func TestSever(t *testing.T) {
 			require.Equal(t, drained, tt.connectionError || tt.networkError)
 		})
 	}
+	t.Run("WriteConcernError", func(t *testing.T) {
+		s, err := NewServer(address.Address("localhost"))
+		require.NoError(t, err)
+
+		var desc *description.Server
+		descript := s.Description()
+		desc = &descript
+		require.Nil(t, desc.LastError)
+		s.pool, err = NewPool(false, false, desc)
+		s.connectionstate = connected
+
+		wce := result.WriteConcernError{10107, "not master", []byte{}}
+		require.Equal(t, wceIsNotMasterOrRecovering(&wce), true)
+		s.ProcessWriteConcernError(&wce)
+
+		// should set ServerDescription to Unknown
+		resultDesc := s.Description()
+		require.Equal(t, resultDesc.Kind, (description.ServerKind)(description.Unknown))
+		require.Equal(t, resultDesc.LastError, &wce)
+
+		// pool should be drained
+		drained := s.pool.(*pool).drainCalled.Load().(bool)
+		require.Equal(t, drained, true)
+	})
+	t.Run("no WriteConcernError", func(t *testing.T) {
+		s, err := NewServer(address.Address("localhost"))
+		require.NoError(t, err)
+
+		var desc *description.Server
+		descript := s.Description()
+		desc = &descript
+		require.Nil(t, desc.LastError)
+		s.pool, err = NewPool(false, false, desc)
+		s.connectionstate = connected
+
+		wce := result.WriteConcernError{}
+		require.Equal(t, wceIsNotMasterOrRecovering(&wce), false)
+		s.ProcessWriteConcernError(&wce)
+
+		// should not be a LastError
+		require.Nil(t, s.Description().LastError)
+
+		// pool should not be drained
+		drained := s.pool.(*pool).drainCalled.Load().(bool)
+		require.Equal(t, drained, false)
+	})
 }

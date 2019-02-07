@@ -64,6 +64,8 @@ type FindAndModify struct {
 		UpdatedExisting bool
 		Upserted        interface{}
 	}
+	WriteErrors       []WriteError       `bson:"writeErrors"`
+	WriteConcernError *WriteConcernError `bson:"writeConcernError"`
 }
 
 // WriteError is an error from a write operation that is not a write concern
@@ -80,6 +82,8 @@ type WriteConcernError struct {
 	ErrMsg  string
 	ErrInfo bson.Raw
 }
+
+func (wce WriteConcernError) Error() string { return wce.ErrMsg }
 
 // ListDatabases is the result from a listDatabases command.
 type ListDatabases struct {
