@@ -12,18 +12,22 @@ import (
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
+	"github.com/mongodb/mongo-go-driver/event"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/tag"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/auth"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
+	"github.com/mongodb/mongo-go-driver/x/network/compressor"
+	"github.com/mongodb/mongo-go-driver/x/network/connection"
 	"github.com/mongodb/mongo-go-driver/x/network/connstring"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -45,8 +49,8 @@ type Client struct {
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
-func Connect(ctx context.Context, uri string, opts ...*options.ClientOptions) (*Client, error) {
-	c, err := NewClientWithOptions(uri, opts...)
+func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, error) {
+	c, err := NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -58,25 +62,38 @@ func Connect(ctx context.Context, uri string, opts ...*options.ClientOptions) (*
 }
 
 // NewClient creates a new client to connect to a cluster specified by the uri.
-func NewClient(uri string) (*Client, error) {
-	cs, err := connstring.Parse(uri)
+//
+// When creating an options.ClientOptions, the order the methods are called matters. Later Set*
+// methods will overwrite the values from previous Set* method invocations. This includes the
+// SetConnectionString method. This allows callers to determine the order of precedence for option
+// application. For instance, if SetConnectionString is called before SetAuth, the Credential from
+// SetAuth will overwrite the values from the connection string. If SetConnectionString is called
+// after SetAuth, then its values will overwrite those from SetAuth.
+//
+// The opts parameter is processed using options.MergeClientOptions, which will overwrite entire
+// option fields of previous options, there is no partial overwriting. For example, if Username is
+// set in the Auth field for the first option, and Password is set for the second but with no
+// Username, after the merge the Username field will be empty.
+func NewClient(opts ...*options.ClientOptions) (*Client, error) {
+	clientOpt := options.MergeClientOptions(opts...)
+
+	id, err := uuid.New()
+	if err != nil {
+		return nil, err
+	}
+	client := &Client{id: id}
+
+	err = client.configure(clientOpt)
 	if err != nil {
 		return nil, err
 	}
 
-	return newClient(cs)
-}
-
-// NewClientWithOptions creates a new client to connect to to a cluster specified by the connection
-// string and the options manually passed in. If the same option is configured in both the
-// connection string and the manual options, the manual option will be ignored.
-func NewClientWithOptions(uri string, opts ...*options.ClientOptions) (*Client, error) {
-	cs, err := connstring.Parse(uri)
+	client.topology, err = topology.New(client.topologyOptions...)
 	if err != nil {
-		return nil, err
+		return nil, replaceTopologyErr(err)
 	}
 
-	return newClient(cs, opts...)
+	return client, nil
 }
 
 // Connect initializes the Client by starting background monitoring goroutines.
@@ -170,156 +187,225 @@ func (c *Client) endSessions(ctx context.Context) {
 	_, _ = driver.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
 }
 
-func newClient(cs connstring.ConnString, opts ...*options.ClientOptions) (*Client, error) {
-	clientOpt := options.MergeClientOptions(cs, opts...)
-
-	client := &Client{
-		topologyOptions: clientOpt.TopologyOptions,
-		connString:      clientOpt.ConnString,
-		localThreshold:  defaultLocalThreshold,
-		readPreference:  clientOpt.ReadPreference,
-		readConcern:     clientOpt.ReadConcern,
-		writeConcern:    clientOpt.WriteConcern,
-		registry:        clientOpt.Registry,
+func (c *Client) configure(opts *options.ClientOptions) error {
+	if opts.Err != nil {
+		return opts.Err
 	}
 
-	if client.connString.RetryWritesSet {
-		client.retryWrites = client.connString.RetryWrites
+	var connOpts []connection.Option
+	var serverOpts []topology.ServerOption
+	var topologyOpts []topology.Option
+
+	// TODO(GODRIVER-814): Add tests for topology, server, and connection related options.
+
+	// AppName
+	var appName string
+	if opts.AppName != nil {
+		appName = *opts.AppName
 	}
-	if clientOpt.RetryWrites != nil {
-		client.retryWrites = *clientOpt.RetryWrites
-	}
+	// Compressors & ZlibLevel
+	var compressors []string
+	if len(opts.Compressors) > 0 {
+		compressors = opts.Compressors
+		comps := make([]compressor.Compressor, 0, len(compressors))
 
-	clientID, err := uuid.New()
-	if err != nil {
-		return nil, err
-	}
-	client.id = clientID
-
-	topts := append(
-		client.topologyOptions,
-		topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return client.connString }),
-		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
-			return append(opts, topology.WithClock(func(clock *session.ClusterClock) *session.ClusterClock {
-				return client.clock
-			}), topology.WithRegistry(func(registry *bsoncodec.Registry) *bsoncodec.Registry {
-				return client.registry
-			}))
-		}),
-	)
-	topo, err := topology.New(topts...)
-	if err != nil {
-		return nil, replaceTopologyErr(err)
-	}
-	client.topology = topo
-	client.clock = &session.ClusterClock{}
-
-	if client.readConcern == nil {
-		client.readConcern = readConcernFromConnString(&client.connString)
-
-		if client.readConcern == nil {
-			// no read concern in conn string
-			client.readConcern = readconcern.New()
-		}
-	}
-
-	if client.writeConcern == nil {
-		client.writeConcern = writeConcernFromConnString(&client.connString)
-	}
-	if client.readPreference == nil {
-		rp, err := readPreferenceFromConnString(&client.connString)
-		if err != nil {
-			return nil, err
-		}
-		if rp != nil {
-			client.readPreference = rp
-		} else {
-			client.readPreference = readpref.Primary()
-		}
-	}
-
-	if client.registry == nil {
-		client.registry = bson.DefaultRegistry
-	}
-	return client, nil
-}
-
-func readConcernFromConnString(cs *connstring.ConnString) *readconcern.ReadConcern {
-	if len(cs.ReadConcernLevel) == 0 {
-		return nil
-	}
-
-	rc := &readconcern.ReadConcern{}
-	readconcern.Level(cs.ReadConcernLevel)(rc)
-
-	return rc
-}
-
-func writeConcernFromConnString(cs *connstring.ConnString) *writeconcern.WriteConcern {
-	var wc *writeconcern.WriteConcern
-
-	if len(cs.WString) > 0 {
-		if wc == nil {
-			wc = writeconcern.New()
-		}
-
-		writeconcern.WTagSet(cs.WString)(wc)
-	} else if cs.WNumberSet {
-		if wc == nil {
-			wc = writeconcern.New()
-		}
-
-		writeconcern.W(cs.WNumber)(wc)
-	}
-
-	if cs.JSet {
-		if wc == nil {
-			wc = writeconcern.New()
-		}
-
-		writeconcern.J(cs.J)(wc)
-	}
-
-	if cs.WTimeoutSet {
-		if wc == nil {
-			wc = writeconcern.New()
-		}
-
-		writeconcern.WTimeout(cs.WTimeout)(wc)
-	}
-
-	return wc
-}
-
-func readPreferenceFromConnString(cs *connstring.ConnString) (*readpref.ReadPref, error) {
-	var rp *readpref.ReadPref
-	var err error
-	options := make([]readpref.Option, 0, 1)
-
-	tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
-	if len(tagSets) > 0 {
-		options = append(options, readpref.WithTagSets(tagSets...))
-	}
-
-	if cs.MaxStaleness != 0 {
-		options = append(options, readpref.WithMaxStaleness(cs.MaxStaleness))
-	}
-
-	if len(cs.ReadPreference) > 0 {
-		if rp == nil {
-			mode, _ := readpref.ModeFromString(cs.ReadPreference)
-			rp, err = readpref.New(mode, options...)
-			if err != nil {
-				return nil, err
+		for _, c := range compressors {
+			switch c {
+			case "snappy":
+				comps = append(comps, compressor.CreateSnappy())
+			case "zlib":
+				level := wiremessage.DefaultZlibLevel
+				if opts.ZlibLevel != nil {
+					level = *opts.ZlibLevel
+				}
+				zlibComp, err := compressor.CreateZlib(level)
+				if err != nil {
+					return err
+				}
+				comps = append(comps, zlibComp)
 			}
 		}
+
+		connOpts = append(connOpts, connection.WithCompressors(
+			func(compressors []compressor.Compressor) []compressor.Compressor {
+				return append(compressors, comps...)
+			},
+		))
+
+		serverOpts = append(serverOpts, topology.WithCompressionOptions(
+			func(opts ...string) []string { return append(opts, compressors...) },
+		))
+	}
+	// Handshaker
+	var handshaker connection.Handshaker = &command.Handshake{Client: command.ClientDoc(appName), Compressors: compressors}
+	// Auth & Database & Password & Username
+	if opts.Auth != nil && (opts.Auth.AuthMechanism == auth.MongoDBX509 || opts.Auth.AuthMechanism == auth.GSSAPI) {
+		cred := &auth.Cred{}
+		var mechanism string
+		if opts.Auth != nil {
+			mechanism = opts.Auth.AuthMechanism
+			cred.Source = opts.Auth.AuthSource
+			if len(cred.Source) == 0 {
+				switch opts.Auth.AuthMechanism {
+				case auth.MongoDBX509, auth.GSSAPI, auth.PLAIN:
+					cred.Source = "$external"
+				default:
+					cred.Source = "admin"
+				}
+			}
+			cred.Username = opts.Auth.Username
+			cred.Password = opts.Auth.Password
+			cred.PasswordSet = len(opts.Auth.Password) > 0
+			cred.Props = opts.Auth.AuthMechanismProperties
+		}
+
+		authenticator, err := auth.CreateAuthenticator(mechanism, cred)
+		if err != nil {
+			return err
+		}
+
+		opts := &auth.HandshakeOptions{
+			AppName:       appName,
+			Authenticator: authenticator,
+			Compressors:   compressors,
+		}
+		if mechanism == "" {
+			// Required for SASL mechanism negotiation during handshake
+			opts.DBUser = cred.Source + "." + cred.Username
+		}
+		handshaker = auth.Handshaker(nil, opts)
+	}
+	connOpts = append(connOpts, connection.WithHandshaker(
+		func(connection.Handshaker) connection.Handshaker { return handshaker },
+	))
+	// ConnectTimeout
+	if opts.ConnectTimeout != nil {
+		serverOpts = append(serverOpts, topology.WithHeartbeatTimeout(
+			func(time.Duration) time.Duration { return *opts.ConnectTimeout },
+		))
+		connOpts = append(connOpts, connection.WithConnectTimeout(
+			func(time.Duration) time.Duration { return *opts.ConnectTimeout },
+		))
+	}
+	// Dialer
+	if opts.Dialer != nil {
+		connOpts = append(connOpts, connection.WithDialer(
+			func(connection.Dialer) connection.Dialer { return opts.Dialer },
+		))
+	}
+	// Direct
+	if opts.Direct != nil && *opts.Direct {
+		topologyOpts = append(topologyOpts, topology.WithMode(
+			func(topology.MonitorMode) topology.MonitorMode { return topology.SingleMode },
+		))
+	}
+	// HeartbeatInterval
+	if opts.HeartbeatInterval != nil {
+		serverOpts = append(serverOpts, topology.WithHeartbeatInterval(
+			func(time.Duration) time.Duration { return *opts.HeartbeatInterval },
+		))
+	}
+	// Hosts
+	hosts := []string{"localhost:27017"} // default host
+	if len(opts.Hosts) > 0 {
+		hosts = opts.Hosts
+	}
+	topologyOpts = append(topologyOpts, topology.WithSeedList(
+		func(...string) []string { return hosts },
+	))
+	// LocalThreshold
+	if opts.LocalThreshold != nil {
+		c.localThreshold = *opts.LocalThreshold
+	}
+	// MaxConIdleTime
+	if opts.MaxConnIdleTime != nil {
+		connOpts = append(connOpts, connection.WithIdleTimeout(
+			func(time.Duration) time.Duration { return *opts.MaxConnIdleTime },
+		))
+	}
+	// MaxPoolSize
+	if opts.MaxPoolSize != nil {
+		serverOpts = append(
+			serverOpts,
+			topology.WithMaxConnections(func(uint16) uint16 { return *opts.MaxPoolSize }),
+			topology.WithMaxIdleConnections(func(uint16) uint16 { return *opts.MaxPoolSize }),
+		)
+	}
+	// Monitor
+	if opts.Monitor != nil {
+		connOpts = append(connOpts, connection.WithMonitor(
+			func(*event.CommandMonitor) *event.CommandMonitor { return opts.Monitor },
+		))
+	}
+	// ReadConcern
+	c.readConcern = readconcern.New()
+	if opts.ReadConcern != nil {
+		c.readConcern = opts.ReadConcern
+	}
+	// ReadPreference
+	c.readPreference = readpref.Primary()
+	if opts.ReadPreference != nil {
+		c.readPreference = opts.ReadPreference
+	}
+	// Registry
+	c.registry = bson.DefaultRegistry
+	if opts.Registry != nil {
+		c.registry = opts.Registry
+	}
+	// ReplicaSet
+	if opts.ReplicaSet != nil {
+		topologyOpts = append(topologyOpts, topology.WithReplicaSetName(
+			func(string) string { return *opts.ReplicaSet },
+		))
+	}
+	// RetryWrites
+	if opts.RetryWrites != nil {
+		c.retryWrites = *opts.RetryWrites
+	}
+	// ServerSelectionTimeout
+	if opts.ServerSelectionTimeout != nil {
+		topologyOpts = append(topologyOpts, topology.WithServerSelectionTimeout(
+			func(time.Duration) time.Duration { return *opts.ServerSelectionTimeout },
+		))
+	}
+	// SocketTimeout
+	if opts.SocketTimeout != nil {
+		connOpts = append(
+			connOpts,
+			connection.WithReadTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
+			connection.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
+		)
+	}
+	// TLSConfig
+	if opts.TLSConfig != nil {
+		connOpts = append(connOpts, connection.WithTLSConfig(
+			func(*connection.TLSConfig) *connection.TLSConfig {
+				return &connection.TLSConfig{Config: opts.TLSConfig}
+			},
+		))
+	}
+	// WriteConcern
+	if opts.WriteConcern != nil {
+		c.writeConcern = opts.WriteConcern
 	}
 
-	return rp, nil
+	// ClusterClock
+	c.clock = new(session.ClusterClock)
+
+	serverOpts = append(
+		serverOpts,
+		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
+		topology.WithConnectionOptions(func(...connection.Option) []connection.Option { return connOpts }),
+	)
+	c.topologyOptions = append(topologyOpts, topology.WithServerOptions(
+		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
+	))
+
+	return nil
 }
 
-// ValidSession returns an error if the session doesn't belong to the client
-func (c *Client) ValidSession(sess *session.Client) error {
+// validSession returns an error if the session doesn't belong to the client
+func (c *Client) validSession(sess *session.Client) error {
 	if sess != nil && !uuid.Equal(sess.ClientID, c.id) {
 		return ErrWrongClient
 	}
@@ -331,11 +417,6 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 	return newDatabase(c, name, opts...)
 }
 
-// ConnectionString returns the connection string of the cluster the client is connected to.
-func (c *Client) ConnectionString() string {
-	return c.connString.Original
-}
-
 // ListDatabases returns a ListDatabasesResult.
 func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
 	if ctx == nil {
@@ -344,7 +425,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 
 	sess := sessionFromContext(ctx)
 
-	err := c.ValidSession(sess)
+	err := c.validSession(sess)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}

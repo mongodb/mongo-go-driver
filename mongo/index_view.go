@@ -47,7 +47,7 @@ type IndexModel struct {
 func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOptions) (*Cursor, error) {
 	sess := sessionFromContext(ctx)
 
-	err := iv.coll.client.ValidSession(sess)
+	err := iv.coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 	sess := sessionFromContext(ctx)
 
-	err := iv.coll.client.ValidSession(sess)
+	err := iv.coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -225,8 +225,11 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsonx.Doc, err
 		optsDoc = append(optsDoc, bsonx.Elem{"partialFilterExpression", bsonx.Document(doc)})
 	}
 	if opts.Collation != nil {
-		doc := opts.Collation.ToDocument()
-		optsDoc = append(optsDoc, bsonx.Elem{"collation", bsonx.Document(doc)})
+		collDoc, err := bsonx.ReadDoc(opts.Collation.ToDocument())
+		if err != nil {
+			return nil, err
+		}
+		optsDoc = append(optsDoc, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 
 	return optsDoc, nil
@@ -240,7 +243,7 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 
 	sess := sessionFromContext(ctx)
 
-	err := iv.coll.client.ValidSession(sess)
+	err := iv.coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +269,7 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
 	sess := sessionFromContext(ctx)
 
-	err := iv.coll.client.ValidSession(sess)
+	err := iv.coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}

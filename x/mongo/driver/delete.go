@@ -53,7 +53,11 @@ func Delete(
 		if ss.Description().WireVersion.Max < 5 {
 			return result.Delete{}, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(deleteOpts.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(deleteOpts.Collation.ToDocument())
+		if err != nil {
+			return result.Delete{}, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 
 	// Execute in a single trip if retry writes not supported, or retry not enabled
