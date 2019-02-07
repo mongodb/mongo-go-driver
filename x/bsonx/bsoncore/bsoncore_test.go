@@ -826,6 +826,50 @@ func TestRead(t *testing.T) {
 	}
 }
 
+func TestBuild(t *testing.T) {
+	testCases := []struct {
+		name  string
+		elems [][]byte
+		want  []byte
+	}{
+		{
+			"one element",
+			[][]byte{AppendDoubleElement(nil, "pi", 3.14159)},
+			[]byte{0x11, 0x00, 0x00, 0x00, 0x1, 0x70, 0x69, 0x00, 0x6e, 0x86, 0x1b, 0xf0, 0xf9, 0x21, 0x9, 0x40, 0x00},
+		},
+		{
+			"two elements",
+			[][]byte{AppendDoubleElement(nil, "pi", 3.14159), AppendStringElement(nil, "hello", "world!!")},
+			[]byte{
+				0x24, 0x00, 0x00, 0x00, 0x01, 0x70, 0x69, 0x00, 0x6e, 0x86, 0x1b, 0xf0,
+				0xf9, 0x21, 0x09, 0x40, 0x02, 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x00, 0x08,
+				0x00, 0x00, 0x00, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x21, 0x21, 0x00, 0x00,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Run("BuildDocument", func(t *testing.T) {
+				elems := make([]byte, 0, 0)
+				for _, elem := range tc.elems {
+					elems = append(elems, elem...)
+				}
+				got := BuildDocument(nil, elems)
+				if !bytes.Equal(got, tc.want) {
+					t.Errorf("Documents do not match. got %v; want %v", got, tc.want)
+				}
+			})
+			t.Run("BuildDocumentFromElements", func(t *testing.T) {
+				got := BuildDocumentFromElements(nil, tc.elems...)
+				if !bytes.Equal(got, tc.want) {
+					t.Errorf("Documents do not match. got %v; want %v", got, tc.want)
+				}
+			})
+		})
+	}
+}
+
 func compareDecimal128(d1, d2 primitive.Decimal128) bool {
 	d1H, d1L := d1.GetBytes()
 	d2H, d2L := d2.GetBytes()
