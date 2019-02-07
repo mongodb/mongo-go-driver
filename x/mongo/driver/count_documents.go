@@ -8,8 +8,11 @@ package driver
 
 import (
 	"context"
+
 	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
@@ -17,7 +20,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
-	"time"
 )
 
 // CountDocuments handles the full cycle dispatch and execution of a countDocuments command against the provided
@@ -72,7 +74,11 @@ func CountDocuments(
 		if desc.WireVersion.Max < 5 {
 			return 0, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(countOpts.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(countOpts.Collation.ToDocument())
+		if err != nil {
+			return 0, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 	if countOpts.Hint != nil {
 		hintElem, err := interfaceToElement("hint", countOpts.Hint, registry)

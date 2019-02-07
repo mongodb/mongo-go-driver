@@ -96,7 +96,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{}, opts
 	sess := sessionFromContext(ctx)
 	runCmd := options.MergeRunCmdOptions(opts...)
 
-	if err := db.client.ValidSession(sess); err != nil {
+	if err := db.client.validSession(sess); err != nil {
 		return command.Read{}, nil, err
 	}
 
@@ -188,7 +188,7 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	sess := sessionFromContext(ctx)
 
-	err := db.client.ValidSession(sess)
+	err := db.client.validSession(sess)
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	sess := sessionFromContext(ctx)
 
-	err := db.client.ValidSession(sess)
+	err := db.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
