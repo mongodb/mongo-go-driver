@@ -81,6 +81,8 @@ type WriteConcernError struct {
 	ErrInfo bson.Raw
 }
 
+func (wce WriteConcernError) Error() string { return wce.ErrMsg }
+
 // ListDatabases is the result from a listDatabases command.
 type ListDatabases struct {
 	Databases []struct {
