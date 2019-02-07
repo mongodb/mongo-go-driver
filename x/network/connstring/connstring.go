@@ -84,6 +84,7 @@ type ConnString struct {
 	WNumberSet                         bool
 	Username                           string
 	ZlibLevel                          int
+	ZlibLevelSet                       bool
 
 	WTimeout              time.Duration
 	WTimeoutSet           bool
@@ -658,6 +659,7 @@ func (p *parser) addOption(pair string) error {
 			level = wiremessage.DefaultZlibLevel
 		}
 		p.ZlibLevel = level
+		p.ZlibLevelSet = true
 	default:
 		if p.UnknownOptions == nil {
 			p.UnknownOptions = make(map[string][]string)
