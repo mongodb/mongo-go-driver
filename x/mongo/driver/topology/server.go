@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,10 +22,13 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/connection"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"github.com/mongodb/mongo-go-driver/x/network/result"
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
 const connectionSemaphoreSize = math.MaxInt64
+
+var isMasterOrRecoveringCodes = []int32{11600, 11602, 10107, 13435, 13436, 189, 91}
 
 // ErrServerClosed occurs when an attempt to get a connection is made after
 // the server has been closed.
@@ -268,6 +272,31 @@ func (s *Server) RequestImmediateCheck() {
 	}
 }
 
+// ProcessWriteConcernError checks if a WriteConcernError is and isNotMaster or
+// isRecovering error, and if so updates the server accordingly.
+func (s *Server) ProcessWriteConcernError(err *result.WriteConcernError) {
+	if err == nil || !wceIsNotMasterOrRecovering(err) {
+		return
+	}
+	desc := s.Description()
+	desc.Kind = description.Unknown
+	desc.LastError = err
+	// updates description to unknown
+	s.updateDescription(desc, false)
+}
+
+func wceIsNotMasterOrRecovering(wce *result.WriteConcernError) bool {
+	for _, code := range isMasterOrRecoveringCodes {
+		if int32(wce.Code) == code {
+			return true
+		}
+	}
+	if strings.Contains(wce.ErrMsg, "not master") || strings.Contains(wce.ErrMsg, "node is recovering") {
+		return true
+	}
+	return false
+}
+
 // update handles performing heartbeats and updating any subscribers of the
 // newest description.Server retrieved.
 func (s *Server) update() {
@@ -360,6 +389,7 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 
 	switch desc.Kind {
 	case description.Unknown:
+		s.RequestImmediateCheck()
 		_ = s.pool.Drain()
 	}
 }
@@ -411,10 +441,14 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 
 		isMasterCmd := &command.IsMaster{Compressors: s.cfg.compressionOpts}
 		isMaster, err := isMasterCmd.RoundTrip(ctx, conn)
+		// we do a retry if the server is connected, if succeed return new server desc (see below)
 		if err != nil {
 			saved = err
 			conn.Close()
 			conn = nil
+			if s.Description().Kind == description.Unknown {
+				break
+			}
 			continue
 		}
 
@@ -435,6 +469,7 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 		desc = description.Server{
 			Addr:      s.address,
 			LastError: saved,
+			Kind:      description.Unknown,
 		}
 	}
 
