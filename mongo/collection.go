@@ -1060,8 +1060,13 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		coll.registry,
 		opts...,
 	)
+
 	if err != nil {
 		return &SingleResult{err: replaceTopologyErr(err)}
+	}
+
+	if res.WriteConcernError != nil {
+		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}
@@ -1124,6 +1129,10 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	)
 	if err != nil {
 		return &SingleResult{err: replaceTopologyErr(err)}
+	}
+
+	if res.WriteConcernError != nil {
+		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}
@@ -1189,6 +1198,10 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	)
 	if err != nil {
 		return &SingleResult{err: replaceTopologyErr(err)}
+	}
+
+	if res.WriteConcernError != nil {
+		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}
