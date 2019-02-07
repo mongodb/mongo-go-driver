@@ -221,6 +221,18 @@ func BuildDocument(dst []byte, elems []byte) []byte {
 	return dst
 }
 
+// BuildDocumentFromElements will create a document with the given slice of elements and will append
+// it to dst and return the extended buffer.
+func BuildDocumentFromElements(dst []byte, elems ...[]byte) []byte {
+	idx, dst := ReserveLength(dst)
+	for _, elem := range elems {
+		dst = append(dst, elem...)
+	}
+	dst = append(dst, 0x00)
+	dst = UpdateLength(dst, idx, int32(len(dst[idx:])))
+	return dst
+}
+
 // ReadDocument will read a document from src. If there are not enough bytes it
 // will return false.
 func ReadDocument(src []byte) (doc Document, rem []byte, ok bool) { return readLengthBytes(src) }
