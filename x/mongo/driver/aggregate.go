@@ -96,7 +96,11 @@ func Aggregate(
 		if desc.WireVersion.Max < 5 {
 			return nil, ErrCollation
 		}
-		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(aggOpts.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(aggOpts.Collation.ToDocument())
+		if err != nil {
+			return nil, err
+		}
+		cmd.Opts = append(cmd.Opts, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 	if aggOpts.MaxTime != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"maxTimeMS", bsonx.Int64(int64(*aggOpts.MaxTime / time.Millisecond))})

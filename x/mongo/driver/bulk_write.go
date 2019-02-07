@@ -568,15 +568,27 @@ func createUpdateDoc(
 	}
 
 	if arrayFiltersSet {
-		arr, err := arrayFilters.ToArray()
+		filters, err := arrayFilters.ToArray()
 		if err != nil {
 			return nil, err
+		}
+		arr := make(bsonx.Arr, 0, len(filters))
+		for _, filter := range filters {
+			doc, err := bsonx.ReadDoc(filter)
+			if err != nil {
+				return nil, err
+			}
+			arr = append(arr, bsonx.Document(doc))
 		}
 		doc = append(doc, bsonx.Elem{"arrayFilters", bsonx.Array(arr)})
 	}
 
 	if updateModel.Collation != nil {
-		doc = append(doc, bsonx.Elem{"collation", bsonx.Document(updateModel.Collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(updateModel.Collation.ToDocument())
+		if err != nil {
+			return nil, err
+		}
+		doc = append(doc, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 
 	if updateModel.UpsertSet {
@@ -608,7 +620,11 @@ func createDeleteDoc(
 	}
 
 	if collation != nil {
-		doc = append(doc, bsonx.Elem{"collation", bsonx.Document(collation.ToDocument())})
+		collDoc, err := bsonx.ReadDoc(collation.ToDocument())
+		if err != nil {
+			return nil, err
+		}
+		doc = append(doc, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
 
 	return doc, nil
