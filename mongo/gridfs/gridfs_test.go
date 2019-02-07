@@ -114,7 +114,7 @@ func compareVersions(t *testing.T, v1 string, v2 string) int {
 
 func TestGridFS(t *testing.T) {
 	cs := testutil.ConnString(t)
-	client, err := mongo.NewClient(cs.String())
+	client, err := mongo.NewClient(options.Client().ApplyURI(cs.String()))
 	testhelpers.RequireNil(t, err, "error creating client: %s", err)
 
 	ctx := context.Background()
