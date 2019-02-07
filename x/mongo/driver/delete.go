@@ -70,8 +70,8 @@ func Delete(
 	res, originalErr := delete(ctx, cmd, ss, nil)
 
 	// Retry if appropriate
-	if cerr, ok := originalErr.(command.Error); ok && cerr.Retryable() ||
-		res.WriteConcernError != nil && command.IsWriteConcernErrorRetryable(res.WriteConcernError) {
+	if cerr, ok := originalErr.(command.Error); (ok && cerr.Retryable()) ||
+		(res.WriteConcernError != nil && command.IsWriteConcernErrorRetryable(res.WriteConcernError)) {
 		ss, err := topo.SelectServer(ctx, selector)
 
 		// Return original error if server selection fails or new server does not support retryable writes
@@ -112,5 +112,7 @@ func delete(
 	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, desc, conn)
+	res, err := cmd.RoundTrip(ctx, desc, conn)
+	ss.ProcessWriteConcernError(res.WriteConcernError)
+	return res, err
 }
