@@ -161,7 +161,7 @@ func clearCollections(t *testing.T) {
 func TestGridFSSpec(t *testing.T) {
 	var err error
 	cs := testutil.ConnString(t)
-	client, err = mongo.NewClient(cs.String())
+	client, err = mongo.NewClient(options.Client().ApplyURI(cs.String()))
 	testhelpers.RequireNil(t, err, "error creating client: %s", err)
 
 	err = client.Connect(ctx)
