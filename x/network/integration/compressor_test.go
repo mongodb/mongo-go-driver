@@ -12,10 +12,6 @@ import (
 	"context"
 	"os"
 
-	"math"
-	"strconv"
-	"strings"
-
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
@@ -24,32 +20,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/stretchr/testify/require"
 )
-
-// compareVersions compares two version number strings (i.e. positive integers separated by
-// periods). Comparisons are done to the lesser precision of the two versions. For example, 3.2 is
-// considered equal to 3.2.11, whereas 3.2.0 is considered less than 3.2.11.
-//
-// Returns a positive int if version1 is greater than version2, a negative int if version1 is less
-// than version2, and 0 if version1 is equal to version2.
-func compareVersions(t *testing.T, v1 string, v2 string) int {
-	n1 := strings.Split(v1, ".")
-	n2 := strings.Split(v2, ".")
-
-	for i := 0; i < int(math.Min(float64(len(n1)), float64(len(n2)))); i++ {
-		i1, err := strconv.Atoi(n1[i])
-		require.NoError(t, err)
-
-		i2, err := strconv.Atoi(n2[i])
-		require.NoError(t, err)
-
-		difference := i1 - i2
-		if difference != 0 {
-			return difference
-		}
-	}
-
-	return 0
-}
 
 func TestCompression(t *testing.T) {
 	comp := os.Getenv("MONGO_GO_DRIVER_COMPRESSOR")
@@ -84,7 +54,7 @@ func TestCompression(t *testing.T) {
 	serverVersion, err := result.LookupErr("version")
 	noerr(t, err)
 
-	if compareVersions(t, serverVersion.StringValue(), "3.4") < 0 {
+	if testutil.CompareVersions(t, serverVersion.StringValue(), "3.4") < 0 {
 		t.Skip("skipping compression test for version < 3.4")
 	}
 
@@ -100,7 +70,7 @@ func TestCompression(t *testing.T) {
 	noerr(t, err)
 
 	compressorKey := "compressor"
-	compareTo36 := compareVersions(t, serverVersion.StringValue(), "3.6")
+	compareTo36 := testutil.CompareVersions(t, serverVersion.StringValue(), "3.6")
 	if compareTo36 < 0 {
 		compressorKey = "compressed"
 	}
