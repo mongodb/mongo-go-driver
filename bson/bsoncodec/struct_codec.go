@@ -114,6 +114,8 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val r
 }
 
 // DecodeValue implements the Codec interface.
+// By default, map types in val will not be cleared. If a map has existing key/value pairs, it will be extended with the new ones from vr.
+// For slices, the decoder will set the length of the slice to zero and append all elements. The underlying array will not be cleared.
 func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Struct {
 		return ValueDecoderError{Name: "StructCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Struct}, Received: val}
