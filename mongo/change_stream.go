@@ -46,14 +46,15 @@ type ChangeStream struct {
 	// make a copy of it.
 	Current bson.Raw
 
-	cmd        bsonx.Doc // aggregate command to run to create stream and rebuild cursor
-	pipeline   bsonx.Arr
-	options    *options.ChangeStreamOptions
-	coll       *Collection
-	db         *Database
-	ns         command.Namespace
-	cursor     *Cursor
-	cursorOpts bsonx.Doc
+	cmd         bsonx.Doc // aggregate command to run to create stream and rebuild cursor
+	pipeline    bsonx.Arr
+	options     *options.ChangeStreamOptions
+	coll        *Collection
+	db          *Database
+	ns          command.Namespace
+	cursor      *Cursor
+	cursorOpts  bsonx.Doc
+	getMoreOpts bsonx.Doc
 
 	resumeToken bsonx.Doc
 	err         error
@@ -88,11 +89,12 @@ func (cs *ChangeStream) replaceOptions(desc description.SelectedServer) {
 
 // Create options docs for the pipeline and cursor
 func createCmdDocs(csType StreamType, opts *options.ChangeStreamOptions, registry *bsoncodec.Registry) (bsonx.Doc,
-	bsonx.Doc, bsonx.Doc, error) {
+	bsonx.Doc, bsonx.Doc, bsonx.Doc, error) {
 
 	pipelineDoc := bsonx.Doc{}
 	cursorDoc := bsonx.Doc{}
 	optsDoc := bsonx.Doc{}
+	getMoreOptsDoc := bsonx.Doc{}
 
 	if csType == ClientStream {
 		pipelineDoc = pipelineDoc.Append("allChangesForCluster", bsonx.Boolean(true))
@@ -109,12 +111,12 @@ func createCmdDocs(csType StreamType, opts *options.ChangeStreamOptions, registr
 	}
 	if opts.MaxAwaitTime != nil {
 		ms := int64(time.Duration(*opts.MaxAwaitTime) / time.Millisecond)
-		pipelineDoc = pipelineDoc.Append("maxAwaitTimeMS", bsonx.Int64(ms))
+		getMoreOptsDoc = getMoreOptsDoc.Append("maxTimeMS", bsonx.Int64(ms))
 	}
 	if opts.ResumeAfter != nil {
 		rt, err := transformDocument(registry, opts.ResumeAfter)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 
 		pipelineDoc = pipelineDoc.Append("resumeAfter", bsonx.Document(rt))
@@ -124,7 +126,7 @@ func createCmdDocs(csType StreamType, opts *options.ChangeStreamOptions, registr
 			bsonx.Timestamp(opts.StartAtOperationTime.T, opts.StartAtOperationTime.I))
 	}
 
-	return pipelineDoc, cursorDoc, optsDoc, nil
+	return pipelineDoc, cursorDoc, optsDoc, getMoreOptsDoc, nil
 }
 
 func getSession(ctx context.Context, client *Client) (Session, error) {
@@ -154,18 +156,18 @@ func getSession(ctx context.Context, client *Client) (Session, error) {
 }
 
 func parseOptions(csType StreamType, opts *options.ChangeStreamOptions, registry *bsoncodec.Registry) (bsonx.Doc,
-	bsonx.Doc, bsonx.Doc, error) {
+	bsonx.Doc, bsonx.Doc, bsonx.Doc, error) {
 
 	if opts.FullDocument == nil {
 		opts = opts.SetFullDocument(options.Default)
 	}
 
-	pipelineDoc, cursorDoc, optsDoc, err := createCmdDocs(csType, opts, registry)
+	pipelineDoc, cursorDoc, optsDoc, getMoreOptsDoc, err := createCmdDocs(csType, opts, registry)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return pipelineDoc, cursorDoc, optsDoc, nil
+	return pipelineDoc, cursorDoc, optsDoc, getMoreOptsDoc, nil
 }
 
 func (cs *ChangeStream) runCommand(ctx context.Context, replaceOptions bool) error {
@@ -183,7 +185,7 @@ func (cs *ChangeStream) runCommand(ctx context.Context, replaceOptions bool) err
 
 	if replaceOptions {
 		cs.replaceOptions(desc)
-		optionsDoc, _, _, err := createCmdDocs(cs.streamType, cs.options, cs.registry)
+		optionsDoc, _, _, _, err := createCmdDocs(cs.streamType, cs.options, cs.registry)
 		if err != nil {
 			return err
 		}
@@ -210,7 +212,7 @@ func (cs *ChangeStream) runCommand(ctx context.Context, replaceOptions bool) err
 		return err
 	}
 
-	batchCursor, err := driver.NewBatchCursor(bsoncore.Document(rdr), readCmd.Session, readCmd.Clock, ss.Server)
+	batchCursor, err := driver.NewBatchCursor(bsoncore.Document(rdr), readCmd.Session, readCmd.Clock, ss.Server, cs.getMoreOpts...)
 	if err != nil {
 		cs.sess.EndSession(ctx)
 		return err
@@ -241,7 +243,7 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 	}
 
 	csOpts := options.MergeChangeStreamOptions(opts...)
-	pipelineDoc, cursorDoc, optsDoc, err := parseOptions(CollectionStream, csOpts, coll.registry)
+	pipelineDoc, cursorDoc, optsDoc, getMoreDoc, err := parseOptions(CollectionStream, csOpts, coll.registry)
 	if err != nil {
 		return nil, err
 	}
@@ -275,6 +277,7 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		options:     csOpts,
 		registry:    coll.registry,
 		cursorOpts:  cursorDoc,
+		getMoreOpts: getMoreDoc,
 	}
 
 	err = cs.runCommand(ctx, false)
@@ -294,7 +297,7 @@ func newDbChangeStream(ctx context.Context, db *Database, pipeline interface{},
 	}
 
 	csOpts := options.MergeChangeStreamOptions(opts...)
-	pipelineDoc, cursorDoc, optsDoc, err := parseOptions(DatabaseStream, csOpts, db.registry)
+	pipelineDoc, cursorDoc, optsDoc, getMoreDoc, err := parseOptions(DatabaseStream, csOpts, db.registry)
 	if err != nil {
 		return nil, err
 	}
@@ -327,6 +330,7 @@ func newDbChangeStream(ctx context.Context, db *Database, pipeline interface{},
 		options:     csOpts,
 		registry:    db.registry,
 		cursorOpts:  cursorDoc,
+		getMoreOpts: getMoreDoc,
 	}
 
 	err = cs.runCommand(ctx, false)
@@ -346,7 +350,7 @@ func newClientChangeStream(ctx context.Context, client *Client, pipeline interfa
 	}
 
 	csOpts := options.MergeChangeStreamOptions(opts...)
-	pipelineDoc, cursorDoc, optsDoc, err := parseOptions(ClientStream, csOpts, client.registry)
+	pipelineDoc, cursorDoc, optsDoc, getMoreDoc, err := parseOptions(ClientStream, csOpts, client.registry)
 	if err != nil {
 		return nil, err
 	}
@@ -379,6 +383,7 @@ func newClientChangeStream(ctx context.Context, client *Client, pipeline interfa
 		options:     csOpts,
 		registry:    client.registry,
 		cursorOpts:  cursorDoc,
+		getMoreOpts: getMoreDoc,
 	}
 
 	err = cs.runCommand(ctx, false)
