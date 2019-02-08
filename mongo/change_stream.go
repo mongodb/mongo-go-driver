@@ -453,12 +453,7 @@ func (cs *ChangeStream) Next(ctx context.Context) bool {
 			}
 		}
 
-		killCursors := command.KillCursors{
-			NS:  cs.ns,
-			IDs: []int64{cs.ID()},
-		}
-
-		_, _ = driver.KillCursors(ctx, killCursors, cs.client.topology, cs.db.writeSelector)
+		_ = cs.cursor.Close(ctx)
 		cs.err = cs.runCommand(ctx, true)
 		if cs.err != nil {
 			return false
