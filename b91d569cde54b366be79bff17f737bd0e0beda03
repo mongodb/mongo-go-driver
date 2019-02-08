@@ -263,6 +263,30 @@
     },
     {
       "key": {
+        "uuid": "671807de_0f5b1b3b",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-08T15:36:27Z",
+      "side": 1,
+      "message": "Thanks for the explanation. I\u0027m ok leaving this as is.",
+      "parentUuid": "c2378a11_6e1043c1",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f3178c64_5bcef804",
         "filename": "x/bsonx/bsoncore/document_sequence.go",
         "patchSetId": 1
@@ -367,6 +391,24 @@
       "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "76bc9faa_0a76c5c1",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-08T15:36:27Z",
+      "side": 1,
+      "message": "Which people, driver maintainers or driver users? \n\nI guess I\u0027m not understanding your rationale here.  Generally I feel like we would prefer less code over more, and the case of an unused private method is pretty clear cut to me.  Maybe we need to hash this out on the dev channel so we understand each other\u0027s perspectives more clearly.",
+      "parentUuid": "c894ba4a_09714137",
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
