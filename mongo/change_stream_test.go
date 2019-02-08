@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"os"
 	"testing"
 	"time"
@@ -72,7 +73,7 @@ func skipIfBelow36(t *testing.T) {
 	}
 }
 
-func createStream(t *testing.T, client *Client, dbName string, collName string, pipeline interface{}) (*Collection, *ChangeStream) {
+func createStream(t *testing.T, client *Client, dbName string, collName string, pipeline interface{}, opts ...*options.ChangeStreamOptions) (*Collection, *ChangeStream) {
 	client.writeConcern = wcMajority
 	db := client.Database(dbName)
 	err := db.Drop(ctx)
@@ -83,7 +84,7 @@ func createStream(t *testing.T, client *Client, dbName string, collName string, 
 	_, err = coll.InsertOne(ctx, collectionStartingDoc) // create collection on server for 3.6
 
 	drainChannels()
-	stream, err := coll.Watch(ctx, pipeline)
+	stream, err := coll.Watch(ctx, pipeline, opts...)
 	testhelpers.RequireNil(t, err, "error creating stream: %s", err)
 
 	return coll, stream
@@ -98,20 +99,20 @@ func skipIfBelow32(t *testing.T) {
 	}
 }
 
-func createCollectionStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, *ChangeStream) {
+func createCollectionStream(t *testing.T, dbName string, collName string, pipeline interface{}, opts ...*options.ChangeStreamOptions) (*Collection, *ChangeStream) {
 	if pipeline == nil {
 		pipeline = Pipeline{}
 	}
 	client := createTestClient(t)
-	return createStream(t, client, dbName, collName, pipeline)
+	return createStream(t, client, dbName, collName, pipeline, opts...)
 }
 
-func createMonitoredStream(t *testing.T, dbName string, collName string, pipeline interface{}) (*Collection, *ChangeStream) {
+func createMonitoredStream(t *testing.T, dbName string, collName string, pipeline interface{}, opts ...*options.ChangeStreamOptions) (*Collection, *ChangeStream) {
 	if pipeline == nil {
 		pipeline = Pipeline{}
 	}
 	client := createMonitoredClient(t, monitor)
-	return createStream(t, client, dbName, collName, pipeline)
+	return createStream(t, client, dbName, collName, pipeline, opts...)
 }
 
 func compareOptions(t *testing.T, expected bsonx.Doc, actual bsonx.Doc) {
@@ -694,6 +695,22 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
 
 		ensureResumeToken(t, coll, stream)
+	})
+	t.Run("MaxAwaitTimeMS", func(t *testing.T) {
+		coll, stream := createMonitoredStream(t, "MaxAwaitTimeMSDB", "MaxAwaitTimeMSColl", nil, options.ChangeStream().SetMaxAwaitTime(100*time.Millisecond))
+		drainChannels()
+		_, err := coll.InsertOne(ctx, bsonx.Doc{{"x", bsonx.Int32(1)}})
+		testhelpers.RequireNil(t, err, "error inserting doc: %v", err)
+		drainChannels()
+
+		if !stream.Next(ctx) {
+			t.Fatal("Next returned false, expected true")
+		}
+
+		e := <-startedChan
+		if _, err := e.Command.LookupErr("maxTimeMS"); err != nil {
+			t.Fatalf("maxTimeMS not found in getMore command")
+		}
 	})
 }
 
