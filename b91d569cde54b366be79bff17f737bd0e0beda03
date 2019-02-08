@@ -349,6 +349,24 @@
       "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7555d893_023adf2d",
+        "filename": "x/bsonx/bsoncore/document_sequence.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 88,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-08T15:36:05Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c894ba4a_09714137",
+      "revId": "b91d569cde54b366be79bff17f737bd0e0beda03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
