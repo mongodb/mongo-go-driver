@@ -2,6 +2,201 @@
   "comments": [
     {
       "key": {
+        "uuid": "304e43e9_28c8b93d",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "possible not possbile",
+      "range": {
+        "startLine": 57,
+        "startChar": 32,
+        "endLine": 57,
+        "endChar": 40
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a9127aca_8c257d9d",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "Given the number of options, would it make more sense to group them by their function rather than alphabetically?  I find it hard to follow when something like ZlibLevel is so far from Compressors.",
+      "range": {
+        "startLine": 58,
+        "startChar": 0,
+        "endLine": 58,
+        "endChar": 4
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e2f96145_d4b0a5a7",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "Is this used for anything? If not, remove it.",
+      "range": {
+        "startLine": 63,
+        "startChar": 1,
+        "endLine": 63,
+        "endChar": 9
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9ca50a90_dd3e3343",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "This is the only field that\u0027s abbreviated.  Let\u0027s be consistent and not abbreviate it.",
+      "range": {
+        "startLine": 68,
+        "startChar": 1,
+        "endLine": 68,
+        "endChar": 16
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed50a813_9a2ca576",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "This seems redundant to the Auth field",
+      "range": {
+        "startLine": 71,
+        "startChar": 0,
+        "endLine": 71,
+        "endChar": 1
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0c9e924a_2185ca1a",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "Perhaps Direct instead of Single, to go along with \"connect\u003ddirect\" in the URI",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "29db7654_0877c538",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "This seems redundant to the Auth field",
+      "range": {
+        "startLine": 81,
+        "startChar": 1,
+        "endLine": 81,
+        "endChar": 9
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6b601e6f_1666ea3f",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "Maybe generalize to CompressorLevel?  Zstd also has a level, and if we ever want to configure it we\u0027d have to add a ZstdLevel.  Gets messy quickly.  Alternatively, create some abstraction for the compressor configuration that this could live inside.",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e169ab70_272e93fa",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "I still prefer to not make this chainable if it means that the options struct has to have an err field.  Who\u0027s supposed to check that field?  I would think that NewClient would do it, but it doesn\u0027t seem to.  Is the application supposed to check it before creating MongoClient?  If so, that seems onerous and easy to forget.",
+      "range": {
+        "startLine": 96,
+        "startChar": 2,
+        "endLine": 96,
+        "endChar": 3
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5b655fa5_167d18e1",
         "filename": "mongo/options/clientoptions_1_9.go",
         "patchSetId": 2
@@ -13,6 +208,41 @@
       "writtenOn": "2019-02-09T02:16:25Z",
       "side": 1,
       "message": "Let\u0027s delete all this code, though not clear what the stub should return.",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6348358a_56bdb5f4",
+        "filename": "mongo/options/clientoptions_1_9.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "To clarify: since we support Go 1.10 and up, we shouldn\u0027t have to support this code.",
+      "parentUuid": "5b655fa5_167d18e1",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "96b9cd41_6cd91c6b",
+        "filename": "mongo/options/clientoptions_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T03:08:45Z",
+      "side": 1,
+      "message": "Add a similarly comprehensive test of ApplyURI",
       "revId": "053f42e6af7895e51fa01296603334d7804368a2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
