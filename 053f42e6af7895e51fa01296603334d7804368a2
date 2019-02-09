@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5b655fa5_167d18e1",
+        "filename": "mongo/options/clientoptions_1_9.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-09T02:16:25Z",
+      "side": 1,
+      "message": "Let\u0027s delete all this code, though not clear what the stub should return.",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
