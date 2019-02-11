@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e6ae88b3_866b5000",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 456,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-02-11T20:12:15Z",
+      "side": 1,
+      "message": "IIRC, this won\u0027t work because the change stream spec says \"If the server supports sessions, the resume attempt MUST use the same session as the previous attempt\u0027s command.\" If we used an implicit session for the original aggregate command, closing the underlying cursor will also close that session and return it to the pool, which will cause the resume attempt to fail.",
+      "range": {
+        "startLine": 456,
+        "startChar": 2,
+        "endLine": 456,
+        "endChar": 26
+      },
+      "revId": "43e1f58a01ea89f5a95a4f2090539398274a1d33",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
