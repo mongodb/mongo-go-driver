@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 )
 
 // batchCursor is the interface implemented by types that can provide batches of document results.
@@ -18,6 +19,9 @@ type batchCursor interface {
 	// Batch will return a DocumentSequence for the current batch of documents. The returned
 	// DocumentSequence is only valid until the next call to Next or Close.
 	Batch() *bsoncore.DocumentSequence
+
+	// Server returns a pointer to the cursor's server.
+	Server() *topology.Server
 
 	// Err returns the last error encountered.
 	Err() error

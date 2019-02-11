@@ -8,10 +8,11 @@ package driver
 
 import (
 	"context"
+	"github.com/mongodb/mongo-go-driver/x/network/connection"
+	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
 	"github.com/mongodb/mongo-go-driver/x/network/result"
 )
 
@@ -19,19 +20,36 @@ import (
 // topology.
 func KillCursors(
 	ctx context.Context,
-	cmd command.KillCursors,
-	topo *topology.Topology,
-	selector description.ServerSelector,
+	ns command.Namespace,
+	server *topology.Server,
+	cursorID int64,
 ) (result.KillCursors, error) {
-	ss, err := topo.SelectServer(ctx, selector)
-	if err != nil {
-		return result.KillCursors{}, err
-	}
-	desc := ss.Description()
-	conn, err := ss.Connection(ctx)
+	desc := server.SelectedDescription()
+	conn, err := server.Connection(ctx)
 	if err != nil {
 		return result.KillCursors{}, err
 	}
 	defer conn.Close()
+
+	if desc.WireVersion.Max < 4 {
+		return result.KillCursors{}, legacyKillCursors(ctx, ns, cursorID, conn)
+	}
+
+	cmd := command.KillCursors{
+		NS:  ns,
+		IDs: []int64{cursorID},
+	}
+
 	return cmd.RoundTrip(ctx, desc, conn)
+}
+
+func legacyKillCursors(ctx context.Context, ns command.Namespace, cursorID int64, conn connection.Connection) error {
+	kc := wiremessage.KillCursors{
+		NumberOfCursorIDs: 1,
+		CursorIDs:         []int64{cursorID},
+		CollectionName:    ns.Collection,
+		DatabaseName:      ns.DB,
+	}
+
+	return conn.WriteWireMessage(ctx, kc)
 }

@@ -27,7 +27,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1544,39 +1543,6 @@ func TestCollection_Find_notFound(t *testing.T) {
 	require.False(t, cursor.Next(context.Background()))
 }
 
-func killCursor(t *testing.T, c *Cursor, coll *Collection) {
-	version, err := getServerVersion(coll.db)
-	require.Nil(t, err, "error getting server version: %s", err)
-	ns := command.NewNamespace(coll.db.name, coll.name)
-
-	if compareVersions(t, version, "3.0") > 0 {
-		// not legacy
-		kc := command.KillCursors{
-			NS:  ns,
-			IDs: []int64{c.ID()},
-		}
-
-		_, err := driver.KillCursors(ctx, kc, coll.client.topology, coll.db.writeSelector)
-		require.Nil(t, err, "error killing cursor: %s", err)
-		return
-	}
-
-	// legacy
-	kc := wiremessage.KillCursors{
-		NumberOfCursorIDs: 1,
-		CursorIDs:         []int64{c.ID()},
-		CollectionName:    ns.Collection,
-		DatabaseName:      ns.DB,
-	}
-	topo := testutil.Topology(t)
-	ss, err := topo.SelectServer(ctx, coll.db.writeSelector)
-	require.Nil(t, err, "error selecting server: %s", err)
-	conn, err := ss.Connection(ctx)
-	require.Nil(t, err, "error getting connection: %s", err)
-	err = conn.WriteWireMessage(context.Background(), kc)
-	require.Nil(t, err, "error writing wire msg: %s", err)
-}
-
 func TestCollection_Find_Error(t *testing.T) {
 	t.Run("TestInvalidIdentifier", func(t *testing.T) {
 		coll := createTestCollection(t, nil, nil)
@@ -1595,7 +1561,11 @@ func TestCollection_Find_Error(t *testing.T) {
 		require.True(t, c.Next(context.Background()))
 		require.True(t, c.Next(context.Background()))
 
-		killCursor(t, c, coll)
+		_, err = driver.KillCursors(ctx, command.Namespace{
+			DB:         coll.db.name,
+			Collection: coll.name,
+		}, c.bc.Server(), c.ID())
+		require.NoError(t, err)
 		require.False(t, c.Next(context.Background()))
 		require.NotNil(t, c.Err())
 		_ = c.Close(context.Background())

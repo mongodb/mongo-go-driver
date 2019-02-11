@@ -174,6 +174,9 @@ func (bc *BatchCursor) Next(ctx context.Context) bool {
 // DocumentSequence is only valid until the next call to Next or Close.
 func (bc *BatchCursor) Batch() *bsoncore.DocumentSequence { return bc.currentBatch }
 
+// Server returns a pointer to the cursor's server.
+func (bc *BatchCursor) Server() *topology.Server { return bc.server }
+
 // Err returns the latest error encountered.
 func (bc *BatchCursor) Err() error { return bc.err }
 

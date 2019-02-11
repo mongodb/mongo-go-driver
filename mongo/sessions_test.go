@@ -91,6 +91,9 @@ func createFuncMap(t *testing.T, dbName string, collName string, monitored bool)
 	err := db.Drop(ctx)
 	testhelpers.RequireNil(t, err, "error dropping database after creation: %s", err)
 
+	// ensure database exists
+	_, _ = db.Collection("foo").InsertOne(context.Background(), doc)
+
 	coll := db.Collection(collName)
 	iv := coll.Indexes()
 

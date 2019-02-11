@@ -63,6 +63,13 @@ func (er *errorCursor) Close(ctx context.Context) error {
 	return nil
 }
 
+func killChangeStreamCursor(t *testing.T, cs *ChangeStream) {
+	_, err := driver.KillCursors(context.Background(), cs.ns, cs.cursor.bc.Server(), cs.ID())
+	if err != nil {
+		t.Fatalf("error killing cursor: %v", err)
+	}
+}
+
 func skipIfBelow36(t *testing.T) {
 	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
 	require.NoError(t, err)
@@ -355,15 +362,8 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		ensureResumeToken(t, coll, stream)
 		cs := stream
 
-		kc := command.KillCursors{
-			NS:  cs.ns,
-			IDs: []int64{cs.ID()},
-		}
-
-		_, err := driver.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
-		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
-
-		_, err = coll.InsertOne(ctx, doc1)
+		killChangeStreamCursor(t, cs)
+		_, err := coll.InsertOne(ctx, doc1)
 		testhelpers.RequireNil(t, err, "error inserting doc: %s", err)
 
 		drainChannels()
@@ -478,13 +478,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		cs := stream
 
 		// kill cursor to force a resumable error
-		kc := command.KillCursors{
-			NS:  cs.ns,
-			IDs: []int64{cs.ID()},
-		}
-
-		_, err = driver.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
-		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
+		killChangeStreamCursor(t, cs)
 
 		adminDb := coll.client.Database("admin")
 		modeDoc := bsonx.Doc{
@@ -527,14 +521,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		cs := stream
 
 		// kill cursor to force a resumable error
-		kc := command.KillCursors{
-			NS:  cs.ns,
-			IDs: []int64{cs.ID()},
-		}
-
-		_, err = driver.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
-		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
-
+		killChangeStreamCursor(t, cs)
 		drainChannels()
 		stream.Next(ctx)
 
@@ -685,14 +672,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		// kill the stream's underlying cursor to force a resumeable error
 		cs := stream
-		kc := command.KillCursors{
-			NS:  cs.ns,
-			IDs: []int64{cs.ID()},
-		}
-
-		_, err := driver.KillCursors(ctx, kc, cs.client.topology, cs.db.writeSelector)
-		testhelpers.RequireNil(t, err, "error running killCursors cmd: %s", err)
-
+		killChangeStreamCursor(t, cs)
 		ensureResumeToken(t, coll, stream)
 	})
 }
