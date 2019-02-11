@@ -136,6 +136,11 @@ for tickets that need completing. See our [contribution guidelines](CONTRIBUTING
 Commits to master are run automatically on [evergreen](https://evergreen.mongodb.com/waterfall/mongo-go-driver).
 
 -------------------------
+## Thanks and Acknowledgement 
+
+<a href="https://github.com/ashleymcnamara">@ashleymcnamara</a> - Mongo Gopher Artwork
+
+-------------------------
 ## License
 
 The MongoDB Go Driver is licensed under the [Apache License](LICENSE).
