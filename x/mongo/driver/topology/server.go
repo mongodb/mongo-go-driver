@@ -463,12 +463,12 @@ func (s *Server) Drain() error { return s.pool.Drain() }
 func (s *Server) String() string {
 	desc := s.Description()
 	str := fmt.Sprintf("Addr: %s, Type: %s, State: %s",
-		s.address, desc.Kind, connectionStateString(s.connectionstate))
+		s.address, desc.Kind, connectionStateString(atomic.LoadInt32(&s.connectionstate)))
 	if len(desc.Tags) != 0 {
 		str += fmt.Sprintf(", Tag sets: %s", desc.Tags)
 	}
-	if s.connectionstate == connected {
-		str += fmt.Sprintf(", Avergage RTT: %d", s.averageRTT)
+	if atomic.LoadInt32(&s.connectionstate) == connected {
+		str += fmt.Sprintf(", Avergage RTT: %d", desc.AverageRTT)
 	}
 	if desc.LastError != nil {
 		str += fmt.Sprintf(", Last error: %s", desc.LastError)
