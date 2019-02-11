@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "a3ad4f98_76d3d53e",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-11T22:51:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7fc25fb4_eacb77f1",
+      "range": {
+        "startLine": 58,
+        "startChar": 0,
+        "endLine": 58,
+        "endChar": 4
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e2f96145_d4b0a5a7",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 2
@@ -131,6 +155,30 @@
       "side": 1,
       "message": "So I removed this, but users will have to specifically set AuthSource if they want to change which database they authenticate against.",
       "parentUuid": "e2f96145_d4b0a5a7",
+      "range": {
+        "startLine": 63,
+        "startChar": 1,
+        "endLine": 63,
+        "endChar": 9
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d873027d_99b26717",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-11T22:51:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "09837fdb_51da20a1",
       "range": {
         "startLine": 63,
         "startChar": 1,
@@ -237,6 +285,30 @@
     },
     {
       "key": {
+        "uuid": "b8385c6f_d1008a89",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 71,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-11T22:51:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ec36d9d9_366221ff",
+      "range": {
+        "startLine": 71,
+        "startChar": 0,
+        "endLine": 71,
+        "endChar": 1
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0c9e924a_2185ca1a",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 2
@@ -266,6 +338,24 @@
       "side": 1,
       "message": "Done",
       "parentUuid": "0c9e924a_2185ca1a",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "bdbbffb9_ea04f908",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-11T22:51:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "3b8f1ce2_cd7d2f8c",
       "revId": "053f42e6af7895e51fa01296603334d7804368a2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
@@ -319,6 +409,30 @@
     },
     {
       "key": {
+        "uuid": "b246bf24_d2d3e327",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 81,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-11T22:51:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "7242a35f_63deaad3",
+      "range": {
+        "startLine": 81,
+        "startChar": 1,
+        "endLine": 81,
+        "endChar": 9
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6b601e6f_1666ea3f",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 2
@@ -348,6 +462,24 @@
       "side": 1,
       "message": "Since you\u0027ll be able to set both Zlib and ZStd level we\u0027ll need both.",
       "parentUuid": "6b601e6f_1666ea3f",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3464c363_129b8ced",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-11T22:51:46Z",
+      "side": 1,
+      "message": "How about the alternative I suggested then?  Have a Compressor struct that contains some generic way of setting compressor options, similar to the way auth mechanism options works.  I would just hate to see us have to add any more compressor-specific fields to ClientOptions.",
+      "parentUuid": "477a987f_73b5668c",
       "revId": "053f42e6af7895e51fa01296603334d7804368a2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -389,6 +521,30 @@
       "side": 1,
       "message": "Client.configure checks it, it\u0027s the first thing it does.",
       "parentUuid": "e169ab70_272e93fa",
+      "range": {
+        "startLine": 96,
+        "startChar": 2,
+        "endLine": 96,
+        "endChar": 3
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e2edcc8_fa8824a6",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-11T22:51:46Z",
+      "side": 1,
+      "message": "How did I miss that... \n\nStill though, a public Err field is odd to see on an options struct.  Is the issue that you want applications to be able to do a one-liner like:\n\n   NewClient(options.Client().ApplyURI(cs.String()))\n\n?  What if we were to add a new function like\n\n   NewClientFromURI(\"mongodb://localhost...\")\n\nThat way applications only have to add an extra error check if they want to combine a URI with other options (perhaps not so common a use case).",
+      "parentUuid": "ebf05769_d52d8894",
       "range": {
         "startLine": 96,
         "startChar": 2,
@@ -486,6 +642,24 @@
       "revId": "053f42e6af7895e51fa01296603334d7804368a2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "d0fa3043_fbda5a3b",
+        "filename": "mongo/options/clientoptions_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-11T22:51:46Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "765f830f_4a6081e3",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
