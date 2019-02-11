@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
+	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 )
 
 // ListCollectionsBatchCursor is a special batch cursor returned from ListCollections that properly
@@ -82,6 +83,9 @@ func (lcbc *ListCollectionsBatchCursor) Next(ctx context.Context) bool {
 // Batch will return a DocumentSequence for the current batch of documents. The returned
 // DocumentSequence is only valid until the next call to Next or Close.
 func (lcbc *ListCollectionsBatchCursor) Batch() *bsoncore.DocumentSequence { return lcbc.currentBatch }
+
+// Server returns a pointer to the cursor's server.
+func (lcbc *ListCollectionsBatchCursor) Server() *topology.Server { return lcbc.bc.server }
 
 // Err returns the latest error encountered.
 func (lcbc *ListCollectionsBatchCursor) Err() error {

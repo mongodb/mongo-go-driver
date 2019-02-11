@@ -22,6 +22,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
 	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 )
 
 const errorInterrupted int32 = 11601
@@ -453,12 +454,26 @@ func (cs *ChangeStream) Next(ctx context.Context) bool {
 			}
 		}
 
-		killCursors := command.KillCursors{
-			NS:  cs.ns,
-			IDs: []int64{cs.ID()},
+		desc := cs.cursor.bc.Server().SelectedDescription()
+		conn, _ := cs.cursor.bc.Server().Connection(ctx)
+
+		if desc.WireVersion.Max < 4 {
+			kc := wiremessage.KillCursors{
+				NumberOfCursorIDs: 1,
+				CursorIDs:         []int64{cs.ID()},
+				CollectionName:    cs.ns.Collection,
+				DatabaseName:      cs.ns.DB,
+			}
+
+			_ = conn.WriteWireMessage(ctx, kc)
+		} else {
+			kc := command.KillCursors{
+				NS:  cs.ns,
+				IDs: []int64{cs.ID()},
+			}
+			_, _ = kc.RoundTrip(ctx, desc, conn)
 		}
 
-		_, _ = driver.KillCursors(ctx, killCursors, cs.client.topology, cs.db.writeSelector)
 		cs.err = cs.runCommand(ctx, true)
 		if cs.err != nil {
 			return false
