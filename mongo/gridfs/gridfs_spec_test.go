@@ -268,7 +268,7 @@ func compareValues(expected bsonx.Val, actual bsonx.Val) bool {
 	return true // shouldn't get here
 }
 
-func compareGfsDoc(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, filesID primitive.ObjectID) {
+func compareGfsDoc(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, filesID interface{}) {
 	for _, elem := range expected {
 		key := elem.Key
 
@@ -289,8 +289,10 @@ func compareGfsDoc(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, filesID p
 			expectedBytes := make([]byte, 12)
 			actualBytes := make([]byte, 12)
 
-			err = (&filesID).UnmarshalJSON(expectedBytes)
+			var oid primitive.ObjectID
+			err = (&oid).UnmarshalJSON(expectedBytes)
 			testhelpers.RequireNil(t, err, "error unmarshalling expected bytes: %s", err)
+			filesID = oid
 			actualID := actualVal.ObjectID()
 			err = (&actualID).UnmarshalJSON(actualBytes)
 			testhelpers.RequireNil(t, err, "error unmarshalling actual bytes: %s", err)
@@ -314,7 +316,7 @@ func compareGfsDoc(t *testing.T, expected bsonx.Doc, actual bsonx.Doc, filesID p
 }
 
 // compare chunks and expectedChunks collections
-func compareChunks(t *testing.T, filesID primitive.ObjectID) {
+func compareChunks(t *testing.T, filesID interface{}) {
 	actualCursor, err := chunks.Find(ctx, emptyDoc)
 	testhelpers.RequireNil(t, err, "error running Find for chunks: %s", err)
 	expectedCursor, err := expectedChunks.Find(ctx, emptyDoc)
@@ -378,7 +380,7 @@ func msgToDoc(t *testing.T, msg json.RawMessage) bsonx.Doc {
 	return doc
 }
 
-func runUploadAssert(t *testing.T, test test, fileID primitive.ObjectID) {
+func runUploadAssert(t *testing.T, test test, fileID interface{}) {
 	assert := test.Assert
 
 	for _, assertData := range assert.Data {
