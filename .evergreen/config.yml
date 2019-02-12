@@ -29,16 +29,16 @@ functions:
     - command: git.get_project
       type: system
       params:
-        directory: src/github.com/mongodb/mongo-go-driver
+        directory: src/go.mongodb.org/mongo-driver
     # Make an evergreen expansion file with dynamic values
     - command: shell.exec
       params:
-        working_dir: src/github.com/mongodb/mongo-go-driver
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
            if [ "Windows_NT" = "$OS" ]; then
-              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+              export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
            else
-              export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+              export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
            fi;
 
            # Get the current unique version of this checkout
@@ -64,8 +64,8 @@ functions:
            export PROJECT="${project}"
 
            if [ "Windows_NT" = "$OS" ]; then
-              export USERPROFILE=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
-              export HOME=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+              export USERPROFILE=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+              export HOME=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
            fi
 
            go version
@@ -97,7 +97,7 @@ functions:
     # Load the expansion file to make an evergreen variable with the current unique version
     - command: expansions.update
       params:
-        file: src/github.com/mongodb/mongo-go-driver/expansion.yml
+        file: src/go.mongodb.org/mongo-driver/expansion.yml
 
 
   prepare-resources:
@@ -115,7 +115,7 @@ functions:
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
       params:
-        working_dir: src/github.com/mongodb/mongo-go-driver
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
            ${PREPARE_SHELL}
            # any go tools that we need
@@ -216,7 +216,7 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/github.com/mongodb/mongo-go-driver
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           ${BUILD_ENV|} make ${targets} BUILD_TAGS="-tags gssapi"
@@ -226,7 +226,7 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/github.com/mongodb/mongo-go-driver
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
 
@@ -245,7 +245,7 @@ functions:
    - command: json.send
      params:
        name: perf
-       file: src/github.com/mongodb/mongo-go-driver/perf.json
+       file: src/go.mongodb.org/mongo-driver/perf.json
 
 
   run-enterprise-auth-tests:
@@ -253,13 +253,13 @@ functions:
       type: test
       params:
         silent: true
-        working_dir: src/github.com/mongodb/mongo-go-driver
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
           fi;
           export GOPATH="$GOPATH"
           export GOROOT="${GO_DIST}"
@@ -271,14 +271,14 @@ functions:
       type: test
       params:
         silent: true
-        working_dir: src/github.com/mongodb/mongo-go-driver
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname $(dirname `pwd`)))))
+            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
             export MONGODB_URI=${gssapi_auth_windows_mongodb_uri}
           else
-            export GOPATH=$(dirname $(dirname $(dirname $(dirname `pwd`))))
+            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
             echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
             base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
             mkdir -p ~/.krb5
@@ -302,7 +302,7 @@ post:
   - command: gotest.parse_files
     params:
       files:
-        - "src/github.com/mongodb/mongo-go-driver/*.suite"
+        - "src/go.mongodb.org/mongo-driver/*.suite"
   - func: upload-mo-artifacts
   - func: cleanup
 

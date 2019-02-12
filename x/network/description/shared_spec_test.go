@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/tag"
-	"github.com/mongodb/mongo-go-driver/x/network/address"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/x/network/address"
 )
 
 type testCase struct {

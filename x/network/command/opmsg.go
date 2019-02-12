@@ -7,9 +7,9 @@
 package command
 
 import (
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Raw, error) {

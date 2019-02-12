@@ -8,7 +8,7 @@
 // of servers. This package is designed to expose enough inner workings of service discovery
 // and monitoring to allow low level applications to have fine grained control, while hiding
 // most of the detailed implementation of the algorithms.
-package topology
+package topology // import "go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 
 import (
 	"context"
@@ -20,10 +20,10 @@ import (
 
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
-	"github.com/mongodb/mongo-go-driver/x/network/address"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/x/network/address"
+	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
 // ErrSubscribeAfterClosed is returned when a user attempts to subscribe to a
