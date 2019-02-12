@@ -7,9 +7,9 @@
 package wiremessage
 
 import (
+	"drivers.mongodb.org/go/x/bsonx"
 	"errors"
 	"fmt"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"strings"
 )
 

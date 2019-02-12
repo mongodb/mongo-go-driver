@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"drivers.mongodb.org/go/bson/bsontype"
+	"drivers.mongodb.org/go/bson/primitive"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
 )
 
 func TestValue(t *testing.T) {

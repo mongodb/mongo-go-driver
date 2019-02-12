@@ -13,9 +13,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/examples/documentation_examples"
-	"github.com/mongodb/mongo-go-driver/internal/testutil"
-	"github.com/mongodb/mongo-go-driver/mongo"
+	"drivers.mongodb.org/go/examples/documentation_examples"
+	"drivers.mongodb.org/go/internal/testutil"
+	"drivers.mongodb.org/go/mongo"
 	"github.com/stretchr/testify/require"
 )
 

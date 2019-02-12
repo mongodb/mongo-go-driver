@@ -12,9 +12,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/bson/primitive"
+	"drivers.mongodb.org/go/mongo"
+	"drivers.mongodb.org/go/x/bsonx"
 	"math"
 )
 

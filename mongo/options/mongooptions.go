@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/x/bsonx"
 )
 
 // Collation allows users to specify language-specific rules for string comparison, such as

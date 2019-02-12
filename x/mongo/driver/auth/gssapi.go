@@ -12,9 +12,9 @@ package auth
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/auth/internal/gssapi"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"drivers.mongodb.org/go/x/mongo/driver/auth/internal/gssapi"
+	"drivers.mongodb.org/go/x/network/description"
+	"drivers.mongodb.org/go/x/network/wiremessage"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.

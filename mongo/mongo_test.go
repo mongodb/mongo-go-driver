@@ -11,13 +11,13 @@ import (
 	"fmt"
 	"testing"
 
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/bson/bsontype"
+	"drivers.mongodb.org/go/bson/primitive"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/bsonx/bsoncore"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func noerr(t *testing.T, err error) {

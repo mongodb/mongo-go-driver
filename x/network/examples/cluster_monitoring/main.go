@@ -10,8 +10,8 @@ import (
 	"context"
 	"log"
 
+	"drivers.mongodb.org/go/x/mongo/driver/topology"
 	"github.com/kr/pretty"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
 )
 
 func main() {

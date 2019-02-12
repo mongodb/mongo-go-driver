@@ -10,10 +10,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/network/result"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/network/result"
+	"drivers.mongodb.org/go/x/network/wiremessage"
 )
 
 // BuildInfo represents the buildInfo command.

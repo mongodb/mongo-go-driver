@@ -13,15 +13,15 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/internal"
-	"github.com/mongodb/mongo-go-driver/internal/testutil"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
-	"github.com/mongodb/mongo-go-driver/x/network/command"
-	"github.com/mongodb/mongo-go-driver/x/network/connection"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/internal"
+	"drivers.mongodb.org/go/internal/testutil"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/mongo/driver/topology"
+	"drivers.mongodb.org/go/x/network/command"
+	"drivers.mongodb.org/go/x/network/connection"
+	"drivers.mongodb.org/go/x/network/description"
+	"drivers.mongodb.org/go/x/network/wiremessage"
 )
 
 func createServerConn(t *testing.T) (*topology.SelectedServer, connection.Connection) {

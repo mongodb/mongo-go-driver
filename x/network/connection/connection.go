@@ -11,7 +11,7 @@
 // writing to and reading from a connection to wireops.Op's. This package also provides types for
 // listening for and accepting Connections, as well as some types for handling connections and
 // proxying connections to another server.
-package connection
+package connection // import "drivers.mongodb.org/go/x/network/connection"
 
 import (
 	"context"
@@ -24,15 +24,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/event"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
-	"github.com/mongodb/mongo-go-driver/x/network/address"
-	"github.com/mongodb/mongo-go-driver/x/network/compressor"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/bsontype"
+	"drivers.mongodb.org/go/event"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/bsonx/bsoncore"
+	"drivers.mongodb.org/go/x/network/address"
+	"drivers.mongodb.org/go/x/network/compressor"
+	"drivers.mongodb.org/go/x/network/description"
+	"drivers.mongodb.org/go/x/network/wiremessage"
 )
 
 var globalClientConnectionID uint64

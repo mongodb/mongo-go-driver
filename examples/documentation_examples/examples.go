@@ -13,11 +13,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/primitive"
+	"drivers.mongodb.org/go/mongo"
+	"drivers.mongodb.org/go/mongo/options"
+	"drivers.mongodb.org/go/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 

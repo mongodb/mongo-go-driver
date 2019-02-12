@@ -4,15 +4,15 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package driver
+package driver // import "drivers.mongodb.org/go/x/mongo/driver"
 
 import (
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/mongo/driver/session"
 )
 
 // ErrCollation is caused if a collation is given for an invalid server version.

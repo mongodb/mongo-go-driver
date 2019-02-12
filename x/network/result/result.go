@@ -5,14 +5,14 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // Package result contains the results from various operations.
-package result
+package result // import "drivers.mongodb.org/go/x/network/result"
 
 import (
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/primitive"
+	"drivers.mongodb.org/go/x/bsonx"
 )
 
 // Upsert contains the information for a single upsert.

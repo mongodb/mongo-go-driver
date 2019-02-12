@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/mongo/options"
+	"drivers.mongodb.org/go/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 

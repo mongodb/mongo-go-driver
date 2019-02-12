@@ -11,11 +11,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
-	"github.com/mongodb/mongo-go-driver/x/network/command"
-	"github.com/mongodb/mongo-go-driver/x/network/result"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/x/mongo/driver"
+	"drivers.mongodb.org/go/x/mongo/driver/topology"
+	"drivers.mongodb.org/go/x/network/command"
+	"drivers.mongodb.org/go/x/network/result"
 )
 
 // ErrUnacknowledgedWrite is returned from functions that have an unacknowledged

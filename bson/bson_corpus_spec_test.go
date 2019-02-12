@@ -19,9 +19,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/bson/bsonrw"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/pretty"
 )

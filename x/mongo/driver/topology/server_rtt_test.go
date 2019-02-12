@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
+	"drivers.mongodb.org/go/internal/testutil/helpers"
 	"github.com/stretchr/testify/require"
 )
 

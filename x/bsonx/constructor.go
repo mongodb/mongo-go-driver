@@ -11,8 +11,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"drivers.mongodb.org/go/bson/bsontype"
+	"drivers.mongodb.org/go/bson/primitive"
 )
 
 // IDoc is the interface implemented by Doc and MDoc. It allows either of these types to be provided

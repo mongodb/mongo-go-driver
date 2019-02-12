@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package mongo
+package mongo // import "drivers.mongodb.org/go/mongo"
 
 import (
 	"context"
@@ -14,13 +14,13 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/mongo/options"
+	"drivers.mongodb.org/go/x/bsonx"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/bson/bsontype"
+	"drivers.mongodb.org/go/bson/primitive"
 )
 
 // Dialer is used to make network connections.

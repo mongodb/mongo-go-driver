@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
-	"github.com/mongodb/mongo-go-driver/x/network/command"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/bsontype"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/bsonx/bsoncore"
+	"drivers.mongodb.org/go/x/mongo/driver/session"
+	"drivers.mongodb.org/go/x/mongo/driver/topology"
+	"drivers.mongodb.org/go/x/network/command"
+	"drivers.mongodb.org/go/x/network/wiremessage"
 )
 
 // BatchCursor is a batch implementation of a cursor. It returns documents in entire batches instead

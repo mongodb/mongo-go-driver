@@ -16,8 +16,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/x/network/description"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"drivers.mongodb.org/go/x/network/description"
+	"drivers.mongodb.org/go/x/network/wiremessage"
 	"github.com/xdg/scram"
 	"github.com/xdg/stringprep"
 )

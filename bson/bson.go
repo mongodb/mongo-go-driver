@@ -9,10 +9,10 @@
 
 // +build go1.9
 
-package bson
+package bson // import "drivers.mongodb.org/go/bson"
 
 import (
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"drivers.mongodb.org/go/bson/primitive"
 )
 
 // Zeroer allows custom struct types to implement a report of zero

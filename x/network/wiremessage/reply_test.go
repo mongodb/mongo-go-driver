@@ -9,8 +9,8 @@ package wiremessage
 import (
 	"testing"
 
+	"drivers.mongodb.org/go/bson"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson"
 )
 
 func TestReply(t *testing.T) {

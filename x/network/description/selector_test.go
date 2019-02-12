@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"drivers.mongodb.org/go/mongo/readpref"
+	"drivers.mongodb.org/go/tag"
+	"drivers.mongodb.org/go/x/network/address"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/tag"
-	"github.com/mongodb/mongo-go-driver/x/network/address"
 	"github.com/stretchr/testify/require"
 )
 

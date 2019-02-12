@@ -4,10 +4,10 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package integration
+package integration // import "drivers.mongodb.org/go/x/network/integration"
 
 import (
 	// These imports are for coverage information.
-	_ "github.com/mongodb/mongo-go-driver/x/mongo/driver/topology"
-	_ "github.com/mongodb/mongo-go-driver/x/network/connection"
+	_ "drivers.mongodb.org/go/x/mongo/driver/topology"
+	_ "drivers.mongodb.org/go/x/network/connection"
 )

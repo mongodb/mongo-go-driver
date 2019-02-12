@@ -10,7 +10,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/x/bsonx"
 )
 
 func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {

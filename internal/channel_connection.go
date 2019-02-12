@@ -9,9 +9,9 @@ package internal
 import (
 	"context"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/network/wiremessage"
 	"errors"
 	"fmt"
 )

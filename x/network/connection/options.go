@@ -10,8 +10,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/event"
-	"github.com/mongodb/mongo-go-driver/x/network/compressor"
+	"drivers.mongodb.org/go/event"
+	"drivers.mongodb.org/go/x/network/compressor"
 )
 
 type config struct {

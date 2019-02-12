@@ -11,17 +11,17 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
-	"github.com/mongodb/mongo-go-driver/x/network/command"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/mongo/options"
+	"drivers.mongodb.org/go/mongo/readconcern"
+	"drivers.mongodb.org/go/mongo/readpref"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/bsonx/bsoncore"
+	"drivers.mongodb.org/go/x/mongo/driver"
+	"drivers.mongodb.org/go/x/mongo/driver/session"
+	"drivers.mongodb.org/go/x/network/command"
+	"drivers.mongodb.org/go/x/network/description"
 )
 
 const errorInterrupted int32 = 11601

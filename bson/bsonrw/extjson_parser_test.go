@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
+	"drivers.mongodb.org/go/bson/bsontype"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
 var (

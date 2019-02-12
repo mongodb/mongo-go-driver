@@ -12,12 +12,12 @@ import (
 	"reflect"
 	"testing"
 
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/bson/bsonrw"
+	"drivers.mongodb.org/go/bson/bsonrw/bsonrwtest"
+	"drivers.mongodb.org/go/bson/bsontype"
+	"drivers.mongodb.org/go/x/bsonx/bsoncore"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw/bsonrwtest"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 func TestBasicDecode(t *testing.T) {

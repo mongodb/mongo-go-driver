@@ -13,9 +13,9 @@ import (
 	"io"
 	"testing"
 
+	"drivers.mongodb.org/go/bson/bsontype"
+	"drivers.mongodb.org/go/x/bsonx/bsoncore"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 	"github.com/stretchr/testify/require"
 )
 

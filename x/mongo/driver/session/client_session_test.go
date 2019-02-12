@@ -10,10 +10,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
+	"drivers.mongodb.org/go/bson/primitive"
+	"drivers.mongodb.org/go/internal/testutil/helpers"
+	"drivers.mongodb.org/go/x/bsonx/bsoncore"
+	"drivers.mongodb.org/go/x/mongo/driver/uuid"
 	"github.com/stretchr/testify/require"
 )
 

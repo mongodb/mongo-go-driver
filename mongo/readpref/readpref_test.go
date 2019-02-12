@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/tag"
+	. "drivers.mongodb.org/go/mongo/readpref"
+	"drivers.mongodb.org/go/tag"
 	"github.com/stretchr/testify/require"
 )
 

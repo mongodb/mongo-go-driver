@@ -15,22 +15,22 @@ import (
 
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/internal/testutil"
-	"github.com/mongodb/mongo-go-driver/tag"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/internal/testutil"
+	"drivers.mongodb.org/go/tag"
+	"drivers.mongodb.org/go/x/bsonx"
 	"github.com/stretchr/testify/require"
 
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/session"
-	"github.com/mongodb/mongo-go-driver/x/mongo/driver/uuid"
-	"github.com/mongodb/mongo-go-driver/x/network/connstring"
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/bson/bsonrw"
+	"drivers.mongodb.org/go/mongo/options"
+	"drivers.mongodb.org/go/mongo/readpref"
+	"drivers.mongodb.org/go/mongo/writeconcern"
+	"drivers.mongodb.org/go/x/mongo/driver/session"
+	"drivers.mongodb.org/go/x/mongo/driver/uuid"
+	"drivers.mongodb.org/go/x/network/connstring"
 	"reflect"
 )
 

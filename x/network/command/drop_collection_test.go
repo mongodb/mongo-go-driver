@@ -3,8 +3,8 @@ package command
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"drivers.mongodb.org/go/mongo/writeconcern"
+	"drivers.mongodb.org/go/x/network/description"
 )
 
 func TestDropCollection(t *testing.T) {

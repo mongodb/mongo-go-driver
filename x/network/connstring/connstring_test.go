@@ -12,7 +12,7 @@ import (
 
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/x/network/connstring"
+	"drivers.mongodb.org/go/x/network/connstring"
 	"github.com/stretchr/testify/require"
 )
 

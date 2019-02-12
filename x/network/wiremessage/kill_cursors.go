@@ -7,9 +7,9 @@
 package wiremessage
 
 import (
+	"drivers.mongodb.org/go/x/bsonx"
 	"errors"
 	"fmt"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 )
 
 // KillCursors represents the OP_KILL_CURSORS message of the MongoDB wire protocol.

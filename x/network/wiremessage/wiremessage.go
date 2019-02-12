@@ -10,7 +10,7 @@
 // corresponding implementations. One prefixed with Immutable which can be created by casting a
 // []byte to the type, and another prefixed with Mutable that is a struct with methods to mutate
 // the op.
-package wiremessage
+package wiremessage // import "drivers.mongodb.org/go/x/network/wiremessage"
 
 import (
 	"context"

@@ -10,9 +10,9 @@ import (
 	"reflect"
 	"testing"
 
+	"drivers.mongodb.org/go/bson/bsoncodec"
+	"drivers.mongodb.org/go/bson/bsonrw"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
 )
 
 func TestUnmarshal(t *testing.T) {

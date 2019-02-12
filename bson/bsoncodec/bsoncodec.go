@@ -4,15 +4,15 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package bsoncodec
+package bsoncodec // import "drivers.mongodb.org/go/bson/bsoncodec"
 
 import (
 	"fmt"
 	"reflect"
 	"strings"
 
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
+	"drivers.mongodb.org/go/bson/bsonrw"
+	"drivers.mongodb.org/go/bson/bsontype"
 )
 
 // Marshaler is an interface implemented by types that can marshal themselves

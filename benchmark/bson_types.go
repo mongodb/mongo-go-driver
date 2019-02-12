@@ -6,7 +6,7 @@
 
 package benchmark
 
-import "github.com/mongodb/mongo-go-driver/bson/primitive"
+import "drivers.mongodb.org/go/bson/primitive"
 
 type flatBSONTags struct {
 	ID primitive.ObjectID `bson:"_id"`

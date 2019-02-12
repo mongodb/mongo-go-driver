@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package gridfs
+package gridfs // import "drivers.mongodb.org/go/mongo/gridfs"
 
 import (
 	"bytes"
@@ -16,14 +16,14 @@ import (
 
 	"time"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
-	"github.com/mongodb/mongo-go-driver/mongo"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
-	"github.com/mongodb/mongo-go-driver/mongo/readpref"
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"drivers.mongodb.org/go/bson"
+	"drivers.mongodb.org/go/bson/primitive"
+	"drivers.mongodb.org/go/mongo"
+	"drivers.mongodb.org/go/mongo/options"
+	"drivers.mongodb.org/go/mongo/readconcern"
+	"drivers.mongodb.org/go/mongo/readpref"
+	"drivers.mongodb.org/go/mongo/writeconcern"
+	"drivers.mongodb.org/go/x/bsonx"
 )
 
 // TODO: add sessions options

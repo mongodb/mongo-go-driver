@@ -10,12 +10,12 @@ import (
 	"context"
 	"runtime"
 
-	"github.com/mongodb/mongo-go-driver/version"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/network/address"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
-	"github.com/mongodb/mongo-go-driver/x/network/result"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"drivers.mongodb.org/go/version"
+	"drivers.mongodb.org/go/x/bsonx"
+	"drivers.mongodb.org/go/x/network/address"
+	"drivers.mongodb.org/go/x/network/description"
+	"drivers.mongodb.org/go/x/network/result"
+	"drivers.mongodb.org/go/x/network/wiremessage"
 )
 
 // Handshake represents a generic MongoDB Handshake. It calls isMaster and

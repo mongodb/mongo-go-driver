@@ -6,7 +6,7 @@
 
 // Package primitive contains types similar to Go primitives for BSON types can do not have direct
 // Go primitive representations.
-package primitive
+package primitive // import "drivers.mongodb.org/go/bson/primitive"
 
 import (
 	"bytes"

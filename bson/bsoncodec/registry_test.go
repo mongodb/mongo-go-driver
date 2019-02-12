@@ -10,9 +10,9 @@ import (
 	"reflect"
 	"testing"
 
+	"drivers.mongodb.org/go/bson/bsonrw"
+	"drivers.mongodb.org/go/bson/bsontype"
 	"github.com/google/go-cmp/cmp"
-	"github.com/mongodb/mongo-go-driver/bson/bsonrw"
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
 )
 
 func TestRegistry(t *testing.T) {
