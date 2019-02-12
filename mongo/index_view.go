@@ -74,11 +74,11 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		if err == command.ErrEmptyCursor {
 			return newEmptyCursor(), nil
 		}
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	cursor, err := newCursor(batchCursor, iv.coll.registry)
-	return cursor, replaceTopologyErr(err)
+	return cursor, replaceErrors(err)
 }
 
 // CreateOne creates a single index in the collection specified by the model.

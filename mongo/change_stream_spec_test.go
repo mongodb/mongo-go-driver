@@ -18,7 +18,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/internal/testutil/helpers"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"github.com/mongodb/mongo-go-driver/x/network/command"
 )
 
 const csTestsDir = "../data/change-streams"
@@ -84,14 +83,14 @@ func getStreamOptions(test *csTest) *options.ChangeStreamOptions {
 }
 
 func changeStreamCompareErrors(t *testing.T, expected map[string]interface{}, actual error) {
-	if cmdErr, ok := actual.(command.Error); ok {
+	if cmdErr, ok := actual.(CommandError); ok {
 		expectedCode := int32(expected["code"].(float64))
 
 		if cmdErr.Code != expectedCode {
 			t.Fatalf("error code mismatch. expected %d, got %d", expectedCode, cmdErr.Code)
 		}
 	} else {
-		t.Fatalf("error was not of type command.Error")
+		t.Fatalf("error was not of type CommandError")
 	}
 }
 
