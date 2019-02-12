@@ -55,7 +55,7 @@ type MarshalError struct {
 
 // Error implements the error interface.
 func (me MarshalError) Error() string {
-	return fmt.Sprintf("cannot transform type %s to a *bsonx.Document", reflect.TypeOf(me.Value))
+	return fmt.Sprintf("cannot transform type %s to a BSON Document: %v", reflect.TypeOf(me.Value), me.Err)
 }
 
 // Pipeline is a type that makes creating aggregation pipelines easier. It is a
