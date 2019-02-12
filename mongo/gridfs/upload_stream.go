@@ -12,10 +12,12 @@ import (
 	"context"
 	"time"
 
+	"math"
+
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	"math"
 )
 
 // UploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
@@ -28,7 +30,9 @@ var ErrStreamClosed = errors.New("stream is closed or aborted")
 // UploadStream is used to upload files in chunks.
 type UploadStream struct {
 	*Upload // chunk size and metadata
-	FileID  primitive.ObjectID
+	FileID  interface{}
+
+	registry *bsoncodec.Registry
 
 	chunkIndex    int
 	chunksColl    *mongo.Collection // collection to store file chunks
@@ -42,11 +46,12 @@ type UploadStream struct {
 }
 
 // NewUploadStream creates a new upload stream.
-func newUploadStream(upload *Upload, fileID primitive.ObjectID, filename string, chunks *mongo.Collection, files *mongo.Collection) *UploadStream {
+func newUploadStream(registry *bsoncodec.Registry, upload *Upload, fileID interface{}, filename string, chunks, files *mongo.Collection) *UploadStream {
 	return &UploadStream{
 		Upload: upload,
 		FileID: fileID,
 
+		registry:   registry,
 		chunksColl: chunks,
 		filename:   filename,
 		filesColl:  files,
@@ -134,7 +139,11 @@ func (us *UploadStream) Abort() error {
 		defer cancel()
 	}
 
-	_, err := us.chunksColl.DeleteMany(ctx, bsonx.Doc{{"files_id", bsonx.ObjectID(us.FileID)}})
+	id, err := convertFileID(us.registry, us.FileID)
+	if err != nil {
+		return err
+	}
+	_, err = us.chunksColl.DeleteMany(ctx, bsonx.Doc{{"files_id", id}})
 	if err != nil {
 		return err
 	}
@@ -156,6 +165,10 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 
 	docs := make([]interface{}, int(numChunks))
 
+	id, err := convertFileID(us.registry, us.FileID)
+	if err != nil {
+		return err
+	}
 	begChunkIndex := us.chunkIndex
 	for i := 0; i < us.bufferIndex; i += int(us.chunkSize) {
 		endIndex := i + int(us.chunkSize)
@@ -169,7 +182,7 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 		chunkData := us.buffer[i:endIndex]
 		docs[us.chunkIndex-begChunkIndex] = bsonx.Doc{
 			{"_id", bsonx.ObjectID(primitive.NewObjectID())},
-			{"files_id", bsonx.ObjectID(us.FileID)},
+			{"files_id", id},
 			{"n", bsonx.Int32(int32(us.chunkIndex))},
 			{"data", bsonx.Binary(0x00, chunkData)},
 		}
@@ -177,7 +190,7 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 		us.fileLen += int64(len(chunkData))
 	}
 
-	_, err := us.chunksColl.InsertMany(ctx, docs)
+	_, err = us.chunksColl.InsertMany(ctx, docs)
 	if err != nil {
 		return err
 	}
@@ -192,8 +205,12 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 }
 
 func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
+	id, err := convertFileID(us.registry, us.FileID)
+	if err != nil {
+		return err
+	}
 	doc := bsonx.Doc{
-		{"_id", bsonx.ObjectID(us.FileID)},
+		{"_id", id},
 		{"length", bsonx.Int64(us.fileLen)},
 		{"chunkSize", bsonx.Int32(us.chunkSize)},
 		{"uploadDate", bsonx.DateTime(time.Now().UnixNano() / int64(time.Millisecond))},
@@ -204,7 +221,7 @@ func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
 		doc = append(doc, bsonx.Elem{"metadata", bsonx.Document(us.metadata)})
 	}
 
-	_, err := us.filesColl.InsertOne(ctx, doc)
+	_, err = us.filesColl.InsertOne(ctx, doc)
 	if err != nil {
 		return err
 	}

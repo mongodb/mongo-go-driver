@@ -9,6 +9,7 @@ package options
 import (
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/bson/bsoncodec"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
@@ -31,6 +32,7 @@ type BucketOptions struct {
 	WriteConcern   *writeconcern.WriteConcern // The write concern for the bucket. Defaults to the write concern of the database.
 	ReadConcern    *readconcern.ReadConcern   // The read concern for the bucket. Defaults to the read concern of the database.
 	ReadPreference *readpref.ReadPref         // The read preference for the bucket. Defaults to the read preference of the database.
+	Registry       *bsoncodec.Registry        // The registry to use when marshaling BSON. Defaults to bson.DefaultRegistry.
 }
 
 // GridFSBucket creates a new *BucketOptions
@@ -71,6 +73,12 @@ func (b *BucketOptions) SetReadPreference(rp *readpref.ReadPref) *BucketOptions 
 	return b
 }
 
+// SetRegistry sets the registry for the bucket.
+func (b *BucketOptions) SetRegistry(reg *bsoncodec.Registry) *BucketOptions {
+	b.Registry = reg
+	return b
+}
+
 // MergeBucketOptions combines the given *BucketOptions into a single *BucketOptions.
 // If the name or chunk size is not set in any of the given *BucketOptions, the resulting *BucketOptions will have
 // name "fs" and chunk size 255KB.
@@ -95,6 +103,9 @@ func MergeBucketOptions(opts ...*BucketOptions) *BucketOptions {
 		}
 		if opt.ReadPreference != nil {
 			b.ReadPreference = opt.ReadPreference
+		}
+		if opt.Registry != nil {
+			b.Registry = opt.Registry
 		}
 	}
 
