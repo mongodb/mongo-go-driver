@@ -4,4 +4,4 @@ directory="$1"
 if [ -z "$directory" ]; then
     directory="."
 fi
-go list $directory/... | sed -e "s/^github.com\/mongodb\/mongo-go-driver/./"
+go list $directory/... | sed -e "s/^go.mongodb.org\/mongo-driver/./"

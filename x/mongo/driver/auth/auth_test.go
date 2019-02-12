@@ -11,10 +11,10 @@ import (
 
 	"reflect"
 
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
-	. "github.com/mongodb/mongo-go-driver/x/mongo/driver/auth"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/x/bsonx"
+	. "go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 func TestCreateAuthenticator(t *testing.T) {
