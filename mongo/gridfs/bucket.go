@@ -24,6 +24,7 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
 )
 
 // TODO: add sessions options
@@ -116,7 +117,7 @@ func (b *Bucket) OpenUploadStream(filename string, opts ...*options.UploadOption
 }
 
 // OpenUploadStreamWithID creates a new upload stream for a file given the file ID and filename.
-func (b *Bucket) OpenUploadStreamWithID(fileID primitive.ObjectID, filename string, opts ...*options.UploadOptions) (*UploadStream, error) {
+func (b *Bucket) OpenUploadStreamWithID(fileID interface{}, filename string, opts ...*options.UploadOptions) (*UploadStream, error) {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
 		defer cancel()
@@ -142,7 +143,7 @@ func (b *Bucket) UploadFromStream(filename string, source io.Reader, opts ...*op
 }
 
 // UploadFromStreamWithID uploads a file given a source stream.
-func (b *Bucket) UploadFromStreamWithID(fileID primitive.ObjectID, filename string, source io.Reader, opts ...*options.UploadOptions) error {
+func (b *Bucket) UploadFromStreamWithID(fileID interface{}, filename string, source io.Reader, opts ...*options.UploadOptions) error {
 	us, err := b.OpenUploadStreamWithID(fileID, filename, opts...)
 	if err != nil {
 		return err
@@ -177,15 +178,19 @@ func (b *Bucket) UploadFromStreamWithID(fileID primitive.ObjectID, filename stri
 }
 
 // OpenDownloadStream creates a stream from which the contents of the file can be read.
-func (b *Bucket) OpenDownloadStream(fileID primitive.ObjectID) (*DownloadStream, error) {
+func (b *Bucket) OpenDownloadStream(fileID interface{}) (*DownloadStream, error) {
+	id, err := convertFileID(fileID)
+	if err != nil {
+		return nil, err
+	}
 	return b.openDownloadStream(bsonx.Doc{
-		{"_id", bsonx.ObjectID(fileID)},
+		{"_id", id},
 	})
 }
 
 // DownloadToStream downloads the file with the specified fileID and writes it to the provided io.Writer.
 // Returns the number of bytes written to the steam and an error, or nil if there was no error.
-func (b *Bucket) DownloadToStream(fileID primitive.ObjectID, stream io.Writer) (int64, error) {
+func (b *Bucket) DownloadToStream(fileID interface{}, stream io.Writer) (int64, error) {
 	ds, err := b.OpenDownloadStream(fileID)
 	if err != nil {
 		return 0, err
@@ -225,7 +230,7 @@ func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts 
 }
 
 // Delete deletes all chunks and metadata associated with the file with the given file ID.
-func (b *Bucket) Delete(fileID primitive.ObjectID) error {
+func (b *Bucket) Delete(fileID interface{}) error {
 	// delete document in files collection and then chunks to minimize race conditions
 
 	ctx, cancel := deadlineContext(b.writeDeadline)
@@ -233,7 +238,11 @@ func (b *Bucket) Delete(fileID primitive.ObjectID) error {
 		defer cancel()
 	}
 
-	res, err := b.filesColl.DeleteOne(ctx, bsonx.Doc{{"_id", bsonx.ObjectID(fileID)}})
+	id, err := convertFileID(fileID)
+	if err != nil {
+		return err
+	}
+	res, err := b.filesColl.DeleteOne(ctx, bsonx.Doc{{"_id", id}})
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
 	}
@@ -277,14 +286,18 @@ func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*
 }
 
 // Rename renames the stored file with the specified file ID.
-func (b *Bucket) Rename(fileID primitive.ObjectID, newFilename string) error {
+func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
 	ctx, cancel := deadlineContext(b.writeDeadline)
 	if cancel != nil {
 		defer cancel()
 	}
 
+	id, err := convertFileID(fileID)
+	if err != nil {
+		return err
+	}
 	res, err := b.filesColl.UpdateOne(ctx,
-		bsonx.Doc{{"_id", bsonx.ObjectID(fileID)}},
+		bsonx.Doc{{"_id", id}},
 		bsonx.Doc{{"$set", bsonx.Document(bsonx.Doc{{"filename", bsonx.String(newFilename)}})}},
 	)
 	if err != nil {
@@ -369,8 +382,12 @@ func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, 
 	return copied, ds.Close()
 }
 
-func (b *Bucket) deleteChunks(ctx context.Context, fileID primitive.ObjectID) error {
-	_, err := b.chunksColl.DeleteMany(ctx, bsonx.Doc{{"files_id", bsonx.ObjectID(fileID)}})
+func (b *Bucket) deleteChunks(ctx context.Context, fileID interface{}) error {
+	id, err := convertFileID(fileID)
+	if err != nil {
+		return err
+	}
+	_, err = b.chunksColl.DeleteMany(ctx, bsonx.Doc{{"files_id", id}})
 	return err
 }
 
@@ -388,9 +405,13 @@ func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*opti
 	return cursor, nil
 }
 
-func (b *Bucket) findChunks(ctx context.Context, fileID primitive.ObjectID) (*mongo.Cursor, error) {
+func (b *Bucket) findChunks(ctx context.Context, fileID interface{}) (*mongo.Cursor, error) {
+	id, err := convertFileID(fileID)
+	if err != nil {
+		return nil, err
+	}
 	chunksCursor, err := b.chunksColl.Find(ctx,
-		bsonx.Doc{{"files_id", bsonx.ObjectID(fileID)}},
+		bsonx.Doc{{"files_id", id}},
 		options.Find().SetSort(bsonx.Doc{{"n", bsonx.Int32(1)}})) // sort by chunk index
 	if err != nil {
 		return nil, err
@@ -509,4 +530,23 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 	}
 
 	return upload, nil
+}
+
+type _convertFileID struct {
+	ID interface{} `bson:"_id"`
+}
+
+func convertFileID(fileID interface{}) (bsonx.Val, error) {
+	id := _convertFileID{
+		ID: fileID,
+	}
+
+	b, err := bson.Marshal(id)
+	if err != nil {
+		return bsonx.Val{}, err
+	}
+	val := bsoncore.Document(b).Lookup("_id")
+	var res bsonx.Val
+	err = res.UnmarshalBSONValue(val.Type, val.Data)
+	return res, err
 }
