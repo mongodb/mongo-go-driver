@@ -91,7 +91,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 
 	client.topology, err = topology.New(client.topologyOptions...)
 	if err != nil {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	return client, nil
@@ -102,7 +102,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 func (c *Client) Connect(ctx context.Context) error {
 	err := c.topology.Connect(ctx)
 	if err != nil {
-		return replaceTopologyErr(err)
+		return replaceErrors(err)
 	}
 
 	return nil
@@ -123,7 +123,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	}
 
 	c.endSessions(ctx)
-	return replaceTopologyErr(c.topology.Disconnect(ctx))
+	return replaceErrors(c.topology.Disconnect(ctx))
 }
 
 // Ping verifies that the client can connect to the topology.
@@ -139,7 +139,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	}
 
 	_, err := c.topology.SelectServer(ctx, description.ReadPrefSelector(rp))
-	return replaceTopologyErr(err)
+	return replaceErrors(err)
 }
 
 // StartSession starts a new session.
@@ -169,7 +169,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 
 	sess, err := session.NewClientSession(c.topology.SessionPool, c.id, session.Explicit, coreOpts)
 	if err != nil {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	sess.RetryWrite = c.retryWrites
@@ -458,7 +458,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		opts...,
 	)
 	if err != nil {
-		return ListDatabasesResult{}, replaceTopologyErr(err)
+		return ListDatabasesResult{}, replaceErrors(err)
 	}
 
 	return (ListDatabasesResult{}).fromResult(res), nil

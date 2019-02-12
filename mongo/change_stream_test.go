@@ -8,10 +8,11 @@ package mongo
 
 import (
 	"context"
-	"github.com/mongodb/mongo-go-driver/mongo/options"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/mongodb/mongo-go-driver/mongo/options"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/bsontype"
@@ -20,7 +21,6 @@ import (
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/mongodb/mongo-go-driver/x/mongo/driver"
-	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,7 +55,7 @@ func (er *errorCursor) DecodeBytes() (bson.Raw, error) {
 }
 
 func (er *errorCursor) Err() error {
-	return command.Error{
+	return CommandError{
 		Code: er.errCode,
 	}
 }
@@ -270,7 +270,7 @@ func TestChangeStream(t *testing.T) {
 
 		_, err = coll.Watch(context.Background(), Pipeline{})
 		require.Error(t, err)
-		if _, ok := err.(command.Error); !ok {
+		if _, ok := err.(CommandError); !ok {
 			t.Errorf("Should have returned command error, but got %T", err)
 		}
 	})
@@ -424,7 +424,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 				cs := stream
 				cs.cursor = &Cursor{
 					bc: driver.NewEmptyBatchCursor(),
-					err: command.Error{
+					err: CommandError{
 						Code: tc.errCode,
 					},
 				}
