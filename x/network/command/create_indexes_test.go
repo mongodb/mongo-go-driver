@@ -3,8 +3,8 @@ package command
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
-	"github.com/mongodb/mongo-go-driver/x/network/description"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
 func TestCreateIndexes(t *testing.T) {
