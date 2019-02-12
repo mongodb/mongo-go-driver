@@ -105,7 +105,7 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 	_, err = driver.AbortTransaction(ctx, cmd, s.topo, description.WriteSelector())
 
 	_ = s.Client.AbortTransaction()
-	return err
+	return replaceErrors(err)
 }
 
 // CommitTransaction commits the sesson's transaction.
@@ -140,7 +140,7 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	if err == nil {
 		return s.Client.CommitTransaction()
 	}
-	return err
+	return replaceErrors(err)
 }
 
 func (s *sessionImpl) ClusterTime() bson.Raw {
