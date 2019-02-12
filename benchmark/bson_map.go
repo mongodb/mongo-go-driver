@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func bsonMapDecoding(ctx context.Context, tm TimerManager, iters int, dataSet string) error {

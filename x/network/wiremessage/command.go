@@ -6,7 +6,7 @@
 
 package wiremessage
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import "go.mongodb.org/mongo-driver/bson"
 
 // Command represents the OP_COMMAND message of the MongoDB wire protocol.
 type Command struct {
