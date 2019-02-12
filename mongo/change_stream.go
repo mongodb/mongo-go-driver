@@ -213,7 +213,7 @@ func (cs *ChangeStream) runCommand(ctx context.Context, replaceOptions bool) err
 	rdr, err := readCmd.RoundTrip(ctx, desc, conn)
 	if err != nil {
 		cs.sess.EndSession(ctx)
-		return err
+		return replaceErrors(err)
 	}
 
 	batchCursor, err := driver.NewBatchCursor(bsoncore.Document(rdr), readCmd.Session, readCmd.Clock, ss.Server, cs.getMoreOpts...)
@@ -483,7 +483,7 @@ func (cs *ChangeStream) Decode(out interface{}) error {
 // Err returns the current error.
 func (cs *ChangeStream) Err() error {
 	if cs.err != nil {
-		return cs.err
+		return replaceErrors(cs.err)
 	}
 	if cs.cursor == nil {
 		return nil
@@ -498,7 +498,7 @@ func (cs *ChangeStream) Close(ctx context.Context) error {
 		return nil // cursor is already closed
 	}
 
-	return cs.cursor.Close(ctx)
+	return replaceErrors(cs.cursor.Close(ctx))
 }
 
 // StreamType represents the type of a change stream.

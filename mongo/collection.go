@@ -195,7 +195,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 			}
 		}
 
-		return &BulkWriteResult{}, replaceTopologyErr(err)
+		return &BulkWriteResult{}, replaceErrors(err)
 	}
 
 	return &BulkWriteResult{
@@ -330,7 +330,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	case command.ErrUnacknowledgedWrite:
 		return &InsertManyResult{InsertedIDs: result}, ErrUnacknowledgedWrite
 	default:
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 	if len(res.WriteErrors) > 0 || res.WriteConcernError != nil {
 		bwErrors := make([]BulkWriteError, 0, len(res.WriteErrors))
@@ -503,7 +503,7 @@ func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
 		opts...,
 	)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	res := &UpdateResult{
@@ -616,7 +616,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		opts...,
 	)
 	if err != nil && err != command.ErrUnacknowledgedWrite {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 	res := &UpdateResult{
 		MatchedCount:  r.MatchedCount,
@@ -731,11 +731,11 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		aggOpts,
 	)
 	if err != nil {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	cursor, err := newCursor(batchCursor, coll.registry)
-	return cursor, replaceTopologyErr(err)
+	return cursor, replaceErrors(err)
 }
 
 // CountDocuments gets the number of documents matching the filter.
@@ -785,7 +785,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		countOpts,
 	)
 
-	return count, replaceTopologyErr(err)
+	return count, replaceErrors(err)
 }
 
 // EstimatedDocumentCount gets an estimate of the count of documents in a collection using collection metadata.
@@ -833,7 +833,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		countOpts,
 	)
 
-	return count, replaceTopologyErr(err)
+	return count, replaceErrors(err)
 }
 
 // Distinct finds the distinct values for a specified field across a single
@@ -882,7 +882,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		opts...,
 	)
 	if err != nil {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	return res.Values, nil
@@ -933,11 +933,11 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		opts...,
 	)
 	if err != nil {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	cursor, err := newCursor(batchCursor, coll.registry)
-	return cursor, replaceTopologyErr(err)
+	return cursor, replaceErrors(err)
 }
 
 // FindOne returns up to one document that matches the model.
@@ -1008,11 +1008,11 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		findOpts...,
 	)
 	if err != nil {
-		return &SingleResult{err: replaceTopologyErr(err)}
+		return &SingleResult{err: replaceErrors(err)}
 	}
 
 	cursor, err := newCursor(batchCursor, coll.registry)
-	return &SingleResult{cur: cursor, reg: coll.registry, err: replaceTopologyErr(err)}
+	return &SingleResult{cur: cursor, reg: coll.registry, err: replaceErrors(err)}
 }
 
 // FindOneAndDelete find a single document and deletes it, returning the
@@ -1061,7 +1061,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		opts...,
 	)
 	if err != nil {
-		return &SingleResult{err: replaceTopologyErr(err)}
+		return &SingleResult{err: replaceErrors(err)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}
@@ -1123,7 +1123,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		opts...,
 	)
 	if err != nil {
-		return &SingleResult{err: replaceTopologyErr(err)}
+		return &SingleResult{err: replaceErrors(err)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}
@@ -1188,7 +1188,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		opts...,
 	)
 	if err != nil {
-		return &SingleResult{err: replaceTopologyErr(err)}
+		return &SingleResult{err: replaceErrors(err)}
 	}
 
 	return &SingleResult{rdr: res.Value, reg: coll.registry}
@@ -1242,7 +1242,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 		coll.client.topology.SessionPool,
 	)
 	if err != nil && !command.IsNotFound(err) {
-		return replaceTopologyErr(err)
+		return replaceErrors(err)
 	}
 	return nil
 }

@@ -11,13 +11,17 @@ package documentation_examples
 
 import (
 	"context"
+	"io/ioutil"
+	logger "log"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +35,7 @@ func requireCursorLength(t *testing.T, cursor *mongo.Cursor, length int) {
 	require.Equal(t, i, length)
 }
 
-func containsKey(doc bsonx.Doc, key ...string) bool {
+func containsKey(doc bson.Raw, key ...string) bool {
 	_, err := doc.LookupErr(key...)
 	if err != nil {
 		return false
@@ -90,8 +94,8 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 			context.Background(),
 			[]interface{}{
 				bson.D{
-					{"item", bsonx.String("journal")},
-					{"qty", bsonx.Int32(25)},
+					{"item", "journal"},
+					{"qty", int32(25)},
 					{"tags", bson.A{"blank", "red"}},
 					{"size", bson.D{
 						{"h", 14},
@@ -100,8 +104,8 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 					}},
 				},
 				bson.D{
-					{"item", bsonx.String("mat")},
-					{"qty", bsonx.Int32(25)},
+					{"item", "mat"},
+					{"qty", int32(25)},
 					{"tags", bson.A{"gray"}},
 					{"size", bson.D{
 						{"h", 27.9},
@@ -1084,11 +1088,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1121,11 +1122,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			require.False(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1157,11 +1155,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1194,11 +1189,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1234,11 +1226,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1276,11 +1265,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1291,13 +1277,16 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 			instock, err := doc.LookupErr("instock")
 			require.NoError(t, err)
 
-			arr := instock.Array()
+			vals, err := instock.Array().Values()
+			require.NoError(t, err)
 
-			for _, val := range arr {
-				require.Equal(t, bson.TypeEmbeddedDocument, val.Type())
+			for _, val := range vals {
+				require.Equal(t, bson.TypeEmbeddedDocument, val.Type)
 				subdoc := val.Document()
+				elems, err := subdoc.Elements()
+				require.NoError(t, err)
 
-				require.Equal(t, 1, len(subdoc))
+				require.Equal(t, 1, len(elems))
 				_, err = subdoc.LookupErr("qty")
 				require.NoError(t, err)
 			}
@@ -1329,11 +1318,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1343,7 +1329,9 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 			instock, err := doc.LookupErr("instock")
 			require.NoError(t, err)
-			require.Equal(t, len(instock.Array()), 1)
+			vals, err := instock.Array().Values()
+			require.NoError(t, err)
+			require.Equal(t, len(vals), 1)
 		}
 
 		require.NoError(t, cursor.Err())
@@ -1504,11 +1492,8 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			uom, err := doc.LookupErr("size", "uom")
 			require.NoError(t, err)
@@ -1561,11 +1546,8 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			doc := cursor.Current
 
 			uom, err := doc.LookupErr("size", "uom")
 			require.NoError(t, err)
@@ -1618,19 +1600,16 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		require.NoError(t, err)
 
-		doc := bsonx.Doc{}
 		for cursor.Next(context.Background()) {
-			doc = doc[:0]
-			err := cursor.Decode(&doc)
-			require.NoError(t, err)
+			require.True(t, containsKey(cursor.Current, "_id"))
+			require.True(t, containsKey(cursor.Current, "item"))
+			require.True(t, containsKey(cursor.Current, "instock"))
 
-			require.True(t, containsKey(doc, "_id"))
-			require.True(t, containsKey(doc, "item"))
-			require.True(t, containsKey(doc, "instock"))
-
-			instock, err := doc.LookupErr("instock")
+			instock, err := cursor.Current.LookupErr("instock")
 			require.NoError(t, err)
-			require.Equal(t, len(instock.Array()), 2)
+			vals, err := instock.Array().Values()
+			require.NoError(t, err)
+			require.Equal(t, len(vals), 2)
 
 		}
 
@@ -1745,7 +1724,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 	{
 		// Start Example 56
 
-		result, err := coll.DeleteMany(context.Background(), bsonx.Doc{})
+		result, err := coll.DeleteMany(context.Background(), bson.D{})
 
 		// End Example 56
 
@@ -1753,3 +1732,205 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 		require.Equal(t, int64(2), result.DeletedCount)
 	}
 }
+
+var log = logger.New(ioutil.Discard, "", logger.LstdFlags)
+
+// Start Transactions Intro Example 1
+
+// UpdateEmployeeInfo is an example function demonstrating transactions.
+func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
+	employees := client.Database("hr").Collection("employees")
+	events := client.Database("reporting").Collection("events")
+
+	return client.UseSession(ctx, func(sctx mongo.SessionContext) error {
+		err := sctx.StartTransaction(options.Transaction().
+			SetReadConcern(readconcern.Snapshot()).
+			SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+		)
+		if err != nil {
+			return err
+		}
+
+		_, err = employees.UpdateOne(sctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
+		if err != nil {
+			sctx.AbortTransaction(sctx)
+			log.Println("caught exception during transaction, aborting.")
+			return err
+		}
+		_, err = events.InsertOne(sctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
+		if err != nil {
+			sctx.AbortTransaction(sctx)
+			log.Println("caught exception during transaction, aborting.")
+			return err
+		}
+
+		for {
+			err = sctx.CommitTransaction(sctx)
+			switch e := err.(type) {
+			case nil:
+				return nil
+			case mongo.CommandError:
+				if e.HasErrorLabel("UnknownTransactionCommitResult") {
+					log.Println("UnknownTransactionCommitResult, retrying commit operation...")
+					continue
+				}
+				log.Println("Error during commit...")
+				return e
+			default:
+				log.Println("Error during commit...")
+				return e
+			}
+		}
+	})
+}
+
+// End Transactions Intro Example 1
+
+// Start Transactions Retry Example 1
+
+// RunTransactionWithRetry is an example function demonstrating transaction retry logic.
+func RunTransactionWithRetry(sctx mongo.SessionContext, txnFn func(mongo.SessionContext) error) error {
+	for {
+		err := txnFn(sctx) // Performs transaction.
+		if err == nil {
+			return nil
+		}
+
+		log.Println("Transaction aborted. Caught exception during transaction.")
+
+		// If transient error, retry the whole transaction
+		if cmdErr, ok := err.(mongo.CommandError); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
+			log.Println("TransientTransactionError, retrying transaction...")
+			continue
+		}
+		return err
+	}
+}
+
+// End Transactions Retry Example 1
+
+// Start Transactions Retry Example 2
+
+// CommitWithRetry is an example function demonstrating transaction commit with retry logic.
+func CommitWithRetry(sctx mongo.SessionContext) error {
+	for {
+		err := sctx.CommitTransaction(sctx)
+		switch e := err.(type) {
+		case nil:
+			log.Println("Transaction committed.")
+			return nil
+		case mongo.CommandError:
+			// Can retry commit
+			if e.HasErrorLabel("UnknownTransactionCommitResult") {
+				log.Println("UnknownTransactionCommitResult, retrying commit operation...")
+				continue
+			}
+			log.Println("Error during commit...")
+			return e
+		default:
+			log.Println("Error during commit...")
+			return e
+		}
+	}
+}
+
+// End Transactions Retry Example 2
+
+// TransactionsExamples contains examples for transaction operations.
+func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
+	_, err := client.Database("hr").Collection("employees").InsertOne(ctx, bson.D{{"pi", 3.14159}})
+	if err != nil {
+		return err
+	}
+	_, err = client.Database("hr").Collection("employees").DeleteOne(ctx, bson.D{{"pi", 3.14159}})
+	if err != nil {
+		return err
+	}
+	_, err = client.Database("reporting").Collection("events").InsertOne(ctx, bson.D{{"pi", 3.14159}})
+	if err != nil {
+		return err
+	}
+	_, err = client.Database("reporting").Collection("events").DeleteOne(ctx, bson.D{{"pi", 3.14159}})
+	if err != nil {
+		return err
+	}
+	// Start Transactions Retry Example 3
+
+	runTransactionWithRetry := func(sctx mongo.SessionContext, txnFn func(mongo.SessionContext) error) error {
+		for {
+			err := txnFn(sctx) // Performs transaction.
+			if err == nil {
+				return nil
+			}
+
+			log.Println("Transaction aborted. Caught exception during transaction.")
+
+			// If transient error, retry the whole transaction
+			if cmdErr, ok := err.(mongo.CommandError); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
+				log.Println("TransientTransactionError, retrying transaction...")
+				continue
+			}
+			return err
+		}
+	}
+
+	commitWithRetry := func(sctx mongo.SessionContext) error {
+		for {
+			err := sctx.CommitTransaction(sctx)
+			switch e := err.(type) {
+			case nil:
+				log.Println("Transaction committed.")
+				return nil
+			case mongo.CommandError:
+				// Can retry commit
+				if e.HasErrorLabel("UnknownTransactionCommitResult") {
+					log.Println("UnknownTransactionCommitResult, retrying commit operation...")
+					continue
+				}
+				log.Println("Error during commit...")
+				return e
+			default:
+				log.Println("Error during commit...")
+				return e
+			}
+		}
+	}
+
+	// Updates two collections in a transaction.
+	updateEmployeeInfo := func(sctx mongo.SessionContext) error {
+		employees := client.Database("hr").Collection("employees")
+		events := client.Database("reporting").Collection("events")
+
+		err := sctx.StartTransaction(options.Transaction().
+			SetReadConcern(readconcern.Snapshot()).
+			SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+		)
+		if err != nil {
+			return err
+		}
+
+		_, err = employees.UpdateOne(sctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
+		if err != nil {
+			sctx.AbortTransaction(sctx)
+			log.Println("caught exception during transaction, aborting.")
+			return err
+		}
+		_, err = events.InsertOne(sctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
+		if err != nil {
+			sctx.AbortTransaction(sctx)
+			log.Println("caught exception during transaction, aborting.")
+			return err
+		}
+
+		return commitWithRetry(sctx)
+	}
+
+	return client.UseSessionWithOptions(
+		ctx, options.Session().SetDefaultReadPreference(readpref.Primary()),
+		func(sctx mongo.SessionContext) error {
+			return runTransactionWithRetry(sctx, updateEmployeeInfo)
+		},
+	)
+}
+
+// End Transactions Retry Example 3

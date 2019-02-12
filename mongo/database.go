@@ -149,7 +149,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 		db.client.topology.SessionPool,
 	)
 
-	return &SingleResult{err: replaceTopologyErr(err), rdr: doc, reg: db.registry}
+	return &SingleResult{err: replaceErrors(err), rdr: doc, reg: db.registry}
 }
 
 // RunCommandCursor runs a command on the database and returns a cursor over the resulting reader. A user can supply
@@ -173,11 +173,11 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 		db.client.topology.SessionPool,
 	)
 	if err != nil {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	cursor, err := newCursor(batchCursor, db.registry)
-	return cursor, replaceTopologyErr(err)
+	return cursor, replaceErrors(err)
 }
 
 // Drop drops this database from mongodb.
@@ -206,7 +206,7 @@ func (db *Database) Drop(ctx context.Context) error {
 		db.client.topology.SessionPool,
 	)
 	if err != nil && !command.IsNotFound(err) {
-		return replaceTopologyErr(err)
+		return replaceErrors(err)
 	}
 	return nil
 }
@@ -250,11 +250,11 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		opts...,
 	)
 	if err != nil {
-		return nil, replaceTopologyErr(err)
+		return nil, replaceErrors(err)
 	}
 
 	cursor, err := newCursor(batchCursor, db.registry)
-	return cursor, replaceTopologyErr(err)
+	return cursor, replaceErrors(err)
 }
 
 // ReadConcern returns the read concern of this database.
