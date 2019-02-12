@@ -7,8 +7,8 @@
 package bsonrw
 
 import (
-	"github.com/mongodb/mongo-go-driver/bson/bsontype"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ArrayReader is implemented by types that allow reading values from a BSON

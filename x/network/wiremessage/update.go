@@ -6,7 +6,7 @@
 
 package wiremessage
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import "go.mongodb.org/mongo-driver/bson"
 
 // Update represents the OP_UPDATE message of the MongoDB wire protocol.
 type Update struct {

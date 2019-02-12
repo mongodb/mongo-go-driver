@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // ListCollectionsBatchCursor is a special batch cursor returned from ListCollections that properly

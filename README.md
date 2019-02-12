@@ -1,8 +1,8 @@
 <p align="center"><img src="etc/assets/mongo-gopher.png" width="250"></p>
 <p align="center">
-  <a href="https://goreportcard.com/report/github.com/mongodb/mongo-go-driver"><img src="https://goreportcard.com/badge/github.com/mongodb/mongo-go-driver"></a>
-  <a href="https://godoc.org/github.com/mongodb/mongo-go-driver/mongo"><img src="etc/assets/godoc-mongo-blue.svg" alt="GoDoc"></a>
-  <a href="https://godoc.org/github.com/mongodb/mongo-go-driver/bson"><img src="etc/assets/godoc-bson-blue.svg" alt="GoDoc"></a>
+  <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver"></a>
+  <a href="https://godoc.org/go.mongodb.org/mongo-driver/mongo"><img src="etc/assets/godoc-mongo-blue.svg" alt="GoDoc"></a>
+  <a href="https://godoc.org/go.mongodb.org/mongo-driver/bson"><img src="etc/assets/godoc-bson-blue.svg" alt="GoDoc"></a>
   <a href="https://docs.mongodb.com/ecosystem/drivers/go/"><img src="etc/assets/docs-mongodb-green.svg"></a>
 </p>
 
@@ -31,7 +31,7 @@ The MongoDB supported driver for Go.
 The recommended way to get started using the MongoDB Go driver is by using `dep` to install the dependency in your project.
 
 ```bash
-dep ensure -add github.com/mongodb/mongo-go-driver/mongo
+dep ensure -add go.mongodb.org/mongo-driver/mongo
 ```
 
 -------------------------
@@ -40,7 +40,7 @@ dep ensure -add github.com/mongodb/mongo-go-driver/mongo
 To get started with the driver, import the `mongo` package, create a `mongo.Client`:
 
 ```go
-import "github.com/mongodb/mongo-go-driver/mongo"
+import "go.mongodb.org/mongo-driver/mongo"
 
 client, err := mongo.NewClient("mongodb://localhost:27017")
 ```

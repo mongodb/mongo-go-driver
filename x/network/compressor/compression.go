@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package compressor
+package compressor // import "go.mongodb.org/mongo-driver/x/network/compressor"
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 	"io"
 
 	"github.com/golang/snappy"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 // Compressor is the interface implemented by types that can compress and decompress wire messages. This is used

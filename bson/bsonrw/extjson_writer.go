@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"github.com/mongodb/mongo-go-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"math"
 	"sort"

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package tag
+package tag // import "go.mongodb.org/mongo-driver/tag"
 
 // Tag is a name/vlaue pair.
 type Tag struct {
