@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a212804_11bb910f",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 472,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-12T23:28:49Z",
+      "side": 1,
+      "message": "Does desc actually contain the rolling average RTT?  If so, do we need the Server.updateAverageRTT function or Server.averageRTT at all?",
+      "revId": "429510e06908693a35b1e9310ed8b12a997e96c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
