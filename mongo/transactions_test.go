@@ -504,7 +504,7 @@ func verifyError(t *testing.T, e error, result json.RawMessage) {
 		return
 	}
 
-	if cerr, ok := e.(command.Error); ok {
+	if cerr, ok := e.(CommandError); ok {
 		if expected.ErrorCodeName != "" {
 			require.NotNil(t, cerr)
 			require.Equal(t, expected.ErrorCodeName, cerr.Name)
@@ -528,7 +528,7 @@ func verifyError(t *testing.T, e error, result json.RawMessage) {
 	} else {
 		require.Equal(t, expected.ErrorCodeName, "")
 		require.Equal(t, len(expected.ErrorLabelsContain), 0)
-		// ErrorLabelsOmit can contain anything, since they are all omitted for e not type command.Error
+		// ErrorLabelsOmit can contain anything, since they are all omitted for e not type CommandError
 		// so we do not check that here
 
 		if expected.ErrorContains != "" {
