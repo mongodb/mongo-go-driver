@@ -16,10 +16,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mongodb/mongo-go-driver/x/network/description"
-	"github.com/mongodb/mongo-go-driver/x/network/wiremessage"
 	"github.com/xdg/scram"
 	"github.com/xdg/stringprep"
+	"go.mongodb.org/mongo-driver/x/network/description"
+	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 // SCRAMSHA1 holds the mechanism name "SCRAM-SHA-1"

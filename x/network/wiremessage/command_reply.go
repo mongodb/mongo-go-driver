@@ -6,7 +6,7 @@
 
 package wiremessage
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import "go.mongodb.org/mongo-driver/bson"
 
 // CommandReply represents the OP_COMMANDREPLY message of the MongoDB wire protocol.
 type CommandReply struct {

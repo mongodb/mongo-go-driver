@@ -6,7 +6,7 @@
 
 package wiremessage
 
-import "github.com/mongodb/mongo-go-driver/bson"
+import "go.mongodb.org/mongo-driver/bson"
 
 // Delete represents the OP_DELETE message of the MongoDB wire protocol.
 type Delete struct {
