@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "d2b8c022_e30078da",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 554,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-12T23:30:00Z",
+      "side": 1,
+      "message": "It seems extremely strange to me that a registry wouldn\u0027t support decoding a struct, and this code will add a large amount of bloat since we have to add 4 extra error checks there.",
+      "parentUuid": "5a04fbe2_a8126aae",
+      "range": {
+        "startLine": 554,
+        "startChar": 0,
+        "endLine": 554,
+        "endChar": 1
+      },
+      "revId": "3ca700b9d78ad97b8200e010033c51f5e5382071",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "97207c41_579ef951",
         "filename": "mongo/options/gridfsoptions.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2019-02-12T23:25:07Z",
       "side": 1,
       "message": "Can we test somewhere that the custom registry is used if supplied?",
+      "range": {
+        "startLine": 77,
+        "startChar": 0,
+        "endLine": 77,
+        "endChar": 4
+      },
+      "revId": "3ca700b9d78ad97b8200e010033c51f5e5382071",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "28176041_384fcf7d",
+        "filename": "mongo/options/gridfsoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-12T23:30:00Z",
+      "side": 1,
+      "message": "I\u0027m not sure what you mean.",
+      "parentUuid": "97207c41_579ef951",
       "range": {
         "startLine": 77,
         "startChar": 0,
