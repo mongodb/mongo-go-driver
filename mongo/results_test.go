@@ -9,9 +9,9 @@ package mongo
 import (
 	"testing"
 
-	"github.com/mongodb/mongo-go-driver/bson"
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 func TestDeleteResult_unmarshalInto(t *testing.T) {

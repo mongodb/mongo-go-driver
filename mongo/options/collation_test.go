@@ -1,7 +1,7 @@
 package options
 
 import (
-	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 	"reflect"
 	"testing"
 )

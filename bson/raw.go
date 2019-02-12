@@ -10,7 +10,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/mongodb/mongo-go-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // ErrNilReader indicates that an operation was attempted on a nil bson.Reader.

@@ -7,4 +7,4 @@
 // Package network contains a MongoDB networking library. The packages contained within allow users
 // to build applications that use the MongoDB RPC protocol. Knowledge of how the MongoDB RPC
 // protocol works is expected. This library will likely only be of us for users internal to MongoDB.
-package network
+package network // import "go.mongodb.org/mongo-driver/x/network"
