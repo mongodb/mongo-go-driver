@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "7465173b_44843129",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 554,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-12T23:40:24Z",
+      "side": 1,
+      "message": "It may be strange, but it\u0027s still possible.  Another possibility is they use a different struct codec that is incompatible with this usage.\n\nLet\u0027s make it correct even if it requires some more code.  It\u0027s confined to a single method and it\u0027s easily testable.",
+      "parentUuid": "d2b8c022_e30078da",
+      "range": {
+        "startLine": 554,
+        "startChar": 0,
+        "endLine": 554,
+        "endChar": 1
+      },
+      "revId": "3ca700b9d78ad97b8200e010033c51f5e5382071",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "97207c41_579ef951",
         "filename": "mongo/options/gridfsoptions.go",
         "patchSetId": 1
@@ -84,6 +108,30 @@
       "side": 1,
       "message": "I\u0027m not sure what you mean.",
       "parentUuid": "97207c41_579ef951",
+      "range": {
+        "startLine": 77,
+        "startChar": 0,
+        "endLine": 77,
+        "endChar": 4
+      },
+      "revId": "3ca700b9d78ad97b8200e010033c51f5e5382071",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7b4d29ff_ce953463",
+        "filename": "mongo/options/gridfsoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-12T23:40:24Z",
+      "side": 1,
+      "message": "I mean: it seems that if the GridFS implementation were to totally ignore this option, the tests would still pass.",
+      "parentUuid": "28176041_384fcf7d",
       "range": {
         "startLine": 77,
         "startChar": 0,
