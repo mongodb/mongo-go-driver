@@ -599,6 +599,30 @@
     },
     {
       "key": {
+        "uuid": "2004015c_3d221a4b",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-02-12T17:40:52Z",
+      "side": 1,
+      "message": "I think having the Err settable is problematic. If we don\u0027t want ApplyURI to return an error and we don\u0027t want a settable public error, then make `err` private and have a method. It could be called `Err()` or create a method called `Validate()` that could be used for more things in the future other than just checking if an error exists or not.",
+      "parentUuid": "ed4bb3d3_01639883",
+      "range": {
+        "startLine": 96,
+        "startChar": 2,
+        "endLine": 96,
+        "endChar": 3
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "5b655fa5_167d18e1",
         "filename": "mongo/options/clientoptions_1_9.go",
         "patchSetId": 2
