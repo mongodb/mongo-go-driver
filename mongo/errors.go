@@ -34,11 +34,42 @@ var ErrNilDocument = errors.New("document is nil")
 // to a function wehere the field is required.
 var ErrEmptySlice = errors.New("must provide at least one element in input slice")
 
-func replaceTopologyErr(err error) error {
+func replaceErrors(err error) error {
 	if err == topology.ErrTopologyClosed {
 		return ErrClientDisconnected
 	}
+	if ce, ok := err.(command.Error); ok {
+		return CommandError{Code: ce.Code, Message: ce.Message, Labels: ce.Labels, Name: ce.Name}
+	}
 	return err
+}
+
+// CommandError represents an error in execution of a command against the database.
+type CommandError struct {
+	Code    int32
+	Message string
+	Labels  []string
+	Name    string
+}
+
+// Error implements the error interface.
+func (e CommandError) Error() string {
+	if e.Name != "" {
+		return fmt.Sprintf("(%v) %v", e.Name, e.Message)
+	}
+	return e.Message
+}
+
+// HasErrorLabel returns true if the error contains the specified label.
+func (e CommandError) HasErrorLabel(label string) bool {
+	if e.Labels != nil {
+		for _, l := range e.Labels {
+			if l == label {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -174,7 +205,7 @@ func processWriteError(wce *result.WriteConcernError, wes []result.WriteError, e
 	case err == command.ErrUnacknowledgedWrite:
 		return rrAll, ErrUnacknowledgedWrite
 	case err != nil:
-		return rrNone, replaceTopologyErr(err)
+		return rrNone, replaceErrors(err)
 	case wce != nil || len(wes) > 0:
 		return rrMany, WriteException{
 			WriteConcernError: convertWriteConcernError(wce),
