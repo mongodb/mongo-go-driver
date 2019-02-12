@@ -486,6 +486,24 @@
     },
     {
       "key": {
+        "uuid": "777934cd_54d458aa",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 83,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-12T15:48:30Z",
+      "side": 1,
+      "message": "It seems like that\u0027s something that would cause confusion. What does level mean for snappy? If it\u0027s set do we just ignore it or error on it? I think it\u0027s difficult here as well because the compressor information is used in multiple ways: it\u0027s sent directly to the server as an array of strings and it\u0027s used to create compressors that are attached to each connection.",
+      "parentUuid": "3464c363_129b8ced",
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e169ab70_272e93fa",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 2
@@ -545,6 +563,30 @@
       "side": 1,
       "message": "How did I miss that... \n\nStill though, a public Err field is odd to see on an options struct.  Is the issue that you want applications to be able to do a one-liner like:\n\n   NewClient(options.Client().ApplyURI(cs.String()))\n\n?  What if we were to add a new function like\n\n   NewClientFromURI(\"mongodb://localhost...\")\n\nThat way applications only have to add an extra error check if they want to combine a URI with other options (perhaps not so common a use case).",
       "parentUuid": "ebf05769_d52d8894",
+      "range": {
+        "startLine": 96,
+        "startChar": 2,
+        "endLine": 96,
+        "endChar": 3
+      },
+      "revId": "053f42e6af7895e51fa01296603334d7804368a2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ed4bb3d3_01639883",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-12T15:48:30Z",
+      "side": 1,
+      "message": "One of the reasons we moved the URI to the options is because having it as an argument caused issues with overriding. I think there\u0027s a good chance users will want to register a Registry, which means they\u0027ll have to go back to the old way.\n\nI don\u0027t find having an Err field on the struct any stranger than having pointers to ints. We could make the field private, but I don\u0027t see the point. If users wish to check the error themselves why shouldn\u0027t they be able to?\n\nAs I stated before, I want to keep the amount of error checking down. It\u0027s excessive to have users check for a URI error and then also check for an error from NewClient.",
+      "parentUuid": "0e2edcc8_fa8824a6",
       "range": {
         "startLine": 96,
         "startChar": 2,
