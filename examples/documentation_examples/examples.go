@@ -11,13 +11,19 @@ package documentation_examples
 
 import (
 	"context"
+	"io/ioutil"
+	logger "log"
 	"testing"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"github.com/mongodb/mongo-go-driver/mongo/options"
+	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
+	"github.com/mongodb/mongo-go-driver/mongo/readpref"
+	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
 	"github.com/mongodb/mongo-go-driver/x/bsonx"
+	"github.com/mongodb/mongo-go-driver/x/network/command"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1753,3 +1759,205 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 		require.Equal(t, int64(2), result.DeletedCount)
 	}
 }
+
+var log = logger.New(ioutil.Discard, "", logger.LstdFlags)
+
+// Start Transactions Intro Example 1
+
+// UpdateEmployeeInfo is an example function demonstrating transactions.
+func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
+	employees := client.Database("hr").Collection("employees")
+	events := client.Database("reporting").Collection("events")
+
+	return client.UseSession(ctx, func(sctx mongo.SessionContext) error {
+		err := sctx.StartTransaction(options.Transaction().
+			SetReadConcern(readconcern.Snapshot()).
+			SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+		)
+		if err != nil {
+			return err
+		}
+
+		_, err = employees.UpdateOne(sctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
+		if err != nil {
+			sctx.AbortTransaction(sctx)
+			log.Println("caught exception during transaction, aborting.")
+			return err
+		}
+		_, err = events.InsertOne(sctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
+		if err != nil {
+			sctx.AbortTransaction(sctx)
+			log.Println("caught exception during transaction, aborting.")
+			return err
+		}
+
+		for {
+			err = sctx.CommitTransaction(sctx)
+			switch e := err.(type) {
+			case nil:
+				return nil
+			case command.Error:
+				if e.HasErrorLabel("UnknownTransactionCommitResult") {
+					log.Println("UnknownTransactionCommitResult, retrying commit operation...")
+					continue
+				}
+				log.Println("Error during commit...")
+				return e
+			default:
+				log.Println("Error during commit...")
+				return e
+			}
+		}
+	})
+}
+
+// End Transactions Intro Example 1
+
+// Start Transactions Retry Example 1
+
+// RunTransactionWithRetry is an example function demonstrating transaction retry logic.
+func RunTransactionWithRetry(sctx mongo.SessionContext, txnFn func(mongo.SessionContext) error) error {
+	for {
+		err := txnFn(sctx) // Performs transaction.
+		if err == nil {
+			return nil
+		}
+
+		log.Println("Transaction aborted. Caught exception during transaction.")
+
+		// If transient error, retry the whole transaction
+		if cmdErr, ok := err.(command.Error); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
+			log.Println("TransientTransactionError, retrying transaction...")
+			continue
+		}
+		return err
+	}
+}
+
+// End Transactions Retry Example 1
+
+// Start Transactions Retry Example 2
+
+// CommitWithRetry is an example function demonstrating transaction commit with retry logic.
+func CommitWithRetry(sctx mongo.SessionContext) error {
+	for {
+		err := sctx.CommitTransaction(sctx)
+		switch e := err.(type) {
+		case nil:
+			log.Println("Transaction committed.")
+			return nil
+		case command.Error:
+			// Can retry commit
+			if e.HasErrorLabel("UnknownTransactionCommitResult") {
+				log.Println("UnknownTransactionCommitResult, retrying commit operation...")
+				continue
+			}
+			log.Println("Error during commit...")
+			return e
+		default:
+			log.Println("Error during commit...")
+			return e
+		}
+	}
+}
+
+// End Transactions Retry Example 2
+
+// TransactionsExamples contains examples for transaction operations.
+func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
+	_, err := client.Database("hr").Collection("employees").InsertOne(ctx, bson.D{{"pi", 3.14159}})
+	if err != nil {
+		return err
+	}
+	_, err = client.Database("hr").Collection("employees").DeleteOne(ctx, bson.D{{"pi", 3.14159}})
+	if err != nil {
+		return err
+	}
+	_, err = client.Database("reporting").Collection("events").InsertOne(ctx, bson.D{{"pi", 3.14159}})
+	if err != nil {
+		return err
+	}
+	_, err = client.Database("reporting").Collection("events").DeleteOne(ctx, bson.D{{"pi", 3.14159}})
+	if err != nil {
+		return err
+	}
+	// Start Transactions Retry Example 3
+
+	runTransactionWithRetry := func(sctx mongo.SessionContext, txnFn func(mongo.SessionContext) error) error {
+		for {
+			err := txnFn(sctx) // Performs transaction.
+			if err == nil {
+				return nil
+			}
+
+			log.Println("Transaction aborted. Caught exception during transaction.")
+
+			// If transient error, retry the whole transaction
+			if cmdErr, ok := err.(command.Error); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
+				log.Println("TransientTransactionError, retrying transaction...")
+				continue
+			}
+			return err
+		}
+	}
+
+	commitWithRetry := func(sctx mongo.SessionContext) error {
+		for {
+			err := sctx.CommitTransaction(sctx)
+			switch e := err.(type) {
+			case nil:
+				log.Println("Transaction committed.")
+				return nil
+			case command.Error:
+				// Can retry commit
+				if e.HasErrorLabel("UnknownTransactionCommitResult") {
+					log.Println("UnknownTransactionCommitResult, retrying commit operation...")
+					continue
+				}
+				log.Println("Error during commit...")
+				return e
+			default:
+				log.Println("Error during commit...")
+				return e
+			}
+		}
+	}
+
+	// Updates two collections in a transaction.
+	updateEmployeeInfo := func(sctx mongo.SessionContext) error {
+		employees := client.Database("hr").Collection("employees")
+		events := client.Database("reporting").Collection("events")
+
+		err := sctx.StartTransaction(options.Transaction().
+			SetReadConcern(readconcern.Snapshot()).
+			SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+		)
+		if err != nil {
+			return err
+		}
+
+		_, err = employees.UpdateOne(sctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
+		if err != nil {
+			sctx.AbortTransaction(sctx)
+			log.Println("caught exception during transaction, aborting.")
+			return err
+		}
+		_, err = events.InsertOne(sctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
+		if err != nil {
+			sctx.AbortTransaction(sctx)
+			log.Println("caught exception during transaction, aborting.")
+			return err
+		}
+
+		return commitWithRetry(sctx)
+	}
+
+	return client.UseSessionWithOptions(
+		ctx, options.Session().SetDefaultReadPreference(readpref.Primary()),
+		func(sctx mongo.SessionContext) error {
+			return runTransactionWithRetry(sctx, updateEmployeeInfo)
+		},
+	)
+}
+
+// End Transactions Retry Example 3

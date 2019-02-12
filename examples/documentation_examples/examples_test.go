@@ -12,17 +12,23 @@ package documentation_examples_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/examples/documentation_examples"
 	"github.com/mongodb/mongo-go-driver/internal/testutil"
 	"github.com/mongodb/mongo-go-driver/mongo"
+	"github.com/mongodb/mongo-go-driver/x/bsonx"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDocumentationExamples(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	cs := testutil.ConnString(t)
-	client, err := mongo.Connect(context.Background(), cs.String(), nil)
+	client, err := mongo.Connect(ctx, cs.String(), nil)
 	require.NoError(t, err)
+	defer client.Disconnect(ctx)
 
 	db := client.Database("documentation_examples")
 
@@ -35,4 +41,37 @@ func TestDocumentationExamples(t *testing.T) {
 	documentation_examples.ProjectionExamples(t, db)
 	documentation_examples.UpdateExamples(t, db)
 	documentation_examples.DeleteExamples(t, db)
+}
+
+func TestTransactionExamples(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cs := testutil.ConnString(t)
+	client, err := mongo.Connect(ctx, cs.String(), nil)
+	require.NoError(t, err)
+	defer client.Disconnect(ctx)
+
+	ver, err := getServerVersion(ctx, client)
+	if err != nil || testutil.CompareVersions(t, ver, "4.0") < 0 {
+		t.Skip("server does not support transactions")
+	}
+	err = documentation_examples.TransactionsExamples(ctx, client)
+	require.NoError(t, err)
+}
+
+func getServerVersion(ctx context.Context, client *mongo.Client) (string, error) {
+	serverStatus, err := client.Database("admin").RunCommand(
+		ctx,
+		bsonx.Doc{{"serverStatus", bsonx.Int32(1)}},
+	).DecodeBytes()
+	if err != nil {
+		return "", err
+	}
+
+	version, err := serverStatus.LookupErr("version")
+	if err != nil {
+		return "", err
+	}
+
+	return version.StringValue(), nil
 }
