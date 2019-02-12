@@ -57,7 +57,9 @@ func TestTransformDocument(t *testing.T) {
 			"unsupported type",
 			[]string{"foo", "bar"},
 			nil,
-			MarshalError{Value: []string{"foo", "bar"}, Err: errors.New("invalid state transition: TopLevel -> ArrayMode")},
+			MarshalError{
+				Value: []string{"foo", "bar"},
+				Err:   errors.New("WriteArray can only write a Array while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
 			"nil",
@@ -162,7 +164,11 @@ func TestTransformAggregatePipeline(t *testing.T) {
 		arr      bsonx.Arr
 		err      error
 	}{
-		{"Pipeline/error", Pipeline{{{"hello", func() {}}}}, bsonx.Arr{}, MarshalError{Value: primitive.D{}}},
+		{
+			"Pipeline/error",
+			Pipeline{{{"hello", func() {}}}}, bsonx.Arr{},
+			MarshalError{Value: primitive.D{}, Err: errors.New("no encoder found for func()")},
+		},
 		{
 			"Pipeline/success",
 			Pipeline{{{"hello", "world"}}, {{"pi", 3.14159}}},
@@ -188,7 +194,7 @@ func TestTransformAggregatePipeline(t *testing.T) {
 			"primitive.A/error",
 			primitive.A{"5"},
 			bsonx.Arr{},
-			MarshalError{Value: string("")},
+			MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
 			"primitive.A/success",
@@ -203,7 +209,7 @@ func TestTransformAggregatePipeline(t *testing.T) {
 			"bson.A/error",
 			bson.A{"5"},
 			bsonx.Arr{},
-			MarshalError{Value: string("")},
+			MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
 			"bson.A/success",
@@ -218,7 +224,7 @@ func TestTransformAggregatePipeline(t *testing.T) {
 			"[]interface{}/error",
 			[]interface{}{"5"},
 			bsonx.Arr{},
-			MarshalError{Value: string("")},
+			MarshalError{Value: string(""), Err: errors.New("WriteString can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
 			"[]interface{}/success",
@@ -269,7 +275,7 @@ func TestTransformAggregatePipeline(t *testing.T) {
 			"array/error",
 			[1]interface{}{int64(42)},
 			bsonx.Arr{},
-			MarshalError{Value: int64(0)},
+			MarshalError{Value: int64(0), Err: errors.New("WriteInt64 can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
 			"array/success",
@@ -281,7 +287,7 @@ func TestTransformAggregatePipeline(t *testing.T) {
 			"slice/error",
 			[]interface{}{int64(42)},
 			bsonx.Arr{},
-			MarshalError{Value: int64(0)},
+			MarshalError{Value: int64(0), Err: errors.New("WriteInt64 can only write while positioned on a Element or Value but is positioned on a TopLevel")},
 		},
 		{
 			"slice/success",
