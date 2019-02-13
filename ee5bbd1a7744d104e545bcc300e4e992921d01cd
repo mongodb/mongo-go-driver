@@ -461,6 +461,23 @@
     },
     {
       "key": {
+        "uuid": "f9d20c97_7189b45e",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 226,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-02-13T21:47:10Z",
+      "side": 1,
+      "message": "I think this needs to go elsewhere. Otherwise, if the user doesn\u0027t configure TLS on the URI, the we won\u0027t autodiscover the username.  However, we can get this from the certificates in the tls.Config they give us later, so we might as well do that.\n\nThe decrypting is a different problem that I don\u0027t think we should solve even on the URI, but that ship has sailed, so I\u0027m fine with it.",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4c61322_c866340c",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
