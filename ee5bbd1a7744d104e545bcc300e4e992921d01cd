@@ -331,6 +331,30 @@
     },
     {
       "key": {
+        "uuid": "6af2d918_360a4fab",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-02-13T20:43:17Z",
+      "side": 1,
+      "message": "Because an empty password is a legal password, technically. So we need to differentiate between an empty password and no password.\n\nIn other words, mongodb://user:@test.com is different than mongodb://user@test.com",
+      "parentUuid": "9389c1a1_c7985e65",
+      "range": {
+        "startLine": 113,
+        "startChar": 25,
+        "endLine": 113,
+        "endChar": 26
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bdcc1f92_d1b823f7",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
