@@ -478,6 +478,24 @@
     },
     {
       "key": {
+        "uuid": "a5df7af1_96cd0c50",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 226,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T22:34:41Z",
+      "side": 1,
+      "message": "I feel like that will add of complexity to this code. Right now we support 1 cert block and 1 private key block in a PEM file (or essentially do, if there are multiple we take the last). A tls.Config could have multiple certificates each of which has multiple sub certificates, how would we choose which one to use? That would also seem to go against the purpose of taking a *tls.Config as well, wherein if the user provides us with that then they need to configuring things properly, which includes setting the authentication username.",
+      "parentUuid": "f9d20c97_7189b45e",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4c61322_c866340c",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
