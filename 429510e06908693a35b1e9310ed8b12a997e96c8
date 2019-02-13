@@ -57,6 +57,24 @@
       "revId": "429510e06908693a35b1e9310ed8b12a997e96c8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "69a7f3f6_bce6be56",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 472,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T20:39:33Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "81612038_e82cd2d5",
+      "revId": "429510e06908693a35b1e9310ed8b12a997e96c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
