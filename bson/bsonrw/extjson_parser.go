@@ -264,8 +264,51 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 			return nil, err
 		}
 
+		ejp.advanceState()
+		if t == bsontype.Binary && ejp.s == jpsSawValue {
+			// convert legacy $binary format
+			base64 := ejp.v
+
+			ejp.advanceState()
+			if ejp.s != jpsSawComma {
+				return nil, invalidJSONErrorForType(",", bsontype.Binary)
+			}
+
+			ejp.advanceState()
+			key, t, err := ejp.readKey()
+			if err != nil {
+				return nil, err
+			}
+			if key != "$type" {
+				return nil, invalidJSONErrorForType("$type", bsontype.Binary)
+			}
+
+			subType, err := ejp.readValue(t)
+			if err != nil {
+				return nil, err
+			}
+
+			ejp.advanceState()
+			if ejp.s != jpsSawEndObject {
+				return nil, invalidJSONErrorForType("2 key-value pairs and then }", bsontype.Binary)
+			}
+
+			v = &extJSONValue{
+				t: bsontype.EmbeddedDocument,
+				v: &extJSONObject{
+					keys:   []string{"base64", "subType"},
+					values: []*extJSONValue{base64, subType},
+				},
+			}
+			break
+		}
+
 		// read KV pairs
-		keys, vals, err := ejp.readObject(2, false)
+		if ejp.s != jpsSawBeginObject {
+			return nil, invalidJSONErrorForType("{", t)
+		}
+
+		keys, vals, err := ejp.readObject(2, true)
 		if err != nil {
 			return nil, err
 		}
@@ -276,6 +319,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 		}
 
 		v = &extJSONValue{t: bsontype.EmbeddedDocument, v: &extJSONObject{keys: keys, values: vals}}
+
 	case bsontype.DateTime:
 		switch ejp.s {
 		case jpsSawValue:
