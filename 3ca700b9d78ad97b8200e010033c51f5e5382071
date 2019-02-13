@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "c4f8e78d_e2795544",
+        "filename": "mongo/gridfs/bucket.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 554,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T19:56:22Z",
+      "side": 1,
+      "message": "Discussed offline.",
+      "parentUuid": "7465173b_44843129",
+      "range": {
+        "startLine": 554,
+        "startChar": 0,
+        "endLine": 554,
+        "endChar": 1
+      },
+      "revId": "3ca700b9d78ad97b8200e010033c51f5e5382071",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "97207c41_579ef951",
         "filename": "mongo/options/gridfsoptions.go",
         "patchSetId": 1
@@ -141,6 +165,30 @@
       "revId": "3ca700b9d78ad97b8200e010033c51f5e5382071",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "341b42c3_4e907855",
+        "filename": "mongo/options/gridfsoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T19:56:22Z",
+      "side": 1,
+      "message": "Removed.",
+      "parentUuid": "7b4d29ff_ce953463",
+      "range": {
+        "startLine": 77,
+        "startChar": 0,
+        "endLine": 77,
+        "endChar": 4
+      },
+      "revId": "3ca700b9d78ad97b8200e010033c51f5e5382071",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
