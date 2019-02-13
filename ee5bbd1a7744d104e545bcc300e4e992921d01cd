@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "7151c108_38f13eb9",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "acabe8a1_42fb56fc",
+      "range": {
+        "startLine": 68,
+        "startChar": 1,
+        "endLine": 68,
+        "endChar": 2
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8c151118_fc81a27b",
         "filename": "mongo/client.go",
         "patchSetId": 7
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "9405e3bd_2c8dbbf0",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8c151118_fc81a27b",
+      "range": {
+        "startLine": 69,
+        "startChar": 33,
+        "endLine": 69,
+        "endChar": 52
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ac12aea0_31fd1d4d",
         "filename": "mongo/client.go",
         "patchSetId": 7
@@ -59,6 +107,30 @@
       "writtenOn": "2019-02-13T15:44:55Z",
       "side": 1,
       "message": "Should this just happen in the configure method?  It reads a bit strangely as is, because you naturally look upwards in this method to see where client.topologyOptions is set before realizing that it\u0027s probably set in the configure method",
+      "range": {
+        "startLine": 91,
+        "startChar": 1,
+        "endLine": 91,
+        "endChar": 7
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9ab90dc8_1daa4852",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "I did this so that we can actually test the configure method. If we create the topology inside of configure it\u0027s impossible to test if we\u0027ve actually set the options correctly as they\u0027ll be private fields on a struct in another package. I thought of just returning the topology options but then it looks like client.configure doesn\u0027t modify the *Client, which is does. We could take the things that are part of configuration and put them into a separate clientConfig struct and return that, but that seems messier for accessing things like read concern and write concern.",
+      "parentUuid": "ac12aea0_31fd1d4d",
       "range": {
         "startLine": 91,
         "startChar": 1,
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "28c0909d_afe40738",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 242,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "This needs to be fixed up some. The old code was a bit confusing but I think we can just have the if statement hang on opts.Auth !\u003d nil.",
+      "parentUuid": "e8ec7913_3f0da6a3",
+      "range": {
+        "startLine": 242,
+        "startChar": 0,
+        "endLine": 242,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bda2412f_99361eb9",
         "filename": "mongo/client.go",
         "patchSetId": 7
@@ -117,6 +213,30 @@
     },
     {
       "key": {
+        "uuid": "3c3e318f_4087add0",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "Rewrote this so this is gone.",
+      "parentUuid": "bda2412f_99361eb9",
+      "range": {
+        "startLine": 245,
+        "startChar": 0,
+        "endLine": 245,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "960861b5_7b25de73",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
@@ -128,6 +248,30 @@
       "writtenOn": "2019-02-13T15:44:55Z",
       "side": 1,
       "message": "Sentence reads funny.  There\u0027s a dangling \"from\" at the end.",
+      "range": {
+        "startLine": 93,
+        "startChar": 1,
+        "endLine": 93,
+        "endChar": 2
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "564b6fd2_1914bbf9",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "From isn\u0027t at the end, accordingly is, but I\u0027ve removed from since it wasn\u0027t adding anything.",
+      "parentUuid": "960861b5_7b25de73",
       "range": {
         "startLine": 93,
         "startChar": 1,
@@ -163,6 +307,30 @@
     },
     {
       "key": {
+        "uuid": "9389c1a1_c7985e65",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "I\u0027m not sure, that\u0027s likely a good question for Craig.",
+      "parentUuid": "4333d75b_f90ebb44",
+      "range": {
+        "startLine": 113,
+        "startChar": 25,
+        "endLine": 113,
+        "endChar": 26
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bdcc1f92_d1b823f7",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
@@ -174,6 +342,24 @@
       "writtenOn": "2019-02-13T15:44:55Z",
       "side": 1,
       "message": "This check seems unnecessary, as a URI with no host should be a parsing error.  Looking at the SRV-handing code, it seems possible that if no SRV records are found it silently leaves Hosts as ) length, but if so, that should be propagated as an error.",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ad37629e_b01b99c4",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "It seems weird to me not to check for this.",
+      "parentUuid": "bdcc1f92_d1b823f7",
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -203,6 +389,30 @@
     },
     {
       "key": {
+        "uuid": "9f442820_ca4ec458",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "The tests that start with TLS. This method has 100% test coverage, so this code is being tested.",
+      "parentUuid": "04525c5b_c32f1d97",
+      "range": {
+        "startLine": 214,
+        "startChar": 0,
+        "endLine": 214,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4c61322_c866340c",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
@@ -220,6 +430,24 @@
     },
     {
       "key": {
+        "uuid": "d4dc48ff_0c8325ca",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "It was because changing core API isn\u0027t in scope for this ticket.",
+      "parentUuid": "a4c61322_c866340c",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e39f307a_986dcae6",
         "filename": "mongo/options/testdata/ca.pem",
         "patchSetId": 7
@@ -231,6 +459,24 @@
       "writtenOn": "2019-02-13T15:44:55Z",
       "side": 1,
       "message": "Why all the new pem files?",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9b9b8602_99db16f9",
+        "filename": "mongo/options/testdata/ca.pem",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "For testing.",
+      "parentUuid": "e39f307a_986dcae6",
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -260,6 +506,30 @@
     },
     {
       "key": {
+        "uuid": "aaef53ab_9c276024",
+        "filename": "x/bsonx/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 224,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8233c316_5e2a4da6",
+      "range": {
+        "startLine": 224,
+        "startChar": 1,
+        "endLine": 224,
+        "endChar": 2
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e409f697_29d9106d",
         "filename": "x/bsonx/bsoncore/bsoncore.go",
         "patchSetId": 7
@@ -271,6 +541,24 @@
       "writtenOn": "2019-02-13T15:44:55Z",
       "side": 1,
       "message": "Add a unit test?",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c2649b16_bbcf40ae",
+        "filename": "x/bsonx/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "No, but neither does BuildDocument, and right now this is just used in test code. It\u0027s more a test design than anything and likely to change.",
+      "parentUuid": "e409f697_29d9106d",
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -300,6 +588,30 @@
     },
     {
       "key": {
+        "uuid": "029f40e5_5f4d8e5d",
+        "filename": "x/mongo/driver/bulk_write.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 575,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "Are the CRUD tests not sufficient?",
+      "parentUuid": "3d1f872b_d691bb4a",
+      "range": {
+        "startLine": 575,
+        "startChar": 0,
+        "endLine": 575,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f21659c4_ed3b0b87",
         "filename": "x/mongo/driver/update.go",
         "patchSetId": 7
@@ -311,6 +623,30 @@
       "writtenOn": "2019-02-13T15:44:55Z",
       "side": 1,
       "message": "This 15 lines or so that handle array filters appears in four places I think.  Can we pull the common parts out into a helper method?",
+      "range": {
+        "startLine": 53,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c5fd61e5_51f269d1",
+        "filename": "x/mongo/driver/update.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T16:42:06Z",
+      "side": 1,
+      "message": "It would only remove 2 lines of code and add extra indirection.",
+      "parentUuid": "f21659c4_ed3b0b87",
       "range": {
         "startLine": 53,
         "startChar": 0,
