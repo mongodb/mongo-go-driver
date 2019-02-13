@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "c3d85bb5_f083b064",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 427,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T18:56:50Z",
+      "side": 1,
+      "message": "Referenced code.",
+      "range": {
+        "startLine": 427,
+        "startChar": 2,
+        "endLine": 427,
+        "endChar": 92
+      },
+      "revId": "429510e06908693a35b1e9310ed8b12a997e96c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a212804_11bb910f",
         "filename": "x/mongo/driver/topology/server.go",
         "patchSetId": 3
@@ -13,6 +36,24 @@
       "writtenOn": "2019-02-12T23:28:49Z",
       "side": 1,
       "message": "Does desc actually contain the rolling average RTT?  If so, do we need the Server.updateAverageRTT function or Server.averageRTT at all?",
+      "revId": "429510e06908693a35b1e9310ed8b12a997e96c8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "81612038_e82cd2d5",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 472,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-13T18:56:50Z",
+      "side": 1,
+      "message": "I made a comment on the line where this is set. We use updateAverageRTT because we use it when we set the AverageRTT on the description, and the Server.averageRTT field is used in Server.updateAverageRTT.",
+      "parentUuid": "9a212804_11bb910f",
       "revId": "429510e06908693a35b1e9310ed8b12a997e96c8",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
