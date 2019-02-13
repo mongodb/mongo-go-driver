@@ -1,0 +1,325 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "acabe8a1_42fb56fc",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "SetConnectionString \u003d\u003e ApplyURI.",
+      "range": {
+        "startLine": 68,
+        "startChar": 1,
+        "endLine": 68,
+        "endChar": 2
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c151118_fc81a27b",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 69,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "same",
+      "range": {
+        "startLine": 69,
+        "startChar": 33,
+        "endLine": 69,
+        "endChar": 52
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ac12aea0_31fd1d4d",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Should this just happen in the configure method?  It reads a bit strangely as is, because you naturally look upwards in this method to see where client.topologyOptions is set before realizing that it\u0027s probably set in the configure method",
+      "range": {
+        "startLine": 91,
+        "startChar": 1,
+        "endLine": 91,
+        "endChar": 7
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e8ec7913_3f0da6a3",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 242,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Seems like we\u0027re skipping auth configuration unless the mechanism is X509 or GSSAPI? Has this patch been run through CI with auth/SSL enabled?",
+      "range": {
+        "startLine": 242,
+        "startChar": 0,
+        "endLine": 242,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bda2412f_99361eb9",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Duplicate nil check from line 242?",
+      "range": {
+        "startLine": 245,
+        "startChar": 0,
+        "endLine": 245,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "960861b5_7b25de73",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Sentence reads funny.  There\u0027s a dangling \"from\" at the end.",
+      "range": {
+        "startLine": 93,
+        "startChar": 1,
+        "endLine": 93,
+        "endChar": 2
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4333d75b_f90ebb44",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Remind me why is `Password` is the only one of these fields with a `Set` bool companion to it.",
+      "range": {
+        "startLine": 113,
+        "startChar": 25,
+        "endLine": 113,
+        "endChar": 26
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bdcc1f92_d1b823f7",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "This check seems unnecessary, as a URI with no host should be a parsing error.  Looking at the SRV-handing code, it seems possible that if no SRV records are found it silently leaves Hosts as ) length, but if so, that should be propagated as an error.",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "04525c5b_c32f1d97",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Can you point me to the tests (if any) of this code branch?  It\u0027s difficult to tell by inspection whether it\u0027s correct.",
+      "range": {
+        "startLine": 214,
+        "startChar": 0,
+        "endLine": 214,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a4c61322_c866340c",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "It seems like this code was copied from tlsconfig.go, but I don\u0027t see that tlsconfig.go was changed or deleted.",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e39f307a_986dcae6",
+        "filename": "mongo/options/testdata/ca.pem",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Why all the new pem files?",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8233c316_5e2a4da6",
+        "filename": "x/bsonx/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 224,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Document that it returns `dst`",
+      "range": {
+        "startLine": 224,
+        "startChar": 1,
+        "endLine": 224,
+        "endChar": 2
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e409f697_29d9106d",
+        "filename": "x/bsonx/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "Add a unit test?",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3d1f872b_d691bb4a",
+        "filename": "x/mongo/driver/bulk_write.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 575,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "This got more complicated... Are there sufficient regression tests, or do they need to be beefed up at all?",
+      "range": {
+        "startLine": 575,
+        "startChar": 0,
+        "endLine": 575,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f21659c4_ed3b0b87",
+        "filename": "x/mongo/driver/update.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-13T15:44:55Z",
+      "side": 1,
+      "message": "This 15 lines or so that handle array filters appears in four places I think.  Can we pull the common parts out into a helper method?",
+      "range": {
+        "startLine": 53,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
