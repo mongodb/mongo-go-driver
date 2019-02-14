@@ -167,6 +167,30 @@
     },
     {
       "key": {
+        "uuid": "859f3940_81ae99ce",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:52:31Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ac224a10_c03c3375",
+      "range": {
+        "startLine": 91,
+        "startChar": 1,
+        "endLine": 91,
+        "endChar": 7
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "e8ec7913_3f0da6a3",
         "filename": "mongo/client.go",
         "patchSetId": 7
@@ -262,6 +286,30 @@
     },
     {
       "key": {
+        "uuid": "e5501385_3396941f",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 242,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:52:31Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "a0b90a86_3f4f630e",
+      "range": {
+        "startLine": 242,
+        "startChar": 0,
+        "endLine": 242,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bda2412f_99361eb9",
         "filename": "mongo/client.go",
         "patchSetId": 7
@@ -297,6 +345,30 @@
       "side": 1,
       "message": "Rewrote this so this is gone.",
       "parentUuid": "bda2412f_99361eb9",
+      "range": {
+        "startLine": 245,
+        "startChar": 0,
+        "endLine": 245,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "eb20fe2a_9e3c8a36",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 245,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:52:31Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "3c3e318f_4087add0",
       "range": {
         "startLine": 245,
         "startChar": 0,
@@ -771,6 +843,24 @@
     },
     {
       "key": {
+        "uuid": "2cd75c75_5b6f2d8e",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:52:31Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "72ae3ff2_38099d47",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2a3d145d_2bc950f6",
         "filename": "mongo/options/clientoptions_test.go",
         "patchSetId": 7
@@ -823,6 +913,24 @@
       "side": 1,
       "message": "For testing.",
       "parentUuid": "e39f307a_986dcae6",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3eb24020_397d4d9c",
+        "filename": "mongo/options/testdata/ca.pem",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:52:31Z",
+      "side": 1,
+      "message": "I figured that given the location, but I don\u0027t see where they are all being used.  For instance, grep for \"ca-key\" turned up nothing.",
+      "parentUuid": "9b9b8602_99db16f9",
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -905,6 +1013,24 @@
       "side": 1,
       "message": "No, but neither does BuildDocument, and right now this is just used in test code. It\u0027s more a test design than anything and likely to change.",
       "parentUuid": "e409f697_29d9106d",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2afff48f_7446744e",
+        "filename": "x/bsonx/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:52:31Z",
+      "side": 1,
+      "message": "Sorry, but if it\u0027s worth adding to the public API it\u0027s worth adding a test for it.  Feel free to add add a test for BuildDocument as well if the inconsistency bothers you.\n\nIf it\u0027s really only used in tests and you don\u0027t think it should be part of the public API, consider moving it to a test class.",
+      "parentUuid": "c2649b16_bbcf40ae",
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -1006,6 +1132,30 @@
     },
     {
       "key": {
+        "uuid": "320e4225_b1f0716e",
+        "filename": "x/mongo/driver/bulk_write.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 575,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:52:31Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "eed73d41_897b6d8f",
+      "range": {
+        "startLine": 575,
+        "startChar": 0,
+        "endLine": 575,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f21659c4_ed3b0b87",
         "filename": "x/mongo/driver/update.go",
         "patchSetId": 7
@@ -1089,6 +1239,30 @@
       "side": 1,
       "message": "Each of these is slightly different because it has to grab the filters from a specific field of a document. I\u0027m saying that we won\u0027t actually remove that many lines with a helper function and it\u0027ll just cause indirection in the code, for the purpose of saving some lines of code.",
       "parentUuid": "802c8457_1899cd6c",
+      "range": {
+        "startLine": 53,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "422172ea_84394fa6",
+        "filename": "x/mongo/driver/update.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:52:31Z",
+      "side": 1,
+      "message": "So the function is parameterized with the differences. I still don\u0027t see the problem.\n\nI think this is verging on a larger discussion of the benefits and shortcomings of DRY. I\u0027m willing to let it go here, but it\u0027s something we should come to agreement about as a team.\n\nAny thoughts on this, @Craig, @Isabella?",
+      "parentUuid": "9926e952_f06807dd",
       "range": {
         "startLine": 53,
         "startChar": 0,
