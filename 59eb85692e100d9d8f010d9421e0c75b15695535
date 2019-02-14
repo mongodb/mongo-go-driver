@@ -46,6 +46,30 @@
       "revId": "59eb85692e100d9d8f010d9421e0c75b15695535",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6eb48b72_57cbfc28",
+        "filename": "mongo/client.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T18:58:14Z",
+      "side": 1,
+      "message": "I think I understand what it\u0027s saying.  I\u0027m just concerned about the possible surprise to users.  Someone could argue that ssl\u003dtrue on the URI doesn\u0027t actually conflict with TLSConfig.  It\u0027s in accordance with it. \n\nI\u0027m not saying this is wrong, just that it could lead to some surprise and may be worth documenting explicitly, perhaps in the ApplyURI method of ClientOptions.",
+      "parentUuid": "764547f7_fe286286",
+      "range": {
+        "startLine": 77,
+        "startChar": 1,
+        "endLine": 77,
+        "endChar": 2
+      },
+      "revId": "59eb85692e100d9d8f010d9421e0c75b15695535",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
