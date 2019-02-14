@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "951008ae_b236d3b5",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 275,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T21:08:20Z",
+      "side": 1,
+      "message": "s/and/an/",
+      "range": {
+        "startLine": 275,
+        "startChar": 61,
+        "endLine": 275,
+        "endChar": 64
+      },
+      "revId": "749548d04ba81b7bc2076df5747ab8955ffeb37b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
