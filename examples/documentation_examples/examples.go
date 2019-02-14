@@ -13,7 +13,9 @@ import (
 	"context"
 	"io/ioutil"
 	logger "log"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
@@ -1934,3 +1936,110 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 }
 
 // End Transactions Retry Example 3
+
+// ChangeStreamExamples contains examples of changestream operations.
+func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
+	ctx := context.Background()
+
+	coll := db.Collection("inventory_changestream")
+
+	err := coll.Drop(context.Background())
+	require.NoError(t, err)
+
+	_, err = coll.InsertOne(ctx, bson.D{{"x", int32(1)}})
+	require.NoError(t, err)
+
+	var stop int32
+
+	doInserts := func(coll *mongo.Collection) {
+		for atomic.LoadInt32(&stop) == 0 {
+			_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
+			time.Sleep(10 * time.Millisecond)
+			coll.DeleteOne(ctx, bson.D{{"x", 1}})
+		}
+	}
+
+	go doInserts(coll)
+
+	{
+		// Start Changestream Example 1
+
+		cs, err := coll.Watch(ctx, mongo.Pipeline{})
+		require.NoError(t, err)
+		defer cs.Close(ctx)
+
+		ok := cs.Next(ctx)
+		next := cs.Current
+
+		// End Changestream Example 1
+
+		require.True(t, ok)
+		require.NoError(t, err)
+		require.NotEqual(t, len(next), 0)
+	}
+	{
+		// Start Changestream Example 2
+
+		cs, err := coll.Watch(ctx, mongo.Pipeline{}, options.ChangeStream().SetFullDocument(options.UpdateLookup))
+		require.NoError(t, err)
+		defer cs.Close(ctx)
+
+		ok := cs.Next(ctx)
+		next := cs.Current
+
+		// End Changestream Example 2
+
+		require.True(t, ok)
+		require.NoError(t, err)
+		require.NotEqual(t, len(next), 0)
+	}
+
+	{
+		original, err := coll.Watch(ctx, mongo.Pipeline{})
+		require.NoError(t, err)
+		defer original.Close(ctx)
+
+		ok := original.Next(ctx)
+		require.True(t, ok)
+
+		next := original.Current
+		// Start Changestream Example 3
+		resumeToken := next.Lookup("_id").Document()
+
+		cs, err := coll.Watch(ctx, mongo.Pipeline{}, options.ChangeStream().SetResumeAfter(resumeToken))
+		require.NoError(t, err)
+		defer cs.Close(ctx)
+
+		ok = cs.Next(ctx)
+		result := cs.Current
+
+		// End Changestream Example 3
+
+		require.True(t, ok)
+		require.NoError(t, err)
+		require.NotEqual(t, len(result), 0)
+	}
+
+	{
+		// Start Changestream Example 4
+		pipeline := mongo.Pipeline{bson.D{{"$match", bson.D{{"$or",
+			bson.A{
+				bson.D{{"fullDocument.username", "alice"}},
+				bson.D{{"operationType", "delete"}}}}},
+		}}}
+		cs, err := coll.Watch(ctx, pipeline)
+		require.NoError(t, err)
+		defer cs.Close(ctx)
+
+		ok := cs.Next(ctx)
+		next := cs.Current
+
+		// End Changestream Example 4
+
+		require.True(t, ok)
+		require.NoError(t, err)
+		require.NotEqual(t, len(next), 0)
+	}
+
+	atomic.StoreInt32(&stop, 1)
+}
