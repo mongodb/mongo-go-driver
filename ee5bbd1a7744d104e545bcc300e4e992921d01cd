@@ -979,6 +979,24 @@
     },
     {
       "key": {
+        "uuid": "e643b125_06cd0106",
+        "filename": "mongo/options/testdata/ca.pem",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T21:07:50Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "358db813_90732777",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8233c316_5e2a4da6",
         "filename": "x/bsonx/bsoncore/bsoncore.go",
         "patchSetId": 7
