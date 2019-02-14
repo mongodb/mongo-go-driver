@@ -961,6 +961,24 @@
     },
     {
       "key": {
+        "uuid": "358db813_90732777",
+        "filename": "mongo/options/testdata/ca.pem",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T20:53:50Z",
+      "side": 1,
+      "message": "Ah, I left that there so we can generate signed keys again later if we need.",
+      "parentUuid": "3eb24020_397d4d9c",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8233c316_5e2a4da6",
         "filename": "x/bsonx/bsoncore/bsoncore.go",
         "patchSetId": 7
@@ -1058,6 +1076,24 @@
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1c182fad_108e31e8",
+        "filename": "x/bsonx/bsoncore/bsoncore.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 225,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T20:53:50Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2afff48f_7446744e",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {

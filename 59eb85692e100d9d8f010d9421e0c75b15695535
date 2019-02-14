@@ -70,6 +70,30 @@
       "revId": "59eb85692e100d9d8f010d9421e0c75b15695535",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a4e8711a_76b9b2eb",
+        "filename": "mongo/client.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T20:53:50Z",
+      "side": 1,
+      "message": "I added to the documentation for ApplyURI indicating that if ssl\u003dtrue then the *tls.Config will be overwritten.",
+      "parentUuid": "6eb48b72_57cbfc28",
+      "range": {
+        "startLine": 77,
+        "startChar": 1,
+        "endLine": 77,
+        "endChar": 2
+      },
+      "revId": "59eb85692e100d9d8f010d9421e0c75b15695535",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
