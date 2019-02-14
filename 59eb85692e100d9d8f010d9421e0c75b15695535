@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2f0aee0d_0b8a8298",
+        "filename": "mongo/client.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "So... what should be the recommended way to turn on TLS when you need to supply your own config?\n\nIf they do:\n\n  ClientOptions{}.TlsConfig(myTlsConfig).ApplyURI(\"mongodb://blah/?ssl\u003dtrue\")\n\nI think that will (silently) ignore the TlsConfig.  On the other hand, I think any of these will enable TLS\n\n   ClientOptions{}.ApplyURI(\"mongodb://blah/?ssl\u003dtrue\").TlsConfig(myTlsConfig).\n   ClientOptions{}.ApplyURI(\"mongodb://blah/?ssl\u003dfalse\").TlsConfig(myTlsConfig).\n   ClientOptions{}.ApplyURI(\"mongodb://blah\").TlsConfig(myTlsConfig).\n\nIs this the behavior we want? Do we need to more carefully document it?",
+      "range": {
+        "startLine": 77,
+        "startChar": 1,
+        "endLine": 77,
+        "endChar": 2
+      },
+      "revId": "59eb85692e100d9d8f010d9421e0c75b15695535",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

@@ -143,6 +143,30 @@
     },
     {
       "key": {
+        "uuid": "ac224a10_c03c3375",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 91,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "OK, I can live with it.  Thanks for the explanation.",
+      "parentUuid": "9ab90dc8_1daa4852",
+      "range": {
+        "startLine": 91,
+        "startChar": 1,
+        "endLine": 91,
+        "endChar": 7
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e8ec7913_3f0da6a3",
         "filename": "mongo/client.go",
         "patchSetId": 7
@@ -178,6 +202,30 @@
       "side": 1,
       "message": "This needs to be fixed up some. The old code was a bit confusing but I think we can just have the if statement hang on opts.Auth !\u003d nil.",
       "parentUuid": "e8ec7913_3f0da6a3",
+      "range": {
+        "startLine": 242,
+        "startChar": 0,
+        "endLine": 242,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "42a0b0e0_4e863c34",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 242,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "Looks good now.  I\u0027d still like to know whether our existing tests would have caught this.  If not, we need more tests.",
+      "parentUuid": "28c0909d_afe40738",
       "range": {
         "startLine": 242,
         "startChar": 0,
@@ -284,6 +332,30 @@
     },
     {
       "key": {
+        "uuid": "ab1d2932_0ba21d25",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 93,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "564b6fd2_1914bbf9",
+      "range": {
+        "startLine": 93,
+        "startChar": 1,
+        "endLine": 93,
+        "endChar": 2
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "4333d75b_f90ebb44",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
@@ -379,6 +451,30 @@
     },
     {
       "key": {
+        "uuid": "64175614_fb845e03",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 113,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "6af2d918_360a4fab",
+      "range": {
+        "startLine": 113,
+        "startChar": 25,
+        "endLine": 113,
+        "endChar": 26
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "bdcc1f92_d1b823f7",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
@@ -408,6 +504,24 @@
       "side": 1,
       "message": "It seems weird to me not to check for this.",
       "parentUuid": "bdcc1f92_d1b823f7",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ab2ef730_ed4773cf",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "I don\u0027t think it\u0027s weird.  Consider that if there are no hosts _bad things_ will likely happen later (well, maybe just an error returned further down the stack).  So either we should report an error here if len is zero or prove to ourselves that it can never happen and so the check is unnecessary.",
+      "parentUuid": "ad37629e_b01b99c4",
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -449,6 +563,30 @@
       "side": 1,
       "message": "The tests that start with TLS. This method has 100% test coverage, so this code is being tested.",
       "parentUuid": "04525c5b_c32f1d97",
+      "range": {
+        "startLine": 214,
+        "startChar": 0,
+        "endLine": 214,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "06032c41_7efcd202",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "Sorry, not sure which ones you\u0027re talking about... can you give me a link please? :|",
+      "parentUuid": "9f442820_ca4ec458",
       "range": {
         "startLine": 214,
         "startChar": 0,
@@ -525,6 +663,24 @@
       "side": 1,
       "message": "It was because changing core API isn\u0027t in scope for this ticket.",
       "parentUuid": "a4c61322_c866340c",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2500ec1e_8e8cfacb",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "OK, after a lot of digging through the code base I think I understand where you\u0027re coming from.  My understanding is that the tlsconfig.go code that this duplicates will only be exercised by an application using Topology directly (e.g. by calling WithConnString).  So assuming that will all disappear in fairly short order, I\u0027m ok with the duplication in that case.",
+      "parentUuid": "d4dc48ff_0c8325ca",
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -695,6 +851,30 @@
     },
     {
       "key": {
+        "uuid": "23aa9f1d_bc1d3542",
+        "filename": "x/mongo/driver/bulk_write.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 575,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "I don\u0027t know.  Can you check?  I don\u0027t trust the CRUD spec tests yet to exhaustively test all options.  If they do, then fine to resolve this comment.",
+      "parentUuid": "029f40e5_5f4d8e5d",
+      "range": {
+        "startLine": 575,
+        "startChar": 0,
+        "endLine": 575,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f21659c4_ed3b0b87",
         "filename": "x/mongo/driver/update.go",
         "patchSetId": 7
@@ -730,6 +910,30 @@
       "side": 1,
       "message": "It would only remove 2 lines of code and add extra indirection.",
       "parentUuid": "f21659c4_ed3b0b87",
+      "range": {
+        "startLine": 53,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "802c8457_1899cd6c",
+        "filename": "x/mongo/driver/update.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T00:29:47Z",
+      "side": 1,
+      "message": "Not sure what two lines you\u0027re talking about.  I\u0027m suggesting to replace a dozen or so lines with a helper.  \n\nI\u0027m not clear what the objection is.  What\u0027s wrong with indirection when it removes code duplication?  Is it that there\u0027s no good place to put such a helper?",
+      "parentUuid": "c5fd61e5_51f269d1",
       "range": {
         "startLine": 53,
         "startChar": 0,
