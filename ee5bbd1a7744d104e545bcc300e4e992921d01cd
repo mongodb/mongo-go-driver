@@ -796,6 +796,24 @@
     },
     {
       "key": {
+        "uuid": "32a48649_7c572154",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 226,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-02-14T21:21:19Z",
+      "side": 1,
+      "message": "So, we are saying that if you give us a tls.Config yourself, it\u0027s your job to (a) decrypt it if necessary and (b) tell us the X509 username?\n\nI\u0027m ok with that.",
+      "parentUuid": "a5df7af1_96cd0c50",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "a4c61322_c866340c",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
@@ -1341,6 +1359,30 @@
       "side": 1,
       "message": "So the function is parameterized with the differences. I still don\u0027t see the problem.\n\nI think this is verging on a larger discussion of the benefits and shortcomings of DRY. I\u0027m willing to let it go here, but it\u0027s something we should come to agreement about as a team.\n\nAny thoughts on this, @Craig, @Isabella?",
       "parentUuid": "9926e952_f06807dd",
+      "range": {
+        "startLine": 53,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ea17872b_c5e6b788",
+        "filename": "x/mongo/driver/update.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-02-14T21:21:19Z",
+      "side": 1,
+      "message": "I\u0027ve read a number of articles on go and DRY. The takeaways I have had are these: \n\n1. don\u0027t DRY when it makes code harder to read.\n2. don\u0027t DRY when it\u0027s the same code but different business contexts.\n3. we are more flexible on (1) and (2) in golang.\n\nHowever, none of these apply here. \n1. These locations are already a bit difficult to read that a named function would absolutely clear up. `appendArrayFilters` or something.\n2. This is the same code in the same business context. Take ArrayFilters and append them to a bsonx.Document. There isn\u0027t any business reason where this would change for one and not the others.\n\nAnyways, my 2 cents for what it\u0027s worth.",
+      "parentUuid": "422172ea_84394fa6",
       "range": {
         "startLine": 53,
         "startChar": 0,
