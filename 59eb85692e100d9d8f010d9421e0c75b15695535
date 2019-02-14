@@ -22,6 +22,30 @@
       "revId": "59eb85692e100d9d8f010d9421e0c75b15695535",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "764547f7_fe286286",
+        "filename": "mongo/client.go",
+        "patchSetId": 12
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T16:13:47Z",
+      "side": 1,
+      "message": "Your example isn\u0027t what this is saying. This is saying if you do this, you\u0027ll wind up with an empty tls.Config:\n\n    mongo.NewClient(options.Client().TLSConfig(...), options.Client().ApplyURI(\"mongodb://.../?ssl\u003dtrue\"))\n\nEither way, you asked for the TLS config to be overwritten when you called ApplyURI after setting the TLS config.",
+      "parentUuid": "2f0aee0d_0b8a8298",
+      "range": {
+        "startLine": 77,
+        "startChar": 1,
+        "endLine": 77,
+        "endChar": 2
+      },
+      "revId": "59eb85692e100d9d8f010d9421e0c75b15695535",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }

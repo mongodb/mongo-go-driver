@@ -238,6 +238,30 @@
     },
     {
       "key": {
+        "uuid": "a0b90a86_3f4f630e",
+        "filename": "mongo/client.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 242,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T16:13:47Z",
+      "side": 1,
+      "message": "They would have, I just hadn\u0027t run it locally.",
+      "parentUuid": "42a0b0e0_4e863c34",
+      "range": {
+        "startLine": 242,
+        "startChar": 0,
+        "endLine": 242,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "bda2412f_99361eb9",
         "filename": "mongo/client.go",
         "patchSetId": 7
@@ -528,6 +552,24 @@
     },
     {
       "key": {
+        "uuid": "b534e5e8_bab6926c",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T16:13:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ab2ef730_ed4773cf",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "04525c5b_c32f1d97",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
@@ -587,6 +629,30 @@
       "side": 1,
       "message": "Sorry, not sure which ones you\u0027re talking about... can you give me a link please? :|",
       "parentUuid": "9f442820_ca4ec458",
+      "range": {
+        "startLine": 214,
+        "startChar": 0,
+        "endLine": 214,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "15e15478_20009edb",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T16:13:47Z",
+      "side": 1,
+      "message": "Added a comment where the tests are.",
+      "parentUuid": "06032c41_7efcd202",
       "range": {
         "startLine": 214,
         "startChar": 0,
@@ -684,6 +750,47 @@
       "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "72ae3ff2_38099d47",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 498,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T16:13:47Z",
+      "side": 1,
+      "message": "It will be removed during GODRIVER-617.",
+      "parentUuid": "2500ec1e_8e8cfacb",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2a3d145d_2bc950f6",
+        "filename": "mongo/options/clientoptions_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 350,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T16:13:47Z",
+      "side": 1,
+      "message": "TLS URI tests.",
+      "range": {
+        "startLine": 323,
+        "startChar": 3,
+        "endLine": 350,
+        "endChar": 5
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -875,6 +982,30 @@
     },
     {
       "key": {
+        "uuid": "eed73d41_897b6d8f",
+        "filename": "x/mongo/driver/bulk_write.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 575,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T16:13:47Z",
+      "side": 1,
+      "message": "Looking at the CRUD spec tests it does appear that this is covered and running the tests with coverage enabled shows this code getting hit.",
+      "parentUuid": "23aa9f1d_bc1d3542",
+      "range": {
+        "startLine": 575,
+        "startChar": 0,
+        "endLine": 575,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "f21659c4_ed3b0b87",
         "filename": "x/mongo/driver/update.go",
         "patchSetId": 7
@@ -934,6 +1065,30 @@
       "side": 1,
       "message": "Not sure what two lines you\u0027re talking about.  I\u0027m suggesting to replace a dozen or so lines with a helper.  \n\nI\u0027m not clear what the objection is.  What\u0027s wrong with indirection when it removes code duplication?  Is it that there\u0027s no good place to put such a helper?",
       "parentUuid": "c5fd61e5_51f269d1",
+      "range": {
+        "startLine": 53,
+        "startChar": 0,
+        "endLine": 53,
+        "endChar": 1
+      },
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9926e952_f06807dd",
+        "filename": "x/mongo/driver/update.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-14T16:13:47Z",
+      "side": 1,
+      "message": "Each of these is slightly different because it has to grab the filters from a specific field of a document. I\u0027m saying that we won\u0027t actually remove that many lines with a helper function and it\u0027ll just cause indirection in the code, for the purpose of saving some lines of code.",
+      "parentUuid": "802c8457_1899cd6c",
       "range": {
         "startLine": 53,
         "startChar": 0,
