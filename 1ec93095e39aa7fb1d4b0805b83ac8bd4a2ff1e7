@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "eee78487_3285c885",
+        "filename": "mongo/collection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1068,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T20:48:39Z",
+      "side": 1,
+      "message": "I\u0027m not clear on where this is necessary and where it\u0027s not.  Seems like any command that takes a WriteConcern needs this, but not all of them do, e.g. Drop function just below.  Can you confirm?",
+      "range": {
+        "startLine": 1068,
+        "startChar": 0,
+        "endLine": 1068,
+        "endChar": 1
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "772012d6_9482fde6",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1863,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T20:48:39Z",
+      "side": 1,
+      "message": "Did you happen to run this test on all supported server versions in your patch build?  I have this vague memory that later versions don\u0027t treat impossible write concerns as write concern errors, but rather regular errors.",
+      "range": {
+        "startLine": 1863,
+        "startChar": 0,
+        "endLine": 1863,
+        "endChar": 1
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8733812a_6d638c19",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 392,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T20:48:39Z",
+      "side": 1,
+      "message": "I thought the specification said not to do this, or at least didn\u0027t say _to_ do it.",
+      "range": {
+        "startLine": 392,
+        "startChar": 1,
+        "endLine": 392,
+        "endChar": 2
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "67b13d98_db5eca1e",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 444,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-14T20:48:39Z",
+      "side": 1,
+      "message": "This doesn\u0027t seem quite right still.  The spec calls for the monitor to drain the connection pool before re-connecting.  But since the drainage happens only after this method exits, that\u0027s not happening.\n\nIt also says: \"Failed on first try to reach this server, give up\". But given the way this method is written, that\u0027s not so easy to do.  Maybe set maxRetry to 1 if conn \u003d\u003d nil or conn.Expired()?",
+      "range": {
+        "startLine": 444,
+        "startChar": 0,
+        "endLine": 444,
+        "endChar": 1
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
