@@ -55,6 +55,7 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDecoder(tTime, ValueDecoderFunc(dvd.TimeDecodeValue)).
 		RegisterDecoder(tEmpty, ValueDecoderFunc(dvd.EmptyInterfaceDecodeValue)).
 		RegisterDecoder(tOID, ValueDecoderFunc(dvd.ObjectIDDecodeValue)).
+		RegisterDecoder(tUUID, ValueDecoderFunc(dvd.UUIDDecodeValue)).
 		RegisterDecoder(tDecimal, ValueDecoderFunc(dvd.Decimal128DecodeValue)).
 		RegisterDecoder(tJSONNumber, ValueDecoderFunc(dvd.JSONNumberDecodeValue)).
 		RegisterDecoder(tURL, ValueDecoderFunc(dvd.URLDecodeValue)).
@@ -409,6 +410,40 @@ func (dvd DefaultValueDecoders) ObjectIDDecodeValue(dc DecodeContext, vr bsonrw.
 	oid, err := vr.ReadObjectID()
 	val.Set(reflect.ValueOf(oid))
 	return err
+}
+
+// UUIDDecodeValue is the ValueDecoderFunc for primitive.UUID.
+func (dvd DefaultValueDecoders) UUIDDecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.CanSet() || val.Type() != tUUID {
+		return ValueDecoderError{Name: "UUIDDecodeValue", Types: []reflect.Type{tUUID}, Received: val}
+	}
+
+	if vr.Type() != bsontype.Binary {
+		return fmt.Errorf("cannot decode %v into an UUID", vr.Type())
+	}
+
+	data, subtype, err := vr.ReadBinary()
+	if err != nil {
+		return err
+	}
+	if len(data) != 16 {
+		return fmt.Errorf("UUIDDecodeValue cannot decode binary, invalid length %v", len(data))
+	}
+	if subtype != 0x4 {
+		return fmt.Errorf("UUIDDecodeValue can only be used to decode subtype 0x4 for %s, got %v", bsontype.Binary, subtype)
+
+	}
+
+	uuid := primitive.UUID{}
+
+	for idx := 0; idx < 16; idx++ {
+		uuid[idx] = data[idx]
+	}
+
+	val.Set(reflect.ValueOf(uuid))
+
+	return nil
+
 }
 
 // DateTimeDecodeValue is the ValueDecoderFunc for DateTime.
