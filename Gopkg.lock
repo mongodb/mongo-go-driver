@@ -39,6 +39,14 @@
   version = "v0.2.0"
 
 [[projects]]
+  digest = "1:236d7e1bdb50d8f68559af37dbcf9d142d56b431c9b2176d41e2a009b664cda8"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
+
+[[projects]]
   digest = "1:06d94e582555f421565b117d324d2098f9e666a0bccf545bfb4eb0cc6bdc1b6e"
   name = "github.com/kr/pretty"
   packages = ["."]
@@ -143,6 +151,7 @@
     "github.com/go-stack/stack",
     "github.com/golang/snappy",
     "github.com/google/go-cmp/cmp",
+    "github.com/google/uuid",
     "github.com/kr/pretty",
     "github.com/montanaflynn/stats",
     "github.com/stretchr/testify/assert",
@@ -150,6 +159,7 @@
     "github.com/tidwall/pretty",
     "github.com/xdg/scram",
     "github.com/xdg/stringprep",
+    "golang.org/x/net/context",
     "golang.org/x/sync/semaphore",
   ]
   solver-name = "gps-cdcl"

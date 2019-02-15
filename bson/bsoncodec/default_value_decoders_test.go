@@ -1011,6 +1011,50 @@ func TestDefaultValueDecoders(t *testing.T) {
 			},
 		},
 		{
+			"UUIDDecodeValue",
+			ValueDecoderFunc(dvd.UUIDDecodeValue),
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					&bsonrwtest.ValueReaderWriter{},
+					bsonrwtest.Nothing,
+					ValueDecoderError{Name: "UUIDDecodeValue", Types: []reflect.Type{tUUID}, Received: reflect.ValueOf(wrong)},
+				},
+				{
+					"type not UUID",
+					primitive.UUID{},
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.String},
+					bsonrwtest.Nothing,
+					fmt.Errorf("cannot decode %v into an UUID", bsontype.String),
+				},
+				{
+					"can set false",
+					cansettest,
+					nil,
+					&bsonrwtest.ValueReaderWriter{},
+					bsonrwtest.Nothing,
+					ValueDecoderError{Name: "UUIDDecodeValue", Types: []reflect.Type{tUUID}},
+				},
+				{
+					"success",
+					primitive.UUID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x00},
+					nil,
+					&bsonrwtest.ValueReaderWriter{
+						BSONType: bsontype.Binary,
+						Return: bsoncore.Value{
+							Type: bsontype.Binary,
+							Data: bsoncore.AppendBinary(nil, 0x4, []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x00}),
+						},
+					},
+					bsonrwtest.ReadBinary,
+					nil,
+				},
+			},
+		},
+		{
 			"Decimal128DecodeValue",
 			ValueDecoderFunc(dvd.Decimal128DecodeValue),
 			[]subtest{
