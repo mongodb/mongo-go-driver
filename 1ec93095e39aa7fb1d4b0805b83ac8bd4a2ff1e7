@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "d996102a_22a16f24",
+        "filename": "mongo/collection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1068,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-15T23:17:40Z",
+      "side": 1,
+      "message": "I\u0027ve added it to aggregation, but I don\u0027t think any of the other ones actually return writeConcern errors",
+      "parentUuid": "eee78487_3285c885",
+      "range": {
+        "startLine": 1068,
+        "startChar": 0,
+        "endLine": 1068,
+        "endChar": 1
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "772012d6_9482fde6",
         "filename": "mongo/collection_internal_test.go",
         "patchSetId": 5
@@ -45,6 +69,30 @@
       "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3c63a222_fb9b543b",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 1863,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-15T23:17:40Z",
+      "side": 1,
+      "message": "I did, they\u0027re still write concern errors.",
+      "parentUuid": "772012d6_9482fde6",
+      "range": {
+        "startLine": 1863,
+        "startChar": 0,
+        "endLine": 1863,
+        "endChar": 1
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "8d1fc394_2967c286",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 392,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-15T23:17:40Z",
+      "side": 1,
+      "message": "Done.",
+      "parentUuid": "8733812a_6d638c19",
+      "range": {
+        "startLine": 392,
+        "startChar": 1,
+        "endLine": 392,
+        "endChar": 2
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "67b13d98_db5eca1e",
         "filename": "x/mongo/driver/topology/server.go",
         "patchSetId": 5
@@ -91,6 +163,30 @@
       "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ffcc9260_b9144651",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 444,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-15T23:17:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "67b13d98_db5eca1e",
+      "range": {
+        "startLine": 444,
+        "startChar": 0,
+        "endLine": 444,
+        "endChar": 1
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

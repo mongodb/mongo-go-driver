@@ -22,6 +22,30 @@
       "revId": "0b80686cf4aca5cf0ed09c3c6c3607d4b4eb038c",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "af7989e6_1d1c6172",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 392,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-15T23:17:40Z",
+      "side": 1,
+      "message": "gone away",
+      "parentUuid": "664255a1_986a5e3c",
+      "range": {
+        "startLine": 392,
+        "startChar": 1,
+        "endLine": 392,
+        "endChar": 2
+      },
+      "revId": "0b80686cf4aca5cf0ed09c3c6c3607d4b4eb038c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }

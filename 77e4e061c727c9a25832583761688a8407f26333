@@ -22,6 +22,30 @@
       "revId": "77e4e061c727c9a25832583761688a8407f26333",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "99303bae_c907777f",
+        "filename": "x/mongo/driver/find_one_and_delete.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-15T23:17:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2c8e5e2e_e9f0804b",
+      "range": {
+        "startLine": 96,
+        "startChar": 2,
+        "endLine": 96,
+        "endChar": 93
+      },
+      "revId": "77e4e061c727c9a25832583761688a8407f26333",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
