@@ -109,7 +109,9 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 		return mechName, nil, sc.getError("unable to intitialize client")
 	}
 
-	return mechName, nil, nil
+	payload, err := sc.Next(nil)
+
+	return mechName, payload, err
 }
 
 func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
