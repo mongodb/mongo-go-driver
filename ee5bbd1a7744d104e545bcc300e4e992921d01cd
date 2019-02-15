@@ -814,6 +814,24 @@
     },
     {
       "key": {
+        "uuid": "a085f6a6_20180bd3",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 226,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-15T18:46:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "32a48649_7c572154",
+      "revId": "ee5bbd1a7744d104e545bcc300e4e992921d01cd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a4c61322_c866340c",
         "filename": "mongo/options/clientoptions.go",
         "patchSetId": 7
