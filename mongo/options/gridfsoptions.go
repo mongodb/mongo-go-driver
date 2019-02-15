@@ -9,6 +9,7 @@ package options
 import (
 	"time"
 
+	"github.com/mongodb/mongo-go-driver/mongo/gridfs"
 	"github.com/mongodb/mongo-go-driver/mongo/readconcern"
 	"github.com/mongodb/mongo-go-driver/mongo/readpref"
 	"github.com/mongodb/mongo-go-driver/mongo/writeconcern"
@@ -19,7 +20,7 @@ import (
 var DefaultName = "fs"
 
 // DefaultChunkSize is the default size of each file chunk in bytes.
-var DefaultChunkSize int32 = 255 * 1000
+var DefaultChunkSize = gridfs.DefaultChunkSize
 
 // DefaultRevision is the default revision number for a download by name operation.
 var DefaultRevision int32 = -1
