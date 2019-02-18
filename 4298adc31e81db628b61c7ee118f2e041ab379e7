@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ffb4636f_7708a2cc",
+        "filename": "README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1015492
+      },
+      "writtenOn": "2019-02-18T22:53:26Z",
+      "side": 1,
+      "message": "The tests will work with lesser roles, but I figured saying root on admin is the easiest and most future-proof.",
+      "range": {
+        "startLine": 147,
+        "startChar": 141,
+        "endLine": 147,
+        "endChar": 176
+      },
+      "revId": "4298adc31e81db628b61c7ee118f2e041ab379e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
