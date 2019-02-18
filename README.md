@@ -124,8 +124,59 @@ New Features and bugs can be reported on jira: https://jira.mongodb.org/browse/G
 -------------------------
 ## Testing / Development
 
-To run driver tests, make sure a MongoDB server instance is running at localhost:27017. Using make, you can run `make` (on windows, run `nmake`).
+The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `make` (on Windows, run `nmake`).
+
 This will run coverage, run go-lint, run go-vet, and build the examples.
+
+### Testing Different Topologies
+
+To test a **replica set**, set `MONGODB_URI="<connection-string>"` and `TOPOLOGY=replica_set` for the `make` command. For example, for a local replica set named `rs1` comprised of three nodes on ports 27017, 27018, and 27019:
+
+```
+MONGODB_URI="mongodb://localhost:27017,localhost:27018,localhost:27018/?replicaSet=rs1" TOPOLOGY=replica_set make
+```
+
+To test a **sharded cluster**, set `MONGODB_URI="<connection-string>"` and `TOPOLOGY=sharded_cluster` variables for the `make` command. For example, for a sharded cluster with a single mongos on port 27017:
+
+```
+MONGODB_URI="mongodb://localhost:27017/" TOPOLOGY=sharder_cluster make
+```
+
+### Testing Auth and SSL
+
+To test authentication and SSL, first set up a MongoDB cluster with auth and SSL configured. Testing authentication requires a user with the `root` role on the `admin` database. The Go Driver repository comes with example certificates in the `data/certificates` directory. These certs can be used for testing. Here is an example command that would run a mongod with SSL correctly configured for tests:
+
+```
+mongod \
+--auth \
+--sslMode requireSSL \
+--sslPEMKeyFile $(pwd)/data/certificates/server.pem \
+--sslCAFile $(pwd)/data/certificates/ca.pem \
+--sslWeakCertificateValidation
+```
+
+To run the tests with `make`, set `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database, set `MONGODB_URI` to the connection string of the server, set `AUTH=auth`, and set `SSL=ssl`. For example:
+
+```
+AUTH=auth SSL=ssl MONGO_GO_DRIVER_CA_FILE=$(pwd)/data/certificates/ca.pem  MONGODB_URI="mongodb://user:password@localhost:27017/?authSource=admin" make
+```
+
+Notes:
+- The `--sslWeakCertificateValidation` flag is required on the server for the test suite to work correctly.
+- The test suite requires the auth database to be set with `?authSource=admin`, not `/admin`.
+
+### Testing Compression
+
+The MongoDB Go Driver supports wire protocol compression using Snappy or zLib. To run tests with wire protocol compression, set `MONGO_GO_DRIVER_COMPRESSOR` to `snappy` or `zlib`.  For example:
+
+```
+MONGO_GO_DRIVER_COMPRESSOR=snappy make
+```
+
+Ensure the [`--networkMessageCompressors` flag](https://docs.mongodb.com/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors) on mongod or mongos includes `zlib` if testing zLib compression.
+
+-------------------------
+## Feedback
 
 The MongoDB Go Driver is not feature complete, so any help is appreciated. Check out the [project page](https://jira.mongodb.org/browse/GODRIVER)
 for tickets that need completing. See our [contribution guidelines](CONTRIBUTING.md) for details.

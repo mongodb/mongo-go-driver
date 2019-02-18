@@ -13,6 +13,11 @@ TEST_PKGS = $(BSON_TEST_PKGS) $(MONGO_TEST_PKGS) $(UNSTABLE_TEST_PKGS) $(TAG_PKG
 
 TEST_TIMEOUT = 600
 
+# Default variables for running tests (will be overwritten by command line variables)
+TOPOLOGY ?= server # Other options: replica_set, sharded_cluster
+AUTH ?= noauth # Other options: auth
+SSL ?= nossl # Other options: ssl
+
 .PHONY: default
 default: check-fmt vet build-examples lint errcheck test-cover test-race
 
@@ -51,19 +56,19 @@ errcheck:
 
 .PHONY: test
 test:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $(TEST_PKGS)
+	TOPOLOGY=$(TOPOLOGY) AUTH=$(AUTH) SSL=$(SSL) go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $(TEST_PKGS)
 
 .PHONY: test-cover
 test-cover:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $(TEST_PKGS)
+	TOPOLOGY=$(TOPOLOGY) AUTH=$(AUTH) SSL=$(SSL) go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $(TEST_PKGS)
 
 .PHONY: test-race
 test-race:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $(TEST_PKGS)
+	TOPOLOGY=$(TOPOLOGY) AUTH=$(AUTH) SSL=$(SSL) go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $(TEST_PKGS)
 
 .PHONY: test-short
 test-short:
-	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(TEST_PKGS)
+	TOPOLOGY=$(TOPOLOGY) AUTH=$(AUTH) SSL=$(SSL) go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -short $(TEST_PKGS)
 
 .PHONY: update-bson-corpus-tests
 update-bson-corpus-tests:
