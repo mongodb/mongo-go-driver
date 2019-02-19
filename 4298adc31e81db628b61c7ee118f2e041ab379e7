@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "22292939_b900fe24",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-19T16:33:17Z",
+      "side": 1,
+      "message": "If we\u0027re going to change this I would rather force these to be explicit. As in, I would rather error if the user hasn\u0027t set TOPOLOGY, AUTH, SSL, and make it explicit that they need to be set.",
+      "range": {
+        "startLine": 16,
+        "startChar": 0,
+        "endLine": 19,
+        "endChar": 33
+      },
+      "revId": "4298adc31e81db628b61c7ee118f2e041ab379e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ffb4636f_7708a2cc",
         "filename": "README.md",
         "patchSetId": 1
