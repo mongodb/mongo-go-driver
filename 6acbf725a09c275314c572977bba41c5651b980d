@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d44a927a_1a66b7c4",
+        "filename": "x/mongo/driver/topology/topology_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1015492
+      },
+      "writtenOn": "2019-02-19T00:34:33Z",
+      "side": 1,
+      "message": "I don\u0027t like introducing a panic here. Perhaps you can see a better way of initializing a compressor per connection?",
+      "revId": "6acbf725a09c275314c572977bba41c5651b980d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
