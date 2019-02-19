@@ -283,6 +283,30 @@
       "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b1adf1b9_b642bef2",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 444,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-19T18:05:38Z",
+      "side": 1,
+      "message": "We still aren\u0027t doing the second part of this comment. Should we check if s.Description().Kind is Unknown when we connection.New returns a failure?",
+      "parentUuid": "ffcc9260_b9144651",
+      "range": {
+        "startLine": 444,
+        "startChar": 0,
+        "endLine": 444,
+        "endChar": 1
+      },
+      "revId": "1ec93095e39aa7fb1d4b0805b83ac8bd4a2ff1e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
