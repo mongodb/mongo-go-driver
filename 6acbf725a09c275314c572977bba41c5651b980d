@@ -70,6 +70,24 @@
       "revId": "6acbf725a09c275314c572977bba41c5651b980d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "59980fa6_6984d84f",
+        "filename": "x/mongo/driver/topology/topology_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1015492
+      },
+      "writtenOn": "2019-02-19T20:07:01Z",
+      "side": 1,
+      "message": "Okay I\u0027ll take a stab at it. Thanks for the review!",
+      "parentUuid": "edf709f6_fb98a3ea",
+      "revId": "6acbf725a09c275314c572977bba41c5651b980d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
