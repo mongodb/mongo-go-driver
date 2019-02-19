@@ -24,11 +24,9 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/compressor"
 	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond
@@ -209,40 +207,30 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		appName = *opts.AppName
 	}
 	// Compressors & ZlibLevel
-	var compressors []string
+	var comps []string
 	if len(opts.Compressors) > 0 {
-		compressors = opts.Compressors
-		comps := make([]compressor.Compressor, 0, len(compressors))
-
-		for _, c := range compressors {
-			switch c {
-			case "snappy":
-				comps = append(comps, compressor.CreateSnappy())
-			case "zlib":
-				level := wiremessage.DefaultZlibLevel
-				if opts.ZlibLevel != nil {
-					level = *opts.ZlibLevel
-				}
-				zlibComp, err := compressor.CreateZlib(level)
-				if err != nil {
-					return err
-				}
-				comps = append(comps, zlibComp)
-			}
-		}
+		comps = opts.Compressors
 
 		connOpts = append(connOpts, connection.WithCompressors(
-			func(compressors []compressor.Compressor) []compressor.Compressor {
+			func(compressors []string) []string {
 				return append(compressors, comps...)
 			},
 		))
 
+		for _, comp := range comps {
+			if comp == "zlib" {
+				connOpts = append(connOpts, connection.WithZlibLevel(func(level *int) *int {
+					return opts.ZlibLevel
+				}))
+			}
+		}
+
 		serverOpts = append(serverOpts, topology.WithCompressionOptions(
-			func(opts ...string) []string { return append(opts, compressors...) },
+			func(opts ...string) []string { return append(opts, comps...) },
 		))
 	}
 	// Handshaker
-	var handshaker connection.Handshaker = &command.Handshake{Client: command.ClientDoc(appName), Compressors: compressors}
+	var handshaker connection.Handshaker = &command.Handshake{Client: command.ClientDoc(appName), Compressors: comps}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
 		cred := &auth.Cred{
@@ -271,7 +259,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		handshakeOpts := &auth.HandshakeOptions{
 			AppName:       appName,
 			Authenticator: authenticator,
-			Compressors:   compressors,
+			Compressors:   comps,
 		}
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake

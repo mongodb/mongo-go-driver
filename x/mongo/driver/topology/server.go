@@ -39,7 +39,7 @@ var ErrServerClosed = errors.New("server is closed")
 var ErrServerConnected = errors.New("server is connected")
 
 // SelectedServer represents a specific server that was selected during server selection.
-// It contains the kind of the typology it was selected from.
+// It contains the kind of the topology it was selected from.
 type SelectedServer struct {
 	*Server
 

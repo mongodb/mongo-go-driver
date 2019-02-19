@@ -140,7 +140,18 @@ func New(ctx context.Context, addr address.Address, opts ...Option) (Connection,
 	compressorMap := make(map[wiremessage.CompressorID]compressor.Compressor)
 
 	for _, comp := range cfg.compressors {
-		compressorMap[comp.CompressorID()] = comp
+		switch comp {
+		case "snappy":
+			snappyComp := compressor.CreateSnappy()
+			compressorMap[snappyComp.CompressorID()] = snappyComp
+		case "zlib":
+			zlibComp, err := compressor.CreateZlib(cfg.zlibLevel)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			compressorMap[zlibComp.CompressorID()] = zlibComp
+		}
 	}
 
 	c := &connection{
@@ -171,7 +182,7 @@ func New(ctx context.Context, addr address.Address, opts ...Option) (Connection,
 
 		if len(d.Compression) > 0 {
 		clientMethodLoop:
-			for _, comp := range cfg.compressors {
+			for _, comp := range c.compressorMap {
 				method := comp.Name()
 
 				for _, serverMethod := range d.Compression {
@@ -325,7 +336,7 @@ func (c *connection) uncompressMessage(compressed wiremessage.Compressed) ([]byt
 		c.uncompressBuf = make([]byte, 0, compressed.UncompressedSize)
 	}
 
-	uncompressedMessage, err := uncompressor.UncompressBytes(compressed.CompressedMessage, c.uncompressBuf)
+	uncompressedMessage, err := uncompressor.UncompressBytes(compressed.CompressedMessage, c.uncompressBuf[:compressed.UncompressedSize])
 
 	if err != nil {
 		return nil, 0, err
