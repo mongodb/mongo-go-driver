@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "35202c2b_f23a9c38",
+        "filename": "x/mongo/driver/aggregate.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 140,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-19T17:02:05Z",
+      "side": 1,
+      "message": "Is there a reason why we can\u0027t just return NewBatchCursor?",
+      "range": {
+        "startLine": 137,
+        "startChar": 1,
+        "endLine": 140,
+        "endChar": 19
+      },
+      "revId": "1c999681f8523cf0348e2e83ff88b142d75273af",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
