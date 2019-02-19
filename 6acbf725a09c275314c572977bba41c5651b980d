@@ -34,6 +34,24 @@
       "revId": "6acbf725a09c275314c572977bba41c5651b980d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5fb73df5_43118802",
+        "filename": "x/mongo/driver/topology/topology_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1015492
+      },
+      "writtenOn": "2019-02-19T16:43:58Z",
+      "side": 1,
+      "message": "topology.WithConnString is called once per client initialization. The closure causes each connection to use the same compressor that was initialized in topology.WithConnString.\n\nTo solve this it doesn\u0027t need to be inside the options function. That\u0027s just one way of ensuring a new compressor is initialized for each connection. \n\nAnother option would be adding a compressorType []string field to Connection. Then connection.WithCompressors appends the string \"zlib\" and/or \"snappy\" to that field. Then we can initialize the compressor from Connection.New(). That might be a little cleaner actually.",
+      "parentUuid": "20d0a1ac_e12805f3",
+      "revId": "6acbf725a09c275314c572977bba41c5651b980d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
