@@ -8,6 +8,7 @@ package topology
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"time"
 
@@ -191,23 +192,24 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		}
 
 		if len(cs.Compressors) > 0 {
-			comp := make([]compressor.Compressor, 0, len(cs.Compressors))
-
-			for _, c := range cs.Compressors {
-				switch c {
-				case "snappy":
-					comp = append(comp, compressor.CreateSnappy())
-				case "zlib":
-					zlibComp, err := compressor.CreateZlib(cs.ZlibLevel)
-					if err != nil {
-						return err
-					}
-
-					comp = append(comp, zlibComp)
-				}
-			}
-
 			connOpts = append(connOpts, connection.WithCompressors(func(compressors []compressor.Compressor) []compressor.Compressor {
+
+				comp := make([]compressor.Compressor, 0, len(cs.Compressors))
+
+				for _, c := range cs.Compressors {
+					switch c {
+					case "snappy":
+						comp = append(comp, compressor.CreateSnappy())
+					case "zlib":
+						zlibComp, err := compressor.CreateZlib(cs.ZlibLevel)
+						if err != nil {
+							panic(fmt.Errorf("Could not create zLib compressor: %v", err))
+						}
+
+						comp = append(comp, zlibComp)
+					}
+				}
+
 				return append(compressors, comp...)
 			}))
 

@@ -325,7 +325,7 @@ func (c *connection) uncompressMessage(compressed wiremessage.Compressed) ([]byt
 		c.uncompressBuf = make([]byte, 0, compressed.UncompressedSize)
 	}
 
-	uncompressedMessage, err := uncompressor.UncompressBytes(compressed.CompressedMessage, c.uncompressBuf)
+	uncompressedMessage, err := uncompressor.UncompressBytes(compressed.CompressedMessage, c.uncompressBuf[:compressed.UncompressedSize])
 
 	if err != nil {
 		return nil, 0, err
