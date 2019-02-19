@@ -372,7 +372,7 @@ tasks:
             SSL: "nossl"
 
     - name: test-standalone-noauth-nossl-compression
-      tags: ["test", "standalone", "compression"]
+      tags: ["test", "standalone", "compression", "snappy"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -385,6 +385,21 @@ tasks:
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+
+    - name: test-standalone-noauth-nossl-zlib-compression
+      tags: ["test", "standalone", "compression", "zlib"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "noauth"
+            SSL: "nossl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
     - name: test-standalone-auth-ssl
       tags: ["test", "standalone", "authssl"]
@@ -401,7 +416,7 @@ tasks:
             SSL: "ssl"
 
     - name: test-standalone-auth-ssl-compression
-      tags: ["test", "standalone", "authssl", "compression"]
+      tags: ["test", "standalone", "authssl", "compression", "snappy"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -414,6 +429,21 @@ tasks:
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+
+    - name: test-standalone-auth-ssl-compression-zlib
+      tags: ["test", "standalone", "authssl", "compression", "zlib"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "server"
+            AUTH: "auth"
+            SSL: "ssl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
     - name: test-replicaset-noauth-nossl
       tags: ["test", "replicaset"]
@@ -430,7 +460,7 @@ tasks:
             SSL: "nossl"
 
     - name: test-replicaset-noauth-nossl-compression
-      tags: ["test", "replicaset", "compression"]
+      tags: ["test", "replicaset", "compression", "snappy"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -443,6 +473,21 @@ tasks:
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+
+    - name: test-replicaset-noauth-nossl-compression-zlib
+      tags: ["test", "replicaset", "compression", "zlib"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "noauth"
+            SSL: "nossl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "noauth"
+            SSL: "nossl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
     - name: test-replicaset-auth-ssl
       tags: ["test", "replicaset", "authssl"]
@@ -459,7 +504,7 @@ tasks:
             SSL: "ssl"
 
     - name: test-replicaset-auth-ssl-compression
-      tags: ["test", "replicaset", "authssl", "compression"]
+      tags: ["test", "replicaset", "authssl", "compression", "snappy"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -472,6 +517,21 @@ tasks:
             AUTH: "auth"
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+
+    - name: test-replicaset-auth-ssl-compression-zlib
+      tags: ["test", "replicaset", "authssl", "compression", "zlib"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "replica_set"
+            AUTH: "auth"
+            SSL: "ssl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
     - name: test-sharded-noauth-nossl
       tags: ["test", "sharded"]
@@ -488,7 +548,7 @@ tasks:
             SSL: "nossl"
 
     - name: test-sharded-noauth-nossl-compression
-      tags: ["test", "sharded", "compression"]
+      tags: ["test", "sharded", "compression", "snappy"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -501,6 +561,21 @@ tasks:
             AUTH: "noauth"
             SSL: "nossl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+
+    - name: test-sharded-noauth-nossl-compression-zlib
+      tags: ["test", "sharded", "compression", "zlib"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "nossl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "noauth"
+            SSL: "nossl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
     - name: test-sharded-auth-ssl
       tags: ["test", "sharded", "authssl"]
@@ -517,7 +592,7 @@ tasks:
             SSL: "ssl"
 
     - name: test-sharded-auth-ssl-compression
-      tags: ["test", "sharded", "authssl", "compression"]
+      tags: ["test", "sharded", "authssl", "compression", "snappy"]
       commands:
         - func: bootstrap-mongo-orchestration
           vars:
@@ -531,6 +606,21 @@ tasks:
             SSL: "ssl"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
+    - name: test-sharded-auth-ssl-compression-zlib
+      tags: ["test", "sharded", "authssl", "compression", "zlib"]
+      commands:
+        - func: bootstrap-mongo-orchestration
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "ssl"
+        - func: run-tests
+          vars:
+            TOPOLOGY: "sharded_cluster"
+            AUTH: "auth"
+            SSL: "ssl"
+            MONGO_GO_DRIVER_COMPRESSOR: "zlib"
+
     - name: test-enterprise-auth-plain
       tags: ["test", "enterprise-auth"]
       commands:
@@ -539,19 +629,34 @@ tasks:
             MONGODB_URI: "${plain_auth_mongodb_uri}"
 
     - name: test-enterprise-auth-plain-compression
-      tags: ["test", "enterprise-auth"]
+      tags: ["test", "enterprise-auth", "compression", "snappy"]
       commands:
         - func: run-enterprise-auth-tests
           vars:
             MONGODB_URI: "${plain_auth_mongodb_uri}"
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
+    - name: test-enterprise-auth-plain-compression-zlib
+      tags: ["test", "enterprise-auth", "compression", "zlib"]
+      commands:
+        - func: run-enterprise-auth-tests
+          vars:
+            MONGODB_URI: "${plain_auth_mongodb_uri}"
+            MONGO_GO_DRIVER_COMPRESSOR: "zlib"
+
     - name: test-enterprise-auth-gssapi
-      tags: ["test", "enterprise-auth"]
+      tags: ["test", "enterprise-auth", "compression", "snappy"]
       commands:
         - func: run-enterprise-gssapi-auth-tests
           vars:
             MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+
+    - name: test-enterprise-auth-gssapi-compression-zlib
+      tags: ["test", "enterprise-auth", "compression", "zlib"]
+      commands:
+        - func: run-enterprise-gssapi-auth-tests
+          vars:
+            MONGO_GO_DRIVER_COMPRESSOR: "zlib"
 
     - name: go1.8-build
       tags: ["compile-check"]
@@ -700,7 +805,19 @@ buildvariants:
     - name: ".test !.authssl !.enterprise-auth !.compression"
 
 - matrix_name: "tests-nonlegacy-servers"
-  matrix_spec: { version: ["3.2", "3.4", "3.6", "4.0", "latest"], os-ssl-32: "*" }
+  matrix_spec: { version: "3.2", os-ssl-32: "*" }
+  display_name: "${version} ${os-ssl-32}"
+  tasks:
+    - name: ".test !.enterprise-auth !.compression"
+
+- matrix_name: "tests-nonlegacy-servers-with-snappy-support"
+  matrix_spec: { version: "3.4", os-ssl-32: "*" }
+  display_name: "${version} ${os-ssl-32}"
+  tasks:
+    - name: ".test !.enterprise-auth !.zlib"
+
+- matrix_name: "tests-nonlegacy-servers-with-zlib-support"
+  matrix_spec: { version: ["3.6", "4.0", "latest"], os-ssl-32: "*" }
   display_name: "${version} ${os-ssl-32}"
   tasks:
     - name: ".test !.enterprise-auth"
