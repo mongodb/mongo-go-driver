@@ -52,6 +52,24 @@
       "revId": "6acbf725a09c275314c572977bba41c5651b980d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "edf709f6_fb98a3ea",
+        "filename": "x/mongo/driver/topology/topology_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-19T16:58:18Z",
+      "side": 1,
+      "message": "I agree that moving the compressor initialization of a connection makes sense. It also solves the issue with returning the error. I would say we can just set the compressors and the zlib level in the connection.config type and split the options, i.e. WithCompressors and WithZLibLevel.",
+      "parentUuid": "5fb73df5_43118802",
+      "revId": "6acbf725a09c275314c572977bba41c5651b980d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
