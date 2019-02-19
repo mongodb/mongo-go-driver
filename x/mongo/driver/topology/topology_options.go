@@ -13,7 +13,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/compressor"
 	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
@@ -191,25 +190,17 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		}
 
 		if len(cs.Compressors) > 0 {
-			comp := make([]compressor.Compressor, 0, len(cs.Compressors))
+			connOpts = append(connOpts, connection.WithCompressors(func(compressors []string) []string {
+				return append(compressors, cs.Compressors...)
+			}))
 
-			for _, c := range cs.Compressors {
-				switch c {
-				case "snappy":
-					comp = append(comp, compressor.CreateSnappy())
-				case "zlib":
-					zlibComp, err := compressor.CreateZlib(cs.ZlibLevel)
-					if err != nil {
-						return err
-					}
-
-					comp = append(comp, zlibComp)
+			for _, comp := range cs.Compressors {
+				if comp == "zlib" {
+					connOpts = append(connOpts, connection.WithZlibLevel(func(level *int) *int {
+						return &cs.ZlibLevel
+					}))
 				}
 			}
-
-			connOpts = append(connOpts, connection.WithCompressors(func(compressors []compressor.Compressor) []compressor.Compressor {
-				return append(compressors, comp...)
-			}))
 
 			c.serverOpts = append(c.serverOpts, WithCompressionOptions(func(opts ...string) []string {
 				return append(opts, cs.Compressors...)

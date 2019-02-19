@@ -66,7 +66,7 @@ func TestCompression(t *testing.T) {
 	compressionVal, err := networkVal.Document().LookupErr("compression")
 	noerr(t, err)
 
-	snappy, err := compressionVal.Document().LookupErr("snappy")
+	compressorDoc, err := compressionVal.Document().LookupErr(comp)
 	noerr(t, err)
 
 	compressorKey := "compressor"
@@ -74,7 +74,7 @@ func TestCompression(t *testing.T) {
 	if compareTo36 < 0 {
 		compressorKey = "compressed"
 	}
-	compressor, err := snappy.Document().LookupErr(compressorKey)
+	compressor, err := compressorDoc.Document().LookupErr(compressorKey)
 	noerr(t, err)
 
 	bytesIn, err := compressor.Document().LookupErr("bytesIn")
