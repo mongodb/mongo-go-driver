@@ -21,7 +21,7 @@ import (
 
 // UploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
 // lengths is equal to the batch size.
-const UploadBufferSize = 16 * 1000000 // 16 MB
+const UploadBufferSize = 16 * 1024 * 1024 // 16 MiB
 
 // ErrStreamClosed is an error returned if an operation is attempted on a closed/aborted stream.
 var ErrStreamClosed = errors.New("stream is closed or aborted")
