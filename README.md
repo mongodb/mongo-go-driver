@@ -42,7 +42,7 @@ To get started with the driver, import the `mongo` package, create a `mongo.Clie
 ```go
 import "github.com/mongodb/mongo-go-driver/mongo"
 
-client, err := mongo.NewClient("mongodb://localhost:27017")
+client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
 ```
 
 And connect it to your running MongoDB server:
@@ -56,7 +56,7 @@ To do this in a single step, you can use the `Connect` function:
 
 ```go
 ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-client, err := mongo.Connect(ctx, "mongodb://localhost:27017")
+client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 ```
 
 Calling `Connect` does not block for server discovery. If you wish to know if a MongoDB server has been found and connected to,
