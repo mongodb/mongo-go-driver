@@ -55,6 +55,9 @@
 //    if err != nil { return err }
 //    // do something with result...
 //
+// All Collection methods that take parameters of type interface{} will return
+// ErrNilDocument if nil is passed in for an interface{}.
+//
 // Additional examples can be found under the examples directory in the driver's repository and
 // on the MongoDB website.
 package mongo
