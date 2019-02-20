@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3234c24e_aaa11297",
+        "filename": "x/mongo/driver/auth/auth.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 122,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-20T22:59:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9e1ec38d_4a7da293",
+      "range": {
+        "startLine": 122,
+        "startChar": 4,
+        "endLine": 122,
+        "endChar": 45
+      },
+      "revId": "d99b67b673b15a916f6ab268c41c55fba6dac580",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8a8e3ecf_b3804638",
         "filename": "x/mongo/driver/auth/auth.go",
         "patchSetId": 2
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "9ff587d3_e66782d4",
+        "filename": "x/mongo/driver/auth/auth.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-20T22:59:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8a8e3ecf_b3804638",
+      "range": {
+        "startLine": 128,
+        "startChar": 2,
+        "endLine": 130,
+        "endChar": 3
+      },
+      "revId": "d99b67b673b15a916f6ab268c41c55fba6dac580",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "09acc5be_7193b993",
         "filename": "x/network/connstring/connstring.go",
         "patchSetId": 2
@@ -68,6 +116,30 @@
       "revId": "d99b67b673b15a916f6ab268c41c55fba6dac580",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "44897f6b_d2bea086",
+        "filename": "x/network/connstring/connstring.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 493,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-02-20T22:59:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "09acc5be_7193b993",
+      "range": {
+        "startLine": 484,
+        "startChar": 0,
+        "endLine": 493,
+        "endChar": 33
+      },
+      "revId": "d99b67b673b15a916f6ab268c41c55fba6dac580",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
