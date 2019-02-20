@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5377659d_71fac817",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 58,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-20T20:30:06Z",
+      "side": 1,
+      "message": "This should probably say \"Client, Collection, and Database\" because Watch on Client and Database would also return ErrNilDocument.",
+      "range": {
+        "startLine": 58,
+        "startChar": 7,
+        "endLine": 58,
+        "endChar": 17
+      },
+      "revId": "e905cc513eedc1b0708580719fa87041daac173c",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
