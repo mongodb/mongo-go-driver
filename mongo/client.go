@@ -277,14 +277,10 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			// Required for SASL mechanism negotiation during handshake
 			handshakeOpts.DBUser = cred.Source + "." + cred.Username
 		}
-		if opts.AuthenticateArbiter != nil && *opts.AuthenticateArbiter {
+		if opts.AuthenticateToAnything != nil && *opts.AuthenticateToAnything {
 			// Authenticate arbiters
 			handshakeOpts.PerformAuthentication = func(serv description.Server) bool {
-				return serv.Kind == description.RSPrimary ||
-					serv.Kind == description.RSSecondary ||
-					serv.Kind == description.Mongos ||
-					serv.Kind == description.Standalone ||
-					serv.Kind == description.RSArbiter
+				return true
 			}
 		}
 
