@@ -11,7 +11,7 @@
 // Basic usage of the driver starts with creating a Client from a connection
 // string. To do so, call the NewClient and Connect functions:
 //
-// 		client, err := NewClient("mongodb://foo:bar@localhost:27017")
+// 		client, err := NewClient(options.Client().ApplyURI("mongodb://foo:bar@localhost:27017"))
 // 		if err != nil { return err }
 // 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 // 		defer cancel()
