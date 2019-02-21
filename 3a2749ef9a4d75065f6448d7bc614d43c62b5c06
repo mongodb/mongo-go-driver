@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8c21809f_f73b1523",
+        "filename": "examples/documentation_examples/examples.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 1951,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-21T16:16:04Z",
+      "side": 1,
+      "message": "We should use the atomic package here so that the race detector doesn\u0027t blow up about concurrently accessing an unguarded boolean.",
+      "range": {
+        "startLine": 1951,
+        "startChar": 1,
+        "endLine": 1951,
+        "endChar": 14
+      },
+      "revId": "3a2749ef9a4d75065f6448d7bc614d43c62b5c06",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b616dbe4_9ea88269",
+        "filename": "examples/documentation_examples/examples.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 2027,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-21T16:16:04Z",
+      "side": 1,
+      "message": "Is there a reason we aren\u0027t using a mongo.Pipeline here?",
+      "range": {
+        "startLine": 2023,
+        "startChar": 14,
+        "endLine": 2027,
+        "endChar": 4
+      },
+      "revId": "3a2749ef9a4d75065f6448d7bc614d43c62b5c06",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
