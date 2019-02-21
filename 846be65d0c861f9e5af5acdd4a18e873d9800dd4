@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "53e4ffab_59d54e0a",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-02-21T22:39:57Z",
+      "side": 1,
+      "message": "Let\u0027s also add \"this option is deprecated and is not part of the stability guarantee. It may be removed in the future\".",
+      "range": {
+        "startLine": 87,
+        "startChar": 1,
+        "endLine": 87,
+        "endChar": 29
+      },
+      "revId": "846be65d0c861f9e5af5acdd4a18e873d9800dd4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
