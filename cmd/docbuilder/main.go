@@ -46,7 +46,7 @@ func main() {
 
 	args := fs.Args()
 	if len(args) > 0 {
-		destination = args[1]
+		destination = args[0]
 	}
 
 	pkgs, err := packages.Load(&packages.Config{Dir: directory}, "./...")
