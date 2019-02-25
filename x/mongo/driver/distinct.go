@@ -32,6 +32,9 @@ func Distinct(
 	opts ...*options.DistinctOptions,
 ) (result.Distinct, error) {
 
+	if cmd.Session != nil && cmd.Session.PinnedSelector != nil {
+		selector = cmd.Session.PinnedSelector
+	}
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return result.Distinct{}, err

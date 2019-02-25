@@ -142,3 +142,15 @@ func (s Server) DataBearing() bool {
 		s.Kind == Mongos ||
 		s.Kind == Standalone
 }
+
+// SelectServer selects this server if it is in the list of given candidates.
+func (s Server) SelectServer(_ Topology, candidates []Server) ([]Server, error) {
+	result := []Server{}
+	for _, candidate := range candidates {
+		if candidate.Addr == s.Addr {
+			result = append(result, candidate)
+			return result, nil
+		}
+	}
+	return nil, nil
+}
