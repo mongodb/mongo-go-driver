@@ -34,9 +34,20 @@ func Insert(
 	opts ...*options.InsertManyOptions,
 ) (result.Insert, error) {
 
-	ss, err := topo.SelectServer(ctx, selector)
-	if err != nil {
-		return result.Insert{}, err
+	var ss *topology.SelectedServer
+	var err error
+	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
+		ss, err = topo.FindServer(cmd.Session.PinnedServer.Server)
+		if err != nil {
+			return result.Insert{}, err
+		} else if ss == nil {
+			return result.Insert{}, topology.ErrTopologyClosed
+		}
+	} else {
+		ss, err = topo.SelectServer(ctx, selector)
+		if err != nil {
+			return result.Insert{}, err
+		}
 	}
 
 	// If no explicit session and deployment supports sessions, start implicit session.
