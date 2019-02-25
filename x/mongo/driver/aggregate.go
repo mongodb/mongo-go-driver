@@ -41,16 +41,25 @@ func Aggregate(
 
 	var ss *topology.SelectedServer
 	var err error
-	switch dollarOut {
-	case true:
-		ss, err = topo.SelectServer(ctx, writeSelector)
+	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
+		ss, err = topo.FindServer(cmd.Session.PinnedServer.Server)
 		if err != nil {
 			return nil, err
+		} else if ss == nil {
+			return nil, topology.ErrTopologyClosed
 		}
-	case false:
-		ss, err = topo.SelectServer(ctx, readSelector)
-		if err != nil {
-			return nil, err
+	} else {
+		switch dollarOut {
+		case true:
+			ss, err = topo.SelectServer(ctx, writeSelector)
+			if err != nil {
+				return nil, err
+			}
+		case false:
+			ss, err = topo.SelectServer(ctx, readSelector)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

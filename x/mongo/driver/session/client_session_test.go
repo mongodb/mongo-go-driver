@@ -148,7 +148,7 @@ func TestClientSession(t *testing.T) {
 			t.Errorf("expected error, got %v", err)
 		}
 
-		sess.ApplyCommand()
+		sess.ApplyCommand(nil)
 		if sess.state != InProgress {
 			t.Errorf("incorrect session state, expected InProgress, received %v", sess.state)
 		}

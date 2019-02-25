@@ -58,9 +58,20 @@ func BulkWrite(
 	registry *bsoncodec.Registry,
 	opts ...*options.BulkWriteOptions,
 ) (result.BulkWrite, error) {
-	ss, err := topo.SelectServer(ctx, selector)
-	if err != nil {
-		return result.BulkWrite{}, err
+	var ss *topology.SelectedServer
+	var err error
+	if sess != nil && sess.PinnedServer != nil {
+		ss, err = topo.FindServer(sess.PinnedServer.Server)
+		if err != nil {
+			return result.BulkWrite{}, err
+		} else if ss == nil {
+			return result.BulkWrite{}, topology.ErrTopologyClosed
+		}
+	} else {
+		ss, err = topo.SelectServer(ctx, selector)
+		if err != nil {
+			return result.BulkWrite{}, err
+		}
 	}
 
 	err = verifyOptions(models, ss)

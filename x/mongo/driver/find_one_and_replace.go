@@ -37,9 +37,20 @@ func FindOneAndReplace(
 	opts ...*options.FindOneAndReplaceOptions,
 ) (result.FindAndModify, error) {
 
-	ss, err := topo.SelectServer(ctx, selector)
-	if err != nil {
-		return result.FindAndModify{}, err
+	var ss *topology.SelectedServer
+	var err error
+	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
+		ss, err = topo.FindServer(cmd.Session.PinnedServer.Server)
+		if err != nil {
+			return result.FindAndModify{}, err
+		} else if ss == nil {
+			return result.FindAndModify{}, topology.ErrTopologyClosed
+		}
+	} else {
+		ss, err = topo.SelectServer(ctx, selector)
+		if err != nil {
+			return result.FindAndModify{}, err
+		}
 	}
 
 	// If no explicit session and deployment supports sessions, start implicit session.
