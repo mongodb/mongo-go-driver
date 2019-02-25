@@ -511,7 +511,7 @@ tests:
 
     outcome: *outcome
 
-  - description: readConcern local in startTransaction options
+  - description: readConcern snapshot in startTransaction options
 
     sessionOptions:
       session0:

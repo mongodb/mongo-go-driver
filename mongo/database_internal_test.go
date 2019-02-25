@@ -201,7 +201,9 @@ func TestDatabase_Drop(t *testing.T) {
 // creates 1 normal collection and 1 capped collection of size 64*1024
 func setupListCollectionsDb(db *Database) (uncappedName string, cappedName string, err error) {
 	uncappedName, cappedName = "listcoll_uncapped", "listcoll_capped"
-	uncappedColl := db.Collection(uncappedName)
+	uncappedColl := db.Collection(uncappedName, options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
+	// insert a document to ensure the database exists
+	_, _ = uncappedColl.InsertOne(context.Background(), bson.D{})
 
 	err = db.RunCommand(
 		context.Background(),
