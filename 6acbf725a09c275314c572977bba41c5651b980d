@@ -88,6 +88,24 @@
       "revId": "6acbf725a09c275314c572977bba41c5651b980d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "984ddbae_d0fced9f",
+        "filename": "x/mongo/driver/topology/topology_options.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1015492
+      },
+      "writtenOn": "2019-02-25T19:51:44Z",
+      "side": 1,
+      "message": "I submitted a new patchset with these changes. Please let me know what you think :)",
+      "parentUuid": "59980fa6_6984d84f",
+      "revId": "6acbf725a09c275314c572977bba41c5651b980d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
