@@ -488,7 +488,7 @@ tests:
       mode: { times: 2 }
       data:
           failCommands: ["commitTransaction"]
-          errorCode: 11602  # InterruptedDueToReplStateChange
+          errorCode: 11602  # InterruptedDueToStepDown 
 
     operations:
       - name: startTransaction

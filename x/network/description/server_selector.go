@@ -140,6 +140,20 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 	})
 }
 
+// PinnedMongosSelector selects the pinned mongos
+func PinnedMongosSelector(pinned *Server) ServerSelector {
+	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
+		result := []Server{}
+		for _, candidate := range candidates {
+			if candidate.Addr == pinned.Addr {
+				result = append(result, candidate)
+				return result, nil
+			}
+		}
+		return nil, nil
+	})
+}
+
 func selectForReplicaSet(rp *readpref.ReadPref, t Topology, candidates []Server) ([]Server, error) {
 	if err := verifyMaxStaleness(rp, t); err != nil {
 		return nil, err
