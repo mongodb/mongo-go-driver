@@ -40,7 +40,16 @@ func abortTransaction(
 	selector description.ServerSelector,
 	oldErr error,
 ) (result.TransactionResult, error) {
-	ss, err := topo.SelectServer(ctx, selector)
+	var ss *topology.SelectedServer
+	var err error
+	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
+		ss, err = topo.FindServer(cmd.Session.PinnedServer.Server)
+		if ss == nil && err == nil {
+			err = topology.ErrTopologyClosed
+		}
+	} else {
+		ss, err = topo.SelectServer(ctx, selector)
+	}
 	if err != nil {
 		// If retrying server selection, return the original error if it fails
 		if oldErr != nil {

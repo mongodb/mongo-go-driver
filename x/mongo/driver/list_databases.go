@@ -31,9 +31,20 @@ func ListDatabases(
 	opts ...*options.ListDatabasesOptions,
 ) (result.ListDatabases, error) {
 
-	ss, err := topo.SelectServer(ctx, selector)
-	if err != nil {
-		return result.ListDatabases{}, err
+	var ss *topology.SelectedServer
+	var err error
+	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
+		ss, err = topo.FindServer(cmd.Session.PinnedServer.Server)
+		if err != nil {
+			return result.ListDatabases{}, err
+		} else if ss == nil {
+			return result.ListDatabases{}, topology.ErrTopologyClosed
+		}
+	} else {
+		ss, err = topo.SelectServer(ctx, selector)
+		if err != nil {
+			return result.ListDatabases{}, err
+		}
 	}
 
 	conn, err := ss.Connection(ctx)

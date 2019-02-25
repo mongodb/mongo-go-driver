@@ -32,10 +32,20 @@ func CreateIndexes(
 	pool *session.Pool,
 	opts ...*options.CreateIndexesOptions,
 ) (result.CreateIndexes, error) {
-
-	ss, err := topo.SelectServer(ctx, selector)
-	if err != nil {
-		return result.CreateIndexes{}, err
+	var ss *topology.SelectedServer
+	var err error
+	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
+		ss, err = topo.FindServer(cmd.Session.PinnedServer.Server)
+		if err != nil {
+			return result.CreateIndexes{}, err
+		} else if ss == nil {
+			return result.CreateIndexes{}, topology.ErrTopologyClosed
+		}
+	} else {
+		ss, err = topo.SelectServer(ctx, selector)
+		if err != nil {
+			return result.CreateIndexes{}, err
+		}
 	}
 
 	desc := ss.Description()
