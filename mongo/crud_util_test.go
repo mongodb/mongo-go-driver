@@ -631,6 +631,7 @@ func verifyInsertManyResult(t *testing.T, res *InsertManyResult, result json.Raw
 	require.NoError(t, err)
 
 	if expected.InsertedIds != nil {
+		require.NotNil(t, res)
 		replaceFloatsWithInts(expected.InsertedIds)
 
 		for _, val := range expected.InsertedIds {

@@ -29,6 +29,9 @@ func Write(
 	pool *session.Pool,
 ) (bson.Raw, error) {
 
+	if cmd.Session != nil && cmd.Session.PinnedSelector != nil {
+		selector = cmd.Session.PinnedSelector
+	}
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
 		return nil, err

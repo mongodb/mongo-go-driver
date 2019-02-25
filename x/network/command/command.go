@@ -213,7 +213,7 @@ func addSessionFields(cmd bsonx.Doc, desc description.SelectedServer, client *se
 		cmd = addTransaction(cmd, client)
 	}
 
-	client.ApplyCommand() // advance the state machine based on a command executing
+	client.ApplyCommand(desc.Server) // advance the state machine based on a command executing
 
 	return cmd, nil
 }
