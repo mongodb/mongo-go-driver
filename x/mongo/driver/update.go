@@ -34,9 +34,20 @@ func Update(
 	opts ...*options.UpdateOptions,
 ) (result.Update, error) {
 
-	ss, err := topo.SelectServer(ctx, selector)
-	if err != nil {
-		return result.Update{}, err
+	var ss *topology.SelectedServer
+	var err error
+	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
+		ss, err = topo.FindServer(cmd.Session.PinnedServer.Server)
+		if err != nil {
+			return result.Update{}, err
+		} else if ss == nil {
+			return result.Update{}, topology.ErrTopologyClosed
+		}
+	} else {
+		ss, err = topo.SelectServer(ctx, selector)
+		if err != nil {
+			return result.Update{}, err
+		}
 	}
 
 	// If no explicit session and deployment supports sessions, start implicit session.

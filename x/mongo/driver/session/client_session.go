@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
+	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
 // ErrSessionEnded is returned when a client session is used after a call to endSession().
@@ -84,8 +85,9 @@ type Client struct {
 	transactionRp *readpref.ReadPref
 	transactionWc *writeconcern.WriteConcern
 
-	pool  *Pool
-	state state
+	pool         *Pool
+	state        state
+	PinnedServer *description.SelectedServer
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -273,6 +275,7 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 	}
 
 	c.state = Starting
+	c.PinnedServer = nil
 	return nil
 }
 
@@ -295,6 +298,7 @@ func (c *Client) CommitTransaction() error {
 		return err
 	}
 	c.state = Committed
+	c.PinnedServer = nil
 	return nil
 }
 
@@ -324,13 +328,17 @@ func (c *Client) AbortTransaction() error {
 }
 
 // ApplyCommand advances the state machine upon command execution.
-func (c *Client) ApplyCommand() {
+func (c *Client) ApplyCommand(desc *description.SelectedServer) {
 	if c.Committing {
 		// Do not change state if committing after already committed
 		return
 	}
 	if c.state == Starting {
 		c.state = InProgress
+		// If this is in a transaction and the server is a mongos, pin it
+		if desc != nil && desc.Server.Kind == description.Mongos {
+			c.PinnedServer = desc
+		}
 	} else if c.state == Committed || c.state == Aborted {
 		c.clearTransactionOpts()
 		c.state = None
@@ -344,4 +352,5 @@ func (c *Client) clearTransactionOpts() {
 	c.CurrentWc = nil
 	c.CurrentRp = nil
 	c.CurrentRc = nil
+	c.PinnedServer = nil
 }

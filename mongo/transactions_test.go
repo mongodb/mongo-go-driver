@@ -46,6 +46,7 @@ type transTestFile struct {
 
 type transTestCase struct {
 	Description    string                 `json:"description"`
+	SkipReason     string                 `json:"skipReason"`
 	FailPoint      *failPoint             `json:"failPoint"`
 	ClientOptions  map[string]interface{} `json:"clientOptions"`
 	SessionOptions map[string]interface{} `json:"sessionOptions"`
@@ -134,30 +135,64 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 	}
 
 	for _, test := range testfile.Tests {
-		runTransactionsTestCase(t, test, testfile, dbAdmin)
+		runTransactionsTestCase(t, test, testfile, dbAdmin, version)
 	}
 
 }
 
-func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTestFile, dbAdmin *Database) {
+func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTestFile, dbAdmin *Database, serverVersion string) {
 	t.Run(test.Description, func(t *testing.T) {
+		if len(test.SkipReason) > 0 {
+			t.Skip(test.SkipReason)
+		}
 
 		// kill sessions from previously failed tests
 		killSessions(t, dbAdmin.client)
 
-		// configure failpoint if specified
+		collName := sanitizeCollectionName(testfile.DatabaseName, testfile.CollectionName)
+
+		// Workaround for SERVER-39704
+		if test.Description == "distinct" && os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			mongodbURI := testutil.ConnString(t)
+			opts := options.Client().ApplyURI(mongodbURI.String())
+			hosts := opts.Hosts
+			for _, host := range hosts {
+				distClient, err := NewClient(opts.SetHosts([]string{host}))
+				require.NoError(t, err)
+				addClientOptions(distClient, test.ClientOptions)
+				err = distClient.Connect(context.Background())
+				require.NoError(t, err)
+				distDatabase := distClient.Database(testfile.DatabaseName)
+				_, err = distDatabase.Collection(collName).Distinct(context.Background(), "x", bsonx.Doc{})
+				require.NoError(t, err)
+				_ = distClient.Disconnect(context.Background())
+			}
+		}
+
+		var fpClients []*Client
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
-			err := dbAdmin.RunCommand(ctx, doc).Err()
-			require.NoError(t, err)
-
-			defer func() {
-				// disable failpoint if specified
-				_ = dbAdmin.RunCommand(ctx, bsonx.Doc{
-					{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
-					{"mode", bsonx.String("off")},
-				})
-			}()
+			mongodbURI := testutil.ConnString(t)
+			opts := options.Client().ApplyURI(mongodbURI.String())
+			hosts := opts.Hosts
+			for _, host := range hosts {
+				fpClient, err := NewClient(opts.SetHosts([]string{host}))
+				require.NoError(t, err)
+				addClientOptions(fpClient, test.ClientOptions)
+				err = fpClient.Connect(context.Background())
+				require.NoError(t, err)
+				fpDatabase := fpClient.Database("admin")
+				err = fpDatabase.RunCommand(ctx, doc).Err()
+				require.NoError(t, err)
+				fpClients = append(fpClients, fpClient)
+				defer func() {
+					_ = fpDatabase.RunCommand(ctx, bsonx.Doc{
+						{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
+						{"mode", bsonx.String("off")},
+					})
+					_ = fpClient.Disconnect(context.Background())
+				}()
+			}
 		}
 
 		client := createTransactionsMonitoredClient(t, transMonitor, test.ClientOptions)
@@ -165,19 +200,16 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 		db := client.Database(testfile.DatabaseName)
 
-		collName := sanitizeCollectionName(testfile.DatabaseName, testfile.CollectionName)
+		coll := db.Collection(collName)
 
-		err := db.Drop(ctx)
-		require.NoError(t, err)
+		_ = db.Collection(collName, options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))).Drop(context.Background())
 
-		err = db.RunCommand(
+		err := db.RunCommand(
 			context.Background(),
 			bsonx.Doc{{"create", bsonx.String(collName)}},
 		).Err()
-		require.NoError(t, err)
 
 		// insert data if present
-		coll := db.Collection(collName)
 		docsToInsert := docSliceToInterfaceSlice(docSliceFromRaw(t, testfile.Data))
 		if len(docsToInsert) > 0 {
 			coll2, err := coll.Clone(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority())))
@@ -262,6 +294,16 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		// require end session to be called before we check expectation
 		sess0.EndSession(ctx)
 		sess1.EndSession(ctx)
+
+		for _, fpClient := range fpClients {
+			// disable failpoint if specified
+			fpDatabase := fpClient.Database("admin")
+			_ = fpDatabase.RunCommand(ctx, bsonx.Doc{
+				{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
+				{"mode", bsonx.String("off")},
+			})
+			_ = fpClient.Disconnect(context.Background())
+		}
 
 		checkExpectations(t, test.Expectations, lsid0, lsid1)
 
@@ -733,5 +775,6 @@ func readPrefFromString(s string) *readpref.ReadPref {
 // skip if server version less than 4.0 OR not a replica set.
 func shouldSkipTransactionsTest(t *testing.T, serverVersion string) bool {
 	return compareVersions(t, serverVersion, "4.0") < 0 ||
-		os.Getenv("TOPOLOGY") != "replica_set"
+		os.Getenv("TOPOLOGY") == "server" ||
+		(os.Getenv("TOPOLOGY") == "sharded_cluster" && compareVersions(t, serverVersion, "4.1.6") < 0)
 }

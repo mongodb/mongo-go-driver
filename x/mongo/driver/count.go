@@ -33,10 +33,20 @@ func Count(
 	registry *bsoncodec.Registry,
 	opts ...*options.CountOptions,
 ) (int64, error) {
-
-	ss, err := topo.SelectServer(ctx, selector)
-	if err != nil {
-		return 0, err
+	var ss *topology.SelectedServer
+	var err error
+	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
+		ss, err = topo.FindServer(cmd.Session.PinnedServer.Server)
+		if err != nil {
+			return 0, err
+		} else if ss == nil {
+			return 0, topology.ErrTopologyClosed
+		}
+	} else {
+		ss, err = topo.SelectServer(ctx, selector)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	desc := ss.Description()
