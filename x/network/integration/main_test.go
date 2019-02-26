@@ -21,7 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
 
-var host = flag.String("host", "127.0.0.1:27017", "specify the location of a running mongodb server.")
+var host *string
 var connectionString connstring.ConnString
 var dbName string
 
@@ -42,6 +42,8 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Could not parse connection string: %v\n", err)
 		os.Exit(1)
 	}
+
+	host = &connectionString.Hosts[0]
 
 	dbName = fmt.Sprintf("mongo-go-driver-%d", os.Getpid())
 	if connectionString.Database != "" {
