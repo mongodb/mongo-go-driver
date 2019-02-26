@@ -8,6 +8,7 @@ package wiremessage
 
 import (
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx"
@@ -63,7 +64,10 @@ func (m Msg) AppendWireMessage(b []byte) ([]byte, error) {
 
 // String implements the fmt.Stringer interface.
 func (m Msg) String() string {
-	panic("not implemented")
+	return fmt.Sprintf(
+		`OP_MSG{MsgHeader: %v, FlagBits: %d, Sections: %v, Checksum: %d}`,
+		m.MsgHeader, m.FlagBits, m.Sections, m.Checksum,
+	)
 }
 
 // Len implements the WireMessage interface.
