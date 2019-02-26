@@ -106,4 +106,28 @@ func TestMsg(t *testing.T) {
 			})
 		}
 	})
+
+	t.Run("WireMessageToString", func(t *testing.T) {
+		msgHeader := Header{
+			MessageLength: 33,
+			RequestID:     0,
+			ResponseTo:    0,
+			OpCode:        2013,
+		}
+
+		msg := Msg{
+			MsgHeader: msgHeader,
+			FlagBits:  0,
+			Sections:  oneSection(t),
+		}
+
+		var msgString string
+
+		msgString = "OP_MSG{MsgHeader: Header{MessageLength: 33, RequestID: 0, ResponseTo: 0, OpCode: OP_MSG}, " +
+			"FlagBits: 0, Sections: [{0 {\"x\": {\"$numberInt\":\"5\"}}}], Checksum: 0}"
+
+		if msg.String() != msgString {
+			t.Errorf("Did not get expected string. got:\n%s\n\nexpected:\n%s", msg.String(), msgString)
+		}
+	})
 }
