@@ -105,6 +105,24 @@
     },
     {
       "key": {
+        "uuid": "afeddbfc_3cc26cf6",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 808,
+      "author": {
+        "id": 1015492
+      },
+      "writtenOn": "2019-02-26T22:07:01Z",
+      "side": 1,
+      "message": "I don\u0027t want to test compressors on db versions where those compressors aren\u0027t supported, the driver will fall back to no compression and we\u0027ll end up running the same tests multiple times.\n\nSo the matrix is split to facilitate testing these compressors per version:\n\n3.2: None\n3.4: None, snappy\n3.6+: None, snappy, zlib",
+      "parentUuid": "b1242751_68bb294e",
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "cb1784f1_9ab73f0e",
         "filename": ".evergreen/config.yml",
         "patchSetId": 3
@@ -139,6 +157,24 @@
       "writtenOn": "2019-02-26T21:47:54Z",
       "side": 1,
       "message": "Seems like the task list should mirror the snappy one and have !.snappy?",
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1a22a154_20b424ac",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 823,
+      "author": {
+        "id": 1015492
+      },
+      "writtenOn": "2019-02-26T22:07:01Z",
+      "side": 1,
+      "message": "This is what I intended. \n\n- tests-nonlegacy-servers creates a matrix for 3.2 with no compression tasks.\n- tests-nonlegacy-servers-with-snappy-support creates a matrix for 3.4 with no zlib tasks.\n- tests-nonlegacy-servers-with-zlib-support creates a matrix for 3.6 and above with all compression tasks.\n\nI admit it\u0027s not too elegant and I\u0027d love to hear any suggestions to improve it. \n\nAnother option I considered here is creating a compressor axis to add to the matrices. However, this would result in creating many more variants and I think it\u0027s better to keep things compact.",
+      "parentUuid": "132ad6da_fc35856a",
       "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
