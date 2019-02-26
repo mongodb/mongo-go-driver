@@ -1,0 +1,147 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9369ad80_eaff110f",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 374,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-26T21:47:54Z",
+      "side": 1,
+      "message": "Rename to \"test-standalone-noauth-nossl-snappy-compression\"",
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c66be35b_2c7a65a0",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 418,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-26T21:47:54Z",
+      "side": 1,
+      "message": "Same: add \"snappy\" into the name of all that use snappy, now that we\u0027re testing more than one compressor",
+      "range": {
+        "startLine": 418,
+        "startChar": 0,
+        "endLine": 418,
+        "endChar": 4
+      },
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3de6915f_e0115862",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 506,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-26T21:47:54Z",
+      "side": 1,
+      "message": "Let\u0027s remove compression testing for replica sets.  It\u0027s all mongod and all the same server code, so this is not adding value.",
+      "range": {
+        "startLine": 506,
+        "startChar": 6,
+        "endLine": 506,
+        "endChar": 10
+      },
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b28f0466_d076bf3d",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 631,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-26T21:47:54Z",
+      "side": 1,
+      "message": "Remove compression testing for enterprise auth.  It\u0027s overkill.  Auth is totally orthogonal to compression.",
+      "range": {
+        "startLine": 631,
+        "startChar": 0,
+        "endLine": 631,
+        "endChar": 4
+      },
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b1242751_68bb294e",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 808,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-26T21:47:54Z",
+      "side": 1,
+      "message": "Why did you change the version list for this matrix?",
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cb1784f1_9ab73f0e",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 814,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-26T21:47:54Z",
+      "side": 1,
+      "message": "Let\u0027s test this on 3.4, 3.6, 4.0, and latest.",
+      "range": {
+        "startLine": 814,
+        "startChar": 28,
+        "endLine": 814,
+        "endChar": 30
+      },
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "132ad6da_fc35856a",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 823,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-26T21:47:54Z",
+      "side": 1,
+      "message": "Seems like the task list should mirror the snappy one and have !.snappy?",
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
