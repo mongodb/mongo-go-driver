@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "693c27c9_91149cf5",
+        "filename": "mongo/options/clientoptions.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-02-28T22:49:42Z",
+      "side": 1,
+      "message": "can you document the other auth mechanism properties, as well as which ones can\u0027t be used together?",
+      "revId": "e1a6954f071cf2ddaee42068fa6026ea73067cb7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
