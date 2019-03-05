@@ -39,7 +39,7 @@ var chunkSizeTests = []struct {
 	{"Bucket and upload set to different values", options.GridFSBucket().SetChunkSizeBytes(27), options.GridFSUpload().SetChunkSizeBytes(31)},
 }
 
-func findIndex(ctx context.Context, t *testing.T, coll *mongo.Collection, keys ...string) {
+func findIndex(ctx context.Context, t *testing.T, coll *mongo.Collection, unique bool, keys ...string) {
 	cur, err := coll.Indexes().List(ctx)
 	if err != nil {
 		t.Fatalf("Couldn't establish a cursor on the collection %v: %v", coll.Name(), err)
@@ -47,7 +47,9 @@ func findIndex(ctx context.Context, t *testing.T, coll *mongo.Collection, keys .
 	foundIndex := false
 	for cur.Next(ctx) {
 		if _, err := cur.Current.LookupErr(keys...); err == nil {
-			foundIndex = true
+			if uVal, err := cur.Current.LookupErr("unique"); (unique && err == nil && uVal.Boolean() == true) || (!unique && (err != nil || uVal.Boolean() == false)) {
+				foundIndex = true
+			}
 		}
 	}
 	if !foundIndex {
@@ -183,8 +185,8 @@ func TestGridFS(t *testing.T) {
 		findCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 
-		findIndex(findCtx, t, bucket.filesColl, "key", "filename")
-		findIndex(findCtx, t, bucket.chunksColl, "key", "files_id")
+		findIndex(findCtx, t, bucket.filesColl, false, "key", "filename")
+		findIndex(findCtx, t, bucket.chunksColl, true, "key", "files_id")
 	})
 
 	t.Run("RoundTrip", func(t *testing.T) {

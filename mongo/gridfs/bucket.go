@@ -490,6 +490,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 			{"files_id", int32(1)},
 			{"n", int32(1)},
 		},
+		Options: options.Index().SetUnique(true),
 	}
 
 	if err = createIndexIfNotExists(ctx, filesIv, filesModel); err != nil {
