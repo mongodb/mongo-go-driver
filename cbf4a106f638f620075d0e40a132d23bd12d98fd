@@ -286,6 +286,24 @@
       "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "002988e7_1a766118",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 823,
+      "author": {
+        "id": 1015492
+      },
+      "writtenOn": "2019-03-06T22:32:56Z",
+      "side": 1,
+      "message": "Something we could do instead of these two options is have a matrix for each version. i.e. separate matrices for each of:\n\n{ version: \"3.2\", os-ssl-32: \"*\" }\n{ version: \"3.4\", os-ssl-32: \"*\" }\n{ version: \"3.6\", os-ssl-32: \"*\" }\n{ version: \"4.0\", os-ssl-32: \"*\" }\n{ version: \"latest\", os-ssl-32: \"*\" }\n\nThis would make the config a little more verbose. However it would be easy to follow and would maintain the compact nature of the variants on evergreen.",
+      "parentUuid": "01b8ebba_2c6cab2c",
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
