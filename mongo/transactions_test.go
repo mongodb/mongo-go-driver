@@ -14,6 +14,7 @@ import (
 	"context"
 
 	"strings"
+	"time"
 
 	"bytes"
 	"os"
@@ -694,10 +695,18 @@ func getTransactionOptions(opts map[string]interface{}) *options.TransactionOpti
 
 func getWriteConcern(opt interface{}) *writeconcern.WriteConcern {
 	if w, ok := opt.(map[string]interface{}); ok {
+		var newTimeout time.Duration
+		if conv, ok := w["wtimeout"].(float64); ok {
+			newTimeout = time.Duration(int(conv)) * time.Millisecond
+		}
+		var newJ bool
+		if conv, ok := w["j"].(bool); ok {
+			newJ = conv
+		}
 		if conv, ok := w["w"].(string); ok && conv == "majority" {
-			return writeconcern.New(writeconcern.WMajority())
+			return writeconcern.New(writeconcern.WMajority(), writeconcern.J(newJ), writeconcern.WTimeout(newTimeout))
 		} else if conv, ok := w["w"].(float64); ok {
-			return writeconcern.New(writeconcern.W(int(conv)))
+			return writeconcern.New(writeconcern.W(int(conv)), writeconcern.J(newJ), writeconcern.WTimeout(newTimeout))
 		}
 	}
 	return nil
