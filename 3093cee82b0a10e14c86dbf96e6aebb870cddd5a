@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b93db6fd_ca9d8d37",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T16:24:05Z",
+      "side": 1,
+      "message": "Looks correct though the conditional could be DRY\u0027d up.  Perhaps:\n\n   (err \u003d\u003d nil \u0026\u0026 uVal.Boolean() \u003d\u003d unique)\n\n?",
+      "revId": "3093cee82b0a10e14c86dbf96e6aebb870cddd5a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
