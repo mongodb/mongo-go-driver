@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "14f7aeec_8b85c6ab",
+        "filename": "x/mongo/driver/count.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T22:56:00Z",
+      "side": 1,
+      "message": "What\u0027s the rationale for adding this code to the functions enabling commands (e.g. count, createIndexes) that are not supported within transactions, and not tested (iirc) in the transaction spec tests?",
+      "revId": "7bddcc3e0504a6a893bcfc4a8baba0217bb55026",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
