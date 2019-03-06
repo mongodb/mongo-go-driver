@@ -8,7 +8,9 @@ package driver
 
 import (
 	"context"
+	"time"
 
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/network/command"
 	"go.mongodb.org/mongo-driver/x/network/description"
@@ -24,6 +26,15 @@ func CommitTransaction(
 	selector description.ServerSelector,
 ) (result.TransactionResult, error) {
 	res, err := commitTransaction(ctx, cmd, topo, selector, nil)
+
+	// Apply majority write concern for retries
+	currWC := cmd.Session.CurrentWc
+	newTimeout := 10 * time.Second
+	if currWC != nil && currWC.GetWTimeout() != 0 {
+		newTimeout = currWC.GetWTimeout()
+	}
+	cmd.Session.CurrentWc = currWC.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(newTimeout))
+
 	if cerr, ok := err.(command.Error); ok && err != nil {
 		// Retry if appropriate
 		if cerr.Retryable() {

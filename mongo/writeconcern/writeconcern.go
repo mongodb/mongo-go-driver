@@ -35,7 +35,7 @@ type WriteConcern struct {
 	wTimeout time.Duration
 }
 
-// Option is an option to provide when creating a ReadConcern.
+// Option is an option to provide when creating a WriteConcern.
 type Option func(concern *WriteConcern)
 
 // New constructs a new WriteConcern.
@@ -178,6 +178,36 @@ func (wc *WriteConcern) IsValid() bool {
 	}
 
 	return true
+}
+
+// GetW returns the write concern w level.
+func (wc *WriteConcern) GetW() interface{} {
+	return wc.w
+}
+
+// GetJ returns the write concern journaling level.
+func (wc *WriteConcern) GetJ() bool {
+	return wc.j
+}
+
+// GetWTimeout returns the write concern timeout.
+func (wc *WriteConcern) GetWTimeout() time.Duration {
+	return wc.wTimeout
+}
+
+// WithOptions returns a copy of this WriteConcern with the options set.
+func (wc *WriteConcern) WithOptions(options ...Option) *WriteConcern {
+	if wc == nil {
+		return New(options...)
+	}
+	newWC := &WriteConcern{}
+	*newWC = *wc
+
+	for _, option := range options {
+		option(newWC)
+	}
+
+	return newWC
 }
 
 // AckWrite returns true if a write concern represents an acknowledged write
