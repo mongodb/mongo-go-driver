@@ -65,6 +65,30 @@
     },
     {
       "key": {
+        "uuid": "8b21793e_7d5b9d15",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 506,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T20:41:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3de6915f_e0115862",
+      "range": {
+        "startLine": 506,
+        "startChar": 6,
+        "endLine": 506,
+        "endChar": 10
+      },
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b28f0466_d076bf3d",
         "filename": ".evergreen/config.yml",
         "patchSetId": 3
@@ -85,6 +109,30 @@
       "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a61c70a8_b660ff84",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 631,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T20:41:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b28f0466_d076bf3d",
+      "range": {
+        "startLine": 631,
+        "startChar": 0,
+        "endLine": 631,
+        "endChar": 4
+      },
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -123,6 +171,24 @@
     },
     {
       "key": {
+        "uuid": "f5ba8f6f_e4e02545",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 808,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T20:41:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "afeddbfc_3cc26cf6",
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "cb1784f1_9ab73f0e",
         "filename": ".evergreen/config.yml",
         "patchSetId": 3
@@ -143,6 +209,30 @@
       "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b262e8db_4b955a02",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 814,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T20:41:44Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cb1784f1_9ab73f0e",
+      "range": {
+        "startLine": 814,
+        "startChar": 28,
+        "endLine": 814,
+        "endChar": 30
+      },
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -175,6 +265,24 @@
       "side": 1,
       "message": "This is what I intended. \n\n- tests-nonlegacy-servers creates a matrix for 3.2 with no compression tasks.\n- tests-nonlegacy-servers-with-snappy-support creates a matrix for 3.4 with no zlib tasks.\n- tests-nonlegacy-servers-with-zlib-support creates a matrix for 3.6 and above with all compression tasks.\n\nI admit it\u0027s not too elegant and I\u0027d love to hear any suggestions to improve it. \n\nAnother option I considered here is creating a compressor axis to add to the matrices. However, this would result in creating many more variants and I think it\u0027s better to keep things compact.",
       "parentUuid": "132ad6da_fc35856a",
+      "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "01b8ebba_2c6cab2c",
+        "filename": ".evergreen/config.yml",
+        "patchSetId": 3
+      },
+      "lineNbr": 823,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T20:41:44Z",
+      "side": 1,
+      "message": "OK, I see what you\u0027re doing now.  This does keep the number of variants down, though it makes the configuration hard to follow.  Kris, are you ok with this?\n\nFWIW, in mongo-java-driver we do it like this: https://github.com/mongodb/mongo-java-driver/blob/master/.evergreen/.evg.yml#L605-L617",
+      "parentUuid": "1a22a154_20b424ac",
       "revId": "cbf4a106f638f620075d0e40a132d23bd12d98fd",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
