@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4b1cc90d_cfd078e6",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T15:54:52Z",
+      "side": 1,
+      "message": "Will this assertion succeed (incorrectly) if unique if false and the index _is_ unique?  In other words, the opposite scenario of the bug.",
+      "revId": "9f214ec15da3a43f1e9f811c905c47fe68e68486",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
