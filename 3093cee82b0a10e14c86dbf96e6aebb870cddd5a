@@ -34,6 +34,24 @@
       "revId": "3093cee82b0a10e14c86dbf96e6aebb870cddd5a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0958b44c_2407c627",
+        "filename": "mongo/gridfs/gridfs_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-06T16:30:25Z",
+      "side": 1,
+      "message": "Ah, I see.  Thanks for the explanation.",
+      "parentUuid": "371cd002_b582c1e2",
+      "revId": "3093cee82b0a10e14c86dbf96e6aebb870cddd5a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
