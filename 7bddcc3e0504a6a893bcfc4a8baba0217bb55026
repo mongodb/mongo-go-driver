@@ -16,6 +16,24 @@
       "revId": "7bddcc3e0504a6a893bcfc4a8baba0217bb55026",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "24b37b82_50cf7ba3",
+        "filename": "x/mongo/driver/count.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-03-07T16:30:55Z",
+      "side": 1,
+      "message": "There wasn\u0027t a reason, I just missed that section of the spec.",
+      "parentUuid": "14f7aeec_8b85c6ab",
+      "revId": "7bddcc3e0504a6a893bcfc4a8baba0217bb55026",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
