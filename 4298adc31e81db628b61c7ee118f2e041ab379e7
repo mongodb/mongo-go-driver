@@ -121,6 +121,30 @@
     },
     {
       "key": {
+        "uuid": "b4857bf3_401e7886",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-07T19:51:11Z",
+      "side": 1,
+      "message": "I understand the intention.  I just don\u0027t agree with the intention!\n\nHowever, as this patch doesn\u0027t seem to be changing the current behavior (TOPOLOGY is required), this disagreement should not hold it up.",
+      "parentUuid": "530d39a7_2dfd75fb",
+      "range": {
+        "startLine": 16,
+        "startChar": 0,
+        "endLine": 19,
+        "endChar": 33
+      },
+      "revId": "4298adc31e81db628b61c7ee118f2e041ab379e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ffb4636f_7708a2cc",
         "filename": "README.md",
         "patchSetId": 1
