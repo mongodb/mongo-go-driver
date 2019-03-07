@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f666fe45_40c26733",
+        "filename": "x/network/wiremessage/msg.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-07T18:50:48Z",
+      "side": 1,
+      "message": "This should %v instead of %s so that it prints properly.",
+      "range": {
+        "startLine": 68,
+        "startChar": 49,
+        "endLine": 68,
+        "endChar": 51
+      },
+      "revId": "a102d66ddd52183bdb39ff008c28d884f561267a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
