@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1600e16a_8bab7f90",
+        "filename": "x/mongo/driver/commit_transaction.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-07T18:34:36Z",
+      "side": 1,
+      "message": "Consider encapsulating this logic in WriteConcern methods that allow a caller to change one value of a WriteConcern, and return the new value.  Something like:\n\n  CurrentWC \u003d CurrentWC.withW(\"majority\")\n\netc. Reason being is that if new fields are added to WriteConcern, all the logic for preserving them is encapsulated in those methods and classes like this won\u0027t have to change.  It also make the intent of this code clearer.",
+      "range": {
+        "startLine": 40,
+        "startChar": 0,
+        "endLine": 40,
+        "endChar": 1
+      },
+      "revId": "25f2f03a369740bdd576f8d9cf8256df4035ceec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
