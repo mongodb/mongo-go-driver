@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "1380e646_daf2c56e",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-07T18:55:18Z",
+      "side": 1,
+      "message": "Our tests are a little weird right now. If you don\u0027t specify a topology some of them will break and fail (and some will panic). We\u0027ve had a few people log bugs before because they didn\u0027t set TOPOLOGY, so I would rather err on the side of forcing people to set it for now and perhaps remove that requirement in the future.",
+      "parentUuid": "7018dc99_d6e8590b",
+      "range": {
+        "startLine": 16,
+        "startChar": 0,
+        "endLine": 19,
+        "endChar": 33
+      },
+      "revId": "4298adc31e81db628b61c7ee118f2e041ab379e7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ffb4636f_7708a2cc",
         "filename": "README.md",
         "patchSetId": 1
