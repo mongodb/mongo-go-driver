@@ -46,6 +46,30 @@
       "revId": "a102d66ddd52183bdb39ff008c28d884f561267a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "01e7e94c_3f7c47aa",
+        "filename": "x/network/wiremessage/msg.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-08T18:36:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b87e7469_e629e3c5",
+      "range": {
+        "startLine": 68,
+        "startChar": 49,
+        "endLine": 68,
+        "endChar": 51
+      },
+      "revId": "a102d66ddd52183bdb39ff008c28d884f561267a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
