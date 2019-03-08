@@ -46,6 +46,30 @@
       "revId": "25f2f03a369740bdd576f8d9cf8256df4035ceec",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3e28c6c4_0b4bef0b",
+        "filename": "x/mongo/driver/commit_transaction.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-08T16:20:58Z",
+      "side": 1,
+      "message": "Much nicer!",
+      "parentUuid": "db89592f_9102a2da",
+      "range": {
+        "startLine": 40,
+        "startChar": 0,
+        "endLine": 40,
+        "endChar": 1
+      },
+      "revId": "25f2f03a369740bdd576f8d9cf8256df4035ceec",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
