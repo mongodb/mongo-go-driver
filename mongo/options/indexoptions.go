@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// CreateIndexesOptions represents all possible options for the create() function.
+// CreateIndexesOptions represents all possible options for the CreateOne() and CreateMany() functions.
 type CreateIndexesOptions struct {
 	MaxTime *time.Duration // The maximum amount of time to allow the query to run.
 }
@@ -42,7 +42,7 @@ func MergeCreateIndexesOptions(opts ...*CreateIndexesOptions) *CreateIndexesOpti
 	return c
 }
 
-// DropIndexesOptions represents all possible options for the create() function.
+// DropIndexesOptions represents all possible options for the DropIndexes() function.
 type DropIndexesOptions struct {
 	MaxTime *time.Duration
 }
@@ -74,7 +74,7 @@ func MergeDropIndexesOptions(opts ...*DropIndexesOptions) *DropIndexesOptions {
 	return c
 }
 
-// ListIndexesOptions represents all possible options for the create() function.
+// ListIndexesOptions represents all possible options for the ListIndexes() function.
 type ListIndexesOptions struct {
 	BatchSize *int32
 	MaxTime   *time.Duration

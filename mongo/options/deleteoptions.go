@@ -6,7 +6,7 @@
 
 package options
 
-// DeleteOptions represents all possible options to the deleteOne() and deleteMany() functions
+// DeleteOptions represents all possible options to the DeleteOne() and DeleteMany() functions.
 type DeleteOptions struct {
 	Collation *Collation // Specifies a collation
 }

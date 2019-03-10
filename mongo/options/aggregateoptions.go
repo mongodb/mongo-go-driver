@@ -8,7 +8,7 @@ package options
 
 import "time"
 
-// AggregateOptions represents all possible options to the aggregate() function
+// AggregateOptions represents all possible options to the Aggregate() function.
 type AggregateOptions struct {
 	AllowDiskUse             *bool          // Enables writing to temporary files. When set to true, aggregation stages can write data to the _tmp subdirectory in the dbPath directory
 	BatchSize                *int32         // The number of documents to return per batch

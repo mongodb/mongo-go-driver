@@ -92,7 +92,7 @@ func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*op
 }
 
 // CreateMany creates multiple indexes in the collection specified by the models. The names of the
-// creates indexes are returned.
+// created indexes are returned.
 func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ...*options.CreateIndexesOptions) ([]string, error) {
 	names := make([]string, 0, len(models))
 	indexes := bsonx.Arr{}

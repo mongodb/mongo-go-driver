@@ -8,7 +8,7 @@ package options
 
 import "time"
 
-// CountOptions represents all possible options to the count() function
+// CountOptions represents all possible options to the Count() function.
 type CountOptions struct {
 	Collation *Collation     // Specifies a collation
 	Hint      interface{}    // The index to use

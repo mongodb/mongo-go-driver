@@ -8,7 +8,7 @@ package options
 
 import "time"
 
-// DistinctOptions represents all possible options to the distinct() function
+// DistinctOptions represents all possible options to the Distinct() function.
 type DistinctOptions struct {
 	Collation *Collation     // Specifies a collation
 	MaxTime   *time.Duration // The maximum amount of time to allow the operation to run
