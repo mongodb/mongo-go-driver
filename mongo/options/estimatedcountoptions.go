@@ -8,7 +8,7 @@ package options
 
 import "time"
 
-// EstimatedDocumentCountOptions represents all possible options to the estimatedDocumentCount() function
+// EstimatedDocumentCountOptions represents all possible options to the EstimatedDocumentCount() function.
 type EstimatedDocumentCountOptions struct {
 	MaxTime *time.Duration // The maximum amount of time to allow the operation to run
 }

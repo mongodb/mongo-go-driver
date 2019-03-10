@@ -6,7 +6,7 @@
 
 package options
 
-// ReplaceOptions represents all possible options to the replaceOne() function
+// ReplaceOptions represents all possible options to the ReplaceOne() function.
 type ReplaceOptions struct {
 	BypassDocumentValidation *bool      // If true, allows the write to opt-out of document level validation
 	Collation                *Collation // Specifies a collation

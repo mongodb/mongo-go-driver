@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// FindOptions represent all possible options to the find() function.
+// FindOptions represent all possible options to the Find() function.
 type FindOptions struct {
 	AllowPartialResults *bool          // If true, allows partial results to be returned if some shards are down.
 	BatchSize           *int32         // Specifies the number of documents to return in every batch.
@@ -230,7 +230,7 @@ func MergeFindOptions(opts ...*FindOptions) *FindOptions {
 	return fo
 }
 
-// FindOneOptions represent all possible options to the findOne() function.
+// FindOneOptions represent all possible options to the FindOne() function.
 type FindOneOptions struct {
 	AllowPartialResults *bool          // If true, allows partial results to be returned if some shards are down.
 	BatchSize           *int32         // Specifies the number of documents to return in every batch.
@@ -433,7 +433,7 @@ func MergeFindOneOptions(opts ...*FindOneOptions) *FindOneOptions {
 	return fo
 }
 
-// FindOneAndReplaceOptions represent all possible options to the findOne() function.
+// FindOneAndReplaceOptions represent all possible options to the FindOneAndReplace() function.
 type FindOneAndReplaceOptions struct {
 	BypassDocumentValidation *bool           // If true, allows the write to opt out of document-level validation.
 	Collation                *Collation      // Specifies a collation to be used
@@ -527,7 +527,7 @@ func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAn
 	return fo
 }
 
-// FindOneAndUpdateOptions represent all possible options to the findOne() function.
+// FindOneAndUpdateOptions represent all possible options to the FindOneAndUpdate() function.
 type FindOneAndUpdateOptions struct {
 	ArrayFilters             *ArrayFilters   // A set of filters specifying to which array elements an update should apply.
 	BypassDocumentValidation *bool           // If true, allows the write to opt out of document-level validation.
@@ -630,7 +630,7 @@ func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndU
 	return fo
 }
 
-// FindOneAndDeleteOptions represent all possible options to the findOne() function.
+// FindOneAndDeleteOptions represent all possible options to the FindOneAndDelete() function.
 type FindOneAndDeleteOptions struct {
 	Collation  *Collation     // Specifies a collation to be used
 	MaxTime    *time.Duration // Specifies the maximum amount of time to allow the query to run.

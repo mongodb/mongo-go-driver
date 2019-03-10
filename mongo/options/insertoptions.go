@@ -6,7 +6,7 @@
 
 package options
 
-// InsertOneOptions represents all possible options to the insertOne()
+// InsertOneOptions represents all possible options to the InsertOne() function.
 type InsertOneOptions struct {
 	BypassDocumentValidation *bool // If true, allows the write to opt-out of document level validation
 }
@@ -38,7 +38,7 @@ func MergeInsertOneOptions(opts ...*InsertOneOptions) *InsertOneOptions {
 	return ioOpts
 }
 
-// InsertManyOptions represents all possible options to the insertMany()
+// InsertManyOptions represents all possible options to the InsertMany() function.
 type InsertManyOptions struct {
 	BypassDocumentValidation *bool // If true, allows the write to opt-out of document level validation
 	Ordered                  *bool // If true, when an insert fails, return without performing the remaining inserts. Defaults to true.

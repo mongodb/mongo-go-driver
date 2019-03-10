@@ -6,7 +6,7 @@
 
 package options
 
-// UpdateOptions represents all possible options to the updateOne() and updateMany() functions
+// UpdateOptions represents all possible options to the UpdateOne() and UpdateMany() functions.
 type UpdateOptions struct {
 	ArrayFilters             *ArrayFilters // A set of filters specifying to which array elements an update should apply
 	BypassDocumentValidation *bool         // If true, allows the write to opt-out of document level validation
