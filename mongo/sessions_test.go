@@ -165,12 +165,15 @@ func getOptValues(opts []interface{}) []reflect.Value {
 	return valOpts
 }
 
-func createMonitoredTopology(t *testing.T, clock *session.ClusterClock, monitor *event.CommandMonitor) *topology.Topology {
+func createMonitoredTopology(t *testing.T, clock *session.ClusterClock, monitor *event.CommandMonitor, connstr *connstring.ConnString) *topology.Topology {
 	if sessionsMonitoredTop != nil {
 		return sessionsMonitoredTop // don't create the same topology twice
 	}
 
 	cs := testutil.ConnString(t)
+	if connstr != nil {
+		cs = *connstr
+	}
 	cs.HeartbeatInterval = time.Hour
 	cs.HeartbeatIntervalSet = true
 
@@ -228,7 +231,7 @@ func createSessionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor) 
 	clock := &session.ClusterClock{}
 
 	c := &Client{
-		topology:       createMonitoredTopology(t, clock, monitor),
+		topology:       createMonitoredTopology(t, clock, monitor, nil),
 		connString:     testutil.ConnString(t),
 		readPreference: readpref.Primary(),
 		readConcern:    readconcern.Local(),

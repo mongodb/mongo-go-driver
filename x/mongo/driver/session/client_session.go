@@ -85,9 +85,10 @@ type Client struct {
 	transactionRp *readpref.ReadPref
 	transactionWc *writeconcern.WriteConcern
 
-	pool           *Pool
-	state          state
-	PinnedSelector description.ServerSelector
+	pool          *Pool
+	state         state
+	PinnedServer  *description.Server
+	RecoveryToken bson.Raw
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -198,6 +199,27 @@ func (c *Client) UpdateUseTime() error {
 	return nil
 }
 
+// UpdateRecoveryToken updates the session's recovery token from the server response.
+func (c *Client) UpdateRecoveryToken(response bson.Raw) {
+	if c == nil {
+		return
+	}
+
+	token, err := response.LookupErr("recoveryToken")
+	if err != nil {
+		return
+	}
+
+	c.RecoveryToken = token.Document()
+}
+
+// ClearPinnedServer sets the PinnedServer to nil.
+func (c *Client) ClearPinnedServer() {
+	if c != nil {
+		c.PinnedServer = nil
+	}
+}
+
 // EndSession ends the session.
 func (c *Client) EndSession() {
 	if c.Terminated {
@@ -275,7 +297,7 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 	}
 
 	c.state = Starting
-	c.PinnedSelector = nil
+	c.PinnedServer = nil
 	return nil
 }
 
@@ -298,7 +320,6 @@ func (c *Client) CommitTransaction() error {
 		return err
 	}
 	c.state = Committed
-	c.PinnedSelector = nil
 	return nil
 }
 
@@ -315,7 +336,7 @@ func (c *Client) CheckAbortTransaction() error {
 	return nil
 }
 
-// AbortTransaction updates the state for a successfully committed transaction and returns
+// AbortTransaction updates the state for a successfully aborted transaction and returns
 // an error if not permissible.  It does not actually perform the abort.
 func (c *Client) AbortTransaction() error {
 	err := c.CheckAbortTransaction()
@@ -337,7 +358,7 @@ func (c *Client) ApplyCommand(desc description.Server) {
 		c.state = InProgress
 		// If this is in a transaction and the server is a mongos, pin it
 		if desc.Kind == description.Mongos {
-			c.PinnedSelector = desc
+			c.PinnedServer = &desc
 		}
 	} else if c.state == Committed || c.state == Aborted {
 		c.clearTransactionOpts()
@@ -352,5 +373,6 @@ func (c *Client) clearTransactionOpts() {
 	c.CurrentWc = nil
 	c.CurrentRp = nil
 	c.CurrentRc = nil
-	c.PinnedSelector = nil
+	c.PinnedServer = nil
+	c.RecoveryToken = nil
 }
