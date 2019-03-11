@@ -51,7 +51,7 @@ func (c *CountDocuments) Encode(desc description.SelectedServer) (wiremessage.Wi
 // Decode will decode the wire message using the provided server description. Errors during decoding
 // are deferred until either the Result or Err methods are called.
 func (c *CountDocuments) Decode(ctx context.Context, desc description.SelectedServer, wm wiremessage.WireMessage) *CountDocuments {
-	rdr, err := (&Read{}).Decode(desc, wm).Result()
+	rdr, err := (&Read{Session: c.Session}).Decode(desc, wm).Result()
 	if err != nil {
 		c.err = err
 		return c
@@ -116,7 +116,15 @@ func (c *CountDocuments) RoundTrip(ctx context.Context, desc description.Selecte
 	}
 	wm, err = rw.ReadWireMessage(ctx)
 	if err != nil {
-		return 0, err
+		if _, ok := err.(Error); ok {
+			return 0, err
+		}
+		// Connection errors are transient
+		if c.Session != nil {
+			c.Session.PinnedSelector = nil
+		}
+		return 0, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
+
 	return c.Decode(ctx, desc, wm).Result()
 }

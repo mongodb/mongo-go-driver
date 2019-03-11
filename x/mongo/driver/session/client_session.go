@@ -87,7 +87,8 @@ type Client struct {
 
 	pool           *Pool
 	state          state
-	PinnedSelector description.ServerSelector
+	PinnedSelector *description.Server
+	RecoveryToken  bson.Raw
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -298,7 +299,6 @@ func (c *Client) CommitTransaction() error {
 		return err
 	}
 	c.state = Committed
-	c.PinnedSelector = nil
 	return nil
 }
 
@@ -315,7 +315,7 @@ func (c *Client) CheckAbortTransaction() error {
 	return nil
 }
 
-// AbortTransaction updates the state for a successfully committed transaction and returns
+// AbortTransaction updates the state for a successfully aborted transaction and returns
 // an error if not permissible.  It does not actually perform the abort.
 func (c *Client) AbortTransaction() error {
 	err := c.CheckAbortTransaction()
@@ -337,7 +337,7 @@ func (c *Client) ApplyCommand(desc description.Server) {
 		c.state = InProgress
 		// If this is in a transaction and the server is a mongos, pin it
 		if desc.Kind == description.Mongos {
-			c.PinnedSelector = desc
+			c.PinnedSelector = &desc
 		}
 	} else if c.state == Committed || c.state == Aborted {
 		c.clearTransactionOpts()
@@ -353,4 +353,5 @@ func (c *Client) clearTransactionOpts() {
 	c.CurrentRp = nil
 	c.CurrentRc = nil
 	c.PinnedSelector = nil
+	c.RecoveryToken = nil
 }

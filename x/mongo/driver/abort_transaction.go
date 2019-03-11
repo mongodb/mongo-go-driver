@@ -70,5 +70,15 @@ func abortTransaction(
 	}
 	defer conn.Close()
 
-	return cmd.RoundTrip(ctx, desc, conn)
+	res, err := cmd.RoundTrip(ctx, desc, conn)
+
+	if cerr, ok := err.(command.Error); ok {
+		for _, label := range cerr.Labels {
+			if label != command.TransientTransactionError {
+				cmd.Session.PinnedSelector = nil
+			}
+		}
+	}
+
+	return res, err
 }

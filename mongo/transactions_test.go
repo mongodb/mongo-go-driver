@@ -39,6 +39,7 @@ import (
 const transactionTestsDir = "../data/transactions"
 
 type transTestFile struct {
+	Topology       []string         `json:"topology"`
 	DatabaseName   string           `json:"database_name"`
 	CollectionName string           `json:"collection_name"`
 	Data           json.RawMessage  `json:"data"`
@@ -46,14 +47,15 @@ type transTestFile struct {
 }
 
 type transTestCase struct {
-	Description    string                 `json:"description"`
-	SkipReason     string                 `json:"skipReason"`
-	FailPoint      *failPoint             `json:"failPoint"`
-	ClientOptions  map[string]interface{} `json:"clientOptions"`
-	SessionOptions map[string]interface{} `json:"sessionOptions"`
-	Operations     []*transOperation      `json:"operations"`
-	Outcome        *transOutcome          `json:"outcome"`
-	Expectations   []*transExpectation    `json:"expectations"`
+	Description         string                 `json:"description"`
+	SkipReason          string                 `json:"skipReason"`
+	FailPoint           *failPoint             `json:"failPoint"`
+	ClientOptions       map[string]interface{} `json:"clientOptions"`
+	SessionOptions      map[string]interface{} `json:"sessionOptions"`
+	Operations          []*transOperation      `json:"operations"`
+	Outcome             *transOutcome          `json:"outcome"`
+	Expectations        []*transExpectation    `json:"expectations"`
+	UseMultipleMongoses bool                   `json:"useMultipleMongoses"`
 }
 
 type failPoint struct {
@@ -107,7 +109,6 @@ var transStartedChan = make(chan *event.CommandStartedEvent, 100)
 
 var transMonitor = &event.CommandMonitor{
 	Started: func(ctx context.Context, cse *event.CommandStartedEvent) {
-		//fmt.Printf("STARTED: %v\n", cse)
 		transStartedChan <- cse
 	},
 }
@@ -131,7 +132,7 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 
 	version, err := getServerVersion(dbAdmin)
 	require.NoError(t, err)
-	if shouldSkipTransactionsTest(t, version) {
+	if shouldSkipTransactionsTest(t, version, testfile.Topology) {
 		t.Skip()
 	}
 
@@ -146,57 +147,82 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		if len(test.SkipReason) > 0 {
 			t.Skip(test.SkipReason)
 		}
+		if test.Description == "unpin after transient error within a transaction and commit" ||
+			test.Description == "commitTransaction retry fails on new mongos" {
+			t.Skip("Depends on GODRIVER-898")
+		}
 
 		// kill sessions from previously failed tests
 		killSessions(t, dbAdmin.client)
 
 		collName := sanitizeCollectionName(testfile.DatabaseName, testfile.CollectionName)
 
-		// Workaround for SERVER-39704
-		if test.Description == "distinct" && os.Getenv("TOPOLOGY") == "sharded_cluster" {
+		var shardedHost string
+		var failPointNames []string
+		defer func() {
 			mongodbURI := testutil.ConnString(t)
 			opts := options.Client().ApplyURI(mongodbURI.String())
 			hosts := opts.Hosts
 			for _, host := range hosts {
-				distClient, err := NewClient(opts.SetHosts([]string{host}))
+				// disable failpoint if specified
+				for _, failpt := range failPointNames {
+					shardClient, err := NewClient(opts.SetHosts([]string{host}))
+					require.NoError(t, err)
+					require.NoError(t, shardClient.Connect(ctx))
+					require.NoError(t, shardClient.Database("admin").RunCommand(ctx, bsonx.Doc{
+						{"configureFailPoint", bsonx.String(failpt)},
+						{"mode", bsonx.String("off")},
+					}).Err())
+					_ = shardClient.Disconnect(ctx)
+				}
+			}
+		}()
+
+		if os.Getenv("TOPOLOGY") == "sharded_cluster" {
+			mongodbURI := testutil.ConnString(t)
+			opts := options.Client().ApplyURI(mongodbURI.String())
+			hosts := opts.Hosts
+			for _, host := range hosts {
+				shardClient, err := NewClient(opts.SetHosts([]string{host}))
 				require.NoError(t, err)
-				addClientOptions(distClient, test.ClientOptions)
-				err = distClient.Connect(context.Background())
+				addClientOptions(shardClient, test.ClientOptions)
+				err = shardClient.Connect(context.Background())
 				require.NoError(t, err)
-				distDatabase := distClient.Database(testfile.DatabaseName)
-				_, err = distDatabase.Collection(collName).Distinct(context.Background(), "x", bsonx.Doc{})
-				require.NoError(t, err)
-				_ = distClient.Disconnect(context.Background())
+				killSessions(t, shardClient)
+				// Workaround for SERVER-39704
+				if test.Description == "distinct" {
+					shardDatabase := shardClient.Database(testfile.DatabaseName)
+					_, err = shardDatabase.Collection(collName).Distinct(context.Background(), "x", bsonx.Doc{})
+					require.NoError(t, err)
+				}
+				if !test.UseMultipleMongoses {
+					shardedHost = host
+					break
+				}
+				_ = shardClient.Disconnect(ctx)
 			}
 		}
 
-		var fpClients []*Client
 		if test.FailPoint != nil {
 			doc := createFailPointDoc(t, test.FailPoint)
 			mongodbURI := testutil.ConnString(t)
 			opts := options.Client().ApplyURI(mongodbURI.String())
-			hosts := opts.Hosts
-			for _, host := range hosts {
-				fpClient, err := NewClient(opts.SetHosts([]string{host}))
-				require.NoError(t, err)
-				addClientOptions(fpClient, test.ClientOptions)
-				err = fpClient.Connect(context.Background())
-				require.NoError(t, err)
-				fpDatabase := fpClient.Database("admin")
-				err = fpDatabase.RunCommand(ctx, doc).Err()
-				require.NoError(t, err)
-				fpClients = append(fpClients, fpClient)
-				defer func() {
-					_ = fpDatabase.RunCommand(ctx, bsonx.Doc{
-						{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
-						{"mode", bsonx.String("off")},
-					})
-					_ = fpClient.Disconnect(context.Background())
-				}()
+			if len(shardedHost) > 0 {
+				opts.SetHosts([]string{shardedHost})
 			}
+			fpClient, err := NewClient(opts)
+			require.NoError(t, err)
+			addClientOptions(fpClient, test.ClientOptions)
+			err = fpClient.Connect(context.Background())
+			require.NoError(t, err)
+			fpDatabase := fpClient.Database("admin")
+			err = fpDatabase.RunCommand(ctx, doc).Err()
+			require.NoError(t, err)
+			_ = fpClient.Disconnect(context.Background())
+			failPointNames = append(failPointNames, test.FailPoint.ConfigureFailPoint)
 		}
 
-		client := createTransactionsMonitoredClient(t, transMonitor, test.ClientOptions)
+		client := createTransactionsMonitoredClient(t, transMonitor, test.ClientOptions, shardedHost)
 		addClientOptions(client, test.ClientOptions)
 
 		db := client.Database(testfile.DatabaseName)
@@ -255,10 +281,6 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 				t.Skip("count has been deprecated")
 			}
 
-			// create collection with default read preference Primary (needed to prevent server selection fail)
-			coll = db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()))
-			addCollectionOptions(coll, op.CollectionOptions)
-
 			// Arguments aren't marshaled directly into a map because runcommand
 			// needs to convert them into BSON docs.  We convert them to a map here
 			// for getting the session and for all other collection operations
@@ -274,6 +296,19 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 					sess = sess1
 				}
 			}
+
+			if op.Object == "testRunner" {
+				fpName, err := executeTestRunnerOperation(t, op, sess)
+				require.NoError(t, err)
+				if len(fpName) > 0 {
+					failPointNames = append(failPointNames, fpName)
+				}
+				continue
+			}
+
+			// create collection with default read preference Primary (needed to prevent server selection fail)
+			coll = db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local()))
+			addCollectionOptions(coll, op.CollectionOptions)
 
 			// execute the command on given object
 			switch op.Object {
@@ -296,17 +331,24 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		sess0.EndSession(ctx)
 		sess1.EndSession(ctx)
 
-		for _, fpClient := range fpClients {
-			// disable failpoint if specified
-			fpDatabase := fpClient.Database("admin")
-			_ = fpDatabase.RunCommand(ctx, bsonx.Doc{
-				{"configureFailPoint", bsonx.String(test.FailPoint.ConfigureFailPoint)},
-				{"mode", bsonx.String("off")},
-			})
-			_ = fpClient.Disconnect(context.Background())
-		}
-
 		checkExpectations(t, test.Expectations, lsid0, lsid1)
+
+		mongodbURI := testutil.ConnString(t)
+		opts := options.Client().ApplyURI(mongodbURI.String())
+		hosts := opts.Hosts
+		for _, host := range hosts {
+			// disable failpoint if specified
+			for _, failpt := range failPointNames {
+				shardClient, err := NewClient(opts.SetHosts([]string{host}))
+				require.NoError(t, err)
+				require.NoError(t, shardClient.Connect(ctx))
+				require.NoError(t, shardClient.Database("admin").RunCommand(ctx, bsonx.Doc{
+					{"configureFailPoint", bsonx.String(failpt)},
+					{"mode", bsonx.String("off")},
+				}).Err())
+				_ = shardClient.Disconnect(ctx)
+			}
+		}
 
 		if test.Outcome != nil {
 			// Verify with primary read pref
@@ -334,17 +376,20 @@ func killSessions(t *testing.T, client *Client) {
 	_, _ = cmd.RoundTrip(context.Background(), s.SelectedDescription(), conn)
 }
 
-func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor, opts map[string]interface{}) *Client {
+func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor, opts map[string]interface{}, host string) *Client {
 	clock := &session.ClusterClock{}
 
+	cs := testutil.ConnString(t)
+	if len(host) > 0 {
+		cs.Hosts = []string{host}
+	}
 	c := &Client{
-		topology:       createMonitoredTopology(t, clock, monitor),
-		connString:     testutil.ConnString(t),
+		topology:       createMonitoredTopology(t, clock, monitor, &cs),
+		connString:     cs,
 		readPreference: readpref.Primary(),
 		clock:          clock,
 		registry:       bson.NewRegistryBuilder().Build(),
 	}
-
 	addClientOptions(c, opts)
 
 	subscription, err := c.topology.Subscribe()
@@ -539,6 +584,35 @@ func executeDatabaseOperation(t *testing.T, op *transOperation, sess *sessionImp
 		return err
 	}
 	return nil
+}
+
+func executeTestRunnerOperation(t *testing.T, op *transOperation, sess *sessionImpl) (string, error) {
+	switch op.Name {
+	case "targetedFailPoint":
+		failPtStr, ok := op.ArgMap["failPoint"]
+		require.True(t, ok)
+		var fp failPoint
+		marshaled, err := json.Marshal(failPtStr.(map[string]interface{}))
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal(marshaled, &fp))
+
+		doc := createFailPointDoc(t, &fp)
+		mongodbURI := testutil.ConnString(t)
+		opts := options.Client().ApplyURI(mongodbURI.String())
+		client, err := NewClient(opts.SetHosts([]string{sess.Client.PinnedSelector.Addr.String()}))
+		require.NoError(t, err)
+		require.NoError(t, client.Connect(ctx))
+		require.NoError(t, client.Database("admin").RunCommand(ctx, doc).Err())
+
+		_ = client.Disconnect(ctx)
+
+		return fp.ConfigureFailPoint, nil
+	case "assertSessionPinned":
+		require.NotNil(t, sess.PinnedSelector)
+	case "assertSessionUnpinned":
+		require.Nil(t, sess.PinnedSelector)
+	}
+	return "", nil
 }
 
 func verifyError(t *testing.T, e error, result json.RawMessage) {
@@ -781,9 +855,28 @@ func readPrefFromString(s string) *readpref.ReadPref {
 	return readpref.Primary()
 }
 
-// skip if server version less than 4.0 OR not a replica set.
-func shouldSkipTransactionsTest(t *testing.T, serverVersion string) bool {
-	return compareVersions(t, serverVersion, "4.0") < 0 ||
-		os.Getenv("TOPOLOGY") == "server" ||
-		(os.Getenv("TOPOLOGY") == "sharded_cluster" && compareVersions(t, serverVersion, "4.1") < 0)
+func shouldSkipTransactionsTest(t *testing.T, serverVersion string, topologies []string) bool {
+	if len(topologies) == 0 {
+		topologies = []string{"single", "replicaset", "sharded"}
+	}
+	if compareVersions(t, serverVersion, "4.0") < 0 {
+		return true
+	}
+	for _, top := range topologies {
+		switch os.Getenv("TOPOLOGY") {
+		case "server":
+			if top == "single" {
+				return false
+			}
+		case "replica_set":
+			if top == "replicaset" {
+				return false
+			}
+		case "sharded_cluster":
+			if top == "sharded" && compareVersions(t, serverVersion, "4.0") > 0 {
+				return false
+			}
+		}
+	}
+	return true
 }

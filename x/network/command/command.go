@@ -184,6 +184,19 @@ func updateOperationTime(sess *session.Client, response bson.Raw) error {
 	})
 }
 
+func updateRecoveryToken(sess *session.Client, response bson.Raw) {
+	if sess == nil {
+		return
+	}
+
+	token, err := response.LookupErr("recoveryToken")
+	if err != nil {
+		return
+	}
+
+	sess.RecoveryToken = token.Document()
+}
+
 func marshalCommand(cmd bsonx.Doc) (bson.Raw, error) {
 	if cmd == nil {
 		return bson.Raw{5, 0, 0, 0, 0}, nil
