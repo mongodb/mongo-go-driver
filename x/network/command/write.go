@@ -175,12 +175,15 @@ func (w *Write) Decode(desc description.SelectedServer, wm wiremessage.WireMessa
 	}
 
 	if w.err != nil {
-		if _, ok := w.err.(Error); !ok {
+		if cerr, ok := w.err.(Error); !ok {
 			return w
+		} else if cerr.HasErrorLabel(TransientTransactionError) && w.Session != nil {
+			w.Session.PinnedSelector = nil
 		}
 	}
 
 	_ = updateClusterTimes(w.Session, w.Clock, w.result)
+	updateRecoveryToken(w.Session, w.result)
 
 	if writeconcern.AckWrite(w.WriteConcern) {
 		// don't update session operation time for unacknowledged write
@@ -216,6 +219,9 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 			return nil, err
 		}
 		// Connection errors are transient
+		if w.Session != nil {
+			w.Session.PinnedSelector = nil
+		}
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
@@ -232,6 +238,9 @@ func (w *Write) RoundTrip(ctx context.Context, desc description.SelectedServer, 
 			return nil, err
 		}
 		// Connection errors are transient
+		if w.Session != nil {
+			w.Session.PinnedSelector = nil
+		}
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 

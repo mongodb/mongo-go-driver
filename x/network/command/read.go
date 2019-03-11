@@ -229,13 +229,16 @@ func (r *Read) Decode(desc description.SelectedServer, wm wiremessage.WireMessag
 	if r.err != nil {
 		// decode functions set error if an invalid response document was returned or if the OK flag in the response was 0
 		// if the OK flag was 0, a type Error is returned. otherwise, a special type is returned
-		if _, ok := r.err.(Error); !ok {
+		if cerr, ok := r.err.(Error); !ok {
 			return r // for missing/invalid response docs, don't update cluster times
+		} else if r.Session != nil && cerr.HasErrorLabel(TransientTransactionError) {
+			r.Session.PinnedSelector = nil
 		}
 	}
 
 	_ = updateClusterTimes(r.Session, r.Clock, r.result)
 	_ = updateOperationTime(r.Session, r.result)
+	updateRecoveryToken(r.Session, r.result)
 	return r
 }
 
@@ -266,6 +269,9 @@ func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, r
 			return nil, err
 		}
 		// Connection errors are transient
+		if r.Session != nil {
+			r.Session.PinnedSelector = nil
+		}
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 	wm, err = rw.ReadWireMessage(ctx)
@@ -274,6 +280,9 @@ func (r *Read) RoundTrip(ctx context.Context, desc description.SelectedServer, r
 			return nil, err
 		}
 		// Connection errors are transient
+		if r.Session != nil {
+			r.Session.PinnedSelector = nil
+		}
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 

@@ -48,46 +48,28 @@ func TestMongosPinning(t *testing.T) {
 			bson.D{{"drop", collName}},
 		)
 
-		err = db.RunCommand(
-			context.Background(),
-			bson.D{{"create", collName}},
-		).Err()
 		coll := db.Collection(collName)
+		_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
+		require.NoError(t, err)
 
 		addresses := map[string]struct{}{}
 		err = client.UseSession(ctx, func(sctx SessionContext) error {
-			err := sctx.StartTransaction(options.Transaction())
-			if err != nil {
-				return err
-			}
+			require.NoError(t, sctx.StartTransaction(options.Transaction()))
 
 			_, err = coll.InsertOne(sctx, bson.D{{"x", 1}})
-			if err != nil {
-				return err
-			}
+			require.NoError(t, err)
 
-			err = sctx.CommitTransaction(sctx)
-			if err != nil {
-				return err
-			}
+			require.NoError(t, sctx.CommitTransaction(sctx))
 
 			for i := 0; i < 50; i++ {
-				err = sctx.StartTransaction(options.Transaction())
-				if err != nil {
-					return err
-				}
+				require.NoError(t, sctx.StartTransaction(options.Transaction()))
 
 				cursor, err := coll.Find(context.Background(), bson.D{})
-				if err != nil {
-					return err
-				}
+				require.NoError(t, err)
 				require.True(t, cursor.Next(context.Background()))
 				addresses[cursor.bc.Server().Description().Addr.String()] = struct{}{}
 
-				err = sctx.CommitTransaction(sctx)
-				if err != nil {
-					return err
-				}
+				require.NoError(t, sctx.CommitTransaction(sctx))
 			}
 			return nil
 		})
@@ -101,34 +83,22 @@ func TestMongosPinning(t *testing.T) {
 			bson.D{{"drop", collName}},
 		)
 
-		err = db.RunCommand(
-			context.Background(),
-			bson.D{{"create", collName}},
-		).Err()
 		coll := db.Collection(collName)
+		_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
+		require.NoError(t, err)
 
 		addresses := map[string]bool{}
 		err = client.UseSession(ctx, func(sctx SessionContext) error {
-			err := sctx.StartTransaction(options.Transaction())
-			if err != nil {
-				return err
-			}
+			require.NoError(t, sctx.StartTransaction(options.Transaction()))
 
 			_, err = coll.InsertOne(sctx, bson.D{{"x", 1}})
-			if err != nil {
-				return err
-			}
+			require.NoError(t, err)
 
-			err = sctx.CommitTransaction(sctx)
-			if err != nil {
-				return err
-			}
+			require.NoError(t, sctx.CommitTransaction(sctx))
 
 			for i := 0; i < 50; i++ {
 				cursor, err := coll.Find(context.Background(), bson.D{})
-				if err != nil {
-					return err
-				}
+				require.NoError(t, err)
 				require.True(t, cursor.Next(context.Background()))
 				addresses[cursor.bc.Server().Description().Addr.String()] = true
 			}
