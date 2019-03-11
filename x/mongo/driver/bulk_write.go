@@ -58,8 +58,8 @@ func BulkWrite(
 	registry *bsoncodec.Registry,
 	opts ...*options.BulkWriteOptions,
 ) (result.BulkWrite, error) {
-	if sess != nil && sess.PinnedSelector != nil {
-		selector = sess.PinnedSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
 	}
 	ss, err := topo.SelectServer(ctx, selector)
 	if err != nil {
