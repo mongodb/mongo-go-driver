@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e9be3887_567fa8fd",
+        "filename": "x/mongo/driver/session/client_session.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 331,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-12T16:43:28Z",
+      "side": 1,
+      "message": "Is there a reason we\u0027re using a pointer here?",
+      "range": {
+        "startLine": 331,
+        "startChar": 35,
+        "endLine": 331,
+        "endChar": 54
+      },
+      "revId": "0f561b2e46a1aa1a787ca4f037b5d07e048f7d03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7e1ad684_00a546bd",
+        "filename": "x/network/description/server_selector.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 144,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-12T16:43:28Z",
+      "side": 1,
+      "message": "This is more general than mongos pinning. Instead of having a specific function that does this, let\u0027s just make description.Server implement ServerSelector. It makes things a bit cleaner.",
+      "range": {
+        "startLine": 144,
+        "startChar": 5,
+        "endLine": 144,
+        "endChar": 25
+      },
+      "revId": "0f561b2e46a1aa1a787ca4f037b5d07e048f7d03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a92148d2_55040a1f",
+        "filename": "x/network/description/server_selector.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-12T16:43:28Z",
+      "side": 1,
+      "message": "It doesn\u0027t look like we\u0027re actually using t in this function. Let\u0027s change this to _ so it\u0027s clear that we aren\u0027t using it.",
+      "range": {
+        "startLine": 145,
+        "startChar": 32,
+        "endLine": 145,
+        "endChar": 33
+      },
+      "revId": "0f561b2e46a1aa1a787ca4f037b5d07e048f7d03",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
