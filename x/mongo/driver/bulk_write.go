@@ -233,20 +233,20 @@ func runInsert(
 		if cmd.Session != nil {
 			cmd.Session.RetryWrite = false
 		}
-		return insert(ctx, cmd, ss, nil)
+		return insert(ctx, &cmd, ss, nil)
 	}
 
 	cmd.Session.RetryWrite = retryWrite
 	cmd.Session.IncrementTxnNumber()
 
-	res, origErr := insert(ctx, cmd, ss, nil)
+	res, origErr := insert(ctx, &cmd, ss, nil)
 	if shouldRetry(origErr, res.WriteConcernError) {
 		newServer, err := topo.SelectServer(ctx, selector)
 		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
 			return res, origErr
 		}
 
-		return insert(ctx, cmd, newServer, origErr)
+		return insert(ctx, &cmd, newServer, origErr)
 	}
 
 	return res, origErr
@@ -300,20 +300,20 @@ func runDelete(
 		if cmd.Session != nil {
 			cmd.Session.RetryWrite = false
 		}
-		return delete(ctx, cmd, ss, nil)
+		return delete(ctx, &cmd, ss, nil)
 	}
 
 	cmd.Session.RetryWrite = retryWrite
 	cmd.Session.IncrementTxnNumber()
 
-	res, origErr := delete(ctx, cmd, ss, nil)
+	res, origErr := delete(ctx, &cmd, ss, nil)
 	if shouldRetry(origErr, res.WriteConcernError) {
 		newServer, err := topo.SelectServer(ctx, selector)
 		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
 			return res, origErr
 		}
 
-		return delete(ctx, cmd, newServer, origErr)
+		return delete(ctx, &cmd, newServer, origErr)
 	}
 
 	return res, origErr
@@ -376,20 +376,20 @@ func runUpdate(
 		if cmd.Session != nil {
 			cmd.Session.RetryWrite = false
 		}
-		return update(ctx, cmd, ss, nil)
+		return update(ctx, &cmd, ss, nil)
 	}
 
 	cmd.Session.RetryWrite = retryWrite
 	cmd.Session.IncrementTxnNumber()
 
-	res, origErr := update(ctx, cmd, ss, nil)
+	res, origErr := update(ctx, &cmd, ss, nil)
 	if shouldRetry(origErr, res.WriteConcernError) {
 		newServer, err := topo.SelectServer(ctx, selector)
 		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
 			return res, origErr
 		}
 
-		return update(ctx, cmd, newServer, origErr)
+		return update(ctx, &cmd, newServer, origErr)
 	}
 
 	return res, origErr

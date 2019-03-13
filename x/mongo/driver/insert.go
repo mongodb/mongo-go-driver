@@ -62,14 +62,14 @@ func Insert(
 		if cmd.Session != nil {
 			cmd.Session.RetryWrite = false // explicitly set to false to prevent encoding transaction number
 		}
-		return insert(ctx, cmd, ss, nil)
+		return insert(ctx, &cmd, ss, nil)
 	}
 
 	// TODO figure out best place to put retry write.  Command shouldn't have to know about this field.
 	cmd.Session.RetryWrite = retryWrite
 	cmd.Session.IncrementTxnNumber()
 
-	res, originalErr := insert(ctx, cmd, ss, nil)
+	res, originalErr := insert(ctx, &cmd, ss, nil)
 
 	// Retry if appropriate
 	if cerr, ok := originalErr.(command.Error); (ok && cerr.Retryable()) ||
@@ -81,7 +81,7 @@ func Insert(
 			return res, originalErr
 		}
 
-		return insert(ctx, cmd, ss, cerr)
+		return insert(ctx, &cmd, ss, cerr)
 	}
 
 	return res, originalErr
@@ -89,7 +89,7 @@ func Insert(
 
 func insert(
 	ctx context.Context,
-	cmd command.Insert,
+	cmd *command.Insert,
 	ss *topology.SelectedServer,
 	oldErr error,
 ) (result.Insert, error) {
