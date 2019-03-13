@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9d73f8da_dade577f",
+        "filename": "x/network/description/server.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-13T17:12:58Z",
+      "side": 1,
+      "message": "Small code cleanup, we can just do a slice instantiation inside the return:\n\n    return []Server{candidate}, nil",
+      "range": {
+        "startLine": 151,
+        "startChar": 3,
+        "endLine": 152,
+        "endChar": 21
+      },
+      "revId": "49c8db9a32c2faa5055552ff6de26b70224cd233",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
