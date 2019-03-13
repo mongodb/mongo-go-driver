@@ -90,13 +90,13 @@ func Update(
 		if cmd.Session != nil {
 			cmd.Session.RetryWrite = false // explicitly set to false to prevent encoding transaction number
 		}
-		return update(ctx, cmd, ss, nil)
+		return update(ctx, &cmd, ss, nil)
 	}
 
 	cmd.Session.RetryWrite = retryWrite
 	cmd.Session.IncrementTxnNumber()
 
-	res, originalErr := update(ctx, cmd, ss, nil)
+	res, originalErr := update(ctx, &cmd, ss, nil)
 
 	// Retry if appropriate
 	if cerr, ok := originalErr.(command.Error); (ok && cerr.Retryable()) ||
@@ -108,7 +108,7 @@ func Update(
 			return res, originalErr
 		}
 
-		return update(ctx, cmd, ss, cerr)
+		return update(ctx, &cmd, ss, cerr)
 	}
 	return res, originalErr
 
@@ -116,7 +116,7 @@ func Update(
 
 func update(
 	ctx context.Context,
-	cmd command.Update,
+	cmd *command.Update,
 	ss *topology.SelectedServer,
 	oldErr error,
 ) (result.Update, error) {

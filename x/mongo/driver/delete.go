@@ -65,13 +65,13 @@ func Delete(
 		if cmd.Session != nil {
 			cmd.Session.RetryWrite = false // explicitly set to false to prevent encoding transaction number
 		}
-		return delete(ctx, cmd, ss, nil)
+		return delete(ctx, &cmd, ss, nil)
 	}
 
 	cmd.Session.RetryWrite = retryWrite
 	cmd.Session.IncrementTxnNumber()
 
-	res, originalErr := delete(ctx, cmd, ss, nil)
+	res, originalErr := delete(ctx, &cmd, ss, nil)
 
 	// Retry if appropriate
 	if cerr, ok := originalErr.(command.Error); (ok && cerr.Retryable()) ||
@@ -83,14 +83,14 @@ func Delete(
 			return res, originalErr
 		}
 
-		return delete(ctx, cmd, ss, cerr)
+		return delete(ctx, &cmd, ss, cerr)
 	}
 	return res, originalErr
 }
 
 func delete(
 	ctx context.Context,
-	cmd command.Delete,
+	cmd *command.Delete,
 	ss *topology.SelectedServer,
 	oldErr error,
 ) (result.Delete, error) {
