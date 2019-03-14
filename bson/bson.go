@@ -22,39 +22,50 @@ type Zeroer interface {
 	IsZero() bool
 }
 
-// D represents a BSON Document. This type can be used to represent BSON in a concise and readable
+// Document represents a BSON Document. This type can be used to represent BSON in a concise and readable
 // manner. It should generally be used when serializing to BSON. For deserializing, the Raw or
 // Document types should be used.
 //
 // Example usage:
 //
-// 		bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
+// 		bson.Document{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
 //
 // This type should be used in situations where order matters, such as MongoDB commands. If the
 // order is not important, a map is more comfortable and concise.
+type Document = primitive.D
+
+// D is an alias of bson.Document, shortened for convinience
 type D = primitive.D
 
-// E represents a BSON element for a D. It is usually used inside a D.
+// Element represents a BSON element for a Document. It is usually used inside a Document.
+type Element = primitive.E
+
+// E is an alias of bson.Element, shortened for convinience
 type E = primitive.E
 
-// M is an unordered, concise representation of a BSON Document. It should generally be used to
+// Map is an unordered, concise representation of a BSON Document. It should generally be used to
 // serialize BSON when the order of the elements of a BSON document do not matter. If the element
 // order matters, use a D instead.
 //
 // Example usage:
 //
-// 		bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
+// 		bson.Map{"foo": "bar", "hello": "world", "pi": 3.14159}
 //
 // This type is handled in the encoders as a regular map[string]interface{}. The elements will be
 // serialized in an undefined, random order, and the order will be different each time.
+type Map = primitive.M
+
+// M is an alias of bson.Map, shortened for convinience
 type M = primitive.M
 
-// An A represents a BSON array. This type can be used to represent a BSON array in a concise and
+// Array represents a BSON array. This type can be used to represent a BSON array in a concise and
 // readable manner. It should generally be used when serializing to BSON. For deserializing, the
 // RawArray or Array types should be used.
 //
 // Example usage:
 //
-// 		bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
-//
+// 		bson.Array{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
+type Array = primitive.A
+
+// An A is an alias of bson.Array, shortened for convinience
 type A = primitive.A
