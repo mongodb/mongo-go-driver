@@ -20,7 +20,7 @@ GerritHub.
 Patches should generally be made against the master (default) branch and include relevant tests, if applicable.
 
 Code should compile and tests should pass under all go versions which the driver currently supports.  Currently the driver
-supports a minimum version of go 1.7. Please ensure the following tools have been run on the code: gofmt, golint, errcheck,
+supports a minimum version of go 1.10. Please ensure the following tools have been run on the code: gofmt, golint, errcheck,
 go test (with coverage and with the race detector), and go vet. For convenience, you can run 'make' to run all these tools.
 **By default, running the tests requires that you have a mongod server running on localhost, listening on the default port.**
 At minimum, please test against the latest release version of the MongoDB server.
