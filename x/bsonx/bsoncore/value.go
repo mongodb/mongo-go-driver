@@ -150,7 +150,7 @@ func (v Value) String() string {
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$oid":%s}`, oid.Hex())
+		return fmt.Sprintf(`{"$oid":"%s"}`, oid.Hex())
 	case bsontype.Boolean:
 		b, ok := v.BooleanOK()
 		if !ok {
