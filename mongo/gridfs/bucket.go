@@ -351,7 +351,7 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 		return newDownloadStream(nil, b.chunkSize, 0), nil
 	}
 
-	chunksCursor, err := b.findChunks(ctx, fileIDElem.ObjectID())
+	chunksCursor, err := b.findChunks(ctx, fileIDElem)
 	if err != nil {
 		return nil, err
 	}
