@@ -9,6 +9,7 @@ package options
 import (
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -111,7 +112,7 @@ type UploadOptions struct {
 
 // GridFSUpload creates a new *UploadOptions
 func GridFSUpload() *UploadOptions {
-	return &UploadOptions{}
+	return &UploadOptions{Registry: bson.DefaultRegistry}
 }
 
 // SetChunkSizeBytes sets the chunk size in bytes for the upload. Defaults to 255KB if not set.

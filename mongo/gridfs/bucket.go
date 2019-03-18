@@ -526,6 +526,9 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 	if uo.ChunkSizeBytes != nil {
 		upload.chunkSize = *uo.ChunkSizeBytes
 	}
+	if uo.Registry == nil {
+		uo.Registry = bson.DefaultRegistry
+	}
 	if uo.Metadata != nil {
 		raw, err := bson.MarshalWithRegistry(uo.Registry, uo.Metadata)
 		if err != nil {
