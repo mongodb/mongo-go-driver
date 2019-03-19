@@ -187,26 +187,16 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		coll.registry,
 		opts...,
 	)
-
-	if err != nil {
-		if conv, ok := err.(driver.BulkWriteException); ok {
-			return &BulkWriteResult{}, BulkWriteException{
-				WriteConcernError: convertWriteConcernError(conv.WriteConcernError),
-				WriteErrors:       convertBulkWriteErrors(conv.WriteErrors),
-			}
-		}
-
-		return &BulkWriteResult{}, replaceErrors(err)
-	}
-
-	return &BulkWriteResult{
+	result := BulkWriteResult{
 		InsertedCount: res.InsertedCount,
 		MatchedCount:  res.MatchedCount,
 		ModifiedCount: res.ModifiedCount,
 		DeletedCount:  res.DeletedCount,
 		UpsertedCount: res.UpsertedCount,
 		UpsertedIDs:   res.UpsertedIDs,
-	}, nil
+	}
+
+	return &result, replaceErrors(err)
 }
 
 // InsertOne inserts a single document into the collection.
