@@ -65,6 +65,7 @@ type ConnString struct {
 	MaxStaleness                       time.Duration
 	MaxStalenessSet                    bool
 	ReplicaSet                         string
+	Scheme                             string
 	ServerSelectionTimeout             time.Duration
 	ServerSelectionTimeoutSet          bool
 	SocketTimeout                      time.Duration
@@ -108,6 +109,12 @@ const (
 	SingleConnect
 )
 
+// Scheme constants
+const (
+	SchemeMongoDB    = "mongodb"
+	SchemeMongoDBSRV = "mongodb+srv"
+)
+
 type parser struct {
 	ConnString
 
@@ -119,14 +126,14 @@ func (p *parser) parse(original string) error {
 	uri := original
 
 	var err error
-	var isSRV bool
-	if strings.HasPrefix(uri, "mongodb+srv://") {
-		isSRV = true
+	if strings.HasPrefix(uri, SchemeMongoDBSRV+"://") {
+		p.Scheme = SchemeMongoDBSRV
 		// remove the scheme
-		uri = uri[14:]
-	} else if strings.HasPrefix(uri, "mongodb://") {
+		uri = uri[len(SchemeMongoDBSRV)+3:]
+	} else if strings.HasPrefix(uri, SchemeMongoDB+"://") {
+		p.Scheme = SchemeMongoDB
 		// remove the scheme
-		uri = uri[10:]
+		uri = uri[len(SchemeMongoDB)+3:]
 	} else {
 		return fmt.Errorf("scheme must be \"mongodb\" or \"mongodb+srv\"")
 	}
@@ -183,7 +190,7 @@ func (p *parser) parse(original string) error {
 	var connectionArgsFromTXT []string
 	parsedHosts := strings.Split(hosts, ",")
 
-	if isSRV {
+	if p.Scheme == SchemeMongoDBSRV {
 		parsedHosts, err = p.dnsResolver.ParseHosts(hosts, true)
 		if err != nil {
 			return err

@@ -376,6 +376,15 @@ func TestRetryWrites(t *testing.T) {
 	}
 }
 
+func TestScheme(t *testing.T) {
+	// Can't unit test 'mongodb+srv' because that requires networking.  Tested
+	// in x/mongo/driver/topology/initial_dns_seedlist_discovery_test.go
+	cs, err := connstring.Parse("mongodb://localhost/")
+	require.NoError(t, err)
+	require.Equal(t, cs.Scheme, "mongodb")
+	require.Equal(t, cs.Scheme, connstring.SchemeMongoDB)
+}
+
 func TestServerSelectionTimeout(t *testing.T) {
 	tests := []struct {
 		s        string

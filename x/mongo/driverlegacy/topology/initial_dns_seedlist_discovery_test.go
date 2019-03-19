@@ -84,6 +84,8 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 			return
 		}
 		require.NoError(t, err)
+		require.Equal(t, cs.Scheme, "mongodb+srv")
+		require.Equal(t, cs.Scheme, connstring.SchemeMongoDBSRV)
 
 		// DNS records may be out of order from the test files ordering
 		seeds := buildSet(test.Seeds)
