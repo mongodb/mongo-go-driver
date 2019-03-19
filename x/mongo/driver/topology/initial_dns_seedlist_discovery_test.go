@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
@@ -84,6 +84,8 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 			return
 		}
 		require.NoError(t, err)
+		require.Equal(t, cs.Scheme, "mongodb+srv")
+		require.Equal(t, cs.Scheme, connstring.SchemeMongoDBSRV)
 
 		// DNS records may be out of order from the test files ordering
 		seeds := buildSet(test.Seeds)
