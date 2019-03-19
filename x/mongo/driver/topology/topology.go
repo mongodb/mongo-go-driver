@@ -292,7 +292,7 @@ func (t *Topology) FindServer(selected description.Server) (*SelectedServer, err
 }
 
 func wrapServerSelectionError(err error, t *Topology) error {
-	return fmt.Errorf("server selection error: %v\ncurrent topology: %s", err, t.String())
+	return fmt.Errorf("server selection error: %v, current topology: { %s }", err, t.String())
 }
 
 // selectServer is the core piece of server selection. It handles getting
@@ -435,11 +435,12 @@ func (t *Topology) removeServer(ctx context.Context, addr address.Address, serve
 // String implements the Stringer interface
 func (t *Topology) String() string {
 	desc := t.Description()
-	str := fmt.Sprintf("Type: %s\nServers:\n", desc.Kind)
+
+	serversStr := ""
 	for _, s := range t.servers {
-		str += s.String() + "\n"
+		serversStr += "{ " + s.String() + " }, "
 	}
-	return str
+	return fmt.Sprintf("Type: %s, Servers: [%s]", desc.Kind, serversStr)
 }
 
 // Subscription is a subscription to updates to the description of the Topology that created this
