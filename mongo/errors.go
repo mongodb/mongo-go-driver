@@ -41,6 +41,13 @@ func replaceErrors(err error) error {
 	if ce, ok := err.(command.Error); ok {
 		return CommandError{Code: ce.Code, Message: ce.Message, Labels: ce.Labels, Name: ce.Name}
 	}
+	if conv, ok := err.(driver.BulkWriteException); ok {
+		return BulkWriteException{
+			WriteConcernError: convertWriteConcernError(conv.WriteConcernError),
+			WriteErrors:       convertBulkWriteErrors(conv.WriteErrors),
+		}
+	}
+
 	return err
 }
 
