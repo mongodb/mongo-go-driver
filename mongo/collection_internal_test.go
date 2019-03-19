@@ -258,6 +258,167 @@ func TestCollection_database_accessor(t *testing.T) {
 	require.Equal(t, coll.Database().Name(), dbName)
 }
 
+func TestCollection_BulkWrite_writeErrors_Insert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	want := WriteError{Code: 11000}
+	doc1 := NewInsertOneModel().SetDocument(bson.D{{"_id", "x"}})
+	doc2 := NewInsertOneModel().SetDocument(bson.D{{"_id", "y"}})
+	models := []WriteModel{doc1, doc1, doc2, doc2}
+
+	t.Run("unordered", func(t *testing.T) {
+		coll := createTestCollection(t, nil, nil)
+		res, err := coll.BulkWrite(context.Background(), models, options.BulkWrite().SetOrdered(false))
+		require.Equal(t, res.InsertedCount, int64(2))
+
+		got, ok := err.(BulkWriteException)
+		if !ok {
+			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+			t.FailNow()
+		}
+		if len(got.WriteErrors) != 2 {
+			t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 2)
+			t.FailNow()
+		}
+		if got.WriteErrors[0].Code != want.Code {
+			t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+		}
+	})
+
+	t.Run("ordered", func(t *testing.T) {
+		coll := createTestCollection(t, nil, nil)
+		res, err := coll.BulkWrite(context.Background(), models, options.BulkWrite())
+		require.Equal(t, res.InsertedCount, int64(1))
+
+		got, ok := err.(BulkWriteException)
+		if !ok {
+			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+			t.FailNow()
+		}
+		if len(got.WriteErrors) != 1 {
+			t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
+			t.FailNow()
+		}
+		if got.WriteErrors[0].Code != want.Code {
+			t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+		}
+	})
+}
+
+func TestCollection_BulkWrite_writeErrors_Delete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	doc := NewDeleteOneModel().SetFilter(bson.D{{"x", 1}})
+	models := []WriteModel{doc, doc}
+
+	db := createTestDatabase(t, nil)
+	collName := testutil.ColName(t)
+	err := db.RunCommand(
+		context.Background(),
+		bsonx.Doc{
+			{"create", bsonx.String(collName)},
+			{"capped", bsonx.Boolean(true)},
+			{"size", bsonx.Int32(64 * 1024)},
+		},
+	).Err()
+	require.NoError(t, err)
+
+	t.Run("unordered", func(t *testing.T) {
+		coll := db.Collection(collName)
+		_, err = coll.BulkWrite(context.Background(), models, options.BulkWrite().SetOrdered(false))
+
+		got, ok := err.(BulkWriteException)
+		if !ok {
+			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+			t.FailNow()
+		}
+		if len(got.WriteErrors) != 2 {
+			t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 2)
+			t.FailNow()
+		}
+		if got.WriteErrors[0].Code != 20 && got.WriteErrors[0].Code != 10101 {
+			t.Errorf("Did not receive the correct error code. got %d; want 20 or 10101", got.WriteErrors[0].Code)
+		}
+	})
+
+	t.Run("ordered", func(t *testing.T) {
+		coll := db.Collection(collName)
+		_, err = coll.BulkWrite(context.Background(), models, options.BulkWrite())
+
+		got, ok := err.(BulkWriteException)
+		if !ok {
+			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+			t.FailNow()
+		}
+		if len(got.WriteErrors) != 1 {
+			t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
+			t.FailNow()
+		}
+		if got.WriteErrors[0].Code != 20 && got.WriteErrors[0].Code != 10101 {
+			t.Errorf("Did not receive the correct error code. got %d; want 20 or 10101", got.WriteErrors[0].Code)
+		}
+	})
+}
+
+func TestCollection_BulkWrite_writeErrors_Update(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	doc1 := NewUpdateOneModel().SetFilter(bson.D{{"_id", "foo"}}).SetUpdate(bson.D{{"$set", bson.D{{"_id", 3.14159}}}})
+	doc2 := NewUpdateOneModel().SetFilter(bson.D{{"_id", "foo"}}).SetUpdate(bson.D{{"$set", bson.D{{"x", "fa"}}}})
+	models := []WriteModel{doc1, doc1, doc2}
+	want := WriteError{Code: 66}
+
+	t.Run("unordered", func(t *testing.T) {
+		coll := createTestCollection(t, nil, nil)
+		_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"_id", bsonx.String("foo")}})
+		require.NoError(t, err)
+
+		res, err := coll.BulkWrite(context.Background(), models, options.BulkWrite().SetOrdered(false))
+		require.Equal(t, res.ModifiedCount, int64(1))
+
+		got, ok := err.(BulkWriteException)
+		if !ok {
+			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+			t.FailNow()
+		}
+		if len(got.WriteErrors) != 2 {
+			t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 2)
+			t.FailNow()
+		}
+		if got.WriteErrors[0].Code != want.Code {
+			t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+		}
+	})
+
+	t.Run("ordered", func(t *testing.T) {
+		coll := createTestCollection(t, nil, nil)
+		_, err := coll.InsertOne(context.Background(), bsonx.Doc{{"_id", bsonx.String("foo")}})
+		require.NoError(t, err)
+
+		res, err := coll.BulkWrite(context.Background(), models, options.BulkWrite())
+		require.Equal(t, res.ModifiedCount, int64(0))
+
+		got, ok := err.(BulkWriteException)
+		if !ok {
+			t.Errorf("Did not receive correct type of error. got %T; want %T", err, WriteErrors{})
+			t.FailNow()
+		}
+		if len(got.WriteErrors) != 1 {
+			t.Errorf("Incorrect number of errors receieved. got %d; want %d", len(got.WriteErrors), 1)
+			t.FailNow()
+		}
+		if got.WriteErrors[0].Code != want.Code {
+			t.Errorf("Did not receive the correct error code. got %d; want %d", got.WriteErrors[0].Code, want.Code)
+		}
+	})
+}
+
 func TestCollection_InsertOne(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
