@@ -288,12 +288,12 @@ func (vr *valueReader) nextElementLength() (int32, error) {
 			err = io.EOF
 			break
 		}
-		pattern := bytes.IndexByte(vr.d[regex+1:], 0x00)
+		pattern := bytes.IndexByte(vr.d[vr.offset+int64(regex)+1:], 0x00)
 		if pattern < 0 {
 			err = io.EOF
 			break
 		}
-		length = int32(int64(regex) + 1 + int64(pattern) + 1 - vr.offset)
+		length = int32(int64(regex) + 1 + int64(pattern) + 1)
 	default:
 		return 0, fmt.Errorf("attempted to read bytes of unknown BSON type %v", vr.stack[vr.frame].vType)
 	}
