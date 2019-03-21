@@ -36,13 +36,24 @@ var processUnique = processUniqueBytes()
 
 // NewObjectID generates a new ObjectID.
 func NewObjectID() ObjectID {
+	return NewObjectIDFromTime(time.Now())
+}
+
+// NewObjectIDFromTime generates a new ObjectID based on the given time.
+func NewObjectIDFromTime(generationTime time.Time) ObjectID {
 	var b [12]byte
 
-	binary.BigEndian.PutUint32(b[0:4], uint32(time.Now().Unix()))
+	binary.BigEndian.PutUint32(b[0:4], uint32(generationTime.Unix()))
 	copy(b[4:9], processUnique[:])
 	putUint24(b[9:12], atomic.AddUint32(&objectIDCounter, 1))
 
 	return b
+}
+
+// GenerationTime extracts the time part of the ObjectId.
+func (id ObjectID) GenerationTime() time.Time {
+	unixSecs := binary.BigEndian.Uint32(id[0:4])
+	return time.Unix(int64(unixSecs), 0).UTC()
 }
 
 // Hex returns the hex encoding of the ObjectID as a string.
