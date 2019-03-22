@@ -715,7 +715,7 @@ buildvariants:
   run_on:
     - ubuntu1604-build
   expansions:
-    GO_DIST: "/opt/golang/go1.9"
+    GO_DIST: "/opt/golang/go1.11"
   tasks:
     - name: ".static-analysis"
 
