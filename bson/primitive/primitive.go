@@ -45,6 +45,11 @@ func (d DateTime) GetTime() time.Time {
 	return time.Unix(int64(d)/1000, int64(d)%1000*1000000)
 }
 
+// NewDateTimeFromTime creates a new DateTime from a Time.
+func NewDateTimeFromTime(t time.Time) DateTime {
+	return DateTime(t.UnixNano() / 1000000)
+}
+
 // Null repreesnts the BSON null value.
 type Null struct{}
 
