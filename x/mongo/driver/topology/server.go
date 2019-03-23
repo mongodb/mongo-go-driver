@@ -516,7 +516,7 @@ func (s *Server) String() string {
 		str += fmt.Sprintf(", Tag sets: %s", desc.Tags)
 	}
 	if connState == connected {
-		str += fmt.Sprintf(", Avergage RTT: %d", desc.AverageRTT)
+		str += fmt.Sprintf(", Average RTT: %d", desc.AverageRTT)
 	}
 	if desc.LastError != nil {
 		str += fmt.Sprintf(", Last error: %s", desc.LastError)
