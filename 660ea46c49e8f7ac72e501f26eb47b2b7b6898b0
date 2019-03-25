@@ -256,6 +256,30 @@
     },
     {
       "key": {
+        "uuid": "2f0917c4_2d4ca6fd",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T22:11:35Z",
+      "side": 1,
+      "message": "Resolving this thread, as it\u0027s been added as an open question to be decided during implementation phase.",
+      "parentUuid": "fdf44b6c_b2114dde",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "58fc5290_cbb53ccb",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -403,6 +427,30 @@
     },
     {
       "key": {
+        "uuid": "73144e7c_e2d544b4",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T22:11:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "caa56eea_aa856162",
+      "range": {
+        "startLine": 34,
+        "startChar": 81,
+        "endLine": 34,
+        "endChar": 87
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "795b6d68_8250c204",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -447,6 +495,30 @@
       "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "37c43572_ec68a8d4",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T22:11:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3724bb5a_afaf2c05",
+      "range": {
+        "startLine": 38,
+        "startChar": 11,
+        "endLine": 38,
+        "endChar": 19
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
