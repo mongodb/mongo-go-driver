@@ -36,6 +36,24 @@
     },
     {
       "key": {
+        "uuid": "4b572cd7_d4fa19b7",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:31:01Z",
+      "side": 1,
+      "message": "According to the SDAM specification a Deployment is \"[o]ne or more servers: either a standalone, a replica set, or one or more mongoses.\" while a Topology is \"[t]he state of the deployment: its type (standalone, replica set, or sharded), which servers are up, what type of servers they are, which is primary, and so on.\"\n\nI feel like a description.Topology is what aligns with the Topology definition, while Deployment here aligns with what the SDAM specification defines for that.",
+      "parentUuid": "6df476dc_557cf626",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8df00ece_e8d746de",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -59,6 +77,30 @@
     },
     {
       "key": {
+        "uuid": "a8a63c3a_aa85049b",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:31:01Z",
+      "side": 1,
+      "message": "Since we won\u0027t select a server outside of Execute, I\u0027m not sure how useful this method would be in practice. For sessions, we\u0027ll have to use the description.Topology to determine if we can pass sessions in.",
+      "parentUuid": "8df00ece_e8d746de",
+      "range": {
+        "startLine": 19,
+        "startChar": 0,
+        "endLine": 19,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "31967998_0406928b",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -70,6 +112,30 @@
       "writtenOn": "2019-03-25T12:26:38Z",
       "side": 1,
       "message": "I think there should be some abstraction for the wire protocol itself.  If we think of MongoDB as fundamentally a request-response system that sends commands as BSON documents and receives responses as BSON documents, then it behooves us to model that abstraction in the driver, and not require every command to consider all the variances of wire protocol messages based on server version, compression, etc, and instead push all that down into the Connection implementation.\n\nIf we do that, then Connection could become something more like:\n\n     ExecuteCommand(context.Context, bson.Raw) bson.Raw, error  \n\nAnd we just have to handle the exceptions to that fundamental property, which at this point is just the three pre 3.2 wire query-related wire protocol messages.",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "312dcefd_e39350af",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:31:01Z",
+      "side": 1,
+      "message": "I\u0027d like to avoid this for a few reasons:\n\n- This abstraction requires the topology package to understand wire messages, which complicates a complex package.\n- It requires extra passes, for example iterating the command for the read preference and write concern to set flags or format the wire message differently.\n- We\u0027ll have to modify the bsoncore.Document that we receive in the case of of $db and $readPreference to remove them for OP_QUERY.\n- In the case of 2.6 and 3.0 servers, rewriting the entire command to fit within OP_QUERY and OP_GET_MORE indicates this might not be the right abstraction.\n\nWhile I see the appeal of adding a layer of abstraction between commands and wire messages, it winds up being a leaky abstraction.\n\nI\u0027m not sure what this abstraction gives us either. If we\u0027re worried about people having to handle wire messages directly, a few utility functions within the driver package should make pulling a command out of a wire message straightforward.",
+      "parentUuid": "31967998_0406928b",
       "range": {
         "startLine": 24,
         "startChar": 0,
@@ -110,6 +176,48 @@
       "writtenOn": "2019-03-25T12:26:38Z",
       "side": 1,
       "message": "Will Close() return the connection to the pool, or actually close the socket?",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "171795be_ebde2d36",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:31:01Z",
+      "side": 1,
+      "message": "Assuming we only support exhaust cursors in OP_MSG, then we can track this information in the connection directly by reading the moreToCome bit. If a Connection is closed while the moreToCome bit is set then we throw away the Connection instead of putting it back in the pool.",
+      "parentUuid": "58fc5290_cbb53ccb",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "78ad4739_d3cd5c91",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:31:01Z",
+      "side": 1,
+      "message": "That\u0027s an implementation specific detail and not covered here. In the topology.Connection implementation it will return it to the pool.",
+      "parentUuid": "b5f8065b_17bb177b",
       "range": {
         "startLine": 27,
         "startChar": 0,
@@ -168,6 +276,30 @@
     },
     {
       "key": {
+        "uuid": "3724bb5a_afaf2c05",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:31:01Z",
+      "side": 1,
+      "message": "I\u0027ll add this to the updated design document. Also, there are three interfaces here: Selector, Executor, and RetryableExecutor.",
+      "parentUuid": "795b6d68_8250c204",
+      "range": {
+        "startLine": 38,
+        "startChar": 11,
+        "endLine": 38,
+        "endChar": 19
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "70fc27ad_b71d775e",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -179,6 +311,30 @@
       "writtenOn": "2019-03-25T12:26:38Z",
       "side": 1,
       "message": "We may have to consider Session as something that is handled specially.  The reason is because unlike the rest of these types it represents a server resource, somewhat like a cursor, and for this reason an operation has to be able to indicate when it\u0027s done with the session.  Normally that\u0027s just when the operation completes, but in the case of operations that return cursors the session should not be returned to the session pool until the cursor is closed.\n\nThis can be handled similarly to Connection, where a Close method indicates that the operation is done with the Session.  A reference count may turn out to be more elegant, as it handles both implicit and explicit sessions similarly, where the latter just starts with a reference count of 1 indicating that the application holds a reference to it.",
+      "range": {
+        "startLine": 136,
+        "startChar": 1,
+        "endLine": 136,
+        "endChar": 2
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "89ec8280_6d490517",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:31:01Z",
+      "side": 1,
+      "message": "This package doesn\u0027t handle session pools, that\u0027s the consumer\u0027s responsibility. This package will error if an explicit session is passed in and the connection we get doesn\u0027t support sessions. If it\u0027s implicit we\u0027ll just ignore it. Other than that, the caller needs to handle the life cycle of the session. It makes sense for driver.BatchCursor to not close a session and leave that up to the mongo.Cursor implementation (if it even needs to close the session).\n\nI\u0027ll add information about this to the design.",
+      "parentUuid": "70fc27ad_b71d775e",
       "range": {
         "startLine": 136,
         "startChar": 1,
