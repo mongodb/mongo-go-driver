@@ -1,0 +1,176 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6df476dc_557cf626",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T12:26:38Z",
+      "side": 1,
+      "message": "Terminology question: SDAM uses Topology.  Java and .NET (which came before SDAM) settled on Cluster.  Is Deployment representing a different concept, and if not, can we use a word that other drivers use?",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8df00ece_e8d746de",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T12:26:38Z",
+      "side": 1,
+      "message": "Consider adding\n\n      Description() description.Server\n\nThe Java driver needs this method for a few use cases  in contexts where the driver doesn\u0027t need to get a Connection. (e.g. determining whether to use sessions or not)",
+      "range": {
+        "startLine": 19,
+        "startChar": 0,
+        "endLine": 19,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "31967998_0406928b",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T12:26:38Z",
+      "side": 1,
+      "message": "I think there should be some abstraction for the wire protocol itself.  If we think of MongoDB as fundamentally a request-response system that sends commands as BSON documents and receives responses as BSON documents, then it behooves us to model that abstraction in the driver, and not require every command to consider all the variances of wire protocol messages based on server version, compression, etc, and instead push all that down into the Connection implementation.\n\nIf we do that, then Connection could become something more like:\n\n     ExecuteCommand(context.Context, bson.Raw) bson.Raw, error  \n\nAnd we just have to handle the exceptions to that fundamental property, which at this point is just the three pre 3.2 wire query-related wire protocol messages.",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "58fc5290_cbb53ccb",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T12:26:38Z",
+      "side": 1,
+      "message": "Assuming Close() returns the connection to the pool, consider adding a Disconnect (or Invalidate) method as well.  This will be necessary to support exhaust cursors that are not fully iterated by the application.  In that situation there will be an unknown number of responses waiting to be read, which makes the Connection unusable by future operations.  In that case it\u0027s probably best just to disconnect the socket, which requires the cursor to have a way to tell the Connection to do that rather than just put itself back in the pool.",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b5f8065b_17bb177b",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T12:26:38Z",
+      "side": 1,
+      "message": "Will Close() return the connection to the pool, or actually close the socket?",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "caa56eea_aa856162",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T12:26:38Z",
+      "side": 1,
+      "message": "Nit: \"writes it to a `Connection`\"",
+      "range": {
+        "startLine": 34,
+        "startChar": 81,
+        "endLine": 34,
+        "endChar": 87
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "795b6d68_8250c204",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T12:26:38Z",
+      "side": 1,
+      "message": "Can you define these two interfaces in the design document?  It would make the example easier to understand.",
+      "range": {
+        "startLine": 38,
+        "startChar": 11,
+        "endLine": 38,
+        "endChar": 19
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "70fc27ad_b71d775e",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T12:26:38Z",
+      "side": 1,
+      "message": "We may have to consider Session as something that is handled specially.  The reason is because unlike the rest of these types it represents a server resource, somewhat like a cursor, and for this reason an operation has to be able to indicate when it\u0027s done with the session.  Normally that\u0027s just when the operation completes, but in the case of operations that return cursors the session should not be returned to the session pool until the cursor is closed.\n\nThis can be handled similarly to Connection, where a Close method indicates that the operation is done with the Session.  A reference count may turn out to be more elegant, as it handles both implicit and explicit sessions similarly, where the latter just starts with a reference count of 1 indicating that the application holds a reference to it.",
+      "range": {
+        "startLine": 136,
+        "startChar": 1,
+        "endLine": 136,
+        "endChar": 2
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
