@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "f047b126_fd007dcd",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-03-25T13:45:37Z",
+      "side": 1,
+      "message": "Deployment is the thing that BIC will implement to ensure it selects from the same couple of connections it needs?",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6df476dc_557cf626",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -168,6 +185,40 @@
         "endLine": 136,
         "endChar": 2
       },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "71da56e7_111b0a62",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-03-25T13:45:37Z",
+      "side": 1,
+      "message": "So all commands need access to this clock? Is there not an abstraction that can be added to keep commands ignorant of this requirement? I assume this is related to sessions, so at the very least, it seems they could be combined somehow.",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fc77329b_61645c89",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-03-25T13:45:37Z",
+      "side": 1,
+      "message": "This is called ClusterClock below in the FindOperation. Are these different or just a typo?",
       "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
