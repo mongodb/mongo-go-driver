@@ -72,6 +72,24 @@
     },
     {
       "key": {
+        "uuid": "2d907aa1_885f132b",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T15:44:35Z",
+      "side": 1,
+      "message": "Yeah, that makes total sense now.",
+      "parentUuid": "4b572cd7_d4fa19b7",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "8df00ece_e8d746de",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -119,6 +137,30 @@
     },
     {
       "key": {
+        "uuid": "54f98ada_4372c53a",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T15:44:35Z",
+      "side": 1,
+      "message": "OK, let\u0027s see if we can get by without it and can always add it later if we find we need it during implementation.",
+      "parentUuid": "a8a63c3a_aa85049b",
+      "range": {
+        "startLine": 19,
+        "startChar": 0,
+        "endLine": 19,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "31967998_0406928b",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -154,6 +196,30 @@
       "side": 1,
       "message": "I\u0027d like to avoid this for a few reasons:\n\n- This abstraction requires the topology package to understand wire messages, which complicates a complex package.\n- It requires extra passes, for example iterating the command for the read preference and write concern to set flags or format the wire message differently.\n- We\u0027ll have to modify the bsoncore.Document that we receive in the case of of $db and $readPreference to remove them for OP_QUERY.\n- In the case of 2.6 and 3.0 servers, rewriting the entire command to fit within OP_QUERY and OP_GET_MORE indicates this might not be the right abstraction.\n\nWhile I see the appeal of adding a layer of abstraction between commands and wire messages, it winds up being a leaky abstraction.\n\nI\u0027m not sure what this abstraction gives us either. If we\u0027re worried about people having to handle wire messages directly, a few utility functions within the driver package should make pulling a command out of a wire message straightforward.",
       "parentUuid": "31967998_0406928b",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "53c238a2_04509755",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T15:44:35Z",
+      "side": 1,
+      "message": "* The complexity has to go somewhere.  I just ask that it be centralized, whether that\u0027s in Connection or in some internal layer in the drivers package.  Every operation implementation shouldn\u0027t have to contain the same conditionals around wire version, compression, etc.  FindOperation will need it because of the fundamental move from specific wire protocol message to command, but the rest of them would ideally be wire-protocol agnostic. \n* I\u0027m not sure what you mean, but I know it can be handled efficiently\n* We can treat those fields as part of the wire protocol and add them at the point the wire message is created\n* This is the ugly part, but long term it goes away as we drop support for older server versions.  There are a number of ways to handle it in the meantime so that it doesn\u0027t infect the whole driver.",
+      "parentUuid": "312dcefd_e39350af",
       "range": {
         "startLine": 24,
         "startChar": 0,
@@ -245,6 +311,48 @@
       "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "828ccc42_16f4d525",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T15:44:35Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "78ad4739_d3cd5c91",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 1
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "2fb600f0_f76b580f",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T15:44:35Z",
+      "side": 1,
+      "message": "Nice, I think that will work!",
+      "parentUuid": "171795be_ebde2d36",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -353,6 +461,30 @@
       "side": 1,
       "message": "This package doesn\u0027t handle session pools, that\u0027s the consumer\u0027s responsibility. This package will error if an explicit session is passed in and the connection we get doesn\u0027t support sessions. If it\u0027s implicit we\u0027ll just ignore it. Other than that, the caller needs to handle the life cycle of the session. It makes sense for driver.BatchCursor to not close a session and leave that up to the mongo.Cursor implementation (if it even needs to close the session).\n\nI\u0027ll add information about this to the design.",
       "parentUuid": "70fc27ad_b71d775e",
+      "range": {
+        "startLine": 136,
+        "startChar": 1,
+        "endLine": 136,
+        "endChar": 2
+      },
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "728a6976_6ca8b192",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-25T15:44:35Z",
+      "side": 1,
+      "message": "About session pools: totally agree that it\u0027s not driver package responsibility\nAbout erroring: agree with that too\n\nI still think some sort of reference counting scheme will simplify the design, but I think I see how that can be done at the mongo layer.",
+      "parentUuid": "89ec8280_6d490517",
       "range": {
         "startLine": 136,
         "startChar": 1,
