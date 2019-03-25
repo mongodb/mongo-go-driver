@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "e2b827d6_e13fa49f",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:39:52Z",
+      "side": 1,
+      "message": "That\u0027s right.",
+      "parentUuid": "f047b126_fd007dcd",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "6df476dc_557cf626",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -364,6 +382,24 @@
     },
     {
       "key": {
+        "uuid": "52740604_092ceb8a",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:39:52Z",
+      "side": 1,
+      "message": "Yes and no, respectively. The types are related but different. We have to update the mongo.Client\u0027s session.ClusterClock directly from the results of the command. Additionally, according to the sessions specification[1], we have to compare the cluster time from the session.Client and from the mongo.Client and use whichever is greater, so we need access to the mongo.Client\u0027s session.ClusterClock. We could create a session.ClusterClocks abstraction that encompasses multiple clocks, provides the greatest cluster time and allows for updating all of the clocks. However, we still need access to the session.Client directly to encode the lsid and set RetryWrites, so this abstraction doesn\u0027t actually remove the need for a field here.\n\n[1] https://github.com/mongodb/specifications/blob/master/source/sessions/driver-sessions.rst#how-to-compute-the-clustertime-to-send-to-a-server",
+      "parentUuid": "71da56e7_111b0a62",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fc77329b_61645c89",
         "filename": "x/mongo/driverx/DESIGN.md",
         "patchSetId": 12
@@ -375,6 +411,24 @@
       "writtenOn": "2019-03-25T13:45:37Z",
       "side": 1,
       "message": "This is called ClusterClock below in the FindOperation. Are these different or just a typo?",
+      "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ff7a358c_ed2d748b",
+        "filename": "x/mongo/driverx/DESIGN.md",
+        "patchSetId": 12
+      },
+      "lineNbr": 172,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-25T14:39:52Z",
+      "side": 1,
+      "message": "They\u0027re the same, the struct tags are different between the two operations.",
+      "parentUuid": "fc77329b_61645c89",
       "revId": "660ea46c49e8f7ac72e501f26eb47b2b7b6898b0",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
