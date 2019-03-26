@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "42126594_4c78f08d",
+        "filename": "x/network/command/command.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-26T17:54:48Z",
+      "side": 1,
+      "message": "Why isn\u0027t this a method on session.Client?",
+      "range": {
+        "startLine": 187,
+        "startChar": 5,
+        "endLine": 187,
+        "endChar": 24
+      },
+      "revId": "714f0a3175d17f13b1704cc7b239d1b26ea81b78",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "adbf102b_a058f5bc",
+        "filename": "x/network/command/count_documents.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 126,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-26T17:54:48Z",
+      "side": 1,
+      "message": "Should we be doing this for both writes and reads, not just reads?",
+      "range": {
+        "startLine": 119,
+        "startChar": 0,
+        "endLine": 126,
+        "endChar": 98
+      },
+      "revId": "714f0a3175d17f13b1704cc7b239d1b26ea81b78",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8783000e_f37a4786",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 234,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-26T17:54:48Z",
+      "side": 1,
+      "message": "This doesn\u0027t need to be an else.",
+      "range": {
+        "startLine": 234,
+        "startChar": 4,
+        "endLine": 234,
+        "endChar": 8
+      },
+      "revId": "714f0a3175d17f13b1704cc7b239d1b26ea81b78",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "18451acd_3f3674c1",
+        "filename": "x/network/command/read.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 274,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-26T17:54:48Z",
+      "side": 1,
+      "message": "Can we make this a method on session.Client? That way we can also avoid the nil checks we are currently doing and just call r.Session.ClearPinnedSelector() or whatever you name it.",
+      "range": {
+        "startLine": 272,
+        "startChar": 2,
+        "endLine": 274,
+        "endChar": 3
+      },
+      "revId": "714f0a3175d17f13b1704cc7b239d1b26ea81b78",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "16402df0_ad4a3649",
+        "filename": "x/network/command/write.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 180,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-26T17:54:48Z",
+      "side": 1,
+      "message": "This doesn\u0027t need to be an else.",
+      "range": {
+        "startLine": 180,
+        "startChar": 4,
+        "endLine": 180,
+        "endChar": 8
+      },
+      "revId": "714f0a3175d17f13b1704cc7b239d1b26ea81b78",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
