@@ -99,12 +99,15 @@ type Server struct {
 	currentSubscriberID uint64
 
 	subscriptionsClosed bool
+
+	topology *Topology
+	topoLock sync.Mutex
 }
 
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(ctx context.Context, addr address.Address, opts ...ServerOption) (*Server, error) {
-	srvr, err := NewServer(addr, opts...)
+func ConnectServer(ctx context.Context, addr address.Address, topo *Topology, opts ...ServerOption) (*Server, error) {
+	srvr, err := NewServer(addr, topo, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +120,7 @@ func ConnectServer(ctx context.Context, addr address.Address, opts ...ServerOpti
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
+func NewServer(addr address.Address, topo *Topology, opts ...ServerOption) (*Server, error) {
 	cfg, err := newServerConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -131,6 +134,8 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 		checkNow: make(chan struct{}, 1),
 
 		subscribers: make(map[uint64]chan description.Server),
+
+		topology: topo,
 	}
 	s.desc.Store(description.Server{Addr: addr})
 
@@ -174,6 +179,10 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	if !atomic.CompareAndSwapInt32(&s.connectionstate, connected, disconnecting) {
 		return ErrServerClosed
 	}
+
+	s.topoLock.Lock()
+	s.topology = nil
+	s.topoLock.Unlock()
 
 	// For every call to Connect there must be at least 1 goroutine that is
 	// waiting on the done channel.
@@ -372,6 +381,13 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 		_ = recover()
 	}()
 	s.desc.Store(desc)
+
+	s.topoLock.Lock()
+	topo := s.topology
+	s.topoLock.Unlock()
+	if topo != nil {
+		topo.apply(context.TODO(), desc)
+	}
 
 	s.subLock.Lock()
 	for _, c := range s.subscribers {
