@@ -74,7 +74,7 @@ func TestServer(t *testing.T) {
 
 	for _, tt := range serverTestTable {
 		t.Run(tt.name, func(t *testing.T) {
-			s, err := NewServer(address.Address("localhost"))
+			s, err := NewServer(address.Address("localhost"), nil)
 			require.NoError(t, err)
 
 			var desc *description.Server
@@ -103,7 +103,7 @@ func TestServer(t *testing.T) {
 		})
 	}
 	t.Run("WriteConcernError", func(t *testing.T) {
-		s, err := NewServer(address.Address("localhost"))
+		s, err := NewServer(address.Address("localhost"), nil)
 		require.NoError(t, err)
 
 		var desc *description.Server
@@ -127,7 +127,7 @@ func TestServer(t *testing.T) {
 		require.Equal(t, drained, true)
 	})
 	t.Run("no WriteConcernError", func(t *testing.T) {
-		s, err := NewServer(address.Address("localhost"))
+		s, err := NewServer(address.Address("localhost"), nil)
 		require.NoError(t, err)
 
 		var desc *description.Server
@@ -147,5 +147,13 @@ func TestServer(t *testing.T) {
 		// pool should not be drained
 		drained := s.pool.(*pool).drainCalled.Load().(bool)
 		require.Equal(t, drained, false)
+	})
+	t.Run("update topology", func(t *testing.T) {
+		var updated bool
+		s, err := NewServer(address.Address("localhost"), func(description.Server) { updated = true })
+		require.NoError(t, err)
+		s.updateDescription(description.Server{Addr: s.address}, false)
+		require.True(t, updated)
+
 	})
 }
