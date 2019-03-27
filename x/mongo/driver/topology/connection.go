@@ -36,14 +36,18 @@ func (sc *sconn) ReadWireMessage(ctx context.Context) (wiremessage.WireMessage, 
 		sc.processErr(err)
 	} else {
 		e := command.DecodeError(wm)
-		sc.processErr(e)
+		if e != nil {
+			sc.processErr(e)
+		}
 	}
 	return wm, err
 }
 
 func (sc *sconn) WriteWireMessage(ctx context.Context, wm wiremessage.WireMessage) error {
 	err := sc.Connection.WriteWireMessage(ctx, wm)
-	sc.processErr(err)
+	if err != nil {
+		sc.processErr(err)
+	}
 	return err
 }
 
@@ -60,7 +64,7 @@ func (sc *sconn) processErr(err error) {
 		return
 	}
 
-	ne, ok := err.(connection.NetworkError)
+	ne, ok := err.(connection.Error)
 	if !ok {
 		return
 	}
