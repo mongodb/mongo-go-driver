@@ -147,10 +147,6 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		if len(test.SkipReason) > 0 {
 			t.Skip(test.SkipReason)
 		}
-		if test.Description == "unpin after transient error within a transaction and commit" ||
-			test.Description == "commitTransaction retry fails on new mongos" {
-			t.Skip("Depends on GODRIVER-898")
-		}
 
 		// kill sessions from previously failed tests
 		killSessions(t, dbAdmin.client)

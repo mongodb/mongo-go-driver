@@ -63,9 +63,7 @@ type Topology struct {
 
 	done chan struct{}
 
-	fsm       *fsm
-	changes   chan description.Server
-	changeswg sync.WaitGroup
+	fsm *fsm
 
 	SessionPool *session.Pool
 
@@ -84,8 +82,6 @@ type Topology struct {
 	serversLock   sync.Mutex
 	serversClosed bool
 	servers       map[address.Address]*Server
-
-	wg sync.WaitGroup
 }
 
 // New creates a new topology.
@@ -99,7 +95,6 @@ func New(opts ...Option) (*Topology, error) {
 		cfg:         cfg,
 		done:        make(chan struct{}),
 		fsm:         newFSM(),
-		changes:     make(chan description.Server),
 		subscribers: make(map[uint64]chan description.Topology),
 		servers:     make(map[address.Address]*Server),
 	}
@@ -134,9 +129,6 @@ func (t *Topology) Connect(ctx context.Context) error {
 	}
 	t.serversLock.Unlock()
 
-	go t.update()
-	t.changeswg.Add(1)
-
 	t.subscriptionsClosed = false // explicitly set in case topology was disconnected and then reconnected
 
 	atomic.StoreInt32(&t.connectionstate, connected)
@@ -154,16 +146,25 @@ func (t *Topology) Disconnect(ctx context.Context) error {
 		return ErrTopologyClosed
 	}
 
+	servers := make(map[address.Address]*Server)
 	t.serversLock.Lock()
 	t.serversClosed = true
 	for addr, server := range t.servers {
-		t.removeServer(ctx, addr, server)
+		servers[addr] = server
 	}
 	t.serversLock.Unlock()
 
-	t.wg.Wait()
-	t.done <- struct{}{}
-	t.changeswg.Wait()
+	for _, server := range servers {
+		_ = server.Disconnect(ctx)
+	}
+
+	t.subLock.Lock()
+	for id, ch := range t.subscribers {
+		close(ch)
+		delete(t.subscribers, id)
+	}
+	t.subscriptionsClosed = true
+	t.subLock.Unlock()
 
 	t.desc.Store(description.Topology{})
 
@@ -328,74 +329,53 @@ func (t *Topology) selectServer(ctx context.Context, subscriptionCh <-chan descr
 	}
 }
 
-func (t *Topology) update() {
-	defer t.changeswg.Done()
-	defer func() {
-		//  ¯\_(ツ)_/¯
-		if r := recover(); r != nil {
-			<-t.done
-		}
-	}()
-
-	for {
-		select {
-		case change := <-t.changes:
-			current, err := t.apply(context.TODO(), change)
-			if err != nil {
-				continue
-			}
-
-			t.desc.Store(current)
-			t.subLock.Lock()
-			for _, ch := range t.subscribers {
-				// We drain the description if there's one in the channel
-				select {
-				case <-ch:
-				default:
-				}
-				ch <- current
-			}
-			t.subLock.Unlock()
-		case <-t.done:
-			t.subLock.Lock()
-			for id, ch := range t.subscribers {
-				close(ch)
-				delete(t.subscribers, id)
-			}
-			t.subscriptionsClosed = true
-			t.subLock.Unlock()
-			return
-		}
-	}
-}
-
-func (t *Topology) apply(ctx context.Context, desc description.Server) (description.Topology, error) {
+func (t *Topology) apply(ctx context.Context, desc description.Server) {
 	var err error
+
+	t.serversLock.Lock()
+	defer t.serversLock.Unlock()
+
+	if _, ok := t.servers[desc.Addr]; t.serversClosed || !ok {
+		return
+	}
+
 	prev := t.fsm.Topology
 
 	current, err := t.fsm.apply(desc)
 	if err != nil {
-		return description.Topology{}, err
+		return
 	}
 
 	diff := description.DiffTopology(prev, current)
-	t.serversLock.Lock()
-	if t.serversClosed {
-		t.serversLock.Unlock()
-		return description.Topology{}, nil
-	}
 
 	for _, removed := range diff.Removed {
 		if s, ok := t.servers[removed.Addr]; ok {
-			t.removeServer(ctx, removed.Addr, s)
+			go func() {
+				cancelCtx, cancel := context.WithCancel(ctx)
+				cancel()
+				_ = s.Disconnect(cancelCtx)
+			}()
+			delete(t.servers, removed.Addr)
 		}
 	}
 
 	for _, added := range diff.Added {
 		_ = t.addServer(ctx, added.Addr)
 	}
-	t.serversLock.Unlock()
-	return current, nil
+
+	t.desc.Store(current)
+
+	t.subLock.Lock()
+	for _, ch := range t.subscribers {
+		// We drain the description if there's one in the channel
+		select {
+		case <-ch:
+		default:
+		}
+		ch <- current
+	}
+	t.subLock.Unlock()
+
 }
 
 func (t *Topology) addServer(ctx context.Context, addr address.Address) error {
@@ -403,33 +383,17 @@ func (t *Topology) addServer(ctx context.Context, addr address.Address) error {
 		return nil
 	}
 
-	svr, err := ConnectServer(ctx, addr, t.cfg.serverOpts...)
+	topoFunc := func(desc description.Server) {
+		t.apply(context.TODO(), desc)
+	}
+	svr, err := ConnectServer(ctx, addr, topoFunc, t.cfg.serverOpts...)
 	if err != nil {
 		return err
 	}
 
 	t.servers[addr] = svr
-	var sub *ServerSubscription
-	sub, err = svr.Subscribe()
-	if err != nil {
-		return err
-	}
-
-	t.wg.Add(1)
-	go func() {
-		for c := range sub.C {
-			t.changes <- c
-		}
-
-		t.wg.Done()
-	}()
 
 	return nil
-}
-
-func (t *Topology) removeServer(ctx context.Context, addr address.Address, server *Server) {
-	_ = server.Disconnect(ctx)
-	delete(t.servers, addr)
 }
 
 // String implements the Stringer interface

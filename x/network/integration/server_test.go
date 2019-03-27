@@ -31,7 +31,7 @@ func TestTopologyServer(t *testing.T) {
 	}
 
 	t.Run("After close, should not return new connection", func(t *testing.T) {
-		s, err := topology.ConnectServer(context.Background(), address.Address(*host), serveropts(t)...)
+		s, err := topology.ConnectServer(context.Background(), address.Address(*host), nil, serveropts(t)...)
 		noerr(t, err)
 		err = s.Disconnect(context.TODO())
 		noerr(t, err)
@@ -43,7 +43,7 @@ func TestTopologyServer(t *testing.T) {
 	t.Run("Shouldn't be able to get more than max connections", func(t *testing.T) {
 		t.Parallel()
 
-		s, err := topology.ConnectServer(context.Background(), address.Address(*host),
+		s, err := topology.ConnectServer(context.Background(), address.Address(*host), nil,
 			serveropts(
 				t,
 				topology.WithMaxConnections(func(uint16) uint16 { return 2 }),
@@ -83,7 +83,7 @@ func TestTopologyServer(t *testing.T) {
 		t.Run("Write network timeout", func(t *testing.T) {})
 	})
 	t.Run("Close should close all subscription channels", func(t *testing.T) {
-		s, err := topology.ConnectServer(context.Background(), address.Address(*host), serveropts(t)...)
+		s, err := topology.ConnectServer(context.Background(), address.Address(*host), nil, serveropts(t)...)
 		noerr(t, err)
 
 		var done1, done2 = make(chan struct{}), make(chan struct{})
@@ -124,7 +124,7 @@ func TestTopologyServer(t *testing.T) {
 		}
 	})
 	t.Run("Subscribe after Close should return an error", func(t *testing.T) {
-		s, err := topology.ConnectServer(context.Background(), address.Address(*host), serveropts(t)...)
+		s, err := topology.ConnectServer(context.Background(), address.Address(*host), nil, serveropts(t)...)
 		noerr(t, err)
 
 		sub, err := s.Subscribe()
@@ -142,7 +142,7 @@ func TestTopologyServer(t *testing.T) {
 	})
 	t.Run("Disconnect", func(t *testing.T) {
 		t.Run("cannot disconnect before connecting", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
 			noerr(t, err)
 
 			got := s.Disconnect(context.TODO())
@@ -151,7 +151,7 @@ func TestTopologyServer(t *testing.T) {
 			}
 		})
 		t.Run("cannot disconnect twice", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
 			noerr(t, err)
 			err = s.Connect(context.TODO())
 			noerr(t, err)
@@ -168,7 +168,7 @@ func TestTopologyServer(t *testing.T) {
 		t.Run("all open sockets should be closed after disconnect", func(t *testing.T) {
 			d := newdialer(&net.Dialer{})
 			s, err := topology.NewServer(
-				address.Address(*host),
+				address.Address(*host), nil,
 				serveropts(
 					t,
 					topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
@@ -203,7 +203,7 @@ func TestTopologyServer(t *testing.T) {
 	})
 	t.Run("Connect", func(t *testing.T) {
 		t.Run("can reconnect a disconnected server", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
 			noerr(t, err)
 			err = s.Connect(context.TODO())
 			noerr(t, err)
@@ -214,7 +214,7 @@ func TestTopologyServer(t *testing.T) {
 			noerr(t, err)
 		})
 		t.Run("cannot connect multiple times without disconnect", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
 			noerr(t, err)
 			err = s.Connect(context.TODO())
 			noerr(t, err)
@@ -229,7 +229,7 @@ func TestTopologyServer(t *testing.T) {
 			}
 		})
 		t.Run("can disconnect and reconnect multiple times", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
 			noerr(t, err)
 			err = s.Connect(context.TODO())
 			noerr(t, err)
