@@ -230,7 +230,9 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		))
 	}
 	// Handshaker
-	var handshaker connection.Handshaker = &command.Handshake{Client: command.ClientDoc(appName), Compressors: comps}
+	var handshaker = func(connection.Handshaker) connection.Handshaker {
+		return &command.Handshake{Client: command.ClientDoc(appName), Compressors: comps}
+	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
 		cred := &auth.Cred{
@@ -272,11 +274,11 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			}
 		}
 
-		handshaker = auth.Handshaker(nil, handshakeOpts)
+		handshaker = func(connection.Handshaker) connection.Handshaker {
+			return auth.Handshaker(nil, handshakeOpts)
+		}
 	}
-	connOpts = append(connOpts, connection.WithHandshaker(
-		func(connection.Handshaker) connection.Handshaker { return handshaker },
-	))
+	connOpts = append(connOpts, connection.WithHandshaker(handshaker))
 	// ConnectTimeout
 	if opts.ConnectTimeout != nil {
 		serverOpts = append(serverOpts, topology.WithHeartbeatTimeout(
