@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d7ac0c0e_2be3a01a",
+        "filename": "Makefile",
+        "patchSetId": 1
+      },
+      "lineNbr": 106,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-27T17:45:54Z",
+      "side": 0,
+      "message": "This was renamed in 1.12 to \"structtag\", but also we should be running this so I just remove it.",
+      "range": {
+        "startLine": 106,
+        "startChar": 41,
+        "endLine": 106,
+        "endChar": 58
+      },
+      "revId": "51421e413403fe3c9b0097147841f752421133e4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
