@@ -21,6 +21,7 @@ func main() {
 	s, err := topology.ConnectServer(
 		context.Background(),
 		address.Address("localhost:27017"),
+		nil,
 		topology.WithHeartbeatInterval(func(time.Duration) time.Duration { return 2 * time.Second }),
 		topology.WithConnectionOptions(
 			func(opts ...connection.Option) []connection.Option {

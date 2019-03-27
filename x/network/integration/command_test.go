@@ -31,7 +31,7 @@ func TestCommand(t *testing.T) {
 	}
 	t.Parallel()
 
-	server, err := topology.ConnectServer(context.Background(), address.Address(*host), serveropts(t)...)
+	server, err := topology.ConnectServer(context.Background(), address.Address(*host), nil, serveropts(t)...)
 	noerr(t, err)
 
 	ctx := context.Background()

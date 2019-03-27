@@ -99,12 +99,14 @@ type Server struct {
 	currentSubscriberID uint64
 
 	subscriptionsClosed bool
+
+	updateTopologyCallback atomic.Value
 }
 
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(ctx context.Context, addr address.Address, opts ...ServerOption) (*Server, error) {
-	srvr, err := NewServer(addr, opts...)
+func ConnectServer(ctx context.Context, addr address.Address, topo func(description.Server), opts ...ServerOption) (*Server, error) {
+	srvr, err := NewServer(addr, topo, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +119,7 @@ func ConnectServer(ctx context.Context, addr address.Address, opts ...ServerOpti
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
+func NewServer(addr address.Address, topo func(description.Server), opts ...ServerOption) (*Server, error) {
 	cfg, err := newServerConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -133,6 +135,7 @@ func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 		subscribers: make(map[uint64]chan description.Server),
 	}
 	s.desc.Store(description.Server{Addr: addr})
+	s.updateTopologyCallback.Store(topo)
 
 	var maxConns uint64
 	if cfg.maxConns == 0 {
@@ -174,6 +177,8 @@ func (s *Server) Disconnect(ctx context.Context) error {
 	if !atomic.CompareAndSwapInt32(&s.connectionstate, connected, disconnecting) {
 		return ErrServerClosed
 	}
+
+	s.updateTopologyCallback.Store((func(description.Server))(nil))
 
 	// For every call to Connect there must be at least 1 goroutine that is
 	// waiting on the done channel.
@@ -372,6 +377,11 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 		_ = recover()
 	}()
 	s.desc.Store(desc)
+
+	topo := s.updateTopologyCallback.Load().(func(description.Server))
+	if topo != nil {
+		topo(desc)
+	}
 
 	s.subLock.Lock()
 	for _, c := range s.subscribers {

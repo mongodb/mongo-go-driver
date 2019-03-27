@@ -142,7 +142,6 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 
 func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTestFile, dbAdmin *Database) {
 	t.Run(test.Description, func(t *testing.T) {
-
 		// kill sessions from previously failed tests
 		killSessions(t, dbAdmin.client)
 
