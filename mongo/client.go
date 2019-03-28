@@ -529,6 +529,9 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 // The client must have read concern majority or no read concern for a change stream to be created successfully.
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	if c.topology.SessionPool == nil {
+		return nil, ErrClientDisconnected
+	}
 
 	return newClientChangeStream(ctx, c, pipeline, opts...)
 }
