@@ -76,11 +76,6 @@ func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, erro
 func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	clientOpt := options.MergeClientOptions(opts...)
 
-	err := clientOpt.Validate()
-	if err != nil {
-		return nil, err
-	}
-
 	id, err := uuid.New()
 	if err != nil {
 		return nil, err
