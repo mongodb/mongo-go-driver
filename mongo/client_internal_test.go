@@ -536,3 +536,12 @@ func TestClient_Disconnect_NilContext(t *testing.T) {
 	err = c.Disconnect(nil)
 	require.NoError(t, err)
 }
+
+func TestClient_Watch_Disconnected(t *testing.T) {
+	cs := testutil.ConnString(t)
+	c, err := NewClient(options.Client().ApplyURI(cs.String()))
+	require.NoError(t, err)
+	change, err := c.Watch(context.Background(), []bson.D{})
+	require.Nil(t, change)
+	require.Equal(t, err, ErrClientDisconnected)
+}
