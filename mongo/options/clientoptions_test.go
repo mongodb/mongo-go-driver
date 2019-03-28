@@ -151,6 +151,18 @@ func TestClientOptions(t *testing.T) {
 				t.Errorf("Merged client options do not match. got %v; want %v", got, want)
 			}
 		})
+
+		// go-cmp dont support error comparisons (https://github.com/google/go-cmp/issues/24)
+		// Use specifique test for this
+		t.Run("MergeClientOptions/err", func(t *testing.T) {
+			opt1, opt2 := Client(), Client()
+			opt1.err = errors.New("Test error")
+
+			got := MergeClientOptions(nil, opt1, opt2)
+			if got.err.Error() != "Test error" {
+				t.Errorf("Merged client options do not match. got %v; want %v", got.err.Error(), opt1.err.Error())
+			}
+		})
 	})
 	t.Run("ApplyURI", func(t *testing.T) {
 		baseClient := func() *ClientOptions {
