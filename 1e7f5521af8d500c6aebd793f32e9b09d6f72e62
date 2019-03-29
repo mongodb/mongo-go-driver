@@ -1,0 +1,61 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f8c6e312_252b77cd",
+        "filename": "x/mongo/driver/session/client_session.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-29T17:56:21Z",
+      "side": 1,
+      "message": "Let\u0027s change the name to PinnedServer to be consistent with its new type.",
+      "revId": "1e7f5521af8d500c6aebd793f32e9b09d6f72e62",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8d00d75b_cbb29bff",
+        "filename": "x/mongo/driver/session/client_session.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 217,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-29T17:56:21Z",
+      "side": 1,
+      "message": "Nit: Why do we need a ClearPinnedSelector when we don\u0027t have a SetPinnedSelector.  Is\n\n   session.PinnedSelector \u003d nil\n\nsufficient?",
+      "range": {
+        "startLine": 217,
+        "startChar": 0,
+        "endLine": 217,
+        "endChar": 4
+      },
+      "revId": "1e7f5521af8d500c6aebd793f32e9b09d6f72e62",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a6f644bd_14584ca0",
+        "filename": "x/network/command/write.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-03-29T17:56:21Z",
+      "side": 1,
+      "message": "I\u0027m sad that count_documents is \"special\", but don\u0027t want to fix that as part of this patch.",
+      "revId": "1e7f5521af8d500c6aebd793f32e9b09d6f72e62",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
