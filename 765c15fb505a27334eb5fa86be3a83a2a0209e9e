@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e04607bd_f61132a0",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 203,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-29T17:01:14Z",
+      "side": 1,
+      "message": "Just a small bit of cleanup: I don\u0027t think we need to have this err check here since replaceErrors will just pass through a nil error.",
+      "range": {
+        "startLine": 198,
+        "startChar": 0,
+        "endLine": 203,
+        "endChar": 20
+      },
+      "revId": "765c15fb505a27334eb5fa86be3a83a2a0209e9e",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
