@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f609899e_ff7599fe",
+        "filename": "x/mongo/driver/topology/connection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-29T16:55:46Z",
+      "side": 1,
+      "message": "Is there a problem with passing a nil error to processErr?",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 41,
+        "endChar": 3
+      },
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2379e3f8_ad4152a4",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 387,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-29T16:55:46Z",
+      "side": 1,
+      "message": "I wonder if we can just use an atomic.Value here like we did with the description.Server.",
+      "range": {
+        "startLine": 385,
+        "startChar": 0,
+        "endLine": 387,
+        "endChar": 20
+      },
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "22f1b01d_025c111a",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-29T16:55:46Z",
+      "side": 1,
+      "message": "This has the potential to keep a server open for an extended period of time because of some long running operation. We might want to pass in a cancelled context here so that it\u0027ll shutdown immediately. Or at least make a context with a deadline so this goroutine doesn\u0027t leak.",
+      "range": {
+        "startLine": 354,
+        "startChar": 21,
+        "endLine": 354,
+        "endChar": 24
+      },
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fcdd38ea_6607981c",
+        "filename": "x/mongo/driver/topology/topology_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 322,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-03-29T16:55:46Z",
+      "side": 1,
+      "message": "Why are we setting nil Servers here?",
+      "range": {
+        "startLine": 321,
+        "startChar": 2,
+        "endLine": 322,
+        "endChar": 27
+      },
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
