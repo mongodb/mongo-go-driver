@@ -25,6 +25,23 @@
     },
     {
       "key": {
+        "uuid": "077e6eea_59039658",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-01T13:58:14Z",
+      "side": 1,
+      "message": "Do we really want to take the entire topology here and couple it? What if we just take a function in which to invoke on update? It also means we don\u0027t need to some internal function on topology that\u0027s called from an external struct. Also, testing should be remarkably easier because all we need to know is if the function was called. I didn\u0027t notice any new tests... perhaps there doesn\u0027t need to be any.",
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2379e3f8_ad4152a4",
         "filename": "x/mongo/driver/topology/server.go",
         "patchSetId": 2
