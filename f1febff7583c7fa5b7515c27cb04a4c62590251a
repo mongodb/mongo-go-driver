@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "80242256_bdfae8a0",
+        "filename": "x/mongo/driver/topology/connection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-01T20:27:32Z",
+      "side": 1,
+      "message": "No, I just did that while debugging to make my print statements easier to read.",
+      "parentUuid": "f609899e_ff7599fe",
+      "range": {
+        "startLine": 39,
+        "startChar": 0,
+        "endLine": 41,
+        "endChar": 3
+      },
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "077e6eea_59039658",
         "filename": "x/mongo/driver/topology/server.go",
         "patchSetId": 2
@@ -39,6 +63,24 @@
       "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8daeed3a_7b1300ea",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-01T20:27:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "077e6eea_59039658",
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -65,6 +107,30 @@
     },
     {
       "key": {
+        "uuid": "51dcd3b6_1f9d8f87",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 387,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-01T20:27:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2379e3f8_ad4152a4",
+      "range": {
+        "startLine": 385,
+        "startChar": 0,
+        "endLine": 387,
+        "endChar": 20
+      },
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "22f1b01d_025c111a",
         "filename": "x/mongo/driver/topology/topology.go",
         "patchSetId": 2
@@ -88,6 +154,30 @@
     },
     {
       "key": {
+        "uuid": "66b36884_38cc95f3",
+        "filename": "x/mongo/driver/topology/topology.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-01T20:27:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "22f1b01d_025c111a",
+      "range": {
+        "startLine": 354,
+        "startChar": 21,
+        "endLine": 354,
+        "endChar": 24
+      },
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fcdd38ea_6607981c",
         "filename": "x/mongo/driver/topology/topology_test.go",
         "patchSetId": 2
@@ -99,6 +189,30 @@
       "writtenOn": "2019-03-29T16:55:46Z",
       "side": 1,
       "message": "Why are we setting nil Servers here?",
+      "range": {
+        "startLine": 321,
+        "startChar": 2,
+        "endLine": 322,
+        "endChar": 27
+      },
+      "revId": "f1febff7583c7fa5b7515c27cb04a4c62590251a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2517f8fa_1bd183f2",
+        "filename": "x/mongo/driver/topology/topology_test.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 322,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-01T20:27:32Z",
+      "side": 1,
+      "message": "I changed topology.apply to not apply a description who\u0027s address isn\u0027t in the server map, so for the descriptions to be applied later their addresses need to be set.",
+      "parentUuid": "fcdd38ea_6607981c",
       "range": {
         "startLine": 321,
         "startChar": 2,
