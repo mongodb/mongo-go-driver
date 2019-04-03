@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a2f6783d_26570537",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-03T20:13:52Z",
+      "side": 1,
+      "message": "I\u0027d probably call this something different (and the parameter). (On)Update or (On)Change seems to describe what this does more than topo. More importantly, it might not be a topology function, but rather some random function we want called when the description changes.",
+      "revId": "64bbd2b6e354469dbd86eb6fdcc328ac6e8945ce",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
