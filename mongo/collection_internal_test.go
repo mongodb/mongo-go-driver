@@ -54,6 +54,16 @@ func skipIfBelow34(t *testing.T, db *Database) {
 	}
 }
 
+func skipIfBelow40(t *testing.T, db *Database) {
+	versionStr, err := getServerVersion(db)
+	if err != nil {
+		t.Fatalf("error getting server version: %s", err)
+	}
+	if compareVersions(t, versionStr, "4.0") < 0 {
+		t.Skip("skipping collation test for server version < 3.4")
+	}
+}
+
 func initCollection(t *testing.T, coll *Collection) {
 	docs := []interface{}{}
 	var i int32
@@ -1634,6 +1644,15 @@ func TestCollection_Distinct_withOption(t *testing.T) {
 		options.Distinct().SetMaxTime(5000000000))
 	require.Nil(t, err)
 	require.Equal(t, results, []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)})
+}
+
+func TestCollection_Find_Options(t *testing.T) {
+	t.Run("Test Snapshot", func(t *testing.T) {
+		coll := createTestCollection(t, nil, nil)
+		c, err := coll.Find(context.Background(), bson.D{}, options.Find().SetSnapshot(true))
+		require.Nil(t, err)
+		_ = c.Close(context.Background())
+	})
 }
 
 func TestCollection_Find_found(t *testing.T) {
