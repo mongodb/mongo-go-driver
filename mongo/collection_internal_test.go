@@ -1636,6 +1636,15 @@ func TestCollection_Distinct_withOption(t *testing.T) {
 	require.Equal(t, results, []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)})
 }
 
+func TestCollection_Find_Options(t *testing.T) {
+	t.Run("Test Snapshot", func(t *testing.T) {
+		coll := createTestCollection(t, nil, nil)
+		c, err := coll.Find(context.Background(), bson.D{}, options.Find().SetSnapshot(true))
+		require.Nil(t, err)
+		_ = c.Close(context.Background())
+	})
+}
+
 func TestCollection_Find_found(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
