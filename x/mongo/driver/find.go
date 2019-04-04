@@ -164,7 +164,8 @@ func Find(
 	if fo.Skip != nil {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"skip", bsonx.Int64(*fo.Skip)})
 	}
-	if fo.Snapshot != nil {
+	// snapshot is deprecated for server versions >= 4.0
+	if fo.Snapshot != nil && desc.WireVersion.Max < 7 {
 		cmd.Opts = append(cmd.Opts, bsonx.Elem{"snapshot", bsonx.Boolean(*fo.Snapshot)})
 	}
 	if fo.Sort != nil {
