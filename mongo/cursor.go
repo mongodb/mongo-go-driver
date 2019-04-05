@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -128,3 +129,43 @@ func (c *Cursor) Err() error { return c.err }
 
 // Close closes this cursor.
 func (c *Cursor) Close(ctx context.Context) error { return c.bc.Close(ctx) }
+
+// All iterates the cursor and decodes each document into results.
+// The results parameter must be a pointer to a slice. The slice pointed to by results will be completely overwritten.
+// If the cursor has been iterated, any previously iterated documents will not be included in results.
+func (c *Cursor) All(ctx context.Context, results interface{}) error {
+	resultsVal := reflect.ValueOf(results)
+	if resultsVal.Kind() != reflect.Ptr {
+		return errors.New("results argument must be a pointer to a slice")
+	}
+
+	sliceVal := resultsVal.Elem()
+	elementType := sliceVal.Type().Elem()
+	index := 0
+
+	for ; c.Next(ctx); index++ {
+		if sliceVal.Len() == index {
+			// Slice is full
+			currElem := reflect.New(elementType)
+			if err := c.Decode(currElem.Interface()); err != nil {
+				return err
+			}
+
+			sliceVal = reflect.Append(sliceVal, currElem.Elem())
+			sliceVal = sliceVal.Slice(0, sliceVal.Cap())
+			continue
+		}
+
+		// Usable element exists at end of slice
+		if err := c.Decode(sliceVal.Index(index).Addr().Interface()); err != nil {
+			return err
+		}
+	}
+
+	if c.err != nil {
+		return c.err
+	}
+
+	resultsVal.Elem().Set(sliceVal.Slice(0, index))
+	return nil
+}
