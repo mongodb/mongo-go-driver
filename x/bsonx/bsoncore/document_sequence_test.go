@@ -103,7 +103,7 @@ func TestDocumentSequence(t *testing.T) {
 					Style: tc.style,
 					Data:  tc.data,
 				}
-				documents, err := ds.documents()
+				documents, err := ds.Documents()
 				if !cmp.Equal(documents, tc.documents) {
 					t.Errorf("Documents do not match. got %v; want %v", documents, tc.documents)
 				}
@@ -252,7 +252,7 @@ func TestDocumentSequence(t *testing.T) {
 					Style: tc.style,
 					Data:  tc.data,
 				}
-				docs, err := ds.documents()
+				docs, err := ds.Documents()
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}
@@ -376,7 +376,7 @@ func TestDocumentSequence(t *testing.T) {
 		t.Run("Documents", func(t *testing.T) {
 			defer capturePanic()
 			var ds *DocumentSequence
-			_, _ = ds.documents()
+			_, _ = ds.Documents()
 		})
 		t.Run("Next", func(t *testing.T) {
 			defer capturePanic()
