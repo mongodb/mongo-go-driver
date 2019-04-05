@@ -27,7 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
@@ -1704,7 +1704,7 @@ func TestCollection_Find_Error(t *testing.T) {
 		require.True(t, c.Next(context.Background()))
 		require.True(t, c.Next(context.Background()))
 
-		_, err = driver.KillCursors(ctx, command.Namespace{
+		_, err = driverlegacy.KillCursors(ctx, command.Namespace{
 			DB:         coll.db.name,
 			Collection: coll.name,
 		}, c.bc.Server(), c.ID())
