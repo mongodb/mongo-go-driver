@@ -17,7 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/command"
 	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/description"
