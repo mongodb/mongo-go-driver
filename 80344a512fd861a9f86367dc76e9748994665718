@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "574041cd_ce76bc30",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-05T19:35:27Z",
+      "side": 1,
+      "message": "This is the only new code.",
+      "revId": "80344a512fd861a9f86367dc76e9748994665718",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
