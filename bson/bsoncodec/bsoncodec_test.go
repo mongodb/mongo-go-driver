@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -42,6 +44,34 @@ func ExampleValueDecoder() {
 		}
 		val.SetString(str)
 		return nil
+	}
+}
+
+func TestTimeTimeRoundTrip(t *testing.T) {
+	type TimeStruct struct {
+		T time.Time
+	}
+	want := TimeStruct{T: time.Now().Truncate(time.Millisecond).UTC()}
+
+	sw := new(bsonrw.SliceWriter)
+	vw, err := bsonrw.NewBSONValueWriter(sw)
+	noerr(t, err)
+
+	reg := buildDefaultRegistry()
+
+	sc, err := NewStructCodec(DefaultStructTagParser)
+	noerr(t, err)
+	err = sc.EncodeValue(EncodeContext{Registry: reg}, vw, reflect.ValueOf(want))
+	noerr(t, err)
+
+	vr := bsonrw.NewBSONDocumentReader(*sw)
+
+	var got TimeStruct
+	err = sc.DecodeValue(DecodeContext{Registry: reg}, vr, reflect.ValueOf(&got).Elem())
+	noerr(t, err)
+
+	if !cmp.Equal(got, want) {
+		t.Errorf("Times are not equal. got %v; want %v", got, want)
 	}
 }
 
