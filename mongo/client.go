@@ -18,11 +18,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/uuid"
 	"go.mongodb.org/mongo-driver/x/network/command"
 	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
@@ -187,7 +187,7 @@ func (c *Client) endSessions(ctx context.Context) {
 		SessionIDs: c.topology.SessionPool.IDSlice(),
 	}
 
-	_, _ = driver.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
+	_, _ = driverlegacy.EndSessions(ctx, cmd, c.topology, description.ReadPrefSelector(readpref.PrimaryPreferred()))
 }
 
 func (c *Client) configure(opts *options.ClientOptions) error {
@@ -446,7 +446,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		description.ReadPrefSelector(readpref.Primary()),
 		description.LatencySelector(c.localThreshold),
 	})
-	res, err := driver.ListDatabases(
+	res, err := driverlegacy.ListDatabases(
 		ctx, cmd,
 		c.topology,
 		readSelector,

@@ -20,9 +20,9 @@ import (
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/uuid"
 	"go.mongodb.org/mongo-driver/x/network/command"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
@@ -80,7 +80,7 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	// find those documents, setting cursor type to TAILABLEAWAIT
 	clientID, err := uuid.New()
 	noerr(t, err)
-	cursor, err := driver.Find(
+	cursor, err := driverlegacy.Find(
 		context.Background(),
 		command.Find{
 			NS:     command.Namespace{DB: dbName, Collection: colName},

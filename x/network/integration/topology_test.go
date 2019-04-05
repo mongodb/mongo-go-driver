@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 	"go.mongodb.org/mongo-driver/x/network/description"

@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 )
 
 var collectionStartingDoc = bsonx.Doc{
@@ -64,7 +64,7 @@ func (er *errorCursor) Close(ctx context.Context) error {
 }
 
 func killChangeStreamCursor(t *testing.T, cs *ChangeStream) {
-	_, err := driver.KillCursors(context.Background(), cs.ns, cs.cursor.bc.Server(), cs.ID())
+	_, err := driverlegacy.KillCursors(context.Background(), cs.ns, cs.cursor.bc.Server(), cs.ID())
 	if err != nil {
 		t.Fatalf("error killing cursor: %v", err)
 	}
@@ -422,7 +422,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 				defer closeCursor(stream)
 				cs := stream
 				cs.cursor = &Cursor{
-					bc: driver.NewEmptyBatchCursor(),
+					bc: driverlegacy.NewEmptyBatchCursor(),
 					err: CommandError{
 						Code: tc.errCode,
 					},
