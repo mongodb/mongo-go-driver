@@ -37,11 +37,11 @@ type DateTime int64
 
 // MarshalJSON marshal to time type
 func (d DateTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.GetTime())
+	return json.Marshal(d.Time())
 }
 
-// GetTime returns the date as a time type.
-func (d DateTime) GetTime() time.Time {
+// Time returns the date as a time type.
+func (d DateTime) Time() time.Time {
 	return time.Unix(int64(d)/1000, int64(d)%1000*1000000)
 }
 

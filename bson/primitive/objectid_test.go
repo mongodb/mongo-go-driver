@@ -104,7 +104,7 @@ func TestCreateFromTime(t *testing.T) {
 		time, err := time.Parse(layout, testcase.time)
 		require.NoError(t, err)
 
-		id := NewObjectIDFromTime(time)
+		id := NewObjectIDFromTimestamp(time)
 		timeStr := hex.EncodeToString(id[0:4])
 
 		require.Equal(t, testcase.Expected, timeStr)
@@ -138,7 +138,7 @@ func TestGenerationTime(t *testing.T) {
 		id, err := ObjectIDFromHex(testcase.hex)
 		require.NoError(t, err)
 
-		genTime := id.GenerationTime()
+		genTime := id.Timestamp()
 		require.Equal(t, testcase.Expected, genTime.String())
 	}
 }
