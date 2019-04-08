@@ -35,13 +35,23 @@
 //    if err != nil { log.Fatal(err) }
 //    defer cur.Close(context.Background())
 //    for cur.Next(context.Background()) {
-//       raw, err := cur.DecodeBytes()
+//       raw := cur.Current
 //       if err != nil { log.Fatal(err) }
-//       // do something with elem....
+//       // do something with raw....
 //    }
 //    if err := cur.Err(); err != nil {
 //    		return err
 //    }
+//
+// If you would like to decode from a cursor into a struct, you can do this:
+//
+//    result := struct{
+// 	  	Foo string
+// 	  	Bar int32
+// 	  }{}
+//    err := cur.Decode(&result)
+//    if err != nil { log.Fatal(err) }
+//    // do something with result...
 //
 // Methods that only return a single document will return a *SingleResult, which works
 // like a *sql.Row:
