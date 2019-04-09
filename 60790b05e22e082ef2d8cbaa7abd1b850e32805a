@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ab124f98_dbd2cf80",
+        "filename": "bson/bsoncodec/bsoncodec_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-04-09T15:06:01Z",
+      "side": 1,
+      "message": "Not sure why, but this test still passes even when the change in TimeDecodeValue method is reverted.  Is Time.loc is not accounted for in the equality test?",
+      "range": {
+        "startLine": 73,
+        "startChar": 0,
+        "endLine": 73,
+        "endChar": 1
+      },
+      "revId": "60790b05e22e082ef2d8cbaa7abd1b850e32805a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c3a040eb_be63e429",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 617,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-04-09T15:06:01Z",
+      "side": 1,
+      "message": "It seems more appropriate to test this at the lowest level possible, like in TestDefaultValueDecoders.  Can we do that?",
+      "range": {
+        "startLine": 617,
+        "startChar": 0,
+        "endLine": 617,
+        "endChar": 1
+      },
+      "revId": "60790b05e22e082ef2d8cbaa7abd1b850e32805a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3c2757b4_5285aa0e",
+        "filename": "bson/bsoncodec/default_value_decoders.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 617,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-04-09T15:06:01Z",
+      "side": 1,
+      "message": "I\u0027m unclear about the round-tripability of time.Time values.  If the user inserts a time.Time that is _not_ UTC, what Bson value does it encode to?  Is Time.loc discarded, or is it first converted to UTC? Seems like it either should convert or error, but if it silently ignores the location that could cause some serious problems for users.",
+      "range": {
+        "startLine": 617,
+        "startChar": 9,
+        "endLine": 617,
+        "endChar": 16
+      },
+      "revId": "60790b05e22e082ef2d8cbaa7abd1b850e32805a",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
