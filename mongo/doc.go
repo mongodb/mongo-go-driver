@@ -60,4 +60,13 @@
 //
 // Additional examples can be found under the examples directory in the driver's repository and
 // on the MongoDB website.
+//
+// Potential DNS Issues
+//
+// Building with Go 1.11+ and using connection strings with the "mongodb+srv"[1] scheme is
+// incompatible with some DNS servers in the wild due to the change introduced in
+// https://github.com/golang/go/issues/10622. If you receive an error with the message "cannot
+// unmarshal DNS message" while running an operation, we suggest you use a different DNS server.
+//
+// [1] See https://docs.mongodb.com/manual/reference/connection-string/#dns-seedlist-connection-format
 package mongo
