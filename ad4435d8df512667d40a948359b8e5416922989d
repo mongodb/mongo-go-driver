@@ -39,6 +39,48 @@
       "revId": "ad4435d8df512667d40a948359b8e5416922989d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b81397bd_c4955b42",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-09T15:51:48Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0bbf309c_ec5a7dcf",
+      "range": {
+        "startLine": 66,
+        "startChar": 34,
+        "endLine": 66,
+        "endChar": 35
+      },
+      "revId": "ad4435d8df512667d40a948359b8e5416922989d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "26b9e5e3_9cc30c7c",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-09T15:51:48Z",
+      "side": 1,
+      "message": "How about \"Building with Go 1.11+ and using connection strings with the \"mongodb+srv\" scheme is incompatible with some DNS servers in the wild\"?",
+      "parentUuid": "e85ccdb1_e719afec",
+      "revId": "ad4435d8df512667d40a948359b8e5416922989d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
