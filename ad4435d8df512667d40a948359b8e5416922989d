@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0bbf309c_ec5a7dcf",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-04-09T15:43:27Z",
+      "side": 1,
+      "message": "Can we also add a link to https://docs.mongodb.com/manual/reference/connection-string/#dns-seedlist-connection-format so that it\u0027s easy for users to know what mongodb+srv is about?  Especially as this is the currently the only mention of that scheme in the Go driver docs.",
+      "range": {
+        "startLine": 66,
+        "startChar": 34,
+        "endLine": 66,
+        "endChar": 35
+      },
+      "revId": "ad4435d8df512667d40a948359b8e5416922989d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e85ccdb1_e719afec",
+        "filename": "mongo/doc.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-04-09T15:43:27Z",
+      "side": 1,
+      "message": "Reads a bit funny this way to my ears.\n\nMaybe something more like \"Applications running on Go 1.11+ that use connecting strings with the \"mongodb+srv\" scheme are incompatible with ...\".?",
+      "revId": "ad4435d8df512667d40a948359b8e5416922989d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
