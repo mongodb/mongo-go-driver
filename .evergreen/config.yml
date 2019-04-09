@@ -50,11 +50,13 @@ functions:
 
            export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
            export PROJECT_DIRECTORY="$(pwd)"
+           export GOCACHE="$(pwd)/.cache"
 
            # Python has cygwin path problems on Windows. Detect prospective mongo-orchestration home directory
            if [ "Windows_NT" = "$OS" ]; then # Magic variable in cygwin
               export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
               export PROJECT_DIRECTORY=$(cygpath -m $PROJECT_DIRECTORY)
+              export GOCACHE=$(cygpath -m $GOCACHE)
            fi
 
            export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
@@ -83,6 +85,7 @@ functions:
               set -o xtrace
               export GOPATH="$GOPATH"
               export GOROOT="${GO_DIST}"
+              export GOCACHE="$GOCACHE"
               export DRIVERS_TOOLS="$DRIVERS_TOOLS"
               export MONGO_ORCHESTRATION_HOME="$MONGO_ORCHESTRATION_HOME"
               export MONGODB_BINARIES="$MONGODB_BINARIES"
@@ -258,11 +261,14 @@ functions:
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
           else
             export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
+            export GOCACHE="$(pwd)/.cache"
           fi;
           export GOPATH="$GOPATH"
           export GOROOT="${GO_DIST}"
+          export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGODB_URI="${MONGODB_URI}" MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
 
@@ -275,9 +281,11 @@ functions:
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
             export MONGODB_URI=${gssapi_auth_windows_mongodb_uri}
           else
             export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
+            export GOCACHE="$(pwd)/.cache"
             echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
             base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
             mkdir -p ~/.krb5
@@ -287,6 +295,7 @@ functions:
           fi;
           export GOPATH="$GOPATH"
           export GOROOT="${GO_DIST}"
+          export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
 
@@ -299,9 +308,11 @@ functions:
           # DO NOT ECHO WITH XTRACE (which PREPARE_SHELL does)
           if [ "Windows_NT" = "$OS" ]; then
             export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
+            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
             export MONGODB_URI="${gssapi_service_host_auth_windows_mongodb_uri}"
           else
             export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
+            export GOCACHE="$(pwd)/.cache"
             echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
             base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
             mkdir -p ~/.krb5
@@ -311,6 +322,7 @@ functions:
           fi;
           export GOPATH="$GOPATH"
           export GOROOT="${GO_DIST}"
+          export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
           MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
 
@@ -680,33 +692,33 @@ axes:
   - id: os-ssl-legacy
     display_name: OS
     values:
-      - id: "ubuntu1404-go-1-11"
+      - id: "ubuntu1404-go-1-12"
         display_name: "Ubuntu 14.04"
         run_on: ubuntu1404-test
         variables:
-          GO_DIST: "/opt/golang/go1.11"
+          GO_DIST: "/opt/golang/go1.12"
 
   # OSes that require >= 3.2 for SSL
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-11"
+      - id: "windows-64-go-1-12"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2015-test
         variables:
           GCC_PATH: "/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.11"
-      - id: "ubuntu1604-64-go-1-11"
+          GO_DIST: "C:\\golang\\go1.12"
+      - id: "ubuntu1604-64-go-1-12"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.11"
-      - id: "osx-go-1-11"
+          GO_DIST: "/opt/golang/go1.12"
+      - id: "osx-go-1-12"
         display_name: "MacOS 10.12"
         run_on: macos-1012
         variables:
-          GO_DIST: "/opt/golang/go1.11"
+          GO_DIST: "/opt/golang/go1.12"
 
 
 buildvariants:
@@ -715,7 +727,7 @@ buildvariants:
   run_on:
     - ubuntu1604-build
   expansions:
-    GO_DIST: "/opt/golang/go1.11"
+    GO_DIST: "/opt/golang/go1.12"
   tasks:
     - name: ".static-analysis"
 
@@ -724,7 +736,7 @@ buildvariants:
   run_on:
     - ubuntu1604-build
   expansions:
-    GO_DIST: "/opt/golang/go1.9"
+    GO_DIST: "/opt/golang/go1.12"
   tasks:
     - name: ".performance"
 
@@ -733,7 +745,7 @@ buildvariants:
   run_on:
     - ubuntu1604-test
   expansions:
-    GO_DIST: "/opt/golang/go1.10"
+    GO_DIST: "/opt/golang/go1.12"
   tasks:
     - name: ".compile-check"
 
