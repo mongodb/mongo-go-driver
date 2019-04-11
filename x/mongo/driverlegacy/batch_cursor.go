@@ -342,6 +342,10 @@ func (bc *BatchCursor) legacyGetMore(ctx context.Context) {
 	numToReturn := bc.batchSize
 	if bc.limit != 0 && bc.numReturned+bc.batchSize > bc.limit {
 		numToReturn = bc.limit - bc.numReturned
+		if numToReturn <= 0 {
+			bc.id = 0
+			return
+		}
 	}
 	gm := wiremessage.GetMore{
 		FullCollectionName: bc.namespace.DB + "." + bc.namespace.Collection,
