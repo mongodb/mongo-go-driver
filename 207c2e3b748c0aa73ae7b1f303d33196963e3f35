@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c4b93487_606bd7a0",
+        "filename": "mongo/cursor.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-11T15:38:47Z",
+      "side": 1,
+      "message": "bsoncore.DocumentSequence has a currently private method called documents, let\u0027s make that method public and then use that. We\u0027ll be able to avoid this awkward checking for io.EOF and return an error a little earlier.",
+      "range": {
+        "startLine": 175,
+        "startChar": 1,
+        "endLine": 183,
+        "endChar": 3
+      },
+      "revId": "207c2e3b748c0aa73ae7b1f303d33196963e3f35",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
