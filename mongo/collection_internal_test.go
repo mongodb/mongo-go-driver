@@ -1672,6 +1672,37 @@ func TestCollection_Find_found(t *testing.T) {
 	require.Equal(t, results, []int{1, 2, 3, 4, 5})
 }
 
+func TestCollection_Find_With_Limit_And_BatchSize(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	cursor, err := coll.Find(context.Background(), bson.D{}, options.Find().SetLimit(3).SetBatchSize(4))
+
+	numRecieved := 0
+	var doc bson.Raw
+	for cursor.Next(context.Background()) {
+		err = cursor.Decode(&doc)
+		require.NoError(t, err)
+
+		_, err = doc.LookupErr("_id")
+		require.NoError(t, err)
+
+		i, err := doc.LookupErr("x")
+		require.NoError(t, err)
+		if i.Type != bson.TypeInt32 {
+			t.Errorf("Incorrect type for x. Got %s, but wanted Int32", i.Type)
+			t.FailNow()
+		}
+		numRecieved++
+	}
+
+	require.Equal(t, numRecieved, 3)
+}
+
 func TestCollection_Find_notFound(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
