@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "68a0f8f6_5cba8ce5",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1683,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-04-11T21:41:28Z",
+      "side": 1,
+      "message": "Is there any additional coverage to be gained by testing\n\n   SetLimit(5).SetBatchSize(4)\n\nas well?",
+      "revId": "b36eb926c0084fcc52d8e5d4548d7e9d4cd73461",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
