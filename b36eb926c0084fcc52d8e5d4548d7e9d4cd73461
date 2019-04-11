@@ -16,6 +16,24 @@
       "revId": "b36eb926c0084fcc52d8e5d4548d7e9d4cd73461",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "87730070_d8cac524",
+        "filename": "mongo/collection_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 1683,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-11T21:58:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "68a0f8f6_5cba8ce5",
+      "revId": "b36eb926c0084fcc52d8e5d4548d7e9d4cd73461",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
