@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
 	"go.mongodb.org/mongo-driver/x/network/address"
-	"go.mongodb.org/mongo-driver/x/network/connection"
+	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/description"
 	"go.mongodb.org/mongo-driver/x/network/result"
 )
@@ -26,12 +26,12 @@ type pool struct {
 	desc            *description.Server
 }
 
-func (p *pool) Get(ctx context.Context) (connection.Connection, *description.Server, error) {
+func (p *pool) Get(ctx context.Context) (connectionlegacy.Connection, *description.Server, error) {
 	if p.connectionError {
 		return nil, p.desc, &auth.Error{}
 	}
 	if p.networkError {
-		return nil, p.desc, &connection.NetworkError{}
+		return nil, p.desc, &connectionlegacy.NetworkError{}
 	}
 	return nil, p.desc, nil
 }
@@ -49,7 +49,7 @@ func (p *pool) Drain() error {
 	return nil
 }
 
-func NewPool(connectionError bool, networkError bool, desc *description.Server) (connection.Pool, error) {
+func NewPool(connectionError bool, networkError bool, desc *description.Server) (connectionlegacy.Pool, error) {
 	p := &pool{
 		connectionError: connectionError,
 		networkError:    networkError,
