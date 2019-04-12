@@ -94,6 +94,30 @@
       "revId": "225b4288623b7787ba8cef5e1d524736ab1c1612",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7585e003_3f5083a0",
+        "filename": "x/mongo/driverlegacy/batch_cursor.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 346,
+      "author": {
+        "id": 1016358
+      },
+      "writtenOn": "2019-04-12T17:33:36Z",
+      "side": 1,
+      "message": "Finally got Gerrit working! Thanks for working on this so promptly. We are almost ready to switch from mgo to the official driver in production. \n\nYes, moving the return statement works.\n\nOne thing I noticed is that in earlier revisions, cursor ID was getting set to 0. Do we still want to do that?",
+      "parentUuid": "b87b73a7_09de6fa0",
+      "range": {
+        "startLine": 346,
+        "startChar": 12,
+        "endLine": 346,
+        "endChar": 17
+      },
+      "revId": "225b4288623b7787ba8cef5e1d524736ab1c1612",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
