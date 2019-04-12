@@ -3,6 +3,7 @@ package driver // import "go.mongodb.org/mongo-driver/x/mongo/driver"
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/x/network/address"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
@@ -25,4 +26,12 @@ type Connection interface {
 	Description() description.Server
 	Close() error
 	ID() string
+	Address() address.Address
+}
+
+// ErrorProcess implementations can handle processing errors, which may modify their internal state.
+// If this type is implemented by a Server, then Operation.Execute will call it's ProcessError
+// method after it decodes a wire message.
+type ErrorProcessor interface {
+	ProcessError(error)
 }
