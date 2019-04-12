@@ -27,6 +27,22 @@ func noerr(t *testing.T, err error) {
 	}
 }
 
+func compareErrors(err1, err2 error) bool {
+	if err1 == nil && err2 == nil {
+		return true
+	}
+
+	if err1 == nil || err2 == nil {
+		return false
+	}
+
+	if err1.Error() != err2.Error() {
+		return false
+	}
+
+	return true
+}
+
 func TestServerSelection(t *testing.T) {
 	var selectFirst description.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
 		if len(candidates) == 0 {
