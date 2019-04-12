@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
 	"go.mongodb.org/mongo-driver/x/network/address"
 	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/connection"
+	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/description"
 	"go.mongodb.org/mongo-driver/x/network/result"
 )
@@ -87,7 +87,7 @@ type Server struct {
 	done            chan struct{}
 	checkNow        chan struct{}
 	closewg         sync.WaitGroup
-	pool            connection.Pool
+	pool            connectionlegacy.Pool
 
 	desc atomic.Value // holds a description.Server
 
@@ -144,7 +144,7 @@ func NewServer(addr address.Address, topo func(description.Server), opts ...Serv
 		maxConns = uint64(cfg.maxConns)
 	}
 
-	s.pool, err = connection.NewPool(addr, uint64(cfg.maxIdleConns), maxConns, cfg.connectionOpts...)
+	s.pool, err = connectionlegacy.NewPool(addr, uint64(cfg.maxIdleConns), maxConns, cfg.connectionOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 }
 
 // Connection gets a connection to the server.
-func (s *Server) Connection(ctx context.Context) (connection.Connection, error) {
+func (s *Server) Connection(ctx context.Context) (connectionlegacy.Connection, error) {
 	if atomic.LoadInt32(&s.connectionstate) != connected {
 		return nil, ErrServerClosed
 	}
@@ -205,7 +205,7 @@ func (s *Server) Connection(ctx context.Context) (connection.Connection, error) 
 			// authentication error --> drain connection
 			_ = s.pool.Drain()
 		}
-		if _, ok := err.(*connection.NetworkError); ok {
+		if _, ok := err.(*connectionlegacy.NetworkError); ok {
 			// update description to unknown and clears the connection pool
 			if desc != nil {
 				desc.Kind = description.Unknown
@@ -326,7 +326,7 @@ func (s *Server) update() {
 		}
 	}()
 
-	var conn connection.Connection
+	var conn connectionlegacy.Connection
 	var desc description.Server
 
 	desc, conn = s.heartbeat(nil)
@@ -406,7 +406,7 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 }
 
 // heartbeat sends a heartbeat to the server using the given connection. The connection can be nil.
-func (s *Server) heartbeat(conn connection.Connection) (description.Server, connection.Connection) {
+func (s *Server) heartbeat(conn connectionlegacy.Connection) (description.Server, connectionlegacy.Connection) {
 	const maxRetry = 2
 	var saved error
 	var desc description.Server
@@ -421,30 +421,30 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 		}
 
 		if conn == nil {
-			opts := []connection.Option{
-				connection.WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-				connection.WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-				connection.WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+			opts := []connectionlegacy.Option{
+				connectionlegacy.WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+				connectionlegacy.WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+				connectionlegacy.WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 			}
 			opts = append(opts, s.cfg.connectionOpts...)
 			// We override whatever handshaker is currently attached to the options with an empty
 			// one because need to make sure we don't do auth.
-			opts = append(opts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
+			opts = append(opts, connectionlegacy.WithHandshaker(func(h connectionlegacy.Handshaker) connectionlegacy.Handshaker {
 				return nil
 			}))
 
 			// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
-			opts = append(opts, connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
+			opts = append(opts, connectionlegacy.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
 				return nil
 			}))
-			conn, _, err = connection.New(ctx, s.address, opts...)
+			conn, _, err = connectionlegacy.New(ctx, s.address, opts...)
 			if err != nil {
 				saved = err
 				if conn != nil {
 					conn.Close()
 				}
 				conn = nil
-				if _, ok := err.(*connection.NetworkError); ok {
+				if _, ok := err.(*connectionlegacy.NetworkError); ok {
 					_ = s.pool.Drain()
 					// If the server is not connected, give up and exit loop
 					if s.Description().Kind == description.Unknown {
@@ -464,7 +464,7 @@ func (s *Server) heartbeat(conn connection.Connection) (description.Server, conn
 			saved = err
 			conn.Close()
 			conn = nil
-			if _, ok := err.(connection.NetworkError); ok {
+			if _, ok := err.(connectionlegacy.NetworkError); ok {
 				_ = s.pool.Drain()
 				// If the server is not connected, give up and exit loop
 				if s.Description().Kind == description.Unknown {
