@@ -19,14 +19,14 @@ import (
 	"go.mongodb.org/mongo-driver/x/network/result"
 )
 
-type pool struct {
+type testpool struct {
 	connectionError bool
 	drainCalled     atomic.Value
 	networkError    bool
 	desc            *description.Server
 }
 
-func (p *pool) Get(ctx context.Context) (connectionlegacy.Connection, *description.Server, error) {
+func (p *testpool) Get(ctx context.Context) (connectionlegacy.Connection, *description.Server, error) {
 	if p.connectionError {
 		return nil, p.desc, &auth.Error{}
 	}
@@ -36,21 +36,21 @@ func (p *pool) Get(ctx context.Context) (connectionlegacy.Connection, *descripti
 	return nil, p.desc, nil
 }
 
-func (p *pool) Connect(ctx context.Context) error {
+func (p *testpool) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (p *pool) Disconnect(ctx context.Context) error {
+func (p *testpool) Disconnect(ctx context.Context) error {
 	return nil
 }
 
-func (p *pool) Drain() error {
+func (p *testpool) Drain() error {
 	p.drainCalled.Store(true)
 	return nil
 }
 
-func NewPool(connectionError bool, networkError bool, desc *description.Server) (connectionlegacy.Pool, error) {
-	p := &pool{
+func NewTestPool(connectionError bool, networkError bool, desc *description.Server) (connectionlegacy.Pool, error) {
+	p := &testpool{
 		connectionError: connectionError,
 		networkError:    networkError,
 		desc:            desc,
@@ -83,7 +83,7 @@ func TestServer(t *testing.T) {
 				desc = &descript
 				require.Nil(t, desc.LastError)
 			}
-			s.pool, err = NewPool(tt.connectionError, tt.networkError, desc)
+			s.pool, err = NewTestPool(tt.connectionError, tt.networkError, desc)
 			s.connectionstate = connected
 
 			_, err = s.Connection(context.Background())
@@ -98,7 +98,7 @@ func TestServer(t *testing.T) {
 				require.Equal(t, desc.Kind, (description.ServerKind)(description.Unknown))
 				require.NotNil(t, desc.LastError)
 			}
-			drained := s.pool.(*pool).drainCalled.Load().(bool)
+			drained := s.pool.(*testpool).drainCalled.Load().(bool)
 			require.Equal(t, drained, tt.connectionError || tt.networkError)
 		})
 	}
@@ -110,7 +110,7 @@ func TestServer(t *testing.T) {
 		descript := s.Description()
 		desc = &descript
 		require.Nil(t, desc.LastError)
-		s.pool, err = NewPool(false, false, desc)
+		s.pool, err = NewTestPool(false, false, desc)
 		s.connectionstate = connected
 
 		wce := result.WriteConcernError{10107, "not master", []byte{}}
@@ -123,7 +123,7 @@ func TestServer(t *testing.T) {
 		require.Equal(t, resultDesc.LastError, &wce)
 
 		// pool should be drained
-		drained := s.pool.(*pool).drainCalled.Load().(bool)
+		drained := s.pool.(*testpool).drainCalled.Load().(bool)
 		require.Equal(t, drained, true)
 	})
 	t.Run("no WriteConcernError", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestServer(t *testing.T) {
 		descript := s.Description()
 		desc = &descript
 		require.Nil(t, desc.LastError)
-		s.pool, err = NewPool(false, false, desc)
+		s.pool, err = NewTestPool(false, false, desc)
 		s.connectionstate = connected
 
 		wce := result.WriteConcernError{}
@@ -145,7 +145,7 @@ func TestServer(t *testing.T) {
 		require.Nil(t, s.Description().LastError)
 
 		// pool should not be drained
-		drained := s.pool.(*pool).drainCalled.Load().(bool)
+		drained := s.pool.(*testpool).drainCalled.Load().(bool)
 		require.Equal(t, drained, false)
 	})
 	t.Run("update topology", func(t *testing.T) {
