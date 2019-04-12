@@ -14,3 +14,17 @@ closing it.
 
 The connection implementations in this package are conduits for wire messages but they have no
 ability to encode, decode, or validate wire messages. That must be handled by consumers.
+
+## Pool
+The `pool` type implements a connection pool. It handles caching idle connections and dialing
+new ones, but it does not track a maximum number of connections. That is the responsibility of a
+wrapping type, like `Server`.
+
+The `pool` type has no concept of closing, instead it has concepts of connecting and disconnecting.
+This allows a `Topology` to be disconnected,but keeping the memory around to be reconnected later.
+There is a `close` method, but this is used to close a connection.
+
+There are three methods related to getting and putting connections: `get`, `close`, and `put`. The
+`get` method will either retrieve a connection from the cache or it will dial a new `connection`.
+The `close` method will close the underlying socket of a `connection`. The `put` method will put a
+connection into the pool, placing it in the cahce if there is space, otherwise it will close it.
