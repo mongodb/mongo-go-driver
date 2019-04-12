@@ -27,10 +27,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
-// ErrConnectionClosed is returned when attempting to call a method on a Connection that has already
-// been closed.
-var ErrConnectionClosed = errors.New("the Connection is closed")
-
 var globalConnectionID uint64
 
 func nextConnectionID() uint64 { return atomic.AddUint64(&globalConnectionID, 1) }
@@ -45,6 +41,11 @@ type connection struct {
 	readTimeout      time.Duration
 	writeTimeout     time.Duration
 	desc             description.Server
+
+	// pool related fields
+	pool       *pool
+	poolID     uint64
+	generation uint64
 }
 
 // newConnection handles the creation of a connection. It will dial, configure TLS, and perform
@@ -290,8 +291,11 @@ func (c *Connection) Close() error {
 	if c.connection == nil {
 		return nil
 	}
-	// TODO(GODRIVER-929): Return c.connection to the pool.
-	// TODO(GODRIVER-929): Release an entry in the semaphore.
+	// TODO(GODRIVER-932): Release an entry in the semaphore.
+	err := c.pool.put(c.connection)
+	if err != nil {
+		return err
+	}
 	c.connection = nil
 	return nil
 }
