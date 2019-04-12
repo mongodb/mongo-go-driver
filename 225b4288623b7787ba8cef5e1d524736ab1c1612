@@ -118,6 +118,30 @@
       "revId": "225b4288623b7787ba8cef5e1d524736ab1c1612",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "38aaf78e_731c5aa1",
+        "filename": "x/mongo/driverlegacy/batch_cursor.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 346,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-12T18:59:15Z",
+      "side": 1,
+      "message": "bc.Close() will set the id to 0.",
+      "parentUuid": "7585e003_3f5083a0",
+      "range": {
+        "startLine": 346,
+        "startChar": 12,
+        "endLine": 346,
+        "endChar": 17
+      },
+      "revId": "225b4288623b7787ba8cef5e1d524736ab1c1612",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
