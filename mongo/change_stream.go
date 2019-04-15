@@ -181,7 +181,7 @@ func (cs *ChangeStream) runCommand(ctx context.Context, replaceOptions bool) err
 	}
 
 	desc := ss.Description()
-	conn, err := ss.Connection(ctx)
+	conn, err := ss.ConnectionLegacy(ctx)
 	if err != nil {
 		return replaceErrors(err)
 	}

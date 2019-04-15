@@ -42,7 +42,7 @@ func TestCompression(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	rw, err := server.Connection(ctx)
+	rw, err := server.ConnectionLegacy(ctx)
 	noerr(t, err)
 
 	rdr, err := cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
