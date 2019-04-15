@@ -119,7 +119,7 @@ func EnableMaxTimeFailPoint(t *testing.T, s *topology.Server) error {
 			{"mode", bsonx.String("alwaysOn")},
 		},
 	}
-	conn, err := s.Connection(context.Background())
+	conn, err := s.ConnectionLegacy(context.Background())
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, conn)
 	_, err = cmd.RoundTrip(context.Background(), s.SelectedDescription(), conn)
@@ -135,7 +135,7 @@ func DisableMaxTimeFailPoint(t *testing.T, s *topology.Server) {
 			{"mode", bsonx.String("off")},
 		},
 	}
-	conn, err := s.Connection(context.Background())
+	conn, err := s.ConnectionLegacy(context.Background())
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, conn)
 	_, err = cmd.RoundTrip(context.Background(), s.SelectedDescription(), conn)
@@ -144,7 +144,7 @@ func DisableMaxTimeFailPoint(t *testing.T, s *topology.Server) {
 
 // RunCommand runs an arbitrary command on a given database of target server
 func RunCommand(t *testing.T, s *topology.Server, db string, b bsonx.Doc) (bson.Raw, error) {
-	conn, err := s.Connection(context.Background())
+	conn, err := s.ConnectionLegacy(context.Background())
 	if err != nil {
 		return nil, err
 	}

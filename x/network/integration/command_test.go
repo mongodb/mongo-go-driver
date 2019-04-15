@@ -31,7 +31,7 @@ func TestCommand(t *testing.T) {
 	}
 	t.Parallel()
 
-	server, err := topology.ConnectServer(context.Background(), address.Address(*host), nil, serveropts(t)...)
+	server, err := topology.ConnectServer(address.Address(*host), nil, serveropts(t)...)
 	noerr(t, err)
 
 	ctx := context.Background()
@@ -41,7 +41,7 @@ func TestCommand(t *testing.T) {
 		DB:      "admin",
 		Command: bsonx.Doc{{"getnonce", bsonx.Int32(1)}},
 	}
-	rw, err := server.Connection(ctx)
+	rw, err := server.ConnectionLegacy(ctx)
 	noerr(t, err)
 
 	rdr, err := cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
@@ -67,7 +67,7 @@ func TestCommand(t *testing.T) {
 	result = result[:0]
 	cmd.Command = bsonx.Doc{{"ping", bsonx.Int32(1)}}
 
-	rw, err = server.Connection(ctx)
+	rw, err = server.ConnectionLegacy(ctx)
 	noerr(t, err)
 	rdr, err = cmd.RoundTrip(ctx, server.SelectedDescription(), rw)
 	noerr(t, err)
@@ -87,7 +87,7 @@ func TestWriteCommands(t *testing.T) {
 			ctx := context.TODO()
 			server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
 			noerr(t, err)
-			conn, err := server.Connection(context.Background())
+			conn, err := server.ConnectionLegacy(context.Background())
 			noerr(t, err)
 
 			cmd := &command.Insert{
@@ -98,7 +98,7 @@ func TestWriteCommands(t *testing.T) {
 			_, err = cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
 			noerr(t, err)
 
-			conn, err = server.Connection(context.Background())
+			conn, err = server.ConnectionLegacy(context.Background())
 			noerr(t, err)
 			res, err := cmd.RoundTrip(ctx, server.SelectedDescription(), conn)
 			noerr(t, err)
