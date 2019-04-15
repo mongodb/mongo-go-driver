@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c8e219b4_48cffa58",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-04-15T12:21:05Z",
+      "side": 1,
+      "message": "This looks good, but I don\u0027t see any tests for it, and given the current design, I\u0027m not really sure how one would go about testing it.  \n\nIn order to test the equivalent functionality in the Java/.NET implementation, we had to break it out into a separate class that depended on a couple of new interfaces.  That allowed us to \"mock\" DNS and the topology and test all the edge cases.",
+      "revId": "d0aac8e96c57c7b43d7c6917be9e503ad7c2a650",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
