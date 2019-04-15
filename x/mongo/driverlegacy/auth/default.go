@@ -9,8 +9,8 @@ package auth
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/network/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 func newDefaultAuthenticator(cred *Cred) (Authenticator, error) {
@@ -26,9 +26,11 @@ type DefaultAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server, rw wiremessage.ReadWriter) error {
+func (a *DefaultAuthenticator) Auth(ctx context.Context, conn driver.Connection) error {
 	var actual Authenticator
 	var err error
+
+	desc := conn.Description()
 
 	switch chooseAuthMechanism(desc) {
 	case SCRAMSHA256:
@@ -43,7 +45,7 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server
 		return newAuthError("error creating authenticator", err)
 	}
 
-	return actual.Auth(ctx, desc, rw)
+	return actual.Auth(ctx, conn)
 }
 
 // If a server provides a list of supported mechanisms, we choose

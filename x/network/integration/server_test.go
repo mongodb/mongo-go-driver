@@ -8,16 +8,17 @@ package integration
 
 import (
 	"context"
+	"crypto/tls"
 	"net"
 	"strings"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/address"
-	"go.mongodb.org/mongo-driver/x/network/command"
 	"go.mongodb.org/mongo-driver/x/network/connection"
 )
 
@@ -31,11 +32,11 @@ func TestTopologyServer(t *testing.T) {
 	}
 
 	t.Run("After close, should not return new connection", func(t *testing.T) {
-		s, err := topology.ConnectServer(context.Background(), address.Address(*host), nil, serveropts(t)...)
+		s, err := topology.ConnectServer(address.Address(*host), nil, serveropts(t)...)
 		noerr(t, err)
 		err = s.Disconnect(context.TODO())
 		noerr(t, err)
-		_, err = s.Connection(context.Background())
+		_, err = s.ConnectionLegacy(context.Background())
 		if err != topology.ErrServerClosed {
 			t.Errorf("Expected error from getting a connection from closed server, but got %v", err)
 		}
@@ -43,7 +44,7 @@ func TestTopologyServer(t *testing.T) {
 	t.Run("Shouldn't be able to get more than max connections", func(t *testing.T) {
 		t.Parallel()
 
-		s, err := topology.ConnectServer(context.Background(), address.Address(*host), nil,
+		s, err := topology.ConnectServer(address.Address(*host), nil,
 			serveropts(
 				t,
 				topology.WithMaxConnections(func(uint16) uint16 { return 2 }),
@@ -51,15 +52,15 @@ func TestTopologyServer(t *testing.T) {
 			)...,
 		)
 		noerr(t, err)
-		c1, err := s.Connection(context.Background())
+		c1, err := s.ConnectionLegacy(context.Background())
 		noerr(t, err)
 		defer c1.Close()
-		c2, err := s.Connection(context.Background())
+		c2, err := s.ConnectionLegacy(context.Background())
 		noerr(t, err)
 		defer c2.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 		defer cancel()
-		_, err = s.Connection(ctx)
+		_, err = s.ConnectionLegacy(ctx)
 		if !strings.Contains(err.Error(), "deadline exceeded") {
 			t.Errorf("Expected timeout while trying to open more than max connections, but got %v", err)
 		}
@@ -83,7 +84,7 @@ func TestTopologyServer(t *testing.T) {
 		t.Run("Write network timeout", func(t *testing.T) {})
 	})
 	t.Run("Close should close all subscription channels", func(t *testing.T) {
-		s, err := topology.ConnectServer(context.Background(), address.Address(*host), nil, serveropts(t)...)
+		s, err := topology.ConnectServer(address.Address(*host), nil, serveropts(t)...)
 		noerr(t, err)
 
 		var done1, done2 = make(chan struct{}), make(chan struct{})
@@ -124,7 +125,7 @@ func TestTopologyServer(t *testing.T) {
 		}
 	})
 	t.Run("Subscribe after Close should return an error", func(t *testing.T) {
-		s, err := topology.ConnectServer(context.Background(), address.Address(*host), nil, serveropts(t)...)
+		s, err := topology.ConnectServer(address.Address(*host), nil, serveropts(t)...)
 		noerr(t, err)
 
 		sub, err := s.Subscribe()
@@ -142,7 +143,7 @@ func TestTopologyServer(t *testing.T) {
 	})
 	t.Run("Disconnect", func(t *testing.T) {
 		t.Run("cannot disconnect before connecting", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
 			noerr(t, err)
 
 			got := s.Disconnect(context.TODO())
@@ -151,9 +152,9 @@ func TestTopologyServer(t *testing.T) {
 			}
 		})
 		t.Run("cannot disconnect twice", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			noerr(t, err)
 
 			got := s.Disconnect(context.TODO())
@@ -168,21 +169,21 @@ func TestTopologyServer(t *testing.T) {
 		t.Run("all open sockets should be closed after disconnect", func(t *testing.T) {
 			d := newdialer(&net.Dialer{})
 			s, err := topology.NewServer(
-				address.Address(*host), nil,
+				address.Address(*host),
 				serveropts(
 					t,
-					topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
-						return append(opts, connection.WithDialer(func(connection.Dialer) connection.Dialer { return d }))
+					topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+						return append(opts, topology.WithDialer(func(topology.Dialer) topology.Dialer { return d }))
 					}),
 				)...,
 			)
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			noerr(t, err)
 
 			conns := [3]connection.Connection{}
 			for idx := range [3]struct{}{} {
-				conns[idx], err = s.Connection(context.TODO())
+				conns[idx], err = s.ConnectionLegacy(context.TODO())
 				noerr(t, err)
 			}
 			for idx := range [2]struct{}{} {
@@ -203,50 +204,50 @@ func TestTopologyServer(t *testing.T) {
 	})
 	t.Run("Connect", func(t *testing.T) {
 		t.Run("can reconnect a disconnected server", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			noerr(t, err)
 
 			err = s.Disconnect(context.TODO())
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			noerr(t, err)
 		})
 		t.Run("cannot connect multiple times without disconnect", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			noerr(t, err)
 
 			err = s.Disconnect(context.TODO())
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			if err != topology.ErrServerConnected {
 				t.Errorf("Did not receive expected error. got %v; want %v", err, topology.ErrServerConnected)
 			}
 		})
 		t.Run("can disconnect and reconnect multiple times", func(t *testing.T) {
-			s, err := topology.NewServer(address.Address(*host), nil, serveropts(t)...)
+			s, err := topology.NewServer(address.Address(*host), serveropts(t)...)
 			noerr(t, err)
-			err = s.Connect(context.TODO())
-			noerr(t, err)
-
-			err = s.Disconnect(context.TODO())
-			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			noerr(t, err)
 
 			err = s.Disconnect(context.TODO())
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
 			noerr(t, err)
 
 			err = s.Disconnect(context.TODO())
 			noerr(t, err)
-			err = s.Connect(context.TODO())
+			err = s.Connect(nil)
+			noerr(t, err)
+
+			err = s.Disconnect(context.TODO())
+			noerr(t, err)
+			err = s.Connect(nil)
 			noerr(t, err)
 		})
 	})
@@ -260,7 +261,7 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 		}
 	}
 	cs := testutil.ConnString(t)
-	var connOpts []connection.Option
+	var connOpts []topology.ConnectionOption
 	if cs.Username != "" || cs.AuthMechanism == auth.GSSAPI {
 		cred := &auth.Cred{
 			Source:      "admin",
@@ -284,15 +285,15 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 		authenticator, err := auth.CreateAuthenticator(cs.AuthMechanism, cred)
 		noerr(t, err)
 
-		connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
+		connOpts = append(connOpts, topology.WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
 			return auth.Handshaker(h, &auth.HandshakeOptions{
 				AppName:       cs.AppName,
 				Authenticator: authenticator,
 			})
 		}))
 	} else {
-		connOpts = append(connOpts, connection.WithHandshaker(func(h connection.Handshaker) connection.Handshaker {
-			return &command.Handshake{Client: command.ClientDoc(cs.AppName), Compressors: cs.Compressors}
+		connOpts = append(connOpts, topology.WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
+			return driver.IsMaster().AppName(cs.AppName).Compressors(cs.Compressors)
 		}))
 	}
 
@@ -308,17 +309,17 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 			tlsConfig.SetInsecure(true)
 		}
 
-		connOpts = append(connOpts, connection.WithTLSConfig(func(*connection.TLSConfig) *connection.TLSConfig { return tlsConfig }))
+		connOpts = append(connOpts, topology.WithTLSConfig(func(*tls.Config) *tls.Config { return tlsConfig.Config }))
 	}
 
 	if len(cs.Compressors) > 0 {
-		connOpts = append(connOpts, connection.WithCompressors(func(compressors []string) []string {
+		connOpts = append(connOpts, topology.WithCompressors(func(compressors []string) []string {
 			return append(compressors, cs.Compressors...)
 		}))
 
 		for _, comp := range cs.Compressors {
 			if comp == "zlib" {
-				connOpts = append(connOpts, connection.WithZlibLevel(func(level *int) *int {
+				connOpts = append(connOpts, topology.WithZlibLevel(func(level *int) *int {
 					return &cs.ZlibLevel
 				}))
 			}
@@ -326,7 +327,7 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 	}
 
 	if len(connOpts) > 0 {
-		opts = append(opts, topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+		opts = append(opts, topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
 			return append(opts, connOpts...)
 		}))
 	}

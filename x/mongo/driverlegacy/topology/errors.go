@@ -7,6 +7,9 @@ type ConnectionError struct {
 	ConnectionID string
 	Wrapped      error
 
+	// init will be set to true if this error occured during connection initialization or
+	// during a connection handshake.
+	init    bool
 	message string
 }
 
