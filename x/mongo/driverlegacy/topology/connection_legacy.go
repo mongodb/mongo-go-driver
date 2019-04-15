@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/network/command"
 	"go.mongodb.org/mongo-driver/x/network/compressor"
 	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
@@ -30,10 +31,12 @@ type connectionLegacy struct {
 	// server can compress response with any compressor supported by driver
 	compressorMap map[wiremessage.CompressorID]compressor.Compressor
 
+	s *Server
+
 	sync.RWMutex
 }
 
-func newConnectionLegacy(c *connection, opts ...ConnectionOption) (*connectionLegacy, error) {
+func newConnectionLegacy(c *connection, s *Server, opts ...ConnectionOption) (*connectionLegacy, error) {
 	cfg, err := newConnectionConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -65,6 +68,8 @@ func newConnectionLegacy(c *connection, opts ...ConnectionOption) (*connectionLe
 		uncompressBuf:  make([]byte, 256),
 		writeBuf:       make([]byte, 0, 256),
 		wireMessageBuf: make([]byte, 256),
+
+		s: s,
 	}
 
 	d := c.desc
@@ -117,6 +122,9 @@ func (c *connectionLegacy) WriteWireMessage(ctx context.Context, wm wiremessage.
 	}
 
 	err = c.writeWireMessage(ctx, c.writeBuf)
+	if c.s != nil {
+		c.s.ProcessError(err)
+	}
 	if err != nil {
 		// The error we got back was probably a ConnectionError already, so we don't really need to
 		// wrap it here.
@@ -136,6 +144,9 @@ func (c *connectionLegacy) ReadWireMessage(ctx context.Context) (wiremessage.Wir
 
 	var err error
 	c.readBuf, err = c.readWireMessage(ctx, c.readBuf)
+	if c.s != nil {
+		c.s.ProcessError(err)
+	}
 	if err != nil {
 		// The error we got back was probably a ConnectionError already, so we don't really need to
 		// wrap it here.
@@ -211,6 +222,10 @@ func (c *connectionLegacy) ReadWireMessage(ctx context.Context) (wiremessage.Wir
 		}
 	}
 
+	if c.s != nil {
+		c.s.ProcessError(command.DecodeError(wm))
+	}
+
 	// TODO: do we care if monitoring fails?
 	return wm, c.commandFinishedEvent(ctx, wm)
 }
@@ -221,7 +236,9 @@ func (c *connectionLegacy) Close() error {
 	if c.connection == nil {
 		return nil
 	}
-	// TODO(GODRIVER-932): Release an entry in the semaphore.
+	if c.s != nil {
+		c.s.sem.Release(1)
+	}
 	err := c.pool.put(c.connection)
 	if err != nil {
 		return err
