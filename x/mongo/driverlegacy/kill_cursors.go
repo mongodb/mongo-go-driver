@@ -26,7 +26,7 @@ func KillCursors(
 	cursorID int64,
 ) (result.KillCursors, error) {
 	desc := server.SelectedDescription()
-	conn, err := server.Connection(ctx)
+	conn, err := server.ConnectionLegacy(ctx)
 	if err != nil {
 		return result.KillCursors{}, err
 	}

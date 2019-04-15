@@ -21,6 +21,7 @@ import (
 const testTimeout = 2 * time.Second
 
 func noerr(t *testing.T, err error) {
+	t.Helper()
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 		t.FailNow()
@@ -225,7 +226,7 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New()
 		noerr(t, err)
 		atomic.StoreInt32(&topo.connectionstate, connected)
-		srvr, err := NewServer(address.Address("one"), func(desc description.Server) { topo.apply(context.Background(), desc) })
+		srvr, err := ConnectServer(address.Address("one"), func(desc description.Server) { topo.apply(context.Background(), desc) })
 		noerr(t, err)
 		topo.servers[address.Address("one")] = srvr
 		desc := topo.desc.Load().(description.Topology)
@@ -259,7 +260,7 @@ func TestServerSelection(t *testing.T) {
 
 		// manually add the servers to the topology
 		for _, srv := range desc.Servers {
-			s, err := NewServer(srv.Addr, func(desc description.Server) { topo.apply(context.Background(), desc) })
+			s, err := ConnectServer(srv.Addr, func(desc description.Server) { topo.apply(context.Background(), desc) })
 			noerr(t, err)
 			topo.servers[srv.Addr] = s
 		}
@@ -278,8 +279,6 @@ func TestServerSelection(t *testing.T) {
 
 		// send a not master error to the server forcing an update
 		serv, err := topo.FindServer(desc.Servers[0])
-		noerr(t, err)
-		err = serv.pool.Connect(context.Background())
 		noerr(t, err)
 		atomic.StoreInt32(&serv.connectionstate, connected)
 		sc := &sconn{s: serv.Server}

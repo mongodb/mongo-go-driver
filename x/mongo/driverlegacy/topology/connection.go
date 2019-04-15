@@ -58,14 +58,14 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 
 	nc, err := cfg.dialer.DialContext(ctx, addr.Network(), addr.String())
 	if err != nil {
-		return nil, err
+		return nil, ConnectionError{Wrapped: err, init: true}
 	}
 
 	if cfg.tlsConfig != nil {
 		tlsConfig := cfg.tlsConfig.Clone()
 		nc, err = configureTLS(ctx, nc, addr, tlsConfig)
 		if err != nil {
-			return nil, err
+			return nil, ConnectionError{Wrapped: err, init: true}
 		}
 	}
 
@@ -92,7 +92,11 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 	if cfg.handshaker != nil {
 		c.desc, err = cfg.handshaker.Handshake(ctx, c.addr, initConnection{c})
 		if err != nil {
-			return nil, err
+			c.nc.Close()
+			return nil, ConnectionError{Wrapped: err, init: true}
+		}
+		if cfg.descCallback != nil {
+			cfg.descCallback(c.desc)
 		}
 	}
 	return c, nil
@@ -124,9 +128,7 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 
 	_, err = c.nc.Write(wm)
 	if err != nil {
-		// TODO(GODRIVER-929): Close connection through the pool.
-		_ = c.nc.Close()
-		c.nc = nil
+		c.close()
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to write wire message to network"}
 	}
 
@@ -143,9 +145,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	select {
 	case <-ctx.Done():
 		// We close the connection because we don't know if there is an unread message on the wire.
-		// TODO(GODRIVER-929): Close connection through the pool.
-		_ = c.nc.Close()
-		c.nc = nil
+		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: ctx.Err(), message: "failed to read"}
 	default:
 	}
@@ -173,9 +173,7 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	_, err := io.ReadFull(c.nc, sizeBuf[:])
 	if err != nil {
 		// We close the connection because we don't know if there are other bytes left to read.
-		// TODO(GODRIVER-929): Close connection through the pool.
-		_ = c.nc.Close()
-		c.nc = nil
+		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to decode message length"}
 	}
 
@@ -194,14 +192,24 @@ func (c *connection) readWireMessage(ctx context.Context, dst []byte) ([]byte, e
 	_, err = io.ReadFull(c.nc, dst[4:])
 	if err != nil {
 		// We close the connection because we don't know if there are other bytes left to read.
-		// TODO(GODRIVER-929): Close connection through the pool.
-		_ = c.nc.Close()
-		c.nc = nil
+		c.close()
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "unable to read full message"}
 	}
 
 	c.bumpIdleDeadline()
 	return dst, nil
+}
+
+func (c *connection) close() error {
+	if c.nc == nil {
+		return nil
+	}
+	if c.pool == nil {
+		err := c.nc.Close()
+		c.nc = nil
+		return err
+	}
+	return c.pool.close(c)
 }
 
 func (c *connection) expired() bool {
@@ -231,7 +239,7 @@ type initConnection struct{ *connection }
 var _ driver.Connection = initConnection{}
 
 func (c initConnection) Description() description.Server { return description.Server{} }
-func (c initConnection) Close() error                    { return c.nc.Close() }
+func (c initConnection) Close() error                    { return nil }
 func (c initConnection) ID() string                      { return c.id }
 func (c initConnection) Address() address.Address        { return c.addr }
 func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
@@ -291,7 +299,9 @@ func (c *Connection) Close() error {
 	if c.connection == nil {
 		return nil
 	}
-	// TODO(GODRIVER-932): Release an entry in the semaphore.
+	if c.s != nil {
+		c.s.sem.Release(1)
+	}
 	err := c.pool.put(c.connection)
 	if err != nil {
 		return err
@@ -358,7 +368,7 @@ func (sc *sconn) processErr(err error) {
 		// updates description to unknown
 		sc.s.updateDescription(desc, false)
 		sc.s.RequestImmediateCheck()
-		_ = sc.s.pool.Drain()
+		sc.s.pool.drain()
 		return
 	}
 
