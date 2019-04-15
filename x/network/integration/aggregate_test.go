@@ -91,7 +91,7 @@ func TestCommandAggregate(t *testing.T) {
 	t.Run("AllowDiskUse", func(t *testing.T) {
 		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
 		noerr(t, err)
-		conn, err := server.Connection(context.Background())
+		conn, err := server.ConnectionLegacy(context.Background())
 		noerr(t, err)
 		ds := []bsonx.Doc{
 			{{"_id", bsonx.Int32(1)}},
@@ -118,9 +118,9 @@ func TestCommandAggregate(t *testing.T) {
 	t.Run("MaxTime", func(t *testing.T) {
 		t.Skip("max time is flaky on the server")
 
-		server, err := topology.ConnectServer(context.Background(), address.Address(*host), nil)
+		server, err := topology.ConnectServer(address.Address(*host), nil)
 		noerr(t, err)
-		conn, err := server.Connection(context.Background())
+		conn, err := server.ConnectionLegacy(context.Background())
 		noerr(t, err)
 
 		_, err = (&command.Write{

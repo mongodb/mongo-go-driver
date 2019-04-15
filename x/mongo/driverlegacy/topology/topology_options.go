@@ -8,11 +8,12 @@ package topology
 
 import (
 	"bytes"
+	"crypto/tls"
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
-	"go.mongodb.org/mongo-driver/x/network/command"
 	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
@@ -55,10 +56,10 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			c.serverSelectionTimeout = cs.ServerSelectionTimeout
 		}
 
-		var connOpts []connectionlegacy.Option
+		var connOpts []ConnectionOption
 
 		if cs.AppName != "" {
-			connOpts = append(connOpts, connectionlegacy.WithAppName(func(string) string { return cs.AppName }))
+			connOpts = append(connOpts, WithAppName(func(string) string { return cs.AppName }))
 		}
 
 		switch cs.Connect {
@@ -70,14 +71,14 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 
 		if cs.ConnectTimeout > 0 {
 			c.serverOpts = append(c.serverOpts, WithHeartbeatTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
-			connOpts = append(connOpts, connectionlegacy.WithConnectTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
+			connOpts = append(connOpts, WithConnectTimeout(func(time.Duration) time.Duration { return cs.ConnectTimeout }))
 		}
 
 		if cs.SocketTimeoutSet {
 			connOpts = append(
 				connOpts,
-				connectionlegacy.WithReadTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
-				connectionlegacy.WithWriteTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
+				WithReadTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
+				WithWriteTimeout(func(time.Duration) time.Duration { return cs.SocketTimeout }),
 			)
 		}
 
@@ -86,7 +87,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		}
 
 		if cs.MaxConnIdleTime > 0 {
-			connOpts = append(connOpts, connectionlegacy.WithIdleTimeout(func(time.Duration) time.Duration { return cs.MaxConnIdleTime }))
+			connOpts = append(connOpts, WithIdleTimeout(func(time.Duration) time.Duration { return cs.MaxConnIdleTime }))
 		}
 
 		if cs.MaxPoolSizeSet {
@@ -137,7 +138,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 				x509Username = b.String()
 			}
 
-			connOpts = append(connOpts, connectionlegacy.WithTLSConfig(func(*connectionlegacy.TLSConfig) *connectionlegacy.TLSConfig { return tlsConfig }))
+			connOpts = append(connOpts, WithTLSConfig(func(*tls.Config) *tls.Config { return tlsConfig.Config }))
 		}
 
 		if cs.Username != "" || cs.AuthMechanism == auth.MongoDBX509 || cs.AuthMechanism == auth.GSSAPI {
@@ -170,7 +171,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 				return err
 			}
 
-			connOpts = append(connOpts, connectionlegacy.WithHandshaker(func(h connectionlegacy.Handshaker) connectionlegacy.Handshaker {
+			connOpts = append(connOpts, WithHandshaker(func(h Handshaker) Handshaker {
 				options := &auth.HandshakeOptions{
 					AppName:       cs.AppName,
 					Authenticator: authenticator,
@@ -184,19 +185,19 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 			}))
 		} else {
 			// We need to add a non-auth Handshaker to the connection options
-			connOpts = append(connOpts, connectionlegacy.WithHandshaker(func(h connectionlegacy.Handshaker) connectionlegacy.Handshaker {
-				return &command.Handshake{Client: command.ClientDoc(cs.AppName), Compressors: cs.Compressors}
+			connOpts = append(connOpts, WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
+				return driver.IsMaster().AppName(cs.AppName).Compressors(cs.Compressors)
 			}))
 		}
 
 		if len(cs.Compressors) > 0 {
-			connOpts = append(connOpts, connectionlegacy.WithCompressors(func(compressors []string) []string {
+			connOpts = append(connOpts, WithCompressors(func(compressors []string) []string {
 				return append(compressors, cs.Compressors...)
 			}))
 
 			for _, comp := range cs.Compressors {
 				if comp == "zlib" {
-					connOpts = append(connOpts, connectionlegacy.WithZlibLevel(func(level *int) *int {
+					connOpts = append(connOpts, WithZlibLevel(func(level *int) *int {
 						return &cs.ZlibLevel
 					}))
 				}
@@ -208,7 +209,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		}
 
 		if len(connOpts) > 0 {
-			c.serverOpts = append(c.serverOpts, WithConnectionOptions(func(opts ...connectionlegacy.Option) []connectionlegacy.Option {
+			c.serverOpts = append(c.serverOpts, WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
 				return append(opts, connOpts...)
 			}))
 		}
