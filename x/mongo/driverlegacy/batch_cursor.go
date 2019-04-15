@@ -195,7 +195,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 	}
 
 	defer bc.closeImplicitSession()
-	conn, err := bc.server.Connection(ctx)
+	conn, err := bc.server.ConnectionLegacy(ctx)
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		return
 	}
 
-	conn, err := bc.server.Connection(ctx)
+	conn, err := bc.server.ConnectionLegacy(ctx)
 	if err != nil {
 		bc.err = err
 		return
@@ -299,7 +299,7 @@ func (bc *BatchCursor) legacy() bool {
 }
 
 func (bc *BatchCursor) legacyKillCursor(ctx context.Context) error {
-	conn, err := bc.server.Connection(ctx)
+	conn, err := bc.server.ConnectionLegacy(ctx)
 	if err != nil {
 		return err
 	}
@@ -333,7 +333,7 @@ func (bc *BatchCursor) legacyGetMore(ctx context.Context) {
 		return
 	}
 
-	conn, err := bc.server.Connection(ctx)
+	conn, err := bc.server.ConnectionLegacy(ctx)
 	if err != nil {
 		bc.err = err
 		return
