@@ -8,7 +8,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/network/address"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
@@ -34,18 +33,11 @@ var DefaultDialer Dialer = &net.Dialer{}
 // Handshaker is the interface implemented by types that can perform a MongoDB
 // handshake over a provided driver.Connection. This is used during connection
 // initialization. Implementations must be goroutine safe.
-type Handshaker interface {
-	Handshake(context.Context, address.Address, driver.Connection) (description.Server, error)
-}
+type Handshaker = driver.Handshaker
 
 // HandshakerFunc is an adapter to allow the use of ordinary functions as
 // connection handshakers.
-type HandshakerFunc func(context.Context, address.Address, driver.Connection) (description.Server, error)
-
-// Handshake implements the Handshaker interface.
-func (hf HandshakerFunc) Handshake(ctx context.Context, addr address.Address, conn driver.Connection) (description.Server, error) {
-	return hf(ctx, addr, conn)
-}
+type HandshakerFunc = driver.HandshakerFunc
 
 type connectionConfig struct {
 	appName        string
@@ -60,6 +52,7 @@ type connectionConfig struct {
 	tlsConfig      *tls.Config
 	compressors    []string
 	zlibLevel      *int
+	descCallback   func(description.Server)
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
@@ -82,6 +75,13 @@ func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+func withServerDescriptionCallback(callback func(description.Server), opts ...ConnectionOption) []ConnectionOption {
+	return append(opts, ConnectionOption(func(c *connectionConfig) error {
+		c.descCallback = callback
+		return nil
+	}))
 }
 
 // ConnectionOption is used to configure a connection.

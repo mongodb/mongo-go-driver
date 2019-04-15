@@ -39,7 +39,7 @@ func ListIndexes(
 		return nil, err
 	}
 
-	conn, err := ss.Connection(ctx)
+	conn, err := ss.ConnectionLegacy(ctx)
 	if err != nil {
 		return nil, err
 	}

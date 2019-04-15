@@ -89,7 +89,7 @@ func prep(ctx context.Context, c *topology.Topology) error {
 		return err
 	}
 
-	conn, err := s.Connection(ctx)
+	conn, err := s.ConnectionLegacy(ctx)
 	if err != nil {
 		return err
 	}

@@ -24,14 +24,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
-	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
 
@@ -361,10 +360,10 @@ func createRetryMonitoredTopology(t *testing.T, clock *session.ClusterClock, mon
 		topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
 			return append(
 				opts,
-				topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+				topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
 					return append(
 						opts,
-						connection.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
+						topology.WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
 							return monitor
 						}),
 					)

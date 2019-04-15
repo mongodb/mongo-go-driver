@@ -1,6 +1,9 @@
 # Topology Package Design
 This document outlines the design for this package.
 
+## Server
+The `Server` type handles heartbeating a MongoDB server and holds a pool of connections.
+
 ## Connection
 Connections are handled by two main types and an auxiliary type. The two main types are `connection`
 and `Connection`. The first holds most of the logic required to actually read and write wire
