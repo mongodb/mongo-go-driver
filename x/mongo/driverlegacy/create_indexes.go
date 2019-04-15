@@ -43,7 +43,7 @@ func CreateIndexes(
 		return result.CreateIndexes{}, ErrCollation
 	}
 
-	conn, err := ss.Connection(ctx)
+	conn, err := ss.ConnectionLegacy(ctx)
 	if err != nil {
 		return result.CreateIndexes{}, err
 	}

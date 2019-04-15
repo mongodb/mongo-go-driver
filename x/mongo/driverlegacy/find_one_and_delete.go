@@ -121,7 +121,7 @@ func findOneAndDelete(
 	oldErr error,
 ) (result.FindAndModify, error) {
 	desc := ss.Description()
-	conn, err := ss.Connection(ctx)
+	conn, err := ss.ConnectionLegacy(ctx)
 	if err != nil {
 		if oldErr != nil {
 			return result.FindAndModify{}, oldErr
