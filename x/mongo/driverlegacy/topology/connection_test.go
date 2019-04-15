@@ -64,7 +64,7 @@ func (c connect) ID() string {
 // Test case for sconn processErr
 func TestConnectionProcessErrSpec(t *testing.T) {
 	ctx := context.Background()
-	s, err := NewServer(address.Address("localhost"), nil)
+	s, err := NewServer(address.Address("localhost"))
 	require.NoError(t, err)
 
 	desc := s.Description()
