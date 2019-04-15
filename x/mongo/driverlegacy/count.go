@@ -40,7 +40,7 @@ func Count(
 	}
 
 	desc := ss.Description()
-	conn, err := ss.Connection(ctx)
+	conn, err := ss.ConnectionLegacy(ctx)
 	if err != nil {
 		return 0, err
 	}

@@ -12,7 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
-	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
 )
 
 var defaultRegistry = bson.NewRegistryBuilder().Build()
@@ -20,7 +19,7 @@ var defaultRegistry = bson.NewRegistryBuilder().Build()
 type serverConfig struct {
 	clock             *session.ClusterClock
 	compressionOpts   []string
-	connectionOpts    []connectionlegacy.Option
+	connectionOpts    []ConnectionOption
 	appname           string
 	heartbeatInterval time.Duration
 	heartbeatTimeout  time.Duration
@@ -52,7 +51,7 @@ func newServerConfig(opts ...ServerOption) (*serverConfig, error) {
 type ServerOption func(*serverConfig) error
 
 // WithConnectionOptions configures the server's connections.
-func WithConnectionOptions(fn func(...connectionlegacy.Option) []connectionlegacy.Option) ServerOption {
+func WithConnectionOptions(fn func(...ConnectionOption) []ConnectionOption) ServerOption {
 	return func(cfg *serverConfig) error {
 		cfg.connectionOpts = fn(cfg.connectionOpts...)
 		return nil

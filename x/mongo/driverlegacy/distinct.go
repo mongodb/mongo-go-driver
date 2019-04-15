@@ -41,7 +41,7 @@ func Distinct(
 	}
 
 	desc := ss.Description()
-	conn, err := ss.Connection(ctx)
+	conn, err := ss.ConnectionLegacy(ctx)
 	if err != nil {
 		return result.Distinct{}, err
 	}

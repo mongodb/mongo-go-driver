@@ -125,7 +125,7 @@ func update(
 ) (result.Update, error) {
 	desc := ss.Description()
 
-	conn, err := ss.Connection(ctx)
+	conn, err := ss.ConnectionLegacy(ctx)
 	if err != nil {
 		if oldErr != nil {
 			return result.Update{}, oldErr

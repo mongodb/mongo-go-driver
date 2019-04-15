@@ -49,10 +49,10 @@ func TestTopologyTopology(t *testing.T) {
 				topology.WithServerOptions(func(opts ...topology.ServerOption) []topology.ServerOption {
 					return append(
 						opts,
-						topology.WithConnectionOptions(func(opts ...connection.Option) []connection.Option {
+						topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
 							return append(
 								opts,
-								connection.WithDialer(func(connection.Dialer) connection.Dialer { return d }),
+								topology.WithDialer(func(topology.Dialer) topology.Dialer { return d }),
 							)
 						}),
 					)
@@ -66,7 +66,7 @@ func TestTopologyTopology(t *testing.T) {
 
 			conns := [3]connection.Connection{}
 			for idx := range [3]struct{}{} {
-				conns[idx], err = ss.Connection(context.TODO())
+				conns[idx], err = ss.ConnectionLegacy(context.TODO())
 				noerr(t, err)
 			}
 			for idx := range [2]struct{}{} {

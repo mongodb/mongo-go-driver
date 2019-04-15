@@ -125,7 +125,7 @@ func (t *Topology) Connect(ctx context.Context) error {
 	for _, a := range t.cfg.seedList {
 		addr := address.Address(a).Canonicalize()
 		t.fsm.Servers = append(t.fsm.Servers, description.Server{Addr: addr})
-		err = t.addServer(ctx, addr)
+		err = t.addServer(addr)
 	}
 	t.serversLock.Unlock()
 
@@ -360,7 +360,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) {
 	}
 
 	for _, added := range diff.Added {
-		_ = t.addServer(ctx, added.Addr)
+		_ = t.addServer(added.Addr)
 	}
 
 	t.desc.Store(current)
@@ -378,7 +378,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) {
 
 }
 
-func (t *Topology) addServer(ctx context.Context, addr address.Address) error {
+func (t *Topology) addServer(addr address.Address) error {
 	if _, ok := t.servers[addr]; ok {
 		return nil
 	}
@@ -386,7 +386,7 @@ func (t *Topology) addServer(ctx context.Context, addr address.Address) error {
 	topoFunc := func(desc description.Server) {
 		t.apply(context.TODO(), desc)
 	}
-	svr, err := ConnectServer(ctx, addr, topoFunc, t.cfg.serverOpts...)
+	svr, err := ConnectServer(addr, topoFunc, t.cfg.serverOpts...)
 	if err != nil {
 		return err
 	}
