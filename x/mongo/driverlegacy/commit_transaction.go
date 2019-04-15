@@ -78,7 +78,7 @@ func commitTransaction(
 		return result.TransactionResult{}, oldErr
 	}
 
-	conn, err := ss.Connection(ctx)
+	conn, err := ss.ConnectionLegacy(ctx)
 	if err != nil {
 		if oldErr != nil {
 			return result.TransactionResult{}, oldErr

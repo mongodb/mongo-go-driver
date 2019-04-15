@@ -62,7 +62,7 @@ func TestCommandListCollections(t *testing.T) {
 
 		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
 		noerr(t, err)
-		conn, err := server.Connection(context.Background())
+		conn, err := server.ConnectionLegacy(context.Background())
 		noerr(t, err)
 
 		_, err = (&command.ListCollections{}).RoundTrip(context.Background(), server.SelectedDescription(), conn)

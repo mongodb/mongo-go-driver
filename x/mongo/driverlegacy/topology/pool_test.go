@@ -275,8 +275,9 @@ func TestPool(t *testing.T) {
 			close(cleanup)
 		})
 		t.Run("return error when attempting to create new connection", func(t *testing.T) {
-			want := errors.New("create new connection error")
-			var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) { return nil, want }
+			wanterr := errors.New("create new connection error")
+			var want error = ConnectionError{Wrapped: wanterr, init: true}
+			var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) { return nil, wanterr }
 			p := newPool(address.Address(""), 2, WithDialer(func(Dialer) Dialer { return dialer }))
 			err := p.connect()
 			noerr(t, err)
