@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/network/address"
 	"go.mongodb.org/mongo-driver/x/network/description"
@@ -53,9 +54,12 @@ type connectionConfig struct {
 	handshaker     Handshaker
 	idleTimeout    time.Duration
 	lifeTimeout    time.Duration
+	cmdMonitor     *event.CommandMonitor
 	readTimeout    time.Duration
 	writeTimeout   time.Duration
 	tlsConfig      *tls.Config
+	compressors    []string
+	zlibLevel      *int
 }
 
 func newConnectionConfig(opts ...ConnectionOption) (*connectionConfig, error) {
@@ -88,6 +92,14 @@ type ConnectionOption func(*connectionConfig) error
 func WithAppName(fn func(string) string) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.appName = fn(c.appName)
+		return nil
+	}
+}
+
+// WithCompressors sets the compressors that can be used for communication.
+func WithCompressors(fn func([]string) []string) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.compressors = fn(c.compressors)
 		return nil
 	}
 }
@@ -154,6 +166,22 @@ func WithWriteTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
 func WithTLSConfig(fn func(*tls.Config) *tls.Config) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.tlsConfig = fn(c.tlsConfig)
+		return nil
+	}
+}
+
+// WithMonitor configures a event for command monitoring.
+func WithMonitor(fn func(*event.CommandMonitor) *event.CommandMonitor) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.cmdMonitor = fn(c.cmdMonitor)
+		return nil
+	}
+}
+
+// WithZlibLevel sets the zLib compression level.
+func WithZlibLevel(fn func(*int) *int) ConnectionOption {
+	return func(c *connectionConfig) error {
+		c.zlibLevel = fn(c.zlibLevel)
 		return nil
 	}
 }
