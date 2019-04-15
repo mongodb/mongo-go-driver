@@ -105,12 +105,12 @@ type Server struct {
 
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(ctx context.Context, addr address.Address, topo func(description.Server), opts ...ServerOption) (*Server, error) {
-	srvr, err := NewServer(addr, topo, opts...)
+func ConnectServer(addr address.Address, topo func(description.Server), opts ...ServerOption) (*Server, error) {
+	srvr, err := NewServer(addr, opts...)
 	if err != nil {
 		return nil, err
 	}
-	err = srvr.Connect(ctx)
+	err = srvr.Connect(topo)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func ConnectServer(ctx context.Context, addr address.Address, topo func(descript
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, topo func(description.Server), opts ...ServerOption) (*Server, error) {
+func NewServer(addr address.Address, opts ...ServerOption) (*Server, error) {
 	cfg, err := newServerConfig(opts...)
 	if err != nil {
 		return nil, err
@@ -135,7 +135,6 @@ func NewServer(addr address.Address, topo func(description.Server), opts ...Serv
 		subscribers: make(map[uint64]chan description.Server),
 	}
 	s.desc.Store(description.Server{Addr: addr})
-	s.updateTopologyCallback.Store(topo)
 
 	var maxConns uint64
 	if cfg.maxConns == 0 {
@@ -154,14 +153,15 @@ func NewServer(addr address.Address, topo func(description.Server), opts ...Serv
 
 // Connect initialzies the Server by starting background monitoring goroutines.
 // This method must be called before a Server can be used.
-func (s *Server) Connect(ctx context.Context) error {
+func (s *Server) Connect(topo func(description.Server)) error {
 	if !atomic.CompareAndSwapInt32(&s.connectionstate, disconnected, connected) {
 		return ErrServerConnected
 	}
 	s.desc.Store(description.Server{Addr: s.address})
+	s.updateTopologyCallback.Store(topo)
 	go s.update()
 	s.closewg.Add(1)
-	return s.pool.Connect(ctx)
+	return s.pool.Connect(nil)
 }
 
 // Disconnect closes sockets to the server referenced by this Server.
@@ -378,8 +378,8 @@ func (s *Server) updateDescription(desc description.Server, initial bool) {
 	}()
 	s.desc.Store(desc)
 
-	topo := s.updateTopologyCallback.Load().(func(description.Server))
-	if topo != nil {
+	topo, ok := s.updateTopologyCallback.Load().(func(description.Server))
+	if ok && topo != nil {
 		topo(desc)
 	}
 
