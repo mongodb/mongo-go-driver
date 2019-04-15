@@ -8,10 +8,13 @@ package topology
 
 import (
 	"context"
+	"net"
 	"sync/atomic"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
 	"go.mongodb.org/mongo-driver/x/network/address"
 	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
@@ -72,9 +75,35 @@ func TestServer(t *testing.T) {
 		{"network_error_desc", false, true, true},
 	}
 
+	authErr := ConnectionError{Wrapped: &auth.Error{}}
+	netErr := ConnectionError{Wrapped: &net.AddrError{}}
 	for _, tt := range serverTestTable {
 		t.Run(tt.name, func(t *testing.T) {
-			s, err := NewServer(address.Address("localhost"), nil)
+			s, err := NewServer(
+				address.Address("localhost"),
+				WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
+					return append(connOpts,
+						WithHandshaker(func(Handshaker) Handshaker {
+							return HandshakerFunc(func(context.Context, address.Address, driver.Connection) (description.Server, error) {
+								var err error
+								if tt.connectionError {
+									err = authErr.Wrapped
+								}
+								return description.Server{}, err
+							})
+						}),
+						WithDialer(func(Dialer) Dialer {
+							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+								var err error
+								if tt.networkError {
+									err = netErr.Wrapped
+								}
+								return &net.TCPConn{}, err
+							})
+						}),
+					)
+				}),
+			)
 			require.NoError(t, err)
 
 			var desc *description.Server
@@ -83,35 +112,40 @@ func TestServer(t *testing.T) {
 				desc = &descript
 				require.Nil(t, desc.LastError)
 			}
-			s.pool, err = NewTestPool(tt.connectionError, tt.networkError, desc)
 			s.connectionstate = connected
+			s.pool.connected = connected
 
-			_, err = s.Connection(context.Background())
+			_, err = s.ConnectionLegacy(context.Background())
 
-			if tt.connectionError || tt.networkError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
+			switch {
+			case tt.connectionError && !cmp.Equal(err, authErr, cmp.Comparer(compareErrors)):
+				t.Errorf("Expected connection error. got %v; want %v", err, authErr)
+			case tt.networkError && !cmp.Equal(err, netErr, cmp.Comparer(compareErrors)):
+				t.Errorf("Expected network error. got %v; want %v", err, netErr)
+			case !tt.connectionError && !tt.networkError && err != nil:
+				t.Errorf("Expected error to be nil. got %v; want %v", err, "<nil>")
 			}
 
 			if tt.hasDesc {
-				require.Equal(t, desc.Kind, (description.ServerKind)(description.Unknown))
-				require.NotNil(t, desc.LastError)
+				require.Equal(t, s.Description().Kind, (description.ServerKind)(description.Unknown))
+				require.NotNil(t, s.Description().LastError)
 			}
-			drained := s.pool.(*testpool).drainCalled.Load().(bool)
-			require.Equal(t, drained, tt.connectionError || tt.networkError)
+
+			if (tt.connectionError || tt.networkError) && s.pool.generation != 1 {
+				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", s.pool.generation, 1)
+			}
 		})
 	}
 	t.Run("WriteConcernError", func(t *testing.T) {
-		s, err := NewServer(address.Address("localhost"), nil)
+		s, err := NewServer(address.Address("localhost"))
 		require.NoError(t, err)
 
 		var desc *description.Server
 		descript := s.Description()
 		desc = &descript
 		require.Nil(t, desc.LastError)
-		s.pool, err = NewTestPool(false, false, desc)
 		s.connectionstate = connected
+		s.pool.connected = connected
 
 		wce := result.WriteConcernError{10107, "not master", []byte{}}
 		require.Equal(t, wceIsNotMasterOrRecovering(&wce), true)
@@ -123,19 +157,20 @@ func TestServer(t *testing.T) {
 		require.Equal(t, resultDesc.LastError, &wce)
 
 		// pool should be drained
-		drained := s.pool.(*testpool).drainCalled.Load().(bool)
-		require.Equal(t, drained, true)
+		if s.pool.generation != 1 {
+			t.Errorf("Expected pool to be drained once from a write concern error. got %d; want %d", s.pool.generation, 1)
+		}
 	})
 	t.Run("no WriteConcernError", func(t *testing.T) {
-		s, err := NewServer(address.Address("localhost"), nil)
+		s, err := NewServer(address.Address("localhost"))
 		require.NoError(t, err)
 
 		var desc *description.Server
 		descript := s.Description()
 		desc = &descript
 		require.Nil(t, desc.LastError)
-		s.pool, err = NewTestPool(false, false, desc)
 		s.connectionstate = connected
+		s.pool.connected = connected
 
 		wce := result.WriteConcernError{}
 		require.Equal(t, wceIsNotMasterOrRecovering(&wce), false)
@@ -145,12 +180,13 @@ func TestServer(t *testing.T) {
 		require.Nil(t, s.Description().LastError)
 
 		// pool should not be drained
-		drained := s.pool.(*testpool).drainCalled.Load().(bool)
-		require.Equal(t, drained, false)
+		if s.pool.generation != 0 {
+			t.Errorf("Expected pool to not be drained. got %d; want %d", s.pool.generation, 0)
+		}
 	})
 	t.Run("update topology", func(t *testing.T) {
 		var updated bool
-		s, err := NewServer(address.Address("localhost"), func(description.Server) { updated = true })
+		s, err := ConnectServer(address.Address("localhost"), func(description.Server) { updated = true })
 		require.NoError(t, err)
 		s.updateDescription(description.Server{Addr: s.address}, false)
 		require.True(t, updated)

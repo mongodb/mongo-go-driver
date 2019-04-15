@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 )
@@ -60,7 +61,12 @@ func noerr(t *testing.T, err error) {
 
 func autherr(t *testing.T, err error) {
 	t.Helper()
-	switch err.(type) {
+	switch e := err.(type) {
+	case topology.ConnectionError:
+		_, ok := e.Wrapped.(*auth.Error)
+		if !ok {
+			t.Fatal("Expected auth error and didn't get one")
+		}
 	case *auth.Error:
 		return
 	default:
