@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"crypto/tls"
 	"strings"
 	"time"
 
@@ -18,13 +19,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/uuid"
 	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
@@ -195,7 +196,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		return err
 	}
 
-	var connOpts []connection.Option
+	var connOpts []topology.ConnectionOption
 	var serverOpts []topology.ServerOption
 	var topologyOpts []topology.Option
 
@@ -211,7 +212,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if len(opts.Compressors) > 0 {
 		comps = opts.Compressors
 
-		connOpts = append(connOpts, connection.WithCompressors(
+		connOpts = append(connOpts, topology.WithCompressors(
 			func(compressors []string) []string {
 				return append(compressors, comps...)
 			},
@@ -219,7 +220,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 
 		for _, comp := range comps {
 			if comp == "zlib" {
-				connOpts = append(connOpts, connection.WithZlibLevel(func(level *int) *int {
+				connOpts = append(connOpts, topology.WithZlibLevel(func(level *int) *int {
 					return opts.ZlibLevel
 				}))
 			}
@@ -230,8 +231,8 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		))
 	}
 	// Handshaker
-	var handshaker = func(connection.Handshaker) connection.Handshaker {
-		return &command.Handshake{Client: command.ClientDoc(appName), Compressors: comps}
+	var handshaker = func(driver.Handshaker) driver.Handshaker {
+		return driver.IsMaster().AppName(appName).Compressors(comps)
 	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
@@ -274,24 +275,24 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 			}
 		}
 
-		handshaker = func(connection.Handshaker) connection.Handshaker {
+		handshaker = func(driver.Handshaker) driver.Handshaker {
 			return auth.Handshaker(nil, handshakeOpts)
 		}
 	}
-	connOpts = append(connOpts, connection.WithHandshaker(handshaker))
+	connOpts = append(connOpts, topology.WithHandshaker(handshaker))
 	// ConnectTimeout
 	if opts.ConnectTimeout != nil {
 		serverOpts = append(serverOpts, topology.WithHeartbeatTimeout(
 			func(time.Duration) time.Duration { return *opts.ConnectTimeout },
 		))
-		connOpts = append(connOpts, connection.WithConnectTimeout(
+		connOpts = append(connOpts, topology.WithConnectTimeout(
 			func(time.Duration) time.Duration { return *opts.ConnectTimeout },
 		))
 	}
 	// Dialer
 	if opts.Dialer != nil {
-		connOpts = append(connOpts, connection.WithDialer(
-			func(connection.Dialer) connection.Dialer { return opts.Dialer },
+		connOpts = append(connOpts, topology.WithDialer(
+			func(topology.Dialer) topology.Dialer { return opts.Dialer },
 		))
 	}
 	// Direct
@@ -320,7 +321,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	}
 	// MaxConIdleTime
 	if opts.MaxConnIdleTime != nil {
-		connOpts = append(connOpts, connection.WithIdleTimeout(
+		connOpts = append(connOpts, topology.WithIdleTimeout(
 			func(time.Duration) time.Duration { return *opts.MaxConnIdleTime },
 		))
 	}
@@ -334,7 +335,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	}
 	// Monitor
 	if opts.Monitor != nil {
-		connOpts = append(connOpts, connection.WithMonitor(
+		connOpts = append(connOpts, topology.WithMonitor(
 			func(*event.CommandMonitor) *event.CommandMonitor { return opts.Monitor },
 		))
 	}
@@ -373,15 +374,15 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.SocketTimeout != nil {
 		connOpts = append(
 			connOpts,
-			connection.WithReadTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
-			connection.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
+			topology.WithReadTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
+			topology.WithWriteTimeout(func(time.Duration) time.Duration { return *opts.SocketTimeout }),
 		)
 	}
 	// TLSConfig
 	if opts.TLSConfig != nil {
-		connOpts = append(connOpts, connection.WithTLSConfig(
-			func(*connection.TLSConfig) *connection.TLSConfig {
-				return &connection.TLSConfig{Config: opts.TLSConfig}
+		connOpts = append(connOpts, topology.WithTLSConfig(
+			func(*tls.Config) *tls.Config {
+				return opts.TLSConfig
 			},
 		))
 	}
@@ -396,7 +397,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	serverOpts = append(
 		serverOpts,
 		topology.WithClock(func(*session.ClusterClock) *session.ClusterClock { return c.clock }),
-		topology.WithConnectionOptions(func(...connection.Option) []connection.Option { return connOpts }),
+		topology.WithConnectionOptions(func(...topology.ConnectionOption) []topology.ConnectionOption { return connOpts }),
 	)
 	c.topologyOptions = append(topologyOpts, topology.WithServerOptions(
 		func(...topology.ServerOption) []topology.ServerOption { return serverOpts },
