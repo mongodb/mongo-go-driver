@@ -334,7 +334,7 @@ func killSessions(t *testing.T, client *Client) {
 		DB:      "admin",
 		Command: bsonx.Doc{{"killAllSessions", bsonx.Array(vals)}},
 	}
-	conn, err := s.Connection(ctx)
+	conn, err := s.ConnectionLegacy(ctx)
 	require.NoError(t, err)
 	defer testhelpers.RequireNoErrorOnClose(t, conn)
 	// ignore the error because command kills its own implicit session

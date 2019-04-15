@@ -64,7 +64,7 @@ func (c connect) ID() string {
 // Test case for sconn processErr
 func TestConnectionProcessErrSpec(t *testing.T) {
 	ctx := context.Background()
-	s, err := NewServer(address.Address("localhost"), nil)
+	s, err := NewServer(address.Address("localhost"))
 	require.NoError(t, err)
 
 	desc := s.Description()
@@ -94,30 +94,54 @@ func TestConnection(t *testing.T) {
 				}
 			})
 			t.Run("dialer error", func(t *testing.T) {
-				want := errors.New("dialer error")
+				err := errors.New("dialer error")
+				var want error = ConnectionError{Wrapped: err}
 				_, got := newConnection(context.Background(), address.Address(""), WithDialer(func(Dialer) Dialer {
-					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, want })
+					return DialerFunc(func(context.Context, string, string) (net.Conn, error) { return nil, err })
 				}))
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
 				}
 			})
 			t.Run("handshaker error", func(t *testing.T) {
-				want := errors.New("handshaker error")
+				err := errors.New("handshaker error")
+				var want error = ConnectionError{Wrapped: err}
 				_, got := newConnection(context.Background(), address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return HandshakerFunc(func(context.Context, address.Address, driver.Connection) (description.Server, error) {
-							return description.Server{}, want
+							return description.Server{}, err
 						})
 					}),
 					WithDialer(func(Dialer) Dialer {
 						return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
-							return net.Conn(nil), nil
+							return &net.TCPConn{}, nil
 						})
 					}),
 				)
 				if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 					t.Errorf("errors do not match. got %v; want %v", got, want)
+				}
+			})
+			t.Run("calls description callback", func(t *testing.T) {
+				want := description.Server{Addr: address.Address("1.2.3.4:56789")}
+				var got description.Server
+				_, err := newConnection(context.Background(), address.Address(""),
+					withServerDescriptionCallback(func(desc description.Server) { got = desc },
+						WithHandshaker(func(Handshaker) Handshaker {
+							return HandshakerFunc(func(context.Context, address.Address, driver.Connection) (description.Server, error) {
+								return want, nil
+							})
+						}),
+						WithDialer(func(Dialer) Dialer {
+							return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+								return &net.TCPConn{}, nil
+							})
+						}),
+					)...,
+				)
+				noerr(t, err)
+				if !cmp.Equal(got, want) {
+					t.Errorf("Server descriptions do not match. got %v; want %v", got, want)
 				}
 			})
 		})
