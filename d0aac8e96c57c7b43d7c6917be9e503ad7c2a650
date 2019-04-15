@@ -16,6 +16,24 @@
       "revId": "d0aac8e96c57c7b43d7c6917be9e503ad7c2a650",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "950eb9d4_f34ad3ac",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-15T14:22:38Z",
+      "side": 1,
+      "message": "The tests in polling_srv_spec_tests mock the DNS server replies and all depend on this function working properly, unless there are other tests you were thinking of?",
+      "parentUuid": "c8e219b4_48cffa58",
+      "revId": "d0aac8e96c57c7b43d7c6917be9e503ad7c2a650",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
