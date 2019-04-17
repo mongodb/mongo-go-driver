@@ -52,6 +52,24 @@
       "revId": "d0aac8e96c57c7b43d7c6917be9e503ad7c2a650",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "70d16534_2d3ba9e6",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 354,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-17T15:27:30Z",
+      "side": 1,
+      "message": "I\u0027ve added some tests that cover everything but the subscription draining, but the tests also depend on the subscription returning up-to-date descriptions.",
+      "parentUuid": "77982412_81c5721d",
+      "revId": "d0aac8e96c57c7b43d7c6917be9e503ad7c2a650",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
