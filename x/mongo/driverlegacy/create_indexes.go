@@ -33,7 +33,7 @@ func CreateIndexes(
 	opts ...*options.CreateIndexesOptions,
 ) (result.CreateIndexes, error) {
 
-	ss, err := topo.SelectServer(ctx, selector)
+	ss, err := topo.SelectServerLegacy(ctx, selector)
 	if err != nil {
 		return result.CreateIndexes{}, err
 	}

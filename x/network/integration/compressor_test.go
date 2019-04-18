@@ -27,7 +27,7 @@ func TestCompression(t *testing.T) {
 		t.Skip("Skipping because no compressor specified")
 	}
 
-	server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	server, err := testutil.Topology(t).SelectServerLegacy(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
 	wc := writeconcern.New(writeconcern.WMajority())

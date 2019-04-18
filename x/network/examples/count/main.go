@@ -44,7 +44,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = t.Connect(context.Background())
+	err = t.Connect()
 	if err != nil {
 		log.Fatal(err)
 	}
