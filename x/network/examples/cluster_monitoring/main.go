@@ -7,7 +7,6 @@
 package main
 
 import (
-	"context"
 	"log"
 
 	"github.com/kr/pretty"
@@ -19,7 +18,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not create topology: %v", err)
 	}
-	err = topo.Connect(context.Background())
+	err = topo.Connect()
 	if err != nil {
 		log.Fatalf("could not create topology: %v", err)
 	}

@@ -55,7 +55,7 @@ func TestFindPassesMaxAwaitTimeMSThroughToGetMore(t *testing.T) {
 	colName := testutil.ColName(t)
 
 	topo := testutil.MonitoredTopology(t, dbName, monitor)
-	server, err := topo.SelectServer(context.Background(), description.WriteSelector())
+	server, err := topo.SelectServerLegacy(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
 	// create capped collection
