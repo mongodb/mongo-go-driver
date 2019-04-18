@@ -36,7 +36,7 @@ func Delete(
 	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
 		selector = cmd.Session.PinnedServer
 	}
-	ss, err := topo.SelectServer(ctx, selector)
+	ss, err := topo.SelectServerLegacy(ctx, selector)
 	if err != nil {
 		return result.Delete{}, err
 	}
@@ -78,7 +78,7 @@ func Delete(
 	// Retry if appropriate
 	if cerr, ok := originalErr.(command.Error); (ok && cerr.Retryable()) ||
 		(res.WriteConcernError != nil && command.IsWriteConcernErrorRetryable(res.WriteConcernError)) {
-		ss, err := topo.SelectServer(ctx, selector)
+		ss, err := topo.SelectServerLegacy(ctx, selector)
 
 		// Return original error if server selection fails or new server does not support retryable writes
 		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {

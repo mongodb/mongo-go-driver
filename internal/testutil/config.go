@@ -101,8 +101,8 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 	if err != nil {
 		t.Fatal(err)
 	} else {
-		monitoredTopology.Connect(context.Background())
-		s, err := monitoredTopology.SelectServer(context.Background(), description.WriteSelector())
+		monitoredTopology.Connect()
+		s, err := monitoredTopology.SelectServerLegacy(context.Background(), description.WriteSelector())
 		require.NoError(t, err)
 
 		c, err := s.ConnectionLegacy(context.Background())
@@ -145,8 +145,8 @@ func GlobalMonitoredTopology(t *testing.T, monitor *event.CommandMonitor) *topol
 		if err != nil {
 			monitoredTopologyErr = err
 		} else {
-			monitoredTopology.Connect(context.Background())
-			s, err := monitoredTopology.SelectServer(context.Background(), description.WriteSelector())
+			monitoredTopology.Connect()
+			s, err := monitoredTopology.SelectServerLegacy(context.Background(), description.WriteSelector())
 			require.NoError(t, err)
 
 			c, err := s.ConnectionLegacy(context.Background())
@@ -177,8 +177,8 @@ func Topology(t *testing.T) *topology.Topology {
 		if err != nil {
 			liveTopologyErr = err
 		} else {
-			liveTopology.Connect(context.Background())
-			s, err := liveTopology.SelectServer(context.Background(), description.WriteSelector())
+			liveTopology.Connect()
+			s, err := liveTopology.SelectServerLegacy(context.Background(), description.WriteSelector())
 			require.NoError(t, err)
 
 			c, err := s.ConnectionLegacy(context.Background())
@@ -206,7 +206,7 @@ func TopologyWithConnString(t *testing.T, cs connstring.ConnString) *topology.To
 	if err != nil {
 		t.Fatal("Could not construct topology")
 	}
-	err = topology.Connect(context.Background())
+	err = topology.Connect()
 	if err != nil {
 		t.Fatal("Could not start topology connection")
 	}
