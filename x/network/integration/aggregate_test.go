@@ -89,7 +89,7 @@ func TestCommandAggregate(t *testing.T) {
 		// }
 	})
 	t.Run("AllowDiskUse", func(t *testing.T) {
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+		server, err := testutil.Topology(t).SelectServerLegacy(context.Background(), description.WriteSelector())
 		noerr(t, err)
 		conn, err := server.ConnectionLegacy(context.Background())
 		noerr(t, err)

@@ -30,6 +30,13 @@ type Connection interface {
 	Address() address.Address
 }
 
+// Compressor is an interface used to compress wire messages. If a Connection supports compression
+// it should implement this interface as well. The CompressWireMessage method will be called during
+// the execution of an operation if the wire message is allowed to be compressed.
+type Compressor interface {
+	CompressWireMessage(src, dst []byte) ([]byte, error)
+}
+
 // ErrorProcessor implementations can handle processing errors, which may modify their internal state.
 // If this type is implemented by a Server, then Operation.Execute will call it's ProcessError
 // method after it decodes a wire message.
@@ -79,7 +86,8 @@ var _ Deployment = SingleConnectionDeployment{}
 var _ Server = SingleConnectionDeployment{}
 
 // SelectServer implements the Deployment interface. This method does not use the
-// description.SelectedServer provided and instead returns itself.
+// description.SelectedServer provided and instead returns itself. The Connections returned from the
+// Connection method have a no-op Close method.
 func (ssd SingleConnectionDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
 	return ssd, nil
 }
@@ -92,9 +100,19 @@ func (ssd SingleConnectionDeployment) SupportsRetry() bool { return false }
 func (ssd SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
 
 // Connection implements the Server interface. It always returns the embedded connection.
+//
+// This method returns a Connection with a no-op Close method. This ensures that a
+// SingleConnectionDeployment can be used across multiple operation executions.
 func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, error) {
-	return ssd.C, nil
+	return nopCloserConnection{ssd.C}, nil
 }
+
+// nopCloserConnection is an adapter used in a SingleConnectionDeployment. It passes through all
+// functionality expcect for closing, which is a no-op. This is done so the connection can be used
+// across multiple operations.
+type nopCloserConnection struct{ Connection }
+
+func (ncc nopCloserConnection) Close() error { return nil }
 
 // TODO(GODRUVER-617): We can likely use 1 type for both the RetryType and the RetryMode by using
 // 2 bits for the mode and 1 bit for the type. Although in the practical sense, we might not want to
