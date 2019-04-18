@@ -24,7 +24,7 @@ func EndSessions(
 	selector description.ServerSelector,
 ) ([]result.EndSessions, []error) {
 
-	ss, err := topo.SelectServer(ctx, selector)
+	ss, err := topo.SelectServerLegacy(ctx, selector)
 	if err != nil {
 		return nil, []error{err}
 	}

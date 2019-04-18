@@ -1,12 +1,16 @@
 package driver
 
 import (
+	"bytes"
+	"compress/zlib"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"time"
 
+	"github.com/golang/snappy"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -159,6 +163,14 @@ func (oc OperationContext) Execute(ctx context.Context) error {
 			return err
 		}
 
+		// compress wiremessage if allowed
+		if compressor, ok := conn.(Compressor); ok && oc.canCompress("") {
+			wm, err = compressor.CompressWireMessage(wm, nil)
+			if err != nil {
+				return err
+			}
+		}
+
 		// roundtrip
 		res, err = oc.roundTrip(ctx, conn, wm)
 
@@ -242,7 +254,7 @@ func (oc OperationContext) Execute(ctx context.Context) error {
 
 // roundTrip writes a wiremessage to the connection, reads a wiremessage, and then decodes the
 // response into a result or an error. The wm parameter is reused when reading the wiremessage.
-func (OperationContext) roundTrip(ctx context.Context, conn Connection, wm []byte) (bsoncore.Document, error) {
+func (oc OperationContext) roundTrip(ctx context.Context, conn Connection, wm []byte) (bsoncore.Document, error) {
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
@@ -252,7 +264,68 @@ func (OperationContext) roundTrip(ctx context.Context, conn Connection, wm []byt
 	if err != nil {
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
+	res, err = oc.decompressWireMessage(res)
+	if err != nil {
+		return nil, err
+	}
 	return decodeResult(res)
+}
+
+// decompressWireMessage handles decompressing a wiremessage. If the wiremessage
+// is not compressed, this method will return the wiremessage.
+func (oc OperationContext) decompressWireMessage(wm []byte) ([]byte, error) {
+	// read the header and ensure this is a compressed wire message
+	length, reqid, respto, opcode, rem, ok := wiremessagex.ReadHeader(wm)
+	if !ok || len(wm) < int(length) {
+		return nil, errors.New("malformed wire message: insufficient bytes")
+	}
+	if opcode != wiremessage.OpCompressed {
+		return wm, nil
+	}
+	// get the original opcode and uncompressed size
+	opcode, rem, ok = wiremessagex.ReadCompressedOriginalOpCode(rem)
+	if !ok {
+		return nil, errors.New("malformed OP_COMPRESSED: missing original opcode")
+	}
+	uncompressedSize, rem, ok := wiremessagex.ReadCompressedUncompressedSize(rem)
+	if !ok {
+		return nil, errors.New("malformed OP_COMPRESSED: missing uncompressed size")
+	}
+	// get the compressor ID and decompress the message
+	compressorID, rem, ok := wiremessagex.ReadCompressedCompressorID(rem)
+	if !ok {
+		return nil, errors.New("malformed OP_COMPRESSED: missing compressor ID")
+	}
+	compressedSize := length - 25 // header (16) + original opcode (4) + uncompressed size (4) + compressor ID (1)
+	// return the original wiremessage
+	msg, rem, ok := wiremessagex.ReadCompressedCompressedMessage(rem, compressedSize)
+	if !ok {
+		return nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
+	}
+
+	uncompressed := make([]byte, 0, uncompressedSize+16)
+	uncompressed = wiremessagex.AppendHeader(uncompressed, uncompressedSize+16, reqid, respto, opcode)
+	switch compressorID {
+	case wiremessage.CompressorSnappy:
+		var err error
+		uncompressed, err = snappy.Decode(uncompressed, msg)
+		if err != nil {
+			return nil, err
+		}
+	case wiremessage.CompressorZLib:
+		decompressor, err := zlib.NewReader(bytes.NewReader(msg))
+		if err != nil {
+			return nil, err
+		}
+		uncompressed = uncompressed[:uncompressedSize+16]
+		_, err = io.ReadFull(decompressor, uncompressed[16:])
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unknown compressorID %d", compressorID)
+	}
+	return uncompressed, nil
 }
 
 func (oc OperationContext) createWireMessage(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -643,6 +716,14 @@ func slaveOK(desc description.SelectedServer, rp []byte) wiremessage.QueryFlag {
 	}
 
 	return 0
+}
+
+func (OperationContext) canCompress(cmd string) bool {
+	if cmd == "isMaster" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
+		cmd == "createUser" || cmd == "updateUser" || cmd == "copydbSaslStart" || cmd == "copydbgetnonce" || cmd == "copydb" {
+		return false
+	}
+	return true
 }
 
 func decodeResult(wm []byte) (bsoncore.Document, error) {

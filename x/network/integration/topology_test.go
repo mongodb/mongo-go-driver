@@ -31,7 +31,7 @@ func TestTopologyTopology(t *testing.T) {
 		t.Run("cannot disconnect twice", func(t *testing.T) {
 			topo, err := topology.New(topology.WithConnString(func(connstring.ConnString) connstring.ConnString { return connectionString }))
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 			err = topo.Disconnect(context.TODO())
 			noerr(t, err)
@@ -59,9 +59,9 @@ func TestTopologyTopology(t *testing.T) {
 				}),
 			)
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
-			ss, err := topo.SelectServer(context.TODO(), description.WriteSelector())
+			ss, err := topo.SelectServerLegacy(context.TODO(), description.WriteSelector())
 			noerr(t, err)
 
 			conns := [3]connection.Connection{}
@@ -105,7 +105,7 @@ func TestTopologyTopology(t *testing.T) {
 				),
 			)
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 			<-start
 			done := make(chan struct{}, 1)
@@ -129,11 +129,11 @@ func TestTopologyTopology(t *testing.T) {
 				),
 			)
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 			err = topo.Disconnect(context.TODO())
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 		})
 		t.Run("cannot connect multiple times without disconnect", func(t *testing.T) {
@@ -143,13 +143,13 @@ func TestTopologyTopology(t *testing.T) {
 				),
 			)
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 			err = topo.Disconnect(context.TODO())
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			if err != topology.ErrTopologyConnected {
 				t.Errorf("Expected a topology connected error. got %v; want %v", err, topology.ErrTopologyConnected)
 			}
@@ -161,22 +161,22 @@ func TestTopologyTopology(t *testing.T) {
 				),
 			)
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 
 			err = topo.Disconnect(context.TODO())
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 
 			err = topo.Disconnect(context.TODO())
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 
 			err = topo.Disconnect(context.TODO())
 			noerr(t, err)
-			err = topo.Connect(context.TODO())
+			err = topo.Connect()
 			noerr(t, err)
 		})
 	})
