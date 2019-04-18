@@ -326,7 +326,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 }
 
 func killSessions(t *testing.T, client *Client) {
-	s, err := client.topology.SelectServer(ctx, description.WriteSelector())
+	s, err := client.topology.SelectServerLegacy(ctx, description.WriteSelector())
 	require.NoError(t, err)
 
 	vals := make(bsonx.Arr, 0, 0)
