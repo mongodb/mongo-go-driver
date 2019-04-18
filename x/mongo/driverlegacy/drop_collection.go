@@ -28,7 +28,7 @@ func DropCollection(
 	pool *session.Pool,
 ) (bson.Raw, error) {
 
-	ss, err := topo.SelectServer(ctx, selector)
+	ss, err := topo.SelectServerLegacy(ctx, selector)
 	if err != nil {
 		return nil, err
 	}

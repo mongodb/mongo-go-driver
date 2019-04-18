@@ -185,11 +185,11 @@ func TestServer(t *testing.T) {
 		}
 	})
 	t.Run("update topology", func(t *testing.T) {
-		var updated bool
-		s, err := ConnectServer(address.Address("localhost"), func(description.Server) { updated = true })
+		var updated atomic.Value // bool
+		updated.Store(false)
+		s, err := ConnectServer(address.Address("localhost"), func(description.Server) { updated.Store(true) })
 		require.NoError(t, err)
 		s.updateDescription(description.Server{Addr: s.address}, false)
-		require.True(t, updated)
-
+		require.True(t, updated.Load().(bool))
 	})
 }

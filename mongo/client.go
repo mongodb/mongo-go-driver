@@ -99,7 +99,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 // Connect initializes the Client by starting background monitoring goroutines.
 // This method must be called before a Client can be used.
 func (c *Client) Connect(ctx context.Context) error {
-	err := c.topology.Connect(ctx)
+	err := c.topology.Connect()
 	if err != nil {
 		return replaceErrors(err)
 	}
@@ -137,7 +137,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 		rp = c.readPreference
 	}
 
-	_, err := c.topology.SelectServer(ctx, description.ReadPrefSelector(rp))
+	_, err := c.topology.SelectServerLegacy(ctx, description.ReadPrefSelector(rp))
 	return replaceErrors(err)
 }
 
