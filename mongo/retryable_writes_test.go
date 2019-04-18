@@ -380,7 +380,7 @@ func createRetryMonitoredTopology(t *testing.T, clock *session.ClusterClock, mon
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = retryMonitoredTopo.Connect(ctx)
+		err = retryMonitoredTopo.Connect()
 		if err != nil {
 			t.Fatal(err)
 		}
