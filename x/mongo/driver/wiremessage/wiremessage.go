@@ -23,6 +23,15 @@ func AppendHeaderStart(dst []byte, reqid, respto int32, opcode OpCode) (index in
 	return index, dst
 }
 
+// AppendHeader appends a header to dst.
+func AppendHeader(dst []byte, length, reqid, respto int32, opcode OpCode) []byte {
+	dst = appendi32(dst, length)
+	dst = appendi32(dst, reqid)
+	dst = appendi32(dst, respto)
+	dst = appendi32(dst, int32(opcode))
+	return dst
+}
+
 // ReadHeader reads a wire message header from src.
 func ReadHeader(src []byte) (length, requestID, responseTo int32, opcode OpCode, rem []byte, ok bool) {
 	if len(src) < 16 {
@@ -84,6 +93,23 @@ func AppendReplyStartingFrom(dst []byte, sf int32) []byte {
 func AppendReplyNumberReturned(dst []byte, nr int32) []byte {
 	return appendi32(dst, nr)
 }
+
+// AppendCompressedOriginalOpCode appends the original opcode to dst.
+func AppendCompressedOriginalOpCode(dst []byte, opcode wiremessage.OpCode) []byte {
+	return appendi32(dst, int32(opcode))
+}
+
+// AppendCompressedUncompressedSize appends the uncompressed size of a
+// compressed wiremessage to dst.
+func AppendCompressedUncompressedSize(dst []byte, size int32) []byte { return appendi32(dst, size) }
+
+// AppendCompressedCompressorID appends the ID of the compressor to dst.
+func AppendCompressedCompressorID(dst []byte, id wiremessage.CompressorID) []byte {
+	return append(dst, byte(id))
+}
+
+// AppendCompressedCompressedMessage appends the compressed wiremessage to dst.
+func AppendCompressedCompressedMessage(dst []byte, msg []byte) []byte { return append(dst, msg...) }
 
 // ReadMsgFlags reads the OP_MSG flags from src.
 func ReadMsgFlags(src []byte) (flags wiremessage.MsgFlag, rem []byte, ok bool) {
@@ -195,6 +221,32 @@ func ReadReplyNumberReturned(src []byte) (numberReturned int32, rem []byte, ok b
 // ReadReplyDocument reads a reply document from src.
 func ReadReplyDocument(src []byte) (doc bsoncore.Document, rem []byte, ok bool) {
 	return bsoncore.ReadDocument(src)
+}
+
+// ReadCompressedOriginalOpCode reads the original opcode from src.
+func ReadCompressedOriginalOpCode(src []byte) (opcode wiremessage.OpCode, rem []byte, ok bool) {
+	i32, rem, ok := readi32(src)
+	return wiremessage.OpCode(i32), rem, ok
+}
+
+// ReadCompressedUncompressedSize reads the uncompressed size of a
+// compressed wiremessage to dst.
+func ReadCompressedUncompressedSize(src []byte) (size int32, rem []byte, ok bool) { return readi32(src) }
+
+// ReadCompressedCompressorID reads the ID of the compressor to dst.
+func ReadCompressedCompressorID(src []byte) (id wiremessage.CompressorID, rem []byte, ok bool) {
+	if len(src) < 1 {
+		return 0, src, false
+	}
+	return wiremessage.CompressorID(src[0]), src[1:], true
+}
+
+// ReadCompressedCompressedMessage reads the compressed wiremessage to dst.
+func ReadCompressedCompressedMessage(src []byte, length int32) (msg []byte, rem []byte, ok bool) {
+	if len(src) < int(length) {
+		return nil, src, false
+	}
+	return src[:length], src[length:], true
 }
 
 func appendi32(dst []byte, i32 int32) []byte {
