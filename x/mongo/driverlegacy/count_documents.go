@@ -36,7 +36,7 @@ func CountDocuments(
 	if cmd.Session != nil && cmd.Session.PinnedServer != nil {
 		selector = cmd.Session.PinnedServer
 	}
-	ss, err := topo.SelectServer(ctx, selector)
+	ss, err := topo.SelectServerLegacy(ctx, selector)
 	if err != nil {
 		return 0, err
 	}

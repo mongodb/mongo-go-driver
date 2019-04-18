@@ -201,11 +201,11 @@ func createMonitoredTopology(t *testing.T, clock *session.ClusterClock, monitor 
 		t.Fatal(err)
 	}
 
-	err = sessionsMonitoredTop.Connect(context.Background())
+	err = sessionsMonitoredTop.Connect()
 	if err != nil {
 		t.Fatal(err)
 	}
-	s, err := sessionsMonitoredTop.SelectServer(context.Background(), description.WriteSelector())
+	s, err := sessionsMonitoredTop.SelectServerLegacy(context.Background(), description.WriteSelector())
 	if err != nil {
 		t.Fatal(err)
 	}

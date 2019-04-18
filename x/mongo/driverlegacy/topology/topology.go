@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 	"go.mongodb.org/mongo-driver/x/network/address"
 	"go.mongodb.org/mongo-driver/x/network/description"
@@ -114,7 +115,7 @@ func New(opts ...Option) (*Topology, error) {
 
 // Connect initializes a Topology and starts the monitoring process. This function
 // must be called to properly monitor the topology.
-func (t *Topology) Connect(ctx context.Context) error {
+func (t *Topology) Connect() error {
 	if !atomic.CompareAndSwapInt32(&t.connectionstate, disconnected, connecting) {
 		return ErrTopologyConnected
 	}
@@ -181,6 +182,9 @@ func (t *Topology) Description() description.Topology {
 	return td
 }
 
+// Kind returns the topology kind of this Topology.
+func (t *Topology) Kind() description.TopologyKind { return t.Description().Kind }
+
 // Subscribe returns a Subscription on which all updated description.Topologys
 // will be sent. The channel of the subscription will have a buffer size of one,
 // and will be pre-populated with the current description.Topology.
@@ -229,10 +233,56 @@ func (t *Topology) SupportsSessions() bool {
 	return t.Description().SessionTimeoutMinutes != 0 && t.Description().Kind != description.Single
 }
 
-// SelectServer selects a server given a selector.SelectServer complies with the
+// SupportsRetry returns true if the topology supports retryability, which it does if it supports sessions.
+func (t *Topology) SupportsRetry() bool { return t.SupportsSessions() }
+
+// SelectServer selects a server with given a selector. SelectServer complies with the
 // server selection spec, and will time out after severSelectionTimeout or when the
 // parent context is done.
-func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (*SelectedServer, error) {
+func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (driver.Server, error) {
+	if atomic.LoadInt32(&t.connectionstate) != connected {
+		return nil, ErrTopologyClosed
+	}
+	var ssTimeoutCh <-chan time.Time
+
+	if t.cfg.serverSelectionTimeout > 0 {
+		ssTimeout := time.NewTimer(t.cfg.serverSelectionTimeout)
+		ssTimeoutCh = ssTimeout.C
+		defer ssTimeout.Stop()
+	}
+
+	sub, err := t.Subscribe()
+	if err != nil {
+		return nil, err
+	}
+	defer sub.Unsubscribe()
+
+	for {
+		suitable, err := t.selectServer(ctx, sub.C, ss, ssTimeoutCh)
+		if err != nil {
+			return nil, err
+		}
+
+		selected := suitable[rand.Intn(len(suitable))]
+		selectedS, err := t.FindServer(selected)
+		switch {
+		case err != nil:
+			return nil, err
+		case selectedS != nil:
+			return selectedS, nil
+		default:
+			// We don't have an actual server for the provided description.
+			// This could happen for a number of reasons, including that the
+			// server has since stopped being a part of this topology, or that
+			// the server selector returned no suitable servers.
+		}
+	}
+}
+
+// SelectServerLegacy selects a server with given a selector. SelectServerLegacy complies with the
+// server selection spec, and will time out after severSelectionTimeout or when the
+// parent context is done.
+func (t *Topology) SelectServerLegacy(ctx context.Context, ss description.ServerSelector) (*SelectedServer, error) {
 	if atomic.LoadInt32(&t.connectionstate) != connected {
 		return nil, ErrTopologyClosed
 	}

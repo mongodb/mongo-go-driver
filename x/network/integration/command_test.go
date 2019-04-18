@@ -85,7 +85,7 @@ func TestWriteCommands(t *testing.T) {
 	t.Run("Insert", func(t *testing.T) {
 		t.Run("Should return write error", func(t *testing.T) {
 			ctx := context.TODO()
-			server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+			server, err := testutil.Topology(t).SelectServerLegacy(context.Background(), description.WriteSelector())
 			noerr(t, err)
 			conn, err := server.ConnectionLegacy(context.Background())
 			noerr(t, err)

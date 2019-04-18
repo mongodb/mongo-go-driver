@@ -61,7 +61,7 @@ func BulkWrite(
 	if sess != nil && sess.PinnedServer != nil {
 		selector = sess.PinnedServer
 	}
-	ss, err := topo.SelectServer(ctx, selector)
+	ss, err := topo.SelectServerLegacy(ctx, selector)
 	if err != nil {
 		return result.BulkWrite{}, err
 	}
@@ -259,7 +259,7 @@ func runInsert(
 
 	res, origErr := insert(ctx, &cmd, ss, nil)
 	if shouldRetry(origErr, res.WriteConcernError) {
-		newServer, err := topo.SelectServer(ctx, selector)
+		newServer, err := topo.SelectServerLegacy(ctx, selector)
 		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
 			return res, origErr
 		}
@@ -327,7 +327,7 @@ func runDelete(
 
 	res, origErr := delete(ctx, &cmd, ss, nil)
 	if shouldRetry(origErr, res.WriteConcernError) {
-		newServer, err := topo.SelectServer(ctx, selector)
+		newServer, err := topo.SelectServerLegacy(ctx, selector)
 		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
 			return res, origErr
 		}
@@ -405,7 +405,7 @@ func runUpdate(
 
 	res, origErr := update(ctx, &cmd, ss, nil)
 	if shouldRetry(origErr, res.WriteConcernError) {
-		newServer, err := topo.SelectServer(ctx, selector)
+		newServer, err := topo.SelectServerLegacy(ctx, selector)
 		if err != nil || !retrySupported(topo, ss.Description(), cmd.Session, cmd.WriteConcern) {
 			return res, origErr
 		}
