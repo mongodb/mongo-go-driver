@@ -84,7 +84,7 @@ func prep(ctx context.Context, c *topology.Topology) error {
 
 	ns := command.ParseNamespace(*ns)
 
-	s, err := c.SelectServer(ctx, description.WriteSelector())
+	s, err := c.SelectServerLegacy(ctx, description.WriteSelector())
 	if err != nil {
 		return err
 	}

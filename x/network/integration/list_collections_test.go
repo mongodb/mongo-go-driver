@@ -24,7 +24,7 @@ import (
 )
 
 func skipIfBelow32(t *testing.T) {
-	server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	server, err := testutil.Topology(t).SelectServerLegacy(context.Background(), description.WriteSelector())
 	if err != nil {
 		t.Fatalf("error selecting server: %s", err)
 	}
@@ -34,7 +34,7 @@ func skipIfBelow32(t *testing.T) {
 }
 
 func skipIfBelow30(t *testing.T) {
-	server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	server, err := testutil.Topology(t).SelectServerLegacy(context.Background(), description.WriteSelector())
 	if err != nil {
 		t.Fatalf("error selecting server: %s", err)
 	}
@@ -60,7 +60,7 @@ func TestCommandListCollections(t *testing.T) {
 		// 2.6 server doesn't throw error for invalid database name
 		skipIfBelow30(t)
 
-		server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+		server, err := testutil.Topology(t).SelectServerLegacy(context.Background(), description.WriteSelector())
 		noerr(t, err)
 		conn, err := server.ConnectionLegacy(context.Background())
 		noerr(t, err)
