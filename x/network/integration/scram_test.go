@@ -33,7 +33,7 @@ func TestSCRAM(t *testing.T) {
 		t.Skip("Skipping because authentication is required")
 	}
 
-	server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	server, err := testutil.Topology(t).SelectServerLegacy(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
 	if !server.Description().WireVersion.Includes(7) {
@@ -137,7 +137,7 @@ func testScramUserAuthWithMech(t *testing.T, c scramTestCase, mech string) error
 func runScramAuthTest(t *testing.T, cs connstring.ConnString) error {
 	t.Helper()
 	topology := testutil.TopologyWithConnString(t, cs)
-	ss, err := topology.SelectServer(context.Background(), description.WriteSelector())
+	ss, err := topology.SelectServerLegacy(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
 	cmd := bsonx.Doc{{"dbstats", bsonx.Int32(1)}}
