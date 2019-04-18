@@ -47,12 +47,12 @@ func Aggregate(
 	}
 	switch dollarOut {
 	case true:
-		ss, err = topo.SelectServer(ctx, writeSelector)
+		ss, err = topo.SelectServerLegacy(ctx, writeSelector)
 		if err != nil {
 			return nil, err
 		}
 	case false:
-		ss, err = topo.SelectServer(ctx, readSelector)
+		ss, err = topo.SelectServerLegacy(ctx, readSelector)
 		if err != nil {
 			return nil, err
 		}

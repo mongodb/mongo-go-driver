@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
@@ -96,7 +96,7 @@ func runSeedlistTest(t *testing.T, filename string, test *seedlistTestCase) {
 		// make a topology from the options
 		c, err := New(WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }))
 		require.NoError(t, err)
-		err = c.Connect(context.Background())
+		err = c.Connect()
 		require.NoError(t, err)
 
 		for _, host := range test.Hosts {
@@ -144,7 +144,7 @@ func getServerByAddress(address string, c *Topology) (description.Server, error)
 		return []description.Server{}, nil
 	})
 
-	selectedServer, err := c.SelectServer(context.Background(), selectByName)
+	selectedServer, err := c.SelectServerLegacy(context.Background(), selectByName)
 	if err != nil {
 		return description.Server{}, err
 	}
