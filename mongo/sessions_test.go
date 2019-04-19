@@ -121,8 +121,6 @@ func createFuncMap(t *testing.T, dbName string, collName string, monitored bool)
 			res := coll.FindOneAndUpdate(mctx, emptyDoc, updateDoc)
 			return res.err
 		}},
-		{"DropCollection", coll, nil, func(mctx SessionContext) error { err := coll.Drop(mctx); return err }},
-		{"DropDatabase", coll, nil, func(mctx SessionContext) error { err := db.Drop(mctx); return err }},
 		{"ListCollections", coll, nil, func(mctx SessionContext) error { _, err := db.ListCollections(mctx, emptyDoc); return err }},
 		{"ListDatabases", coll, nil, func(mctx SessionContext) error { _, err := client.ListDatabases(mctx, emptyDoc); return err }},
 		{"CreateOneIndex", coll, nil, func(mctx SessionContext) error { _, err := iv.CreateOne(mctx, fooIndex); return err }},
@@ -130,6 +128,8 @@ func createFuncMap(t *testing.T, dbName string, collName string, monitored bool)
 		{"DropOneIndex", coll, &iv, func(mctx SessionContext) error { _, err := iv.DropOne(mctx, "barIndex"); return err }},
 		{"DropAllIndexes", coll, nil, func(mctx SessionContext) error { _, err := iv.DropAll(mctx); return err }},
 		{"ListIndexes", coll, nil, func(mctx SessionContext) error { _, err := iv.List(mctx); return err }},
+		{"DropCollection", coll, nil, func(mctx SessionContext) error { err := coll.Drop(mctx); return err }},
+		{"DropDatabase", coll, nil, func(mctx SessionContext) error { err := db.Drop(mctx); return err }},
 	}
 
 	return client, db, coll, functions
