@@ -2090,3 +2090,38 @@ func TestCollection_FindOneAndUpdate_WriteConcernError(t *testing.T) {
 		t.Errorf("incorrect error type returned: %T", writeErr)
 	}
 }
+
+func TestCollection_BulkWrite(t *testing.T) {
+	t.Run("TestWriteConcernError", func(t *testing.T) {
+		if os.Getenv("TOPOLOGY") != "replica_set" {
+			t.Skip()
+		}
+
+		filter := bson.D{{"foo", "bar"}}
+		update := bson.D{{"$set", bson.D{{"foo", 10}}}}
+
+		testCases := []struct {
+			name   string
+			models []WriteModel
+		}{
+			{"insert", []WriteModel{NewInsertOneModel().SetDocument(bson.D{{"foo", 1}})}},
+			{"update", []WriteModel{NewUpdateOneModel().SetFilter(filter).SetUpdate(update)}},
+			{"delete", []WriteModel{NewDeleteOneModel().SetFilter(filter)}},
+		}
+
+		coll := createTestCollection(t, nil, nil, options.Collection().SetWriteConcern(impossibleWriteConcern))
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := coll.BulkWrite(ctx, tc.models)
+				require.Error(t, err)
+
+				bwException, ok := err.(BulkWriteException)
+				require.True(t, ok)
+
+				require.Equal(t, 0, len(bwException.WriteErrors),
+					"expected no write errors, got %v", bwException.WriteErrors)
+				require.NotNil(t, bwException.WriteConcernError)
+			})
+		}
+	})
+}

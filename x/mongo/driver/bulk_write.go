@@ -164,6 +164,7 @@ func runBatch(
 
 		batchRes.InsertedCount = int64(res.N)
 		writeErrors = res.WriteErrors
+		batchErr.WriteConcernError = res.WriteConcernError
 	case DeleteOneModel, DeleteManyModel:
 		res, err := runDelete(ctx, ns, topo, selector, ss, sess, clock, wc, retryWrite, batch, continueOnError, registry)
 		if err != nil {
@@ -172,6 +173,7 @@ func runBatch(
 
 		batchRes.DeletedCount = int64(res.N)
 		writeErrors = res.WriteErrors
+		batchErr.WriteConcernError = res.WriteConcernError
 	case ReplaceOneModel, UpdateOneModel, UpdateManyModel:
 		res, err := runUpdate(ctx, ns, topo, selector, ss, sess, clock, wc, retryWrite, batch, bypassDocValidation,
 			continueOnError, registry)
@@ -183,6 +185,7 @@ func runBatch(
 		batchRes.ModifiedCount = res.ModifiedCount
 		batchRes.UpsertedCount = int64(len(res.Upserted))
 		writeErrors = res.WriteErrors
+		batchErr.WriteConcernError = res.WriteConcernError
 		for _, upsert := range res.Upserted {
 			batchRes.UpsertedIDs[upsert.Index] = upsert.ID
 		}
