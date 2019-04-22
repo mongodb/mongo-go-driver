@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "143a53a0_9ed993f5",
+        "filename": "x/mongo/driverlegacy/topology/DESIGN.md",
+        "patchSetId": 4
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-22T15:32:09Z",
+      "side": 1,
+      "message": "The documentation comment is incorrect. I\u0027ll fix it.",
+      "parentUuid": "850e2c8e_7fa6fbf5",
+      "range": {
+        "startLine": 20,
+        "startChar": 10,
+        "endLine": 20,
+        "endChar": 64
+      },
+      "revId": "0255fcd48c01a41f456368860010c30e47e38b5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "77d66d49_5d0343c7",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 4
@@ -36,6 +60,30 @@
       "writtenOn": "2019-04-22T13:56:05Z",
       "side": 1,
       "message": "capacity isn\u0027t one of the params to newPool. Was this supposed to be size?",
+      "range": {
+        "startLine": 44,
+        "startChar": 6,
+        "endLine": 44,
+        "endChar": 14
+      },
+      "revId": "0255fcd48c01a41f456368860010c30e47e38b5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0297605b_947aed59",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-22T15:32:09Z",
+      "side": 1,
+      "message": "No, this comment is wrong.",
+      "parentUuid": "77d66d49_5d0343c7",
       "range": {
         "startLine": 44,
         "startChar": 6,
@@ -68,6 +116,30 @@
       "revId": "0255fcd48c01a41f456368860010c30e47e38b5f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b1996c62_bccd5e42",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-22T15:32:09Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "52923714_809f173f",
+      "range": {
+        "startLine": 162,
+        "startChar": 73,
+        "endLine": 162,
+        "endChar": 79
+      },
+      "revId": "0255fcd48c01a41f456368860010c30e47e38b5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
