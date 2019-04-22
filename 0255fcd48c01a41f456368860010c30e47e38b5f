@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "60156fb6_c3aab954",
+        "filename": "x/mongo/driverlegacy/topology/DESIGN.md",
+        "patchSetId": 4
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-22T15:34:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "143a53a0_9ed993f5",
+      "range": {
+        "startLine": 20,
+        "startChar": 10,
+        "endLine": 20,
+        "endChar": 64
+      },
+      "revId": "0255fcd48c01a41f456368860010c30e47e38b5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "77d66d49_5d0343c7",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 4
@@ -96,6 +120,30 @@
     },
     {
       "key": {
+        "uuid": "e48ea9df_16efffcd",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-22T15:34:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0297605b_947aed59",
+      "range": {
+        "startLine": 44,
+        "startChar": 6,
+        "endLine": 44,
+        "endChar": 14
+      },
+      "revId": "0255fcd48c01a41f456368860010c30e47e38b5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "52923714_809f173f",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 4
@@ -131,6 +179,30 @@
       "side": 1,
       "message": "Done",
       "parentUuid": "52923714_809f173f",
+      "range": {
+        "startLine": 162,
+        "startChar": 73,
+        "endLine": 162,
+        "endChar": 79
+      },
+      "revId": "0255fcd48c01a41f456368860010c30e47e38b5f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "de835daa_495cad96",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-22T15:34:11Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b1996c62_bccd5e42",
       "range": {
         "startLine": 162,
         "startChar": 73,
