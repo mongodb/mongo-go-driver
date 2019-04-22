@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "201d2bca_1607c405",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-22T15:35:51Z",
+      "side": 1,
+      "message": "can we add a comment about what this stores?\n\n    pollHeartbeatTime atomic.Value // holds a bool",
+      "range": {
+        "startLine": 74,
+        "startChar": 19,
+        "endLine": 74,
+        "endChar": 31
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
