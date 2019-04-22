@@ -34,6 +34,24 @@
       "revId": "52da4957e4b401105909877ef0988547819849fa",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "eb8d83f9_d98b4c73",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-22T15:33:42Z",
+      "side": 1,
+      "message": "Answered offline.",
+      "parentUuid": "4291a59d_cf48b8fb",
+      "revId": "52da4957e4b401105909877ef0988547819849fa",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
