@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "f40eb6bd_d4b857f6",
+        "filename": "x/mongo/driverlegacy/dns/dns.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e090c05d_7a1d739e",
+      "range": {
+        "startLine": 25,
+        "startChar": 5,
+        "endLine": 25,
+        "endChar": 20
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "910d29a0_f5b8ca7f",
         "filename": "x/mongo/driverlegacy/dns/dns.go",
         "patchSetId": 6
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "ddd1130b_bab5a678",
+        "filename": "x/mongo/driverlegacy/dns/dns.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "910d29a0_f5b8ca7f",
+      "range": {
+        "startLine": 37,
+        "startChar": 1,
+        "endLine": 37,
+        "endChar": 16
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f4fc579f_69d70690",
         "filename": "x/mongo/driverlegacy/dns/dns.go",
         "patchSetId": 6
@@ -59,6 +107,30 @@
       "writtenOn": "2019-04-22T15:44:33Z",
       "side": 1,
       "message": "According to the SRV polling spec, when we find a record that does not have the correct domain name, we should just skip adding that host to the topology and not raise an error.\n\nThe initial seedlist discovery spec, however, says \"A driver MUST verify that the host names returned through SRV records have the same parent {domainname}. Drivers MUST raise an error and MUST NOT initiate a connection to any returned host name which does not share the same {domainname}.\"",
+      "range": {
+        "startLine": 117,
+        "startChar": 3,
+        "endLine": 117,
+        "endChar": 9
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e323199f_021359b9",
+        "filename": "x/mongo/driverlegacy/dns/dns.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "fetchSeedlistFromSRV and parseHosts now return both the verified names and the error, which the caller handles however it needs to.",
+      "parentUuid": "f4fc579f_69d70690",
       "range": {
         "startLine": 117,
         "startChar": 3,
@@ -117,6 +189,54 @@
     },
     {
       "key": {
+        "uuid": "ee3fe2bc_776cdd34",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "Decided not to do this.",
+      "parentUuid": "7145a598_85e01ce2",
+      "range": {
+        "startLine": 74,
+        "startChar": 1,
+        "endLine": 74,
+        "endChar": 18
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cbfda044_4682686a",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "201d2bca_1607c405",
+      "range": {
+        "startLine": 74,
+        "startChar": 19,
+        "endLine": 74,
+        "endChar": 31
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "52b001d4_1c50ec34",
         "filename": "x/mongo/driverlegacy/topology/topology.go",
         "patchSetId": 6
@@ -140,6 +260,30 @@
     },
     {
       "key": {
+        "uuid": "85af47c9_d2e08013",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "52b001d4_1c50ec34",
+      "range": {
+        "startLine": 145,
+        "startChar": 1,
+        "endLine": 145,
+        "endChar": 60
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "42eb63ed_051acd38",
         "filename": "x/mongo/driverlegacy/topology/topology.go",
         "patchSetId": 6
@@ -151,6 +295,30 @@
       "writtenOn": "2019-04-22T15:44:33Z",
       "side": 1,
       "message": "Can you explain why this is necessary?",
+      "range": {
+        "startLine": 364,
+        "startChar": 5,
+        "endLine": 364,
+        "endChar": 13
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "79a913da_2a79ba55",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "It\u0027s to prevent the t.pollingDone channel from blocking when disconnecting.",
+      "parentUuid": "42eb63ed_051acd38",
       "range": {
         "startLine": 364,
         "startChar": 5,
@@ -186,6 +354,30 @@
     },
     {
       "key": {
+        "uuid": "6fa60d44_0478b87f",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 412,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a7f1e585_90868eeb",
+      "range": {
+        "startLine": 412,
+        "startChar": 2,
+        "endLine": 412,
+        "endChar": 22
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "6cd3b20f_bff0385b",
         "filename": "x/mongo/driverlegacy/topology/topology.go",
         "patchSetId": 6
@@ -206,6 +398,30 @@
       "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c9524275_e61ef08a",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 426,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6cd3b20f_bff0385b",
+      "range": {
+        "startLine": 426,
+        "startChar": 3,
+        "endLine": 426,
+        "endChar": 36
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -232,6 +448,30 @@
     },
     {
       "key": {
+        "uuid": "dae25916_ec7fd5d0",
+        "filename": "x/network/description/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3797c095_a75779f9",
+      "range": {
+        "startLine": 84,
+        "startChar": 18,
+        "endLine": 84,
+        "endChar": 30
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5e1e0023_0bde2a40",
         "filename": "x/network/description/topology.go",
         "patchSetId": 6
@@ -243,6 +483,30 @@
       "writtenOn": "2019-04-22T15:44:33Z",
       "side": 1,
       "message": "Haven\u0027t thought this out completely, but could this be simplified to something like the following:\n\nfor i \u003c len(oldServers) \u0026\u0026 j \u003c len(hostlist) {\n    // comparison logic for oldServers[i] and hostlist[j]\n}\n\nif i \u003c len(oldServers) {\n    removed \u003d append(removed, oldServers[i:]...)\n}\n\nif j \u003c len(hostlist) {\n    added \u003d append(added, hostlist[j:]...)\n}",
+      "range": {
+        "startLine": 94,
+        "startChar": 1,
+        "endLine": 94,
+        "endChar": 6
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1588caed_c43350dd",
+        "filename": "x/network/description/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-04-23T14:39:36Z",
+      "side": 1,
+      "message": "I could simplify the j\u003c len(hostlist) case, but I still need to call Addr.String() on each server in the i \u003c len(oldServers) case, and it\u0027s easier to read if they match.",
+      "parentUuid": "5e1e0023_0bde2a40",
       "range": {
         "startLine": 94,
         "startChar": 1,
