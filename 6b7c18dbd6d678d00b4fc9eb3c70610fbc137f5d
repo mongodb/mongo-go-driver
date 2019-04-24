@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c57d4f4d_099b753c",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T15:55:05Z",
+      "side": 1,
+      "message": "Does the Description() not contain this information?",
+      "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8eb1decd_2a342e61",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T15:55:05Z",
+      "side": 1,
+      "message": "Where are we checking whether the responseID is what we expect?",
+      "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "17f248e9_c54f7509",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T15:55:05Z",
+      "side": 1,
+      "message": "I\u0027d still return the id of the connection, and maybe add closed to it or something, but tracking which connection was accessed when it was closed might be important.",
+      "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8c251eaa_f03c5988",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 407,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T15:55:05Z",
+      "side": 1,
+      "message": "This is for SNI?",
+      "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
