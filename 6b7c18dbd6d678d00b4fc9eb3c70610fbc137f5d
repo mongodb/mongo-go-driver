@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "21c8ce19_ef47e05f",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T16:53:14Z",
+      "side": 1,
+      "message": "Some fun bootstrapping: You need an address to create the description.Server with and you need to return that from the Handshaker, which the connection will then set as it\u0027s description.Server. We were passing the address as a parameter to the handshaker, but that didn\u0027t make much sense to me since the Connection should already have it\u0027s address.",
+      "parentUuid": "c57d4f4d_099b753c",
+      "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8eb1decd_2a342e61",
         "filename": "x/mongo/driverlegacy/topology/connection.go",
         "patchSetId": 5
@@ -30,6 +48,24 @@
       "writtenOn": "2019-04-24T15:55:05Z",
       "side": 1,
       "message": "Where are we checking whether the responseID is what we expect?",
+      "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "bfb95191_7472449d",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T16:53:14Z",
+      "side": 1,
+      "message": "I don\u0027t think we were checking for that before. I\u0027m not sure if drivers generally confirm that responseTo is set appropriately, can you log a ticket for this where we can discuss it further?",
+      "parentUuid": "8eb1decd_2a342e61",
       "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "0c892c8f_3e8e8bf5",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 304,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T16:53:14Z",
+      "side": 1,
+      "message": "The connection is nil so we don\u0027t have access to the information anymore. We could copy the id over, but we would still run into the same situation when c.connection was never set.",
+      "parentUuid": "17f248e9_c54f7509",
+      "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "8c251eaa_f03c5988",
         "filename": "x/mongo/driverlegacy/topology/connection.go",
         "patchSetId": 5
@@ -64,6 +118,24 @@
       "writtenOn": "2019-04-24T15:55:05Z",
       "side": 1,
       "message": "This is for SNI?",
+      "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84edc9c3_ba4c4db4",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 407,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T16:53:14Z",
+      "side": 1,
+      "message": "I\u0027m not sure, I just copied what we had before.",
+      "parentUuid": "8c251eaa_f03c5988",
       "revId": "6b7c18dbd6d678d00b4fc9eb3c70610fbc137f5d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
