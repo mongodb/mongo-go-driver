@@ -179,6 +179,24 @@
     },
     {
       "key": {
+        "uuid": "f8b96019_353fea18",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T19:04:28Z",
+      "side": 1,
+      "message": "Ok, I understand now that we are protecting the inflight map.  I\u0027d suggest renaming the inflight map to something else. Inflight implies something is being used, which isn\u0027t necessarily true here and a source of this confusion (I started to wonder why the this case didn\u0027t need to update inflight as well).",
+      "parentUuid": "1c49298e_ccc1a90e",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fceab624_15589896",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 5
@@ -247,6 +265,24 @@
       "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "30011613_85f34068",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T19:04:28Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "03c74460_cd7b2a4e",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
