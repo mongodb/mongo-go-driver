@@ -1747,6 +1747,21 @@ func TestCollection_Find_Error(t *testing.T) {
 	})
 }
 
+func TestCollection_Find_NegativeLimit(t *testing.T) {
+	coll := createTestCollection(t, nil, nil)
+	initCollection(t, coll)
+
+	c, err := coll.Find(ctx, bson.D{}, options.Find().SetLimit(-2))
+	require.NoError(t, err)
+	require.Equal(t, int64(0), c.ID()) // single batch returned so cursor should not have valid ID
+
+	var numDocs int
+	for c.Next(ctx) {
+		numDocs++
+	}
+	require.Equal(t, 2, numDocs)
+}
+
 func TestCollection_FindOne_found(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
