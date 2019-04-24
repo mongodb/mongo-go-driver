@@ -716,3 +716,21 @@ func TestExtJSONParserAllTypes(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestExtJSONValue(t *testing.T) {
+	t.Run("Large Date", func(t *testing.T) {
+		val := &extJSONValue{
+			t: bsontype.String,
+			v: "3001-01-01T00:00:00Z",
+		}
+
+		intVal, err := val.parseDateTime()
+		if err != nil {
+			t.Fatalf("error parsing date time: %v", err)
+		}
+
+		if intVal <= 0 {
+			t.Fatalf("expected value above 0, got %v", intVal)
+		}
+	})
+}
