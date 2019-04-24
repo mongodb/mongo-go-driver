@@ -197,6 +197,24 @@
     },
     {
       "key": {
+        "uuid": "d84c8c86_deb3da60",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T20:43:09Z",
+      "side": 1,
+      "message": "Renamed it to \"opened\".",
+      "parentUuid": "f8b96019_353fea18",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fceab624_15589896",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 5
