@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2f7d5580_56d32d2b",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T16:13:24Z",
+      "side": 1,
+      "message": "you mean, you want the connection to reach into the pool and release a semaphore instance?",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "feeb046e_a4d1c487",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T16:13:24Z",
+      "side": 1,
+      "message": "From the connection\u0027s close method? That would mean it would have to reach into the pool.",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1ec2a836_a7dc3e14",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T16:13:24Z",
+      "side": 1,
+      "message": "in the default case, you are checking again for not being connected, but that isn\u0027t happening here. Why do we care in one place and not in the other?",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fceab624_15589896",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T16:13:24Z",
+      "side": 1,
+      "message": "if you\u0027re locked, no need for atomicity...",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
