@@ -161,6 +161,24 @@
     },
     {
       "key": {
+        "uuid": "1c49298e_ccc1a90e",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T18:52:43Z",
+      "side": 1,
+      "message": "Because we don\u0027t want to put something into the inflight map when we are already disconnecting.",
+      "parentUuid": "f3d4f7a0_df0ab0f7",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fceab624_15589896",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 5
@@ -208,6 +226,24 @@
       "side": 1,
       "message": "It is not clear that this lock is for the map. Do you need to lock before calling p.close? If not, why not protect the map around where the map is used?",
       "parentUuid": "69cea64f_4c0d9422",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "03c74460_cd7b2a4e",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T18:52:43Z",
+      "side": 1,
+      "message": "Oh we could do that too. I\u0027ll change it so it only wraps the map with the lock.",
+      "parentUuid": "8cac7a8a_571e7043",
       "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
