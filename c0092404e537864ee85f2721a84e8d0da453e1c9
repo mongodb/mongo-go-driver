@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "d70f5367_240ef9af",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T18:49:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ac4638bc_f2929f26",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "feeb046e_a4d1c487",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 5
@@ -69,6 +87,24 @@
       "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "502b3b0f_302ae81d",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T18:49:21Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "3a2da641_545cbe38",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -107,6 +143,24 @@
     },
     {
       "key": {
+        "uuid": "f3d4f7a0_df0ab0f7",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T18:49:21Z",
+      "side": 1,
+      "message": "That was my point... it\u0027s a race either way, so why bother in either case if we aren\u0027t going to bother in both cases?",
+      "parentUuid": "138300df_d2bfb526",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fceab624_15589896",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 5
@@ -136,6 +190,24 @@
       "side": 1,
       "message": "This lock protects the inflight map, not the p.connected. We still must use the atomic package because there are other methods, like put, that access p.connected without a lock.",
       "parentUuid": "fceab624_15589896",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8cac7a8a_571e7043",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-24T18:49:21Z",
+      "side": 1,
+      "message": "It is not clear that this lock is for the map. Do you need to lock before calling p.close? If not, why not protect the map around where the map is used?",
+      "parentUuid": "69cea64f_4c0d9422",
       "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
