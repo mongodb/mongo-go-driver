@@ -231,6 +231,14 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsonx.Doc, err
 		}
 		optsDoc = append(optsDoc, bsonx.Elem{"collation", bsonx.Document(collDoc)})
 	}
+	if opts.WildcardProjection != nil {
+		projDoc, err := transformDocument(iv.coll.registry, opts.WildcardProjection)
+		if err != nil {
+			return nil, err
+		}
+
+		optsDoc = append(optsDoc, bsonx.Elem{"wildcardProjection", bsonx.Document(projDoc)})
+	}
 
 	return optsDoc, nil
 }
