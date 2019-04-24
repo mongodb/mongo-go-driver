@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "ac4638bc_f2929f26",
+        "filename": "x/mongo/driverlegacy/topology/connection.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T16:42:42Z",
+      "side": 1,
+      "message": "Release a semaphore instance from the server\u0027s semaphore. This TODO is handled in patch for GODRIVER-932: https://review.gerrithub.io/c/mongodb/mongo-go-driver/+/451187.",
+      "parentUuid": "2f7d5580_56d32d2b",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "feeb046e_a4d1c487",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 5
@@ -30,6 +48,24 @@
       "writtenOn": "2019-04-24T16:13:24Z",
       "side": 1,
       "message": "From the connection\u0027s close method? That would mean it would have to reach into the pool.",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3a2da641_545cbe38",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 96,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T16:42:42Z",
+      "side": 1,
+      "message": "No, from the pool\u0027s close method.\n\nThe connection type originally didn\u0027t have a close method, but in the patch for GODRIVER-932 I added one. If there is a pool attached to the connection, it\u0027ll close the connection using the pool\u0027s close method.",
+      "parentUuid": "feeb046e_a4d1c487",
       "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "138300df_d2bfb526",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T16:42:42Z",
+      "side": 1,
+      "message": "We do a check there because we don\u0027t know how long it\u0027s taken to establish the connection and complete the handshake. I think it\u0027s feasible that if we can get into this case statement that we haven\u0027t closed the pool. It\u0027s a race either way, because we could close it right after doing the check and we would still return a connection here.",
+      "parentUuid": "1ec2a836_a7dc3e14",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "fceab624_15589896",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 5
@@ -64,6 +118,24 @@
       "writtenOn": "2019-04-24T16:13:24Z",
       "side": 1,
       "message": "if you\u0027re locked, no need for atomicity...",
+      "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "69cea64f_4c0d9422",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-24T16:42:42Z",
+      "side": 1,
+      "message": "This lock protects the inflight map, not the p.connected. We still must use the atomic package because there are other methods, like put, that access p.connected without a lock.",
+      "parentUuid": "fceab624_15589896",
       "revId": "c0092404e537864ee85f2721a84e8d0da453e1c9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
