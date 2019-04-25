@@ -143,6 +143,30 @@
     },
     {
       "key": {
+        "uuid": "3bbdd14c_7baa7682",
+        "filename": "x/mongo/driverlegacy/dns/dns.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T14:22:17Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e323199f_021359b9",
+      "range": {
+        "startLine": 117,
+        "startChar": 3,
+        "endLine": 117,
+        "endChar": 9
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "201d2bca_1607c405",
         "filename": "x/mongo/driverlegacy/topology/topology.go",
         "patchSetId": 6
@@ -331,6 +355,30 @@
     },
     {
       "key": {
+        "uuid": "ba380b6f_0773b72e",
+        "filename": "x/mongo/driverlegacy/topology/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 364,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T14:22:17Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "79a913da_2a79ba55",
+      "range": {
+        "startLine": 364,
+        "startChar": 5,
+        "endLine": 364,
+        "endChar": 13
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a7f1e585_90868eeb",
         "filename": "x/mongo/driverlegacy/topology/topology.go",
         "patchSetId": 6
@@ -516,6 +564,30 @@
       "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "84037c4d_4e5a4039",
+        "filename": "x/network/description/topology.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T14:22:17Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "1588caed_c43350dd",
+      "range": {
+        "startLine": 94,
+        "startChar": 1,
+        "endLine": 94,
+        "endChar": 6
+      },
+      "revId": "86a80cbbdb3a124eb5817f63a6056f138b8189ad",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
