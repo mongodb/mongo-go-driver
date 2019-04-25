@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/network/address"
-	"go.mongodb.org/mongo-driver/x/network/command"
 	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/description"
 	"go.mongodb.org/mongo-driver/x/network/result"
@@ -318,7 +317,7 @@ func (s *Server) RequestImmediateCheck() {
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error) {
 	// Invalidate server description if not master or node recovering error occurs
-	if cerr, ok := err.(command.Error); ok && (isRecoveringError(cerr) || isNotMasterError(cerr)) {
+	if cerr, ok := err.(driver.Error); ok && (cerr.NetworkError() || cerr.NodeIsRecovering() || cerr.NotMaster()) {
 		desc := s.Description()
 		desc.Kind = description.Unknown
 		desc.LastError = err
@@ -329,7 +328,7 @@ func (s *Server) ProcessError(err error) {
 		return
 	}
 
-	ne, ok := err.(connectionlegacy.Error)
+	ne, ok := err.(ConnectionError)
 	if !ok {
 		return
 	}
@@ -529,7 +528,11 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 
 		now := time.Now()
 
-		op := driver.IsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).Connection(initConnection{conn})
+		op := driver.
+			IsMaster().
+			AppName(s.cfg.appname).
+			Compressors(s.cfg.compressionOpts).
+			Deployment(driver.SingleConnectionDeployment{initConnection{conn}})
 		err = op.Execute(ctx)
 		// we do a retry if the server is connected, if succeed return new server desc (see below)
 		if err != nil {
