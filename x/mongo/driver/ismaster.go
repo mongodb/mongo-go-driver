@@ -20,9 +20,8 @@ type IsMasterOperation struct {
 	compressors        []string
 	saslSupportedMechs string
 
-	server Server
-	conn   Connection
-	tkind  description.TopologyKind
+	d     Deployment
+	tkind description.TopologyKind
 
 	res result.IsMaster
 }
@@ -49,15 +48,9 @@ func (imo *IsMasterOperation) SASLSupportedMechs(username string) *IsMasterOpera
 	return imo
 }
 
-// Server sets the server for this operation.
-func (imo *IsMasterOperation) Server(server Server) *IsMasterOperation {
-	imo.server = server
-	return imo
-}
-
-// Connection sets the connection for this operation.
-func (imo *IsMasterOperation) Connection(conn Connection) *IsMasterOperation {
-	imo.conn = conn
+// Deployment sets the Deployment for this operation.
+func (imo *IsMasterOperation) Deployment(d Deployment) *IsMasterOperation {
+	imo.d = d
 	return imo
 }
 
@@ -116,30 +109,26 @@ func (imo *IsMasterOperation) command(dst []byte, _ description.SelectedServer) 
 
 // Execute runs this operation.
 func (imo *IsMasterOperation) Execute(ctx context.Context) error {
-	if imo.server == nil && imo.conn == nil {
-		return errors.New("an IsMasterOperation must have a Server or Connection set before Execute can be called")
+	if imo.d == nil {
+		return errors.New("an IsMasterOperation must have a Deployment set before Execute can be called")
 	}
 
-	server := imo.server
-	if imo.conn != nil {
-		server = connectionServer{imo.conn}
-	}
-	return OperationContext{
+	return Operation{
 		CommandFn:         imo.command,
-		Server:            server,
 		Database:          "admin",
+		Deployment:        imo.d,
 		ProcessResponseFn: imo.processResponse,
-	}.Execute(ctx)
+	}.Execute(ctx, nil)
 }
 
 // Handshake implements the Handshaker interface.
 func (imo *IsMasterOperation) Handshake(ctx context.Context, _ address.Address, c Connection) (description.Server, error) {
-	err := OperationContext{
+	err := Operation{
 		CommandFn:         imo.command,
-		Server:            connectionServer{c},
+		Deployment:        SingleConnectionDeployment{c},
 		Database:          "admin",
 		ProcessResponseFn: imo.processResponse,
-	}.Execute(ctx)
+	}.Execute(ctx, nil)
 	if err != nil {
 		return description.Server{}, err
 	}

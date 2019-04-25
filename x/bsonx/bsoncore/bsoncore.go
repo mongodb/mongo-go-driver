@@ -29,6 +29,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -120,6 +121,13 @@ func ReadElement(src []byte) (Element, []byte, bool) {
 		return nil, src, false
 	}
 	return src[:elemLength], src[elemLength:], true
+}
+
+// AppendValueElement appends value to dst as an element using key as the element's key.
+func AppendValueElement(dst []byte, key string, value Value) []byte {
+	dst = AppendHeader(dst, value.Type, key)
+	dst = append(dst, value.Data...)
+	return dst
 }
 
 // ReadValue reads the next value as the provided types and returns a Value, the remaining bytes,
@@ -258,6 +266,22 @@ func AppendArray(dst []byte, arr []byte) []byte { return append(dst, arr...) }
 // and return the extended buffer.
 func AppendArrayElement(dst []byte, key string, arr []byte) []byte {
 	return AppendArray(AppendHeader(dst, bsontype.Array, key), arr)
+}
+
+// BuildArray will append a BSON array to dst built from values.
+func BuildArray(dst []byte, values ...Value) []byte {
+	idx, dst := ReserveLength(dst)
+	for pos, val := range values {
+		dst = AppendValueElement(dst, strconv.Itoa(pos), val)
+	}
+	dst = append(dst, 0x00)
+	dst = UpdateLength(dst, idx, int32(len(dst[idx:])))
+	return dst
+}
+
+// BuildArrayElement will create an array element using the provided values.
+func BuildArrayElement(dst []byte, key string, values ...Value) []byte {
+	return BuildArray(AppendHeader(dst, bsontype.Array, key), values...)
 }
 
 // ReadArray will read an array from src. If there are not enough bytes it
