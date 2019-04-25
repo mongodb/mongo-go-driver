@@ -9,7 +9,11 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-var retryableCodes = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001}
+var (
+	retryableCodes        = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001}
+	nodeIsRecoveringCodes = []int32{11600, 11602, 13436, 189, 91}
+	notMasterCodes        = []int32{10107, 13435}
+)
 
 var (
 	// TransientTransactionError is an error label for transient errors with transactions.
@@ -166,6 +170,36 @@ func (e Error) Retryable() bool {
 	}
 
 	return false
+}
+
+// NetworkError returns true if the error is a network error.
+func (e Error) NetworkError() bool {
+	for _, label := range e.Labels {
+		if label == NetworkError {
+			return true
+		}
+	}
+	return false
+}
+
+// NodeIsRecovering returns true if this error is a node is recovering error.
+func (e Error) NodeIsRecovering() bool {
+	for _, code := range nodeIsRecoveringCodes {
+		if e.Code == code {
+			return true
+		}
+	}
+	return strings.Contains(e.Message, "node is recovering")
+}
+
+// NotMaster returns true if this error is a not master error.
+func (e Error) NotMaster() bool {
+	for _, code := range notMasterCodes {
+		if e.Code == code {
+			return true
+		}
+	}
+	return strings.Contains(e.Message, "not master")
 }
 
 // helper method to extract an error from a reader if there is one; first returned item is the
