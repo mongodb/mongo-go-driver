@@ -1,0 +1,257 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "658f7184_0dd0f799",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "With the hope of making this \"future proof\" against new retry modes, would it make more sense to do return rm !\u003d RetryNone?",
+      "range": {
+        "startLine": 135,
+        "startChar": 1,
+        "endLine": 135,
+        "endChar": 74
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9a24520a_30b24428",
+        "filename": "x/mongo/driver/ismaster.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Can you explain what \"direct unmarshaling\" entails? Would that mean using bsoncore instead of bson?",
+      "range": {
+        "startLine": 68,
+        "startChar": 1,
+        "endLine": 68,
+        "endChar": 42
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "03b01a2a_78743e8c",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Why do we need TopologyKind and Deployment instead of using the Deployment\u0027s Kind function?",
+      "range": {
+        "startLine": 45,
+        "startChar": 1,
+        "endLine": 45,
+        "endChar": 38
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b6ddcfc1_3cfb7f15",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Why do we need both RetryType and RetryableFn?",
+      "range": {
+        "startLine": 61,
+        "startChar": 1,
+        "endLine": 61,
+        "endChar": 20
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1e54152b_0fee46f7",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Will selectServer be called from anywhere besides Execute? If not, the oc.Validate() below can be removed because Execute validates before calling this.",
+      "range": {
+        "startLine": 64,
+        "startChar": 27,
+        "endLine": 64,
+        "endChar": 39
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "78f60394_ecf91e01",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Shouldn\u0027t be here.",
+      "range": {
+        "startLine": 169,
+        "startChar": 2,
+        "endLine": 169,
+        "endChar": 17
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "df94944e_65b9792d",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Should this be !\u003d instead of \u003d\u003d? Seems like we\u0027d want to return the original error if the new connection doesn\u0027t have a description that supports retries.\n\nAlso, in this case, we did get a valid connection, but it won\u0027t be closed. Is that intentional?",
+      "range": {
+        "startLine": 190,
+        "startChar": 36,
+        "endLine": 190,
+        "endChar": 84
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ea323aee_5998ea9d",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 412,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "This is covered by sess.TransactionRunning()",
+      "range": {
+        "startLine": 412,
+        "startChar": 4,
+        "endLine": 412,
+        "endChar": 62
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2d7ab0ca_a05a8785",
+        "filename": "x/mongo/driverlegacy/topology/server.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 159,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Can this be renamed to updateTopologyCallback? topo implies it\u0027s a topology, not a function.",
+      "range": {
+        "startLine": 159,
+        "startChar": 25,
+        "endLine": 159,
+        "endChar": 29
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5ca6537f_b97143e0",
+        "filename": "x/mongo/driverlegacy/topology/server.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 451,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Same renaming comment here",
+      "range": {
+        "startLine": 451,
+        "startChar": 1,
+        "endLine": 451,
+        "endChar": 5
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e93fe550_ea34063c",
+        "filename": "x/mongo/driverlegacy/topology/server.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-25T19:41:41Z",
+      "side": 1,
+      "message": "Were we just missing AppName before?",
+      "range": {
+        "startLine": 532,
+        "startChar": 26,
+        "endLine": 532,
+        "endChar": 33
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
