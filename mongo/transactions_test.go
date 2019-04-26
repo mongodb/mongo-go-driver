@@ -39,11 +39,17 @@ import (
 const transactionTestsDir = "../data/transactions"
 
 type transTestFile struct {
-	Topology       []string         `json:"topology"`
+	RunOn          []*runOn         `json:"runOn"`
 	DatabaseName   string           `json:"database_name"`
 	CollectionName string           `json:"collection_name"`
 	Data           json.RawMessage  `json:"data"`
 	Tests          []*transTestCase `json:"tests"`
+}
+
+type runOn struct {
+	MinServerVersion string   `json:"minServerVersion"`
+	MaxServerVersion string   `json:"maxServerVersion"`
+	Topology         []string `json:"topology"`
 }
 
 type transTestCase struct {
@@ -132,7 +138,15 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 
 	version, err := getServerVersion(dbAdmin)
 	require.NoError(t, err)
-	if shouldSkipTransactionsTest(t, version, testfile.Topology) {
+	runTest := len(testfile.RunOn) == 0
+	for _, reqs := range testfile.RunOn {
+		if executeTransactionsTest(t, version, reqs) {
+			runTest = true
+			break
+		}
+	}
+
+	if !runTest {
 		t.Skip()
 	}
 
@@ -243,8 +257,8 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		sess0 := session0.(*sessionImpl)
 		sess1 := session1.(*sessionImpl)
 
-		lsid0 := sess0.SessionID
-		lsid1 := sess1.SessionID
+		lsid0 := sess0.clientSession.SessionID
+		lsid1 := sess1.clientSession.SessionID
 
 		defer func() {
 			sess0.EndSession(ctx)
@@ -287,15 +301,16 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 			}
 
 			// create collection with default read preference Primary (needed to prevent server selection fail)
-			coll = db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local()))
+			coll := db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local()))
 			addCollectionOptions(coll, op.CollectionOptions)
 
 			// execute the command on given object
+			var err error
 			switch op.Object {
 			case "session0":
-				err = executeSessionOperation(op, sess0)
+				err = executeSessionOperation(t, op, sess0, collName, db)
 			case "session1":
-				err = executeSessionOperation(op, sess1)
+				err = executeSessionOperation(t, op, sess1, collName, db)
 			case "collection":
 				err = executeCollectionOperation(t, op, sess, coll)
 			case "database":
@@ -317,7 +332,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 
 		if test.Outcome != nil {
 			// Verify with primary read pref
-			coll2, err := coll.Clone(options.Collection().SetReadPreference(readpref.Primary()))
+			coll2, err := coll.Clone(options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local()))
 			require.NoError(t, err)
 			verifyCollectionContents(t, coll2, test.Outcome.Collection.Data)
 		}
@@ -445,7 +460,7 @@ func createFailPointDoc(t *testing.T, failPoint *failPoint) bsonx.Doc {
 	return failDoc
 }
 
-func executeSessionOperation(op *transOperation, sess *sessionImpl) error {
+func executeSessionOperation(t *testing.T, op *transOperation, sess *sessionImpl, collName string, db *Database) error {
 	switch op.Name {
 	case "startTransaction":
 		// options are only argument
@@ -458,6 +473,8 @@ func executeSessionOperation(op *transOperation, sess *sessionImpl) error {
 		return sess.CommitTransaction(ctx)
 	case "abortTransaction":
 		return sess.AbortTransaction(ctx)
+	case "withTransaction":
+		return executeWithTransaction(t, sess, collName, db, op.Arguments)
 	}
 	return nil
 }
@@ -583,7 +600,7 @@ func executeTestRunnerOperation(t *testing.T, op *transOperation, sess *sessionI
 		doc := createFailPointDoc(t, &fp)
 		mongodbURI := testutil.ConnString(t)
 		opts := options.Client().ApplyURI(mongodbURI.String())
-		client, err := NewClient(opts.SetHosts([]string{sess.Client.PinnedServer.Addr.String()}))
+		client, err := NewClient(opts.SetHosts([]string{sess.clientSession.PinnedServer.Addr.String()}))
 		require.NoError(t, err)
 		require.NoError(t, client.Connect(ctx))
 		require.NoError(t, client.Database("admin").RunCommand(ctx, doc).Err())
@@ -592,9 +609,9 @@ func executeTestRunnerOperation(t *testing.T, op *transOperation, sess *sessionI
 
 		return fp.ConfigureFailPoint, nil
 	case "assertSessionPinned":
-		require.NotNil(t, sess.PinnedServer)
+		require.NotNil(t, sess.clientSession.PinnedServer)
 	case "assertSessionUnpinned":
-		require.Nil(t, sess.PinnedServer)
+		require.Nil(t, sess.clientSession.PinnedServer)
 	}
 	return "", nil
 }
@@ -606,7 +623,8 @@ func verifyError(t *testing.T, e error, result json.RawMessage) {
 	}
 
 	if cerr, ok := e.(CommandError); ok {
-		if expected.ErrorCodeName != "" {
+		if expected.ErrorCodeName != "" && expected.ErrorCodeName != "UnsatisfiableWriteConcern" &&
+			expected.ErrorCodeName != "UnknownReplWriteConcern" {
 			require.NotNil(t, cerr)
 			require.Equal(t, expected.ErrorCodeName, cerr.Name)
 		}
@@ -702,7 +720,7 @@ func checkExpectations(t *testing.T, expectations []*transExpectation, id0 bsonx
 
 			// Keys that should not be nil
 			require.NotEqual(t, actualVal.Type, bsontype.Null, "Expected %v, got nil for key: %s", elem, key)
-			require.NoError(t, actualVal.Validate())
+			require.NoError(t, actualVal.Validate(), "Expected %v, couldn't validate", elem)
 			if key == "lsid" {
 				if val.StringValue() == "session0" {
 					doc, err := bsonx.ReadDoc(actualVal.Document())
@@ -839,28 +857,31 @@ func readPrefFromString(s string) *readpref.ReadPref {
 	return readpref.Primary()
 }
 
-func shouldSkipTransactionsTest(t *testing.T, serverVersion string, topologies []string) bool {
-	if len(topologies) == 0 {
-		topologies = []string{"single", "replicaset", "sharded"}
+func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bool {
+	if len(reqs.MinServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MinServerVersion) < 0 {
+		return false
 	}
-	if compareVersions(t, serverVersion, "4.0") < 0 {
+	if len(reqs.MaxServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MaxServerVersion) > 0 {
+		return false
+	}
+	if len(reqs.Topology) == 0 {
 		return true
 	}
-	for _, top := range topologies {
+	for _, top := range reqs.Topology {
 		switch os.Getenv("TOPOLOGY") {
 		case "server":
 			if top == "single" {
-				return false
+				return true
 			}
 		case "replica_set":
 			if top == "replicaset" {
-				return false
+				return true
 			}
 		case "sharded_cluster":
 			if top == "sharded" && compareVersions(t, serverVersion, "4.0") > 0 {
-				return false
+				return true
 			}
 		}
 	}
-	return true
+	return false
 }

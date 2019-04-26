@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -23,6 +24,8 @@ import (
 // ErrWrongClient is returned when a user attempts to pass in a session created by a different client than
 // the method call is using.
 var ErrWrongClient = errors.New("session was not created by this client")
+
+var withTransactionTimeout = 120 * time.Second
 
 // SessionContext is a hybrid interface. It combines a context.Context with
 // a mongo.Session. This type can be used as a regular context.Context or
@@ -45,6 +48,7 @@ type sessionKey struct {
 // and to enable causally consistent behavior for applications.
 type Session interface {
 	EndSession(context.Context)
+	WithTransaction(ctx context.Context, fn func(sessCtx SessionContext) (interface{}, error), opts ...*options.TransactionOptions) (interface{}, error)
 	StartTransaction(...*options.TransactionOptions) error
 	AbortTransaction(context.Context) error
 	CommitTransaction(context.Context) error
@@ -52,28 +56,91 @@ type Session interface {
 	AdvanceClusterTime(bson.Raw) error
 	OperationTime() *primitive.Timestamp
 	AdvanceOperationTime(*primitive.Timestamp) error
+	Client() *Client
 	session()
 }
 
 // sessionImpl represents a set of sequential operations executed by an application that are related in some way.
 type sessionImpl struct {
-	*session.Client
+	clientSession       *session.Client
+	client              *Client
 	topo                *topology.Topology
 	didCommitAfterStart bool // true if commit was called after start with no other operations
 }
 
 // EndSession ends the session.
 func (s *sessionImpl) EndSession(ctx context.Context) {
-	if s.TransactionInProgress() {
+	if s.clientSession.TransactionInProgress() {
 		// ignore all errors aborting during an end session
 		_ = s.AbortTransaction(ctx)
 	}
-	s.Client.EndSession()
+	s.clientSession.EndSession()
+}
+
+func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx SessionContext) (interface{}, error), opts ...*options.TransactionOptions) (interface{}, error) {
+	timeout := time.NewTimer(withTransactionTimeout)
+	defer timeout.Stop()
+	var err error
+	for {
+		err = s.StartTransaction(opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		res, err := fn(contextWithSession(ctx, s))
+		if err != nil {
+			if s.clientSession.TransactionRunning() {
+				_ = s.AbortTransaction(ctx)
+			}
+
+			select {
+			case <-timeout.C:
+				return nil, err
+			default:
+			}
+
+			if cerr, ok := err.(CommandError); ok {
+				if cerr.HasErrorLabel(command.TransientTransactionError) {
+					continue
+				}
+			}
+			return res, err
+		}
+
+		err = s.clientSession.CheckAbortTransaction()
+		if err != nil {
+			return res, nil
+		}
+
+	CommitLoop:
+		for {
+			err = s.CommitTransaction(ctx)
+			if err == nil {
+				return res, nil
+			}
+
+			select {
+			case <-timeout.C:
+				return res, err
+			default:
+			}
+
+			if cerr, ok := err.(CommandError); ok {
+				if cerr.HasErrorLabel(command.UnknownTransactionCommitResult) {
+					continue
+				}
+				if cerr.HasErrorLabel(command.TransientTransactionError) {
+					break CommitLoop
+				}
+			}
+			return res, err
+		}
+	}
 }
 
 // StartTransaction starts a transaction for this session.
 func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) error {
-	err := s.CheckStartTransaction()
+	err := s.clientSession.CheckStartTransaction()
 	if err != nil {
 		return err
 	}
@@ -87,76 +154,82 @@ func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) erro
 		WriteConcern:   topts.WriteConcern,
 	}
 
-	return s.Client.StartTransaction(coreOpts)
+	return s.clientSession.StartTransaction(coreOpts)
 }
 
 // AbortTransaction aborts the session's transaction, returning any errors and error codes
 func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
-	err := s.CheckAbortTransaction()
+	err := s.clientSession.CheckAbortTransaction()
 	if err != nil {
 		return err
 	}
 
 	cmd := command.AbortTransaction{
-		Session: s.Client,
+		Session: s.clientSession,
 	}
 
-	s.Aborting = true
+	s.clientSession.Aborting = true
 	_, err = driverlegacy.AbortTransaction(ctx, cmd, s.topo, description.WriteSelector())
 
-	_ = s.Client.AbortTransaction()
+	_ = s.clientSession.AbortTransaction()
 	return replaceErrors(err)
 }
 
 // CommitTransaction commits the sesson's transaction.
 func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
-	err := s.CheckCommitTransaction()
+	err := s.clientSession.CheckCommitTransaction()
 	if err != nil {
 		return err
 	}
 
 	// Do not run the commit command if the transaction is in started state
-	if s.TransactionStarting() || s.didCommitAfterStart {
+	if s.clientSession.TransactionStarting() || s.didCommitAfterStart {
 		s.didCommitAfterStart = true
-		return s.Client.CommitTransaction()
+		return s.clientSession.CommitTransaction()
 	}
 
-	if s.Client.TransactionCommitted() {
-		s.RetryingCommit = true
+	if s.clientSession.TransactionCommitted() {
+		s.clientSession.RetryingCommit = true
 	}
 
 	cmd := command.CommitTransaction{
-		Session: s.Client,
+		Session: s.clientSession,
 	}
 
 	// Hack to ensure that session stays in committed state
-	if s.TransactionCommitted() {
-		s.Committing = true
+	if s.clientSession.TransactionCommitted() {
+		s.clientSession.Committing = true
 		defer func() {
-			s.Committing = false
+			s.clientSession.Committing = false
 		}()
 	}
 	_, err = driverlegacy.CommitTransaction(ctx, cmd, s.topo, description.WriteSelector())
-	if err == nil {
-		return s.Client.CommitTransaction()
+	commitErr := s.clientSession.CommitTransaction()
+
+	if err != nil {
+		return replaceErrors(err)
 	}
-	return replaceErrors(err)
+	return commitErr
 }
 
 func (s *sessionImpl) ClusterTime() bson.Raw {
-	return s.Client.ClusterTime
+	return s.clientSession.ClusterTime
 }
 
 func (s *sessionImpl) AdvanceClusterTime(d bson.Raw) error {
-	return s.Client.AdvanceClusterTime(d)
+	return s.clientSession.AdvanceClusterTime(d)
 }
 
 func (s *sessionImpl) OperationTime() *primitive.Timestamp {
-	return s.Client.OperationTime
+	return s.clientSession.OperationTime
 }
 
 func (s *sessionImpl) AdvanceOperationTime(ts *primitive.Timestamp) error {
-	return s.Client.AdvanceOperationTime(ts)
+	return s.clientSession.AdvanceOperationTime(ts)
+}
+
+func (s *sessionImpl) Client() *Client {
+	return s.client
 }
 
 func (*sessionImpl) session() {
@@ -167,7 +240,7 @@ func (*sessionImpl) session() {
 func sessionFromContext(ctx context.Context) *session.Client {
 	s := ctx.Value(sessionKey{})
 	if ses, ok := s.(*sessionImpl); ses != nil && ok {
-		return ses.Client
+		return ses.clientSession
 	}
 
 	return nil
