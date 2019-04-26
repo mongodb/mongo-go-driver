@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "64dd2a63_e1f5f6cc",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "Adding a new retry mode would mean adding a const. No reason why, when adding that new retry mode, that it wouldn\u0027t get added to this.",
+      "parentUuid": "658f7184_0dd0f799",
+      "range": {
+        "startLine": 135,
+        "startChar": 1,
+        "endLine": 135,
+        "endChar": 74
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9a24520a_30b24428",
         "filename": "x/mongo/driver/ismaster.go",
         "patchSetId": 9
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "4683b916_c86f9149",
+        "filename": "x/mongo/driver/ismaster.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "Yes.",
+      "parentUuid": "9a24520a_30b24428",
+      "range": {
+        "startLine": 68,
+        "startChar": 1,
+        "endLine": 68,
+        "endChar": 42
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "03b01a2a_78743e8c",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 9
@@ -59,6 +107,30 @@
       "writtenOn": "2019-04-25T19:41:41Z",
       "side": 1,
       "message": "Why do we need TopologyKind and Deployment instead of using the Deployment\u0027s Kind function?",
+      "range": {
+        "startLine": 45,
+        "startChar": 1,
+        "endLine": 45,
+        "endChar": 38
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "737054a2_2b9fb9b3",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 45,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "This is for a previous design. It was required when an operation specified a server. It was either provide a deployment or provide a server and topology kind.",
+      "parentUuid": "03b01a2a_78743e8c",
       "range": {
         "startLine": 45,
         "startChar": 1,
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "5075d6e0_b8a683e5",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "This is a prototype, the final design does not have both.",
+      "parentUuid": "b6ddcfc1_3cfb7f15",
+      "range": {
+        "startLine": 61,
+        "startChar": 1,
+        "endLine": 61,
+        "endChar": 20
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1e54152b_0fee46f7",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 9
@@ -105,6 +201,30 @@
       "writtenOn": "2019-04-25T19:41:41Z",
       "side": 1,
       "message": "Will selectServer be called from anywhere besides Execute? If not, the oc.Validate() below can be removed because Execute validates before calling this.",
+      "range": {
+        "startLine": 64,
+        "startChar": 27,
+        "endLine": 64,
+        "endChar": 39
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "568e8838_b8731a35",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "It might be, the design hasn\u0027t settled yet.",
+      "parentUuid": "1e54152b_0fee46f7",
       "range": {
         "startLine": 64,
         "startChar": 27,
@@ -140,6 +260,30 @@
     },
     {
       "key": {
+        "uuid": "4a6367ad_a9174271",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 169,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "78f60394_ecf91e01",
+      "range": {
+        "startLine": 169,
+        "startChar": 2,
+        "endLine": 169,
+        "endChar": 17
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "df94944e_65b9792d",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 9
@@ -151,6 +295,30 @@
       "writtenOn": "2019-04-25T19:41:41Z",
       "side": 1,
       "message": "Should this be !\u003d instead of \u003d\u003d? Seems like we\u0027d want to return the original error if the new connection doesn\u0027t have a description that supports retries.\n\nAlso, in this case, we did get a valid connection, but it won\u0027t be closed. Is that intentional?",
+      "range": {
+        "startLine": 190,
+        "startChar": 36,
+        "endLine": 190,
+        "endChar": 84
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "75874f20_505996c2",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "This was a typo, but the second point is accurate, we need to close the connection.",
+      "parentUuid": "df94944e_65b9792d",
       "range": {
         "startLine": 190,
         "startChar": 36,
@@ -186,6 +354,30 @@
     },
     {
       "key": {
+        "uuid": "675919bc_93248f35",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 412,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "ea323aee_5998ea9d",
+      "range": {
+        "startLine": 412,
+        "startChar": 4,
+        "endLine": 412,
+        "endChar": 62
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2d7ab0ca_a05a8785",
         "filename": "x/mongo/driverlegacy/topology/server.go",
         "patchSetId": 9
@@ -197,6 +389,30 @@
       "writtenOn": "2019-04-25T19:41:41Z",
       "side": 1,
       "message": "Can this be renamed to updateTopologyCallback? topo implies it\u0027s a topology, not a function.",
+      "range": {
+        "startLine": 159,
+        "startChar": 25,
+        "endLine": 159,
+        "endChar": 29
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "42cb9f99_94d8a9ab",
+        "filename": "x/mongo/driverlegacy/topology/server.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 159,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "I dislike calling it updateTopologyCallback, but I don\u0027t object to changing the name.",
+      "parentUuid": "2d7ab0ca_a05a8785",
       "range": {
         "startLine": 159,
         "startChar": 25,
@@ -232,6 +448,30 @@
     },
     {
       "key": {
+        "uuid": "ebff34ac_dc9061f0",
+        "filename": "x/mongo/driverlegacy/topology/server.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 451,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "I don\u0027t think spelling out updateTopologyCallback a second time clears up what these four lines of code does, but it does add noise.",
+      "parentUuid": "5ca6537f_b97143e0",
+      "range": {
+        "startLine": 451,
+        "startChar": 1,
+        "endLine": 451,
+        "endChar": 5
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e93fe550_ea34063c",
         "filename": "x/mongo/driverlegacy/topology/server.go",
         "patchSetId": 9
@@ -243,6 +483,30 @@
       "writtenOn": "2019-04-25T19:41:41Z",
       "side": 1,
       "message": "Were we just missing AppName before?",
+      "range": {
+        "startLine": 532,
+        "startChar": 26,
+        "endLine": 532,
+        "endChar": 33
+      },
+      "revId": "b4778d6ac2ee193efe039f981d9b0d2994b1b3b0",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3f52e043_09e66cce",
+        "filename": "x/mongo/driverlegacy/topology/server.go",
+        "patchSetId": 9
+      },
+      "lineNbr": 532,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-04-26T18:38:48Z",
+      "side": 1,
+      "message": "It looks like it, but this is a different operation we\u0027re running.",
+      "parentUuid": "e93fe550_ea34063c",
       "range": {
         "startLine": 532,
         "startChar": 26,
