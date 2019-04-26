@@ -54,22 +54,23 @@ func TestMongosPinning(t *testing.T) {
 
 		addresses := map[string]struct{}{}
 		err = client.UseSession(ctx, func(sctx SessionContext) error {
-			require.NoError(t, sctx.StartTransaction(options.Transaction()))
-
-			_, err = coll.InsertOne(sctx, bson.D{{"x", 1}})
+			_, err := sctx.WithTransaction(sctx, func(sessCtx SessionContext) (interface{}, error) {
+				_, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+				return nil, err
+			})
 			require.NoError(t, err)
 
-			require.NoError(t, sctx.CommitTransaction(sctx))
-
 			for i := 0; i < 50; i++ {
-				require.NoError(t, sctx.StartTransaction(options.Transaction()))
-
-				cursor, err := coll.Find(context.Background(), bson.D{})
+				_, err := sctx.WithTransaction(sctx, func(sessCtx SessionContext) (interface{}, error) {
+					cursor, err := coll.Find(sessCtx, bson.D{})
+					if err != nil {
+						return nil, err
+					}
+					require.True(t, cursor.Next(sessCtx))
+					addresses[cursor.bc.Server().Description().Addr.String()] = struct{}{}
+					return nil, nil
+				})
 				require.NoError(t, err)
-				require.True(t, cursor.Next(context.Background()))
-				addresses[cursor.bc.Server().Description().Addr.String()] = struct{}{}
-
-				require.NoError(t, sctx.CommitTransaction(sctx))
 			}
 			return nil
 		})
@@ -87,20 +88,19 @@ func TestMongosPinning(t *testing.T) {
 		_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
 		require.NoError(t, err)
 
-		addresses := map[string]bool{}
+		addresses := map[string]struct{}{}
 		err = client.UseSession(ctx, func(sctx SessionContext) error {
-			require.NoError(t, sctx.StartTransaction(options.Transaction()))
-
-			_, err = coll.InsertOne(sctx, bson.D{{"x", 1}})
+			_, err := sctx.WithTransaction(sctx, func(sessCtx SessionContext) (interface{}, error) {
+				_, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+				return nil, err
+			})
 			require.NoError(t, err)
 
-			require.NoError(t, sctx.CommitTransaction(sctx))
-
 			for i := 0; i < 50; i++ {
-				cursor, err := coll.Find(context.Background(), bson.D{})
+				cursor, err := coll.Find(sctx, bson.D{})
 				require.NoError(t, err)
-				require.True(t, cursor.Next(context.Background()))
-				addresses[cursor.bc.Server().Description().Addr.String()] = true
+				require.True(t, cursor.Next(sctx))
+				addresses[cursor.bc.Server().Description().Addr.String()] = struct{}{}
 			}
 			return nil
 		})

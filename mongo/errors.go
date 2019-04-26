@@ -117,12 +117,18 @@ func writeErrorsFromResult(rwes []result.WriteError) WriteErrors {
 // WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {
+	Name    string
 	Code    int
 	Message string
 	Details bson.Raw
 }
 
-func (wce WriteConcernError) Error() string { return wce.Message }
+func (wce WriteConcernError) Error() string {
+	if wce.Name != "" {
+		return fmt.Sprintf("(%v) %v", wce.Name, wce.Message)
+	}
+	return wce.Message
+}
 
 // WriteException is an error for a non-bulk write operation.
 type WriteException struct {
@@ -159,7 +165,7 @@ func convertWriteConcernError(wce *result.WriteConcernError) *WriteConcernError 
 		return nil
 	}
 
-	return &WriteConcernError{Code: wce.Code, Message: wce.ErrMsg, Details: wce.ErrInfo}
+	return &WriteConcernError{Name: wce.Name, Code: wce.Code, Message: wce.ErrMsg, Details: wce.ErrInfo}
 }
 
 // BulkWriteError is an error for one operation in a bulk write.

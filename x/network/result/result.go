@@ -8,6 +8,7 @@
 package result // import "go.mongodb.org/mongo-driver/x/network/result"
 
 import (
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -77,12 +78,18 @@ type WriteError struct {
 
 // WriteConcernError is an error related to a write concern.
 type WriteConcernError struct {
+	Name    string `bson:"codeName"`
 	Code    int
 	ErrMsg  string
 	ErrInfo bson.Raw
 }
 
-func (wce WriteConcernError) Error() string { return wce.ErrMsg }
+func (wce WriteConcernError) Error() string {
+	if wce.Name != "" {
+		return fmt.Sprintf("(%v) %v", wce.Name, wce.ErrMsg)
+	}
+	return wce.ErrMsg
+}
 
 // ListDatabases is the result from a listDatabases command.
 type ListDatabases struct {
