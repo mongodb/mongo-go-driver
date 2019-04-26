@@ -539,6 +539,26 @@ func executeAggregate(sess *sessionImpl, coll *Collection, args map[string]inter
 	return coll.Aggregate(ctx, pipeline, opts)
 }
 
+func executeWithTransaction(t *testing.T, sess *sessionImpl, collName string, db *Database, args json.RawMessage) error {
+	expectedBytes, err := args.MarshalJSON()
+	if err != nil {
+		return err
+	}
+
+	var testArgs withTransactionArgs
+	err = json.NewDecoder(bytes.NewBuffer(expectedBytes)).Decode(&testArgs)
+	if err != nil {
+		return err
+	}
+	opts := getTransactionOptions(testArgs.Options)
+
+	_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
+		err := runWithTransactionOperations(t, testArgs.Callback.Operations, sess, collName, db)
+		return nil, err
+	}, opts)
+	return err
+}
+
 func executeRunCommand(sess Session, db *Database, argmap map[string]interface{}, args json.RawMessage) *SingleResult {
 	var cmd bsonx.Doc
 	opts := options.RunCmd()

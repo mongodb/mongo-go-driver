@@ -49,9 +49,5 @@ func decodeCommandOpMsg(msg wiremessage.Msg) (bson.Raw, error) {
 		return nil, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 	}
 
-	err = extractError(rdr)
-	if err != nil {
-		return nil, err
-	}
-	return rdr, nil
+	return rdr, extractError(rdr)
 }
