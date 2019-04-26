@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"testing"
@@ -20,7 +21,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 var collectionStartingDoc = bsonx.Doc{
@@ -33,38 +37,42 @@ var doc1 = bsonx.Doc{
 
 var wcMajority = writeconcern.New(writeconcern.WMajority())
 
-type errorCursor struct {
+type errorBatchCursor struct {
 	errCode int32
 }
 
-func (er *errorCursor) ID() int64 {
+func (ebc *errorBatchCursor) ID() int64 {
 	return 1
 }
 
-func (er *errorCursor) Next(ctx context.Context) bool {
+func (ebc *errorBatchCursor) Next(ctx context.Context) bool {
 	return false
 }
 
-func (er *errorCursor) Decode(interface{}) error {
+func (ebc *errorBatchCursor) Batch() *bsoncore.DocumentSequence {
 	return nil
 }
 
-func (er *errorCursor) DecodeBytes() (bson.Raw, error) {
-	return nil, nil
+func (ebc *errorBatchCursor) Server() *topology.Server {
+	return nil
 }
 
-func (er *errorCursor) Err() error {
-	return CommandError{
-		Code: er.errCode,
+func (ebc *errorBatchCursor) Err() error {
+	return command.Error{
+		Code: ebc.errCode,
 	}
 }
 
-func (er *errorCursor) Close(ctx context.Context) error {
+func (ebc *errorBatchCursor) Close(ctx context.Context) error {
+	return nil
+}
+
+func (ebc *errorBatchCursor) PostBatchResumeToken() bsoncore.Document {
 	return nil
 }
 
 func killChangeStreamCursor(t *testing.T, cs *ChangeStream) {
-	_, err := driverlegacy.KillCursors(context.Background(), cs.ns, cs.cursor.bc.Server(), cs.ID())
+	_, err := driverlegacy.KillCursors(context.Background(), cs.ns, cs.cursor.Server(), cs.ID())
 	if err != nil {
 		t.Fatalf("error killing cursor: %v", err)
 	}
@@ -80,6 +88,10 @@ func skipIfBelow36(t *testing.T) {
 }
 
 func createStream(t *testing.T, client *Client, dbName string, collName string, pipeline interface{}, opts ...*options.ChangeStreamOptions) (*Collection, *ChangeStream) {
+	if pipeline == nil {
+		pipeline = Pipeline{}
+	}
+
 	client.writeConcern = wcMajority
 	db := client.Database(dbName)
 	err := db.Drop(ctx)
@@ -171,6 +183,13 @@ func comparePipelines(t *testing.T, expectedraw, actualraw bson.Raw) {
 			t.Fatalf("pipelines do not match")
 		}
 	}
+}
+
+func pbrtSupported(t *testing.T) bool {
+	version, err := getServerVersion(createTestDatabase(t, nil))
+	testhelpers.RequireNil(t, err, "error getting server version: %v", err)
+
+	return compareVersions(t, version, "4.0.7") >= 0
 }
 
 func TestChangeStream(t *testing.T) {
@@ -307,11 +326,6 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		coll, stream := createCollectionStream(t, "TrackTokenDB", "TrackTokenColl", nil)
 		defer closeCursor(stream)
 
-		cs := stream
-		if cs.resumeToken != nil {
-			t.Fatalf("non-nil error on stream")
-		}
-
 		coll.writeConcern = wcMajority
 		_, err := coll.InsertOne(ctx, doc1)
 		testhelpers.RequireNil(t, err, "error running insertOne: %s", err)
@@ -322,7 +336,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		err = stream.Err()
 		testhelpers.RequireNil(t, err, "error decoding bytes: %s", err)
 
-		testhelpers.RequireNotNil(t, cs.resumeToken, "no resume token found after first change")
+		testhelpers.RequireNotNil(t, stream.resumeToken, "no resume token found after first change")
 	})
 
 	t.Run("TestMissingResumeToken", func(t *testing.T) {
@@ -421,11 +435,8 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 				_, stream := createMonitoredStream(t, "ResumeOnceDB", "ResumeOnceColl", nil)
 				defer closeCursor(stream)
 				cs := stream
-				cs.cursor = &Cursor{
-					bc: driverlegacy.NewEmptyBatchCursor(),
-					err: CommandError{
-						Code: tc.errCode,
-					},
+				cs.cursor = &errorBatchCursor{
+					errCode: tc.errCode,
 				}
 
 				drainChannels()
@@ -500,6 +511,10 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		testhelpers.RequireNil(t, err, "error creating fail point: %s", result.err)
 
+		// insert a document so Next doesn't loop forever
+		_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
+		testhelpers.RequireNil(t, err, "error inserting document: %v", err)
+
 		if !stream.Next(ctx) {
 			t.Fatal("stream Next() returned false, expected true")
 		}
@@ -514,6 +529,9 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		if compareVersions(t, version, "4.0") < 0 {
 			t.Skip("skipping for version < 4.0")
+		}
+		if compareVersions(t, version, "4.0.7") >= 0 {
+			t.Skip("skipping for version >= 4.0.7 because pbrt supersedes operation times")
 		}
 
 		_, stream := createMonitoredStream(t, "IncludeTimeDB", "IncludeTimeColl", nil)
@@ -691,6 +709,150 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			t.Fatalf("maxTimeMS not found in getMore command")
 		}
 	})
+
+	t.Run("ResumeToken", func(t *testing.T) {
+		pbrtSupport := pbrtSupported(t)
+
+		// Prose tests to make assertions on resume tokens for change streams that have not done a getMore yet
+		t.Run("NoGetMore", func(t *testing.T) {
+			t.Run("WithPBRTSupport", func(t *testing.T) {
+				if !pbrtSupport {
+					t.Skip("skipping for older server versions")
+				}
+
+				coll, stream := createMonitoredStream(t, "ResumeTokenPbrtDB", "ResumeTokenPbrtColl", nil)
+				// Initial resume token should equal the PBRT in the aggregate command
+				pbrt, opTime := getAggregateInfo(t)
+				compareResumeTokens(t, stream, pbrt)
+
+				// Insert documents to create events
+				for i := 0; i < 5; i++ {
+					_, err := coll.InsertOne(ctx, bsonx.Doc{{"x", bsonx.Int32(int32(i))}})
+					testhelpers.RequireNil(t, err, "error inserting doc: %v", err)
+				}
+
+				// Iterate over one to get a new resume token
+				if !stream.Next(ctx) {
+					t.Fatalf("expected Next to return true, got false")
+				}
+				token := stream.ResumeToken()
+				testhelpers.RequireNotNil(t, token, "got nil token")
+				closeCursor(stream)
+
+				cases := []struct {
+					name                 string
+					opts                 *options.ChangeStreamOptions
+					expectedInitialToken bson.Raw
+				}{
+					{"startAfter", options.ChangeStream().SetStartAfter(token), token},
+					{"resumeAfter", options.ChangeStream().SetResumeAfter(token), token},
+					{"neither", options.ChangeStream().SetStartAtOperationTime(&opTime), nil},
+				}
+				for _, tc := range cases {
+					t.Run(tc.name, func(t *testing.T) {
+						drainChannels()
+						stream, err := coll.Watch(ctx, Pipeline{}, tc.opts)
+						testhelpers.RequireNil(t, err, "error restarting stream: %v", err)
+						defer closeCursor(stream)
+						aggPbrt, _ := getAggregateInfo(t)
+
+						compareResumeTokens(t, stream, tc.expectedInitialToken)
+
+						for i := 0; i < 4; i++ {
+							if !stream.Next(ctx) {
+								t.Fatal("Next returned false, expected true")
+							}
+
+							// while we're not at the last document in the batch, the resume token should be the _id
+							// of the previous document
+							if i != 3 {
+								compareResumeTokens(t, stream, stream.Current.Lookup("_id").Document())
+							}
+						}
+
+						// At the end of the batch, the resume token should be set to the pbrt of the initial aggregate
+						compareResumeTokens(t, stream, aggPbrt)
+					})
+				}
+			})
+
+			t.Run("WithoutPBRTSupport", func(t *testing.T) {
+				if pbrtSupport {
+					t.Skip("skipping for newer server versions")
+				}
+
+				coll, stream := createStream(t, createTestClient(t), "ResumeTokenNoPbrtDb", "ResumeTokenNoPbrtColl", nil)
+				compareResumeTokens(t, stream, nil)
+				for i := 0; i < 5; i++ {
+					_, err := coll.InsertOne(ctx, bsonx.Doc{{"x", bsonx.Int32(int32(i))}})
+					testhelpers.RequireNil(t, err, "error inserting doc: %v", err)
+				}
+
+				// Iterate once to get a valid resume token
+				if !stream.Next(ctx) {
+					t.Fatal("expected Next to return true, got false")
+				}
+				token := stream.ResumeToken()
+				testhelpers.RequireNotNil(t, token, "got nil resume token")
+				closeCursor(stream)
+
+				cases := []struct {
+					name                 string
+					opts                 *options.ChangeStreamOptions
+					iterateStream        bool // whether or not Next() should be called on resulting change stream
+					expectedInitialToken bson.Raw
+				}{
+					{"resumeAfter", options.ChangeStream().SetResumeAfter(token), true, token},
+					{"no options", nil, false, nil},
+				}
+				for _, tc := range cases {
+					t.Run(tc.name, func(t *testing.T) {
+						stream, err := coll.Watch(ctx, Pipeline{}, tc.opts)
+						testhelpers.RequireNil(t, err, "error restarting stream: %v", err)
+						defer closeCursor(stream)
+						compareResumeTokens(t, stream, tc.expectedInitialToken)
+
+						// if the stream is not expected to have any results, do not try calling Next
+						if !tc.iterateStream {
+							return
+						}
+
+						// iterate once and assert resume token matches _id of last document
+						if !stream.Next(ctx) {
+							t.Fatal("Next returned false, expected true")
+						}
+
+						var currDoc bson.Raw
+						err = stream.Decode(&currDoc)
+						testhelpers.RequireNil(t, err, "error decoding event: %v", err)
+						compareResumeTokens(t, stream, currDoc.Lookup("_id").Document())
+					})
+				}
+			})
+		})
+	})
+}
+
+func compareResumeTokens(t *testing.T, stream *ChangeStream, expectedToken bson.Raw) {
+	got := stream.ResumeToken()
+	if !bytes.Equal(got, expectedToken) {
+		t.Fatalf("resume tokens do not match; expected %v got %v", expectedToken, got)
+	}
+}
+
+// returns pbrt, operationTime from aggregate command
+func getAggregateInfo(t *testing.T) (bson.Raw, primitive.Timestamp) {
+	if len(succeededChan) != 1 {
+		t.Fatalf("expected 1 event in succeededChan, got %d", len(succeededChan))
+	}
+	aggEvent := <-succeededChan
+	if aggEvent.CommandName != "aggregate" {
+		t.Fatalf("expected succeededChan to contain aggregate, got %s", aggEvent.CommandName)
+	}
+
+	pbrt := aggEvent.Reply.Lookup("cursor", "postBatchResumeToken").Document()
+	optimeT, optimeI := aggEvent.Reply.Lookup("operationTime").Timestamp()
+	return pbrt, primitive.Timestamp{T: optimeT, I: optimeI}
 }
 
 // ensure that a resume token has been recorded by a change stream

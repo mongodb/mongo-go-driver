@@ -9,6 +9,8 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -52,39 +54,49 @@ type ChangeStream struct {
 	coll        *Collection
 	db          *Database
 	ns          command.Namespace
-	cursor      *Cursor
+	cursor      batchCursor
+	batch       []bsoncore.Document
 	cursorOpts  bsonx.Doc
 	getMoreOpts bsonx.Doc
 
-	resumeToken bsonx.Doc
-	err         error
-	streamType  StreamType
-	client      *Client
-	sess        Session
-	readPref    *readpref.ReadPref
-	readConcern *readconcern.ReadConcern
-	registry    *bsoncodec.Registry
+	resumeToken   bson.Raw
+	err           error
+	streamType    StreamType
+	client        *Client
+	sess          Session
+	readPref      *readpref.ReadPref
+	readConcern   *readconcern.ReadConcern
+	registry      *bsoncodec.Registry
+	operationTime *primitive.Timestamp
 }
 
 func (cs *ChangeStream) replaceOptions(desc description.SelectedServer) {
-	// if cs has not received any changes and resumeAfter not specified and max wire version >= 7, run known agg cmd
-	// with startAtOperationTime set to startAtOperationTime provided by user or saved from initial agg
-	// must not send resumeAfter key
+	// Cached resume token: use the resume token as the resumeAfter option and set no other resume options
+	if cs.resumeToken != nil {
+		cs.options.SetResumeAfter(cs.resumeToken)
+		cs.options.SetStartAfter(nil)
+		cs.options.SetStartAtOperationTime(nil)
+		return
+	}
 
-	// else: run known agg cmd with resumeAfter set to last known resumeToken
-	// must not set startAtOperationTime (remove if originally in cmd)
-
-	if cs.options.ResumeAfter == nil && desc.WireVersion.Max >= 7 && cs.resumeToken == nil {
-		cs.options.SetStartAtOperationTime(cs.sess.OperationTime())
-	} else {
-		if cs.resumeToken == nil {
-			return // restart stream without the resume token
+	// No cached resume token but cached operation time: use the operation time as the startAtOperationTime option and
+	// set no other resume options
+	if (cs.operationTime != nil || cs.options.StartAtOperationTime != nil) && desc.WireVersion.Max >= 7 {
+		opTime := cs.options.StartAtOperationTime
+		if cs.operationTime != nil {
+			opTime = cs.operationTime
 		}
 
-		cs.options.SetResumeAfter(cs.resumeToken)
-		// remove startAtOperationTime
-		cs.options.SetStartAtOperationTime(nil)
+		cs.options.SetStartAtOperationTime(opTime)
+		cs.options.SetResumeAfter(nil)
+		cs.options.SetStartAfter(nil)
+		return
 	}
+
+	// No cached resume token or operation time: set none of the resume options
+	cs.options.SetResumeAfter(nil)
+	cs.options.SetStartAfter(nil)
+	cs.options.SetStartAtOperationTime(nil)
 }
 
 // Create options docs for the pipeline and cursor
@@ -128,6 +140,14 @@ func createCmdDocs(csType StreamType, opts *options.ChangeStreamOptions, registr
 	if opts.StartAtOperationTime != nil {
 		pipelineDoc = pipelineDoc.Append("startAtOperationTime",
 			bsonx.Timestamp(opts.StartAtOperationTime.T, opts.StartAtOperationTime.I))
+	}
+	if opts.StartAfter != nil {
+		sa, err := transformDocument(registry, opts.StartAfter)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+
+		pipelineDoc = pipelineDoc.Append("startAfter", bsonx.Document(sa))
 	}
 
 	return pipelineDoc, cursorDoc, optsDoc, getMoreOptsDoc, nil
@@ -221,12 +241,7 @@ func (cs *ChangeStream) runCommand(ctx context.Context, replaceOptions bool) err
 		cs.sess.EndSession(ctx)
 		return replaceErrors(err)
 	}
-	cursor, err := newCursor(batchCursor, cs.registry)
-	if err != nil {
-		cs.sess.EndSession(ctx)
-		return err
-	}
-	cs.cursor = cursor
+	cs.cursor = batchCursor
 
 	cursorValue, err := rdr.LookupErr("cursor")
 	if err != nil {
@@ -235,7 +250,39 @@ func (cs *ChangeStream) runCommand(ctx context.Context, replaceOptions bool) err
 	cursorDoc := cursorValue.Document()
 	cs.ns = command.ParseNamespace(cursorDoc.Lookup("ns").StringValue())
 
+	// Cache the operation time from the aggregate response if necessary
+	if cs.options.StartAtOperationTime == nil && cs.options.ResumeAfter == nil && cs.options.StartAfter == nil && desc.WireVersion.Max >= 7 &&
+		cs.emptyBatch() && cs.cursor.PostBatchResumeToken() == nil {
+
+		opTime, err := rdr.LookupErr("operationTime")
+		if err != nil {
+			return err
+		}
+
+		t, i, ok := opTime.TimestampOK()
+		if !ok {
+			return fmt.Errorf("operationTime was of type %s not %s", opTime.Type, bson.TypeTimestamp)
+		}
+		cs.operationTime = &primitive.Timestamp{T: t, I: i}
+	}
+
+	// Cache the post batch resume token from the aggreate response if necessary
+	cs.updatePbrtFromCommand()
 	return nil
+}
+
+// Returns true if the underlying cursor's batch is empty
+func (cs *ChangeStream) emptyBatch() bool {
+	return len(cs.cursor.Batch().Data) == 5 // empty BSON array
+}
+
+// Updates the post batch resume token after a successful aggregate or getMore operation.
+func (cs *ChangeStream) updatePbrtFromCommand() {
+	// Only cache the pbrt if an empty batch was returned and a pbrt was included
+	pbrt := cs.cursor.PostBatchResumeToken()
+	if cs.emptyBatch() && pbrt != nil {
+		cs.resumeToken = bson.Raw(pbrt)
+	}
 }
 
 func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{},
@@ -268,6 +315,20 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 	}
 	cmd = append(cmd, optsDoc...)
 
+	// When starting a change stream, cache startAfter as the first resume token if it is set. If not, cache
+	// resumeAfter. If neither is set, do not cache a resume token.
+	resumeToken := csOpts.ResumeAfter
+	if resumeToken == nil {
+		resumeToken = csOpts.StartAfter
+	}
+	var marshaledToken bson.Raw
+	if resumeToken != nil {
+		marshaledToken, err = bson.Marshal(resumeToken)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	cs := &ChangeStream{
 		client:      coll.client,
 		sess:        sess,
@@ -282,6 +343,7 @@ func newChangeStream(ctx context.Context, coll *Collection, pipeline interface{}
 		registry:    coll.registry,
 		cursorOpts:  cursorDoc,
 		getMoreOpts: getMoreDoc,
+		resumeToken: marshaledToken,
 	}
 
 	err = cs.runCommand(ctx, false)
@@ -399,22 +461,30 @@ func newClientChangeStream(ctx context.Context, client *Client, pipeline interfa
 }
 
 func (cs *ChangeStream) storeResumeToken() error {
-	idVal, err := cs.cursor.Current.LookupErr("_id")
-	if err != nil {
-		_ = cs.Close(context.Background())
-		return ErrMissingResumeToken
+	// If cs.Current is the last document in the batch and a pbrt is included, cache the pbrt
+	// Otherwise, cache the _id of the document
+
+	var tokenDoc bson.Raw
+	if len(cs.batch) == 0 {
+		pbrt := cs.cursor.PostBatchResumeToken()
+		if pbrt != nil {
+			tokenDoc = bson.Raw(pbrt)
+		}
 	}
 
-	var idDoc bson.Raw
-	idDoc, ok := idVal.DocumentOK()
-	if !ok {
-		_ = cs.Close(context.Background())
-		return ErrMissingResumeToken
-	}
-	tokenDoc, err := bsonx.ReadDoc(idDoc)
-	if err != nil {
-		_ = cs.Close(context.Background())
-		return ErrMissingResumeToken
+	if tokenDoc == nil {
+		idVal, err := cs.Current.LookupErr("_id")
+		if err != nil {
+			_ = cs.Close(context.Background())
+			return ErrMissingResumeToken
+		}
+
+		var ok bool
+		tokenDoc, ok = idVal.DocumentOK()
+		if !ok {
+			_ = cs.Close(context.Background())
+			return ErrMissingResumeToken
+		}
 	}
 
 	cs.resumeToken = tokenDoc
@@ -433,40 +503,65 @@ func (cs *ChangeStream) ID() int64 {
 // Next gets the next result from this change stream. Returns true if there were no errors and the next
 // result is available for decoding.
 func (cs *ChangeStream) Next(ctx context.Context) bool {
-	// execute in a loop to retry resume-able errors and advance the underlying cursor
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if len(cs.batch) == 0 {
+		cs.loopNext(ctx)
+		if cs.err != nil || len(cs.batch) == 0 {
+			return false
+		}
+	}
+
+	cs.Current = bson.Raw(cs.batch[0])
+	cs.batch = cs.batch[1:]
+	err := cs.storeResumeToken()
+	if err != nil {
+		cs.err = err
+		return false
+	}
+	return true
+}
+
+func (cs *ChangeStream) loopNext(ctx context.Context) {
 	for {
 		if cs.cursor == nil {
-			return false
+			return
 		}
 
 		if cs.cursor.Next(ctx) {
-			err := cs.storeResumeToken()
-			if err != nil {
-				cs.err = err
-				return false
+			// If this is the first batch, the batch cursor will return true, but the batch could be empty.
+			cs.batch, cs.err = cs.cursor.Batch().Documents()
+			if cs.err != nil || len(cs.batch) > 0 {
+				return
 			}
 
-			cs.Current = cs.cursor.Current
-			return true
+			// no error but empty batch
+			continue
 		}
 
-		err := cs.cursor.Err()
-		if err == nil {
-			return false
+		cs.err = cs.cursor.Err()
+		if cs.err == nil {
+			// If a getMore was done but the batch was empty, the batch cursor will return false with no error
+			if len(cs.batch) == 0 {
+				continue
+			}
+
+			return
 		}
 
-		switch t := err.(type) {
+		switch t := cs.err.(type) {
 		case command.Error:
 			if t.Code == errorInterrupted || t.Code == errorCappedPositionLost || t.Code == errorCursorKilled {
-				return false
+				return
 			}
 		}
 
-		_, _ = driverlegacy.KillCursors(ctx, cs.ns, cs.cursor.bc.Server(), cs.ID())
-
+		_, _ = driverlegacy.KillCursors(ctx, cs.ns, cs.cursor.Server(), cs.ID())
 		cs.err = cs.runCommand(ctx, true)
 		if cs.err != nil {
-			return false
+			return
 		}
 	}
 }
@@ -499,6 +594,11 @@ func (cs *ChangeStream) Close(ctx context.Context) error {
 	}
 
 	return replaceErrors(cs.cursor.Close(ctx))
+}
+
+// ResumeToken returns the last cached resume token for this change stream.
+func (cs *ChangeStream) ResumeToken() bson.Raw {
+	return cs.resumeToken
 }
 
 // StreamType represents the type of a change stream.
