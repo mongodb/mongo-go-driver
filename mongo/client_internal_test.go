@@ -480,21 +480,21 @@ func TestClient_CausalConsistency(t *testing.T) {
 	sess := s.(*sessionImpl)
 	require.NoError(t, err)
 	require.NotNil(t, sess)
-	require.True(t, sess.Consistent)
+	require.True(t, sess.clientSession.Consistent)
 	sess.EndSession(ctx)
 
 	s, err = c.StartSession(options.Session().SetCausalConsistency(false))
 	sess = s.(*sessionImpl)
 	require.NoError(t, err)
 	require.NotNil(t, sess)
-	require.False(t, sess.Consistent)
+	require.False(t, sess.clientSession.Consistent)
 	sess.EndSession(ctx)
 
 	s, err = c.StartSession()
 	sess = s.(*sessionImpl)
 	require.NoError(t, err)
 	require.NotNil(t, sess)
-	require.True(t, sess.Consistent)
+	require.True(t, sess.clientSession.Consistent)
 	sess.EndSession(ctx)
 }
 
