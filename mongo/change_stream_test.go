@@ -453,7 +453,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		defer closeCursor(stream)
 		cs := stream
 
-		if cs.sess.(*sessionImpl).Client.Terminated {
+		if cs.sess.(*sessionImpl).clientSession.Terminated {
 			t.Fatalf("session was prematurely terminated")
 		}
 	})

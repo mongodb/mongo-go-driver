@@ -39,7 +39,7 @@ import (
 const transactionTestsDir = "../data/transactions"
 
 type transTestFile struct {
-	Topology       []string         `json:"topology"`
+	RunOn          []*runOn         `json:"runOn"`
 	DatabaseName   string           `json:"database_name"`
 	CollectionName string           `json:"collection_name"`
 	Data           json.RawMessage  `json:"data"`
@@ -132,7 +132,15 @@ func runTransactionTestFile(t *testing.T, filepath string) {
 
 	version, err := getServerVersion(dbAdmin)
 	require.NoError(t, err)
-	if shouldSkipTransactionsTest(t, version, testfile.Topology) {
+	runTest := len(testfile.RunOn) == 0
+	for _, reqs := range testfile.RunOn {
+		if executeTransactionsTest(t, version, reqs) {
+			runTest = true
+			break
+		}
+	}
+
+	if !runTest {
 		t.Skip()
 	}
 
@@ -243,8 +251,8 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		sess0 := session0.(*sessionImpl)
 		sess1 := session1.(*sessionImpl)
 
-		lsid0 := sess0.SessionID
-		lsid1 := sess1.SessionID
+		lsid0 := sess0.clientSession.SessionID
+		lsid1 := sess1.clientSession.SessionID
 
 		defer func() {
 			sess0.EndSession(ctx)
@@ -256,55 +264,7 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 			<-transStartedChan
 		}
 
-		for _, op := range test.Operations {
-			if op.Name == "count" {
-				t.Skip("count has been deprecated")
-			}
-
-			// Arguments aren't marshaled directly into a map because runcommand
-			// needs to convert them into BSON docs.  We convert them to a map here
-			// for getting the session and for all other collection operations
-			op.ArgMap = getArgMap(t, op.Arguments)
-
-			// Get the session if specified in arguments
-			var sess *sessionImpl
-			if sessStr, ok := op.ArgMap["session"]; ok {
-				switch sessStr.(string) {
-				case "session0":
-					sess = sess0
-				case "session1":
-					sess = sess1
-				}
-			}
-
-			if op.Object == "testRunner" {
-				fpName, err := executeTestRunnerOperation(t, op, sess)
-				require.NoError(t, err)
-				if len(fpName) > 0 {
-					failPointNames = append(failPointNames, fpName)
-				}
-				continue
-			}
-
-			// create collection with default read preference Primary (needed to prevent server selection fail)
-			coll = db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local()))
-			addCollectionOptions(coll, op.CollectionOptions)
-
-			// execute the command on given object
-			switch op.Object {
-			case "session0":
-				err = executeSessionOperation(op, sess0)
-			case "session1":
-				err = executeSessionOperation(op, sess1)
-			case "collection":
-				err = executeCollectionOperation(t, op, sess, coll)
-			case "database":
-				err = executeDatabaseOperation(t, op, sess, db)
-			}
-
-			// ensure error is what we expect
-			verifyError(t, err, op.Result)
-		}
+		runOperations(t, test.Operations, sess0, sess1, collName, db, failPointNames)
 
 		// Needs to be done here (in spite of defer) because some tests
 		// require end session to be called before we check expectation
@@ -323,6 +283,59 @@ func runTransactionsTestCase(t *testing.T, test *transTestCase, testfile transTe
 		}
 
 	})
+}
+
+func runOperations(t *testing.T, operations []*transOperation, sess0 *sessionImpl, sess1 *sessionImpl, collName string, db *Database, failPointNames []string) {
+	for _, op := range operations {
+		if op.Name == "count" {
+			t.Skip("count has been deprecated")
+		}
+
+		// Arguments aren't marshaled directly into a map because runcommand
+		// needs to convert them into BSON docs.  We convert them to a map here
+		// for getting the session and for all other collection operations
+		op.ArgMap = getArgMap(t, op.Arguments)
+
+		// Get the session if specified in arguments
+		var sess *sessionImpl
+		if sessStr, ok := op.ArgMap["session"]; ok {
+			switch sessStr.(string) {
+			case "session0":
+				sess = sess0
+			case "session1":
+				sess = sess1
+			}
+		}
+
+		if op.Object == "testRunner" {
+			fpName, err := executeTestRunnerOperation(t, op, sess)
+			require.NoError(t, err)
+			if len(fpName) > 0 {
+				failPointNames = append(failPointNames, fpName)
+			}
+			continue
+		}
+
+		// create collection with default read preference Primary (needed to prevent server selection fail)
+		coll := db.Collection(collName, options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local()))
+		addCollectionOptions(coll, op.CollectionOptions)
+
+		// execute the command on given object
+		var err error
+		switch op.Object {
+		case "session0":
+			err = executeSessionOperation(t, op, sess0, collName, db)
+		case "session1":
+			err = executeSessionOperation(t, op, sess1, collName, db)
+		case "collection":
+			err = executeCollectionOperation(t, op, sess, coll)
+		case "database":
+			err = executeDatabaseOperation(t, op, sess, db)
+		}
+
+		// ensure error is what we expect
+		verifyError(t, err, op.Result)
+	}
 }
 
 func killSessions(t *testing.T, client *Client) {
@@ -445,7 +458,7 @@ func createFailPointDoc(t *testing.T, failPoint *failPoint) bsonx.Doc {
 	return failDoc
 }
 
-func executeSessionOperation(op *transOperation, sess *sessionImpl) error {
+func executeSessionOperation(t *testing.T, op *transOperation, sess *sessionImpl, collName string, db *Database) error {
 	switch op.Name {
 	case "startTransaction":
 		// options are only argument
@@ -458,6 +471,8 @@ func executeSessionOperation(op *transOperation, sess *sessionImpl) error {
 		return sess.CommitTransaction(ctx)
 	case "abortTransaction":
 		return sess.AbortTransaction(ctx)
+	case "withTransaction":
+		return executeWithTransaction(t, sess, collName, db, op.Arguments)
 	}
 	return nil
 }
@@ -583,7 +598,7 @@ func executeTestRunnerOperation(t *testing.T, op *transOperation, sess *sessionI
 		doc := createFailPointDoc(t, &fp)
 		mongodbURI := testutil.ConnString(t)
 		opts := options.Client().ApplyURI(mongodbURI.String())
-		client, err := NewClient(opts.SetHosts([]string{sess.Client.PinnedServer.Addr.String()}))
+		client, err := NewClient(opts.SetHosts([]string{sess.clientSession.PinnedServer.Addr.String()}))
 		require.NoError(t, err)
 		require.NoError(t, client.Connect(ctx))
 		require.NoError(t, client.Database("admin").RunCommand(ctx, doc).Err())
@@ -592,9 +607,9 @@ func executeTestRunnerOperation(t *testing.T, op *transOperation, sess *sessionI
 
 		return fp.ConfigureFailPoint, nil
 	case "assertSessionPinned":
-		require.NotNil(t, sess.PinnedServer)
+		require.NotNil(t, sess.clientSession.PinnedServer)
 	case "assertSessionUnpinned":
-		require.Nil(t, sess.PinnedServer)
+		require.Nil(t, sess.clientSession.PinnedServer)
 	}
 	return "", nil
 }
@@ -839,28 +854,31 @@ func readPrefFromString(s string) *readpref.ReadPref {
 	return readpref.Primary()
 }
 
-func shouldSkipTransactionsTest(t *testing.T, serverVersion string, topologies []string) bool {
-	if len(topologies) == 0 {
-		topologies = []string{"single", "replicaset", "sharded"}
+func executeTransactionsTest(t *testing.T, serverVersion string, reqs *runOn) bool {
+	if len(reqs.MinServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MinServerVersion) < 0 {
+		return false
 	}
-	if compareVersions(t, serverVersion, "4.0") < 0 {
+	if len(reqs.MaxServerVersion) > 0 && compareVersions(t, serverVersion, reqs.MaxServerVersion) > 0 {
+		return false
+	}
+	if len(reqs.Topology) == 0 {
 		return true
 	}
-	for _, top := range topologies {
+	for _, top := range reqs.Topology {
 		switch os.Getenv("TOPOLOGY") {
 		case "server":
 			if top == "single" {
-				return false
+				return true
 			}
 		case "replica_set":
 			if top == "replicaset" {
-				return false
+				return true
 			}
 		case "sharded_cluster":
 			if top == "sharded" && compareVersions(t, serverVersion, "4.0") > 0 {
-				return false
+				return true
 			}
 		}
 	}
-	return true
+	return false
 }

@@ -360,8 +360,8 @@ func TestSessions(t *testing.T) {
 		defer firstSess.EndSession(ctx)
 		first := firstSess.(*sessionImpl)
 
-		if !sessionIDsEqual(t, first.SessionID, b.SessionID) {
-			t.Errorf("expected first session ID to be %#v. got %#v", first.SessionID, b.SessionID)
+		if !sessionIDsEqual(t, first.clientSession.SessionID, b.clientSession.SessionID) {
+			t.Errorf("expected first session ID to be %#v. got %#v", first.clientSession.SessionID, b.clientSession.SessionID)
 		}
 
 		secondSess, err := client.StartSession()
@@ -369,8 +369,8 @@ func TestSessions(t *testing.T) {
 		defer secondSess.EndSession(ctx)
 		second := secondSess.(*sessionImpl)
 
-		if !sessionIDsEqual(t, second.SessionID, a.SessionID) {
-			t.Errorf("expected second session ID to be %#v. got %#v", second.SessionID, a.SessionID)
+		if !sessionIDsEqual(t, second.clientSession.SessionID, a.clientSession.SessionID) {
+			t.Errorf("expected second session ID to be %#v. got %#v", second.clientSession.SessionID, a.clientSession.SessionID)
 		}
 	})
 
@@ -481,7 +481,7 @@ func TestSessions(t *testing.T) {
 				err = WithSession(ctx, sess, tc.f)
 				testhelpers.RequireNil(t, err, "error running %s: %s", tc.name, err)
 
-				_, sessID := sess.SessionID.Lookup("id").Binary()
+				_, sessID := sess.clientSession.SessionID.Lookup("id").Binary()
 				if !bytes.Equal(getSessionUUID(t, sessionStarted.Command), sessID) {
 					t.Fatal("included UUID does not match session UUID")
 				}
