@@ -28,4 +28,7 @@ type batchCursor interface {
 
 	// Close closes the cursor.
 	Close(context.Context) error
+
+	// PostBatchResumeToken returns the latest seen post batch resume token.
+	PostBatchResumeToken() bsoncore.Document
 }
