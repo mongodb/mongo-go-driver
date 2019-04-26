@@ -98,6 +98,11 @@ func (lcbc *ListCollectionsBatchCursor) Err() error {
 // Close closes this batch cursor.
 func (lcbc *ListCollectionsBatchCursor) Close(ctx context.Context) error { return lcbc.bc.Close(ctx) }
 
+// PostBatchResumeToken returns nil because post batch resume tokens are not returned by legacy servers.
+func (lcbc *ListCollectionsBatchCursor) PostBatchResumeToken() bsoncore.Document {
+	return nil
+}
+
 // project out the database name for a legacy server
 func (*ListCollectionsBatchCursor) projectNameElement(rawDoc bsoncore.Document) (bsoncore.Document, error) {
 	elems, err := rawDoc.Elements()
