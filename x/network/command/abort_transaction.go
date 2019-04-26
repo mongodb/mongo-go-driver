@@ -32,6 +32,10 @@ func (at *AbortTransaction) Encode(desc description.SelectedServer) (wiremessage
 
 func (at *AbortTransaction) encode(desc description.SelectedServer) *Write {
 	cmd := bsonx.Doc{{"abortTransaction", bsonx.Int32(1)}}
+	if at.Session.RecoveryToken != nil {
+		tokenDoc, _ := bsonx.ReadDoc(at.Session.RecoveryToken)
+		cmd = append(cmd, bsonx.Elem{"recoveryToken", bsonx.Document(tokenDoc)})
+	}
 	return &Write{
 		DB:           "admin",
 		Command:      cmd,
