@@ -29,3 +29,11 @@ type batchCursor interface {
 	// Close closes the cursor.
 	Close(context.Context) error
 }
+
+// pbrtBatchCursor is the interface implemented by batch cursors that also provide the functionality for retrieving
+// a postBatchResumeToken from commands.
+type pbrtBatchCursor interface {
+	batchCursor
+	// PostBatchResumeToken returns the latest seen post batch resume token.
+	PostBatchResumeToken() bsoncore.Document
+}
