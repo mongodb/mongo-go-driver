@@ -147,7 +147,7 @@ func TestServer(t *testing.T) {
 		s.connectionstate = connected
 		s.pool.connected = connected
 
-		wce := result.WriteConcernError{10107, "not master", []byte{}}
+		wce := result.WriteConcernError{"", 10107, "not master", []byte{}}
 		require.Equal(t, wceIsNotMasterOrRecovering(&wce), true)
 		s.ProcessWriteConcernError(&wce)
 

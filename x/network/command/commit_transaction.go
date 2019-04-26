@@ -60,6 +60,7 @@ func (ct *CommitTransaction) decode(desc description.SelectedServer, rdr bson.Ra
 	ct.err = bson.Unmarshal(rdr, &ct.result)
 	if ct.err == nil && ct.result.WriteConcernError != nil {
 		ct.err = Error{
+			Name:    ct.result.WriteConcernError.Name,
 			Code:    int32(ct.result.WriteConcernError.Code),
 			Message: ct.result.WriteConcernError.ErrMsg,
 		}
