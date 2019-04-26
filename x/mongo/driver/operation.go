@@ -326,6 +326,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			// must fire a CommandFailedEvent even if an error occurred while reading from the socket
 			finishedInfo.cmdErr = err
 			op.publishFinishedEvent(ctx, finishedInfo)
+			if tt.HasErrorLabel(TransientTransactionError) {
+				op.Client.ClearPinnedServer()
+			}
 			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
@@ -376,6 +379,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		// handling the error to ensure we are properly gossiping the cluster time.
 		op.updateClusterTimes(res)
 		op.updateOperationTime(res)
+		op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 		var perr error
 		if op.ProcessResponseFn != nil {
@@ -409,6 +413,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			operationErr.WriteConcernError = tt.WriteConcernError
 			operationErr.WriteErrors = append(operationErr.WriteErrors, tt.WriteErrors...)
 		case Error:
+			if tt.HasErrorLabel(TransientTransactionError) {
+				op.Client.ClearPinnedServer()
+			}
 			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
 				retries--
 				original, err = err, nil
@@ -606,7 +613,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 		return dst, info, err
 	}
 
-	dst, err = op.addSession(dst, desc)
+	dst, addedTxnNumber, err := op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -615,7 +622,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	// either turn off RetryWrite when we are doing a retryable read or that we pass in RetryType to
 	// addSession. We should also only be adding this if the connection supports sessions, but I
 	// think that's a given if we've set RetryWrite to true.
-	if op.RetryType == RetryWrite && op.Client != nil && op.Client.RetryWrite {
+	if !addedTxnNumber && op.RetryType == RetryWrite && op.Client != nil && op.Client.RetryWrite {
 		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
 
@@ -665,7 +672,7 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 		return dst, info, err
 	}
 
-	dst, err = op.addSession(dst, desc)
+	dst, addedTxnNumber, err := op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -674,7 +681,7 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	// either turn off RetryWrite when we are doing a retryable read or that we pass in RetryType to
 	// addSession. We should also only be adding this if the connection supports sessions, but I
 	// think that's a given if we've set RetryWrite to true.
-	if op.RetryType == RetryWrite && op.Client != nil && op.Client.RetryWrite {
+	if !addedTxnNumber && op.RetryType == RetryWrite && op.Client != nil && op.Client.RetryWrite {
 		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
 
@@ -762,19 +769,21 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 	return append(bsoncore.AppendHeader(dst, t, "writeConcern"), data...), nil
 }
 
-func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, bool, error) {
 	client := op.Client
 	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
-		return dst, nil
+		return dst, false, nil
 	}
 	if client.Terminated {
-		return dst, session.ErrSessionEnded
+		return dst, false, session.ErrSessionEnded
 	}
 	lsid, _ := client.SessionID.MarshalBSON()
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
 
+	var addedTxnNumber bool
 	if client.TransactionRunning() || client.RetryingCommit {
 		dst = bsoncore.AppendInt64Element(dst, "txnNumber", client.TxnNumber)
+		addedTxnNumber = true
 		if client.TransactionStarting() {
 			dst = bsoncore.AppendBooleanElement(dst, "startTransaction", true)
 		}
@@ -783,7 +792,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 	client.ApplyCommand(desc.Server)
 
-	return dst, nil
+	return dst, addedTxnNumber, nil
 }
 
 func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {

@@ -151,7 +151,7 @@ func (w *Write) Encode(desc description.SelectedServer) (wiremessage.WireMessage
 		}
 	}
 
-	if w.Session != nil && w.Session.RetryWrite {
+	if w.Session != nil && w.Session.RetryWrite && cmd.IndexOf("txnNumber") == -1 {
 		cmd = append(cmd, bsonx.Elem{"txnNumber", bsonx.Int64(w.Session.TxnNumber)})
 	}
 

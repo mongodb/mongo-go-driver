@@ -176,8 +176,9 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	sess.RetryWrite = c.retryWrites
 
 	return &sessionImpl{
-		Client: sess,
-		topo:   c.topology,
+		clientSession: sess,
+		client:        c,
+		topo:          c.topology,
 	}, nil
 }
 

@@ -70,10 +70,14 @@ func compareVersions(t *testing.T, v1 string, v2 string) int {
 
 	for i := 0; i < int(math.Min(float64(len(n1)), float64(len(n2)))); i++ {
 		i1, err := strconv.Atoi(n1[i])
-		require.NoError(t, err)
+		if err != nil {
+			return 1
+		}
 
 		i2, err := strconv.Atoi(n2[i])
-		require.NoError(t, err)
+		if err != nil {
+			return -1
+		}
 
 		difference := i1 - i2
 		if difference != 0 {

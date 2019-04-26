@@ -83,12 +83,18 @@ func (wce WriteCommandError) Retryable() bool {
 // WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {
+	Name    string
 	Code    int64
 	Message string
 	Details bsoncore.Document
 }
 
-func (wce WriteConcernError) Error() string { return wce.Message }
+func (wce WriteConcernError) Error() string {
+	if wce.Name != "" {
+		return fmt.Sprintf("(%v) %v", wce.Name, wce.Message)
+	}
+	return wce.Message
+}
 
 // Retryable returns true if the error is retryable
 func (wce WriteConcernError) Retryable() bool {
@@ -297,6 +303,9 @@ func extractError(rdr bsoncore.Document) error {
 			wcError.WriteConcernError = new(WriteConcernError)
 			if code, exists := doc.Lookup("code").AsInt64OK(); exists {
 				wcError.WriteConcernError.Code = code
+			}
+			if name, exists := doc.Lookup("codeName").StringValueOK(); exists {
+				wcError.WriteConcernError.Name = name
 			}
 			if msg, exists := doc.Lookup("errmsg").StringValueOK(); exists {
 				wcError.WriteConcernError.Message = msg
