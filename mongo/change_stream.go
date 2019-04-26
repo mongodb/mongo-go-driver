@@ -162,7 +162,7 @@ func getSession(ctx context.Context, client *Client) (Session, error) {
 	var mongoSess Session
 	if sess != nil {
 		mongoSess = &sessionImpl{
-			Client: sess,
+			clientSession: sess,
 		}
 	} else {
 		// create implicit session because it will be needed
@@ -172,7 +172,7 @@ func getSession(ctx context.Context, client *Client) (Session, error) {
 		}
 
 		mongoSess = &sessionImpl{
-			Client: newSess,
+			clientSession: newSess,
 		}
 	}
 
@@ -224,7 +224,7 @@ func (cs *ChangeStream) runCommand(ctx context.Context, replaceOptions bool) err
 	readCmd := command.Read{
 		DB:          cs.db.name,
 		Command:     cs.cmd,
-		Session:     cs.sess.(*sessionImpl).Client,
+		Session:     cs.sess.(*sessionImpl).clientSession,
 		Clock:       cs.client.clock,
 		ReadPref:    cs.readPref,
 		ReadConcern: cs.readConcern,
