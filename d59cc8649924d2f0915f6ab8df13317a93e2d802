@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ea14f847_fe6858d0",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 167,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-29T14:32:22Z",
+      "side": 1,
+      "message": "Why is compression done in the connection rather than the OperationContext?",
+      "range": {
+        "startLine": 167,
+        "startChar": 2,
+        "endLine": 167,
+        "endChar": 68
+      },
+      "revId": "d59cc8649924d2f0915f6ab8df13317a93e2d802",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3e3a88f1_01056df7",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-29T14:32:22Z",
+      "side": 1,
+      "message": "can this be a standalone function rather than a method on OperationContext?",
+      "range": {
+        "startLine": 276,
+        "startChar": 9,
+        "endLine": 276,
+        "endChar": 25
+      },
+      "revId": "d59cc8649924d2f0915f6ab8df13317a93e2d802",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8052e56a_ddbf2384",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 721,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-29T14:32:22Z",
+      "side": 1,
+      "message": "can this be a standalone function rather than a method on OperationContext?",
+      "range": {
+        "startLine": 721,
+        "startChar": 24,
+        "endLine": 721,
+        "endChar": 35
+      },
+      "revId": "d59cc8649924d2f0915f6ab8df13317a93e2d802",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
