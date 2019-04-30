@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f69b6ad7_d2840cc4",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-30T15:18:39Z",
+      "side": 1,
+      "message": "conn should be closed in this case.",
+      "range": {
+        "startLine": 190,
+        "startChar": 36,
+        "endLine": 190,
+        "endChar": 84
+      },
+      "revId": "793c99bc56a089f9bf04d4c320c618ab8d4f148f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7fabaf98_3b54bdae",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-04-30T15:18:39Z",
+      "side": 1,
+      "message": "conn should be closed in this case.",
+      "range": {
+        "startLine": 213,
+        "startChar": 36,
+        "endLine": 213,
+        "endChar": 84
+      },
+      "revId": "793c99bc56a089f9bf04d4c320c618ab8d4f148f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
