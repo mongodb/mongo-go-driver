@@ -31,7 +31,7 @@ type SingleResult struct {
 // Decode will attempt to decode the first document into v. If there was an
 // error from the operation that created this SingleResult then the error
 // will be returned. If there were no returned documents, ErrNoDocuments is
-// returned.
+// returned. If v is nil or is a typed nil, an error will be returned.
 func (sr *SingleResult) Decode(v interface{}) error {
 	if sr.err != nil {
 		return sr.err
@@ -41,9 +41,6 @@ func (sr *SingleResult) Decode(v interface{}) error {
 	}
 	switch {
 	case sr.rdr != nil:
-		if v == nil {
-			return nil
-		}
 		return bson.UnmarshalWithRegistry(sr.reg, sr.rdr, v)
 	case sr.cur != nil:
 		defer sr.cur.Close(context.TODO())
@@ -52,9 +49,6 @@ func (sr *SingleResult) Decode(v interface{}) error {
 				return err
 			}
 			return ErrNoDocuments
-		}
-		if v == nil {
-			return nil
 		}
 		return sr.cur.Decode(v)
 	}
