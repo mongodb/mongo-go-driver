@@ -78,6 +78,9 @@ func (d *Decoder) Decode(val interface{}) error {
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Decode must be a pointer to a type, but got %v", rval)
 	}
+	if rval.IsNil() {
+		return fmt.Errorf("argument to Decode must not be nil")
+	}
 	rval = rval.Elem()
 	decoder, err := d.dc.LookupDecoder(rval.Type())
 	if err != nil {
