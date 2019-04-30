@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "329859cb_6eb584b0",
+        "filename": "x/bsonx/bsoncore/bsoncore.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 127,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-30T19:32:33Z",
+      "side": 1,
+      "message": "Nice... we have this little helper in our bsonutil package.",
+      "revId": "508127de5c716523bc188d515d2f74ff11463c96",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
