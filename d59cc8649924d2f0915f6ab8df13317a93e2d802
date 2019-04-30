@@ -2,6 +2,40 @@
   "comments": [
     {
       "key": {
+        "uuid": "f7e22616_0d7eadb4",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-30T19:06:03Z",
+      "side": 1,
+      "message": "What\u0027s this about the Connections returned? They must? or they do?",
+      "revId": "d59cc8649924d2f0915f6ab8df13317a93e2d802",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0cf78f7f_190516ff",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-30T19:06:03Z",
+      "side": 1,
+      "message": "Why does the caller care about the no-op close method? Like, is this important to document? What if at some point they aren\u0027t calling it and we do start caring? That would be breaking change from our documentation.",
+      "revId": "d59cc8649924d2f0915f6ab8df13317a93e2d802",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ea14f847_fe6858d0",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 11
