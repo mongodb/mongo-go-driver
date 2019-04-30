@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1553d789_1c285054",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-04-30T17:08:48Z",
+      "side": 1,
+      "message": "is ignoring the server selector here appropriate? Are there cases where that shouldn\u0027t happen?",
+      "revId": "b81ef5c65bdd16b0d55f9516b3b77793344ab47d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
