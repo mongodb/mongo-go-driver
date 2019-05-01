@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "c930f23b_9d6f19d0",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-01T15:52:09Z",
+      "side": 1,
+      "message": "We wrap their connection so the Close method is a no-op.",
+      "parentUuid": "f7e22616_0d7eadb4",
+      "revId": "d59cc8649924d2f0915f6ab8df13317a93e2d802",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "0cf78f7f_190516ff",
         "filename": "x/mongo/driver/driver.go",
         "patchSetId": 11
@@ -30,6 +48,24 @@
       "writtenOn": "2019-04-30T19:06:03Z",
       "side": 1,
       "message": "Why does the caller care about the no-op close method? Like, is this important to document? What if at some point they aren\u0027t calling it and we do start caring? That would be breaking change from our documentation.",
+      "revId": "d59cc8649924d2f0915f6ab8df13317a93e2d802",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a307c673_6568e7fa",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 11
+      },
+      "lineNbr": 104,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-01T15:52:09Z",
+      "side": 1,
+      "message": "The caller might think that we just return the Connection that they provided to us, but we don\u0027t, so I documented it. We need to do this so a caller can use the same Connection across multiple operations. Also, it\u0027s unlikely that the user will call Close themselves.",
+      "parentUuid": "0cf78f7f_190516ff",
       "revId": "d59cc8649924d2f0915f6ab8df13317a93e2d802",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
