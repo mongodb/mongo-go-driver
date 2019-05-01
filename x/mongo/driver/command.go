@@ -58,7 +58,7 @@ func (co *CommandOperation) Execute(ctx context.Context) error {
 	if co.database == "" {
 		return errors.New("Database must be of non-zero length")
 	}
-	return Operation{
+	return (&Operation{
 		CommandFn:  co.command,
 		Deployment: co.d,
 		Database:   co.database,
@@ -71,5 +71,5 @@ func (co *CommandOperation) Execute(ctx context.Context) error {
 
 		Client: co.client,
 		Clock:  co.clock,
-	}.Execute(ctx, nil)
+	}).Execute(ctx, nil)
 }

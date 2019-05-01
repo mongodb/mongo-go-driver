@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -125,10 +126,27 @@ type Operation struct {
 	// support: find, getMore, and killCursors. For more information about LegacyOperationKind,
 	// please refer to it's definition.
 	Legacy LegacyOperationKind
+
+	// CommandMonitor specifies the monitor to use for APM events. If this field is not specified,
+	// no events will be reported.
+	CommandMonitor *event.CommandMonitor
+
+	// commandMap is used to track what commands have been sent to the server to determine how long
+	// a command took and if upconversion is needed for a legacy event.
+	commandMap map[int64]*commandMetadata
+
+	// commandCopy is a copy of the current command being built that is used for command monitoring.
+	commandCopy bson.Raw
+
+	// requestID is the ID of the wire message for this operation
+	requestID int32
+
+	// commandName is the name of the current command being run
+	commandName string
 }
 
 // selectServer handles performing server selection for an operation.
-func (op Operation) selectServer(ctx context.Context) (Server, error) {
+func (op *Operation) selectServer(ctx context.Context) (Server, error) {
 	if err := op.Validate(); err != nil {
 		return nil, err
 	}
@@ -155,7 +173,7 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 }
 
 // Validate validates this operation, ensuring the fields are set properly.
-func (op Operation) Validate() error {
+func (op *Operation) Validate() error {
 	if op.CommandFn == nil {
 		return InvalidOperationError{MissingField: "CommandFn"}
 	}
@@ -170,7 +188,7 @@ func (op Operation) Validate() error {
 
 // Execute runs this operation. The scratch parameter will be used and overwritten (potentially many
 // times), this should mainly be used to enable pooling of byte slices.
-func (op Operation) Execute(ctx context.Context, scratch []byte) error {
+func (op *Operation) Execute(ctx context.Context, scratch []byte) error {
 	err := op.Validate()
 	if err != nil {
 		return err
@@ -225,6 +243,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 	batching := op.Batches.Valid()
+	monitoringStart := op.CommandMonitor != nil && op.CommandMonitor.Started != nil
 	for {
 		if batching {
 			err = op.Batches.AdvanceBatch(int(desc.MaxBatchCount), int(desc.MaxDocumentSize))
@@ -238,7 +257,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if len(scratch) > 0 {
 			scratch = scratch[:0]
 		}
-		wm, err := op.createWireMessage(scratch, desc)
+		wm, err := op.createWireMessage(scratch, desc, monitoringStart)
 		if err != nil {
 			return err
 		}
@@ -250,6 +269,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				return err
 			}
 		}
+
+		// send CommandStartedEvent if possible
+		op.publishStartedEvent(ctx, conn.ID())
 
 		// roundtrip
 		wm, err = op.roundTrip(ctx, conn, wm)
@@ -271,6 +293,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if ep, ok := srvr.(ErrorProcessor); ok {
 			ep.ProcessError(err)
 		}
+
+		// send CommandSucceededEvent/CommandFailedEvent if possible
+		op.publishFinishedEvent(ctx, conn.ID(), res, err)
 
 		// Pull out $clusterTime and operationTime and update session and clock. We handle this before
 		// handling the error to ensure we are properly gossiping the cluster time.
@@ -347,9 +372,105 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	return nil
 }
 
+// getCommandName returns the name of the command from the given BSON document.
+func (op *Operation) getCommandName(doc []byte) string {
+	// skip 4 bytes for document length and 1 byte for element type
+	idx := bytes.IndexByte(doc[5:], 0x00) // look for the 0 byte after the command name
+	return string(doc[5 : idx+5])
+}
+
+func (op *Operation) canMonitor(cmd string) bool {
+	return !(cmd == "authenticate" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "createUser" ||
+		cmd == "updateUser" || cmd == "copydbgetnonce" || cmd == "copydbsaslstart" || cmd == "copydb")
+}
+
+// publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
+// an unacknowledged write, a CommandSucceededEvent will be published as well. If started events are not being monitored,
+// the Operation's commandMap is updated and no event is published.
+func (op *Operation) publishStartedEvent(ctx context.Context, connID string) {
+	// TODO(GODRIVER-984) Sete legacy and fullCollName correctly
+	op.commandMap[int64(op.requestID)] = createMetadata(op.commandName, false, "")
+	if op.CommandMonitor == nil || op.CommandMonitor.Started == nil {
+		return
+	}
+
+	started := &event.CommandStartedEvent{
+		Command:      op.commandCopy,
+		DatabaseName: op.Database,
+		CommandName:  op.commandName,
+		RequestID:    int64(op.requestID),
+		ConnectionID: connID,
+	}
+	// Redact the Command field for security sensitive commands
+	if !op.canMonitor(started.CommandName) {
+		started.Command = bson.Raw{}
+	}
+	op.CommandMonitor.Started(ctx, started)
+
+	// unacknowledged writes must publish a CommandSucceededEvent
+	if op.WriteConcern.Acknowledged() || op.CommandMonitor.Succeeded == nil {
+		return
+	}
+
+	finishedEvent := event.CommandFinishedEvent{
+		CommandName:  started.CommandName,
+		RequestID:    started.RequestID,
+		ConnectionID: started.ConnectionID,
+	}
+	op.CommandMonitor.Succeeded(ctx, &event.CommandSucceededEvent{
+		CommandFinishedEvent: finishedEvent,
+		Reply:                bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)),
+	})
+}
+
+// publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command monitor
+// if possible. If success/failure events aren't being monitored, the Operation's commandMap is updated and no events
+// are published.
+// res: the command response document from the server
+// cmdErr: the command error if one occurred or nil if the command was successful.
+func (op *Operation) publishFinishedEvent(ctx context.Context, connID string, res bsoncore.Document, cmdErr error) {
+	reqID := int64(op.requestID)
+	metadata := op.commandMap[reqID]
+	delete(op.commandMap, reqID)
+
+	success := cmdErr == nil
+	if op.CommandMonitor == nil || (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
+		return
+	}
+
+	finished := event.CommandFinishedEvent{
+		CommandName:   op.commandName,
+		RequestID:     reqID,
+		ConnectionID:  connID,
+		DurationNanos: metadata.TimeDifference(),
+	}
+
+	if success {
+		var reply bson.Raw
+		// Only copy the reply for non-security sensitive commands
+		if op.canMonitor(finished.CommandName) {
+			reply = make([]byte, len(res))
+			copy(reply, res)
+		}
+
+		successEvent := &event.CommandSucceededEvent{
+			Reply:                reply,
+			CommandFinishedEvent: finished,
+		}
+		op.CommandMonitor.Succeeded(ctx, successEvent)
+		return
+	}
+
+	failedEvent := &event.CommandFailedEvent{
+		Failure:              cmdErr.Error(),
+		CommandFinishedEvent: finished,
+	}
+	op.CommandMonitor.Failed(ctx, failedEvent)
+}
+
 // Retryable writes are supported if the server supports sessions, the operation is not
 // within a transaction, and the write is acknowledged
-func (op Operation) retryable(desc description.Server) RetryType {
+func (op *Operation) retryable(desc description.Server) RetryType {
 	switch op.RetryType {
 	case RetryWrite:
 		if op.Deployment.SupportsRetry() &&
@@ -364,7 +485,7 @@ func (op Operation) retryable(desc description.Server) RetryType {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+func (op *Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
@@ -379,7 +500,7 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 
 // decompressWireMessage handles decompressing a wiremessage. If the wiremessage
 // is not compressed, this method will return the wiremessage.
-func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
+func (*Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	// read the header and ensure this is a compressed wire message
 	length, reqid, respto, opcode, rem, ok := wiremessagex.ReadHeader(wm)
 	if !ok || len(wm) < int(length) {
@@ -434,17 +555,31 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	return append(header, uncompressed...), nil
 }
 
-func (op Operation) createWireMessage(dst []byte, desc description.SelectedServer) ([]byte, error) {
+// createWireMessage uses the Operation fields to create the wire message in the dst parameter. It also sets the
+// commandName, requestID, and commandCopy fields on the given Operation. If makeCopy is true, op.commandCopy will be
+// set to a copy of the command document.
+func (op *Operation) createWireMessage(dst []byte, desc description.SelectedServer, makeCopy bool) ([]byte, error) {
+	op.requestID = wiremessage.NextRequestID()
 	if desc.WireVersion == nil || desc.WireVersion.Max < wiremessage.OpmsgWireVersion {
-		return op.createQueryWireMessage(dst, desc)
+		return op.createQueryWireMessage(dst, desc, makeCopy)
 	}
-	return op.createMsgWireMessage(dst, desc)
+	return op.createMsgWireMessage(dst, desc, makeCopy)
 }
 
-func (op Operation) createQueryWireMessage(dst []byte, desc description.SelectedServer) ([]byte, error) {
+// addBatchArray appends the current batch to dst as a BSON array.
+func (op *Operation) addBatchArray(dst []byte) []byte {
+	aidx, dst := bsoncore.AppendArrayElementStart(dst, op.Batches.Identifier)
+	for i, doc := range op.Batches.Current {
+		dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
+	}
+	dst, _ = bsoncore.AppendArrayEnd(dst, aidx)
+	return dst
+}
+
+func (op *Operation) createQueryWireMessage(dst []byte, desc description.SelectedServer, makeCopy bool) ([]byte, error) {
 	flags := op.slaveOK(desc)
 	var wmindex int32
-	wmindex, dst = wiremessagex.AppendHeaderStart(dst, wiremessage.NextRequestID(), 0, wiremessage.OpQuery)
+	wmindex, dst = wiremessagex.AppendHeaderStart(dst, op.requestID, 0, wiremessage.OpQuery)
 	dst = wiremessagex.AppendQueryFlags(dst, flags)
 	// FullCollectionName
 	dst = append(dst, op.Database...)
@@ -464,13 +599,10 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	if err != nil {
 		return dst, err
 	}
+	op.commandName = op.getCommandName(dst[idx:])
 
 	if op.Batches != nil && len(op.Batches.Current) > 0 {
-		aidx, dst := bsoncore.AppendArrayElementStart(dst, op.Batches.Identifier)
-		for i, doc := range op.Batches.Current {
-			dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
-		}
-		dst, _ = bsoncore.AppendArrayEnd(dst, aidx)
+		dst = op.addBatchArray(dst)
 	}
 
 	dst, err = op.addReadConcern(dst, desc)
@@ -499,6 +631,11 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	dst = op.addClusterTime(dst, desc)
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
+	// Copy only the document inside $query
+	if makeCopy {
+		op.commandCopy = make([]byte, len(dst[idx:]))
+		copy(op.commandCopy, dst[idx:])
+	}
 
 	if len(rp) > 0 {
 		var err error
@@ -512,12 +649,12 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), nil
 }
 
-func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (op *Operation) createMsgWireMessage(dst []byte, desc description.SelectedServer, makeCopy bool) ([]byte, error) {
 	// TODO(GODRIVER-617): We need to figure out how to include the writeconcern here so that we can
 	// set the moreToCome bit.
 	var flags wiremessage.MsgFlag
 	var wmindex int32
-	wmindex, dst = wiremessagex.AppendHeaderStart(dst, wiremessage.NextRequestID(), 0, wiremessage.OpMsg)
+	wmindex, dst = wiremessagex.AppendHeaderStart(dst, op.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessagex.AppendMsgFlags(dst, flags)
 	// Body
 	dst = wiremessagex.AppendMsgSectionType(dst, wiremessage.SingleDocument)
@@ -528,6 +665,7 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	if err != nil {
 		return dst, err
 	}
+	op.commandName = op.getCommandName(dst[idx:])
 	dst, err = op.addReadConcern(dst, desc)
 	if err != nil {
 		return dst, err
@@ -559,8 +697,20 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	}
 
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
+	if makeCopy {
+		op.commandCopy = make([]byte, len(dst[idx:]))
+		copy(op.commandCopy, dst[idx:])
+	}
 
 	if op.Batches != nil && len(op.Batches.Current) > 0 {
+		// for APM, type 1 payloads are converted back to a BSON array in the command document
+		if makeCopy {
+			op.commandCopy = op.commandCopy[:len(op.commandCopy)-1] // remove 0 byte at end
+			op.commandCopy = op.addBatchArray(op.commandCopy)
+			// the 4 bytes for length are at the beginning of commandCopy so index is 0
+			op.commandCopy, _ = bsoncore.AppendDocumentEnd(op.commandCopy, 0)
+		}
+
 		dst = wiremessagex.AppendMsgSectionType(dst, wiremessage.DocumentSequence)
 		idx, dst = bsoncore.ReserveLength(dst)
 
@@ -577,7 +727,7 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), nil
 }
 
-func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (op *Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	rc := op.ReadConcern
 	client := op.Client
 	// Starting transaction's read concern overrides all others
@@ -608,7 +758,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func (op Operation) addWriteConcern(dst []byte) ([]byte, error) {
+func (op *Operation) addWriteConcern(dst []byte) ([]byte, error) {
 	wc := op.WriteConcern
 	if wc == nil {
 		return dst, nil
@@ -625,7 +775,7 @@ func (op Operation) addWriteConcern(dst []byte) ([]byte, error) {
 	return append(bsoncore.AppendHeader(dst, t, "writeConcern"), data...), nil
 }
 
-func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (op *Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	client := op.Client
 	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
 		return dst, nil
@@ -649,7 +799,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	return dst, nil
 }
 
-func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {
+func (op *Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {
 	client, clock := op.Client, op.Clock
 	if (clock == nil && client == nil) || !description.SessionsSupported(desc.WireVersion) {
 		return dst
@@ -672,7 +822,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this
 // operation. While the session's AdvanceClusterTime may return an error, this method does not
 // because an error being returned from this method will not be returned further up.
-func (op Operation) updateClusterTimes(response bsoncore.Document) {
+func (op *Operation) updateClusterTimes(response bsoncore.Document) {
 	// Extract cluster time.
 	value, err := response.LookupErr("$clusterTime")
 	if err != nil {
@@ -695,7 +845,7 @@ func (op Operation) updateClusterTimes(response bsoncore.Document) {
 // updateOperationTime updates the operation time on the session attached to this operation. While
 // the session's AdvanceOperationTime method may return an error, this method does not because an
 // error being returned from this method will not be returned further up.
-func (op Operation) updateOperationTime(response bsoncore.Document) {
+func (op *Operation) updateOperationTime(response bsoncore.Document) {
 	sess := op.Client
 	if sess == nil {
 		return
@@ -714,7 +864,7 @@ func (op Operation) updateOperationTime(response bsoncore.Document) {
 	})
 }
 
-func (op Operation) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) bsoncore.Document {
+func (op *Operation) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) bsoncore.Document {
 	idx, doc := bsoncore.AppendDocumentStart(nil)
 	rp := op.ReadPreference
 
@@ -781,7 +931,7 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 	return doc
 }
 
-func (op Operation) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {
+func (op *Operation) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {
 	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
 		return wiremessage.SlaveOK
 	}
@@ -793,7 +943,7 @@ func (op Operation) slaveOK(desc description.SelectedServer) wiremessage.QueryFl
 	return 0
 }
 
-func (Operation) canCompress(cmd string) bool {
+func (op *Operation) canCompress(cmd string) bool {
 	if cmd == "isMaster" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
 		cmd == "createUser" || cmd == "updateUser" || cmd == "copydbSaslStart" || cmd == "copydbgetnonce" || cmd == "copydb" {
 		return false
@@ -801,7 +951,7 @@ func (Operation) canCompress(cmd string) bool {
 	return true
 }
 
-func (Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
+func (*Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
 	wmLength := len(wm)
 	length, _, _, opcode, wm, ok := wiremessagex.ReadHeader(wm)
 	if !ok || int(length) > wmLength {

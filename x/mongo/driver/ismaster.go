@@ -113,22 +113,22 @@ func (imo *IsMasterOperation) Execute(ctx context.Context) error {
 		return errors.New("an IsMasterOperation must have a Deployment set before Execute can be called")
 	}
 
-	return Operation{
+	return (&Operation{
 		CommandFn:         imo.command,
 		Database:          "admin",
 		Deployment:        imo.d,
 		ProcessResponseFn: imo.processResponse,
-	}.Execute(ctx, nil)
+	}).Execute(ctx, nil)
 }
 
 // Handshake implements the Handshaker interface.
 func (imo *IsMasterOperation) Handshake(ctx context.Context, _ address.Address, c Connection) (description.Server, error) {
-	err := Operation{
+	err := (&Operation{
 		CommandFn:         imo.command,
 		Deployment:        SingleConnectionDeployment{c},
 		Database:          "admin",
 		ProcessResponseFn: imo.processResponse,
-	}.Execute(ctx, nil)
+	}).Execute(ctx, nil)
 	if err != nil {
 		return description.Server{}, err
 	}
