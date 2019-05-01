@@ -16,6 +16,24 @@
       "revId": "b81ef5c65bdd16b0d55f9516b3b77793344ab47d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "030921ed_db193c5d",
+        "filename": "x/mongo/driver/driver.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-01T15:42:03Z",
+      "side": 1,
+      "message": "Yes, the point of this type if to allow someone to specify they want to use a specific server.",
+      "parentUuid": "1553d789_1c285054",
+      "revId": "b81ef5c65bdd16b0d55f9516b3b77793344ab47d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }

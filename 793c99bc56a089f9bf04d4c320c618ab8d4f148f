@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "9df5142b_ef8dc7ef",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 190,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-01T15:42:03Z",
+      "side": 1,
+      "message": "Fixed in the operation patch: https://review.gerrithub.io/c/mongodb/mongo-go-driver/+/452149/6.",
+      "parentUuid": "f69b6ad7_d2840cc4",
+      "range": {
+        "startLine": 190,
+        "startChar": 36,
+        "endLine": 190,
+        "endChar": 84
+      },
+      "revId": "793c99bc56a089f9bf04d4c320c618ab8d4f148f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7fabaf98_3b54bdae",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 14
@@ -45,6 +69,30 @@
       "revId": "793c99bc56a089f9bf04d4c320c618ab8d4f148f",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "451f5ea7_3e00c5a7",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 14
+      },
+      "lineNbr": 213,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-01T15:42:03Z",
+      "side": 1,
+      "message": "Fixed in the operation patch: https://review.gerrithub.io/c/mongodb/mongo-go-driver/+/452149/6.",
+      "parentUuid": "7fabaf98_3b54bdae",
+      "range": {
+        "startLine": 213,
+        "startChar": 36,
+        "endLine": 213,
+        "endChar": 84
+      },
+      "revId": "793c99bc56a089f9bf04d4c320c618ab8d4f148f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
