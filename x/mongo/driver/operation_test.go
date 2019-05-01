@@ -215,7 +215,7 @@ func TestOperation(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				gotWM, gotErr := Operation{}.roundTrip(context.Background(), tc.conn, tc.paramWM)
+				gotWM, gotErr := (&Operation{}).roundTrip(context.Background(), tc.conn, tc.paramWM)
 				if !bytes.Equal(gotWM, tc.wantWM) {
 					t.Errorf("Returned wire messages are not equal. got %v; want %v", gotWM, tc.wantWM)
 				}
@@ -229,7 +229,7 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "readConcern", bsoncore.BuildDocument(nil,
 			bsoncore.AppendStringElement(nil, "level", "majority"),
 		))
-		got, err := Operation{ReadConcern: readconcern.Majority()}.addReadConcern(nil, description.SelectedServer{})
+		got, err := (&Operation{ReadConcern: readconcern.Majority()}).addReadConcern(nil, description.SelectedServer{})
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("ReadConcern elements do not match. got %v; want %v", got, want)
@@ -239,7 +239,7 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocumentFromElements(
 			nil, bsoncore.AppendStringElement(nil, "w", "majority"),
 		))
-		got, err := Operation{WriteConcern: writeconcern.New(writeconcern.WMajority())}.addWriteConcern(nil)
+		got, err := (&Operation{WriteConcern: writeconcern.New(writeconcern.WMajority())}).addWriteConcern(nil)
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("WriteConcern elements do not match. got %v; want %v", got, want)
@@ -269,7 +269,7 @@ func TestOperation(t *testing.T) {
 			err = sess.AdvanceClusterTime(older)
 			noerr(t, err)
 
-			got := Operation{Client: sess, Clock: clusterClock}.addClusterTime(nil, description.SelectedServer{
+			got := (&Operation{Client: sess, Clock: clusterClock}).addClusterTime(nil, description.SelectedServer{
 				Server: description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}},
 			})
 			if !bytes.Equal(got, want) {
@@ -291,7 +291,7 @@ func TestOperation(t *testing.T) {
 
 		sess, err := session.NewClientSession(sessPool, id, session.Explicit)
 		noerr(t, err)
-		Operation{Client: sess, Clock: clusterClock}.updateClusterTimes(clustertime)
+		(&Operation{Client: sess, Clock: clusterClock}).updateClusterTimes(clustertime)
 
 		got := sess.ClusterTime
 		if !bytes.Equal(got, clustertime) {
@@ -302,7 +302,7 @@ func TestOperation(t *testing.T) {
 			t.Errorf("ClusterTimes do not match. got %v; want %v", got, clustertime)
 		}
 
-		Operation{}.updateClusterTimes(bsoncore.BuildDocumentFromElements(nil)) // should do nothing
+		(&Operation{}).updateClusterTimes(bsoncore.BuildDocumentFromElements(nil)) // should do nothing
 	})
 	t.Run("updateOperationTime", func(t *testing.T) {
 		want := primitive.Timestamp{T: 1234, I: 4567}
@@ -317,20 +317,20 @@ func TestOperation(t *testing.T) {
 			t.Fatal("OperationTime should not be set on new session.")
 		}
 		response := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendTimestampElement(nil, "operationTime", want.T, want.I))
-		Operation{Client: sess}.updateOperationTime(response)
+		(&Operation{Client: sess}).updateOperationTime(response)
 		got := sess.OperationTime
 		if got.T != want.T || got.I != want.I {
 			t.Errorf("OperationTimes do not match. got %v; want %v", got, want)
 		}
 
 		response = bsoncore.BuildDocumentFromElements(nil)
-		Operation{Client: sess}.updateOperationTime(response)
+		(&Operation{Client: sess}).updateOperationTime(response)
 		got = sess.OperationTime
 		if got.T != want.T || got.I != want.I {
 			t.Errorf("OperationTimes do not match. got %v; want %v", got, want)
 		}
 
-		Operation{}.updateOperationTime(response) // should do nothing
+		(&Operation{}).updateOperationTime(response) // should do nothing
 	})
 	t.Run("createReadPref", func(t *testing.T) {
 		rpWithTags := bsoncore.BuildDocumentFromElements(nil,
@@ -388,7 +388,7 @@ func TestOperation(t *testing.T) {
 		for _, tc := range testCases {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
-				got := Operation{ReadPreference: tc.rp}.createReadPref(tc.serverKind, tc.topoKind, tc.opQuery)
+				got := (&Operation{ReadPreference: tc.rp}).createReadPref(tc.serverKind, tc.topoKind, tc.opQuery)
 				if !bytes.Equal(got, tc.want) {
 					t.Errorf("Returned documents do not match. got %v; want %v", got, tc.want)
 				}
@@ -402,21 +402,21 @@ func TestOperation(t *testing.T) {
 				Kind:   description.Single,
 				Server: description.Server{Kind: description.RSSecondary},
 			}
-			got := Operation{}.slaveOK(desc)
+			got := (&Operation{}).slaveOK(desc)
 			if got != want {
 				t.Errorf("Did not receive expected query flags. got %v; want %v", got, want)
 			}
 		})
 		t.Run("readPreference", func(t *testing.T) {
 			want := wiremessage.SlaveOK
-			got := Operation{ReadPreference: readpref.Secondary()}.slaveOK(description.SelectedServer{})
+			got := (&Operation{ReadPreference: readpref.Secondary()}).slaveOK(description.SelectedServer{})
 			if got != want {
 				t.Errorf("Did not receive expected query flags. got %v; want %v", got, want)
 			}
 		})
 		t.Run("not slaveOK", func(t *testing.T) {
 			var want wiremessage.QueryFlag
-			got := Operation{}.slaveOK(description.SelectedServer{})
+			got := (&Operation{}).slaveOK(description.SelectedServer{})
 			if got != want {
 				t.Errorf("Did not receive expected query flags. got %v; want %v", got, want)
 			}
