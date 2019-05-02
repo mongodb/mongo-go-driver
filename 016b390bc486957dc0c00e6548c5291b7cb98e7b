@@ -167,6 +167,30 @@
     },
     {
       "key": {
+        "uuid": "4a5fb648_ff299b47",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-02T19:50:45Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "30b6cb4d_31192c42",
+      "range": {
+        "startLine": 476,
+        "startChar": 2,
+        "endLine": 487,
+        "endChar": 3
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b334f426_88b48721",
         "filename": "mongo/change_stream.go",
         "patchSetId": 4
