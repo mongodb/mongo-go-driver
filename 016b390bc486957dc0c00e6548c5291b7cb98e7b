@@ -2,6 +2,98 @@
   "comments": [
     {
       "key": {
+        "uuid": "3856a488_e9e794eb",
+        "filename": "mongo/batch_cursor.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T17:31:19Z",
+      "side": 1,
+      "message": "Instead of adding this to batchCursor, can we make a new interface? (I realize the name will be horrendous.) We can then cast to the batchCursor to the interface when we need to call this method. We can do a check on construction to ensure that the cursor used to create the change stream implements both interfaces. This means we won\u0027t have to clutter the list collections batch cursor with the extra method it doesn\u0027t need. For reference you can look at how we did the driver.ErrorProcessor interface and how we check to see if a driver.Server implements it.",
+      "range": {
+        "startLine": 33,
+        "startChar": 1,
+        "endLine": 33,
+        "endChar": 41
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2b4ef7c1_d002858c",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T17:31:19Z",
+      "side": 1,
+      "message": "I don\u0027t think this is a problem right now, but if in the future we have document sequences for getMores then this would be empty not of length 5.",
+      "range": {
+        "startLine": 276,
+        "startChar": 8,
+        "endLine": 276,
+        "endChar": 40
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c8fc982c_9c3ac193",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T17:31:19Z",
+      "side": 1,
+      "message": "It\u0027s safe to call DocumentOK on an empty value, so I think you can just call cs.Current.Lookup(\"_id\").DocumentOK() and save the extra error check.",
+      "range": {
+        "startLine": 476,
+        "startChar": 2,
+        "endLine": 487,
+        "endChar": 3
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b334f426_88b48721",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 541,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T17:31:19Z",
+      "side": 1,
+      "message": "We should be checking for a post batch resume token and caching it here.",
+      "range": {
+        "startLine": 540,
+        "startChar": 3,
+        "endLine": 541,
+        "endChar": 11
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "e646582f_c2d4af62",
         "filename": "mongo/change_stream_test.go",
         "patchSetId": 4
@@ -64,6 +156,29 @@
         "startChar": 4,
         "endLine": 801,
         "endChar": 9
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2c9c8b74_07276ab0",
+        "filename": "x/mongo/driverlegacy/batch_cursor.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T17:31:19Z",
+      "side": 1,
+      "message": "This error message doesn\u0027t give any information that it was the post batch resume token that has the wrong type. Might be difficult for users to track down.",
+      "range": {
+        "startLine": 315,
+        "startChar": 23,
+        "endLine": 315,
+        "endChar": 45
       },
       "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
