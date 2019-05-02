@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "eaa29bb3_a0b531b1",
+        "filename": "mongo/batch_cursor.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-02T19:07:33Z",
+      "side": 1,
+      "message": "Good call. I didn\u0027t like changing ListCollectionsBatchCursor so I like this solution much more. Changed this a little to add a pbrtCursor that embeds a batchCursor so we don\u0027t have to do interface checking in the code.",
+      "parentUuid": "3856a488_e9e794eb",
+      "range": {
+        "startLine": 33,
+        "startChar": 1,
+        "endLine": 33,
+        "endChar": 41
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "2b4ef7c1_d002858c",
         "filename": "mongo/change_stream.go",
         "patchSetId": 4
@@ -36,6 +60,30 @@
       "writtenOn": "2019-05-02T17:31:19Z",
       "side": 1,
       "message": "I don\u0027t think this is a problem right now, but if in the future we have document sequences for getMores then this would be empty not of length 5.",
+      "range": {
+        "startLine": 276,
+        "startChar": 8,
+        "endLine": 276,
+        "endChar": 40
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "15c2d667_245fcde2",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 276,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-02T19:07:33Z",
+      "side": 1,
+      "message": "According to an offline Slack conversation, that work isn\u0027t happening anymore. I\u0027m gonna leave this as is and we can revisit if needed.",
+      "parentUuid": "2b4ef7c1_d002858c",
       "range": {
         "startLine": 276,
         "startChar": 8,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "00c4e08a_7ad62004",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-02T19:07:33Z",
+      "side": 1,
+      "message": "Can you explain this? I thought we needed the first error check to make sure the _id hadn\u0027t been projected out and the second to make sure that the _id we get from the server is a well-formatted document.",
+      "parentUuid": "c8fc982c_9c3ac193",
+      "range": {
+        "startLine": 476,
+        "startChar": 2,
+        "endLine": 487,
+        "endChar": 3
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b334f426_88b48721",
         "filename": "mongo/change_stream.go",
         "patchSetId": 4
@@ -91,6 +163,30 @@
       "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "329ec69f_811469cb",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 541,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-02T19:07:33Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "b334f426_88b48721",
+      "range": {
+        "startLine": 540,
+        "startChar": 3,
+        "endLine": 541,
+        "endChar": 11
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -183,6 +279,30 @@
       "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "295dedfd_69268ad7",
+        "filename": "x/mongo/driverlegacy/batch_cursor.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 315,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-02T19:07:33Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "2c9c8b74_07276ab0",
+      "range": {
+        "startLine": 315,
+        "startChar": 23,
+        "endLine": 315,
+        "endChar": 45
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
