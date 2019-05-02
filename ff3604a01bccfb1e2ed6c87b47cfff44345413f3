@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e5f06e62_0a8acd12",
+        "filename": "x/mongo/driver/command_metadata.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T17:43:36Z",
+      "side": 1,
+      "message": "Do we need to indicate if we\u0027re doing legacy on this type? They are two completely separate code paths now, so we should be able to track this information elsewhere.",
+      "range": {
+        "startLine": 9,
+        "startChar": 1,
+        "endLine": 9,
+        "endChar": 24
+      },
+      "revId": "ff3604a01bccfb1e2ed6c87b47cfff44345413f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b3316d16_a13da28b",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T17:43:36Z",
+      "side": 1,
+      "message": "Why do we still need this commandMap? We needed it before because we didn\u0027t know when the caller of connection.WriteWireMessage would call connection.ReadWireMessage. With command monitoring happening within Operation.Execute we know that we\u0027ll call ReadWireMessage directly after we call WriteWireMessage. Can we just track this information within the Execute method?",
+      "range": {
+        "startLine": 134,
+        "startChar": 1,
+        "endLine": 136,
+        "endChar": 38
+      },
+      "revId": "ff3604a01bccfb1e2ed6c87b47cfff44345413f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3265751c_50b1536a",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T17:43:36Z",
+      "side": 1,
+      "message": "I think I was wrong in suggesting we should do this. It feels like we\u0027re dragging a lot of extra state around. I think we might be better served by returning an event.CommandStartedEvent from createWireMessage and then adding the connectionID before publishing it.",
+      "range": {
+        "startLine": 138,
+        "startChar": 0,
+        "endLine": 145,
+        "endChar": 19
+      },
+      "revId": "ff3604a01bccfb1e2ed6c87b47cfff44345413f3",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
