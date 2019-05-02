@@ -143,6 +143,30 @@
     },
     {
       "key": {
+        "uuid": "30b6cb4d_31192c42",
+        "filename": "mongo/change_stream.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-02T19:11:39Z",
+      "side": 1,
+      "message": "We\u0027re returning the same error here either way, so there\u0027s no need to us to do those two steps explicitly. A caller would never be able to tell the difference.",
+      "parentUuid": "00c4e08a_7ad62004",
+      "range": {
+        "startLine": 476,
+        "startChar": 2,
+        "endLine": 487,
+        "endChar": 3
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "b334f426_88b48721",
         "filename": "mongo/change_stream.go",
         "patchSetId": 4
