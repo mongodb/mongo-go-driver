@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3ae14b20_41d4ee52",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-03T19:51:51Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a267ca8f_6c256181",
+      "range": {
+        "startLine": 149,
+        "startChar": 85,
+        "endLine": 149,
+        "endChar": 94
+      },
+      "revId": "114a69c60e602d18ca5f8f2e872a9c8f4fee2089",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "41bcb4a2_241fbd3c",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 1
@@ -45,6 +69,30 @@
       "revId": "114a69c60e602d18ca5f8f2e872a9c8f4fee2089",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "10eb1797_db283468",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 1022,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-03T19:51:51Z",
+      "side": 1,
+      "message": "Yep - removed in the next patch.",
+      "parentUuid": "41bcb4a2_241fbd3c",
+      "range": {
+        "startLine": 1021,
+        "startChar": 0,
+        "endLine": 1022,
+        "endChar": 81
+      },
+      "revId": "114a69c60e602d18ca5f8f2e872a9c8f4fee2089",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
