@@ -22,6 +22,30 @@
       "revId": "85f06f97fff3ff8a3f9827bc3fea964f60aeb5e9",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "02d300f2_1cc8d087",
+        "filename": "bson/decoder_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 246,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-03T19:48:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "73262713_6aad2029",
+      "range": {
+        "startLine": 246,
+        "startChar": 5,
+        "endLine": 246,
+        "endChar": 16
+      },
+      "revId": "85f06f97fff3ff8a3f9827bc3fea964f60aeb5e9",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
