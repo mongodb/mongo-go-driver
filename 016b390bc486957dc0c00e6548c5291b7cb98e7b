@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "dbbd21a3_9f835f57",
+        "filename": "mongo/batch_cursor.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-03T19:06:05Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "eaa29bb3_a0b531b1",
+      "range": {
+        "startLine": 33,
+        "startChar": 1,
+        "endLine": 33,
+        "endChar": 41
+      },
+      "revId": "016b390bc486957dc0c00e6548c5291b7cb98e7b",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "2b4ef7c1_d002858c",
         "filename": "mongo/change_stream.go",
         "patchSetId": 4
