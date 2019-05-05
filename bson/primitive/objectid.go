@@ -125,6 +125,11 @@ func (id *ObjectID) UnmarshalJSON(b []byte) error {
 			}
 		}
 
+		if len(str) == 0 {
+			id = &NilObjectID
+			return nil
+		}
+
 		if len(str) != 24 {
 			return fmt.Errorf("cannot unmarshal into an ObjectID, the length must be 12 but it is %d", len(str))
 		}
