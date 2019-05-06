@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/network/address"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
@@ -58,7 +59,7 @@ type HandshakeOptions struct {
 // Handshaker creates a connection handshaker for the given authenticator.
 func Handshaker(h driver.Handshaker, options *HandshakeOptions) driver.Handshaker {
 	return driver.HandshakerFunc(func(ctx context.Context, addr address.Address, conn driver.Connection) (description.Server, error) {
-		desc, err := driver.IsMaster().
+		desc, err := operation.NewIsMaster().
 			AppName(options.AppName).
 			Compressors(options.Compressors).
 			SASLSupportedMechs(options.DBUser).
