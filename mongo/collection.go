@@ -17,6 +17,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 	"go.mongodb.org/mongo-driver/x/network/command"
@@ -207,12 +209,19 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		ctx = context.Background()
 	}
 
-	doc, insertedID, err := transformAndEnsureID(coll.registry, document)
+	doc, insertedID, err := transformAndEnsureIDv2(coll.registry, document)
 	if err != nil {
 		return nil, err
 	}
 
 	sess := sessionFromContext(ctx)
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer sess.EndSession()
+	}
 
 	err = coll.client.validSession(sess)
 	if err != nil {
@@ -223,33 +232,31 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	oldns := coll.namespace()
-	cmd := command.Insert{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs:         []bsonx.Doc{doc},
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
+
+	selector := coll.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
 	}
 
-	// convert to InsertManyOptions so these can be argued to dispatch.Insert
-	insertOpts := make([]*options.InsertManyOptions, len(opts))
-	for i, opt := range opts {
-		insertOpts[i] = options.InsertMany()
-		insertOpts[i].BypassDocumentValidation = opt.BypassDocumentValidation
+	option := options.MergeInsertOneOptions(opts...)
+
+	op := operation.NewInsert(doc).
+		Session(sess).WriteConcern(wc).
+		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Database(coll.db.name).Collection(coll.name).
+		Deployment(coll.client.topology)
+
+	if option.BypassDocumentValidation != nil {
+		op = op.BypassDocumentValidation(*option.BypassDocumentValidation)
 	}
+	retry := driver.RetryNone
+	if coll.client.retryWrites {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
+	err = op.Execute(ctx)
 
-	res, err := driverlegacy.Insert(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.client.retryWrites,
-		insertOpts...,
-	)
-
-	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
+	rr, err := processWriteError(nil, nil, err)
 	if rr&rrOne == 0 {
 		return nil, err
 	}

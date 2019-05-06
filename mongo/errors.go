@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/command"
@@ -40,6 +41,9 @@ func replaceErrors(err error) error {
 	}
 	if ce, ok := err.(command.Error); ok {
 		return CommandError{Code: ce.Code, Message: ce.Message, Labels: ce.Labels, Name: ce.Name}
+	}
+	if de, ok := err.(driver.Error); ok {
+		return CommandError{Code: de.Code, Message: de.Message, Labels: de.Labels, Name: de.Name}
 	}
 	if conv, ok := err.(driverlegacy.BulkWriteException); ok {
 		return BulkWriteException{
@@ -114,6 +118,14 @@ func writeErrorsFromResult(rwes []result.WriteError) WriteErrors {
 	return wes
 }
 
+func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
+	wes := make(WriteErrors, 0, len(errs))
+	for _, err := range errs {
+		wes = append(wes, WriteError{Index: int(err.Index), Code: int(err.Code), Message: err.Message})
+	}
+	return wes
+}
+
 // WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {
@@ -160,6 +172,14 @@ func convertWriteConcernError(wce *result.WriteConcernError) *WriteConcernError 
 	}
 
 	return &WriteConcernError{Code: wce.Code, Message: wce.ErrMsg, Details: wce.ErrInfo}
+}
+
+func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
+	if wce == nil {
+		return nil
+	}
+
+	return &WriteConcernError{Code: int(wce.Code), Message: wce.Message, Details: bson.Raw(wce.Details)}
 }
 
 // BulkWriteError is an error for one operation in a bulk write.
@@ -212,7 +232,15 @@ func processWriteError(wce *result.WriteConcernError, wes []result.WriteError, e
 	case err == command.ErrUnacknowledgedWrite:
 		return rrAll, ErrUnacknowledgedWrite
 	case err != nil:
-		return rrNone, replaceErrors(err)
+		switch tt := err.(type) {
+		case driver.WriteCommandError:
+			return rrMany, WriteException{
+				WriteConcernError: convertDriverWriteConcernError(tt.WriteConcernError),
+				WriteErrors:       writeErrorsFromDriverWriteErrors(tt.WriteErrors),
+			}
+		default:
+			return rrNone, replaceErrors(err)
+		}
 	case wce != nil || len(wes) > 0:
 		return rrMany, WriteException{
 			WriteConcernError: convertWriteConcernError(wce),

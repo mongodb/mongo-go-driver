@@ -189,6 +189,9 @@ func (op Operation) Validate() error {
 	if op.Database == "" {
 		return InvalidOperationError{MissingField: "Database"}
 	}
+	if op.Client != nil && !writeconcern.AckWrite(op.WriteConcern) {
+		return errors.New("session provided for an unacknowledged write")
+	}
 	return nil
 }
 
@@ -292,6 +295,31 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if ep, ok := srvr.(ErrorProcessor); ok {
 			ep.ProcessError(err)
 		}
+		switch tt := err.(type) {
+		case nil: // do nothing
+		case Error:
+			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
+				retries--
+				original, err = err, nil
+				conn.Close() // Avoid leaking the connection.
+				srvr, err = op.selectServer(ctx)
+				if err != nil {
+					return original
+				}
+				conn, err = srvr.Connection(ctx)
+				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
+					if conn != nil {
+						conn.Close()
+					}
+					return original
+				}
+				defer conn.Close() // Avoid leaking the new connection.
+				continue
+			}
+			return err
+		default:
+			return err
+		}
 		if err != nil {
 			// must fire a CommandFailedEvent even if an error occurred while reading from the socket
 			finishedInfo.cmdErr = err
@@ -335,7 +363,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				if err != nil {
 					return original
 				}
-				conn, err := srvr.Connection(ctx)
+				conn, err = srvr.Connection(ctx)
 				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
 					if conn != nil {
 						conn.Close()
@@ -361,7 +389,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				if err != nil {
 					return original
 				}
-				conn, err := srvr.Connection(ctx)
+				conn, err = srvr.Connection(ctx)
 				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
 					if conn != nil {
 						conn.Close()
@@ -393,6 +421,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			continue
 		}
 		break
+	}
+	if len(operationErr.WriteErrors) > 0 || operationErr.WriteConcernError != nil {
+		return operationErr
 	}
 	return nil
 }
