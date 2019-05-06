@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/address"
@@ -293,7 +294,7 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 		}))
 	} else {
 		connOpts = append(connOpts, topology.WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
-			return driver.IsMaster().AppName(cs.AppName).Compressors(cs.Compressors)
+			return operation.NewIsMaster().AppName(cs.AppName).Compressors(cs.Compressors)
 		}))
 	}
 
