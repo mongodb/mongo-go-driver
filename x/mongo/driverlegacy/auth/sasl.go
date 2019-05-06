@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 // SaslClient is the client piece of a sasl conversation.
@@ -48,7 +49,7 @@ func ConductSaslConversation(ctx context.Context, conn driver.Connection, db str
 		bsoncore.AppendStringElement(nil, "mechanism", mech),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 	)
-	saslStartCmd := driver.Command(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
+	saslStartCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 
 	type saslResponse struct {
 		ConversationID int    `bson:"conversationId"`
@@ -95,7 +96,7 @@ func ConductSaslConversation(ctx context.Context, conn driver.Connection, db str
 			bsoncore.AppendInt32Element(nil, "conversationId", int32(cid)),
 			bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 		)
-		saslContinueCmd := driver.Command(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
+		saslContinueCmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 
 		err = saslContinueCmd.Execute(ctx)
 		if err != nil {

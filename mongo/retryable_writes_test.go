@@ -341,6 +341,7 @@ func createRetryMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Cl
 		readPreference: readpref.Primary(),
 		clock:          clock,
 		registry:       bson.DefaultRegistry,
+		monitor:        monitor,
 	}
 
 	subscription, err := c.topology.Subscribe()

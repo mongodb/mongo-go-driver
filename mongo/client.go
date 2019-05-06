@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
@@ -46,6 +47,7 @@ type Client struct {
 	writeConcern    *writeconcern.WriteConcern
 	registry        *bsoncodec.Registry
 	marshaller      BSONAppender
+	monitor         *event.CommandMonitor
 }
 
 // Connect creates a new Client and then initializes it using the Connect method.
@@ -232,7 +234,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	}
 	// Handshaker
 	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return driver.IsMaster().AppName(appName).Compressors(comps)
+		return operation.NewIsMaster().AppName(appName).Compressors(comps)
 	}
 	// Auth & Database & Password & Username
 	if opts.Auth != nil {
@@ -335,6 +337,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	}
 	// Monitor
 	if opts.Monitor != nil {
+		c.monitor = opts.Monitor
 		connOpts = append(connOpts, topology.WithMonitor(
 			func(*event.CommandMonitor) *event.CommandMonitor { return opts.Monitor },
 		))

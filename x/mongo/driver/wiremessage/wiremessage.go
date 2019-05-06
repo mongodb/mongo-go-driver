@@ -117,6 +117,13 @@ func ReadMsgFlags(src []byte) (flags wiremessage.MsgFlag, rem []byte, ok bool) {
 	return wiremessage.MsgFlag(i32), rem, ok
 }
 
+// IsMsgMoreToCome returns if the provided wire message is an OP_MSG with the more to come flag set.
+func IsMsgMoreToCome(wm []byte) bool {
+	return len(wm) >= 20 &&
+		wiremessage.OpCode(readi32unsafe(wm[12:16])) == wiremessage.OpMsg &&
+		wiremessage.MsgFlag(readi32unsafe(wm[16:20]))&wiremessage.MoreToCome == wiremessage.MoreToCome
+}
+
 // ReadMsgSectionType reads the section type from src.
 func ReadMsgSectionType(src []byte) (stype wiremessage.SectionType, rem []byte, ok bool) {
 	if len(src) < 1 {
@@ -268,6 +275,10 @@ func readi32(src []byte) (int32, []byte, bool) {
 	}
 
 	return (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24), src[4:], true
+}
+
+func readi32unsafe(src []byte) int32 {
+	return (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24)
 }
 
 func readi64(src []byte) (int64, []byte, bool) {
