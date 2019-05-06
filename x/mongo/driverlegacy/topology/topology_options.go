@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
 	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/connstring"
@@ -186,7 +187,7 @@ func WithConnString(fn func(connstring.ConnString) connstring.ConnString) Option
 		} else {
 			// We need to add a non-auth Handshaker to the connection options
 			connOpts = append(connOpts, WithHandshaker(func(h driver.Handshaker) driver.Handshaker {
-				return driver.IsMaster().AppName(cs.AppName).Compressors(cs.Compressors)
+				return operation.NewIsMaster().AppName(cs.AppName).Compressors(cs.Compressors)
 			}))
 		}
 
