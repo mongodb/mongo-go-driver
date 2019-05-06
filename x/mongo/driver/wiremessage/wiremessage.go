@@ -2,7 +2,6 @@ package wiremessage
 
 import (
 	"bytes"
-
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
@@ -111,6 +110,44 @@ func AppendCompressedCompressorID(dst []byte, id wiremessage.CompressorID) []byt
 // AppendCompressedCompressedMessage appends the compressed wiremessage to dst.
 func AppendCompressedCompressedMessage(dst []byte, msg []byte) []byte { return append(dst, msg...) }
 
+// AppendGetMoreZero appends the zero field to dst.
+func AppendGetMoreZero(dst []byte) []byte {
+	return appendi32(dst, 0)
+}
+
+// AppendGetMoreFullCollectionName appends the fullCollectionName field to dst.
+func AppendGetMoreFullCollectionName(dst []byte, ns string) []byte {
+	return appendCString(dst, ns)
+}
+
+// AppendGetMoreNumberToReturn appends the numberToReturn field to dst.
+func AppendGetMoreNumberToReturn(dst []byte, numToReturn int32) []byte {
+	return appendi32(dst, numToReturn)
+}
+
+// AppendGetMoreCursorID appends the cursorID field to dst.
+func AppendGetMoreCursorID(dst []byte, cursorID int64) []byte {
+	return appendi64(dst, cursorID)
+}
+
+// AppendKillCursorsZero appends the zero field to dst.
+func AppendKillCursorsZero(dst []byte) []byte {
+	return appendi32(dst, 0)
+}
+
+// AppendKillCursorsNumberIDs appends the numberOfCursorIDs field to dst.
+func AppendKillCursorsNumberIDs(dst []byte, numIDs int32) []byte {
+	return appendi32(dst, numIDs)
+}
+
+// AppendKillCursorsCursorIDs appends each the cursorIDs field to dst.
+func AppendKillCursorsCursorIDs(dst []byte, cursors []int64) []byte {
+	for _, cursor := range cursors {
+		dst = appendi64(dst, cursor)
+	}
+	return dst
+}
+
 // ReadMsgFlags reads the OP_MSG flags from src.
 func ReadMsgFlags(src []byte) (flags wiremessage.MsgFlag, rem []byte, ok bool) {
 	i32, rem, ok := readi32(src)
@@ -218,6 +255,22 @@ func ReadReplyNumberReturned(src []byte) (numberReturned int32, rem []byte, ok b
 	return readi32(src)
 }
 
+// ReadReplyDocuments reads as many documents as possible from src
+func ReadReplyDocuments(src []byte) (docs []bsoncore.Document, rem []byte, ok bool) {
+	rem = src
+	for {
+		var doc bsoncore.Document
+		doc, rem, ok = bsoncore.ReadDocument(rem)
+		if !ok {
+			break
+		}
+
+		docs = append(docs, doc)
+	}
+
+	return docs, rem, true
+}
+
 // ReadReplyDocument reads a reply document from src.
 func ReadReplyDocument(src []byte) (doc bsoncore.Document, rem []byte, ok bool) {
 	return bsoncore.ReadDocument(src)
@@ -247,6 +300,31 @@ func ReadCompressedCompressedMessage(src []byte, length int32) (msg []byte, rem 
 		return nil, src, false
 	}
 	return src[:length], src[length:], true
+}
+
+// ReadKillCursorsZero reads the zero field from src.
+func ReadKillCursorsZero(src []byte) (zero int32, rem []byte, ok bool) {
+	return readi32(src)
+}
+
+// ReadKillCursorsNumberIDs reads the numberOfCursorIDs field from src.
+func ReadKillCursorsNumberIDs(src []byte) (numIDs int32, rem []byte, ok bool) {
+	return readi32(src)
+}
+
+// ReadKillCursorsCursorIDs reads numIDs cursor IDs from src.
+func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem []byte, ok bool) {
+	var i int32
+	var id int64
+	for i = 0; i < numIDs; i++ {
+		id, src, ok = readi64(src)
+		if !ok {
+			return cursorIDs, src, false
+		}
+
+		cursorIDs = append(cursorIDs, id)
+	}
+	return cursorIDs, src, true
 }
 
 func appendi32(dst []byte, i32 int32) []byte {
