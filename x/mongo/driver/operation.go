@@ -32,6 +32,8 @@ var (
 	ErrNoDocCommandResponse = errors.New("command returned no documents")
 	// ErrMultiDocCommandResponse occurs when the server sent multiple documents in response to a command.
 	ErrMultiDocCommandResponse = errors.New("command returned multiple documents")
+	// ErrReplyDocumentMismatch occurs when the number of documents returned in an OP_QUERY does not match the numberReturned field.
+	ErrReplyDocumentMismatch = errors.New("number of documents returned does not match numberReturned field")
 )
 
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
@@ -40,6 +42,17 @@ type InvalidOperationError struct{ MissingField string }
 
 func (err InvalidOperationError) Error() string {
 	return "the " + err.MissingField + " field must be set on Operation"
+}
+
+// opReply stores information returned in an OP_REPLY response from the server.
+// The err field stores any error that occurred when decoding or validating the OP_REPLY response.
+type opReply struct {
+	responseFlags wiremessage.ReplyFlag
+	cursorID      int64
+	startingFrom  int32
+	numReturned   int32
+	documents     []bsoncore.Document
+	err           error
 }
 
 // startedInformation keeps track of all of the information necessary for monitoring started events.
@@ -212,20 +225,24 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	defer conn.Close()
 
 	desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
+	scratch = scratch[:0]
 
-	// TODO(GODRIVER-617): We should check the wire version here. If we're doing a find, getMore, or
-	// killCursors and the wire version is less than 4 we need to call out to legacy code here.
 	if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
 		switch op.Legacy {
 		case LegacyFind:
-			// TODO(GODRIVER-984): Implement LegacyFind.
-			return errors.New("legacy find is not yet supported")
+			return op.legacyFind(ctx, scratch, srvr, conn, desc)
 		case LegacyGetMore:
-			// TODO(GODRIVER-984): Implement LegacyGetMore.
-			return errors.New("legacy getMore is not yet supported")
+			return op.legacyGetMore(ctx, scratch, srvr, conn, desc)
 		case LegacyKillCursors:
-			// TODO(GODRIVER-984): Implement LegacyKillCursors.
-			return errors.New("legacy killCursors is not yet supported")
+			return op.legacyKillCursors(ctx, scratch, srvr, conn, desc)
+		}
+	}
+	if desc.WireVersion == nil || desc.WireVersion.Max < 3 {
+		switch op.Legacy {
+		case LegacyListCollections:
+			return op.legacyListCollections(ctx, scratch, srvr, conn, desc)
+		case LegacyListIndexes:
+			return op.legacyListIndexes(ctx, scratch, srvr, conn, desc)
 		}
 	}
 
@@ -865,7 +882,74 @@ func (Operation) canCompress(cmd string) bool {
 	return true
 }
 
-func (Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
+// decodeOpReply extracts the necessary information from an OP_REPLY wire message.
+// includesHeader: specifies whether or not wm includes the message header
+// Returns the decoded OP_REPLY. If the err field of the returned opReply is non-nil, an error occurred while decoding
+// or validating the response and the other fields are undefined.
+func (Operation) decodeOpReply(wm []byte, includesHeader bool) opReply {
+	var reply opReply
+	var ok bool
+
+	if includesHeader {
+		wmLength := len(wm)
+		var length int32
+		var opcode wiremessagex.OpCode
+		length, _, _, opcode, wm, ok = wiremessagex.ReadHeader(wm)
+		if !ok || int(length) > wmLength {
+			reply.err = errors.New("malformed wire message: insufficient bytes")
+			return reply
+		}
+		if opcode != wiremessage.OpReply {
+			reply.err = errors.New("malformed wire message: incorrect opcode")
+			return reply
+		}
+	}
+
+	reply.responseFlags, wm, ok = wiremessagex.ReadReplyFlags(wm)
+	if !ok {
+		reply.err = errors.New("malformed OP_REPLY: missing flags")
+		return reply
+	}
+	reply.cursorID, wm, ok = wiremessagex.ReadReplyCursorID(wm)
+	if !ok {
+		reply.err = errors.New("malformed OP_REPLY: missing cursorID")
+		return reply
+	}
+	reply.startingFrom, wm, ok = wiremessagex.ReadReplyStartingFrom(wm)
+	if !ok {
+		reply.err = errors.New("malformed OP_REPLY: missing startingFrom")
+		return reply
+	}
+	reply.numReturned, wm, ok = wiremessagex.ReadReplyNumberReturned(wm)
+	if !ok {
+		reply.err = errors.New("malformed OP_REPLY: missing numberReturned")
+		return reply
+	}
+	reply.documents, wm, ok = wiremessagex.ReadReplyDocuments(wm)
+	if !ok {
+		reply.err = errors.New("malformed OP_REPLY: could not read documents from reply")
+	}
+
+	if reply.responseFlags&wiremessage.QueryFailure == wiremessage.QueryFailure {
+		reply.err = QueryFailureError{
+			Message:  "command failure",
+			Response: reply.documents[0],
+		}
+		return reply
+	}
+	if reply.responseFlags&wiremessage.CursorNotFound == wiremessage.CursorNotFound {
+		reply.err = ErrCursorNotFound
+		return reply
+	}
+	if reply.numReturned != int32(len(reply.documents)) {
+		reply.err = ErrReplyDocumentMismatch
+		return reply
+	}
+
+	return reply
+}
+
+func (op Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
 	wmLength := len(wm)
 	length, _, _, opcode, wm, ok := wiremessagex.ReadHeader(wm)
 	if !ok || int(length) > wmLength {
@@ -876,44 +960,19 @@ func (Operation) decodeResult(wm []byte) (bsoncore.Document, error) {
 
 	switch opcode {
 	case wiremessage.OpReply:
-		var flags wiremessage.ReplyFlag
-		flags, wm, ok = wiremessagex.ReadReplyFlags(wm)
-		if !ok {
-			return nil, errors.New("malformed OP_REPLY: missing flags")
+		reply := op.decodeOpReply(wm, false)
+		if reply.err != nil {
+			return nil, reply.err
 		}
-		_, wm, ok = wiremessagex.ReadReplyCursorID(wm)
-		if !ok {
-			return nil, errors.New("malformed OP_REPLY: missing cursorID")
-		}
-		_, wm, ok = wiremessagex.ReadReplyStartingFrom(wm)
-		if !ok {
-			return nil, errors.New("malformed OP_REPLY: missing startingFrom")
-		}
-		var numReturned int32
-		numReturned, wm, ok = wiremessagex.ReadReplyNumberReturned(wm)
-		if !ok {
-			return nil, errors.New("malformed OP_REPLY: missing numberReturned")
-		}
-		if numReturned == 0 {
+		if reply.numReturned == 0 {
 			return nil, ErrNoDocCommandResponse
 		}
-		if numReturned > 1 {
+		if reply.numReturned > 1 {
 			return nil, ErrMultiDocCommandResponse
 		}
-		var rdr bsoncore.Document
-		rdr, rem, ok := wiremessagex.ReadReplyDocument(wm)
-		if !ok || len(rem) > 0 {
-			return nil, NewCommandResponseError("malformed OP_REPLY: NumberReturned does not match number of documents returned", nil)
-		}
-		err := rdr.Validate()
-		if err != nil {
+		rdr := reply.documents[0]
+		if err := rdr.Validate(); err != nil {
 			return nil, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
-		}
-		if flags&wiremessage.QueryFailure == wiremessage.QueryFailure {
-			return nil, QueryFailureError{
-				Message:  "command failure",
-				Response: rdr,
-			}
 		}
 
 		return rdr, extractError(rdr)
@@ -1025,11 +1084,17 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		return
 	}
 
+	var durationNanos int64
+	var emptyTime time.Time
+	if info.startTime != emptyTime {
+		durationNanos = time.Now().Sub(info.startTime).Nanoseconds()
+	}
+
 	finished := event.CommandFinishedEvent{
 		CommandName:   info.cmdName,
 		RequestID:     int64(info.requestID),
 		ConnectionID:  info.connID,
-		DurationNanos: time.Now().Sub(info.startTime).Nanoseconds(),
+		DurationNanos: durationNanos,
 	}
 
 	if success {
