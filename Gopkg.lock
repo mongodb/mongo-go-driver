@@ -61,6 +61,14 @@
   version = "0.3.0"
 
 [[projects]]
+  digest = "1:93131d8002d7025da13582877c32d1fc302486775a1b06f62241741006428c5e"
+  name = "github.com/pelletier/go-toml"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "728039f679cbcd4f6a54e080d2219a4c4928c546"
+  version = "v1.4.0"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -136,6 +144,26 @@
   pruneopts = "UT"
   revision = "0605a8320aceb4207a5fb3521281e17ec2075476"
 
+[[projects]]
+  branch = "master"
+  digest = "1:93f3f17886abf8d17ff07ece88d6e1974226f5638d216041bd2234ca03ef848c"
+  name = "golang.org/x/tools"
+  packages = [
+    "go/ast/astutil",
+    "go/gcexportdata",
+    "go/internal/gcimporter",
+    "go/internal/packagesdriver",
+    "go/packages",
+    "go/types/typeutil",
+    "imports",
+    "internal/fastwalk",
+    "internal/gopathwalk",
+    "internal/module",
+    "internal/semver",
+  ]
+  pruneopts = "UT"
+  revision = "73554e0f78058c37e5421bc48273a72400172221"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -145,12 +173,16 @@
     "github.com/google/go-cmp/cmp",
     "github.com/kr/pretty",
     "github.com/montanaflynn/stats",
+    "github.com/pelletier/go-toml",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "github.com/tidwall/pretty",
     "github.com/xdg/scram",
     "github.com/xdg/stringprep",
+    "golang.org/x/net/context",
     "golang.org/x/sync/semaphore",
+    "golang.org/x/tools/go/packages",
+    "golang.org/x/tools/imports",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
