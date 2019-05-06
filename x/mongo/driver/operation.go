@@ -165,6 +165,9 @@ func (op Operation) Validate() error {
 	if op.Database == "" {
 		return InvalidOperationError{MissingField: "Database"}
 	}
+	if op.Client != nil && !writeconcern.AckWrite(op.WriteConcern) {
+		return errors.New("session provided for an unacknowledged write")
+	}
 	return nil
 }
 
@@ -472,7 +475,8 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	}
 
 	if op.Batches != nil && len(op.Batches.Current) > 0 {
-		aidx, dst := bsoncore.AppendArrayElementStart(dst, op.Batches.Identifier)
+		var aidx int32
+		aidx, dst = bsoncore.AppendArrayElementStart(dst, op.Batches.Identifier)
 		for i, doc := range op.Batches.Current {
 			dst = bsoncore.AppendDocumentElement(dst, strconv.Itoa(i), doc)
 		}
