@@ -24,7 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
@@ -56,6 +56,7 @@ func createMonitoredClient(t *testing.T, monitor *event.CommandMonitor) *Client 
 		readPreference: readpref.Primary(),
 		clock:          &session.ClusterClock{},
 		registry:       bson.DefaultRegistry,
+		monitor:        monitor,
 	}
 }
 

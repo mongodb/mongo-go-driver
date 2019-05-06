@@ -2,6 +2,7 @@ package driver
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,6 +21,9 @@ var (
 	TransientTransactionError = "TransientTransactionError"
 	// NetworkError is an error label for network errors.
 	NetworkError = "NetworkError"
+	// ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
+	// write concern.
+	ErrUnacknowledgedWrite = errors.New("unacknowledged write")
 )
 
 // QueryFailureError is an error representing a command failure as a document.
@@ -215,7 +219,6 @@ func extractError(rdr bsoncore.Document) error {
 		return err
 	}
 
-	// TODO(GODRIVER-617): We need to handle write errors and write concern errors here.
 	for _, elem := range elems {
 		switch elem.Key() {
 		case "ok":
@@ -279,7 +282,7 @@ func extractError(rdr bsoncore.Document) error {
 				if code, exists := doc.Lookup("code").AsInt64OK(); exists {
 					we.Code = code
 				}
-				if msg, exists := doc.Lookup("errMsg").StringValueOK(); exists {
+				if msg, exists := doc.Lookup("errmsg").StringValueOK(); exists {
 					we.Message = msg
 				}
 				wcError.WriteErrors = append(wcError.WriteErrors, we)
@@ -293,7 +296,7 @@ func extractError(rdr bsoncore.Document) error {
 			if code, exists := doc.Lookup("code").AsInt64OK(); exists {
 				wcError.WriteConcernError.Code = code
 			}
-			if msg, exists := doc.Lookup("errMsg").StringValueOK(); exists {
+			if msg, exists := doc.Lookup("errmsg").StringValueOK(); exists {
 				wcError.WriteConcernError.Message = msg
 			}
 			if info, exists := doc.Lookup("errInfo").DocumentOK(); exists {
