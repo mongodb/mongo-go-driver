@@ -2,6 +2,7 @@ package driver
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,6 +21,8 @@ var (
 	TransientTransactionError = "TransientTransactionError"
 	// NetworkError is an error label for network errors.
 	NetworkError = "NetworkError"
+	// ErrCursorNotFound is the cursor not found error for legacy find operations.
+	ErrCursorNotFound = errors.New("cursor not found")
 )
 
 // QueryFailureError is an error representing a command failure as a document.

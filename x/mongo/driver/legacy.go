@@ -11,4 +11,6 @@ const (
 	LegacyFind
 	LegacyGetMore
 	LegacyKillCursors
+	LegacyListCollections
+	LegacyListIndexes
 )
