@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
@@ -52,7 +53,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, _ description.Server,
 	}
 
 	doc := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "getnonce", 1))
-	cmd := driver.Command(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
+	cmd := operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 	err := cmd.Execute(ctx)
 	if err != nil {
 		return newError(err, MONGODBCR)
@@ -74,7 +75,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, _ description.Server,
 		bsoncore.AppendStringElement(nil, "nonce", getNonceResult.Nonce),
 		bsoncore.AppendStringElement(nil, "key", a.createKey(getNonceResult.Nonce)),
 	)
-	cmd = driver.Command(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
+	cmd = operation.NewCommand(doc).Database(db).Deployment(driver.SingleConnectionDeployment{conn})
 	err = cmd.Execute(ctx)
 	if err != nil {
 		return newError(err, MONGODBCR)

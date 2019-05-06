@@ -103,7 +103,7 @@ type Operation struct {
 	// ProcessResponseFn is called after a response to the command is returned. The server is
 	// provided for types like Cursor that are required to run subsequent commands using the same
 	// server.
-	ProcessResponseFn func(response bsoncore.Document, srvr Server) error
+	ProcessResponseFn func(response bsoncore.Document, srvr Server, desc description.Server) error
 
 	// Selector is the server selector that's used during both initial server selection and
 	// subsequent selection for retries. Depending on the Deployment implementation, the
@@ -119,10 +119,18 @@ type Operation struct {
 	// server.
 	ReadConcern *readconcern.ReadConcern
 
+	// MinimumReadConcernWireVersion specifies the minimum wire version to add the read concern to
+	// the command being executed.
+	MinimumReadConcernWireVersion int32
+
 	// WriteConcern is the write concern used when running write commands. This field should not be
 	// set for read operations. If this field is set, it will be encoded onto the commands sent to
 	// the server.
 	WriteConcern *writeconcern.WriteConcern
+
+	// MinimumWriteConcernWireVersion specifies the minimum wire version to add the write concern to
+	// the command being executed.
+	MinimumWriteConcernWireVersion int32
 
 	// Client is the session used with this operation. This can be either an implicit or explicit
 	// session. If the server selected does not support sessions and Client is specified the
@@ -201,6 +209,9 @@ func (op Operation) Validate() error {
 	}
 	if op.Database == "" {
 		return InvalidOperationError{MissingField: "Database"}
+	}
+	if op.Client != nil && !writeconcern.AckWrite(op.WriteConcern) {
+		return errors.New("session provided for an unacknowledged write")
 	}
 	return nil
 }
@@ -309,7 +320,35 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if ep, ok := srvr.(ErrorProcessor); ok {
 			ep.ProcessError(err)
 		}
-		if err != nil {
+		switch tt := err.(type) {
+		case nil: // do nothing
+		case Error:
+			// must fire a CommandFailedEvent even if an error occurred while reading from the socket
+			finishedInfo.cmdErr = err
+			op.publishFinishedEvent(ctx, finishedInfo)
+			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
+				retries--
+				original, err = err, nil
+				conn.Close() // Avoid leaking the connection.
+				srvr, err = op.selectServer(ctx)
+				if err != nil {
+					return original
+				}
+				conn, err = srvr.Connection(ctx)
+				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
+					if conn != nil {
+						conn.Close()
+					}
+					return original
+				}
+				defer conn.Close() // Avoid leaking the new connection.
+				continue
+			}
+			return err
+		default:
+			if err == ErrUnacknowledgedWrite {
+				break
+			}
 			// must fire a CommandFailedEvent even if an error occurred while reading from the socket
 			finishedInfo.cmdErr = err
 			op.publishFinishedEvent(ctx, finishedInfo)
@@ -340,7 +379,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 
 		var perr error
 		if op.ProcessResponseFn != nil {
-			perr = op.ProcessResponseFn(res, srvr)
+			perr = op.ProcessResponseFn(res, srvr, desc.Server)
 		}
 		switch tt := err.(type) {
 		case WriteCommandError:
@@ -352,7 +391,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				if err != nil {
 					return original
 				}
-				conn, err := srvr.Connection(ctx)
+				conn, err = srvr.Connection(ctx)
 				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
 					if conn != nil {
 						conn.Close()
@@ -378,7 +417,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				if err != nil {
 					return original
 				}
-				conn, err := srvr.Connection(ctx)
+				conn, err = srvr.Connection(ctx)
 				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
 					if conn != nil {
 						conn.Close()
@@ -411,6 +450,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 		break
 	}
+	if len(operationErr.WriteErrors) > 0 || operationErr.WriteConcernError != nil {
+		return operationErr
+	}
+	if !writeconcern.AckWrite(op.WriteConcern) {
+		return ErrUnacknowledgedWrite
+	}
 	return nil
 }
 
@@ -435,6 +480,10 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+	}
+
+	if wiremessagex.IsMsgMoreToCome(wm) {
+		return nil, ErrUnacknowledgedWrite
 	}
 
 	res, err := conn.ReadWireMessage(ctx, wm[:0])
@@ -552,7 +601,7 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 		return dst, info, err
 	}
 
-	dst, err = op.addWriteConcern(dst)
+	dst, err = op.addWriteConcern(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -590,10 +639,11 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 
 func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedServer) ([]byte, startedInformation, error) {
 	var info startedInformation
-	// TODO(GODRIVER-617): We need to figure out how to include the writeconcern here so that we can
-	// set the moreToCome bit.
 	var flags wiremessage.MsgFlag
 	var wmindex int32
+	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) {
+		flags = wiremessage.MoreToCome
+	}
 	info.requestID = wiremessage.NextRequestID()
 	wmindex, dst = wiremessagex.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessagex.AppendMsgFlags(dst, flags)
@@ -610,7 +660,7 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	if err != nil {
 		return dst, info, err
 	}
-	dst, err = op.addWriteConcern(dst)
+	dst, err = op.addWriteConcern(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -659,6 +709,9 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 }
 
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
+	if op.MinimumReadConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumReadConcernWireVersion)) {
+		return dst, nil
+	}
 	rc := op.ReadConcern
 	client := op.Client
 	// Starting transaction's read concern overrides all others
@@ -689,7 +742,10 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func (op Operation) addWriteConcern(dst []byte) ([]byte, error) {
+func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
+	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumWriteConcernWireVersion)) {
+		return dst, nil
+	}
 	wc := op.WriteConcern
 	if wc == nil {
 		return dst, nil
@@ -1080,6 +1136,9 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
 	success := info.cmdErr == nil
+	if _, ok := info.cmdErr.(WriteCommandError); ok {
+		success = true
+	}
 	if op.CommandMonitor == nil || (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
 		return
 	}

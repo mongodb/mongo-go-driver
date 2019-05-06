@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"math"
 	"path"
@@ -17,15 +18,12 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
-
-	"fmt"
-
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 type testFile struct {
@@ -37,11 +35,11 @@ type testFile struct {
 
 type testCase struct {
 	Description string
-	Operation   operation
+	Operation   op
 	Outcome     outcome
 }
 
-type operation struct {
+type op struct {
 	Name      string
 	Arguments map[string]interface{}
 }

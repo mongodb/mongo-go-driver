@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -129,6 +130,57 @@ func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsonx.
 	}
 
 	return d, id, nil
+}
+
+// transformAndEnsureIDv2 is a hack that makes it easy to get a RawValue as the _id value. This will
+// be removed when we switch from using bsonx to bsoncore for the driver package.
+func transformAndEnsureIDv2(registry *bsoncodec.Registry, val interface{}) (bsoncore.Document, interface{}, error) {
+	if registry == nil {
+		registry = bson.NewRegistryBuilder().Build()
+	}
+	switch tt := val.(type) {
+	case nil:
+		return nil, nil, ErrNilDocument
+	case bsonx.Doc:
+		val = tt.Copy()
+	case []byte:
+		// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
+		val = bson.Raw(tt)
+	}
+
+	// TODO(skriptble): Use a pool of these instead.
+	doc := make(bsoncore.Document, 0, 256)
+	doc, err := bson.MarshalAppendWithRegistry(registry, doc, val)
+	if err != nil {
+		return nil, nil, MarshalError{Value: val, Err: err}
+	}
+
+	var id interface{}
+
+	value := doc.Lookup("_id")
+	switch value.Type {
+	case bsontype.Type(0):
+		value = bsoncore.Value{Type: bsontype.ObjectID, Data: bsoncore.AppendObjectID(nil, primitive.NewObjectID())}
+		olddoc := doc
+		doc = make(bsoncore.Document, 0, len(olddoc)+17) // type byte + _id + null byte + object ID
+		_, doc = bsoncore.ReserveLength(doc)
+		doc = bsoncore.AppendValueElement(doc, "_id", value)
+		doc = append(doc, olddoc[4:]...) // remove the length
+		doc = bsoncore.UpdateLength(doc, 0, int32(len(doc)))
+	default:
+		// We copy the bytes here to ensure that any bytes returned to the user aren't modified
+		// later.
+		buf := make([]byte, len(value.Data))
+		copy(buf, value.Data)
+		value.Data = buf
+	}
+
+	err = bson.RawValue{Type: value.Type, Value: value.Data}.UnmarshalWithRegistry(registry, &id)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return doc, id, nil
 }
 
 func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc, error) {

@@ -11,6 +11,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
@@ -35,8 +36,8 @@ func (a *MongoDBX509Authenticator) Auth(ctx context.Context, desc description.Se
 		requestDoc = bsoncore.AppendStringElement(requestDoc, "user", a.User)
 	}
 
-	authCmd := driver.
-		Command(bsoncore.BuildDocument(nil, requestDoc)).
+	authCmd := operation.
+		NewCommand(bsoncore.BuildDocument(nil, requestDoc)).
 		Database("$external").
 		Deployment(driver.SingleConnectionDeployment{conn})
 	err := authCmd.Execute(ctx)

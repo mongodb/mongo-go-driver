@@ -19,6 +19,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/network/address"
 	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/description"
@@ -528,8 +529,9 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 
 		now := time.Now()
 
-		op := driver.
-			IsMaster().
+		op := operation.
+			NewIsMaster().
+			ClusterClock(s.cfg.clock).
 			AppName(s.cfg.appname).
 			Compressors(s.cfg.compressionOpts).
 			Deployment(driver.SingleConnectionDeployment{initConnection{conn}})
@@ -551,15 +553,10 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 			continue
 		}
 
-		isMaster := op.Result()
-
-		clusterTime := isMaster.ClusterTime
-		if s.cfg.clock != nil {
-			s.cfg.clock.AdvanceClusterTime(clusterTime)
-		}
+		desc = op.Result(s.address)
 
 		delay := time.Since(now)
-		desc = description.NewServer(s.address, isMaster).SetAverageRTT(s.updateAverageRTT(delay))
+		desc = desc.SetAverageRTT(s.updateAverageRTT(delay))
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
 		set = true
 
