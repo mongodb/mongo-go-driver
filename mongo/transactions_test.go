@@ -25,7 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -373,6 +373,7 @@ func createTransactionsMonitoredClient(t *testing.T, monitor *event.CommandMonit
 		readPreference: readpref.Primary(),
 		clock:          clock,
 		registry:       bson.NewRegistryBuilder().Build(),
+		monitor:        monitor,
 	}
 	addClientOptions(c, opts)
 
