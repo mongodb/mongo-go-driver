@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "aa360f03_93d8bf55",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "This is from the legacy batch cursor creation logic. Legacy OP_QUERY doesn\u0027t support limit.",
+      "parentUuid": "d170ede5_1ae6743f",
+      "range": {
+        "startLine": 119,
+        "startChar": 22,
+        "endLine": 119,
+        "endChar": 47
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "3a24b79d_61622096",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 8
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "a0c20d9f_62952f41",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3a24b79d_61622096",
+      "range": {
+        "startLine": 118,
+        "startChar": 49,
+        "endLine": 118,
+        "endChar": 56
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "47c78872_b1fe0d64",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 8
@@ -59,6 +107,30 @@
       "writtenOn": "2019-05-10T14:54:16Z",
       "side": 1,
       "message": "I know this code was already here, but are you opposed to renaming this to ClientSession or Session? It\u0027s a nit, but this confuses me every time I see it because I think it\u0027s a mongo Client.",
+      "range": {
+        "startLine": 128,
+        "startChar": 1,
+        "endLine": 128,
+        "endChar": 7
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4c0c295a_dd332601",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "I\u0027d say file a ticket for this, I don\u0027t want to add more churn to this patch.",
+      "parentUuid": "47c78872_b1fe0d64",
       "range": {
         "startLine": 128,
         "startChar": 1,
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "48d6baf2_9d6b97fe",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 308,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "because tt will be interface{} if there are two cases together and we need to call specific methods on the Error.",
+      "parentUuid": "67f22930_a445555d",
+      "range": {
+        "startLine": 308,
+        "startChar": 2,
+        "endLine": 308,
+        "endChar": 12
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "433e6bb0_cc943dbb",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 8
@@ -105,6 +201,30 @@
       "writtenOn": "2019-05-10T14:54:16Z",
       "side": 1,
       "message": "I think we need to call publishFinishedEvent even if we\u0027re retrying. The retry will generate a new CommandStartedEvent, which will need its own corresponding finished event.",
+      "range": {
+        "startLine": 309,
+        "startChar": 3,
+        "endLine": 309,
+        "endChar": 65
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7c16bd38_c0a7536b",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "Where does it say how we handle this?",
+      "parentUuid": "433e6bb0_cc943dbb",
       "range": {
         "startLine": 309,
         "startChar": 3,
@@ -163,6 +283,30 @@
     },
     {
       "key": {
+        "uuid": "d29812f6_43c096aa",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 472,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "I think we figured out that we can\u0027t really do that except for the last batch. I think for now we should leave this as is and if someone complains fix it then.",
+      "parentUuid": "0b607c83_2b61c0e6",
+      "range": {
+        "startLine": 472,
+        "startChar": 1,
+        "endLine": 472,
+        "endChar": 46
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "873e9a51_d18f2ce4",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 8
@@ -186,6 +330,30 @@
     },
     {
       "key": {
+        "uuid": "cb2de425_17ab138f",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 695,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "873e9a51_d18f2ce4",
+      "range": {
+        "startLine": 695,
+        "startChar": 108,
+        "endLine": 695,
+        "endChar": 137
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "91ba7b57_85d4c282",
         "filename": "x/mongo/driver/operation/find.go",
         "patchSetId": 8
@@ -203,6 +371,24 @@
     },
     {
       "key": {
+        "uuid": "f20a4c4f_187b7f7e",
+        "filename": "x/mongo/driver/operation/find.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "In general, blank lines in generated code are likely due to the templates. While we can fix them eventually, it\u0027s not something we should spend time on now.",
+      "parentUuid": "91ba7b57_85d4c282",
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "7a107518_2dda2e64",
         "filename": "x/mongo/driver/operation/find.go",
         "patchSetId": 8
@@ -214,6 +400,30 @@
       "writtenOn": "2019-05-10T14:54:16Z",
       "side": 1,
       "message": "For consistency throughout the code base, I think we should either remove these checks or add corresponding checks to the options code. It doesn\u0027t make sense to me to have them in one set of builders but not another.",
+      "range": {
+        "startLine": 197,
+        "startChar": 1,
+        "endLine": 200,
+        "endChar": 0
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de73c6d9_bc197e24",
+        "filename": "x/mongo/driver/operation/find.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "I\u0027m fine with changing them in options code, but I think we should definitely keep them here.",
+      "parentUuid": "7a107518_2dda2e64",
       "range": {
         "startLine": 197,
         "startChar": 1,
@@ -246,6 +456,30 @@
       "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4af228e8_d8ae4bd9",
+        "filename": "x/mongo/driver/operation/insert.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T15:59:47Z",
+      "side": 1,
+      "message": "Sure.",
+      "parentUuid": "a6af5df1_60f2cde2",
+      "range": {
+        "startLine": 48,
+        "startChar": 5,
+        "endLine": 48,
+        "endChar": 22
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
