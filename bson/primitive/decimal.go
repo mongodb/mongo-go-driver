@@ -10,6 +10,7 @@
 package primitive
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -23,6 +24,26 @@ type Decimal128 struct {
 // NewDecimal128 creates a Decimal128 using the provide high and low uint64s.
 func NewDecimal128(h, l uint64) Decimal128 {
 	return Decimal128{h: h, l: l}
+}
+
+// MarshalJSON returns the Decimal128 as a string
+func (d Decimal128) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+// UnmarshalJSON populates the byte slice with the Decimal128.
+func (d *Decimal128) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	input, err := ParseDecimal128(s)
+	if err != nil {
+		return err
+	}
+	d.h = input.h
+	d.l = input.l
+	return nil
 }
 
 // GetBytes returns the underlying bytes of the BSON decimal value as two uint16 values. The first
