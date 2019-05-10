@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6c25a9d2_cf36a9e9",
+        "filename": "mongo/session.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-10T17:21:16Z",
+      "side": 1,
+      "message": "We should discuss what we want the callback signature to be. This might be ok as is, but we might want to change it so the callback can take multiple parameters.",
+      "range": {
+        "startLine": 80,
+        "startChar": 59,
+        "endLine": 80,
+        "endChar": 170
+      },
+      "revId": "7dc120bd000fd45fef9ba22e29992a8ebf9b6738",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
