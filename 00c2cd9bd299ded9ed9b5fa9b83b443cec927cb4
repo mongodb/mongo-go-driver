@@ -309,6 +309,30 @@
     },
     {
       "key": {
+        "uuid": "6e5d0d2f_13b27535",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T21:52:09Z",
+      "side": 1,
+      "message": "Oh it\u0027s in the retryable writes specification.",
+      "parentUuid": "365a69e4_54664f4e",
+      "range": {
+        "startLine": 309,
+        "startChar": 3,
+        "endLine": 309,
+        "endChar": 65
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "39175b69_b90375a0",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 8
@@ -320,6 +344,30 @@
       "writtenOn": "2019-05-10T14:54:16Z",
       "side": 1,
       "message": "Can we return ErrUnacknowledgedWrite here? Also, how is this going to work for batch splitting? As far as I understand, this will break out of the loop after writing the first batch.",
+      "range": {
+        "startLine": 333,
+        "startChar": 4,
+        "endLine": 333,
+        "endChar": 9
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ec0f89c6_d681d8e9",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 333,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-10T21:52:09Z",
+      "side": 1,
+      "message": "No because we don\u0027t want to end the loop early. This break is scoped to the switch statement. We return ErrUnacknowledWrite at the end.",
+      "parentUuid": "39175b69_b90375a0",
       "range": {
         "startLine": 333,
         "startChar": 4,
