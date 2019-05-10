@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "81b6ecb9_9167c00c",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 119,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-10T17:26:56Z",
+      "side": 1,
+      "message": "This might be a branch in our existing code that\u0027s never taken, but I can\u0027t say for sure that it\u0027s not needed. Resolving for now and we can come back to it in a later ticket if needed.",
+      "parentUuid": "aa360f03_93d8bf55",
+      "range": {
+        "startLine": 119,
+        "startChar": 22,
+        "endLine": 119,
+        "endChar": 47
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3a24b79d_61622096",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 8
@@ -140,6 +164,30 @@
       "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "51221c4f_94276b40",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-10T17:26:56Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "4c0c295a_dd332601",
+      "range": {
+        "startLine": 128,
+        "startChar": 1,
+        "endLine": 128,
+        "endChar": 7
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -237,6 +285,30 @@
     },
     {
       "key": {
+        "uuid": "365a69e4_54664f4e",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 309,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-10T17:26:56Z",
+      "side": 1,
+      "message": "Not sure what you mean. The command monitoring spec says \"The driver MUST guarantee that every CommandStartedEvent has either a correlating CommandSucceededEvent or CommandFailedEvent.\" Because the initial command generated a CommandStartedEvent, we should be calling publishFinishedEvent before doing the retry.",
+      "parentUuid": "7c16bd38_c0a7536b",
+      "range": {
+        "startLine": 309,
+        "startChar": 3,
+        "endLine": 309,
+        "endChar": 65
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "39175b69_b90375a0",
         "filename": "x/mongo/driver/operation.go",
         "patchSetId": 8
@@ -304,6 +376,30 @@
       "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "adccb32b_f8995f03",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 472,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-10T17:26:56Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "d29812f6_43c096aa",
+      "range": {
+        "startLine": 472,
+        "startChar": 1,
+        "endLine": 472,
+        "endChar": 46
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -389,6 +485,24 @@
     },
     {
       "key": {
+        "uuid": "84357ba1_fb1f6010",
+        "filename": "x/mongo/driver/operation/find.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-10T17:26:56Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "f20a4c4f_187b7f7e",
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7a107518_2dda2e64",
         "filename": "x/mongo/driver/operation/find.go",
         "patchSetId": 8
@@ -433,6 +547,30 @@
       "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a02b9856_b6d15e3c",
+        "filename": "x/mongo/driver/operation/find.go",
+        "patchSetId": 8
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-10T17:26:56Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "de73c6d9_bc197e24",
+      "range": {
+        "startLine": 197,
+        "startChar": 1,
+        "endLine": 200,
+        "endChar": 0
+      },
+      "revId": "00c2cd9bd299ded9ed9b5fa9b83b443cec927cb4",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
