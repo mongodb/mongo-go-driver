@@ -22,6 +22,30 @@
       "revId": "7dc120bd000fd45fef9ba22e29992a8ebf9b6738",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4d048877_44ab1b42",
+        "filename": "mongo/session.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 80,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-05-13T21:26:17Z",
+      "side": 1,
+      "message": "Right now it matches the withSession syntax, and I feel that any other desired parameters can be put in the fn function when it is made",
+      "parentUuid": "6c25a9d2_cf36a9e9",
+      "range": {
+        "startLine": 80,
+        "startChar": 59,
+        "endLine": 80,
+        "endChar": 170
+      },
+      "revId": "7dc120bd000fd45fef9ba22e29992a8ebf9b6738",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
