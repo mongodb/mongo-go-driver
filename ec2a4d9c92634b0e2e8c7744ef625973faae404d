@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "39653b60_21eeb0a6",
+        "filename": "mongo/collection.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 255,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-05-13T14:47:39Z",
+      "side": 1,
+      "message": "Do we need a variable? I assume the default is none, so inside the condition below, just do the op \u003d op.Retry(driver.RetryOncePerCommand).",
+      "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9c1dc554_1a2d335c",
+        "filename": "x/bsonx/bsoncore/value.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-05-13T14:47:39Z",
+      "side": 1,
+      "message": "Can\u0027t this one call AsInt32OK and if false, raise the panic? I guess you lose the error information, so... make a 3rd private method, asInt32Err that provides you with the info necessary rather than duplicating this code.",
+      "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "acfa9362_825fa534",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-05-13T14:47:39Z",
+      "side": 1,
+      "message": "Is there not a KillCursorsOperation you can use here? I see getMore is done this way below as well and it seems untestable to do it this way, where as having dedicated operations would allow you to test each one.",
+      "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "287302fc_99cbb939",
+        "filename": "x/mongo/driver/operation/find.toml",
+        "patchSetId": 10
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1013853
+      },
+      "writtenOn": "2019-05-13T14:47:39Z",
+      "side": 1,
+      "message": "Why are we using TOML? YAML/JSON is just fine and it\u0027s something everyone else knows. TOML is something else that no one knows.",
+      "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
