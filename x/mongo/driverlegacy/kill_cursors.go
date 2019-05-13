@@ -32,7 +32,7 @@ func KillCursors(
 	}
 	defer conn.Close()
 
-	if desc.WireVersion.Max < 4 {
+	if desc.WireVersion == nil || desc.WireVersion.Max < 4 {
 		return result.KillCursors{}, legacyKillCursors(ctx, ns, cursorID, conn)
 	}
 
