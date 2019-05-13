@@ -58,6 +58,7 @@ type Credential struct {
 	AuthMechanism           string
 	AuthMechanismProperties map[string]string
 	AuthSource              string
+	Database                string
 	Username                string
 	Password                string
 	PasswordSet             bool
@@ -130,6 +131,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 			AuthMechanism:           cs.AuthMechanism,
 			AuthMechanismProperties: cs.AuthMechanismProperties,
 			AuthSource:              cs.AuthSource,
+			Database:                cs.Database,
 			Username:                cs.Username,
 			Password:                cs.Password,
 			PasswordSet:             cs.PasswordSet,
