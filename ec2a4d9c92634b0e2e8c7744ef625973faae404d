@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "fa16698d_77823bd5",
+        "filename": "mongo/collection.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 255,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-13T17:12:01Z",
+      "side": 1,
+      "message": "The default will soon be driver.RetryOncePerCommand. I think we should always set something for Retry as well.",
+      "parentUuid": "39653b60_21eeb0a6",
+      "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "9c1dc554_1a2d335c",
         "filename": "x/bsonx/bsoncore/value.go",
         "patchSetId": 10
@@ -30,6 +48,24 @@
       "writtenOn": "2019-05-13T14:47:39Z",
       "side": 1,
       "message": "Can\u0027t this one call AsInt32OK and if false, raise the panic? I guess you lose the error information, so... make a 3rd private method, asInt32Err that provides you with the info necessary rather than duplicating this code.",
+      "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "8ddabad3_0d9ae53e",
+        "filename": "x/bsonx/bsoncore/value.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-13T17:12:01Z",
+      "side": 1,
+      "message": "That feels like an extra level of indirection that will make it more difficult to discern where the error is coming from. Right now the stack trace tells you what the type was that you tried to read. I\u0027d rather not invent a new type just to indicate what the origin type was.",
+      "parentUuid": "9c1dc554_1a2d335c",
       "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
@@ -53,6 +89,24 @@
     },
     {
       "key": {
+        "uuid": "ed65a1e0_b039519f",
+        "filename": "x/mongo/driver/batch_cursor.go",
+        "patchSetId": 10
+      },
+      "lineNbr": 195,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-13T17:12:01Z",
+      "side": 1,
+      "message": "We can\u0027t generate these operations because of dependency cycles, and they are very small operations. Additionally, doing it this way doesn\u0027t preclude us from testing, although I still feel like we should be integration testing operations anyway.",
+      "parentUuid": "acfa9362_825fa534",
+      "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "287302fc_99cbb939",
         "filename": "x/mongo/driver/operation/find.toml",
         "patchSetId": 10
@@ -64,6 +118,24 @@
       "writtenOn": "2019-05-13T14:47:39Z",
       "side": 1,
       "message": "Why are we using TOML? YAML/JSON is just fine and it\u0027s something everyone else knows. TOML is something else that no one knows.",
+      "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "085ea9d1_89d25d6d",
+        "filename": "x/mongo/driver/operation/find.toml",
+        "patchSetId": 10
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-13T17:12:01Z",
+      "side": 1,
+      "message": "I don\u0027t find YAML nor JSON very readable, and TOML is pretty simple and straight forward. We can write YAML and JSON implementations in the future, but I think the documentation is far more important that whatever file format we use.",
+      "parentUuid": "287302fc_99cbb939",
       "revId": "ec2a4d9c92634b0e2e8c7744ef625973faae404d",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
