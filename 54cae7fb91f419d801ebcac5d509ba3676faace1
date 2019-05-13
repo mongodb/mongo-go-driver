@@ -22,6 +22,30 @@
       "revId": "54cae7fb91f419d801ebcac5d509ba3676faace1",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1554fb4f_d1835a16",
+        "filename": "x/mongo/driver/operation_legacy.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-13T14:15:45Z",
+      "side": 1,
+      "message": "AsInt32 wasn\u0027t implemented until the patch for 985, which hasn\u0027t been merged yet. Going to leave this as is because I don\u0027t think it\u0027s worth the work to base this off of the 985 patch for a small feature right now.",
+      "parentUuid": "c102e72e_d3698cce",
+      "range": {
+        "startLine": 125,
+        "startChar": 15,
+        "endLine": 125,
+        "endChar": 42
+      },
+      "revId": "54cae7fb91f419d801ebcac5d509ba3676faace1",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
