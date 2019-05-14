@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "d3f69e4b_3a2a36fa",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-14T17:51:08Z",
+      "side": 1,
+      "message": "If there is no max idle pool size (which is currently set as 0), then we will never store resources in the pool. This check should probably be changed to this:\n\n    if cp.len !\u003d 0 \u0026\u0026 cp.len \u003d\u003d cp.maxSize",
+      "range": {
+        "startLine": 75,
+        "startChar": 4,
+        "endLine": 75,
+        "endChar": 24
+      },
+      "revId": "744da6fbebf5dba2718783d05ae1a4b217c0962f",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
