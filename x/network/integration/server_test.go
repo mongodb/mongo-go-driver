@@ -9,6 +9,10 @@ package integration
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
+	"io/ioutil"
 	"net"
 	"strings"
 	"testing"
@@ -16,10 +20,10 @@ import (
 
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
-	"go.mongodb.org/mongo-driver/x/network/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/network/connection"
 )
 
@@ -299,18 +303,18 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 	}
 
 	if cs.SSL {
-		tlsConfig := connection.NewTLSConfig()
+		tlsConfig := new(tls.Config)
 
 		if cs.SSLCaFileSet {
-			err := tlsConfig.AddCACertFromFile(cs.SSLCaFile)
+			err := addCACertFromFile(tlsConfig, cs.SSLCaFile)
 			noerr(t, err)
 		}
 
 		if cs.SSLInsecure {
-			tlsConfig.SetInsecure(true)
+			tlsConfig.InsecureSkipVerify = true
 		}
 
-		connOpts = append(connOpts, topology.WithTLSConfig(func(*tls.Config) *tls.Config { return tlsConfig.Config }))
+		connOpts = append(connOpts, topology.WithTLSConfig(func(*tls.Config) *tls.Config { return tlsConfig }))
 	}
 
 	if len(cs.Compressors) > 0 {
@@ -333,4 +337,59 @@ func serveropts(t *testing.T, opts ...topology.ServerOption) []topology.ServerOp
 		}))
 	}
 	return opts
+}
+
+// addCACertFromFile adds a root CA certificate to the configuration given a path
+// to the containing file.
+func addCACertFromFile(cfg *tls.Config, file string) error {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := loadCert(data)
+	if err != nil {
+		return err
+	}
+
+	cert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return err
+	}
+
+	if cfg.RootCAs == nil {
+		cfg.RootCAs = x509.NewCertPool()
+	}
+
+	cfg.RootCAs.AddCert(cert)
+
+	return nil
+}
+
+func loadCert(data []byte) ([]byte, error) {
+	var certBlock *pem.Block
+
+	for certBlock == nil {
+		if data == nil || len(data) == 0 {
+			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
+		}
+
+		block, rest := pem.Decode(data)
+		if block == nil {
+			return nil, errors.New("invalid .pem file")
+		}
+
+		switch block.Type {
+		case "CERTIFICATE":
+			if certBlock != nil {
+				return nil, errors.New("multiple CERTIFICATE sections in .pem file")
+			}
+
+			certBlock = block
+		}
+
+		data = rest
+	}
+
+	return certBlock.Bytes, nil
 }

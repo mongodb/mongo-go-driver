@@ -2,15 +2,178 @@ package wiremessage
 
 import (
 	"bytes"
+	"strings"
+
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 // WireMessage represents a MongoDB wire message in binary form.
 type WireMessage []byte
 
 // OpCode represents a MongoDB wire protocol opcode.
-type OpCode = wiremessage.OpCode
+type OpCode int32
+
+// These constants are the valid opcodes for the version of the wireprotocol
+// supported by this library. The skipped OpCodes are historical OpCodes that
+// are no longer used.
+const (
+	OpReply        OpCode = 1
+	_              OpCode = 1001
+	OpUpdate       OpCode = 2001
+	OpInsert       OpCode = 2002
+	_              OpCode = 2003
+	OpQuery        OpCode = 2004
+	OpGetMore      OpCode = 2005
+	OpDelete       OpCode = 2006
+	OpKillCursors  OpCode = 2007
+	OpCommand      OpCode = 2010
+	OpCommandReply OpCode = 2011
+	OpCompressed   OpCode = 2012
+	OpMsg          OpCode = 2013
+)
+
+// String implements the fmt.Stringer interface.
+func (oc OpCode) String() string {
+	switch oc {
+	case OpReply:
+		return "OP_REPLY"
+	case OpUpdate:
+		return "OP_UPDATE"
+	case OpInsert:
+		return "OP_INSERT"
+	case OpQuery:
+		return "OP_QUERY"
+	case OpGetMore:
+		return "OP_GET_MORE"
+	case OpDelete:
+		return "OP_DELETE"
+	case OpKillCursors:
+		return "OP_KILL_CURSORS"
+	case OpCommand:
+		return "OP_COMMAND"
+	case OpCommandReply:
+		return "OP_COMMANDREPLY"
+	case OpCompressed:
+		return "OP_COMPRESSED"
+	case OpMsg:
+		return "OP_MSG"
+	default:
+		return "<invalid opcode>"
+	}
+}
+
+// QueryFlag represents the flags on an OP_QUERY message.
+type QueryFlag int32
+
+// These constants represent the individual flags on an OP_QUERY message.
+const (
+	_ QueryFlag = 1 << iota
+	TailableCursor
+	SlaveOK
+	OplogReplay
+	NoCursorTimeout
+	AwaitData
+	Exhaust
+	Partial
+)
+
+// String implements the fmt.Stringer interface.
+func (qf QueryFlag) String() string {
+	strs := make([]string, 0)
+	if qf&TailableCursor == TailableCursor {
+		strs = append(strs, "TailableCursor")
+	}
+	if qf&SlaveOK == SlaveOK {
+		strs = append(strs, "SlaveOK")
+	}
+	if qf&OplogReplay == OplogReplay {
+		strs = append(strs, "OplogReplay")
+	}
+	if qf&NoCursorTimeout == NoCursorTimeout {
+		strs = append(strs, "NoCursorTimeout")
+	}
+	if qf&AwaitData == AwaitData {
+		strs = append(strs, "AwaitData")
+	}
+	if qf&Exhaust == Exhaust {
+		strs = append(strs, "Exhaust")
+	}
+	if qf&Partial == Partial {
+		strs = append(strs, "Partial")
+	}
+	str := "["
+	str += strings.Join(strs, ", ")
+	str += "]"
+	return str
+}
+
+// MsgFlag represents the flags on an OP_MSG message.
+type MsgFlag uint32
+
+// These constants represent the individual flags on an OP_MSG message.
+const (
+	ChecksumPresent MsgFlag = 1 << iota
+	MoreToCome
+
+	ExhaustAllowed MsgFlag = 1 << 16
+)
+
+// ReplyFlag represents the flags of an OP_REPLY message.
+type ReplyFlag int32
+
+// These constants represent the individual flags of an OP_REPLY message.
+const (
+	CursorNotFound ReplyFlag = 1 << iota
+	QueryFailure
+	ShardConfigStale
+	AwaitCapable
+)
+
+// String implements the fmt.Stringer interface.
+func (rf ReplyFlag) String() string {
+	strs := make([]string, 0)
+	if rf&CursorNotFound == CursorNotFound {
+		strs = append(strs, "CursorNotFound")
+	}
+	if rf&QueryFailure == QueryFailure {
+		strs = append(strs, "QueryFailure")
+	}
+	if rf&ShardConfigStale == ShardConfigStale {
+		strs = append(strs, "ShardConfigStale")
+	}
+	if rf&AwaitCapable == AwaitCapable {
+		strs = append(strs, "AwaitCapable")
+	}
+	str := "["
+	str += strings.Join(strs, ", ")
+	str += "]"
+	return str
+}
+
+// SectionType represents the type for 1 section in an OP_MSG
+type SectionType uint8
+
+// These constants represent the individual section types for a section in an OP_MSG
+const (
+	SingleDocument SectionType = iota
+	DocumentSequence
+)
+
+// OpmsgWireVersion is the minimum wire version needed to use OP_MSG
+const OpmsgWireVersion = 6
+
+// CompressorID is the ID for each type of Compressor.
+type CompressorID uint8
+
+// These constants represent the individual compressor IDs for an OP_COMPRESSED.
+const (
+	CompressorNoOp CompressorID = iota
+	CompressorSnappy
+	CompressorZLib
+)
+
+// DefaultZlibLevel is the default level for zlib compression
+const DefaultZlibLevel = 6
 
 // AppendHeaderStart appends a header to the dst slice and returns an index where the wire message
 // starts in dst and the updated slice.
@@ -44,22 +207,22 @@ func ReadHeader(src []byte) (length, requestID, responseTo int32, opcode OpCode,
 }
 
 // AppendQueryFlags appends the flags for an OP_QUERY wire message.
-func AppendQueryFlags(dst []byte, flags wiremessage.QueryFlag) []byte {
+func AppendQueryFlags(dst []byte, flags QueryFlag) []byte {
 	return appendi32(dst, int32(flags))
 }
 
 // AppendMsgFlags appends the flags for an OP_MSG wire message.
-func AppendMsgFlags(dst []byte, flags wiremessage.MsgFlag) []byte {
+func AppendMsgFlags(dst []byte, flags MsgFlag) []byte {
 	return appendi32(dst, int32(flags))
 }
 
 // AppendReplyFlags appends the flags for an OP_REPLY wire message.
-func AppendReplyFlags(dst []byte, flags wiremessage.ReplyFlag) []byte {
+func AppendReplyFlags(dst []byte, flags ReplyFlag) []byte {
 	return appendi32(dst, int32(flags))
 }
 
 // AppendMsgSectionType appends the section type to dst.
-func AppendMsgSectionType(dst []byte, stype wiremessage.SectionType) []byte {
+func AppendMsgSectionType(dst []byte, stype SectionType) []byte {
 	return append(dst, byte(stype))
 }
 
@@ -94,7 +257,7 @@ func AppendReplyNumberReturned(dst []byte, nr int32) []byte {
 }
 
 // AppendCompressedOriginalOpCode appends the original opcode to dst.
-func AppendCompressedOriginalOpCode(dst []byte, opcode wiremessage.OpCode) []byte {
+func AppendCompressedOriginalOpCode(dst []byte, opcode OpCode) []byte {
 	return appendi32(dst, int32(opcode))
 }
 
@@ -103,7 +266,7 @@ func AppendCompressedOriginalOpCode(dst []byte, opcode wiremessage.OpCode) []byt
 func AppendCompressedUncompressedSize(dst []byte, size int32) []byte { return appendi32(dst, size) }
 
 // AppendCompressedCompressorID appends the ID of the compressor to dst.
-func AppendCompressedCompressorID(dst []byte, id wiremessage.CompressorID) []byte {
+func AppendCompressedCompressorID(dst []byte, id CompressorID) []byte {
 	return append(dst, byte(id))
 }
 
@@ -149,24 +312,24 @@ func AppendKillCursorsCursorIDs(dst []byte, cursors []int64) []byte {
 }
 
 // ReadMsgFlags reads the OP_MSG flags from src.
-func ReadMsgFlags(src []byte) (flags wiremessage.MsgFlag, rem []byte, ok bool) {
+func ReadMsgFlags(src []byte) (flags MsgFlag, rem []byte, ok bool) {
 	i32, rem, ok := readi32(src)
-	return wiremessage.MsgFlag(i32), rem, ok
+	return MsgFlag(i32), rem, ok
 }
 
 // IsMsgMoreToCome returns if the provided wire message is an OP_MSG with the more to come flag set.
 func IsMsgMoreToCome(wm []byte) bool {
 	return len(wm) >= 20 &&
-		wiremessage.OpCode(readi32unsafe(wm[12:16])) == wiremessage.OpMsg &&
-		wiremessage.MsgFlag(readi32unsafe(wm[16:20]))&wiremessage.MoreToCome == wiremessage.MoreToCome
+		OpCode(readi32unsafe(wm[12:16])) == OpMsg &&
+		MsgFlag(readi32unsafe(wm[16:20]))&MoreToCome == MoreToCome
 }
 
 // ReadMsgSectionType reads the section type from src.
-func ReadMsgSectionType(src []byte) (stype wiremessage.SectionType, rem []byte, ok bool) {
+func ReadMsgSectionType(src []byte) (stype SectionType, rem []byte, ok bool) {
 	if len(src) < 1 {
 		return 0, src, false
 	}
-	return wiremessage.SectionType(src[0]), src[1:], true
+	return SectionType(src[0]), src[1:], true
 }
 
 // ReadMsgSectionSingleDocument reads a single document from src.
@@ -211,9 +374,9 @@ func ReadMsgChecksum(src []byte) (checksum uint32, rem []byte, ok bool) {
 }
 
 // ReadQueryFlags reads OP_QUERY flags from src.
-func ReadQueryFlags(src []byte) (flags wiremessage.QueryFlag, rem []byte, ok bool) {
+func ReadQueryFlags(src []byte) (flags QueryFlag, rem []byte, ok bool) {
 	i32, rem, ok := readi32(src)
-	return wiremessage.QueryFlag(i32), rem, ok
+	return QueryFlag(i32), rem, ok
 }
 
 // ReadQueryFullCollectionName reads the full collection name from src.
@@ -242,9 +405,9 @@ func ReadQueryReturnFieldsSelector(src []byte) (rfs bsoncore.Document, rem []byt
 }
 
 // ReadReplyFlags reads OP_REPLY flags from src.
-func ReadReplyFlags(src []byte) (flags wiremessage.ReplyFlag, rem []byte, ok bool) {
+func ReadReplyFlags(src []byte) (flags ReplyFlag, rem []byte, ok bool) {
 	i32, rem, ok := readi32(src)
-	return wiremessage.ReplyFlag(i32), rem, ok
+	return ReplyFlag(i32), rem, ok
 }
 
 // ReadReplyCursorID reads a cursor ID from src.
@@ -284,9 +447,9 @@ func ReadReplyDocument(src []byte) (doc bsoncore.Document, rem []byte, ok bool) 
 }
 
 // ReadCompressedOriginalOpCode reads the original opcode from src.
-func ReadCompressedOriginalOpCode(src []byte) (opcode wiremessage.OpCode, rem []byte, ok bool) {
+func ReadCompressedOriginalOpCode(src []byte) (opcode OpCode, rem []byte, ok bool) {
 	i32, rem, ok := readi32(src)
-	return wiremessage.OpCode(i32), rem, ok
+	return OpCode(i32), rem, ok
 }
 
 // ReadCompressedUncompressedSize reads the uncompressed size of a
@@ -294,11 +457,11 @@ func ReadCompressedOriginalOpCode(src []byte) (opcode wiremessage.OpCode, rem []
 func ReadCompressedUncompressedSize(src []byte) (size int32, rem []byte, ok bool) { return readi32(src) }
 
 // ReadCompressedCompressorID reads the ID of the compressor to dst.
-func ReadCompressedCompressorID(src []byte) (id wiremessage.CompressorID, rem []byte, ok bool) {
+func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok bool) {
 	if len(src) < 1 {
 		return 0, src, false
 	}
-	return wiremessage.CompressorID(src[0]), src[1:], true
+	return CompressorID(src[0]), src[1:], true
 }
 
 // ReadCompressedCompressedMessage reads the compressed wiremessage to dst.
