@@ -2,6 +2,7 @@ package wiremessage
 
 import (
 	"bytes"
+
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
