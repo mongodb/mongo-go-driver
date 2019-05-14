@@ -21,7 +21,6 @@ import (
 
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/dns"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
@@ -56,8 +55,6 @@ const (
 
 // Topology represents a MongoDB deployment.
 type Topology struct {
-	registry *bsoncodec.Registry
-
 	connectionstate int32
 
 	cfg *config

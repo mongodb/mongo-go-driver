@@ -607,7 +607,7 @@ func (op Operation) appendLegacyQueryDocument(dst []byte, filter bsoncore.Docume
 // roundTripLegacyCursor sends a wiremessage for an operation expecting a cursor result and converts the legacy
 // document sequence into a cursor document.
 func (op Operation) roundTripLegacyCursor(ctx context.Context, wm []byte, srvr Server, conn Connection, collName, identifier string) (bsoncore.Document, error) {
-	wm, err := op.roundTrip(ctx, conn, wm)
+	wm, err := op.roundTripLegacy(ctx, conn, wm)
 	if ep, ok := srvr.(ErrorProcessor); ok {
 		ep.ProcessError(err)
 	}
@@ -616,6 +616,20 @@ func (op Operation) roundTripLegacyCursor(ctx context.Context, wm []byte, srvr S
 	}
 
 	return op.upconvertCursorResponse(wm, identifier, collName)
+}
+
+// roundTripLegacy handles writing a wire message and reading the response.
+func (op Operation) roundTripLegacy(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, wm)
+	if err != nil {
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+	}
+
+	wm, err = conn.ReadWireMessage(ctx, wm[:0])
+	if err != nil {
+		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+	}
+	return wm, err
 }
 
 func (op Operation) upconvertCursorResponse(wm []byte, batchIdentifier string, collName string) (bsoncore.Document, error) {

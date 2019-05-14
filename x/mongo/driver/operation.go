@@ -300,8 +300,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
 		op.publishStartedEvent(ctx, startedInfo)
 
+		// get the moreToCome flag information before we compress
+		moreToCome := wiremessagex.IsMsgMoreToCome(wm)
+
 		// compress wiremessage if allowed
-		if compressor, ok := conn.(Compressor); ok && op.canCompress("") {
+		if compressor, ok := conn.(Compressor); ok && op.canCompress(startedInfo.cmdName) {
 			wm, err = compressor.CompressWireMessage(wm, nil)
 			if err != nil {
 				return err
@@ -315,62 +318,17 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			connID:    startedInfo.connID,
 		}
 
-		// roundtrip
-		wm, err = op.roundTrip(ctx, conn, wm)
-		if ep, ok := srvr.(ErrorProcessor); ok {
-			ep.ProcessError(err)
+		// roundtrip using either the full roundTripper or a special one for when the moreToCome
+		// flag is set
+		var roundTrip = op.roundTrip
+		if moreToCome {
+			roundTrip = op.moreToComeRoundTrip
 		}
-		switch tt := err.(type) {
-		case nil: // do nothing
-		case Error:
-			// must fire a CommandFailedEvent even if an error occurred while reading from the socket
-			finishedInfo.cmdErr = err
-			op.publishFinishedEvent(ctx, finishedInfo)
-			if tt.HasErrorLabel(TransientTransactionError) {
-				op.Client.ClearPinnedServer()
-			}
-			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
-				retries--
-				original, err = err, nil
-				conn.Close() // Avoid leaking the connection.
-				srvr, err = op.selectServer(ctx)
-				if err != nil {
-					return original
-				}
-				conn, err = srvr.Connection(ctx)
-				if err != nil || conn == nil || op.retryable(conn.Description()) != RetryWrite {
-					if conn != nil {
-						conn.Close()
-					}
-					return original
-				}
-				defer conn.Close() // Avoid leaking the new connection.
-				continue
-			}
-			return err
-		default:
-			if err == ErrUnacknowledgedWrite {
-				break
-			}
-			// must fire a CommandFailedEvent even if an error occurred while reading from the socket
-			finishedInfo.cmdErr = err
-			op.publishFinishedEvent(ctx, finishedInfo)
-			return err
-		}
-
-		// decompress wiremessage
-		wm, err = op.decompressWireMessage(wm)
-		if err != nil {
-			return err
-		}
-
-		// decode
-		res, err = op.decodeResult(wm)
+		res, err = roundTrip(ctx, conn, wm)
 		if ep, ok := srvr.(ErrorProcessor); ok {
 			ep.ProcessError(err)
 		}
 
-		// send event if possible
 		finishedInfo.response = res
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
@@ -385,6 +343,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		if op.ProcessResponseFn != nil {
 			perr = op.ProcessResponseFn(res, srvr, desc.Server)
 		}
+
 		switch tt := err.(type) {
 		case WriteCommandError:
 			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
@@ -436,6 +395,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			}
 			return err
 		case nil:
+			if moreToCome {
+				return ErrUnacknowledgedWrite
+			}
 			if perr != nil {
 				return perr
 			}
@@ -459,9 +421,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	}
 	if len(operationErr.WriteErrors) > 0 || operationErr.WriteConcernError != nil {
 		return operationErr
-	}
-	if !writeconcern.AckWrite(op.WriteConcern) {
-		return ErrUnacknowledgedWrite
 	}
 	return nil
 }
@@ -489,15 +448,36 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
-	if wiremessagex.IsMsgMoreToCome(wm) {
-		return nil, ErrUnacknowledgedWrite
+	wm, err = conn.ReadWireMessage(ctx, wm[:0])
+	if err != nil {
+		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
 
-	res, err := conn.ReadWireMessage(ctx, wm[:0])
+	// decompress wiremessage
+	wm, err = op.decompressWireMessage(wm)
+	if err != nil {
+		return nil, err
+	}
+
+	// decode
+	res, err := op.decodeResult(wm)
+
+	// Pull out $clusterTime and operationTime and update session and clock. We handle this before
+	// handling the error to ensure we are properly gossiping the cluster time.
+	op.updateClusterTimes(res)
+	op.updateOperationTime(res)
+
+	return res, err
+}
+
+// moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
+// being sent with  the moreToCome bit set.
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
 	}
-	return res, err
+	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), err
 }
 
 // decompressWireMessage handles decompressing a wiremessage. If the wiremessage
@@ -648,7 +628,9 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	var info startedInformation
 	var flags wiremessage.MsgFlag
 	var wmindex int32
-	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) {
+	// We set the MoreToCome bit if we have a write concern, it's unacknowledged, and we either
+	// aren't batching or we are encoding the last batch.
+	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) && (op.Batches == nil || len(op.Batches.Documents) == 0) {
 		flags = wiremessage.MoreToCome
 	}
 	info.requestID = wiremessage.NextRequestID()
@@ -1124,21 +1106,6 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		ConnectionID: info.connID,
 	}
 	op.CommandMonitor.Started(ctx, started)
-
-	// unacknowledged writes must publish a CommandSucceededEvent
-	if op.WriteConcern.Acknowledged() || op.CommandMonitor.Succeeded == nil {
-		return
-	}
-
-	finished := event.CommandFinishedEvent{
-		CommandName:  info.cmdName,
-		RequestID:    started.RequestID,
-		ConnectionID: info.connID,
-	}
-	op.CommandMonitor.Succeeded(ctx, &event.CommandSucceededEvent{
-		Reply:                bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)),
-		CommandFinishedEvent: finished,
-	})
 }
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
