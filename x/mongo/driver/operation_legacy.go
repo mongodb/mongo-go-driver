@@ -52,7 +52,7 @@ func (op Operation) legacyFind(ctx context.Context, dst []byte, srvr Server, con
 	op.publishFinishedEvent(ctx, finishedInfo)
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr)
+		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
 	}
 	return nil
 }
@@ -217,7 +217,7 @@ func (op Operation) legacyGetMore(ctx context.Context, dst []byte, srvr Server, 
 	op.publishFinishedEvent(ctx, finishedInfo)
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr)
+		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
 	}
 	return nil
 }
@@ -381,7 +381,7 @@ func (op Operation) legacyListCollections(ctx context.Context, dst []byte, srvr 
 	op.publishFinishedEvent(ctx, finishedInfo)
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr)
+		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
 	}
 	return nil
 }
@@ -501,7 +501,7 @@ func (op Operation) legacyListIndexes(ctx context.Context, dst []byte, srvr Serv
 	op.publishFinishedEvent(ctx, finishedInfo)
 
 	if op.ProcessResponseFn != nil {
-		return op.ProcessResponseFn(finishedInfo.response, srvr)
+		return op.ProcessResponseFn(finishedInfo.response, srvr, desc.Server)
 	}
 	return nil
 }
