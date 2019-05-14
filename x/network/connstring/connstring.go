@@ -150,7 +150,7 @@ func (p *parser) parse(original string) error {
 			}
 		}
 
-		p.Username, err = url.QueryUnescape(username)
+		p.Username, err = url.PathUnescape(username)
 		if err != nil {
 			return internal.WrapErrorf(err, "invalid username")
 		}
@@ -161,7 +161,7 @@ func (p *parser) parse(original string) error {
 			if strings.Contains(password, "/") {
 				return fmt.Errorf("unescaped slash in password")
 			}
-			p.Password, err = url.QueryUnescape(password)
+			p.Password, err = url.PathUnescape(password)
 			if err != nil {
 				return internal.WrapErrorf(err, "invalid password")
 			}
