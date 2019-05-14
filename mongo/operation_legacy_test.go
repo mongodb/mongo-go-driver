@@ -168,7 +168,7 @@ func runOperationWithDeployment(t *testing.T, cmd bson.D, deployment driver.Depl
 
 	var response bsoncore.Document
 	var server driver.Server
-	processFn := func(res bsoncore.Document, srvr driver.Server) error {
+	processFn := func(res bsoncore.Document, srvr driver.Server, _ description.Server) error {
 		response = res
 		server = srvr
 		return nil
