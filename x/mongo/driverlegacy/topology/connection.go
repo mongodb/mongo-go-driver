@@ -7,6 +7,8 @@
 package topology
 
 import (
+	"bytes"
+	"compress/zlib"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -19,7 +21,10 @@ import (
 
 	"strings"
 
+	"github.com/golang/snappy"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	wiremessagex "go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 	"go.mongodb.org/mongo-driver/x/network/address"
 	"go.mongodb.org/mongo-driver/x/network/command"
 	connectionlegacy "go.mongodb.org/mongo-driver/x/network/connection"
@@ -41,6 +46,8 @@ type connection struct {
 	readTimeout      time.Duration
 	writeTimeout     time.Duration
 	desc             description.Server
+	compressor       wiremessage.CompressorID
+	zliblevel        int
 
 	// pool related fields
 	pool       *pool
@@ -97,6 +104,28 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 		}
 		if cfg.descCallback != nil {
 			cfg.descCallback(c.desc)
+		}
+		if len(c.desc.Compression) > 0 {
+		clientMethodLoop:
+			for _, method := range cfg.compressors {
+				for _, serverMethod := range c.desc.Compression {
+					if method != serverMethod {
+						continue
+					}
+
+					switch strings.ToLower(method) {
+					case "snappy":
+						c.compressor = wiremessage.CompressorSnappy
+					case "zlib":
+						c.compressor = wiremessage.CompressorZLib
+						c.zliblevel = wiremessage.DefaultZlibLevel
+						if cfg.zlibLevel != nil {
+							c.zliblevel = *cfg.zlibLevel
+						}
+					}
+					break clientMethodLoop
+				}
+			}
 		}
 	}
 	return c, nil
@@ -279,6 +308,52 @@ func (c *Connection) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, e
 		return dst, ErrConnectionClosed
 	}
 	return c.readWireMessage(ctx, dst)
+}
+
+// CompressWireMessage handles compressing the provided wire message using the underlying
+// connection's compressor. The dst parameter will be overwritten with the new wire message. If
+// there is no compressor set on the underlying connection, then no compression will be performed.
+func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.connection == nil {
+		return dst, ErrConnectionClosed
+	}
+	if c.connection.compressor == wiremessage.CompressorNoOp {
+		return append(dst, src...), nil
+	}
+	_, reqid, respto, origcode, rem, ok := wiremessagex.ReadHeader(src)
+	if !ok {
+		return dst, errors.New("wiremessage is too short to compress, less than 16 bytes")
+	}
+	idx, dst := wiremessagex.AppendHeaderStart(dst, reqid, respto, wiremessage.OpCompressed)
+	dst = wiremessagex.AppendCompressedOriginalOpCode(dst, origcode)
+	dst = wiremessagex.AppendCompressedUncompressedSize(dst, int32(len(rem)))
+	dst = wiremessagex.AppendCompressedCompressorID(dst, c.connection.compressor)
+	switch c.connection.compressor {
+	case wiremessage.CompressorSnappy:
+		compressed := snappy.Encode(nil, rem)
+		dst = wiremessagex.AppendCompressedCompressedMessage(dst, compressed)
+	case wiremessage.CompressorZLib:
+		var b bytes.Buffer
+		w, err := zlib.NewWriterLevel(&b, c.connection.zliblevel)
+		if err != nil {
+			return dst, err
+		}
+		_, err = w.Write(rem)
+		if err != nil {
+			return dst, err
+		}
+		err = w.Close()
+		if err != nil {
+			return dst, err
+		}
+		dst = wiremessagex.AppendCompressedCompressedMessage(dst, b.Bytes())
+	default:
+		return dst, fmt.Errorf("unknown compressor ID %v", c.connection.compressor)
+	}
+
+	return bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:]))), nil
 }
 
 // Description returns the server description of the server this connection is connected to.

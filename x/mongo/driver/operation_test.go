@@ -210,7 +210,6 @@ func TestOperation(t *testing.T) {
 				nil, nil,
 				Error{Message: "read error", Labels: []string{TransientTransactionError, NetworkError}},
 			},
-			{"success", &mockConnection{rReadWM: []byte{0x01, 0x02, 0x03, 0x04}}, nil, []byte{0x01, 0x02, 0x03, 0x04}, nil},
 		}
 
 		for _, tc := range testCases {
