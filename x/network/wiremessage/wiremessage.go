@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"io"
 	"sync/atomic"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // ErrInvalidMessageLength is returned when the provided message length is too small to be valid.
@@ -61,7 +63,7 @@ const (
 )
 
 // OpCode represents a MongoDB wire protocol opcode.
-type OpCode int32
+type OpCode = wiremessage.OpCode
 
 // These constants are the valid opcodes for the version of the wireprotocol
 // supported by this library. The skipped OpCodes are historical OpCodes that
@@ -81,36 +83,6 @@ const (
 	OpCompressed   OpCode = 2012
 	OpMsg          OpCode = 2013
 )
-
-// String implements the fmt.Stringer interface.
-func (oc OpCode) String() string {
-	switch oc {
-	case OpReply:
-		return "OP_REPLY"
-	case OpUpdate:
-		return "OP_UPDATE"
-	case OpInsert:
-		return "OP_INSERT"
-	case OpQuery:
-		return "OP_QUERY"
-	case OpGetMore:
-		return "OP_GET_MORE"
-	case OpDelete:
-		return "OP_DELETE"
-	case OpKillCursors:
-		return "OP_KILL_CURSORS"
-	case OpCommand:
-		return "OP_COMMAND"
-	case OpCommandReply:
-		return "OP_COMMANDREPLY"
-	case OpCompressed:
-		return "OP_COMPRESSED"
-	case OpMsg:
-		return "OP_MSG"
-	default:
-		return "<invalid opcode>"
-	}
-}
 
 // WireMessage represents a message in the MongoDB wire protocol.
 type WireMessage interface {
