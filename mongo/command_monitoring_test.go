@@ -27,7 +27,7 @@ import (
 	testhelpers "go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
 const cmTestsDir = "../data/command-monitoring"
