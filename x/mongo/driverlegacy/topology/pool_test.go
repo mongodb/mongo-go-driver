@@ -489,15 +489,15 @@ func TestPool(t *testing.T) {
 			c, err := p.get(context.Background())
 			c1 := &Connection{connection: c}
 			noerr(t, err)
-			if len(p.conns) != 0 {
-				t.Errorf("Should be no connections in pool. got %d; want %d", len(p.conns), 0)
+			if p.conns.len != 0 {
+				t.Errorf("Should be no connections in pool. got %d; want %d", p.conns.len, 0)
 			}
 			err = c1.Close()
 			noerr(t, err)
 			err = c1.Close()
 			noerr(t, err)
-			if len(p.conns) != 1 {
-				t.Errorf("Should not return connection to pool twice. got %d; want %d", len(p.conns), 1)
+			if p.conns.len != 1 {
+				t.Errorf("Should not return connection to pool twice. got %d; want %d", p.conns.len, 1)
 			}
 		})
 	})
