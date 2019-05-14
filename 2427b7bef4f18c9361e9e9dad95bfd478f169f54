@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5b32bdcb_a7a4ab74",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-14T23:41:24Z",
+      "side": 1,
+      "message": "That\u0027s what it means for this class. The logic for maxConns is in the Server type.",
+      "parentUuid": "a8cd0547_66b752eb",
+      "range": {
+        "startLine": 150,
+        "startChar": 0,
+        "endLine": 150,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "28fbe29f_09e5913b",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 3
@@ -36,6 +60,30 @@
       "writtenOn": "2019-05-14T23:34:08Z",
       "side": 1,
       "message": "Should this be called in a goroutine?",
+      "range": {
+        "startLine": 206,
+        "startChar": 0,
+        "endLine": 206,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ad71d826_0bbc5437",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-14T23:41:24Z",
+      "side": 1,
+      "message": "Putting it in a goroutine would mean we can\u0027t propagate the error. However, the errors from close for any connections closed by the pool aren\u0027t propagated either, so it might make sense to change this to match. Thoughts?",
+      "parentUuid": "28fbe29f_09e5913b",
       "range": {
         "startLine": 206,
         "startChar": 0,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "fa26b8db_c1c04743",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-14T23:41:24Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "28825d1d_4787cd5d",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 3
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ec596efa_62489909",
         "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
         "patchSetId": 3
@@ -82,6 +154,30 @@
       "writtenOn": "2019-05-14T23:34:08Z",
       "side": 1,
       "message": "Since we\u0027re pushing and popping from the front, the stalest connections will be at the back.  So should this be starting at Back instead of Front?",
+      "range": {
+        "startLine": 101,
+        "startChar": 0,
+        "endLine": 101,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1ccc8919_da311d64",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-14T23:41:24Z",
+      "side": 1,
+      "message": "Yep, changed in new patch.",
+      "parentUuid": "ec596efa_62489909",
       "range": {
         "startLine": 101,
         "startChar": 0,
