@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package topology
 
 import (
@@ -25,12 +31,15 @@ var ErrWrongPool = PoolError("connection does not belong to this pool")
 // PoolError is an error returned from a Pool method.
 type PoolError string
 
+// cleanupInterval is the interval at which the background routine to close expired connections will be run.
+var cleanupInterval = time.Minute
+
 func (pe PoolError) Error() string { return string(pe) }
 
 type pool struct {
 	address    address.Address
 	opts       []ConnectionOption
-	conns      chan *connection
+	conns      *resourcePool // pool for idle connections
 	generation uint64
 
 	connected int32 // Must be accessed using the sync/atomic package.
@@ -40,12 +49,21 @@ type pool struct {
 	sync.Mutex
 }
 
+func connectionExpiredFunc(v interface{}) bool {
+	return v.(*connection).expired()
+}
+
+func connectionCloseFunc(v interface{}) {
+	c := v.(*connection)
+	go c.pool.close(c)
+}
+
 // newPool creates a new pool that will hold size number of idle connections. It will use the
 // provided options when creating connections.
 func newPool(addr address.Address, size uint64, opts ...ConnectionOption) *pool {
 	return &pool{
 		address:    addr,
-		conns:      make(chan *connection, size),
+		conns:      NewResourcePool(size, connectionExpiredFunc, connectionCloseFunc, cleanupInterval),
 		generation: 0,
 		connected:  disconnected,
 		opened:     make(map[uint64]*connection),
@@ -74,13 +92,12 @@ func (p *pool) disconnect(ctx context.Context) error {
 	// We first clear out the idle connections, then we wait until the context's deadline is hit or
 	// it's cancelled, after which we aggressively close the remaining open connections.
 	for {
-		select {
-		case pc := <-p.conns:
-			_ = p.close(pc) // We don't care about errors while closing the connection.
-			continue
-		default:
+		connVal := p.conns.Get()
+		if connVal == nil {
+			break
 		}
-		break
+
+		_ = p.close(connVal.(*connection))
 	}
 	if dl, ok := ctx.Deadline(); ok {
 		// If we have a deadline then we interpret it as a request to gracefully shutdown. We wait
@@ -125,14 +142,15 @@ func (p *pool) get(ctx context.Context) (*connection, error) {
 	if atomic.LoadInt32(&p.connected) != connected {
 		return nil, ErrPoolDisconnected
 	}
-	select {
-	case c := <-p.conns:
-		if c.expired() {
-			go p.close(c)
-			return p.get(ctx)
-		}
 
-		return c, nil
+	// try to get an unexpired idle connection
+	connVal := p.conns.Get()
+	if connVal != nil {
+		return connVal.(*connection), nil
+	}
+
+	// couldn't find an unexpired connection. create a new one.
+	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	default:
@@ -186,10 +204,9 @@ func (p *pool) put(c *connection) error {
 		return p.close(c)
 	}
 
-	select {
-	case p.conns <- c:
-		return nil
-	default:
-		return p.close(c)
+	// close the connection if the underlying pool is full
+	if !p.conns.Put(c) {
+		go p.close(c)
 	}
+	return nil
 }
