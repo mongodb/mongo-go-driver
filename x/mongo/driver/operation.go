@@ -301,7 +301,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// compress wiremessage if allowed
-		if compressor, ok := conn.(Compressor); ok && op.canCompress("") {
+		if compressor, ok := conn.(Compressor); ok && op.canCompress(startedInfo.cmdName) {
 			wm, err = compressor.CompressWireMessage(wm, nil)
 			if err != nil {
 				return err
