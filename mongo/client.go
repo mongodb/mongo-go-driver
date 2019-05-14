@@ -20,15 +20,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/uuid"
 	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/connstring"
-	"go.mongodb.org/mongo-driver/x/network/description"
 )
 
 const defaultLocalThreshold = 15 * time.Millisecond

@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/network/command"
 	"go.mongodb.org/mongo-driver/x/network/result"
 )
