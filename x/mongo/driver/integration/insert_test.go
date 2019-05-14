@@ -7,7 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 func TestInsert(t *testing.T) {

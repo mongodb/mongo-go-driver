@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // Msg represents the OP_MSG message of the MongoDB wire protocol.
@@ -206,7 +207,7 @@ func (m *Msg) AcknowledgedWrite() bool {
 }
 
 // MsgFlag represents the flags on an OP_MSG message.
-type MsgFlag uint32
+type MsgFlag = wiremessage.MsgFlag
 
 // These constants represent the individual flags on an OP_MSG message.
 const (
@@ -290,7 +291,7 @@ func (sds SectionDocumentSequence) AppendSection(dest []byte) []byte {
 }
 
 // SectionType represents the type for 1 section in an OP_MSG
-type SectionType uint8
+type SectionType = wiremessage.SectionType
 
 // These constants represent the individual section types for a section in an OP_MSG
 const (

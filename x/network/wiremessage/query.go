@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // Query represents the OP_QUERY message of the MongoDB wire protocol.
@@ -291,7 +292,7 @@ func (q Query) convertLegacyParams(doc bsonx.Doc) (bsonx.Doc, error) {
 }
 
 // QueryFlag represents the flags on an OP_QUERY message.
-type QueryFlag int32
+type QueryFlag = wiremessage.QueryFlag
 
 // These constants represent the individual flags on an OP_QUERY message.
 const (
@@ -304,33 +305,3 @@ const (
 	Exhaust
 	Partial
 )
-
-// String implements the fmt.Stringer interface.
-func (qf QueryFlag) String() string {
-	strs := make([]string, 0)
-	if qf&TailableCursor == TailableCursor {
-		strs = append(strs, "TailableCursor")
-	}
-	if qf&SlaveOK == SlaveOK {
-		strs = append(strs, "SlaveOK")
-	}
-	if qf&OplogReplay == OplogReplay {
-		strs = append(strs, "OplogReplay")
-	}
-	if qf&NoCursorTimeout == NoCursorTimeout {
-		strs = append(strs, "NoCursorTimeout")
-	}
-	if qf&AwaitData == AwaitData {
-		strs = append(strs, "AwaitData")
-	}
-	if qf&Exhaust == Exhaust {
-		strs = append(strs, "Exhaust")
-	}
-	if qf&Partial == Partial {
-		strs = append(strs, "Partial")
-	}
-	str := "["
-	str += strings.Join(strs, ", ")
-	str += "]"
-	return str
-}

@@ -9,10 +9,10 @@ package wiremessage
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // Reply represents the OP_REPLY message of the MongoDB wire protocol.
@@ -169,7 +169,7 @@ func (r *Reply) GetMainDocument() (bsonx.Doc, error) {
 }
 
 // ReplyFlag represents the flags of an OP_REPLY message.
-type ReplyFlag int32
+type ReplyFlag = wiremessage.ReplyFlag
 
 // These constants represent the individual flags of an OP_REPLY message.
 const (
@@ -178,24 +178,3 @@ const (
 	ShardConfigStale
 	AwaitCapable
 )
-
-// String implements the fmt.Stringer interface.
-func (rf ReplyFlag) String() string {
-	strs := make([]string, 0)
-	if rf&CursorNotFound == CursorNotFound {
-		strs = append(strs, "CursorNotFound")
-	}
-	if rf&QueryFailure == QueryFailure {
-		strs = append(strs, "QueryFailure")
-	}
-	if rf&ShardConfigStale == ShardConfigStale {
-		strs = append(strs, "ShardConfigStale")
-	}
-	if rf&AwaitCapable == AwaitCapable {
-		strs = append(strs, "AwaitCapable")
-	}
-	str := "["
-	str += strings.Join(strs, ", ")
-	str += "]"
-	return str
-}
