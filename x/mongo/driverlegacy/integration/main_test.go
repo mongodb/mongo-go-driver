@@ -16,9 +16,9 @@ import (
 	"sync"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/auth"
-	"go.mongodb.org/mongo-driver/x/network/connection"
-	"go.mongodb.org/mongo-driver/x/network/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 var host = flag.String("host", "127.0.0.1:27017", "specify the location of a running mongodb server.")
@@ -121,13 +121,13 @@ func (nc *netconn) Close() error {
 }
 
 type dialer struct {
-	connection.Dialer
+	topology.Dialer
 	opened map[*netconn]struct{}
 	closed map[*netconn]struct{}
 	sync.Mutex
 }
 
-func newdialer(d connection.Dialer) *dialer {
+func newdialer(d topology.Dialer) *dialer {
 	return &dialer{Dialer: d, opened: make(map[*netconn]struct{}), closed: make(map[*netconn]struct{})}
 }
 
