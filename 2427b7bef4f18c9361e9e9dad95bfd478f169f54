@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a8cd0547_66b752eb",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-14T23:34:08Z",
+      "side": 1,
+      "message": "Is this class interpreting the pool size as the maximum number allowed to be idle?  It seems so.  That definitely violates CMAP, so it will have to change soon, but it\u0027s ok for now since that\u0027s the current behavior.",
+      "range": {
+        "startLine": 150,
+        "startChar": 0,
+        "endLine": 150,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "28fbe29f_09e5913b",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-14T23:34:08Z",
+      "side": 1,
+      "message": "Should this be called in a goroutine?",
+      "range": {
+        "startLine": 206,
+        "startChar": 0,
+        "endLine": 206,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "28825d1d_4787cd5d",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-14T23:34:08Z",
+      "side": 1,
+      "message": "Consider making this configurable so that you can test background cleanup without waiting a full minute for the timer to kick in.",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 3
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "ec596efa_62489909",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-14T23:34:08Z",
+      "side": 1,
+      "message": "Since we\u0027re pushing and popping from the front, the stalest connections will be at the back.  So should this be starting at Back instead of Front?",
+      "range": {
+        "startLine": 101,
+        "startChar": 0,
+        "endLine": 101,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
