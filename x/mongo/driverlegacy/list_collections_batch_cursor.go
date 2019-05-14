@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 // ListCollectionsBatchCursor is a special batch cursor returned from ListCollections that properly

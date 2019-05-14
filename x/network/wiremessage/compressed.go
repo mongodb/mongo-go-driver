@@ -9,6 +9,8 @@ package wiremessage
 import (
 	"errors"
 	"fmt"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 // Compressed represents the OP_COMPRESSED message of the MongoDB wire protocol.
@@ -97,7 +99,7 @@ func (c *Compressed) UnmarshalWireMessage(b []byte) error {
 }
 
 // CompressorID is the ID for each type of Compressor.
-type CompressorID uint8
+type CompressorID = wiremessage.CompressorID
 
 // These constants represent the individual compressor IDs for an OP_COMPRESSED.
 const (
