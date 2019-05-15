@@ -1,0 +1,119 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "455ae986_4d412248",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-15T18:39:32Z",
+      "side": 1,
+      "message": "It\u0027s a little weird that we only sometimes return an error from closing a connection. For example, if the connection is expired or if the pool is disconnected, we\u0027ll return an error, but if the idle pool is full we don\u0027t.",
+      "range": {
+        "startLine": 209,
+        "startChar": 2,
+        "endLine": 209,
+        "endChar": 4
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "51a575bc_e4f06c79",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-15T18:39:32Z",
+      "side": 1,
+      "message": "Can we rename this from cleanup to prune, e.g. pruneTimer, pruneInterval? I think it\u0027s more clear what it\u0027s doing.",
+      "range": {
+        "startLine": 29,
+        "startChar": 1,
+        "endLine": 29,
+        "endChar": 13
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f6d2894f_08c3339d",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-15T18:39:32Z",
+      "side": 1,
+      "message": "We need to check the return value of this. If it\u0027s false, that means the goroutine has been fired and we need to make a new one. So we should be calling time.AfterFunc again.",
+      "range": {
+        "startLine": 114,
+        "startChar": 1,
+        "endLine": 114,
+        "endChar": 23
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0db695a7_e37fdbf4",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-15T18:39:32Z",
+      "side": 1,
+      "message": "This implies that if we place an expired resource into the pool it will sit there, which doesn\u0027t seem right. We should likely be checking if the resource is already expired at a higher level, but I think it should also be a constraint of the resource pool itself.",
+      "range": {
+        "startLine": 88,
+        "startChar": 3,
+        "endLine": 90,
+        "endChar": 4
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "32a73ca0_f80bdb10",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-15T18:39:32Z",
+      "side": 1,
+      "message": "I dislike doing this with a sleep. Especially since it adds a mandatory second to the test run time. Instead, we should use a channel here. We could do this by adding to expiredCounter a channel that we close after a certain number of closes (in this case 5). Then we can do a select on that channel and a time.After of something high (like 5 or 10 seconds) which would only be experienced when the code is broken. This will also ensure the test doesn\u0027t become flaky when running under the race detector or on slower hardware.",
+      "range": {
+        "startLine": 124,
+        "startChar": 3,
+        "endLine": 125,
+        "endChar": 64
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}

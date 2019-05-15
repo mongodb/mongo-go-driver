@@ -22,6 +22,30 @@
       "revId": "2fba9217cda4f7be11edb55e4b450791c75263b2",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2d546ef2_439c04b2",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-15T18:39:32Z",
+      "side": 1,
+      "message": "Yeah, that\u0027s what I meant.",
+      "parentUuid": "557c7b63_2d86589e",
+      "range": {
+        "startLine": 82,
+        "startChar": 4,
+        "endLine": 82,
+        "endChar": 43
+      },
+      "revId": "2fba9217cda4f7be11edb55e4b450791c75263b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
