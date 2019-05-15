@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5e79e8e6_f1c1bf83",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-15T20:35:52Z",
+      "side": 1,
+      "message": "What do you think the behavior should be?",
+      "parentUuid": "455ae986_4d412248",
+      "range": {
+        "startLine": 209,
+        "startChar": 2,
+        "endLine": 209,
+        "endChar": 4
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "51a575bc_e4f06c79",
         "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
         "patchSetId": 7
@@ -45,6 +69,30 @@
       "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "de3e268d_6dd403a4",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-15T20:35:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "51a575bc_e4f06c79",
+      "range": {
+        "startLine": 29,
+        "startChar": 1,
+        "endLine": 29,
+        "endChar": 13
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     },
     {
       "key": {
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "4bb7b49b_6b760721",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-15T20:35:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f6d2894f_08c3339d",
+      "range": {
+        "startLine": 114,
+        "startChar": 1,
+        "endLine": 114,
+        "endChar": 23
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "0db695a7_e37fdbf4",
         "filename": "x/mongo/driverlegacy/topology/resource_pool_test.go",
         "patchSetId": 7
@@ -94,6 +166,30 @@
     },
     {
       "key": {
+        "uuid": "e62a067b_d94a59e5",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-15T20:35:52Z",
+      "side": 1,
+      "message": "Agreed - added a constraint to Put and a test for this.",
+      "parentUuid": "0db695a7_e37fdbf4",
+      "range": {
+        "startLine": 88,
+        "startChar": 3,
+        "endLine": 90,
+        "endChar": 4
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "32a73ca0_f80bdb10",
         "filename": "x/mongo/driverlegacy/topology/resource_pool_test.go",
         "patchSetId": 7
@@ -114,6 +210,30 @@
       "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "2b766f90_259553bb",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool_test.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-15T20:35:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "32a73ca0_f80bdb10",
+      "range": {
+        "startLine": 124,
+        "startChar": 3,
+        "endLine": 125,
+        "endChar": 64
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
