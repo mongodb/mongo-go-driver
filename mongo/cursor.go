@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 )
 
 // Cursor is used to iterate a stream of documents. Each document is decoded into the result
@@ -46,21 +47,34 @@ type Cursor struct {
 	// of it.
 	Current bson.Raw
 
-	bc       batchCursor
-	batch    *bsoncore.DocumentSequence
-	registry *bsoncodec.Registry
+	bc            batchCursor
+	batch         *bsoncore.DocumentSequence
+	registry      *bsoncodec.Registry
+	clientSession *session.Client
 
 	err error
 }
 
 func newCursor(bc batchCursor, registry *bsoncodec.Registry) (*Cursor, error) {
+	return newCursorWithSession(bc, registry, nil)
+}
+
+func newCursorWithSession(bc batchCursor, registry *bsoncodec.Registry, clientSession *session.Client) (*Cursor, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
 	}
-	return &Cursor{bc: bc, registry: registry}, nil
+	c := &Cursor{
+		bc:            bc,
+		registry:      registry,
+		clientSession: clientSession,
+	}
+	if bc.ID() == 0 {
+		c.closeImplicitSession()
+	}
+	return c, nil
 }
 
 func newEmptyCursor() *Cursor {
@@ -99,10 +113,16 @@ func (c *Cursor) Next(ctx context.Context) bool {
 			}
 			// Is the cursor ID zero?
 			if c.bc.ID() == 0 {
+				c.closeImplicitSession()
 				return false
 			}
 			// empty batch, but cursor is still valid, so continue.
 			continue
+		}
+
+		// close the implicit session if this was the last getMore
+		if c.bc.ID() == 0 {
+			c.closeImplicitSession()
 		}
 
 		c.batch = c.bc.Batch()
@@ -128,7 +148,10 @@ func (c *Cursor) Decode(val interface{}) error {
 func (c *Cursor) Err() error { return c.err }
 
 // Close closes this cursor.
-func (c *Cursor) Close(ctx context.Context) error { return c.bc.Close(ctx) }
+func (c *Cursor) Close(ctx context.Context) error {
+	c.closeImplicitSession()
+	return c.bc.Close(ctx)
+}
 
 // All iterates the cursor and decodes each document into results.
 // The results parameter must be a pointer to a slice. The slice pointed to by results will be completely overwritten.
@@ -193,4 +216,10 @@ func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, bat
 	}
 
 	return sliceVal, index, nil
+}
+
+func (c *Cursor) closeImplicitSession() {
+	if c.clientSession != nil && c.clientSession.SessionType == session.Implicit {
+		c.clientSession.EndSession()
+	}
 }

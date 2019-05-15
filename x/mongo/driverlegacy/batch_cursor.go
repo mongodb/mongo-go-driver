@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/command"
@@ -183,7 +184,7 @@ func (bc *BatchCursor) Next(ctx context.Context) bool {
 func (bc *BatchCursor) Batch() *bsoncore.DocumentSequence { return bc.currentBatch }
 
 // Server returns a pointer to the cursor's server.
-func (bc *BatchCursor) Server() *topology.Server { return bc.server }
+func (bc *BatchCursor) Server() driver.Server { return bc.server }
 
 // Err returns the latest error encountered.
 func (bc *BatchCursor) Err() error { return bc.err }
