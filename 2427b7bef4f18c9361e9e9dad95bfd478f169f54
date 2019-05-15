@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "07f3df69_d76c1d4b",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-15T15:08:52Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "5b32bdcb_a7a4ab74",
+      "range": {
+        "startLine": 150,
+        "startChar": 0,
+        "endLine": 150,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "28fbe29f_09e5913b",
         "filename": "x/mongo/driverlegacy/topology/pool.go",
         "patchSetId": 3
@@ -84,6 +108,30 @@
       "side": 1,
       "message": "Putting it in a goroutine would mean we can\u0027t propagate the error. However, the errors from close for any connections closed by the pool aren\u0027t propagated either, so it might make sense to change this to match. Thoughts?",
       "parentUuid": "28fbe29f_09e5913b",
+      "range": {
+        "startLine": 206,
+        "startChar": 0,
+        "endLine": 206,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "818732f6_329b170d",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 206,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-15T15:08:52Z",
+      "side": 1,
+      "message": "I don\u0027t think we need to propagate the error.",
+      "parentUuid": "ad71d826_0bbc5437",
       "range": {
         "startLine": 206,
         "startChar": 0,
@@ -182,6 +230,53 @@
         "startLine": 101,
         "startChar": 0,
         "endLine": 101,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a66d48a4_a13cad19",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 101,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-15T15:08:52Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1ccc8919_da311d64",
+      "range": {
+        "startLine": 101,
+        "startChar": 0,
+        "endLine": 101,
+        "endChar": 1
+      },
+      "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3cfbfb14_7d713967",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-15T15:08:52Z",
+      "side": 1,
+      "message": "This seems racy.  Perhaps we can make it more testable by making the close function responsible for running in a goroutine if necessary.  For example, the server session pool may not need that behavior since we just throw away the session id and don\u0027t do I/O.",
+      "range": {
+        "startLine": 56,
+        "startChar": 0,
+        "endLine": 56,
         "endChar": 1
       },
       "revId": "2427b7bef4f18c9361e9e9dad95bfd478f169f54",
