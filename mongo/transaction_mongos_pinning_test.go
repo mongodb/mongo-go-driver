@@ -67,7 +67,11 @@ func TestMongosPinning(t *testing.T) {
 				cursor, err := coll.Find(context.Background(), bson.D{})
 				require.NoError(t, err)
 				require.True(t, cursor.Next(context.Background()))
-				addresses[cursor.bc.Server().Description().Addr.String()] = struct{}{}
+
+				descConn, err := cursor.bc.Server().Connection(ctx)
+				require.NoError(t, err)
+				addresses[descConn.Description().Addr.String()] = struct{}{}
+				require.NoError(t, descConn.Close())
 
 				require.NoError(t, sctx.CommitTransaction(sctx))
 			}
@@ -100,7 +104,11 @@ func TestMongosPinning(t *testing.T) {
 				cursor, err := coll.Find(context.Background(), bson.D{})
 				require.NoError(t, err)
 				require.True(t, cursor.Next(context.Background()))
-				addresses[cursor.bc.Server().Description().Addr.String()] = true
+
+				descConn, err := cursor.bc.Server().Connection(ctx)
+				require.NoError(t, err)
+				addresses[descConn.Description().Addr.String()] = true
+				require.NoError(t, descConn.Close())
 			}
 			return nil
 		})

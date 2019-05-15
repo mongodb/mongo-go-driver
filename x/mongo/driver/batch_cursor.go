@@ -130,6 +130,10 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 
 	bc.currentBatch = ds
 
+	// close session if everything fits in first batch
+	if bc.id == 0 {
+		bc.closeImplicitSession()
+	}
 	return bc, nil
 }
 
@@ -190,6 +194,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 	if bc.server == nil {
 		return nil
 	}
+	defer bc.closeImplicitSession()
 
 	err := Operation{
 		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -210,6 +215,17 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 	bc.currentBatch.ResetIterator()
 
 	return err
+}
+
+// Server returns the server for this cursor.
+func (bc *BatchCursor) Server() Server {
+	return bc.server
+}
+
+func (bc *BatchCursor) closeImplicitSession() {
+	if bc.clientSession != nil && bc.clientSession.SessionType == session.Implicit {
+		bc.clientSession.EndSession()
+	}
 }
 
 func (bc *BatchCursor) clearBatch() {
@@ -255,6 +271,10 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				return fmt.Errorf("cursor.id should be an int64 but is a BSON %s", response.Lookup("cursor", "id").Type)
 			}
 			bc.id = id
+			// if this is the last getMore, close the session
+			if bc.id == 0 {
+				bc.closeImplicitSession()
+			}
 
 			batch, ok := response.Lookup("cursor", "nextBatch").ArrayOK()
 			if !ok {

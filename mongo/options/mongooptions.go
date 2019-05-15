@@ -29,8 +29,8 @@ type Collation struct {
 	Backwards       bool   `bson:",omitempty"` // Causes secondary differences to be considered in reverse order, as it is done in the French language
 }
 
-// ToDocument converts the Collation to a bson.Raw.
-func (co *Collation) ToDocument() bson.Raw {
+// ToDocument converts the Collation to a bsoncore.Document.
+func (co *Collation) ToDocument() bsoncore.Document {
 	idx, doc := bsoncore.AppendDocumentStart(nil)
 	if co.Locale != "" {
 		doc = bsoncore.AppendStringElement(doc, "locale", co.Locale)

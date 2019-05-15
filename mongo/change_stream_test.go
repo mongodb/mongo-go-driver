@@ -9,6 +9,7 @@ package mongo
 import (
 	"bytes"
 	"context"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"os"
 	"testing"
 	"time"
@@ -23,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
@@ -53,7 +53,7 @@ func (ebc *errorBatchCursor) Batch() *bsoncore.DocumentSequence {
 	return nil
 }
 
-func (ebc *errorBatchCursor) Server() *topology.Server {
+func (ebc *errorBatchCursor) Server() driver.Server {
 	return nil
 }
 
