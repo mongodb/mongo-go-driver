@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 )
 
 // batchCursor is the interface implemented by types that can provide batches of document results.
@@ -21,13 +22,16 @@ type batchCursor interface {
 	Batch() *bsoncore.DocumentSequence
 
 	// Server returns a pointer to the cursor's server.
-	Server() *topology.Server
+	Server() driver.Server
 
 	// Err returns the last error encountered.
 	Err() error
 
 	// Close closes the cursor.
 	Close(context.Context) error
+
+	// Session returns the client session.
+	Session() *session.Client
 }
 
 // pbrtBatchCursor is the interface implemented by batch cursors that also provide the functionality for retrieving

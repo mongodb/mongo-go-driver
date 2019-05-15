@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 )
 
 // ListCollectionsBatchCursor is a special batch cursor returned from ListCollections that properly
@@ -85,7 +86,7 @@ func (lcbc *ListCollectionsBatchCursor) Next(ctx context.Context) bool {
 func (lcbc *ListCollectionsBatchCursor) Batch() *bsoncore.DocumentSequence { return lcbc.currentBatch }
 
 // Server returns a pointer to the cursor's server.
-func (lcbc *ListCollectionsBatchCursor) Server() *topology.Server { return lcbc.bc.server }
+func (lcbc *ListCollectionsBatchCursor) Server() driver.Server { return lcbc.bc.server }
 
 // Err returns the latest error encountered.
 func (lcbc *ListCollectionsBatchCursor) Err() error {
@@ -97,6 +98,9 @@ func (lcbc *ListCollectionsBatchCursor) Err() error {
 
 // Close closes this batch cursor.
 func (lcbc *ListCollectionsBatchCursor) Close(ctx context.Context) error { return lcbc.bc.Close(ctx) }
+
+// Session returns the client session for this cursor.
+func (lcbc *ListCollectionsBatchCursor) Session() *session.Client { return lcbc.bc.clientSession }
 
 // project out the database name for a legacy server
 func (*ListCollectionsBatchCursor) projectNameElement(rawDoc bsoncore.Document) (bsoncore.Document, error) {
