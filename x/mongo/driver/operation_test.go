@@ -387,7 +387,10 @@ func TestOperation(t *testing.T) {
 		for _, tc := range testCases {
 			tc := tc
 			t.Run(tc.name, func(t *testing.T) {
-				got := Operation{ReadPreference: tc.rp}.createReadPref(tc.serverKind, tc.topoKind, tc.opQuery)
+				got, err := Operation{ReadPreference: tc.rp}.createReadPref(tc.serverKind, tc.topoKind, tc.opQuery)
+				if err != nil {
+					t.Fatalf("error creating read pref: %v", err)
+				}
 				if !bytes.Equal(got, tc.want) {
 					t.Errorf("Returned documents do not match. got %v; want %v", got, tc.want)
 				}

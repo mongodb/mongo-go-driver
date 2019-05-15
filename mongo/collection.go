@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -17,13 +18,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/result"
 )
 
 // Collection performs operations on a given collection.
@@ -37,6 +38,12 @@ type Collection struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	registry       *bsoncodec.Registry
+}
+
+func closeImplicitSession(sess *session.Client) {
+	if sess != nil && sess.SessionType == session.Implicit {
+		sess.EndSession()
+	}
 }
 
 func newCollection(db *Database, name string, opts ...*options.CollectionOptions) *Collection {
@@ -688,57 +695,98 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		ctx = context.Background()
 	}
 
-	pipelineArr, err := transformAggregatePipeline(coll.registry, pipeline)
+	pipelineArr, hasDollarOut, err := transformAggregatePipelinev2(coll.registry, pipeline)
 	if err != nil {
 		return nil, err
 	}
-
-	aggOpts := options.MergeAggregateOptions(opts...)
 
 	sess := sessionFromContext(ctx)
-
-	err = coll.client.validSession(sess)
-	if err != nil {
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err = coll.client.validSession(sess); err != nil {
 		return nil, err
 	}
 
-	wc := coll.writeConcern
+	var wc *writeconcern.WriteConcern
+	if hasDollarOut {
+		wc = coll.writeConcern
+	}
 	rc := coll.readConcern
-
 	if sess.TransactionRunning() {
 		wc = nil
 		rc = nil
 	}
-
-	oldns := coll.namespace()
-	cmd := command.Aggregate{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Pipeline:     pipelineArr,
-		ReadPref:     coll.readPreference,
-		WriteConcern: wc,
-		ReadConcern:  rc,
-		Session:      sess,
-		Clock:        coll.client.clock,
+	if !writeconcern.AckWrite(wc) {
+		closeImplicitSession(sess)
+		sess = nil
 	}
 
-	batchCursor, err := driverlegacy.Aggregate(
-		ctx, cmd,
-		coll.client.topology,
-		coll.readSelector,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.registry,
-		aggOpts,
-	)
+	selector := coll.readSelector
+	if hasDollarOut {
+		selector = coll.writeSelector
+	}
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
+	}
+
+	ao := options.MergeAggregateOptions(opts...)
+	cursorOpts := driver.CursorOptions{
+		CommandMonitor: coll.client.monitor,
+	}
+
+	op := operation.NewAggregate(pipelineArr).Session(sess).WriteConcern(wc).ReadConcern(rc).ReadPreference(coll.readPreference).CommandMonitor(coll.client.monitor).
+		ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).Deployment(coll.client.topology)
+	if ao.AllowDiskUse != nil {
+		op.AllowDiskUse(*ao.AllowDiskUse)
+	}
+	// ignore batchSize of 0 with $out
+	if ao.BatchSize != nil && !(*ao.BatchSize == 0 && hasDollarOut) {
+		op.BatchSize(*ao.BatchSize)
+		cursorOpts.BatchSize = *ao.BatchSize
+	}
+	if ao.BypassDocumentValidation != nil {
+		op.BypassDocumentValidation(*ao.BypassDocumentValidation)
+	}
+	if ao.Collation != nil {
+		op.Collation(bsoncore.Document(ao.Collation.ToDocument()))
+	}
+	if ao.MaxTime != nil {
+		op.MaxTimeMS(int64(*ao.MaxTime / time.Millisecond))
+	}
+	if ao.MaxAwaitTime != nil {
+		cursorOpts.MaxTimeMS = int64(*ao.MaxAwaitTime / time.Millisecond)
+	}
+	if ao.Comment != nil {
+		op.Comment(*ao.Comment)
+	}
+	if ao.Hint != nil {
+		hintVal, err := transformValue(coll.registry, ao.Hint)
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Hint(hintVal)
+	}
+
+	err = op.Execute(ctx)
 	if err != nil {
-		if wce, ok := err.(result.WriteConcernError); ok {
-			return nil, *convertWriteConcernError(&wce)
+		closeImplicitSession(sess)
+		if wce, ok := err.(driver.WriteCommandError); ok && wce.WriteConcernError != nil {
+			return nil, *convertDriverWriteConcernError(wce.WriteConcernError)
 		}
 		return nil, replaceErrors(err)
 	}
 
-	cursor, err := newCursor(batchCursor, coll.registry)
+	bc, err := op.Result(cursorOpts)
+	if err != nil {
+		closeImplicitSession(sess)
+		return nil, replaceErrors(err)
+	}
+	cursor, err := newCursorWithSession(bc, coll.registry, sess)
 	return cursor, replaceErrors(err)
 }
 

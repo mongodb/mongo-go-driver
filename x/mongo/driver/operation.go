@@ -34,6 +34,8 @@ var (
 	ErrMultiDocCommandResponse = errors.New("command returned multiple documents")
 	// ErrReplyDocumentMismatch occurs when the number of documents returned in an OP_QUERY does not match the numberReturned field.
 	ErrReplyDocumentMismatch = errors.New("number of documents returned does not match numberReturned field")
+	// ErrNonPrimaryReadPref is returned when a read is attempted in a transaction with a non-primary read preference.
+	ErrNonPrimaryReadPref = errors.New("read preference in a transaction must be primary")
 )
 
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
@@ -568,13 +570,16 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 	dst = wiremessagex.AppendQueryNumberToReturn(dst, -1)
 
 	wrapper := int32(-1)
-	rp := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	if err != nil {
+		return dst, info, err
+	}
 	if len(rp) > 0 {
 		wrapper, dst = bsoncore.AppendDocumentStart(dst)
 		dst = bsoncore.AppendHeader(dst, bsontype.EmbeddedDocument, "$query")
 	}
 	idx, dst := bsoncore.AppendDocumentStart(dst)
-	dst, err := op.CommandFn(dst, desc)
+	dst, err = op.CommandFn(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -670,7 +675,10 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 	dst = op.addClusterTime(dst, desc)
 
 	dst = bsoncore.AppendStringElement(dst, "$db", op.Database)
-	rp := op.createReadPref(desc.Server.Kind, desc.Kind, false)
+	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, false)
+	if err != nil {
+		return dst, info, err
+	}
 	if len(rp) > 0 {
 		dst = bsoncore.AppendDocumentElement(dst, "$readPreference", rp)
 	}
@@ -842,28 +850,50 @@ func (op Operation) updateOperationTime(response bsoncore.Document) {
 	})
 }
 
-func (op Operation) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) bsoncore.Document {
+func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) {
+	// don't validate read preference for write commands
+	if op.RetryType == RetryWrite {
+		return op.ReadPreference, nil
+	}
+
+	if op.Client != nil && op.Client.TransactionRunning() {
+		// Transaction's read preference always takes priority
+		rp := op.Client.CurrentRp
+		// Reads in a transaction must have read preference primary
+		// This must not be checked in startTransaction
+		if rp != nil && !op.Client.TransactionStarting() && rp.Mode() != readpref.PrimaryMode {
+			return nil, ErrNonPrimaryReadPref
+		}
+		return rp, nil
+	}
+	return op.ReadPreference, nil
+}
+
+func (op Operation) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) (bsoncore.Document, error) {
 	idx, doc := bsoncore.AppendDocumentStart(nil)
-	rp := op.ReadPreference
+	rp, err := op.getReadPrefBasedOnTransaction()
+	if err != nil {
+		return nil, err
+	}
 
 	if rp == nil {
 		if topologyKind == description.Single && serverKind != description.Mongos {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
-			return doc
+			return doc, nil
 		}
-		return nil
+		return nil, nil
 	}
 
 	switch rp.Mode() {
 	case readpref.PrimaryMode:
 		if serverKind == description.Mongos {
-			return nil
+			return nil, nil
 		}
 		if topologyKind == description.Single {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
-			return doc
+			return doc, nil
 		}
 		doc = bsoncore.AppendStringElement(doc, "mode", "primary")
 	case readpref.PrimaryPreferredMode:
@@ -871,7 +901,7 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 	case readpref.SecondaryPreferredMode:
 		_, ok := rp.MaxStaleness()
 		if serverKind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 {
-			return nil
+			return nil, nil
 		}
 		doc = bsoncore.AppendStringElement(doc, "mode", "secondaryPreferred")
 	case readpref.SecondaryMode:
@@ -906,7 +936,7 @@ func (op Operation) createReadPref(serverKind description.ServerKind, topologyKi
 	}
 
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
-	return doc
+	return doc, nil
 }
 
 func (op Operation) slaveOK(desc description.SelectedServer) wiremessage.QueryFlag {

@@ -47,6 +47,12 @@ var commandParamDocumentTmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$
 }
 `)
 
+var commandParamArrayImpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}} != nil {{template "minWireVersion" $}} {
+{{template "minWireVersionRequired" $}}
+	dst = bsoncore.AppendArrayElement(dst, "{{$.ParameterName}}", {{$.ShortName}}.{{$.Name}})
+}
+`)
+
 var commandParamValueTmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.Name}}.Type != bsontype.Type(0) {{template "minWireVersion" $}} {
 {{template "minWireVersionRequired" $}}
 	dst = bsoncore.AppendValueElement(dst, "{{$.ParameterName}}", {{$.ShortName}}.{{$.Name}})
