@@ -212,6 +212,16 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 	return err
 }
 
+// Server returns the server for this cursor.
+func (bc *BatchCursor) Server() Server {
+	return bc.server
+}
+
+// Session returns the client session for this cursor.
+func (bc *BatchCursor) Session() *session.Client {
+	return bc.clientSession
+}
+
 func (bc *BatchCursor) clearBatch() {
 	bc.currentBatch.Data = bc.currentBatch.Data[:0]
 }

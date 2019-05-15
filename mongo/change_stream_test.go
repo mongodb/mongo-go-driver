@@ -22,8 +22,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
@@ -53,7 +54,7 @@ func (ebc *errorBatchCursor) Batch() *bsoncore.DocumentSequence {
 	return nil
 }
 
-func (ebc *errorBatchCursor) Server() *topology.Server {
+func (ebc *errorBatchCursor) Server() driver.Server {
 	return nil
 }
 
@@ -64,6 +65,10 @@ func (ebc *errorBatchCursor) Err() error {
 }
 
 func (ebc *errorBatchCursor) Close(ctx context.Context) error {
+	return nil
+}
+
+func (ebc *errorBatchCursor) Session() *session.Client {
 	return nil
 }
 

@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 )
 
 func shouldSkipMongosPinningTests(t *testing.T, serverVersion string) bool {
@@ -67,7 +68,7 @@ func TestMongosPinning(t *testing.T) {
 				cursor, err := coll.Find(context.Background(), bson.D{})
 				require.NoError(t, err)
 				require.True(t, cursor.Next(context.Background()))
-				addresses[cursor.bc.Server().Description().Addr.String()] = struct{}{}
+				addresses[cursor.bc.Server().(*topology.Server).Description().Addr.String()] = struct{}{}
 
 				require.NoError(t, sctx.CommitTransaction(sctx))
 			}
@@ -100,7 +101,7 @@ func TestMongosPinning(t *testing.T) {
 				cursor, err := coll.Find(context.Background(), bson.D{})
 				require.NoError(t, err)
 				require.True(t, cursor.Next(context.Background()))
-				addresses[cursor.bc.Server().Description().Addr.String()] = true
+				addresses[cursor.bc.Server().(*topology.Server).Description().Addr.String()] = true
 			}
 			return nil
 		})

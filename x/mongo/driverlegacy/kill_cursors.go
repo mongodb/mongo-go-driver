@@ -9,12 +9,12 @@ package driverlegacy
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/x/network/connection"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
-
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
 	"go.mongodb.org/mongo-driver/x/network/command"
+	"go.mongodb.org/mongo-driver/x/network/connection"
 	"go.mongodb.org/mongo-driver/x/network/result"
+	"go.mongodb.org/mongo-driver/x/network/wiremessage"
 )
 
 // KillCursors handles the full cycle dispatch and execution of an aggregate command against the provided
@@ -22,11 +22,12 @@ import (
 func KillCursors(
 	ctx context.Context,
 	ns command.Namespace,
-	server *topology.Server,
+	server driver.Server,
 	cursorID int64,
 ) (result.KillCursors, error) {
-	desc := server.SelectedDescription()
-	conn, err := server.ConnectionLegacy(ctx)
+	legacyServer := server.(*topology.Server)
+	desc := legacyServer.SelectedDescription()
+	conn, err := legacyServer.ConnectionLegacy(ctx)
 	if err != nil {
 		return result.KillCursors{}, err
 	}

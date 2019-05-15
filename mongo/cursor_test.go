@@ -7,7 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/topology"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy/session"
 )
 
 type testBatchCursor struct {
@@ -65,7 +66,7 @@ func (tbc *testBatchCursor) Batch() *bsoncore.DocumentSequence {
 	return tbc.batch
 }
 
-func (tbc *testBatchCursor) Server() *topology.Server {
+func (tbc *testBatchCursor) Server() driver.Server {
 	return nil
 }
 
@@ -74,6 +75,10 @@ func (tbc *testBatchCursor) Err() error {
 }
 
 func (tbc *testBatchCursor) Close(context.Context) error {
+	return nil
+}
+
+func (tbc *testBatchCursor) Session() *session.Client {
 	return nil
 }
 
