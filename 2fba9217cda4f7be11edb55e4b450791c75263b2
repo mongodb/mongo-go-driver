@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "557c7b63_2d86589e",
+        "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
+        "patchSetId": 6
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-15T14:18:48Z",
+      "side": 1,
+      "message": "@Kris in an earlier comment you said this should probably be \"if rp.len !\u003d 0 \u0026\u0026 rp.len \u003d\u003d rp.maxSize\". I think it should be \"if rp.maxSize !\u003d 0...\" because we\u0027re treating maxSize\u003d0 as an unbounded pool. Is this correct?",
+      "range": {
+        "startLine": 82,
+        "startChar": 4,
+        "endLine": 82,
+        "endChar": 43
+      },
+      "revId": "2fba9217cda4f7be11edb55e4b450791c75263b2",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
