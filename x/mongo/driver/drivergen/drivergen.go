@@ -131,6 +131,8 @@ func (op Operation) CommandMethod() (string, error) {
 			tmpl = commandParamStringTmpl
 		case "document":
 			tmpl = commandParamDocumentTmpl
+		case "array":
+			tmpl = commandParamArrayImpl
 		case "boolean":
 			tmpl = commandParamBooleanTmpl
 		case "int32":
@@ -171,6 +173,8 @@ func (op Operation) CommandMethod() (string, error) {
 			tmpl = commandParamStringTmpl
 		case "document":
 			tmpl = commandParamDocumentTmpl
+		case "array":
+			tmpl = commandParamArrayImpl
 		case "boolean":
 			tmpl = commandParamBooleanTmpl
 		case "int32":
@@ -527,7 +531,7 @@ func (rf RequestField) ParameterType() string {
 		param += "float64"
 	case "string":
 		param += "string"
-	case "document":
+	case "document", "array":
 		param += "bsoncore.Document"
 	case "binary":
 	case "boolean":
@@ -557,7 +561,7 @@ func (rf RequestField) DeclarationType() string {
 		decl += "float64"
 	case "string":
 		decl += "string"
-	case "document":
+	case "document", "array":
 		decl += "bsoncore.Document"
 	case "binary":
 	case "boolean":

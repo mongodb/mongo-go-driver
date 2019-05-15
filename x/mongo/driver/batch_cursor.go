@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -26,6 +27,7 @@ type BatchCursor struct {
 	maxTimeMS     int64
 	currentBatch  *bsoncore.DocumentSequence
 	firstBatch    bool
+	cmdMonitor    *event.CommandMonitor
 
 	// legacy server (< 3.2) fields
 	legacy      bool // This field is provided for ListCollectionsBatchCursor.
@@ -88,9 +90,10 @@ func NewCursorResponse(response bsoncore.Document, server Server, desc descripti
 
 // CursorOptions are extra options that are required to construct a BatchCursor.
 type CursorOptions struct {
-	BatchSize int32
-	MaxTimeMS int64
-	Limit     int32
+	BatchSize      int32
+	MaxTimeMS      int64
+	Limit          int32
+	CommandMonitor *event.CommandMonitor
 }
 
 // NewBatchCursor creates a new BatchCursor from the provided parameters.
@@ -105,6 +108,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		server:        cr.Server,
 		batchSize:     opts.BatchSize,
 		maxTimeMS:     opts.MaxTimeMS,
+		cmdMonitor:    opts.CommandMonitor,
 		firstBatch:    true,
 	}
 
@@ -129,7 +133,6 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 	}
 
 	bc.currentBatch = ds
-
 	return bc, nil
 }
 
@@ -197,11 +200,12 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsontype.Int64, Data: bsoncore.AppendInt64(nil, bc.id)})
 			return dst, nil
 		},
-		Database:   bc.database,
-		Deployment: SingleServerDeployment{Server: bc.server},
-		Client:     bc.clientSession,
-		Clock:      bc.clock,
-		Legacy:     LegacyGetMore,
+		Database:       bc.database,
+		Deployment:     SingleServerDeployment{Server: bc.server},
+		Client:         bc.clientSession,
+		Clock:          bc.clock,
+		Legacy:         LegacyGetMore,
+		CommandMonitor: bc.cmdMonitor,
 	}.Execute(ctx, nil)
 
 	bc.id = 0
@@ -210,6 +214,11 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 	bc.currentBatch.ResetIterator()
 
 	return err
+}
+
+// Server returns the server for this cursor.
+func (bc *BatchCursor) Server() Server {
+	return bc.server
 }
 
 func (bc *BatchCursor) clearBatch() {
@@ -266,9 +275,10 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			bc.numReturned += int32(bc.currentBatch.DocumentCount()) // Required for legacy operations which don't support limit.
 			return nil
 		},
-		Client: bc.clientSession,
-		Clock:  bc.clock,
-		Legacy: LegacyGetMore,
+		Client:         bc.clientSession,
+		Clock:          bc.clock,
+		Legacy:         LegacyGetMore,
+		CommandMonitor: bc.cmdMonitor,
 	}.Execute(ctx, nil)
 
 	// Required for legacy operations which don't support limit.

@@ -154,7 +154,10 @@ func (op Operation) createLegacyFindWireMessage(dst []byte, desc description.Sel
 	numToReturn = op.calculateNumberToReturn(limit, batchSize)
 
 	// add read preference if needed
-	rp := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	if err != nil {
+		return dst, info, "", err
+	}
 	if len(rp) > 0 {
 		optsElems = bsoncore.AppendDocumentElement(optsElems, "$readPreference", rp)
 	}
@@ -418,7 +421,10 @@ func (op Operation) createLegacyListCollectionsWiremessage(dst []byte, desc desc
 	if err != nil {
 		return dst, info, "", err
 	}
-	rp := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	if err != nil {
+		return dst, info, "", err
+	}
 	if len(rp) > 0 {
 		optsElems = bsoncore.AppendDocumentElement(optsElems, "$readPreference", rp)
 	}
@@ -551,7 +557,10 @@ func (op Operation) createLegacyListIndexesWiremessage(dst []byte, desc descript
 	filter = bsoncore.AppendStringElement(filter, "ns", op.getFullCollectionName(filterCollName))
 	filter, _ = bsoncore.AppendDocumentEnd(filter, fidx)
 
-	rp := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	rp, err := op.createReadPref(desc.Server.Kind, desc.Kind, true)
+	if err != nil {
+		return dst, info, "", err
+	}
 	if len(rp) > 0 {
 		optsElems = bsoncore.AppendDocumentElement(optsElems, "$readPreference", rp)
 	}

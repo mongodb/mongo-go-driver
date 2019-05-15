@@ -236,6 +236,7 @@ func createSessionsMonitoredClient(t *testing.T, monitor *event.CommandMonitor) 
 		readConcern:    readconcern.Local(),
 		clock:          clock,
 		registry:       bson.DefaultRegistry,
+		monitor:        monitor,
 	}
 
 	subscription, err := c.topology.Subscribe()
