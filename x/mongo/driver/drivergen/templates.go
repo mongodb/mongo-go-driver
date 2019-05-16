@@ -120,6 +120,7 @@ var responseFieldBooleanTmpl = parseTemplates(`
 			err = fmt.Errorf("response field '{{$.ResponseName}}' is type bool, but received BSON type %s", element.Value().Type)
 		}
 `)
+
 var responseFieldStringTmpl = parseTemplates(`
 	case "{{$.ResponseName}}":
 		var ok bool
@@ -127,6 +128,11 @@ var responseFieldStringTmpl = parseTemplates(`
 		if !ok {
 			err = fmt.Errorf("response field '{{$.ResponseName}}' is type string, but received BSON type %s", element.Value().Type)
 		}
+`)
+
+var responseFieldValueTmpl = parseTemplates(`
+	case "{{$.ResponseName}}":
+		{{$.ResponseShortName}}.{{$.Field}} = element.Value()
 `)
 
 const typeTemplate string = `// Copyright (C) MongoDB, Inc. 2019-present.
