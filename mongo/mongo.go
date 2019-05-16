@@ -207,6 +207,27 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc
 	return bsonx.ReadDoc(b)
 }
 
+func transformBsoncoreDocument(registry *bsoncodec.Registry, val interface{}) (bsoncore.Document, error) {
+	if registry == nil {
+		registry = bson.NewRegistryBuilder().Build()
+	}
+	if val == nil {
+		return nil, ErrNilDocument
+	}
+	if bs, ok := val.([]byte); ok {
+		// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
+		val = bson.Raw(bs)
+	}
+
+	// TODO(skriptble): Use a pool of these instead.
+	buf := make([]byte, 0, 256)
+	b, err := bson.MarshalAppendWithRegistry(registry, buf[:0], val)
+	if err != nil {
+		return nil, MarshalError{Value: val, Err: err}
+	}
+	return b, nil
+}
+
 func ensureID(d bsonx.Doc) (bsonx.Doc, interface{}) {
 	var id interface{}
 
