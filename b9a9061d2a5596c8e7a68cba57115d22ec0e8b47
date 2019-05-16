@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "28ad59d9_4524eca7",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 771,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-16T19:41:57Z",
+      "side": 1,
+      "message": "According to the retryable writes specification, no.\n\n\"Write commands other than insert, update, delete, or findAndModify will not be initially supported by MongoDB 3.6, although this may change in the future. This includes, but is not limited to, an aggregate command using the $out pipeline operator.\"",
+      "range": {
+        "startLine": 771,
+        "startChar": 1,
+        "endLine": 771,
+        "endChar": 26
+      },
+      "revId": "b9a9061d2a5596c8e7a68cba57115d22ec0e8b47",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "02d70f9e_38883a9a",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 778,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-16T19:41:57Z",
+      "side": 1,
+      "message": "Why are we closing the implicit session twice?",
+      "range": {
+        "startLine": 778,
+        "startChar": 2,
+        "endLine": 778,
+        "endChar": 28
+      },
+      "revId": "b9a9061d2a5596c8e7a68cba57115d22ec0e8b47",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "96685ce7_2b464a3d",
+        "filename": "mongo/options/mongooptions.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-16T19:41:57Z",
+      "side": 1,
+      "message": "This is exposing an unstable package through the stable API.",
+      "range": {
+        "startLine": 33,
+        "startChar": 34,
+        "endLine": 33,
+        "endChar": 51
+      },
+      "revId": "b9a9061d2a5596c8e7a68cba57115d22ec0e8b47",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c0c1cafc_6efbe546",
+        "filename": "x/mongo/driver/operation/aggregate.toml",
+        "patchSetId": 3
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-16T19:41:57Z",
+      "side": 1,
+      "message": "Collection is a built-in now, so we don\u0027t need to enable it.",
+      "range": {
+        "startLine": 7,
+        "startChar": 12,
+        "endLine": 7,
+        "endChar": 22
+      },
+      "revId": "b9a9061d2a5596c8e7a68cba57115d22ec0e8b47",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
