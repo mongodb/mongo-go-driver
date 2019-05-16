@@ -197,7 +197,7 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc
 
 func transformBsoncoreDocument(registry *bsoncodec.Registry, val interface{}) (bsoncore.Document, error) {
 	if registry == nil {
-		registry = bson.NewRegistryBuilder().Build()
+		registry = bson.DefaultRegistry
 	}
 	if val == nil {
 		return nil, ErrNilDocument
