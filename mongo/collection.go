@@ -9,9 +9,11 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -897,12 +899,20 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter)
 	if err != nil {
 		return nil, err
 	}
 
 	sess := sessionFromContext(ctx)
+
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer sess.EndSession()
+	}
 
 	err = coll.client.validSession(sess)
 	if err != nil {
@@ -914,30 +924,49 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		rc = nil
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Distinct{
-		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Field:       fieldName,
-		Query:       f,
-		ReadPref:    coll.readPreference,
-		ReadConcern: rc,
-		Session:     sess,
-		Clock:       coll.client.clock,
+	selector := coll.readSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
 	}
 
-	res, err := driverlegacy.Distinct(
-		ctx, cmd,
-		coll.client.topology,
-		coll.readSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		opts...,
-	)
+	option := options.MergeDistinctOptions(opts...)
+
+	op := operation.NewDistinct(fieldName, bsoncore.Document(f)).
+		Session(sess).ClusterClock(coll.client.clock).
+		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
+		Deployment(coll.client.topology).ReadConcern(rc).ReadPreference(coll.readPreference).
+		ServerSelector(selector)
+
+	if option.Collation != nil {
+		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
+	}
+	if option.MaxTime != nil {
+		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
+	}
+
+	err = op.Execute(ctx)
 	if err != nil {
 		return nil, replaceErrors(err)
 	}
 
-	return res.Values, nil
+	arr, ok := op.Result().Values.ArrayOK()
+	if !ok {
+		return nil, fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
+	}
+
+	var tmp bson.D
+	err = bson.Unmarshal(arr, &tmp)
+	if err != nil {
+		return nil, err
+	}
+
+	retArray := make([]interface{}, len(tmp))
+
+	for i, val := range tmp {
+		retArray[i] = val.Value
+	}
+
+	return retArray, replaceErrors(err)
 }
 
 // Find finds the documents matching a model.
