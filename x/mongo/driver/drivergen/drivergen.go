@@ -96,7 +96,12 @@ func (op Operation) ConstructorFields() []string {
 		if !field.Constructor {
 			continue
 		}
-		fields = append(fields, name+": "+name+",")
+		// either "name: name," or "name: &name,"
+		fieldName := name
+		if field.PointerType() {
+			fieldName = "&" + name
+		}
+		fields = append(fields, name+": "+fieldName+",")
 	}
 	return fields
 }
@@ -635,6 +640,8 @@ func (rf ResponseField) DeclarationType() string {
 	switch rf.Type {
 	case "boolean":
 		return "bool"
+	case "value":
+		return "bsoncore.Value"
 	default:
 		return rf.Type
 	}
@@ -663,6 +670,8 @@ func (r Response) BuildMethod() (string, error) {
 			tmpl = responseFieldInt64Tmpl
 		case "string":
 			tmpl = responseFieldStringTmpl
+		case "value":
+			tmpl = responseFieldValueTmpl
 		default:
 			return "", fmt.Errorf("unknown response field type %s", field.Type)
 		}
