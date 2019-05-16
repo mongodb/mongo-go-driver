@@ -336,26 +336,26 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 }
 
-// DeleteOne deletes a single document from the collection.
-func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
+func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOne bool, expectedRr returnResult,
 	opts ...*options.DeleteOptions) (*DeleteResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter)
 	if err != nil {
 		return nil, err
 	}
-	deleteDocs := []bsonx.Doc{
-		{
-			{"q", bsonx.Document(f)},
-			{"limit", bsonx.Int32(1)},
-		},
-	}
 
 	sess := sessionFromContext(ctx)
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer sess.EndSession()
+	}
 
 	err = coll.client.validSession(sess)
 	if err != nil {
@@ -366,83 +366,59 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-
-	oldns := coll.namespace()
-	cmd := command.Delete{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Deletes:      deleteDocs,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
 	}
 
-	res, err := driverlegacy.Delete(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.client.retryWrites,
-		opts...,
-	)
+	selector := coll.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
+	}
 
-	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
-	if rr&rrOne == 0 {
+	var limit int32
+	if deleteOne {
+		limit = 1
+	}
+	do := options.MergeDeleteOptions(opts...)
+	didx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendDocumentElement(doc, "q", f)
+	doc = bsoncore.AppendInt32Element(doc, "limit", limit)
+	if do.Collation != nil {
+		doc = bsoncore.AppendDocumentElement(doc, "collation", do.Collation.ToDocument())
+	}
+	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
+
+	op := operation.NewDelete(doc).
+		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
+		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Database(coll.db.name).Collection(coll.name).
+		Deployment(coll.client.topology)
+
+	// deleteMany cannot be retried
+	retryMode := driver.RetryNone
+	if deleteOne && coll.client.retryWrites {
+		retryMode = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retryMode)
+	rr, err := processWriteError(nil, nil, op.Execute(ctx))
+	if rr&expectedRr == 0 {
 		return nil, err
 	}
-	return &DeleteResult{DeletedCount: int64(res.N)}, err
+	return &DeleteResult{DeletedCount: int64(op.Result().N)}, err
+}
+
+// DeleteOne deletes a single document from the collection.
+func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
+	opts ...*options.DeleteOptions) (*DeleteResult, error) {
+
+	return coll.delete(ctx, filter, true, rrOne, opts...)
 }
 
 // DeleteMany deletes multiple documents from the collection.
 func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	opts ...*options.DeleteOptions) (*DeleteResult, error) {
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	f, err := transformDocument(coll.registry, filter)
-	if err != nil {
-		return nil, err
-	}
-	deleteDocs := []bsonx.Doc{{{"q", bsonx.Document(f)}, {"limit", bsonx.Int32(0)}}}
-
-	sess := sessionFromContext(ctx)
-
-	err = coll.client.validSession(sess)
-	if err != nil {
-		return nil, err
-	}
-
-	wc := coll.writeConcern
-	if sess.TransactionRunning() {
-		wc = nil
-	}
-
-	oldns := coll.namespace()
-	cmd := command.Delete{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Deletes:      deleteDocs,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
-	}
-
-	res, err := driverlegacy.Delete(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		false,
-		opts...,
-	)
-
-	rr, err := processWriteError(res.WriteConcernError, res.WriteErrors, err)
-	if rr&rrMany == 0 {
-		return nil, err
-	}
-	return &DeleteResult{DeletedCount: int64(res.N)}, err
+	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
 
 func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
