@@ -600,6 +600,16 @@ type ResponseField struct {
 	Documentation string
 }
 
+// DeclarationType returns the field's type for use in a struct type declaration.
+func (rf ResponseField) DeclarationType() string {
+	switch rf.Type {
+	case "value":
+		return "bsoncore.Value"
+	default:
+		return rf.Type
+	}
+}
+
 // BuiltinResponseType is the type used to define built in response types.
 type BuiltinResponseType string
 
@@ -619,6 +629,8 @@ func (r Response) BuildMethod() (string, error) {
 			tmpl = responseFieldInt32Tmpl
 		case "int64":
 			tmpl = responseFieldInt64Tmpl
+		case "value":
+			tmpl = responseFieldValueTmpl
 		default:
 			return "", fmt.Errorf("unknown response field type %s", field.Type)
 		}

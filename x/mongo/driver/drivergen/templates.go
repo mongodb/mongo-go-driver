@@ -107,6 +107,11 @@ var responseFieldInt32Tmpl = parseTemplates(`
 		}
 `)
 
+var responseFieldValueTmpl = parseTemplates(`
+	case "{{$.ResponseName}}":
+		{{$.ResponseShortName}}.{{$.Field}} = element.Value()
+`)
+
 const typeTemplate string = `// Copyright (C) MongoDB, Inc. 2019-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -131,7 +136,7 @@ type {{$.Name}} struct {
 {{if $.Response.Name}}
 type {{$.Response.Name}} struct {
 {{range $name, $field := $.Response.Field}}// {{$field.Documentation}}
-	{{$.Title $name}} {{$field.Type}}
+	{{$.Title $name}} {{$field.DeclarationType}}
 {{end}}
 }
 
