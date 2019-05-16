@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c2567ee2_1febc3a9",
+        "filename": "x/mongo/driver/operation.go",
+        "patchSetId": 13
+      },
+      "lineNbr": 416,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-16T15:24:23Z",
+      "side": 1,
+      "message": "nit: remove this",
+      "range": {
+        "startLine": 416,
+        "startChar": 3,
+        "endLine": 416,
+        "endChar": 20
+      },
+      "revId": "c81efbc6bc7d7d40c7bf6fe9ab6fe738d386f257",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
