@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "e304506d_64a09669",
+        "filename": "x/mongo/driverlegacy/topology/pool.go",
+        "patchSetId": 7
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-16T19:49:44Z",
+      "side": 1,
+      "message": "I think we should just make this consistent with the other close case and return the error.",
+      "parentUuid": "5e79e8e6_f1c1bf83",
+      "range": {
+        "startLine": 209,
+        "startChar": 2,
+        "endLine": 209,
+        "endChar": 4
+      },
+      "revId": "9a6b31bae9b088eae9077880134e79d269a1aeff",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "51a575bc_e4f06c79",
         "filename": "x/mongo/driverlegacy/topology/resource_pool.go",
         "patchSetId": 7
