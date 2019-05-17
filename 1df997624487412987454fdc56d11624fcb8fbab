@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a93ee7c0_7130b297",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-05-17T18:04:27Z",
+      "side": 1,
+      "message": "Do we need to check if there\u0027s a $out in this case?",
+      "revId": "1df997624487412987454fdc56d11624fcb8fbab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
