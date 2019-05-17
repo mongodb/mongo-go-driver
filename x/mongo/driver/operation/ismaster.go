@@ -329,9 +329,14 @@ func (im *IsMaster) decodeStringMap(element bsoncore.Element, name string) (map[
 	return m, nil
 }
 
-func (im *IsMaster) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-	dst = bsoncore.AppendInt32Element(dst, "isMaster", 1)
+// handshakeCommand appends all necessary command fields as well as client metadata.
+func (im *IsMaster) handshakeCommand(dst []byte, desc description.SelectedServer) ([]byte, error) {
+	dst, err := im.command(dst, desc)
+	if err != nil {
+		return dst, err
+	}
 
+	// append client metadata
 	idx, dst := bsoncore.AppendDocumentElementStart(dst, "client")
 
 	didx, dst := bsoncore.AppendDocumentElementStart(dst, "driver")
@@ -352,11 +357,18 @@ func (im *IsMaster) command(dst []byte, _ description.SelectedServer) ([]byte, e
 	}
 	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 
+	return dst, nil
+}
+
+// command appends all necessary command fields.
+func (im *IsMaster) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
+	dst = bsoncore.AppendInt32Element(dst, "isMaster", 1)
+
 	if im.saslSupportedMechs != "" {
 		dst = bsoncore.AppendStringElement(dst, "saslSupportedMechs", im.saslSupportedMechs)
 	}
 
-	idx, dst = bsoncore.AppendArrayElementStart(dst, "compression")
+	idx, dst := bsoncore.AppendArrayElementStart(dst, "compression")
 	for i, compressor := range im.compressors {
 		dst = bsoncore.AppendStringElement(dst, strconv.Itoa(i), compressor)
 	}
@@ -372,6 +384,7 @@ func (im *IsMaster) Execute(ctx context.Context) error {
 	}
 
 	return driver.Operation{
+		Clock:      im.clock,
 		CommandFn:  im.command,
 		Database:   "admin",
 		Deployment: im.d,
@@ -385,7 +398,8 @@ func (im *IsMaster) Execute(ctx context.Context) error {
 // Handshake implements the Handshaker interface.
 func (im *IsMaster) Handshake(ctx context.Context, _ address.Address, c driver.Connection) (description.Server, error) {
 	err := driver.Operation{
-		CommandFn:  im.command,
+		Clock:      im.clock,
+		CommandFn:  im.handshakeCommand,
 		Deployment: driver.SingleConnectionDeployment{c},
 		Database:   "admin",
 		ProcessResponseFn: func(response bsoncore.Document, _ driver.Server, _ description.Server) error {
