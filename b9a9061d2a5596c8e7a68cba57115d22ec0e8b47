@@ -96,6 +96,30 @@
     },
     {
       "key": {
+        "uuid": "14961b5d_22131fbc",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 778,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-17T18:40:36Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3493165e_5f0fa927",
+      "range": {
+        "startLine": 778,
+        "startChar": 2,
+        "endLine": 778,
+        "endChar": 28
+      },
+      "revId": "b9a9061d2a5596c8e7a68cba57115d22ec0e8b47",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "96685ce7_2b464a3d",
         "filename": "mongo/options/mongooptions.go",
         "patchSetId": 3
