@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "20a1d7f7_7a9055c3",
+        "filename": "x/mongo/driver/topology/server.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 530,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-17T21:16:30Z",
+      "side": 1,
+      "message": "I don\u0027t think we need to set these field.",
+      "range": {
+        "startLine": 529,
+        "startChar": 4,
+        "endLine": 530,
+        "endChar": 39
+      },
+      "revId": "5fac066ab29df9b0b9a69e9a5563a50e90f22bf7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
