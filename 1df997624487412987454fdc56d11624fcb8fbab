@@ -16,6 +16,24 @@
       "revId": "1df997624487412987454fdc56d11624fcb8fbab",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "83ce9915_cefd562b",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 5
+      },
+      "lineNbr": 285,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-17T18:31:53Z",
+      "side": 1,
+      "message": "yep - added in the new patch.",
+      "parentUuid": "a93ee7c0_7130b297",
+      "revId": "1df997624487412987454fdc56d11624fcb8fbab",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
