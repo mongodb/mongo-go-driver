@@ -184,9 +184,6 @@ func transformAndEnsureIDv2(registry *bsoncodec.Registry, val interface{}) (bson
 }
 
 func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc, error) {
-	if registry == nil {
-		registry = bson.NewRegistryBuilder().Build()
-	}
 	if val == nil {
 		return nil, ErrNilDocument
 	}
@@ -198,6 +195,9 @@ func transformDocument(registry *bsoncodec.Registry, val interface{}) (bsonx.Doc
 		val = bson.Raw(bs)
 	}
 
+	if registry == nil {
+		registry = bson.NewRegistryBuilder().Build()
+	}
 	// TODO(skriptble): Use a pool of these instead.
 	buf := make([]byte, 0, 256)
 	b, err := bson.MarshalAppendWithRegistry(registry, buf[:0], val)
