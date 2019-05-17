@@ -98,7 +98,9 @@ func newConnection(ctx context.Context, addr address.Address, opts ...Connection
 	if cfg.handshaker != nil {
 		c.desc, err = cfg.handshaker.Handshake(ctx, c.addr, initConnection{c})
 		if err != nil {
-			c.nc.Close()
+			if c.nc != nil {
+				_ = c.nc.Close()
+			}
 			return nil, ConnectionError{Wrapped: err, init: true}
 		}
 		if cfg.descCallback != nil {

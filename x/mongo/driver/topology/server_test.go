@@ -14,12 +14,36 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 	"go.mongodb.org/mongo-driver/x/network/result"
 )
+
+func makeIsMasterReply() []byte {
+	didx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendInt32Element(doc, "ok", 1)
+	doc, _ = bsoncore.AppendDocumentEnd(doc, didx)
+	return drivertest.MakeReply(doc)
+}
+
+type channelNetConnDialer struct{}
+
+func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (net.Conn, error) {
+	cnc := &drivertest.ChannelNetConn{
+		Written:  make(chan []byte, 1),
+		ReadResp: make(chan []byte, 2),
+	}
+	if err := cnc.AddResponse(makeIsMasterReply()); err != nil {
+		return nil, err
+	}
+
+	return cnc, nil
+}
 
 func TestServer(t *testing.T) {
 	var serverTestTable = []struct {
@@ -151,4 +175,83 @@ func TestServer(t *testing.T) {
 		s.updateDescription(description.Server{Addr: s.address}, false)
 		require.True(t, updated.Load().(bool))
 	})
+	t.Run("heartbeat", func(t *testing.T) {
+		// test that client metadata is sent on handshakes but not heartbeats
+		dialer := &channelNetConnDialer{}
+		dialerOpt := WithDialer(func(Dialer) Dialer {
+			return dialer
+		})
+		serverOpt := WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
+			return append(connOpts, dialerOpt)
+		})
+
+		s, err := NewServer(address.Address("localhost:27017"), serverOpt)
+		if err != nil {
+			t.Fatalf("error from NewServer: %v", err)
+		}
+
+		// do a heartbeat with a nil connection so a new one will be dialed
+		_, conn := s.heartbeat(nil)
+		if conn == nil {
+			t.Fatal("no connection dialed")
+		}
+		channelConn := conn.nc.(*drivertest.ChannelNetConn)
+		wm := channelConn.GetWrittenMessage()
+		if wm == nil {
+			t.Fatal("no wire message written for handshake")
+		}
+		if !includesMetadata(t, wm) {
+			t.Fatal("client metadata expected in handshake but not found")
+		}
+
+		// do a heartbeat with a non-nil connection
+		if err = channelConn.AddResponse(makeIsMasterReply()); err != nil {
+			t.Fatalf("error adding response: %v", err)
+		}
+		_, _ = s.heartbeat(conn)
+		wm = channelConn.GetWrittenMessage()
+		if wm == nil {
+			t.Fatal("no wire message written for heartbeat")
+		}
+		if includesMetadata(t, wm) {
+			t.Fatal("client metadata not expected in heartbeat but found")
+		}
+	})
+}
+
+func includesMetadata(t *testing.T, wm []byte) bool {
+	var ok bool
+	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	if !ok {
+		t.Fatal("could not read header")
+	}
+	_, wm, ok = wiremessage.ReadQueryFlags(wm)
+	if !ok {
+		t.Fatal("could not read flags")
+	}
+	_, wm, ok = wiremessage.ReadQueryFullCollectionName(wm)
+	if !ok {
+		t.Fatal("could not read fullCollectionName")
+	}
+	_, wm, ok = wiremessage.ReadQueryNumberToSkip(wm)
+	if !ok {
+		t.Fatal("could not read numberToSkip")
+	}
+	_, wm, ok = wiremessage.ReadQueryNumberToReturn(wm)
+	if !ok {
+		t.Fatal("could not read numberToReturn")
+	}
+	var query bsoncore.Document
+	query, wm, ok = wiremessage.ReadQueryQuery(wm)
+	if !ok {
+		t.Fatal("could not read query")
+	}
+
+	if _, err := query.LookupErr("client"); err == nil {
+		return true
+	}
+	if _, err := query.LookupErr("$query", "client"); err == nil {
+		return true
+	}
+	return false
 }
