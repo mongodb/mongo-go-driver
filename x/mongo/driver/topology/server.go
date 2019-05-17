@@ -485,6 +485,9 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 	ctx := context.Background()
 
 	for i := 1; i <= maxRetry; i++ {
+		var now time.Time
+		var descPtr *description.Server
+
 		if conn != nil && conn.expired() {
 			if conn.nc != nil {
 				conn.nc.Close()
@@ -499,47 +502,42 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 				WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 			}
 			opts = append(opts, s.cfg.connectionOpts...)
-			// We override whatever handshaker is currently attached to the options with an empty
+			// We override whatever handshaker is currently attached to the options with a basic
 			// one because need to make sure we don't do auth.
 			opts = append(opts, WithHandshaker(func(h Handshaker) Handshaker {
-				return nil
+				now = time.Now()
+				return operation.NewIsMaster().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts)
 			}))
 
 			// Override any command monitors specified in options with nil to avoid monitoring heartbeats.
 			opts = append(opts, WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor {
 				return nil
 			}))
+
 			conn, err = newConnection(ctx, s.address, opts...)
-			if err != nil {
-				saved = err
-				if conn != nil && conn.nc != nil {
-					conn.nc.Close()
-				}
-				conn = nil
-				if _, ok := err.(ConnectionError); ok {
-					s.pool.drain()
-					// If the server is not connected, give up and exit loop
-					if s.Description().Kind == description.Unknown {
-						break
-					}
-				}
-				continue
+			if err == nil {
+				descPtr = &conn.desc
 			}
 		}
 
-		now := time.Now()
+		// do a heartbeat because a new connection wasn't created so a handshake was not performed
+		if descPtr == nil && err == nil {
+			now = time.Now()
+			op := operation.
+				NewIsMaster().
+				ClusterClock(s.cfg.clock).
+				Deployment(driver.SingleConnectionDeployment{initConnection{conn}})
+			err = op.Execute(ctx)
+			if err == nil {
+				tmpDesc := op.Result(s.address)
+				descPtr = &tmpDesc
+			}
+		}
 
-		op := operation.
-			NewIsMaster().
-			ClusterClock(s.cfg.clock).
-			AppName(s.cfg.appname).
-			Compressors(s.cfg.compressionOpts).
-			Deployment(driver.SingleConnectionDeployment{initConnection{conn}})
-		err = op.Execute(ctx)
 		// we do a retry if the server is connected, if succeed return new server desc (see below)
 		if err != nil {
 			saved = err
-			if conn.nc != nil {
+			if conn != nil && conn.nc != nil {
 				conn.nc.Close()
 			}
 			conn = nil
@@ -553,8 +551,7 @@ func (s *Server) heartbeat(conn *connection) (description.Server, *connection) {
 			continue
 		}
 
-		desc = op.Result(s.address)
-
+		desc = *descPtr
 		delay := time.Since(now)
 		desc = desc.SetAverageRTT(s.updateAverageRTT(delay))
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
