@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8b9d6099_ed78077b",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-17T18:48:05Z",
+      "side": 1,
+      "message": "Same as below. I know we\u0027re doing this now, but we have the default registry to avoid this.",
+      "range": {
+        "startLine": 188,
+        "startChar": 2,
+        "endLine": 188,
+        "endChar": 46
+      },
+      "revId": "0f7a15034dbc1bc0e8346ec1a944a18cad722758",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5279b891_8a715d80",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-17T18:48:05Z",
+      "side": 1,
+      "message": "We should use the default registry in the bson package instead of building a new one.",
+      "range": {
+        "startLine": 212,
+        "startChar": 13,
+        "endLine": 212,
+        "endChar": 46
+      },
+      "revId": "0f7a15034dbc1bc0e8346ec1a944a18cad722758",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
