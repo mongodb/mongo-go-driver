@@ -115,6 +115,12 @@ func (op Operation) CommandMethod() (string, error) {
 		if err != nil {
 			return "", err
 		}
+	case "database":
+		tmpl := commandDatabaseTmpl
+		err := tmpl.Execute(&buf, op)
+		if err != nil {
+			return "", err
+		}
 	default:
 		var tmpl *template.Template
 		field, ok := op.Request[op.Command.Parameter]
@@ -300,6 +306,24 @@ func (p Properties) BuiltinsMap() map[Builtin]bool {
 	return builtins
 }
 
+// LegacyOperationKind returns the corresponding LegacyOperationKind value for an operation.
+func (p Properties) LegacyOperationKind() string {
+	switch p.Legacy {
+	case LegacyFind:
+		return "driver.LegacyFind"
+	case LegacyGetMore:
+		return "driver.LegacyGetMore"
+	case LegacyKillCursors:
+		return "driver.LegacyKillCursors"
+	case LegacyListCollections:
+		return "driver.LegacyListCollections"
+	case LegacyListIndexes:
+		return "driver.LegacyListIndexes"
+	default:
+		return "driver.LegacyNone"
+	}
+}
+
 // Retryable represents retryable information for an operation.
 type Retryable struct {
 	Mode RetryableMode
@@ -330,9 +354,11 @@ type LegacyOperation string
 
 // These constants are the various legacy operations that can be generated.
 const (
-	LegacyFind        LegacyOperation = "find"
-	LegacyGetMore     LegacyOperation = "getMore"
-	LegacyKillCursors LegacyOperation = "killCursors"
+	LegacyFind            LegacyOperation = "find"
+	LegacyGetMore         LegacyOperation = "getMore"
+	LegacyKillCursors     LegacyOperation = "killCursors"
+	LegacyListCollections LegacyOperation = "listCollections"
+	LegacyListIndexes     LegacyOperation = "listIndexes"
 )
 
 // Builtin represent types that are built into the IDL.
