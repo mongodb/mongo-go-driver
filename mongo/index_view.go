@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -18,7 +19,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
@@ -43,41 +47,70 @@ type IndexModel struct {
 	Options *options.IndexOptions
 }
 
+func isNamespaceNotFoundError(err error) bool {
+	if de, ok := err.(driver.Error); ok {
+		return de.Code == 26
+	}
+	return false
+}
+
 // List returns a cursor iterating over all the indexes in the collection.
 func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOptions) (*Cursor, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	sess := sessionFromContext(ctx)
+	if sess == nil && iv.coll.client.topology.SessionPool != nil {
+		var err error
+		sess, err = session.NewClientSession(iv.coll.client.topology.SessionPool, iv.coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	err := iv.coll.client.validSession(sess)
 	if err != nil {
+		closeImplicitSession(sess)
 		return nil, err
-	}
-
-	listCmd := command.ListIndexes{
-		NS:      iv.coll.namespace(),
-		Session: sess,
-		Clock:   iv.coll.client.clock,
 	}
 
 	readSelector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(readpref.Primary()),
 		description.LatencySelector(iv.coll.client.localThreshold),
 	})
-	batchCursor, err := driverlegacy.ListIndexes(
-		ctx, listCmd,
-		iv.coll.client.topology,
-		readSelector,
-		iv.coll.client.id,
-		iv.coll.client.topology.SessionPool,
-		opts...,
-	)
+	op := operation.NewListIndexes().
+		Session(sess).CommandMonitor(iv.coll.client.monitor).
+		ServerSelector(readSelector).ClusterClock(iv.coll.client.clock).
+		Database(iv.coll.db.name).Collection(iv.coll.name).
+		Deployment(iv.coll.client.topology)
+
+	var cursorOpts driver.CursorOptions
+	lio := options.MergeListIndexesOptions(opts...)
+	if lio.BatchSize != nil {
+		op = op.BatchSize(*lio.BatchSize)
+		cursorOpts.BatchSize = *lio.BatchSize
+	}
+	if lio.MaxTime != nil {
+		op = op.MaxTimeMS(int64(*lio.MaxTime / time.Millisecond))
+	}
+
+	err = op.Execute(ctx)
 	if err != nil {
-		if err == command.ErrEmptyCursor {
+		closeImplicitSession(sess)
+		if isNamespaceNotFoundError(err) {
 			return newEmptyCursor(), nil
 		}
+
 		return nil, replaceErrors(err)
 	}
 
-	cursor, err := newCursor(batchCursor, iv.coll.registry)
+	bc, err := op.Result(cursorOpts)
+	if err != nil {
+		closeImplicitSession(sess)
+		return nil, replaceErrors(err)
+	}
+	cursor, err := newCursorWithSession(bc, iv.coll.registry, sess)
 	return cursor, replaceErrors(err)
 }
 
