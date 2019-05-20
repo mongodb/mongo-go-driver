@@ -12,6 +12,11 @@ if {{$.ShortName}}.collection == "" {
 dst = bsoncore.AppendValueElement(dst, "{{$.Command.Name}}", header)
 `))
 
+// commandDatabaseTmpl is the template used to set the command name when the parameter will be a database.
+var commandDatabaseTmpl = template.Must(template.New("").Parse(
+	`dst = bsoncore.AppendInt32Element(dst, "{{$.Command.Name}}", 1)
+`))
+
 // commandCollectionTmpl is the template used to set the command name when the parameter will be a
 // collection.
 var commandCollectionTmpl = template.Must(template.New("").Parse(
@@ -125,7 +130,7 @@ type {{$.Name}} struct {
 {{end}}{{range $builtin := $.Properties.Builtins}}	{{$builtin.ReferenceName}} {{$builtin.Type}}
 {{end}}{{if $.Properties.Retryable.Mode}}	retry *driver.RetryMode{{end}}
 {{if $.Response.Name}}	result {{$.ResultType}}{{end}}
-{{if eq $.Response.Type "batch cursor"}}	result driver.CursorResponse{{end}}
+{{if or (eq $.Response.Type "batch cursor") (eq $.Response.Type "list collections batch cursor")}}	result driver.CursorResponse{{end}}
 }
 
 {{if $.Response.Name}}
@@ -173,13 +178,29 @@ var clock *session.ClusterClock{{end}}
 	return driver.NewBatchCursor({{$.ShortName}}.result, clientSession, clock, opts)
 }{{end}}
 
+{{if eq $.Response.Type "list collections batch cursor"}}
+// Result returns the result of executing this operation.
+func ({{$.ShortName}} *{{$.Name}}) Result(opts driver.CursorOptions) (*driver.ListCollectionsBatchCursor, error) {
+{{if $builtin := $.Properties.IsEnabled "client session"}}
+clientSession := {{$.ShortName}}.{{$builtin.ReferenceName}}{{else}}
+var clientSession *session.Client{{end}}
+{{if $builtin := $.Properties.IsEnabled "cluster clock"}}
+clock := {{$.ShortName}}.{{$builtin.ReferenceName}}{{else}}
+var clock *session.ClusterClock{{end}}
+	bc, err := driver.NewBatchCursor({{$.ShortName}}.result, clientSession, clock, opts)
+	if err != nil {
+		return nil, err
+	}
+	return driver.NewListCollectionsBatchCursor(bc)
+}{{end}}
+
 func ({{$.ShortName}} *{{$.Name}}) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
 {{if $.Response.Name}}
 	{{$.ShortName}}.result, err = build{{$.Response.Name}}(response, srvr)
 	return err
 {{end}}
-{{if eq $.Response.Type "batch cursor"}}
+{{if or (eq $.Response.Type "batch cursor") (eq $.Response.Type "list collections batch cursor")}}
 	{{$.ShortName}}.result, err = driver.NewCursorResponse(response, srvr, desc)
 	return err
 {{end}}

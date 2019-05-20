@@ -14,7 +14,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
@@ -211,49 +214,57 @@ func (db *Database) Drop(ctx context.Context) error {
 	return nil
 }
 
-// ListCollections list collections from mongodb database.
+// ListCollections returns a cursor over the collections in a database.
 func (db *Database) ListCollections(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	filterDoc, err := transformBsoncoreDocument(db.registry, filter)
+	if err != nil {
+		return nil, err
+	}
+
 	sess := sessionFromContext(ctx)
+	if sess == nil && db.client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(db.client.topology.SessionPool, db.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	err := db.client.validSession(sess)
+	err = db.client.validSession(sess)
 	if err != nil {
+		closeImplicitSession(sess)
 		return nil, err
 	}
 
-	filterDoc, err := transformDocument(db.registry, filter)
-	if err != nil {
-		return nil, err
+	selector := db.readSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
 	}
 
-	cmd := command.ListCollections{
-		DB:       db.name,
-		Filter:   filterDoc,
-		ReadPref: readpref.Primary(), // list collections must be run on a primary by default
-		Session:  sess,
-		Clock:    db.client.clock,
+	lco := options.MergeListCollectionsOptions(opts...)
+	op := operation.NewListCollections(filterDoc).
+		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
+		ServerSelector(selector).ClusterClock(db.client.clock).
+		Database(db.name).Deployment(db.client.topology)
+	if lco.NameOnly != nil {
+		op = op.NameOnly(*lco.NameOnly)
 	}
 
-	readSelector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(readpref.Primary()),
-		description.LatencySelector(db.client.localThreshold),
-	})
-	batchCursor, err := driverlegacy.ListCollections(
-		ctx, cmd,
-		db.client.topology,
-		readSelector,
-		db.client.id,
-		db.client.topology.SessionPool,
-		opts...,
-	)
+	err = op.Execute(ctx)
 	if err != nil {
+		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
 
-	cursor, err := newCursor(batchCursor, db.registry)
+	bc, err := op.Result(driver.CursorOptions{})
+	if err != nil {
+		closeImplicitSession(sess)
+		return nil, replaceErrors(err)
+	}
+	cursor, err := newCursorWithSession(bc, db.registry, sess)
 	return cursor, replaceErrors(err)
 }
 
