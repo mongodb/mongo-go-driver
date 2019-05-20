@@ -241,6 +241,17 @@ func ensureDollarKey(doc bsonx.Doc) error {
 	return nil
 }
 
+func ensureDollarKeyv2(doc bsoncore.Document) error {
+	elem, err := doc.IndexErr(0)
+	if err != nil {
+		return errors.New("update document must have at least one element")
+	}
+	if !strings.HasPrefix(elem.Key(), "$") {
+		return errors.New("update document must contain key beginning with $")
+	}
+	return nil
+}
+
 func transformAggregatePipeline(registry *bsoncodec.Registry, pipeline interface{}) (bsonx.Arr, error) {
 	pipelineArr := bsonx.Arr{}
 	switch t := pipeline.(type) {
