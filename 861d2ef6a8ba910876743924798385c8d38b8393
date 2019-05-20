@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "24ca81e0_36ec4946",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 946,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-20T18:52:54Z",
+      "side": 1,
+      "message": "I think we should check this error.",
+      "range": {
+        "startLine": 946,
+        "startChar": 1,
+        "endLine": 946,
+        "endChar": 22
+      },
+      "revId": "861d2ef6a8ba910876743924798385c8d38b8393",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c950e604_1d9e04f5",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 950,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-20T18:52:54Z",
+      "side": 1,
+      "message": "Instead of returning replaceErrors(err) here, we should follow the error pattern from the build*Result functions in the operation package (i.e response field \u0027values\u0027 is type array, but received BSON type...)",
+      "revId": "861d2ef6a8ba910876743924798385c8d38b8393",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "71aa8ac6_be5ed0ea",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 955,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-20T18:52:54Z",
+      "side": 1,
+      "message": "Should be if err !\u003d nil",
+      "range": {
+        "startLine": 955,
+        "startChar": 1,
+        "endLine": 955,
+        "endChar": 9
+      },
+      "revId": "861d2ef6a8ba910876743924798385c8d38b8393",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a23cc423_8000867b",
+        "filename": "x/mongo/driver/operation/distinct.toml",
+        "patchSetId": 2
+      },
+      "lineNbr": 12,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-20T18:52:54Z",
+      "side": 1,
+      "message": "The key isn\u0027t an optional parameter, so can we make it a constructor argument?",
+      "range": {
+        "startLine": 12,
+        "startChar": 0,
+        "endLine": 12,
+        "endChar": 13
+      },
+      "revId": "861d2ef6a8ba910876743924798385c8d38b8393",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
