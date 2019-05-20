@@ -471,63 +471,97 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	return &DeleteResult{DeletedCount: int64(res.N)}, err
 }
 
-func (coll *Collection) updateOrReplaceOne(ctx context.Context, filter,
-	update bsonx.Doc, sess *session.Client, opts ...*options.UpdateOptions) (*UpdateResult, error) {
+func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bsoncore.Document, multi bool, expectedRr returnResult,
+	opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
-	// TODO: should session be taken from ctx or left as argument?
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	updateDocs := []bsonx.Doc{
-		{
-			{"q", bsonx.Document(filter)},
-			{"u", bsonx.Document(update)},
-			{"multi", bsonx.Boolean(false)},
-		},
+	uo := options.MergeUpdateOptions(opts...)
+	uidx, updateDoc := bsoncore.AppendDocumentStart(nil)
+	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "q", filter)
+	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", update)
+	updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
+
+	// collation, arrayFitlers, and upsert are included on the individual update documents rather than as part of the
+	// command
+	if uo.Collation != nil {
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "collation", bsoncore.Document(uo.Collation.ToDocument()))
+	}
+	if uo.ArrayFilters != nil {
+		arr, err := uo.ArrayFilters.ToArrayDocument()
+		if err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendArrayElement(updateDoc, "arrayFilters", arr)
+	}
+	if uo.Upsert != nil {
+		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "upsert", *uo.Upsert)
+	}
+	updateDoc, _ = bsoncore.AppendDocumentEnd(updateDoc, uidx)
+
+	sess := sessionFromContext(ctx)
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		var err error
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer sess.EndSession()
+	}
+
+	err := coll.client.validSession(sess)
+	if err != nil {
+		return nil, err
 	}
 
 	wc := coll.writeConcern
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-
-	oldns := coll.namespace()
-	cmd := command.Update{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs:         updateDocs,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
 	}
 
-	r, err := driverlegacy.Update(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.client.retryWrites,
-		opts...,
-	)
-	if err != nil && err != command.ErrUnacknowledgedWrite {
-		return nil, replaceErrors(err)
+	selector := coll.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
 	}
 
+	op := operation.NewUpdate(updateDoc).
+		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
+		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Database(coll.db.name).Collection(coll.name).
+		Deployment(coll.client.topology)
+
+	if uo.BypassDocumentValidation != nil {
+		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
+	}
+	retry := driver.RetryNone
+	// retryable writes are only enabled updateOne/replaceOne operations
+	if !multi && coll.client.retryWrites {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
+	err = op.Execute(ctx)
+
+	rr, err := processWriteError(nil, nil, err)
+	if rr&expectedRr == 0 {
+		return nil, err
+	}
+
+	opRes := op.Result()
 	res := &UpdateResult{
-		MatchedCount:  r.MatchedCount,
-		ModifiedCount: r.ModifiedCount,
-		UpsertedCount: int64(len(r.Upserted)),
+		MatchedCount:  int64(opRes.N),
+		ModifiedCount: int64(opRes.NModified),
+		UpsertedCount: int64(len(opRes.Upserted)),
 	}
-	if len(r.Upserted) > 0 {
-		res.UpsertedID = r.Upserted[0].ID
+	if len(opRes.Upserted) > 0 {
+		res.UpsertedID = opRes.Upserted[0].ID
 		res.MatchedCount--
 	}
 
-	rr, err := processWriteError(r.WriteConcernError, r.WriteErrors, err)
-	if rr&rrOne == 0 {
-		return nil, err
-	}
 	return res, err
 }
 
@@ -539,28 +573,19 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter)
 	if err != nil {
 		return nil, err
 	}
-
-	u, err := transformDocument(coll.registry, update)
+	u, err := transformBsoncoreDocument(coll.registry, update)
 	if err != nil {
 		return nil, err
 	}
-
-	if err := ensureDollarKey(u); err != nil {
+	if err := ensureDollarKeyv2(u); err != nil {
 		return nil, err
 	}
 
-	sess := sessionFromContext(ctx)
-
-	err = coll.client.validSession(sess)
-	if err != nil {
-		return nil, err
-	}
-
-	return coll.updateOrReplaceOne(ctx, f, u, sess, opts...)
+	return coll.updateOrReplace(ctx, f, u, false, rrOne, opts...)
 }
 
 // UpdateMany updates multiple documents in the collection.
@@ -571,77 +596,21 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := transformDocument(coll.registry, update)
+	u, err := transformBsoncoreDocument(coll.registry, update)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = ensureDollarKey(u); err != nil {
+	if err = ensureDollarKeyv2(u); err != nil {
 		return nil, err
 	}
 
-	updateDocs := []bsonx.Doc{
-		{
-			{"q", bsonx.Document(f)},
-			{"u", bsonx.Document(u)},
-			{"multi", bsonx.Boolean(true)},
-		},
-	}
-
-	sess := sessionFromContext(ctx)
-
-	err = coll.client.validSession(sess)
-	if err != nil {
-		return nil, err
-	}
-
-	wc := coll.writeConcern
-	if sess.TransactionRunning() {
-		wc = nil
-	}
-
-	oldns := coll.namespace()
-	cmd := command.Update{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs:         updateDocs,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
-	}
-
-	r, err := driverlegacy.Update(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		false,
-		opts...,
-	)
-	if err != nil && err != command.ErrUnacknowledgedWrite {
-		return nil, replaceErrors(err)
-	}
-	res := &UpdateResult{
-		MatchedCount:  r.MatchedCount,
-		ModifiedCount: r.ModifiedCount,
-		UpsertedCount: int64(len(r.Upserted)),
-	}
-	// TODO(skriptble): Is this correct? Do we only return the first upserted ID for an UpdateMany?
-	if len(r.Upserted) > 0 {
-		res.UpsertedID = r.Upserted[0].ID
-		res.MatchedCount--
-	}
-
-	rr, err := processWriteError(r.WriteConcernError, r.WriteErrors, err)
-	if rr&rrMany == 0 {
-		return nil, err
-	}
-	return res, err
+	return coll.updateOrReplace(ctx, f, u, true, rrMany, opts...)
 }
 
 // ReplaceOne replaces a single document in the collection.
@@ -652,25 +621,18 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter)
 	if err != nil {
 		return nil, err
 	}
 
-	r, err := transformDocument(coll.registry, replacement)
+	r, err := transformBsoncoreDocument(coll.registry, replacement)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(r) > 0 && strings.HasPrefix(r[0].Key, "$") {
+	if elem, err := r.IndexErr(0); err == nil && strings.HasPrefix(elem.Key(), "$") {
 		return nil, errors.New("replacement document cannot contains keys beginning with '$")
-	}
-
-	sess := sessionFromContext(ctx)
-
-	err = coll.client.validSession(sess)
-	if err != nil {
-		return nil, err
 	}
 
 	updateOptions := make([]*options.UpdateOptions, 0, len(opts))
@@ -682,7 +644,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		updateOptions = append(updateOptions, uOpts)
 	}
 
-	return coll.updateOrReplaceOne(ctx, f, r, sess, updateOptions...)
+	return coll.updateOrReplace(ctx, f, r, false, rrOne, updateOptions...)
 }
 
 // Aggregate runs an aggregation framework pipeline.
