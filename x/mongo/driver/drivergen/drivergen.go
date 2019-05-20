@@ -115,6 +115,12 @@ func (op Operation) CommandMethod() (string, error) {
 		if err != nil {
 			return "", err
 		}
+	case "database":
+		tmpl := commandDatabaseTmpl
+		err := tmpl.Execute(&buf, op)
+		if err != nil {
+			return "", err
+		}
 	default:
 		var tmpl *template.Template
 		field, ok := op.Request[op.Command.Parameter]
