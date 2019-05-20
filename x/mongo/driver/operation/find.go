@@ -99,6 +99,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		ReadConcern:    f.readConcern,
 		ReadPreference: f.readPreference,
 		Selector:       f.selector,
+		Legacy:         driver.LegacyFind,
 	}.Execute(ctx, nil)
 
 }
