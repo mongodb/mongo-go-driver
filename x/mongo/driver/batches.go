@@ -31,7 +31,7 @@ func (b *Batches) Valid() bool { return b != nil && b.Identifier != "" && len(b.
 // next batch.
 func (b *Batches) ClearBatch() { b.Current = b.Current[:0] }
 
-// AdvanceBatch splits the next batch using maxCount and targetBbatchSize. This method will do nothing if
+// AdvanceBatch splits the next batch using maxCount and targetBatchSize. This method will do nothing if
 // the current batch has not been cleared. We do this so that when this is called during execute we
 // can call it without first needing to check if we already have a batch, which makes the code
 // simpler and makes retrying easier.
@@ -49,7 +49,10 @@ func (b *Batches) AdvanceBatch(maxCount, targetBatchSize int) error {
 
 	splitAfter := 0
 	size := 1
-	for _, doc := range b.Documents {
+	for i, doc := range b.Documents {
+		if i == maxCount {
+			break
+		}
 		if len(doc) > targetBatchSize {
 			return ErrDocumentTooLarge
 		}

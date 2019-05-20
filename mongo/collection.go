@@ -208,21 +208,27 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	return &result, replaceErrors(err)
 }
 
-// InsertOne inserts a single document into the collection.
-func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
+func (coll *Collection) insert(ctx context.Context, documents []interface{},
+	opts ...*options.InsertManyOptions) ([]interface{}, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	doc, insertedID, err := transformAndEnsureIDv2(coll.registry, document)
-	if err != nil {
-		return nil, err
+	result := make([]interface{}, len(documents))
+	docs := make([]bsoncore.Document, len(documents))
+
+	for i, doc := range documents {
+		var err error
+		docs[i], result[i], err = transformAndEnsureIDv2(coll.registry, doc)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.topology.SessionPool != nil {
+		var err error
 		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
 		if err != nil {
 			return nil, err
@@ -230,7 +236,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		defer sess.EndSession()
 	}
 
-	err = coll.client.validSession(sess)
+	err := coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -248,118 +254,84 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 		selector = sess.PinnedServer
 	}
 
-	option := options.MergeInsertOneOptions(opts...)
-
-	op := operation.NewInsert(doc).
+	op := operation.NewInsert(docs...).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.topology)
-
-	if option.BypassDocumentValidation != nil {
-		op = op.BypassDocumentValidation(*option.BypassDocumentValidation)
+	imo := options.MergeInsertManyOptions(opts...)
+	if imo.BypassDocumentValidation != nil {
+		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
+	}
+	if imo.Ordered != nil {
+		op = op.Ordered(*imo.Ordered)
 	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
 		retry = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retry)
-	err = op.Execute(ctx)
+
+	return result, op.Execute(ctx)
+}
+
+// InsertOne inserts a single document into the collection.
+func (coll *Collection) InsertOne(ctx context.Context, document interface{},
+	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
+
+	imOpts := make([]*options.InsertManyOptions, len(opts))
+	for i, opt := range opts {
+		imo := options.InsertMany()
+		if opt.BypassDocumentValidation != nil {
+			imo = imo.SetBypassDocumentValidation(*opt.BypassDocumentValidation)
+		}
+		imOpts[i] = imo
+	}
+	res, err := coll.insert(ctx, []interface{}{document}, imOpts...)
 
 	rr, err := processWriteError(nil, nil, err)
 	if rr&rrOne == 0 {
 		return nil, err
 	}
-
-	return &InsertOneResult{InsertedID: insertedID}, err
+	return &InsertOneResult{InsertedID: res[0]}, err
 }
 
 // InsertMany inserts the provided documents.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	opts ...*options.InsertManyOptions) (*InsertManyResult, error) {
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	if len(documents) == 0 {
 		return nil, ErrEmptySlice
 	}
 
-	result := make([]interface{}, len(documents))
-	docs := make([]bsonx.Doc, len(documents))
-
-	for i, doc := range documents {
-		if doc == nil {
-			return nil, ErrNilDocument
-		}
-		bdoc, insertedID, err := transformAndEnsureID(coll.registry, doc)
-		if err != nil {
-			return nil, err
-		}
-
-		docs[i] = bdoc
-		result[i] = insertedID
-	}
-
-	sess := sessionFromContext(ctx)
-
-	err := coll.client.validSession(sess)
-	if err != nil {
+	result, err := coll.insert(ctx, documents, opts...)
+	rr, err := processWriteError(nil, nil, err)
+	if rr&rrMany == 0 {
 		return nil, err
 	}
 
-	wc := coll.writeConcern
-	if sess.TransactionRunning() {
-		wc = nil
+	imResult := &InsertManyResult{InsertedIDs: result}
+	writeException, ok := err.(WriteException)
+	if !ok {
+		return imResult, err
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Insert{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Docs:         docs,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
+	// create and return a BulkWriteException
+	bwErrors := make([]BulkWriteError, 0, len(writeException.WriteErrors))
+	for _, we := range writeException.WriteErrors {
+		bwErrors = append(bwErrors, BulkWriteError{
+			WriteError{
+				Index:   we.Index,
+				Code:    we.Code,
+				Message: we.Message,
+			},
+			nil,
+		})
 	}
-
-	res, err := driverlegacy.Insert(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.client.retryWrites,
-		opts...,
-	)
-
-	switch err {
-	case nil:
-	case command.ErrUnacknowledgedWrite:
-		return &InsertManyResult{InsertedIDs: result}, ErrUnacknowledgedWrite
-	default:
-		return nil, replaceErrors(err)
+	return imResult, BulkWriteException{
+		WriteErrors:       bwErrors,
+		WriteConcernError: writeException.WriteConcernError,
 	}
-	if len(res.WriteErrors) > 0 || res.WriteConcernError != nil {
-		bwErrors := make([]BulkWriteError, 0, len(res.WriteErrors))
-		for _, we := range res.WriteErrors {
-			bwErrors = append(bwErrors, BulkWriteError{
-				WriteError{
-					Index:   we.Index,
-					Code:    we.Code,
-					Message: we.ErrMsg,
-				},
-				nil,
-			})
-		}
-
-		err = BulkWriteException{
-			WriteErrors:       bwErrors,
-			WriteConcernError: convertWriteConcernError(res.WriteConcernError),
-		}
-	}
-
-	return &InsertManyResult{InsertedIDs: result}, err
 }
 
 // DeleteOne deletes a single document from the collection.
