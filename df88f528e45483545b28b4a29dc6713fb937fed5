@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "4a4fb4ed_b71a9f96",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-21T18:48:16Z",
+      "side": 1,
+      "message": "Yeah, this was annoying. The issue was that the collation field needs to be on each document rather than on the command as a whole, so I needed to create the documents before passing them down to DeleteOperation. Future changes to drivergen could include some sort of option that allows this because similar logic is needed for update.",
+      "parentUuid": "8ed25e73_fad21989",
+      "range": {
+        "startLine": 410,
+        "startChar": 0,
+        "endLine": 410,
+        "endChar": 1
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1eb4d483_a4fb3b1d",
         "filename": "mongo/mongo.go",
         "patchSetId": 2
@@ -48,6 +72,30 @@
     },
     {
       "key": {
+        "uuid": "80c7a54d_1c9561d7",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-21T18:48:16Z",
+      "side": 1,
+      "message": "Yes, bson.DefaultRegistry is defined in bson/ as \"NewRegistryBuilder().Build()\"",
+      "parentUuid": "1eb4d483_a4fb3b1d",
+      "range": {
+        "startLine": 200,
+        "startChar": 0,
+        "endLine": 200,
+        "endChar": 1
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3ea8b4d6_3ef98c59",
         "filename": "x/mongo/driver/operation/delete.toml",
         "patchSetId": 2
@@ -68,6 +116,30 @@
       "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "209cf140_2ea35e69",
+        "filename": "x/mongo/driver/operation/delete.toml",
+        "patchSetId": 2
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-21T18:48:16Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3ea8b4d6_3ef98c59",
+      "range": {
+        "startLine": 38,
+        "startChar": 0,
+        "endLine": 38,
+        "endChar": 13
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
