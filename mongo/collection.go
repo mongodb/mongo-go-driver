@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -1067,61 +1068,95 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	return &SingleResult{cur: cursor, reg: coll.registry, err: replaceErrors(err)}
 }
 
-// FindOneAndDelete find a single document and deletes it, returning the
-// original in result.
-func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
-	opts ...*options.FindOneAndDeleteOptions) *SingleResult {
-
+func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAndModify) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(coll.registry, filter)
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-
 	sess := sessionFromContext(ctx)
+	var err error
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		defer sess.EndSession()
+	}
 
 	err = coll.client.validSession(sess)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
 
-	oldns := coll.namespace()
 	wc := coll.writeConcern
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-
-	cmd := command.FindOneAndDelete{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:        f,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
 	}
 
-	res, err := driverlegacy.FindOneAndDelete(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.client.retryWrites,
-		coll.registry,
-		opts...,
-	)
+	selector := coll.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
+	}
 
+	retry := driver.RetryNone
+	if coll.client.retryWrites {
+		retry = driver.RetryOnce
+	}
+
+	op = op.Session(sess).
+		WriteConcern(wc).
+		CommandMonitor(coll.client.monitor).
+		ServerSelector(selector).
+		ClusterClock(coll.client.clock).
+		Database(coll.db.name).
+		Collection(coll.name).
+		Deployment(coll.client.topology).
+		Retry(retry)
+
+	_, err = processWriteError(nil, nil, op.Execute(ctx))
 	if err != nil {
-		return &SingleResult{err: replaceErrors(err)}
+		return &SingleResult{err: err}
 	}
 
-	if res.WriteConcernError != nil {
-		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
+	return &SingleResult{rdr: bson.Raw(op.Result().Value), reg: coll.registry}
+}
+
+// FindOneAndDelete find a single document and deletes it, returning the
+// original in result.
+func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
+	opts ...*options.FindOneAndDeleteOptions) *SingleResult {
+
+	f, err := transformBsoncoreDocument(coll.registry, filter)
+	if err != nil {
+		return &SingleResult{err: err}
+	}
+	fod := options.MergeFindOneAndDeleteOptions(opts...)
+	op := operation.NewFindAndModify(f).Remove(true)
+	if fod.Collation != nil {
+		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
+	}
+	if fod.MaxTime != nil {
+		op = op.MaxTimeMS(int64(*fod.MaxTime / time.Millisecond))
+	}
+	if fod.Projection != nil {
+		proj, err := transformBsoncoreDocument(coll.registry, fod.Projection)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Fields(proj)
+	}
+	if fod.Sort != nil {
+		sort, err := transformBsoncoreDocument(coll.registry, fod.Sort)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Sort(sort)
 	}
 
-	return &SingleResult{rdr: res.Value, reg: coll.registry}
+	return coll.findAndModify(ctx, op)
 }
 
 // FindOneAndReplace finds a single document and replaces it, returning either
@@ -1129,65 +1164,51 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
 	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *SingleResult {
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	f, err := transformDocument(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-
-	r, err := transformDocument(coll.registry, replacement)
+	r, err := transformBsoncoreDocument(coll.registry, replacement)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-
-	if len(r) > 0 && strings.HasPrefix(r[0].Key, "$") {
-		return &SingleResult{err: errors.New("replacement document cannot contains keys beginning with '$")}
+	if firstElem, err := r.IndexErr(0); err == nil && strings.HasPrefix(firstElem.Key(), "$") {
+		return &SingleResult{err: errors.New("replacement document cannot contain keys beginning with '$'")}
 	}
 
-	sess := sessionFromContext(ctx)
-
-	err = coll.client.validSession(sess)
-	if err != nil {
-		return &SingleResult{err: err}
+	fo := options.MergeFindOneAndReplaceOptions(opts...)
+	op := operation.NewFindAndModify(f).Update(r)
+	if fo.BypassDocumentValidation != nil {
+		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
+	}
+	if fo.Collation != nil {
+		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
+	}
+	if fo.MaxTime != nil {
+		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
+	}
+	if fo.Projection != nil {
+		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Fields(proj)
+	}
+	if fo.ReturnDocument != nil {
+		op = op.NewDocument(*fo.ReturnDocument == options.After)
+	}
+	if fo.Sort != nil {
+		sort, err := transformBsoncoreDocument(coll.registry, fo.Sort)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Sort(sort)
+	}
+	if fo.Upsert != nil {
+		op = op.Upsert(*fo.Upsert)
 	}
 
-	wc := coll.writeConcern
-	if sess.TransactionRunning() {
-		wc = nil
-	}
-
-	oldns := coll.namespace()
-	cmd := command.FindOneAndReplace{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:        f,
-		Replacement:  r,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
-	}
-
-	res, err := driverlegacy.FindOneAndReplace(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.client.retryWrites,
-		coll.registry,
-		opts...,
-	)
-	if err != nil {
-		return &SingleResult{err: replaceErrors(err)}
-	}
-
-	if res.WriteConcernError != nil {
-		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
-	}
-
-	return &SingleResult{rdr: res.Value, reg: coll.registry}
+	return coll.findAndModify(ctx, op)
 }
 
 // FindOneAndUpdate finds a single document and updates it, returning either
@@ -1199,64 +1220,62 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-
-	u, err := transformDocument(coll.registry, update)
+	u, err := transformBsoncoreDocument(coll.registry, update)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-
-	err = ensureDollarKey(u)
+	err = ensureDollarKeyv2(u)
 	if err != nil {
 		return &SingleResult{
 			err: err,
 		}
 	}
 
-	sess := sessionFromContext(ctx)
+	fo := options.MergeFindOneAndUpdateOptions(opts...)
+	op := operation.NewFindAndModify(f).Update(u)
 
-	err = coll.client.validSession(sess)
-	if err != nil {
-		return &SingleResult{err: err}
+	if fo.ArrayFilters != nil {
+		filtersDoc, err := fo.ArrayFilters.ToArrayDocument()
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.ArrayFilters(bsoncore.Document(filtersDoc))
+	}
+	if fo.BypassDocumentValidation != nil {
+		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
+	}
+	if fo.Collation != nil {
+		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
+	}
+	if fo.MaxTime != nil {
+		op = op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
+	}
+	if fo.Projection != nil {
+		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Fields(proj)
+	}
+	if fo.ReturnDocument != nil {
+		op = op.NewDocument(*fo.ReturnDocument == options.After)
+	}
+	if fo.Sort != nil {
+		sort, err := transformBsoncoreDocument(coll.registry, fo.Sort)
+		if err != nil {
+			return &SingleResult{err: err}
+		}
+		op = op.Sort(sort)
+	}
+	if fo.Upsert != nil {
+		op = op.Upsert(*fo.Upsert)
 	}
 
-	wc := coll.writeConcern
-	if sess.TransactionRunning() {
-		wc = nil
-	}
-
-	oldns := coll.namespace()
-	cmd := command.FindOneAndUpdate{
-		NS:           command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Query:        f,
-		Update:       u,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
-	}
-
-	res, err := driverlegacy.FindOneAndUpdate(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.client.retryWrites,
-		coll.registry,
-		opts...,
-	)
-	if err != nil {
-		return &SingleResult{err: replaceErrors(err)}
-	}
-
-	if res.WriteConcernError != nil {
-		return &SingleResult{err: *convertWriteConcernError(res.WriteConcernError)}
-	}
-
-	return &SingleResult{rdr: res.Value, reg: coll.registry}
+	return coll.findAndModify(ctx, op)
 }
 
 // Watch returns a change stream cursor used to receive notifications of changes to the collection.
