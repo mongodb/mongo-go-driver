@@ -1,0 +1,90 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "a65a06e9_a02a51ce",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T18:52:51Z",
+      "side": 1,
+      "message": "\"arrayFilters\"",
+      "range": {
+        "startLine": 487,
+        "startChar": 0,
+        "endLine": 487,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3371cc38_6b0a2876",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T18:52:51Z",
+      "side": 1,
+      "message": "What are we going to do for bulkWrite, where there can be a mix of updateOne and updateMany requests?  \n\nI think it\u0027s best to ignore multi here, and let the operation figure out what to do.",
+      "range": {
+        "startLine": 542,
+        "startChar": 0,
+        "endLine": 542,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c75e1189_739629ec",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 584,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T18:52:51Z",
+      "side": 1,
+      "message": "v2?",
+      "range": {
+        "startLine": 584,
+        "startChar": 0,
+        "endLine": 584,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "defec069_3995d6af",
+        "filename": "mongo/options/mongooptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T18:52:51Z",
+      "side": 1,
+      "message": "It seems really low level for mongooptions to know what a BSON array looks like (the fact that it\u0027s just a BSON document with integral keys).  Why can\u0027t we continue to use ToArray?",
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
