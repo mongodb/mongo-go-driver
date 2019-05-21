@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8ed25e73_fad21989",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T18:41:22Z",
+      "side": 1,
+      "message": "This surprises me.  The operation layer should be abstracting the actual BSON document structure of the command, so the fact that we\u0027re including this as a BSON document is a strange thing to see here. So I was expecting some sort of DeleteRequest struct here. I suppose this would require some fairly substantial changes to drivergen?",
+      "range": {
+        "startLine": 410,
+        "startChar": 0,
+        "endLine": 410,
+        "endChar": 1
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1eb4d483_a4fb3b1d",
+        "filename": "mongo/mongo.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 200,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T18:41:22Z",
+      "side": 1,
+      "message": "Does this amount to the same thing?",
+      "range": {
+        "startLine": 200,
+        "startChar": 0,
+        "endLine": 200,
+        "endChar": 1
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "3ea8b4d6_3ef98c59",
+        "filename": "x/mongo/driver/operation/delete.toml",
+        "patchSetId": 2
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T18:41:22Z",
+      "side": 1,
+      "message": "successfully deleted, not inserted",
+      "range": {
+        "startLine": 38,
+        "startChar": 0,
+        "endLine": 38,
+        "endChar": 13
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
