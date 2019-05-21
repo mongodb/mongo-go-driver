@@ -54,7 +54,7 @@ func buildInsertResult(response bsoncore.Document, srvr driver.Server) (InsertRe
 
 		case "n":
 			var ok bool
-			ir.N, ok = element.Value().Int32OK()
+			ir.N, ok = element.Value().AsInt32OK()
 			if !ok {
 				err = fmt.Errorf("response field 'n' is type int32, but received BSON type %s", element.Value().Type)
 			}
