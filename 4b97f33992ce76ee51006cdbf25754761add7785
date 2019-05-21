@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "785ebbc9_a9c1f20a",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-21T19:44:53Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a65a06e9_a02a51ce",
+      "range": {
+        "startLine": 487,
+        "startChar": 0,
+        "endLine": 487,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3371cc38_6b0a2876",
         "filename": "mongo/collection.go",
         "patchSetId": 1
@@ -36,6 +60,30 @@
       "writtenOn": "2019-05-21T18:52:51Z",
       "side": 1,
       "message": "What are we going to do for bulkWrite, where there can be a mix of updateOne and updateMany requests?  \n\nI think it\u0027s best to ignore multi here, and let the operation figure out what to do.",
+      "range": {
+        "startLine": 542,
+        "startChar": 0,
+        "endLine": 542,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c307ca8d_2c8c238d",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-21T19:44:53Z",
+      "side": 1,
+      "message": "Operation and/or drivergen will have to change to support the bulkWrite behavior because right now, an Operation\u0027s retryability is considered fixed. The smallest change will probably be to allow the higher level to specify retryability at a per-command level rather than once for the whole Operation, in which case this code won\u0027t change much.",
+      "parentUuid": "3371cc38_6b0a2876",
       "range": {
         "startLine": 542,
         "startChar": 0,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "864f8c3b_c91f7152",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 584,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-21T19:44:53Z",
+      "side": 1,
+      "message": "While we\u0027re cutting over all of the operations, we can\u0027t cut over helpers like ensureDollarKey to use bsoncore.Document instead of bsonx.Doc because they\u0027re used in other places, so I made ensureDollarKeyv2 for bsoncore. The naming isn\u0027t great (maybe ensureDollarKeyBsoncore would be better) but it\u0027s a private function and will be removed as soon as everything\u0027s cut over.",
+      "parentUuid": "c75e1189_739629ec",
+      "range": {
+        "startLine": 584,
+        "startChar": 0,
+        "endLine": 584,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "defec069_3995d6af",
         "filename": "mongo/options/mongooptions.go",
         "patchSetId": 1
@@ -82,6 +154,24 @@
       "writtenOn": "2019-05-21T18:52:51Z",
       "side": 1,
       "message": "It seems really low level for mongooptions to know what a BSON array looks like (the fact that it\u0027s just a BSON document with integral keys).  Why can\u0027t we continue to use ToArray?",
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7932019e_bbfff6b4",
+        "filename": "mongo/options/mongooptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-21T19:44:53Z",
+      "side": 1,
+      "message": "mongo/ in general is going to have to move to bsoncore, which currently requires knowing this. I think bsoncore has a BuildArray(...bsoncore.Value) function but that would mean putting all of the values for the filters in a slice just to pass that slice to BuildArray, which seemed unnecessary. Maybe bsoncore will have to obtain helpers in the future that allow us to do this without knowing exactly what a BSON array is.",
+      "parentUuid": "defec069_3995d6af",
       "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
