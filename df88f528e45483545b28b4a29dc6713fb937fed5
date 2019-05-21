@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "8a025247_9d7b9c93",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T21:11:28Z",
+      "side": 1,
+      "message": "I\u0027m going to leave this open as I think it\u0027s a significant enough hole in drivergen that it should be fixed ASAP",
+      "parentUuid": "4a4fb4ed_b71a9f96",
+      "range": {
+        "startLine": 410,
+        "startChar": 0,
+        "endLine": 410,
+        "endChar": 1
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1eb4d483_a4fb3b1d",
         "filename": "mongo/mongo.go",
         "patchSetId": 2
