@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "c34ef6c0_b41a34d0",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 487,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T21:29:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "785ebbc9_a9c1f20a",
+      "range": {
+        "startLine": 487,
+        "startChar": 0,
+        "endLine": 487,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3371cc38_6b0a2876",
         "filename": "mongo/collection.go",
         "patchSetId": 1
@@ -84,6 +108,30 @@
       "side": 1,
       "message": "Operation and/or drivergen will have to change to support the bulkWrite behavior because right now, an Operation\u0027s retryability is considered fixed. The smallest change will probably be to allow the higher level to specify retryability at a per-command level rather than once for the whole Operation, in which case this code won\u0027t change much.",
       "parentUuid": "3371cc38_6b0a2876",
+      "range": {
+        "startLine": 542,
+        "startChar": 0,
+        "endLine": 542,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "da568ac3_61a10d0f",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T21:29:13Z",
+      "side": 1,
+      "message": "Leaving this open for now, since there is some follow-on work that has to be done.",
+      "parentUuid": "c307ca8d_2c8c238d",
       "range": {
         "startLine": 542,
         "startChar": 0,
@@ -143,6 +191,30 @@
     },
     {
       "key": {
+        "uuid": "8deea6bb_4c9eaaae",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 584,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T21:29:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "864f8c3b_c91f7152",
+      "range": {
+        "startLine": 584,
+        "startChar": 0,
+        "endLine": 584,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "defec069_3995d6af",
         "filename": "mongo/options/mongooptions.go",
         "patchSetId": 1
@@ -172,6 +244,24 @@
       "side": 1,
       "message": "mongo/ in general is going to have to move to bsoncore, which currently requires knowing this. I think bsoncore has a BuildArray(...bsoncore.Value) function but that would mean putting all of the values for the filters in a slice just to pass that slice to BuildArray, which seemed unnecessary. Maybe bsoncore will have to obtain helpers in the future that allow us to do this without knowing exactly what a BSON array is.",
       "parentUuid": "defec069_3995d6af",
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "1015962b_36228885",
+        "filename": "mongo/options/mongooptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1013848
+      },
+      "writtenOn": "2019-05-21T21:29:13Z",
+      "side": 1,
+      "message": "Leaving open as there may be follow-on work here that needs to be tracked",
+      "parentUuid": "7932019e_bbfff6b4",
       "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
