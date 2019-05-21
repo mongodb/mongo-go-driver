@@ -97,7 +97,7 @@ var commandParamStringTmpl = parseCommandParamTemplate(`if {{$.ShortName}}.{{$.N
 var responseFieldInt64Tmpl = parseTemplates(`
 	case "{{$.ResponseName}}":
 		var ok bool
-		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().Int64OK()
+		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().AsInt64OK()
 		if !ok {
 			err = fmt.Errorf("response field '{{$.ResponseName}}' is type int64, but received BSON type %s", element.Value().Type)
 		}
@@ -106,7 +106,7 @@ var responseFieldInt64Tmpl = parseTemplates(`
 var responseFieldInt32Tmpl = parseTemplates(`
 	case "{{$.ResponseName}}":
 		var ok bool
-		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().Int32OK()
+		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().AsInt32OK()
 		if !ok {
 			err = fmt.Errorf("response field '{{$.ResponseName}}' is type int32, but received BSON type %s", element.Value().Type)
 		}
