@@ -135,6 +135,15 @@ var responseFieldValueTmpl = parseTemplates(`
 		{{$.ResponseShortName}}.{{$.Field}} = element.Value()
 `)
 
+var responseFieldDocumentTmpl = parseTemplates(`
+	case "{{$.ResponseName}}":
+		var ok bool
+		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().DocumentOK()
+		if !ok {
+			err = fmt.Errorf("response field '{{$.ResponseName}}' is type document, but received BSON type %s", element.Value().Type)
+		}
+`)
+
 const typeTemplate string = `// Copyright (C) MongoDB, Inc. 2019-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may

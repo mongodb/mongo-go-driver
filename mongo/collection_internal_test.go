@@ -1949,9 +1949,12 @@ func TestCollection_FindOneAndDelete_WriteConcernError(t *testing.T) {
 	var result bsonx.Doc
 	err := coll.FindOneAndDelete(context.Background(), filter).Decode(&result)
 	require.Error(t, err)
-	_, ok := err.(WriteConcernError)
+	we, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("incorrect error type returned: %T", err)
+		t.Fatalf("incorrect error type returned: %T", err)
+	}
+	if we.WriteConcernError == nil {
+		t.Fatal("write concern error is nil")
 	}
 }
 
@@ -2040,9 +2043,12 @@ func TestCollection_FindOneAndReplace_WriteConcernError(t *testing.T) {
 	var result bsonx.Doc
 	err := coll.FindOneAndReplace(context.Background(), filter, replacement).Decode(&result)
 	require.Error(t, err)
-	writeErr, ok := err.(WriteConcernError)
+	we, ok := err.(WriteException)
 	if !ok {
-		t.Errorf("incorrect error type returned: %T", writeErr)
+		t.Fatalf("incorrect error type returned: %T", we)
+	}
+	if we.WriteConcernError == nil {
+		t.Fatal("expected write concern error but got nil")
 	}
 }
 
@@ -2137,8 +2143,13 @@ func TestCollection_FindOneAndUpdate_WriteConcernError(t *testing.T) {
 	var result bsonx.Doc
 	err := coll.FindOneAndUpdate(context.Background(), filter, update).Decode(&result)
 	require.Error(t, err)
-	if writeErr, ok := err.(WriteConcernError); !ok {
-		t.Errorf("incorrect error type returned: %T", writeErr)
+
+	we, ok := err.(WriteException)
+	if !ok {
+		t.Fatalf("incorrect error type returned: %T", we)
+	}
+	if we.WriteConcernError == nil {
+		t.Fatal("write concern error expected but got nil")
 	}
 }
 

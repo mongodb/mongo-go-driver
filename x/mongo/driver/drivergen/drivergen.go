@@ -672,6 +672,8 @@ func (r Response) BuildMethod() (string, error) {
 			tmpl = responseFieldStringTmpl
 		case "value":
 			tmpl = responseFieldValueTmpl
+		case "document":
+			tmpl = responseFieldDocumentTmpl
 		default:
 			return "", fmt.Errorf("unknown response field type %s", field.Type)
 		}
