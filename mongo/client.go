@@ -432,38 +432,46 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	sess := sessionFromContext(ctx)
 
 	err := c.validSession(sess)
+	if sess == nil && c.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(c.topology.SessionPool, c.id, session.Implicit)
+		if err != nil {
+			return ListDatabasesResult{}, err
+		}
+		defer sess.EndSession()
+	}
+
+	err = c.validSession(sess)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
 
-	f, err := transformDocument(c.registry, filter)
+	filterDoc, err := transformBsoncoreDocument(c.registry, filter)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
 
-	cmd := command.ListDatabases{
-		Filter:  f,
-		Session: sess,
-		Clock:   c.clock,
-	}
-
-	readSelector := description.CompositeSelector([]description.ServerSelector{
+	selector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(readpref.Primary()),
 		description.LatencySelector(c.localThreshold),
 	})
-	res, err := driverlegacy.ListDatabases(
-		ctx, cmd,
-		c.topology,
-		readSelector,
-		c.id,
-		c.topology.SessionPool,
-		opts...,
-	)
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
+	}
+
+	ldo := options.MergeListDatabasesOptions(opts...)
+	op := operation.NewListDatabases(filterDoc).
+		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
+		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.topology)
+	if ldo.NameOnly != nil {
+		op = op.NameOnly(*ldo.NameOnly)
+	}
+
+	err = op.Execute(ctx)
 	if err != nil {
 		return ListDatabasesResult{}, replaceErrors(err)
 	}
 
-	return (ListDatabasesResult{}).fromResult(res), nil
+	return newListDatabasesResultFromOperation(op.Result()), nil
 }
 
 // ListDatabaseNames returns a slice containing the names of all of the databases on the server.
