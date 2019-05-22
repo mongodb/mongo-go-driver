@@ -657,6 +657,8 @@ func (r Response) BuildMethod() (string, error) {
 			tmpl = responseFieldInt32Tmpl
 		case "int64":
 			tmpl = responseFieldInt64Tmpl
+		case "string":
+			tmpl = responseFieldStringTmpl
 		default:
 			return "", fmt.Errorf("unknown response field type %s", field.Type)
 		}
