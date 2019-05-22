@@ -11,14 +11,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
@@ -95,9 +99,11 @@ func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*op
 // created indexes are returned.
 func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ...*options.CreateIndexesOptions) ([]string, error) {
 	names := make([]string, 0, len(models))
-	indexes := bsonx.Arr{}
 
-	for _, model := range models {
+	var indexes bsoncore.Document
+	aidx, indexes := bsoncore.AppendArrayStart(indexes)
+
+	for i, model := range models {
 		if model.Keys == nil {
 			return nil, fmt.Errorf("index model keys cannot be nil")
 		}
@@ -109,46 +115,70 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 		names = append(names, name)
 
-		keys, err := transformDocument(iv.coll.registry, model.Keys)
+		keys, err := transformBsoncoreDocument(iv.coll.registry, model.Keys)
 		if err != nil {
 			return nil, err
 		}
-		index := bsonx.Doc{{"key", bsonx.Document(keys)}}
-		if model.Options != nil {
-			optsDoc, err := iv.createOptionsDoc(model.Options)
-			if err != nil {
-				return nil, err
-			}
 
-			index = append(index, optsDoc...)
+		var iidx int32
+		iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
+		indexes = bsoncore.AppendDocumentElement(indexes, "key", keys)
+
+		if model.Options == nil {
+			model.Options = options.Index()
 		}
-		index = index.Set("name", bsonx.String(name))
+		model.Options.SetName(name)
 
-		indexes = append(indexes, bsonx.Document(index))
+		optsDoc, err := iv.createOptionsDoc(model.Options)
+		if err != nil {
+			return nil, err
+		}
+
+		indexes = bsoncore.AppendDocument(indexes, optsDoc)
+
+		indexes, err = bsoncore.AppendDocumentEnd(indexes, iidx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	sess := sessionFromContext(ctx)
-
-	err := iv.coll.client.validSession(sess)
+	indexes, err := bsoncore.AppendArrayEnd(indexes, aidx)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := command.CreateIndexes{
-		NS:      iv.coll.namespace(),
-		Indexes: indexes,
-		Session: sess,
-		Clock:   iv.coll.client.clock,
+	sess := sessionFromContext(ctx)
+
+	if sess == nil && iv.coll.client.topology.SessionPool != nil {
+		sess, err = session.NewClientSession(iv.coll.client.topology.SessionPool, iv.coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+		defer sess.EndSession()
 	}
 
-	_, err = driverlegacy.CreateIndexes(
-		ctx, cmd,
-		iv.coll.client.topology,
-		iv.coll.writeSelector,
-		iv.coll.client.id,
-		iv.coll.client.topology.SessionPool,
-		opts...,
-	)
+	err = iv.coll.client.validSession(sess)
+	if err != nil {
+		return nil, err
+	}
+
+	selector := iv.coll.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
+	}
+
+	option := options.MergeCreateIndexesOptions(opts...)
+
+	op := operation.NewCreateIndexes(indexes).
+		Session(sess).ClusterClock(iv.coll.client.clock).
+		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
+		Deployment(iv.coll.client.topology).ServerSelector(selector)
+
+	if option.MaxTime != nil {
+		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
+	}
+
+	err = op.Execute(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -156,88 +186,84 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 	return names, nil
 }
 
-func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsonx.Doc, error) {
-	optsDoc := bsonx.Doc{}
+func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Document, error) {
+	optsDoc := bsoncore.Document{}
 	if opts.Background != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"background", bsonx.Boolean(*opts.Background)})
+		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "background", *opts.Background)
 	}
 	if opts.ExpireAfterSeconds != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"expireAfterSeconds", bsonx.Int32(*opts.ExpireAfterSeconds)})
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "expireAfterSeconds", *opts.ExpireAfterSeconds)
 	}
 	if opts.Name != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"name", bsonx.String(*opts.Name)})
+		optsDoc = bsoncore.AppendStringElement(optsDoc, "name", *opts.Name)
 	}
 	if opts.Sparse != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"sparse", bsonx.Boolean(*opts.Sparse)})
+		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "sparse", *opts.Sparse)
 	}
 	if opts.StorageEngine != nil {
-		doc, err := transformDocument(iv.coll.registry, opts.StorageEngine)
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.StorageEngine)
 		if err != nil {
 			return nil, err
 		}
 
-		optsDoc = append(optsDoc, bsonx.Elem{"storageEngine", bsonx.Document(doc)})
+		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "storageEngine", doc)
 	}
 	if opts.Unique != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"unique", bsonx.Boolean(*opts.Unique)})
+		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "unique", *opts.Unique)
 	}
 	if opts.Version != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"v", bsonx.Int32(*opts.Version)})
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "v", *opts.Version)
 	}
 	if opts.DefaultLanguage != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"default_language", bsonx.String(*opts.DefaultLanguage)})
+		optsDoc = bsoncore.AppendStringElement(optsDoc, "default_language", *opts.DefaultLanguage)
 	}
 	if opts.LanguageOverride != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"language_override", bsonx.String(*opts.LanguageOverride)})
+		optsDoc = bsoncore.AppendStringElement(optsDoc, "language_override", *opts.LanguageOverride)
 	}
 	if opts.TextVersion != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"textIndexVersion", bsonx.Int32(*opts.TextVersion)})
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "textIndexVersion", *opts.TextVersion)
 	}
 	if opts.Weights != nil {
-		weightsDoc, err := transformDocument(iv.coll.registry, opts.Weights)
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.Weights)
 		if err != nil {
 			return nil, err
 		}
 
-		optsDoc = append(optsDoc, bsonx.Elem{"weights", bsonx.Document(weightsDoc)})
+		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "weights", doc)
 	}
 	if opts.SphereVersion != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"2dsphereIndexVersion", bsonx.Int32(*opts.SphereVersion)})
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "2dsphereIndexVersion", *opts.SphereVersion)
 	}
 	if opts.Bits != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"bits", bsonx.Int32(*opts.Bits)})
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "bits", *opts.Bits)
 	}
 	if opts.Max != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"max", bsonx.Double(*opts.Max)})
+		optsDoc = bsoncore.AppendDoubleElement(optsDoc, "max", *opts.Max)
 	}
 	if opts.Min != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"min", bsonx.Double(*opts.Min)})
+		optsDoc = bsoncore.AppendDoubleElement(optsDoc, "min", *opts.Min)
 	}
 	if opts.BucketSize != nil {
-		optsDoc = append(optsDoc, bsonx.Elem{"bucketSize", bsonx.Int32(*opts.BucketSize)})
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "bucketSize", *opts.BucketSize)
 	}
 	if opts.PartialFilterExpression != nil {
-		doc, err := transformDocument(iv.coll.registry, opts.PartialFilterExpression)
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.PartialFilterExpression)
 		if err != nil {
 			return nil, err
 		}
 
-		optsDoc = append(optsDoc, bsonx.Elem{"partialFilterExpression", bsonx.Document(doc)})
+		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "partialFilterExpression", doc)
 	}
 	if opts.Collation != nil {
-		collDoc, err := bsonx.ReadDoc(opts.Collation.ToDocument())
-		if err != nil {
-			return nil, err
-		}
-		optsDoc = append(optsDoc, bsonx.Elem{"collation", bsonx.Document(collDoc)})
+		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "collation", bsoncore.Document(opts.Collation.ToDocument()))
 	}
 	if opts.WildcardProjection != nil {
-		projDoc, err := transformDocument(iv.coll.registry, opts.WildcardProjection)
+		doc, err := transformBsoncoreDocument(iv.coll.registry, opts.WildcardProjection)
 		if err != nil {
 			return nil, err
 		}
 
-		optsDoc = append(optsDoc, bsonx.Elem{"wildcardProjection", bsonx.Document(projDoc)})
+		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "wildcardProjection", doc)
 	}
 
 	return optsDoc, nil

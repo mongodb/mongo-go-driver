@@ -600,6 +600,16 @@ type ResponseField struct {
 	Documentation string
 }
 
+// DeclarationType returns the field's type for use in a struct type declaration.
+func (rf ResponseField) DeclarationType() string {
+	switch rf.Type {
+	case "boolean":
+		return "bool"
+	default:
+		return rf.Type
+	}
+}
+
 // BuiltinResponseType is the type used to define built in response types.
 type BuiltinResponseType string
 
@@ -615,6 +625,8 @@ func (r Response) BuildMethod() (string, error) {
 	for name, field := range r.Field {
 		var tmpl *template.Template
 		switch field.Type {
+		case "boolean":
+			tmpl = responseFieldBooleanTmpl
 		case "int32":
 			tmpl = responseFieldInt32Tmpl
 		case "int64":
