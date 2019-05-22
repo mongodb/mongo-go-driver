@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "a87b099d_ba2111bf",
+        "filename": "x/mongo/driver/drivergen/templates.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 95,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-05-22T19:36:31Z",
+      "side": 1,
+      "message": "It sometimes gets Float64s for element.Value(), which do not count for Int64OK().",
+      "parentUuid": "022199e1_6da14f96",
+      "range": {
+        "startLine": 95,
+        "startChar": 0,
+        "endLine": 95,
+        "endChar": 1
+      },
+      "revId": "ef0f33dfc860f84eafa3ef0944372de9882c0222",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "4178a9df_e40b62d9",
         "filename": "x/mongo/driver/operation/listDatabases.go",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2019-05-21T21:10:04Z",
       "side": 1,
       "message": "I gather this part is handwritten?  I don\u0027t see anything like it in the .toml file. If so, we need a way to track any handwritten portions of the generated code.  Perhaps a TODO comment plus a Jira ticket?",
+      "range": {
+        "startLine": 102,
+        "startChar": 1,
+        "endLine": 102,
+        "endChar": 2
+      },
+      "revId": "ef0f33dfc860f84eafa3ef0944372de9882c0222",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b0ecc5ed_a17e5592",
+        "filename": "x/mongo/driver/operation/listDatabases.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-05-22T19:36:31Z",
+      "side": 1,
+      "message": "I filed GODRIVER-1077 for us to figure out how we want to handle array results.",
+      "parentUuid": "4178a9df_e40b62d9",
       "range": {
         "startLine": 102,
         "startChar": 1,
@@ -71,6 +119,30 @@
     },
     {
       "key": {
+        "uuid": "fc471c4a_6f940326",
+        "filename": "x/mongo/driver/operation/listDatabases.toml",
+        "patchSetId": 2
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-05-22T19:36:31Z",
+      "side": 1,
+      "message": "The way the codegen works it needs parameter to be set even if database \u003d true is enabled and we\u0027re not using the parameter. Divjot added something to fix it in his GODRIVER-1065 patch",
+      "parentUuid": "be265174_50495062",
+      "range": {
+        "startLine": 11,
+        "startChar": 0,
+        "endLine": 11,
+        "endChar": 9
+      },
+      "revId": "ef0f33dfc860f84eafa3ef0944372de9882c0222",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "ad9e5153_62e8df25",
         "filename": "x/mongo/driver/operation/listDatabases.toml",
         "patchSetId": 2
@@ -82,6 +154,30 @@
       "writtenOn": "2019-05-21T21:10:04Z",
       "side": 1,
       "message": "Isn\u0027t filter optional?  If so, should it be a constructor param?",
+      "range": {
+        "startLine": 16,
+        "startChar": 0,
+        "endLine": 16,
+        "endChar": 11
+      },
+      "revId": "ef0f33dfc860f84eafa3ef0944372de9882c0222",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "79b38f8a_7917a396",
+        "filename": "x/mongo/driver/operation/listDatabases.toml",
+        "patchSetId": 2
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1015311
+      },
+      "writtenOn": "2019-05-22T19:36:31Z",
+      "side": 1,
+      "message": "client.ListDatabases() requires a filter to be passed.",
+      "parentUuid": "ad9e5153_62e8df25",
       "range": {
         "startLine": 16,
         "startChar": 0,
