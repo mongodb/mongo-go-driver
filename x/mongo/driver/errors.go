@@ -214,6 +214,11 @@ func (e Error) NotMaster() bool {
 	return strings.Contains(e.Message, "not master")
 }
 
+// NamespaceNotFound returns true if this errors is a NamespaceNotFound error.
+func (e Error) NamespaceNotFound() bool {
+	return e.Code == 26
+}
+
 // helper method to extract an error from a reader if there is one; first returned item is the
 // error if it exists, the second holds parsing errors
 func extractError(rdr bsoncore.Document) error {

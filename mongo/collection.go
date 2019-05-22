@@ -1253,6 +1253,14 @@ func (coll *Collection) Drop(ctx context.Context) error {
 	}
 
 	sess := sessionFromContext(ctx)
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		var err error
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return err
+		}
+		defer sess.EndSession()
+	}
 
 	err := coll.client.validSession(sess)
 	if err != nil {
@@ -1263,22 +1271,25 @@ func (coll *Collection) Drop(ctx context.Context) error {
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-
-	cmd := command.DropCollection{
-		DB:           coll.db.name,
-		Collection:   coll.name,
-		WriteConcern: wc,
-		Session:      sess,
-		Clock:        coll.client.clock,
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
 	}
-	_, err = driverlegacy.DropCollection(
-		ctx, cmd,
-		coll.client.topology,
-		coll.writeSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-	)
-	if err != nil && !command.IsNotFound(err) {
+
+	selector := coll.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
+	}
+
+	op := operation.NewDropCollection().
+		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
+		ServerSelector(selector).ClusterClock(coll.client.clock).
+		Database(coll.db.name).Collection(coll.name).
+		Deployment(coll.client.topology)
+	err = op.Execute(ctx)
+
+	// ignore namespace not found erorrs
+	driverErr, ok := err.(driver.Error)
+	if !ok || (ok && !driverErr.NamespaceNotFound()) {
 		return replaceErrors(err)
 	}
 	return nil
