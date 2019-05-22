@@ -107,6 +107,15 @@ var responseFieldInt32Tmpl = parseTemplates(`
 		}
 `)
 
+var responseFieldBooleanTmpl = parseTemplates(`
+	case "{{$.ResponseName}}":
+		var ok bool
+		{{$.ResponseShortName}}.{{$.Field}}, ok = element.Value().BooleanOK()
+		if !ok {
+			err = fmt.Errorf("response field '{{$.ResponseName}}' is type bool, but received BSON type %s", element.Value().Type)
+		}
+`)
+
 const typeTemplate string = `// Copyright (C) MongoDB, Inc. 2019-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -131,7 +140,7 @@ type {{$.Name}} struct {
 {{if $.Response.Name}}
 type {{$.Response.Name}} struct {
 {{range $name, $field := $.Response.Field}}// {{$field.Documentation}}
-	{{$.Title $name}} {{$field.Type}}
+	{{$.Title $name}} {{$field.DeclarationType}}
 {{end}}
 }
 
