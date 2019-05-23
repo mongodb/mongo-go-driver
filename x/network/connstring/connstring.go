@@ -26,7 +26,7 @@ func Parse(s string) (ConnString, error) {
 	var p parser
 	err := p.parse(s)
 	if err != nil {
-		err = internal.WrapErrorf(err, "error parsing uri (%s)", s)
+		err = internal.WrapErrorf(err, "error parsing uri")
 	}
 	return p.ConnString, err
 }

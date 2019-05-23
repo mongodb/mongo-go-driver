@@ -28,7 +28,7 @@ func TestClientOptions(t *testing.T) {
 	t.Run("ApplyURI/doesn't overwrite previous errors", func(t *testing.T) {
 		uri := "not-mongo-db-uri://"
 		want := internal.WrapErrorf(
-			errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri (%s)", "not-mongo-db-uri://",
+			errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
 		)
 		co := Client().ApplyURI(uri).ApplyURI("mongodb://localhost/")
 		got := co.Validate()
@@ -177,7 +177,7 @@ func TestClientOptions(t *testing.T) {
 				"ParseError",
 				"not-mongo-db-uri://",
 				&ClientOptions{err: internal.WrapErrorf(
-					errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri (%s)", "not-mongo-db-uri://",
+					errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
 				)},
 			},
 			{
