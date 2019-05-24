@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -1760,6 +1761,35 @@ func TestCollection_Find_NegativeLimit(t *testing.T) {
 		numDocs++
 	}
 	require.Equal(t, 2, numDocs)
+}
+
+func TestCollection_FindOne_LimitSet(t *testing.T) {
+	client := createMonitoredClient(t, monitor)
+	coll := client.Database("FindOneLimitDB").Collection("FindOneLimitColl")
+	defer func() {
+		_ = coll.Drop(ctx)
+	}()
+	drainChannels()
+
+	res := coll.FindOne(ctx, bson.D{})
+	if err := res.Err(); err != nil {
+		t.Fatalf("FindOne error: %v", err)
+	}
+
+	var started *event.CommandStartedEvent
+	select {
+	case started = <-startedChan:
+	default:
+		t.Fatalf("expected a CommandStartedEvent but none found")
+	}
+
+	limitVal, err := started.Command.LookupErr("limit")
+	if err != nil {
+		t.Fatal("no limit sent")
+	}
+	if limit := limitVal.Int64(); limit != 1 {
+		t.Fatalf("limit mismatch; expected %d, got %d", 1, limit)
+	}
 }
 
 func TestCollection_FindOne_found(t *testing.T) {
