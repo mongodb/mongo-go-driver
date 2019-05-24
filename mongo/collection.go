@@ -920,15 +920,23 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	f, err := transformDocument(coll.registry, filter)
+	f, err := transformBsoncoreDocument(coll.registry, filter)
 	if err != nil {
 		return nil, err
 	}
 
 	sess := sessionFromContext(ctx)
+	if sess == nil && coll.client.topology.SessionPool != nil {
+		var err error
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	err = coll.client.validSession(sess)
 	if err != nil {
+		closeImplicitSession(sess)
 		return nil, err
 	}
 
@@ -937,31 +945,129 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	oldns := coll.namespace()
-	cmd := command.Find{
-		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Filter:      f,
-		ReadPref:    coll.readPreference,
-		ReadConcern: rc,
-		Session:     sess,
-		Clock:       coll.client.clock,
+	selector := coll.writeSelector
+	if sess != nil && sess.PinnedServer != nil {
+		selector = sess.PinnedServer
 	}
 
-	batchCursor, err := driverlegacy.Find(
-		ctx, cmd,
-		coll.client.topology,
-		coll.readSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.registry,
-		opts...,
-	)
-	if err != nil {
+	op := operation.NewFind(f).
+		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
+		CommandMonitor(coll.client.monitor).ServerSelector(selector).
+		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
+		Deployment(coll.client.topology)
+
+	fo := options.MergeFindOptions(opts...)
+	cursorOpts := driver.CursorOptions{
+		CommandMonitor: coll.client.monitor,
+	}
+
+	if fo.AllowPartialResults != nil {
+		op.AllowPartialResults(*fo.AllowPartialResults)
+	}
+	if fo.BatchSize != nil {
+		cursorOpts.BatchSize = *fo.BatchSize
+		op.BatchSize(*fo.BatchSize)
+	}
+	if fo.Collation != nil {
+		op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
+	}
+	if fo.Comment != nil {
+		op.Comment(*fo.Comment)
+	}
+	if fo.CursorType != nil {
+		switch *fo.CursorType {
+		case options.Tailable:
+			op.Tailable(true)
+		case options.TailableAwait:
+			op.Tailable(true)
+			op.AwaitData(true)
+		}
+	}
+	if fo.Hint != nil {
+		hint, err := transformValue(coll.registry, fo.Hint)
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Hint(hint)
+	}
+	if fo.Limit != nil {
+		limit := *fo.Limit
+		if limit < 0 {
+			limit = -1 * limit
+			op.SingleBatch(true)
+		}
+		cursorOpts.Limit = int32(limit)
+		op.Limit(limit)
+	}
+	if fo.Max != nil {
+		max, err := transformBsoncoreDocument(coll.registry, fo.Max)
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Max(max)
+	}
+	if fo.MaxAwaitTime != nil {
+		cursorOpts.MaxTimeMS = int64(*fo.MaxAwaitTime / time.Millisecond)
+	}
+	if fo.MaxTime != nil {
+		op.MaxTimeMS(int64(*fo.MaxTime / time.Millisecond))
+	}
+	if fo.Min != nil {
+		min, err := transformBsoncoreDocument(coll.registry, fo.Min)
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Min(min)
+	}
+	if fo.NoCursorTimeout != nil {
+		op.NoCursorTimeout(*fo.NoCursorTimeout)
+	}
+	if fo.OplogReplay != nil {
+		op.OplogReplay(*fo.OplogReplay)
+	}
+	if fo.Projection != nil {
+		proj, err := transformBsoncoreDocument(coll.registry, fo.Projection)
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Projection(proj)
+	}
+	if fo.ReturnKey != nil {
+		op.ReturnKey(*fo.ReturnKey)
+	}
+	if fo.ShowRecordID != nil {
+		op.ShowRecordId(*fo.ShowRecordID)
+	}
+	if fo.Skip != nil {
+		op.Skip(*fo.Skip)
+	}
+	if fo.Snapshot != nil {
+		op.Snapshot(*fo.Snapshot)
+	}
+	if fo.Sort != nil {
+		sort, err := transformBsoncoreDocument(coll.registry, fo.Sort)
+		if err != nil {
+			closeImplicitSession(sess)
+			return nil, err
+		}
+		op.Sort(sort)
+	}
+
+	if err = op.Execute(ctx); err != nil {
+		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
 
-	cursor, err := newCursor(batchCursor, coll.registry)
-	return cursor, replaceErrors(err)
+	bc, err := op.Result(cursorOpts)
+	if err != nil {
+		closeImplicitSession(sess)
+		return nil, replaceErrors(err)
+	}
+	return newCursorWithSession(bc, coll.registry, sess)
 }
 
 // FindOne returns up to one document that matches the model.
@@ -970,33 +1076,6 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 
 	if ctx == nil {
 		ctx = context.Background()
-	}
-
-	f, err := transformDocument(coll.registry, filter)
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-
-	sess := sessionFromContext(ctx)
-
-	err = coll.client.validSession(sess)
-	if err != nil {
-		return &SingleResult{err: err}
-	}
-
-	rc := coll.readConcern
-	if sess.TransactionRunning() {
-		rc = nil
-	}
-
-	oldns := coll.namespace()
-	cmd := command.Find{
-		NS:          command.Namespace{DB: oldns.DB, Collection: oldns.Collection},
-		Filter:      f,
-		ReadPref:    coll.readPreference,
-		ReadConcern: rc,
-		Session:     sess,
-		Clock:       coll.client.clock,
 	}
 
 	findOpts := make([]*options.FindOptions, len(opts))
@@ -1021,21 +1100,11 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 			Sort:                opt.Sort,
 		}
 	}
+	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
+	// by the server.
+	findOpts = append(findOpts, options.Find().SetLimit(-1))
 
-	batchCursor, err := driverlegacy.Find(
-		ctx, cmd,
-		coll.client.topology,
-		coll.readSelector,
-		coll.client.id,
-		coll.client.topology.SessionPool,
-		coll.registry,
-		findOpts...,
-	)
-	if err != nil {
-		return &SingleResult{err: replaceErrors(err)}
-	}
-
-	cursor, err := newCursor(batchCursor, coll.registry)
+	cursor, err := coll.Find(ctx, filter, findOpts...)
 	return &SingleResult{cur: cursor, reg: coll.registry, err: replaceErrors(err)}
 }
 

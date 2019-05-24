@@ -648,7 +648,6 @@ func (op Operation) upconvertCursorResponse(wm []byte, batchIdentifier string, c
 	}
 
 	cursorIdx, cursorDoc := bsoncore.AppendDocumentStart(nil)
-
 	// convert reply documents to BSON array
 	var arrIdx int32
 	arrIdx, cursorDoc = bsoncore.AppendArrayElementStart(cursorDoc, batchIdentifier)
@@ -662,6 +661,7 @@ func (op Operation) upconvertCursorResponse(wm []byte, batchIdentifier string, c
 	cursorDoc, _ = bsoncore.AppendDocumentEnd(cursorDoc, cursorIdx)
 
 	resIdx, resDoc := bsoncore.AppendDocumentStart(nil)
+	resDoc = bsoncore.AppendInt32Element(resDoc, "ok", 1)
 	resDoc = bsoncore.AppendDocumentElement(resDoc, "cursor", cursorDoc)
 	resDoc, _ = bsoncore.AppendDocumentEnd(resDoc, resIdx)
 
