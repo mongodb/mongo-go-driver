@@ -190,24 +190,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
-	if bc.server == nil {
-		return nil
-	}
-
-	err := Operation{
-		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
-			dst = bsoncore.AppendStringElement(dst, "killCursors", bc.collection)
-			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsontype.Int64, Data: bsoncore.AppendInt64(nil, bc.id)})
-			return dst, nil
-		},
-		Database:       bc.database,
-		Deployment:     SingleServerDeployment{Server: bc.server},
-		Client:         bc.clientSession,
-		Clock:          bc.clock,
-		Legacy:         LegacyGetMore,
-		CommandMonitor: bc.cmdMonitor,
-	}.Execute(ctx, nil)
-
+	err := bc.killCursor(ctx)
 	bc.id = 0
 	bc.currentBatch.Data = nil
 	bc.currentBatch.Style = 0
@@ -223,6 +206,26 @@ func (bc *BatchCursor) Server() Server {
 
 func (bc *BatchCursor) clearBatch() {
 	bc.currentBatch.Data = bc.currentBatch.Data[:0]
+}
+
+func (bc *BatchCursor) killCursor(ctx context.Context) error {
+	if bc.server == nil {
+		return nil
+	}
+
+	return Operation{
+		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+			dst = bsoncore.AppendStringElement(dst, "killCursors", bc.collection)
+			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsontype.Int64, Data: bsoncore.AppendInt64(nil, bc.id)})
+			return dst, nil
+		},
+		Database:       bc.database,
+		Deployment:     SingleServerDeployment{Server: bc.server},
+		Client:         bc.clientSession,
+		Clock:          bc.clock,
+		Legacy:         LegacyKillCursors,
+		CommandMonitor: bc.cmdMonitor,
+	}.Execute(ctx, nil)
 }
 
 func (bc *BatchCursor) getMore(ctx context.Context) {
@@ -248,8 +251,8 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 			dst = bsoncore.AppendInt64Element(dst, "getMore", bc.id)
 			dst = bsoncore.AppendStringElement(dst, "collection", bc.collection)
-			if bc.batchSize > 0 {
-				dst = bsoncore.AppendInt32Element(dst, "batchSize", bc.batchSize)
+			if numToReturn > 0 {
+				dst = bsoncore.AppendInt32Element(dst, "batchSize", numToReturn)
 			}
 			if bc.maxTimeMS > 0 {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
@@ -283,7 +286,8 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 
 	// Required for legacy operations which don't support limit.
 	if bc.limit != 0 && bc.numReturned >= bc.limit {
-		err := bc.Close(ctx)
+		// call killCursor instead of Close because Close will clear out the data for the current batch.
+		err := bc.killCursor(ctx)
 		if err != nil && bc.err == nil {
 			bc.err = err
 		}

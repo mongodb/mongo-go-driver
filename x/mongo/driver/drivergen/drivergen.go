@@ -202,6 +202,9 @@ func (op Operation) CommandMethod() (string, error) {
 		rf.ShortName = op.ShortName()
 		rf.Name = name
 		rf.ParameterName = name
+		if field.KeyName != "" {
+			rf.ParameterName = field.KeyName
+		}
 		rf.MinWireVersion = field.MinWireVersion
 		rf.MinWireVersionRequired = field.MinWireVersionRequired
 		err := tmpl.Execute(&buf, rf)
@@ -533,6 +536,7 @@ type RequestField struct {
 	Documentation          string
 	MinWireVersion         int
 	MinWireVersionRequired int
+	KeyName                string
 }
 
 // Command returns a string function that sets the key to name and value to the RequestField type.

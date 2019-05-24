@@ -26,7 +26,7 @@ import (
 type Find struct {
 	allowPartialResults *bool
 	awaitData           *bool
-	batchSize           *int64
+	batchSize           *int32
 	collation           bsoncore.Document
 	comment             *string
 	filter              bsoncore.Document
@@ -42,6 +42,7 @@ type Find struct {
 	showRecordID        *bool
 	singleBatch         *bool
 	skip                *int64
+	snapshot            *bool
 	sort                bsoncore.Document
 	tailable            *bool
 	session             *session.Client
@@ -116,7 +117,7 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 	}
 	if f.batchSize != nil {
 
-		dst = bsoncore.AppendInt64Element(dst, "batchSize", *f.batchSize)
+		dst = bsoncore.AppendInt32Element(dst, "batchSize", *f.batchSize)
 	}
 	if f.collation != nil {
 
@@ -171,7 +172,7 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 	}
 	if f.showRecordID != nil {
 
-		dst = bsoncore.AppendBooleanElement(dst, "showRecordID", *f.showRecordID)
+		dst = bsoncore.AppendBooleanElement(dst, "showRecordId", *f.showRecordID)
 	}
 	if f.singleBatch != nil {
 
@@ -180,6 +181,10 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 	if f.skip != nil {
 
 		dst = bsoncore.AppendInt64Element(dst, "skip", *f.skip)
+	}
+	if f.snapshot != nil {
+
+		dst = bsoncore.AppendBooleanElement(dst, "snapshot", *f.snapshot)
 	}
 	if f.sort != nil {
 
@@ -214,7 +219,7 @@ func (f *Find) AwaitData(awaitData bool) *Find {
 }
 
 // BatchSize specifies the number of documents to return in every batch.
-func (f *Find) BatchSize(batchSize int64) *Find {
+func (f *Find) BatchSize(batchSize int32) *Find {
 	if f == nil {
 		f = new(Find)
 	}
@@ -370,6 +375,16 @@ func (f *Find) Skip(skip int64) *Find {
 	}
 
 	f.skip = &skip
+	return f
+}
+
+// Snapshot prevents the cursor from returning a document more than once because of an intervening write operation.
+func (f *Find) Snapshot(snapshot bool) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.snapshot = &snapshot
 	return f
 }
 

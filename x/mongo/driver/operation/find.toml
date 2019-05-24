@@ -37,7 +37,7 @@ type = "int64"
 documentation = "Limit sets a limit on the number of documents to return."
 
 [request.batchSize]
-type = "int64"
+type = "int32"
 documentation = "BatchSize specifies the number of documents to return in every batch."
 
 [request.singleBatch]
@@ -67,6 +67,7 @@ documentation = "ReturnKey when true returns index keys for all result documents
 [request.showRecordID]
 type = "boolean"
 documentation = "ShowRecordID when true adds a $recordId field with the record identifier to returned documents."
+keyName = "showRecordId"
 
 [request.oplogReplay]
 type = "boolean"
@@ -92,3 +93,7 @@ documentation = "AllowPartialResults when true allows partial results to be retu
 type = "document"
 minWireVersionRequired = 5
 documentation = "Collation specifies a collation to be used."
+
+[request.snapshot]
+type = "boolean"
+documentation = "Snapshot prevents the cursor from returning a document more than once because of an intervening write operation."
