@@ -192,6 +192,13 @@ func pbrtSupported(t *testing.T) bool {
 	return compareVersions(t, version, "4.0.7") >= 0
 }
 
+func versionSupported(t *testing.T, minVersion string) bool {
+	version, err := getServerVersion(createTestDatabase(t, nil))
+	testhelpers.RequireNil(t, err, "error getting server version: %v", err)
+
+	return compareVersions(t, version, minVersion) >= 0
+}
+
 func TestChangeStream(t *testing.T) {
 	skipIfBelow36(t)
 
@@ -255,6 +262,9 @@ func TestChangeStream(t *testing.T) {
 		changes, err := coll.Watch(context.Background(), pipeline)
 		require.NoError(t, err)
 		defer changes.Close(ctx)
+
+		_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(4)}})
+		require.NoError(t, err)
 
 		_, err = coll.InsertOne(context.Background(), bsonx.Doc{{"x", bsonx.Int32(4)}})
 		require.NoError(t, err)
@@ -353,6 +363,8 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		coll.writeConcern = wcMajority
 		_, err := coll.InsertOne(ctx, doc1)
+		testhelpers.RequireNil(t, err, "error running insertOne: %s", err)
+		_, err = coll.InsertOne(ctx, doc1)
 		testhelpers.RequireNil(t, err, "error running insertOne: %s", err)
 
 		// Next should set the change stream error and return false if a document is missing the resume token
@@ -743,13 +755,17 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 					name                 string
 					opts                 *options.ChangeStreamOptions
 					expectedInitialToken bson.Raw
+					minServerVersion     string
 				}{
-					{"startAfter", options.ChangeStream().SetStartAfter(token), token},
-					{"resumeAfter", options.ChangeStream().SetResumeAfter(token), token},
-					{"neither", options.ChangeStream().SetStartAtOperationTime(&opTime), nil},
+					{"startAfter", options.ChangeStream().SetStartAfter(token), token, "4.1.1"},
+					{"resumeAfter", options.ChangeStream().SetResumeAfter(token), token, "4.0.7"},
+					{"neither", options.ChangeStream().SetStartAtOperationTime(&opTime), nil, "4.0.7"},
 				}
 				for _, tc := range cases {
 					t.Run(tc.name, func(t *testing.T) {
+						if !versionSupported(t, tc.minServerVersion) {
+							t.Skip("skipping for older server verions")
+						}
 						drainChannels()
 						stream, err := coll.Watch(ctx, Pipeline{}, tc.opts)
 						testhelpers.RequireNil(t, err, "error restarting stream: %v", err)

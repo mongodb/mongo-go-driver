@@ -34,7 +34,10 @@ func createTestDatabase(t *testing.T, name *string, opts ...*options.DatabaseOpt
 	}
 
 	client := createTestClient(t)
-	return client.Database(*name, opts...)
+
+	dbOpts := []*options.DatabaseOptions{options.Database().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))}
+	dbOpts = append(dbOpts, opts...)
+	return client.Database(*name, dbOpts...)
 }
 
 func TestDatabase_initialize(t *testing.T) {

@@ -40,8 +40,14 @@ func createTestCollection(t *testing.T, dbName *string, collName *string, opts .
 	}
 
 	db := createTestDatabase(t, dbName)
+	db.RunCommand(
+		context.Background(),
+		bsonx.Doc{{"create", bsonx.String(*collName)}},
+	)
 
-	return db.Collection(*collName, opts...)
+	collOpts := []*options.CollectionOptions{options.Collection().SetWriteConcern(writeconcern.New(writeconcern.WMajority()))}
+	collOpts = append(collOpts, opts...)
+	return db.Collection(*collName, collOpts...)
 }
 
 func skipIfBelow34(t *testing.T, db *Database) {
