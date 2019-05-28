@@ -97,6 +97,30 @@
     },
     {
       "key": {
+        "uuid": "d843b300_4f58d6d4",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-28T19:05:18Z",
+      "side": 1,
+      "message": "Update has a similar issue because upsert, multi, collation, and arrayFilters are included on each update document rather than on the command, so I don\u0027t think a special \"DeleteParameter\" type is the right way to go. Maybe we could add an option to request fields in drivergen to specify that they should be on each document in the batch? There\u0027s also the issue that the BSON key for the filter is \"q\", not \"filter\" so there will be some other changes to drivergen as well.",
+      "parentUuid": "ffc66d48_4e80b8c7",
+      "range": {
+        "startLine": 410,
+        "startChar": 0,
+        "endLine": 410,
+        "endChar": 1
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1eb4d483_a4fb3b1d",
         "filename": "mongo/mongo.go",
         "patchSetId": 2
