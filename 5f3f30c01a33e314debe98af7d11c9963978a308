@@ -22,6 +22,30 @@
       "revId": "5f3f30c01a33e314debe98af7d11c9963978a308",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "769f1ea7_5d48954a",
+        "filename": "x/mongo/driver/operation/find.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-28T19:01:19Z",
+      "side": 1,
+      "message": "Yes. Maybe for a future revision, drivergen could allow optionally specifying the BSON key for an option.",
+      "parentUuid": "d535a073_43ac8e10",
+      "range": {
+        "startLine": 67,
+        "startChar": 20,
+        "endLine": 67,
+        "endChar": 21
+      },
+      "revId": "5f3f30c01a33e314debe98af7d11c9963978a308",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
