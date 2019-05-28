@@ -144,6 +144,30 @@
     },
     {
       "key": {
+        "uuid": "81a9558d_4eec04fe",
+        "filename": "mongo/collection.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 542,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-28T18:11:48Z",
+      "side": 1,
+      "message": "We control the splitting of operations, so wouldn\u0027t we just have updateOne and updateMany requests in two different operations? The driver.Operation type really shouldn\u0027t be looking inside the command document structure to figure out what it should be doing.",
+      "parentUuid": "da568ac3_61a10d0f",
+      "range": {
+        "startLine": 542,
+        "startChar": 0,
+        "endLine": 542,
+        "endChar": 1
+      },
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c75e1189_739629ec",
         "filename": "mongo/collection.go",
         "patchSetId": 1
@@ -262,6 +286,24 @@
       "side": 1,
       "message": "Leaving open as there may be follow-on work here that needs to be tracked",
       "parentUuid": "7932019e_bbfff6b4",
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "a745917c_0d83f92b",
+        "filename": "mongo/options/mongooptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-28T18:11:48Z",
+      "side": 1,
+      "message": "This might be another thing we have to change in the design of drivergen, how it handles arrays. I think we could have it take a []bsoncore.Value which can then be turned into an array during serialization.",
+      "parentUuid": "1015962b_36228885",
       "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
