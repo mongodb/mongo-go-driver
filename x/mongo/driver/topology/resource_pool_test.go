@@ -53,12 +53,15 @@ func (ec *expiredCounter) close(_ interface{}) {
 }
 
 func initPool(startingSize, maxSize uint64, expFn expiredFunc, closeFn closeFunc, pruneInterval time.Duration) *resourcePool {
-	rp := newResourcePool(maxSize, expFn, closeFn, pruneInterval)
+	rp := newResourcePool(maxSize, expFn, closeFn, time.Minute)
+	rp.pruneTimer.Stop()
 	var i uint64
 	for i = 0; i < startingSize; i++ {
 		rp.deque.PushBack(&rsrc{})
 		rp.len++
 	}
+	rp.pruneInterval = pruneInterval
+	rp.pruneTimer.Reset(rp.pruneInterval)
 	return rp
 }
 
