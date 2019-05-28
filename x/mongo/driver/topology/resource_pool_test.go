@@ -146,7 +146,12 @@ func TestResourcePool(t *testing.T) {
 	t.Run("Background cleanup", func(t *testing.T) {
 		t.Run("runs once every interval", func(t *testing.T) {
 			ec := newExpiredCounter(5)
-			_ = initPool(5, 5, ec.expired, ec.close, 100*time.Millisecond)
+			rp := initPool(5, 5, ec.expired, ec.close, time.Minute)
+
+			rp.pruneTimer.Stop()
+			rp.pruneInterval = 100 * time.Millisecond
+			rp.pruneTimer.Reset(rp.pruneInterval)
+
 			select {
 			case <-ec.closeChan:
 			case <-time.After(5 * time.Second):
