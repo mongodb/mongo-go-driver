@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7462dc3d_c68191fd",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 251,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-28T17:28:11Z",
+      "side": 1,
+      "message": "Seems like we do this often. I know other tests do it this way, but can we do the following instead:\n\n1. Change createTestDatabase to create a database with write concern majority and run the create command to explicitly create a collection on the server\n2. Change createTestCollection to create a collection with a write concern that defaults to majority (can be overwritten via the CollectionOptions param).",
+      "range": {
+        "startLine": 251,
+        "startChar": 2,
+        "endLine": 251,
+        "endChar": 32
+      },
+      "revId": "27af3dac61c99984fa074733eb7d9af9a40f0ab8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "564223f6_f4d38692",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 767,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-28T17:28:11Z",
+      "side": 1,
+      "message": "Change the table tests to have a minServerVersion field and check against that instead of checking the test name directly.",
+      "range": {
+        "startLine": 765,
+        "startChar": 6,
+        "endLine": 767,
+        "endChar": 7
+      },
+      "revId": "27af3dac61c99984fa074733eb7d9af9a40f0ab8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
