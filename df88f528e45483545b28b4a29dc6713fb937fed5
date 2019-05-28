@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "ffc66d48_4e80b8c7",
+        "filename": "mongo/collection.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 410,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-28T18:05:17Z",
+      "side": 1,
+      "message": "We can likely make this work by either having a DeleteParameter type or just having the method on operation take all of the fields for a delete parameter. It is an oddly shaped command, maybe we should open a ticket for this?",
+      "parentUuid": "8a025247_9d7b9c93",
+      "range": {
+        "startLine": 410,
+        "startChar": 0,
+        "endLine": 410,
+        "endChar": 1
+      },
+      "revId": "df88f528e45483545b28b4a29dc6713fb937fed5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "1eb4d483_a4fb3b1d",
         "filename": "mongo/mongo.go",
         "patchSetId": 2
