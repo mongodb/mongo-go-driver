@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e3b8477e_957b83a4",
+        "filename": "x/mongo/driver/operation/ismaster.go",
+        "patchSetId": 2
+      },
+      "lineNbr": 374,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-28T17:59:08Z",
+      "side": 1,
+      "message": "It\u0027s still not clear to me if we\u0027re supposed to send this on subsequent isMaster commands after the first but I don\u0027t think it harms anything to do so.",
+      "range": {
+        "startLine": 367,
+        "startChar": 0,
+        "endLine": 374,
+        "endChar": 2
+      },
+      "revId": "aefeb95bd2c36ce10ba07d3ac7c829ec7feff868",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
