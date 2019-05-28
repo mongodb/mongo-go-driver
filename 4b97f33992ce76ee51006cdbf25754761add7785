@@ -307,6 +307,24 @@
       "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "e77f5b1b_51bd8c42",
+        "filename": "mongo/options/mongooptions.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-28T18:59:17Z",
+      "side": 1,
+      "message": "The arrayFilters field has to be in each individual update document, so it\u0027s handled in mongo.Collection rather than operation.Update. I think resolving this depends on resolving a similar issue in Delete operation of handling fields that need to be in each batch document rather once in the operation.",
+      "parentUuid": "a745917c_0d83f92b",
+      "revId": "4b97f33992ce76ee51006cdbf25754761add7785",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
