@@ -27,6 +27,8 @@ type Command struct {
 	session        *session.Client
 	monitor        *event.CommandMonitor
 	result         bsoncore.Document
+	srvr           driver.Server
+	desc           description.Server
 }
 
 // NewCommand constructs and returns a new Command.
@@ -34,6 +36,16 @@ func NewCommand(command bsoncore.Document) *Command { return &Command{command: c
 
 // Result returns the result of executing this operation.
 func (c *Command) Result() bsoncore.Document { return c.result }
+
+// ResultCursor parses the command response as a cursor and returns the resulting BatchCursor.
+func (c *Command) ResultCursor(opts driver.CursorOptions) (*driver.BatchCursor, error) {
+	cursorRes, err := driver.NewCursorResponse(c.result, c.srvr, c.desc)
+	if err != nil {
+		return nil, err
+	}
+
+	return driver.NewBatchCursor(cursorRes, c.session, c.clock, opts)
+}
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
 func (c *Command) Execute(ctx context.Context) error {
@@ -45,8 +57,10 @@ func (c *Command) Execute(ctx context.Context) error {
 		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 			return append(dst, c.command[4:len(c.command)-1]...), nil
 		},
-		ProcessResponseFn: func(resp bsoncore.Document, _ driver.Server, _ description.Server) error {
+		ProcessResponseFn: func(resp bsoncore.Document, srvr driver.Server, desc description.Server) error {
 			c.result = resp
+			c.srvr = srvr
+			c.desc = desc
 			return nil
 		},
 		Client:         c.session,
