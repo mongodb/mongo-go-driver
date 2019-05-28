@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "d36499ba_00e201e5",
+        "filename": "mongo/change_stream_test.go",
+        "patchSetId": 1
+      },
+      "lineNbr": 251,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-28T18:44:11Z",
+      "side": 1,
+      "message": "Small change to my previous comment. The createTestDatabase should just create a database with write concern majority. createTestCollection should use RunCommand to explicitly run the create command.",
+      "parentUuid": "7462dc3d_c68191fd",
+      "range": {
+        "startLine": 251,
+        "startChar": 2,
+        "endLine": 251,
+        "endChar": 32
+      },
+      "revId": "27af3dac61c99984fa074733eb7d9af9a40f0ab8",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "564223f6_f4d38692",
         "filename": "mongo/change_stream_test.go",
         "patchSetId": 1
