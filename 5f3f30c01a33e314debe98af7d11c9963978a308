@@ -46,6 +46,30 @@
       "revId": "5f3f30c01a33e314debe98af7d11c9963978a308",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4cce1c39_2d03f267",
+        "filename": "x/mongo/driver/operation/find.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-29T14:39:22Z",
+      "side": 1,
+      "message": "I think we\u0027re going to need this functionality anyway to add the support for complex parameters, e.g. for the delete and update commands.",
+      "parentUuid": "769f1ea7_5d48954a",
+      "range": {
+        "startLine": 67,
+        "startChar": 20,
+        "endLine": 67,
+        "endChar": 21
+      },
+      "revId": "5f3f30c01a33e314debe98af7d11c9963978a308",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
