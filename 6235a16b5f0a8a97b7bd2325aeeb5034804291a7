@@ -22,6 +22,30 @@
       "revId": "6235a16b5f0a8a97b7bd2325aeeb5034804291a7",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "516da492_d73456cb",
+        "filename": "mongo/collection.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 957,
+      "author": {
+        "id": 1001503
+      },
+      "writtenOn": "2019-05-29T17:48:35Z",
+      "side": 1,
+      "message": "I think we can do this instead:\n- Call Values on the bsoncore.Document that\u0027s returned from ArrayOK\n- Make a []interface{} with a length that matches the length of the returned Values\n- Iterate each of those values, cast it to a bson.RawValue, and call bson.RawValue.Unmarshal(\u0026ret[idx])\n- return the []interface{}",
+      "parentUuid": "0fb42f97_46b99517",
+      "range": {
+        "startLine": 957,
+        "startChar": 1,
+        "endLine": 957,
+        "endChar": 15
+      },
+      "revId": "6235a16b5f0a8a97b7bd2325aeeb5034804291a7",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
     }
   ]
 }
