@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "334f1ccd_576530ac",
+        "filename": "mongo/database.go",
+        "patchSetId": 4
+      },
+      "lineNbr": 118,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-29T21:46:01Z",
+      "side": 1,
+      "message": "The transactions spec says that operations that allow user-specified read preferences have to use the given read pref rather than overwriting it with the transaction\u0027s read pref. Because the operation layer doesn\u0027t know this information, it overwrites the given read preference, which causes tests to fail, so I added this manual check. I\u0027m going to file a SPEC ticket to clarify some of the spec info, so we might be able to remove this check once that\u0027s done.",
+      "range": {
+        "startLine": 116,
+        "startChar": 1,
+        "endLine": 118,
+        "endChar": 2
+      },
+      "revId": "746b99dc289a52566ea80a788fd9e13f07b468bb",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": true
+    }
+  ]
+}
