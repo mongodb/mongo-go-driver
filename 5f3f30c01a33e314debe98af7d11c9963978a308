@@ -70,6 +70,30 @@
       "revId": "5f3f30c01a33e314debe98af7d11c9963978a308",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "dc5abd72_bb5e8f1d",
+        "filename": "x/mongo/driver/operation/find.toml",
+        "patchSetId": 1
+      },
+      "lineNbr": 67,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-29T16:07:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4cce1c39_2d03f267",
+      "range": {
+        "startLine": 67,
+        "startChar": 20,
+        "endLine": 67,
+        "endChar": 21
+      },
+      "revId": "5f3f30c01a33e314debe98af7d11c9963978a308",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
     }
   ]
 }
