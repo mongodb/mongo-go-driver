@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "657572ae_d6d142fd",
+        "filename": "mongo/database_internal_test.go",
+        "patchSetId": 3
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1014410
+      },
+      "writtenOn": "2019-05-30T22:56:40Z",
+      "side": 1,
+      "message": "Good catch!",
+      "range": {
+        "startLine": 186,
+        "startChar": 1,
+        "endLine": 187,
+        "endChar": 38
+      },
+      "revId": "c5351dade9d04c3f2b5cf1c98227ad91a9740ea5",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
