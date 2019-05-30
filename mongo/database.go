@@ -268,6 +268,11 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	return cursor, replaceErrors(err)
 }
 
+// ListCollectionNames returns a slice containing the names of all of the collections on the server.
+func (db *Database) ListCollectionNames(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*Cursor, error) {
+	return db.ListCollections(ctx, filter)
+}
+
 // ReadConcern returns the read concern of this database.
 func (db *Database) ReadConcern() *readconcern.ReadConcern {
 	return db.readConcern

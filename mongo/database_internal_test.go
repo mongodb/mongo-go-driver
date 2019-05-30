@@ -182,6 +182,9 @@ func TestDatabase_NilDocumentError(t *testing.T) {
 
 	_, err = db.ListCollections(context.Background(), nil)
 	require.Equal(t, err, ErrNilDocument)
+
+	_, err = db.ListCollectionNames(context.Background(), nil)
+	require.Equal(t, err, ErrNilDocument)
 }
 
 func TestDatabase_Drop(t *testing.T) {
@@ -317,6 +320,87 @@ func listCollectionsTest(db *Database, cappedOnly bool, cappedName, uncappedName
 	}
 
 	return err // all tests failed
+}
+
+func TestListCollectionNames(t *testing.T) {
+	serverVersion, err := getServerVersion(createTestDatabase(t, nil))
+	require.NoError(t, err)
+
+	if compareVersions(t, serverVersion, "4.0") < 0 {
+		t.Skip()
+	}
+
+	t.Run("no filter", func(t *testing.T) {
+		dbName := "listCollectionNames_noFilter"
+		collName := "test"
+
+		c := createTestClient(t)
+		db := c.Database(dbName)
+		coll := db.Collection(collName)
+
+		coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+		_, err := coll.InsertOne(
+			context.Background(),
+			bsonx.Doc{{"x", bsonx.Int32(1)}},
+		)
+		require.NoError(t, err)
+
+		cols, err := db.ListCollectionNames(context.Background(), bsonx.Doc{})
+		found := false
+
+		for cols.Next(ctx) {
+			next := &bsonx.Doc{}
+			err = cols.Decode(next)
+			require.NoError(t, err)
+
+			elem, err := next.LookupErr("name")
+			require.NoError(t, err)
+
+			elemName := elem.StringValue()
+			if elemName == collName {
+				found = true
+				break
+			}
+		}
+		require.True(t, found)
+	})
+
+	t.Run("filter", func(t *testing.T) {
+		dbName := "listCollectionNames_filter"
+		collName := "test"
+
+		c := createTestClient(t)
+		db := c.Database(dbName)
+		coll := db.Collection(collName)
+		coll.writeConcern = writeconcern.New(writeconcern.WMajority())
+		_, err := coll.InsertOne(
+			context.Background(),
+			bsonx.Doc{{"x", bsonx.Int32(1)}},
+		)
+		require.NoError(t, err)
+
+		cols, err := db.ListCollectionNames(
+			context.Background(),
+			bson.D{{"name", collName}},
+		)
+
+		var elemName string
+		length := 0
+		for cols.Next(ctx) {
+			next := &bsonx.Doc{}
+			err = cols.Decode(next)
+			require.NoError(t, err)
+
+			elem, err := next.LookupErr("name")
+			require.NoError(t, err)
+
+			elemName = elem.StringValue()
+			length++
+		}
+		require.NoError(t, err)
+		require.Equal(t, length, 1)
+		require.Equal(t, collName, elemName)
+	})
 }
 
 // get the connection string for a direct connection to a secondary in a replica set
