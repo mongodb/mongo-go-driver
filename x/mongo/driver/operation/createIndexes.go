@@ -31,8 +31,7 @@ type CreateIndexes struct {
 	database   string
 	deployment driver.Deployment
 	selector   description.ServerSelector
-
-	result CreateIndexesResult
+	result     CreateIndexesResult
 }
 
 type CreateIndexesResult struct {
@@ -52,28 +51,24 @@ func buildCreateIndexesResult(response bsoncore.Document, srvr driver.Server) (C
 	cir := CreateIndexesResult{}
 	for _, element := range elements {
 		switch element.Key() {
-
-		case "indexesBefore":
-			var ok bool
-			cir.IndexesBefore, ok = element.Value().Int32OK()
-			if !ok {
-				err = fmt.Errorf("response field 'indexesBefore' is type int32, but received BSON type %s", element.Value().Type)
-			}
-
-		case "indexesAfter":
-			var ok bool
-			cir.IndexesAfter, ok = element.Value().Int32OK()
-			if !ok {
-				err = fmt.Errorf("response field 'indexesAfter' is type int32, but received BSON type %s", element.Value().Type)
-			}
-
 		case "createdCollectionAutomatically":
 			var ok bool
 			cir.CreatedCollectionAutomatically, ok = element.Value().BooleanOK()
 			if !ok {
 				err = fmt.Errorf("response field 'createdCollectionAutomatically' is type bool, but received BSON type %s", element.Value().Type)
 			}
-
+		case "indexesAfter":
+			var ok bool
+			cir.IndexesAfter, ok = element.Value().AsInt32OK()
+			if !ok {
+				err = fmt.Errorf("response field 'indexesAfter' is type int32, but received BSON type %s", element.Value().Type)
+			}
+		case "indexesBefore":
+			var ok bool
+			cir.IndexesBefore, ok = element.Value().AsInt32OK()
+			if !ok {
+				err = fmt.Errorf("response field 'indexesBefore' is type int32, but received BSON type %s", element.Value().Type)
+			}
 		}
 	}
 	return cir, nil
@@ -91,10 +86,8 @@ func (ci *CreateIndexes) Result() CreateIndexesResult { return ci.result }
 
 func (ci *CreateIndexes) processResponse(response bsoncore.Document, srvr driver.Server, desc description.Server) error {
 	var err error
-
 	ci.result, err = buildCreateIndexesResult(response, srvr)
 	return err
-
 }
 
 // Execute runs this operations and returns an error if the operaiton did not execute successfully.
@@ -106,25 +99,24 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 	return driver.Operation{
 		CommandFn:         ci.command,
 		ProcessResponseFn: ci.processResponse,
-
-		Client:         ci.session,
-		Clock:          ci.clock,
-		CommandMonitor: ci.monitor,
-		Database:       ci.database,
-		Deployment:     ci.deployment,
-		Selector:       ci.selector,
+		Client:            ci.session,
+		Clock:             ci.clock,
+		CommandMonitor:    ci.monitor,
+		Database:          ci.database,
+		Deployment:        ci.deployment,
+		Selector:          ci.selector,
 	}.Execute(ctx, nil)
 
 }
 
 func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "createIndexes", ci.collection)
-	if ci.indexes != nil {
 
+	if ci.indexes != nil {
 		dst = bsoncore.AppendArrayElement(dst, "indexes", ci.indexes)
 	}
-	if ci.maxTimeMS != nil {
 
+	if ci.maxTimeMS != nil {
 		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", *ci.maxTimeMS)
 	}
 
