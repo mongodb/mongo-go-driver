@@ -87,5 +87,7 @@ func (sr *SingleResult) setRdrContents() error {
 // Err will return the error from the operation that created this SingleResult.
 // If there was no error, nil is returned.
 func (sr *SingleResult) Err() error {
+	sr.err = sr.setRdrContents()
+
 	return sr.err
 }
